@@ -50,7 +50,7 @@
                                 aria-label="{{ $categoryLabel }} — {{ __('notifications.channel_in_app') }}"
                                 :aria-checked="{{ $db ? 'true' : 'false' }}">
                             <span @class([
-                                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
+                                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
                                 'translate-x-6' => $db,
                                 'translate-x-1' => !$db,
                             ])></span>
@@ -68,7 +68,7 @@
                                 aria-label="{{ $categoryLabel }} — {{ __('notifications.channel_email') }}"
                                 :aria-checked="{{ $mail ? 'true' : 'false' }}">
                             <span @class([
-                                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
+                                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
                                 'translate-x-6' => $mail,
                                 'translate-x-1' => !$mail,
                             ])></span>
@@ -86,7 +86,7 @@
                                 aria-label="{{ $categoryLabel }} — {{ __('notifications.channel_push') }}"
                                 :aria-checked="{{ $push ? 'true' : 'false' }}">
                             <span @class([
-                                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
+                                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
                                 'translate-x-6' => $push,
                                 'translate-x-1' => !$push,
                             ])></span>

@@ -138,7 +138,7 @@
                 <div class="space-y-4">
                     <div>
                         <label for="content-language" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_content_language') }}</label>
-                        <select id="content-language" wire:model="language" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
+                        <select id="content-language" wire:model="language" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs">
                             @foreach(\App\Enums\ContentLanguage::cases() as $lang)
                                 <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
                             @endforeach
@@ -161,12 +161,12 @@
                         :baseline-locale="$baselineLocale"
                         :all-locales="$allLocales"
                         :required="['name']"
-                        inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
+                        inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs"
                     />
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="event-type" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('discovery.content_type') }}</label>
-                            <select id="event-type" wire:model="type" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
+                            <select id="event-type" wire:model="type" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs">
                                 <option value="tournament">{{ __('events.field_tournament') }}</option>
                                 <option value="league">{{ __('common.content_league') }}</option>
                                 <option value="camp">{{ __('common.content_camp') }}</option>
@@ -178,7 +178,7 @@
                         </div>
                         <div>
                             <label for="event-status" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.content_status') }}</label>
-                            <select id="event-status" wire:model="status" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
+                            <select id="event-status" wire:model="status" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs">
                                 <option value="draft">{{ __('common.status_draft') }}</option>
                                 <option value="published">{{ __('common.status_published') }}</option>
                                 <option value="registration_open">{{ __('events.content_registration_open') }}</option>
@@ -194,13 +194,13 @@
                         <div>
                             <label for="event-start-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_start_date') }}</label>
                             <input type="date" id="event-start-date" wire:model="start_date"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('start_date') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label for="event-end-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_end_date') }}</label>
                             <input type="date" id="event-end-date" wire:model="end_date"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('end_date') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -213,32 +213,32 @@
                     <div>
                         <label for="event-venue-name" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('location.field_venue_name') }}</label>
                         <input type="text" id="event-venue-name" wire:model="venue_name"
-                               class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                               class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         @error('venue_name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label for="event-address" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('location.field_address') }}</label>
                         <textarea id="event-address" wire:model="venue_address" rows="2"
-                                  class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
+                                  class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs"></textarea>
                         @error('venue_address') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label for="event-city" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('location.field_city') }}</label>
                             <input type="text" id="event-city" wire:model="city"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label for="event-country" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('location.field_country') }}</label>
                             <input type="text" id="event-country" wire:model="country" maxlength="3"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('country') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label for="event-postal-code" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('location.field_postal_code') }}</label>
                             <input type="text" id="event-postal-code" wire:model="postal_code"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('postal_code') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -264,25 +264,25 @@
                         <div>
                             <label for="event-max-teams" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_max_teams') }}</label>
                             <input type="number" id="event-max-teams" wire:model="max_teams" min="1"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('max_teams') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label for="event-min-players" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_min_players_team') }}</label>
                             <input type="number" id="event-min-players" wire:model="min_players_per_team" min="1"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                         <div>
                             <label for="event-max-players" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_max_players_team') }}</label>
                             <input type="number" id="event-max-players" wire:model="max_players_per_team" min="1"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                         @endif
                         @if(in_array($registration_type, ['individual', 'both']))
                         <div>
                             <label for="event-max-participants" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_max_participants') }}</label>
                             <input type="number" id="event-max-participants" wire:model="max_participants" min="1"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('max_participants') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                         @endif
@@ -293,25 +293,25 @@
                         <div>
                             <label for="event-team-fee" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.field_team_fee') }}</label>
                             <input type="number" id="event-team-fee" wire:model="team_registration_fee" min="0"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                         @endif
                         @if(in_array($registration_type, ['individual', 'both']))
                         <div>
                             <label for="event-individual-fee" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.field_individual_fee') }}</label>
                             <input type="number" id="event-individual-fee" wire:model="individual_registration_fee" min="0"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                         @endif
                         <div>
                             <label for="event-early-bird-discount" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.content_early_bird_discount') }}</label>
                             <input type="number" id="event-early-bird-discount" wire:model="early_bird_discount" min="0"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                         <div>
                             <label for="event-early-bird-deadline" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.content_early_bird_deadline') }}</label>
                             <input type="datetime-local" id="event-early-bird-deadline" wire:model="early_bird_deadline"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                     </div>
                     <h3 class="text-md font-medium text-on-surface pt-2">{{ __('events.content_registration_window') }}</h3>
@@ -319,12 +319,12 @@
                         <div>
                             <label for="event-reg-opens" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.content_opens_at') }}</label>
                             <input type="datetime-local" id="event-reg-opens" wire:model="registration_opens_at"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                         <div>
                             <label for="event-reg-closes" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.content_closes_at') }}</label>
                             <input type="datetime-local" id="event-reg-closes" wire:model="registration_closes_at"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('registration_closes_at') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -340,12 +340,12 @@
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <input type="text" wire:model="newDivisionName" placeholder="{{ __('events.placeholder_new_division_name') }}"
-                                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                                 @error('newDivisionName') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <input type="text" wire:model="newDivisionDescription" placeholder="{{ __('common.field_description') }}"
-                                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             </div>
                             <button wire:click="addDivision" class="px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest text-sm font-medium transition-colors inline-flex items-center gap-1">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
@@ -389,34 +389,34 @@
                     <div>
                         <label for="event-rules" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.content_rules') }} <span class="text-xs text-on-surface-variant">({{ __('common.content_one_per_line') }})</span></label>
                         <textarea id="event-rules" wire:model="rules" rows="5"
-                                  class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
+                                  class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs"></textarea>
                     </div>
                     <div>
                         <label for="event-schedule" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('campaigns.content_schedule') }} <span class="text-xs text-on-surface-variant">({{ __('common.content_one_item_per_line') }})</span></label>
                         <textarea id="event-schedule" wire:model="schedule" rows="4"
-                                  class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
+                                  class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs"></textarea>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="event-contact-email" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('emails.field_contact_email') }}</label>
                             <input type="email" id="event-contact-email" wire:model="contact_email"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('contact_email') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label for="event-contact-phone" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_contact_phone') }}</label>
                             <input type="text" id="event-contact-phone" wire:model="contact_phone"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                     </div>
                     <div class="flex items-center gap-6 pt-2">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" wire:model="is_public" class="rounded border-outline text-primary focus:ring-primary/20" />
+                            <input type="checkbox" wire:model="is_public" class="rounded-sm border-outline text-primary focus:ring-primary/20" />
                             <span class="text-sm text-on-surface-variant">{{ __('events.content_public_event') }}</span>
                         </label>
                         @if(auth()->user() && app(\App\Services\ScopedRoleService::class)->isGlobalAdmin(auth()->user()))
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" wire:model="is_featured" class="rounded border-outline text-primary focus:ring-primary/20" />
+                            <input type="checkbox" wire:model="is_featured" class="rounded-sm border-outline text-primary focus:ring-primary/20" />
                             <span class="text-sm text-on-surface-variant">{{ __('discovery.content_featured') }}</span>
                         </label>
                         @endif

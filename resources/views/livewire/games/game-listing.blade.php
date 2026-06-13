@@ -7,24 +7,24 @@
             <div class="flex-1 relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>
                 <input type="text" aria-label="{{ __('games.action_search_games') }}" wire:model.live.debounce.300ms="search" placeholder="{{ __('games.action_search_games_by_name_or_description') }}"
-                       class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                       class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
             </div>
             <select wire:model.live="game_system_id" aria-label="{{ __('games.action_filter_by_game_system') }}"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.content_all_systems') }}</option>
                 @foreach($gameSystems as $system)
                     <option value="{{ $system->id }}">{{ $system->name }}</option>
                 @endforeach
             </select>
             <select wire:model.live="date" aria-label="{{ __('discovery.field_filter_by_date') }}"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.field_any_date') }}</option>
                 <option value="upcoming">{{ __('common.field_upcoming') }}</option>
                 <option value="this_week">{{ __('common.content_this_week') }}</option>
                 <option value="this_month">{{ __('common.content_this_month') }}</option>
             </select>
             <select wire:model.live="price" aria-label="{{ __('discovery.field_filter_by_price') }}"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.field_any_price') }}</option>
                 <option value="free">{{ __('billing.content_free') }}</option>
                 <option value="paid">{{ __('billing.content_paid') }}</option>
@@ -34,14 +34,14 @@
         {{-- Secondary Filters --}}
         <div class="flex flex-wrap gap-3">
             <select wire:model.live="experience_level" aria-label="{{ __('discovery.action_filter_by_experience_level') }}"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.content_all_levels') }}</option>
                 @foreach($experienceLevels as $level)
                     <option value="{{ $level->value }}">{{ $level->label() }}</option>
                 @endforeach
             </select>
             <select wire:model.live="language" aria-label="{{ __('discovery.action_filter_by_language') }}"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.content_all_languages') }}</option>
                 @foreach($languages as $lang)
                     <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
@@ -75,10 +75,10 @@
         <div class="flex items-center gap-3">
             <span class="text-sm text-on-surface-variant">{{ __('games.content_complexity') }}</span>
             <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_min" placeholder="{{ __('common.field_min') }}" aria-label="{{ __('games.field_minimum_complexity') }}"
-                   class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
+                   class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
             <span class="text-on-surface-variant">–</span>
             <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_max" placeholder="{{ __('common.field_max') }}" aria-label="{{ __('games.field_maximum_complexity') }}"
-                   class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
+                   class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
         </div>
 
         {{-- Active Filters --}}

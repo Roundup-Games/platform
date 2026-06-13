@@ -24,7 +24,7 @@ $currentLocale = $activeLocale ?: $baselineLocale;
             {{ $isActive ? 'aria-current="true"' : '' }}
             class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 {{
                 $isActive
-                    ? ($isBaseline ? 'bg-primary text-on-primary shadow-sm' : 'bg-secondary text-on-secondary shadow-sm')
+                    ? ($isBaseline ? 'bg-primary text-on-primary shadow-xs' : 'bg-secondary text-on-secondary shadow-xs')
                     : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'
             }}"
         >

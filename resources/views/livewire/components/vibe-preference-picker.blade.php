@@ -59,7 +59,7 @@
                                 wire:click="togglePaired('{{ $pair['flagA'] }}', '{{ $pair['flagB'] }}', 'favorite')"
                                 @class([
                                     'flex-1 px-3 py-2 text-sm font-medium transition-all flex items-center justify-center gap-1.5',
-                                    'bg-primary text-on-primary shadow-sm' => $pair['valueA'] === 'favorite',
+                                    'bg-primary text-on-primary shadow-xs' => $pair['valueA'] === 'favorite',
                                     'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' => $pair['valueA'] !== 'favorite',
                                 ])
                                 aria-pressed="{{ $pair['valueA'] === 'favorite' ? 'true' : 'false' }}"
@@ -90,7 +90,7 @@
                                 wire:click="togglePaired('{{ $pair['flagB'] }}', '{{ $pair['flagA'] }}', 'favorite')"
                                 @class([
                                     'flex-1 px-3 py-2 text-sm font-medium transition-all flex items-center justify-center gap-1.5',
-                                    'bg-primary text-on-primary shadow-sm' => $pair['valueB'] === 'favorite',
+                                    'bg-primary text-on-primary shadow-xs' => $pair['valueB'] === 'favorite',
                                     'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' => $pair['valueB'] !== 'favorite',
                                 ])
                                 aria-pressed="{{ $pair['valueB'] === 'favorite' ? 'true' : 'false' }}"
@@ -131,7 +131,7 @@
                                 @class([
                                     'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm cursor-pointer transition-all',
                                     'bg-surface-container-high border-outline/20 text-on-surface-variant hover:border-outline/40' => $sf['value'] === null,
-                                    'bg-primary border-primary text-on-primary font-medium shadow-sm' => $sf['value'] === 'favorite',
+                                    'bg-primary border-primary text-on-primary font-medium shadow-xs' => $sf['value'] === 'favorite',
                                     'bg-error-container border-error text-on-error-container' => $sf['value'] === 'avoid',
                                 ])
                                 aria-pressed="{{ $sf['value'] === 'favorite' ? 'true' : ($sf['value'] === 'avoid' ? 'false' : 'mixed') }}"

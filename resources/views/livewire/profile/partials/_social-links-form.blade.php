@@ -25,7 +25,7 @@
                             id="social-{{ $key }}"
                             wire:model="socialLinks.{{ $key }}.handle"
                             placeholder="{{ $platform['at_prefixed'] ? __('profile.gm_social_handle_placeholder_at') : __('profile.gm_social_handle_placeholder') }}"
-                            class="flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                            class="flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                             autocomplete="off"
                         />
                     </div>
@@ -41,7 +41,7 @@
                                 id="social-{{ $key }}-instance"
                                 wire:model="socialLinks.{{ $key }}.instance"
                                 placeholder="mastodon.social"
-                                class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                                 autocomplete="off"
                             />
                         </div>

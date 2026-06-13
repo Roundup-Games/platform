@@ -55,7 +55,7 @@
                         @for($i = 1; $i <= 5; $i++)
                             <button type="button"
                                     wire:click="$set('rating', {{ $i }})"
-                                    class="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded p-0.5 transition-colors"
+                                    class="focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary rounded-sm p-0.5 transition-colors"
                                     role="radio"
                                     aria-checked="{{ $rating === $i ? 'true' : 'false' }}"
                                     aria-label="{{ $i }} {{ trans_choice('reviews.content_star_count', $i) }}">
@@ -82,7 +82,7 @@
                               wire:model="body"
                               rows="4"
                               maxlength="2000"
-                              class="w-full rounded-lg border border-outline bg-surface-container-low text-on-surface px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors resize-y"
+                              class="w-full rounded-lg border border-outline bg-surface-container-low text-on-surface px-4 py-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-primary transition-colors resize-y"
                               placeholder="{{ __('reviews.placeholder_tell_us_about_experience') }}"></textarea>
                     <div class="flex justify-between mt-1">
                         @error('body')
@@ -107,7 +107,7 @@
                                 <input type="checkbox"
                                        wire:change="toggleTag('{{ $proficiency->value }}')"
                                        {{ in_array($proficiency->value, $proficiency_tags) ? 'checked' : '' }}
-                                       class="rounded border-outline text-primary focus:ring-primary">
+                                       class="rounded-sm border-outline text-primary focus:ring-primary">
                                 <div>
                                     <span class="text-sm font-medium text-on-surface">{{ $proficiency->label() }}</span>
                                     <span class="block text-xs text-on-surface-variant">{{ $proficiency->description() }}</span>

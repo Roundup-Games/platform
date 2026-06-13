@@ -44,7 +44,7 @@
                 {{-- One link for signups --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">link</span>
                         </div>
                         <div>
@@ -59,7 +59,7 @@
                 {{-- Automatic player matching --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">group</span>
                         </div>
                         <div>
@@ -74,7 +74,7 @@
                 {{-- Campaign management --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">map</span>
                         </div>
                         <div>
@@ -89,7 +89,7 @@
                 {{-- Visibility controls --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">tune</span>
                         </div>
                         <div>

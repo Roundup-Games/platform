@@ -29,7 +29,7 @@
                 $isNew = $card['is_new'] ?? false;
                 $earnedText = $earnedAt ? $earnedAt->diffForHumans(['short' => true]) : null;
             @endphp
-            <div class="flex-shrink-0 w-40 sm:w-48 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 p-4 text-center"
+            <div class="shrink-0 w-40 sm:w-48 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 p-4 text-center"
                  role="listitem">
                 {{-- Icon --}}
                 <div class="w-10 h-10 rounded-full {{ $iconColorStyle }} flex items-center justify-center mx-auto">

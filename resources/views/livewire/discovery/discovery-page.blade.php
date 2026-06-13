@@ -12,17 +12,17 @@
             <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1" role="radiogroup" aria-label="{{ __('campaigns.content_session_type') }}">
                 <button wire:click="setMode('all')"
                         role="radio" aria-checked="{{ $mode === 'all' ? 'true' : 'false' }}"
-                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'all' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'all' ? 'bg-primary text-on-primary shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                     {{ __('common.content_either') }}
                 </button>
                 <button wire:click="setMode('games')"
                         role="radio" aria-checked="{{ $mode === 'games' ? 'true' : 'false' }}"
-                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'games' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'games' ? 'bg-primary text-on-primary shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                     {{ __('common.content_one_shot') }}
                 </button>
                 <button wire:click="setMode('campaigns')"
                         role="radio" aria-checked="{{ $mode === 'campaigns' ? 'true' : 'false' }}"
-                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'campaigns' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'campaigns' ? 'bg-primary text-on-primary shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                     {{ __('campaigns.content_campaign') }}
                 </button>
             </div>
@@ -31,19 +31,19 @@
             @if($mode === 'all' || $mode === 'games')
                 <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 overflow-x-auto" role="radiogroup" aria-label="{{ __('common.field_time_frame') }}">
                     <button wire:click="setDate('')"
-                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$date ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$date ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                         {{ __('discovery.field_any_date') }}
                     </button>
                     <button wire:click="setDate('upcoming')"
-                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'upcoming' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'upcoming' ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                         {{ __('common.field_upcoming') }}
                     </button>
                     <button wire:click="setDate('this_week')"
-                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_week' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_week' ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                         {{ __('common.content_this_week') }}
                     </button>
                     <button wire:click="setDate('this_month')"
-                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_month' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_month' ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                         {{ __('common.content_this_month') }}
                     </button>
                 </div>
@@ -52,12 +52,12 @@
             @if($mode === 'campaigns')
                 <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 overflow-x-auto" role="radiogroup" aria-label="{{ __('campaigns.content_schedule') }}">
                     <button wire:click="setRecurrence('')"
-                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$recurrence ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$recurrence ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                         {{ __('discovery.content_any_schedule') }}
                     </button>
                     @foreach($recurrenceOptions as $option)
                         <button wire:click="setRecurrence('{{ $option }}')"
-                                class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $recurrence === $option ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                                class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $recurrence === $option ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                             {{ match($option) {
                                 'weekly' => __('campaigns.content_weekly'),
                                 'bi-weekly' => __('campaigns.content_bi-weekly'),
@@ -91,14 +91,14 @@
                     {{ __('common.content_radius') }}:
                 </span>
                 <button wire:click="setRadius(0)"
-                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == 0 ? 'bg-tertiary-container text-on-tertiary-container shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == 0 ? 'bg-tertiary-container text-on-tertiary-container shadow-xs' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
                         role="radio"
                         aria-checked="{{ $radius == 0 ? 'true' : 'false' }}">
                     {{ __('discovery.field_any_distance') }}
                 </button>
                 @foreach($radiusOptions as $option)
                     <button wire:click="setRadius({{ $option }})"
-                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == $option ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == $option ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
                             role="radio"
                             aria-checked="{{ $radius == $option ? 'true' : 'false' }}">
                         {{ $option }} km

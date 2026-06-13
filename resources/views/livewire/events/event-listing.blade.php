@@ -7,10 +7,10 @@
             <div class="flex-1 relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>
                 <input type="text" aria-label="Search events" wire:model.live.debounce.300ms="search" placeholder="{{ __('events.action_search_events_by_name_city_or_venue') }}"
-                       class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                       class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
             </div>
             <select wire:model.live="type" aria-label="Filter by event type"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.content_all_types') }}</option>
                 <option value="tournament">{{ __('events.field_tournament') }}</option>
                 <option value="league">{{ __('common.content_league') }}</option>
@@ -20,7 +20,7 @@
                 <option value="other">{{ __('common.content_other') }}</option>
             </select>
             <select wire:model.live="status" aria-label="Filter by event status"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.content_all_statuses') }}</option>
                 <option value="registration_open">{{ __('events.content_registration_open') }}</option>
                 <option value="registration_closed">{{ __('events.content_registration_closed') }}</option>
@@ -28,7 +28,7 @@
                 <option value="published">{{ __('common.status_published') }}</option>
             </select>
             <select wire:model.live="date" aria-label="Filter by date"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.field_any_date') }}</option>
                 <option value="upcoming">{{ __('common.field_upcoming') }}</option>
                 <option value="this_week">{{ __('common.content_this_week') }}</option>

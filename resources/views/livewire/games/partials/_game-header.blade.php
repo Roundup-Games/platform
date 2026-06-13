@@ -13,9 +13,9 @@
 <section class="relative bg-primary text-on-primary overflow-hidden min-h-[200px] sm:min-h-[260px]">
     @if($coverUrl)
         <div class="absolute inset-0">
-            <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-sm scale-105" aria-hidden="true" fetchpriority="high">
+            <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-xs scale-105" aria-hidden="true" fetchpriority="high">
         </div>
-        <div class="absolute inset-0 bg-gradient-to-b from-primary/85 via-primary/95 to-primary"></div>
+        <div class="absolute inset-0 bg-linear-to-b from-primary/85 via-primary/95 to-primary"></div>
     @endif
 
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 lg:py-16">

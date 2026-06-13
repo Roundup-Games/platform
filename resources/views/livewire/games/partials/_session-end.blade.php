@@ -482,7 +482,7 @@
                             <p class="text-xs font-medium text-on-surface-variant mb-2">{{ $promptLabel }}</p>
                             <div class="space-y-1">
                                 @foreach($responses as $response)
-                                    <p class="text-sm text-on-surface bg-surface-container-high rounded px-3 py-2">{{ $response }}</p>
+                                    <p class="text-sm text-on-surface bg-surface-container-high rounded-sm px-3 py-2">{{ $response }}</p>
                                 @endforeach
                             </div>
                         </div>

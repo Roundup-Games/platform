@@ -131,7 +131,7 @@
                             @foreach($links as $link)
                                 <a href="{{ $link['url'] ?? '#' }}"
                                    target="_blank" rel="noopener noreferrer"
-                                   class="flex items-center gap-3 p-3 bg-surface-container rounded-xl hover:bg-surface-container-high hover:shadow-sm transition-all group">
+                                   class="flex items-center gap-3 p-3 bg-surface-container rounded-xl hover:bg-surface-container-high hover:shadow-xs transition-all group">
                                     @if(!empty($link['image']))
                                         <div class="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-surface-container-high">
                                             <img src="{{ $link['image'] }}" alt="" class="w-full h-full object-cover" loading="lazy" aria-hidden="true">

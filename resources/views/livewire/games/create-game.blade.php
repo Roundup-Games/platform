@@ -158,7 +158,7 @@
                                         aria-label="{{ __('games.label_bench_mode') }}"
                                         aria-checked="{{ $bench_mode ? 'true' : 'false' }}">
                                     <span @class([
-                                        'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
+                                        'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
                                         'translate-x-6' => $bench_mode,
                                         'translate-x-1' => !$bench_mode,
                                     ])></span>

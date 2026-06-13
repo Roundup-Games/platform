@@ -115,7 +115,7 @@ $effectiveConfirmIcon = $confirmIcon ?: match($severity) {
             <div class="flex items-center gap-1.5">
                 <button wire:click="{{ $action }}"
                         x-init="$nextTick(() => { if (isConfirming) $el.focus() })"
-                        class="inline-flex items-center gap-1 px-2 py-1 {{ $confirmBtnClass }} text-xs font-medium rounded transition-opacity">
+                        class="inline-flex items-center gap-1 px-2 py-1 {{ $confirmBtnClass }} text-xs font-medium rounded-sm transition-opacity">
                     {{ $confirmLabel ?: __('common.action_yes') }}
                 </button>
                 <button @click="confirmingId = null"

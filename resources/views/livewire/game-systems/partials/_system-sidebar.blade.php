@@ -115,7 +115,7 @@
                                     <dt class="text-on-surface-variant">{{ __('games.content_complexity') }}</dt>
                                     <dd class="font-medium text-on-surface">{{ number_format($system->bgg_average_weight, 1) }} / 5</dd>
                                     <div class="mt-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden max-w-[120px]">
-                                        <div class="h-full rounded-full bg-gradient-to-r from-green-400 via-amber-400 to-red-400" style="width: {{ min(100, ($system->bgg_average_weight / 5) * 100) }}%"></div>
+                                        <div class="h-full rounded-full bg-linear-to-r from-green-400 via-amber-400 to-red-400" style="width: {{ min(100, ($system->bgg_average_weight / 5) * 100) }}%"></div>
                                     </div>
                                 </div>
                             </div>

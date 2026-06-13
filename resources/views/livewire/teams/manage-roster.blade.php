@@ -39,12 +39,12 @@
             <div class="flex flex-col sm:flex-row gap-3">
                 <div class="flex-1">
                     <input type="email" aria-label="Invite email address" wire:model="inviteEmail" placeholder="player@example.com"
-                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                     @error('inviteEmail') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <select aria-label="Invite role" wire:model="inviteRole"
-                            class="rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface">
+                            class="rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface">
                         <option value="player">{{ __('common.content_player') }}</option>
                         <option value="substitute">{{ __('common.content_substitute') }}</option>
                         <option value="coach">{{ __('common.content_coach') }}</option>
@@ -93,7 +93,7 @@
                                     <td class="py-2 px-3">
                                         @if($editingMemberId === $member->id && $isCaptain)
                                             <select wire:change="setRole('{{ $member->id }}', $event.target.value)"
-                                                    class="text-xs rounded bg-surface-container-high border border-transparent py-0.5 px-1 text-on-surface">
+                                                    class="text-xs rounded-sm bg-surface-container-high border border-transparent py-0.5 px-1 text-on-surface">
                                                 @foreach(['captain', 'coach', 'player', 'substitute'] as $r)
                                                     <option value="{{ $r }}" {{ $member->role === $r ? 'selected' : '' }}>{{ __(ucfirst($r)) }}</option>
                                                 @endforeach
@@ -111,7 +111,7 @@
                                     <td class="py-2 px-3 text-on-surface">
                                         @if($editingMemberId === $member->id)
                                             <input type="text" wire:model="editJerseyNumber" maxlength="3"
-                                                   class="w-14 rounded bg-surface-container-high border border-transparent text-sm py-0.5 px-1 text-on-surface" />
+                                                   class="w-14 rounded-sm bg-surface-container-high border border-transparent text-sm py-0.5 px-1 text-on-surface" />
                                         @else
                                             {{ $member->jersey_number ?? '—' }}
                                         @endif
@@ -119,7 +119,7 @@
                                     <td class="py-2 px-3 text-on-surface">
                                         @if($editingMemberId === $member->id)
                                             <input type="text" wire:model="editPosition" maxlength="50"
-                                                   class="w-28 rounded bg-surface-container-high border border-transparent text-sm py-0.5 px-1 text-on-surface" />
+                                                   class="w-28 rounded-sm bg-surface-container-high border border-transparent text-sm py-0.5 px-1 text-on-surface" />
                                         @else
                                             {{ $member->position ?? '—' }}
                                         @endif
@@ -128,7 +128,7 @@
                                         <td class="py-2 px-3 text-right">
                                             @if($editingMemberId === $member->id)
                                                 <button wire:click="saveMemberDetails"
-                                                        class="text-xs px-2 py-1 bg-secondary-container text-on-secondary-container rounded hover:brightness-110 transition-all">{{ __('common.action_save_changes') }}</button>
+                                                        class="text-xs px-2 py-1 bg-secondary-container text-on-secondary-container rounded-sm hover:brightness-110 transition-all">{{ __('common.action_save_changes') }}</button>
                                                 <button wire:click="cancelEditing"
                                                         class="text-xs px-2 py-1 text-on-surface-variant hover:text-on-surface ml-1">{{ __('common.action_cancel') }}</button>
                                             @else

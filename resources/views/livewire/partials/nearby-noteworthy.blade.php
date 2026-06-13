@@ -39,7 +39,7 @@
                     $dateText = $dateTime ? format_date($dateTime, 'short_date') : null;
                 @endphp
                 <a href="{{ route('games.show', $game['id']) }}" wire:navigate
-                   class="flex-shrink-0 w-56 sm:w-64 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-4 group"
+                   class="shrink-0 w-56 sm:w-64 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-4 group"
                    role="listitem">
                     <div class="min-w-0">
                         {{-- System badge --}}

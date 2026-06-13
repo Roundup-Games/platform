@@ -31,7 +31,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-heading font-semibold text-on-surface">{{ __('campaigns.heading_my_campaigns') }}</h2>
                 <a href="{{ route('campaigns.create') }}" wire:navigate
-                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold shadow-sm hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
+                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold shadow-xs hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
                     {{ __('common.action_create') }}
                 </a>
@@ -42,7 +42,7 @@
                     <span class="material-symbols-outlined text-4xl text-on-surface-variant mb-2 block" aria-hidden="true">campaign</span>
                     <p class="text-on-surface-variant text-sm">{{ __('campaigns.content_no_owned_campaigns') }}</p>
                     <a href="{{ route('campaigns.create') }}" wire:navigate
-                       class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-on-primary shadow-sm hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
+                       class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-on-primary shadow-xs hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
                         {{ __('common.action_create') }}
                     </a>
@@ -307,7 +307,7 @@
                                                 @endif
                                         </div>
                                         <button type="button" wire:click="editClearLocation"
-                                                class="p-1 rounded hover:bg-surface-container-high/80 text-on-surface-variant hover:text-error transition-colors"
+                                                class="p-1 rounded-sm hover:bg-surface-container-high/80 text-on-surface-variant hover:text-error transition-colors"
                                                 aria-label="{{ __('common.action_remove') }}">
                                             <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
                                         </button>

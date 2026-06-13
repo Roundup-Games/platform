@@ -27,7 +27,7 @@
                     default => 'auto_awesome',
                 };
             @endphp
-            <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0"
+            <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0"
                   style="font-variation-settings: 'FILL' 0">{{ $promptIcon }}</span>
             <div class="min-w-0">
                 <p class="text-on-surface text-sm leading-relaxed">{{ $smartPrompt['message'] }}</p>
@@ -43,7 +43,7 @@
         @if($unreadNotificationsCount > 0)
             <a href="{{ route('notifications.index') }}" wire:navigate
                aria-label="{{ $unreadNotificationsCount }} {{ __('profile.dashboard_stats_unread_notifications') }}"
-               class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors flex-shrink-0">
+               class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors shrink-0">
                 <span aria-hidden="true" class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1">notifications</span>
                 {{ $unreadNotificationsCount }}
             </a>

@@ -34,7 +34,7 @@
                 <div class="bg-surface-container-lowest rounded-xl shadow-ambient overflow-hidden {{ ! $group->isRead ? 'border-l-4 border-primary' : '' }}" wire:key="group-{{ $group->groupKey }}-{{ $group->latest->id }}">
                     <div class="flex items-start gap-4 p-4">
                         {{-- Unread indicator --}}
-                        <div class="flex-shrink-0 mt-1">
+                        <div class="shrink-0 mt-1">
                             @if(! $group->isRead)
                                 <span class="block w-2.5 h-2.5 rounded-full bg-primary"></span>
                             @else
@@ -71,7 +71,7 @@
                         @if($group->count > 1)
                             <button
                                 wire:click="toggleGroup('{{ $group->groupKey }}')"
-                                class="flex-shrink-0 p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
+                                class="shrink-0 p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
                                 aria-label="{{ isset($expandedGroups[$group->groupKey]) ? 'Collapse' : 'Expand' }} notification group"
                             >
                                 <span class="material-symbols-outlined text-lg transition-transform {{ isset($expandedGroups[$group->groupKey]) ? 'rotate-180' : '' }}">expand_more</span>
@@ -92,7 +92,7 @@
                             @endphp
                             @foreach($individuals as $notification)
                                 <div class="flex items-start gap-3 px-4 py-2.5 {{ ! $loop->last ? 'border-b border-outline-variant/5' : '' }} {{ $notification->read_at ? 'opacity-60' : '' }}">
-                                    <span class="mt-1 flex-shrink-0 w-1.5 h-1.5 rounded-full {{ $notification->read_at ? 'bg-transparent' : 'bg-primary' }}"></span>
+                                    <span class="mt-1 shrink-0 w-1.5 h-1.5 rounded-full {{ $notification->read_at ? 'bg-transparent' : 'bg-primary' }}"></span>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-xs text-on-surface-variant">{{ $notification->created_at->diffForHumans() }}</p>
                                     </div>

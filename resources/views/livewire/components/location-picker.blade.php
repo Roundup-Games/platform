@@ -24,7 +24,7 @@
                     {{ __('location.field_city') }} <span class="text-error">*</span>
                 </label>
                 <input type="text" id="lp-city" wire:model="city" placeholder="{{ __('location.field_enter_your_city') }}"
-                       class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                       class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                 @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
             </div>
 
@@ -35,7 +35,7 @@
                         {{ __('location.field_neighborhood') }} <span class="text-on-surface-variant text-xs font-normal">{{ __('common.content_optional') }}</span>
                     </label>
                     <input type="text" id="lp-neighborhood" wire:model="address" placeholder="{{ __('location.placeholder_neighborhood_optional') }}"
-                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                     <p class="mt-1 text-xs text-on-surface-variant">{{ __('location.hint_neighborhood_profile') }}</p>
                 </div>
             @else
@@ -45,7 +45,7 @@
                         {{ __('location.field_address_optional') }}
                     </label>
                     <input type="text" id="lp-address" wire:model="address" placeholder="{{ __('location.placeholder_street_address_neighborhood') }}"
-                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                     <p class="mt-1 text-xs text-on-surface-variant">{{ __('location.hint_address_private') }}</p>
                 </div>
             @endif

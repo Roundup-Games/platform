@@ -52,13 +52,13 @@
 </head>
 <body class="font-sans text-on-surface antialiased bg-surface">
     {{-- Skip to content link --}}
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-on-primary focus:rounded-lg focus:text-sm focus:font-semibold">{{ __('common.content_skip_to_content') }}</a>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-100 focus:px-4 focus:py-2 focus:bg-primary focus:text-on-primary focus:rounded-lg focus:text-sm focus:font-semibold">{{ __('common.content_skip_to_content') }}</a>
 
     <div class="min-h-screen flex flex-col bg-surface">
 
         {{-- Public Navigation --}}
-        <header id="pub-nav" class="sticky top-0 z-50 bg-surface/95 transition-[background-color] duration-200" x-data="{ scrolled: false }" x-init="window.addEventListener('scroll', () => { scrolled = window.scrollY > 10 }, { passive: true })" :class="scrolled && 'bg-surface/80 backdrop-blur-md shadow-sm'">
-            <nav class="flex justify-between items-center w-full px-6 sm:px-8 py-4 max-w-screen-2xl mx-auto" aria-label="Main navigation">
+        <header id="pub-nav" class="sticky top-0 z-50 bg-surface/95 transition-[background-color] duration-200" x-data="{ scrolled: false }" x-init="window.addEventListener('scroll', () => { scrolled = window.scrollY > 10 }, { passive: true })" :class="scrolled && 'bg-surface/80 backdrop-blur-md shadow-xs'">
+            <nav class="flex justify-between items-center w-full px-6 sm:px-8 py-4 max-w-(--breakpoint-2xl) mx-auto" aria-label="Main navigation">
 
                 {{-- Logo --}}
                 <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
@@ -123,7 +123,7 @@
                          x-transition:leave-end="opacity-0 -translate-y-1"
                          @click.away="open = false"
                          class="absolute left-0 right-0 bg-surface/95 backdrop-blur-md border-b border-outline-variant/15 z-50">
-                        <div class="px-6 py-4 space-y-1 max-w-screen-2xl mx-auto">
+                        <div class="px-6 py-4 space-y-1 max-w-(--breakpoint-2xl) mx-auto">
                             @php
                                 $mobHowItWorksRouteExists = \Illuminate\Support\Facades\Route::has('how-it-works');
                                 $mobGameSystemsRouteExists = \Illuminate\Support\Facades\Route::has('game-systems');
@@ -165,7 +165,7 @@
 
         {{-- Footer --}}
         <footer class="bg-surface-container-low w-full mt-auto">
-            <div class="flex flex-col md:flex-row justify-between items-center px-8 sm:px-12 py-12 w-full max-w-screen-2xl mx-auto border-t border-outline-variant/10">
+            <div class="flex flex-col md:flex-row justify-between items-center px-8 sm:px-12 py-12 w-full max-w-(--breakpoint-2xl) mx-auto border-t border-outline-variant/10">
                 {{-- Logo & tagline --}}
                 <div class="space-y-4 mb-8 md:mb-0">
                     <a href="{{ route('home') }}" wire:navigate class="inline-block">
@@ -232,7 +232,7 @@
 
             {{-- Bottom bar: legal links + cookie settings --}}
             <div class="border-t border-outline-variant/10 px-8 sm:px-12 py-4">
-                <div class="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-on-surface-variant">
+                <div class="max-w-(--breakpoint-2xl) mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-on-surface-variant">
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 justify-center">
                         <a href="{{ route('impressum', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_impressum') }}</a>
                         <span class="hidden sm:inline" aria-hidden="true">·</span>

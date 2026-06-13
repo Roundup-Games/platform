@@ -20,7 +20,7 @@
                                 {{ $tool['isSelected'] ? 'checked' : '' }}
                                 wire:change="toggleTool('{{ $tool['value'] }}')"
                                 @if($mode === 'display') disabled @endif
-                                class="mt-0.5 rounded border-outline/40 text-primary focus:ring-primary/20"
+                                class="mt-0.5 rounded-sm border-outline/40 text-primary focus:ring-primary/20"
                                 aria-label="{{ $tool['label'] }}"
                             />
 

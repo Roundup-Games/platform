@@ -81,7 +81,7 @@
                                         @endif
                                     </div>
                                     @if(!$team->isCaptain(auth()->user()))
-                                        <span class="ml-auto text-xs text-tertiary bg-tertiary/10 px-2 py-0.5 rounded">{{ __('teams.content_non_captain') }}</span>
+                                        <span class="ml-auto text-xs text-tertiary bg-tertiary/10 px-2 py-0.5 rounded-sm">{{ __('teams.content_non_captain') }}</span>
                                     @endif
                                 </label>
                             @endforeach

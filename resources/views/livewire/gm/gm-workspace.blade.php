@@ -123,7 +123,7 @@
                                                 $tagLabel = $tag;
                                             }
                                         @endphp
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary-container text-on-primary-container">
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-primary-container text-on-primary-container">
                                             {{ $tagLabel }}
                                         </span>
                                     @endforeach
@@ -326,7 +326,7 @@
                         <div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high/50">
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2">
-                                    <code class="text-xs font-mono bg-surface-container-highest px-1.5 py-0.5 rounded">{{ $link->code }}</code>
+                                    <code class="text-xs font-mono bg-surface-container-highest px-1.5 py-0.5 rounded-sm">{{ $link->code }}</code>
                                     <span class="text-sm text-on-surface truncate">{{ $link->label ?? ($link->linkable?->name ?? class_basename($link->linkable_type)) }}</span>
                                 </div>
                             </div>

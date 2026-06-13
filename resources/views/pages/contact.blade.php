@@ -27,7 +27,7 @@
                             <select name="category" id="category"
                                 aria-invalid="@error('category') true @else false @enderror"
                                 aria-describedby="category-error"
-                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
+                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs">
                                 <option value="general" @selected(old('category', 'general') === 'general')>{{ __('support.category_general') }}</option>
                                 <option value="account_recovery" @selected(old('category') === 'account_recovery')>{{ __('support.category_account_recovery') }}</option>
                             </select>
@@ -42,7 +42,7 @@
                             <input type="text" name="name" id="name" value="{{ old('name') }}"
                                 aria-invalid="@error('name') true @else false @enderror"
                                 aria-describedby="name-error"
-                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
+                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs"
                                 required />
                             @error('name')
                                 <p id="name-error" class="mt-1 text-sm text-error">{{ $message }}</p>
@@ -55,7 +55,7 @@
                             <input type="email" name="email" id="email" value="{{ old('email') }}"
                                 aria-invalid="@error('email') true @else false @enderror"
                                 aria-describedby="email-error"
-                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
+                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs"
                                 required />
                             @error('email')
                                 <p id="email-error" class="mt-1 text-sm text-error">{{ $message }}</p>
@@ -68,7 +68,7 @@
                             <input type="text" name="subject" id="subject" value="{{ old('subject') }}"
                                 aria-invalid="@error('subject') true @else false @enderror"
                                 aria-describedby="subject-error"
-                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('subject')
                                 <p id="subject-error" class="mt-1 text-sm text-error">{{ $message }}</p>
                             @enderror
@@ -80,7 +80,7 @@
                             <textarea name="message" id="message" rows="6"
                                 aria-invalid="@error('message') true @else false @enderror"
                                 aria-describedby="message-error"
-                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
+                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs"
                                 required>{{ old('message') }}</textarea>
                             @error('message')
                                 <p id="message-error" class="mt-1 text-sm text-error">{{ $message }}</p>

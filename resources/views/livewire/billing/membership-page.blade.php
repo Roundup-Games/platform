@@ -21,7 +21,7 @@
         @if($expiringSoon)
             <div class="rounded-lg bg-tertiary-container p-6">
                 <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                         <span class="material-symbols-outlined text-2xl text-on-tertiary-container" style="font-variation-settings: 'FILL' 1" aria-hidden="true">warning</span>
                     </div>
                     <div>
@@ -49,7 +49,7 @@
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                 <div class="flex items-center justify-between flex-wrap gap-4">
                     <div class="flex items-center gap-4">
-                        <div class="flex-shrink-0 w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center">
+                        <div class="shrink-0 w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center">
                             <span class="material-symbols-outlined text-xl text-on-secondary-container" style="font-variation-settings: 'FILL' 1" aria-hidden="true">check_circle</span>
                         </div>
                         <div>
@@ -81,7 +81,7 @@
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                 <div class="flex items-center justify-between flex-wrap gap-4">
                     <div class="flex items-center gap-4">
-                        <div class="flex-shrink-0 w-12 h-12 rounded-full {{ $gmSubscription->isActive() ? 'bg-secondary-container' : 'bg-tertiary-container' }} flex items-center justify-center">
+                        <div class="shrink-0 w-12 h-12 rounded-full {{ $gmSubscription->isActive() ? 'bg-secondary-container' : 'bg-tertiary-container' }} flex items-center justify-center">
                             <span class="material-symbols-outlined text-xl {{ $gmSubscription->isActive() ? 'text-on-secondary-container' : 'text-on-tertiary-container' }}" style="font-variation-settings: 'FILL' 1" aria-hidden="true">{{ $gmSubscription->isActive() ? 'school' : 'pause_circle' }}</span>
                         </div>
                         <div>

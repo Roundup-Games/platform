@@ -40,7 +40,7 @@
                 {{-- Community First --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">diversity_3</span>
                         </div>
                         <div>
@@ -56,7 +56,7 @@
                 {{-- Safe by Design --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">shield_person</span>
                         </div>
                         <div>
@@ -75,7 +75,7 @@
                 {{-- Open by Default --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">code</span>
                         </div>
                         <div>

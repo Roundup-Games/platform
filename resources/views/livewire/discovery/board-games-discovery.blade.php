@@ -42,19 +42,19 @@
             {{-- Time pills --}}
             <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 overflow-x-auto" role="radiogroup" aria-label="{{ __('common.field_time_frame') }}">
                 <button wire:click="setDate('')"
-                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$date ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$date ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                     {{ __('discovery.field_any_date') }}
                 </button>
                 <button wire:click="setDate('upcoming')"
-                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'upcoming' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'upcoming' ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                     {{ __('common.field_upcoming') }}
                 </button>
                 <button wire:click="setDate('this_week')"
-                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_week' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_week' ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                     {{ __('common.content_this_week') }}
                 </button>
                 <button wire:click="setDate('this_month')"
-                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_month' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_month' ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
                     {{ __('common.content_this_month') }}
                 </button>
             </div>
@@ -81,14 +81,14 @@
                     {{ __('common.content_radius') }}:
                 </span>
                 <button wire:click="setRadius(0)"
-                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == 0 ? 'bg-tertiary-container text-on-tertiary-container shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == 0 ? 'bg-tertiary-container text-on-tertiary-container shadow-xs' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
                         role="radio"
                         aria-checked="{{ $radius == 0 ? 'true' : 'false' }}">
                     {{ __('discovery.field_any_distance') }}
                 </button>
                 @foreach($radiusOptions as $option)
                     <button wire:click="setRadius({{ $option }})"
-                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == $option ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == $option ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
                             role="radio"
                             aria-checked="{{ $radius == $option ? 'true' : 'false' }}">
                         {{ $option }} km
@@ -186,7 +186,7 @@
                 {{-- Selects row: Experience Level / Language / Price / Complexity --}}
                 <div class="flex flex-wrap gap-3">
                     <select wire:model.live="experience_level" aria-label="{{ __('discovery.action_filter_by_experience_level') }}"
-                            class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                            class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                         <option value="">{{ __('discovery.content_all_levels') }}</option>
                         @foreach($experienceLevels as $level)
                             <option value="{{ $level->value }}">{{ $level->label() }}</option>
@@ -194,7 +194,7 @@
                     </select>
 
                     <select wire:model.live="language" aria-label="{{ __('discovery.action_filter_by_language') }}"
-                            class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                            class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                         <option value="">{{ __('discovery.content_all_languages') }}</option>
                         @foreach($languages as $lang)
                             <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
@@ -202,7 +202,7 @@
                     </select>
 
                     <select wire:model.live="price" aria-label="{{ __('discovery.field_filter_by_price') }}"
-                            class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                            class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                         <option value="">{{ __('discovery.field_any_price') }}</option>
                         <option value="free">{{ __('billing.content_free') }}</option>
                         <option value="paid">{{ __('billing.content_paid') }}</option>
@@ -218,16 +218,16 @@
                                wire:change="$set('complexity_min', $event.target.value <= 1 ? null : $event.target.value)"
                                aria-label="{{ __('games.field_minimum_complexity') }}"
                                class="flex-1 h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-secondary
-                                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-sm
-                                      [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-xs
+                                      [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-xs" />
                         <span class="text-on-surface-variant text-sm">–</span>
                         <input type="range" min="1" max="5" step="0.5"
                                value="{{ $complexity_max ?? 5 }}"
                                wire:change="$set('complexity_max', $event.target.value >= 5 ? null : $event.target.value)"
                                aria-label="{{ __('games.field_maximum_complexity') }}"
                                class="flex-1 h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-secondary
-                                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-sm
-                                      [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-xs
+                                      [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-xs" />
                     </div>
                     <div class="flex justify-between w-full max-w-xs mt-0.5">
                         <span class="text-[10px] text-on-surface-variant">{{ __('games.content_weight_light') }}</span>

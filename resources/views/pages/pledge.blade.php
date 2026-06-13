@@ -31,15 +31,15 @@
                 </p>
                 <ul class="mt-8 text-left max-w-xl mx-auto space-y-3">
                     <li class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                         <span class="text-on-surface-variant">{{ __('pages.content_pledge_nonprofit_detail_1') }}</span>
                     </li>
                     <li class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                         <span class="text-on-surface-variant">{{ __('pages.content_pledge_nonprofit_detail_2') }}</span>
                     </li>
                     <li class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                         <span class="text-on-surface-variant">{{ __('pages.content_pledge_nonprofit_detail_3') }}</span>
                     </li>
                 </ul>
@@ -89,7 +89,7 @@
                 {{-- Local Events --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">event</span>
                         </div>
                         <div>
@@ -104,7 +104,7 @@
                 {{-- Organizer Education --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">school</span>
                         </div>
                         <div>
@@ -119,7 +119,7 @@
                 {{-- Trust & Safety --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">shield_person</span>
                         </div>
                         <div>
@@ -134,7 +134,7 @@
                 {{-- Promoting Tabletop Gaming --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">campaign</span>
                         </div>
                         <div>

@@ -102,7 +102,7 @@
                     x-ref="labelInput"
                     x-model="newLabel"
                     placeholder="{{ __('common.placeholder_link_label') }}"
-                    class="flex-1 min-w-0 px-3 py-1.5 text-sm rounded-lg bg-surface-container-high text-on-surface border border-outline-variant focus:border-primary focus:outline-none"
+                    class="flex-1 min-w-0 px-3 py-1.5 text-sm rounded-lg bg-surface-container-high text-on-surface border border-outline-variant focus:border-primary focus:outline-hidden"
                     @keydown.enter="createLink()"
                     @keydown.escape="showCreateForm = false; newLabel = ''" />
                 <button @click="createLink()"

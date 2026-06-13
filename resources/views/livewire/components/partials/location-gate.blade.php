@@ -31,7 +31,7 @@
         </button>
 
         <button x-on:click="showCityInput = !showCityInput"
-                class="text-sm text-primary font-medium hover:underline focus:outline-none focus:underline"
+                class="text-sm text-primary font-medium hover:underline focus:outline-hidden focus:underline"
                 aria-expanded="showCityInput">
             {{ __('location.field_or_enter_your_city') }}
         </button>
@@ -46,7 +46,7 @@
                 <input type="text"
                        wire:model="cityQuery"
                        placeholder="{{ __('location.field_enter_your_city') }}"
-                       class="w-full px-4 py-2.5 rounded-xl border border-outline bg-surface-container-low text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                       class="w-full px-4 py-2.5 rounded-xl border border-outline bg-surface-container-low text-on-surface placeholder:text-on-surface-variant focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                        aria-label="{{ __('location.field_city_name') }}" />
             </div>
             <button type="submit"

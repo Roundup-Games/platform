@@ -77,7 +77,7 @@
         {{-- Host Again bridge card --}}
         <div class="bg-primary/5 rounded-xl border border-primary/20 p-5">
             <div class="flex items-start gap-4">
-                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                     <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1" aria-hidden="true">replay</span>
                 </div>
                 <div class="flex-1 min-w-0">

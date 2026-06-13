@@ -20,14 +20,14 @@
 
             {{-- System badge --}}
             @if($systemBadge['name'] ?? null)
-                <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
                     {{ $systemBadge['name'] }}
                 </span>
             @endif
 
             {{-- Host badge --}}
             @if($isHost)
-                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
                     ★ {{ __('attendance.dashboard_hosting') }}
                 </span>
             @endif
@@ -59,6 +59,6 @@
         </div>
     </div>
 
-    <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-lg ml-2 flex-shrink-0 group-hover:text-primary transition-colors"
+    <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-lg ml-2 shrink-0 group-hover:text-primary transition-colors"
           style="font-variation-settings: 'FILL' 0">chevron_right</span>
 </a>

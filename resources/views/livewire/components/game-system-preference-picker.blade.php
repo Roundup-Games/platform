@@ -40,7 +40,7 @@
     {{-- Conflict Warning --}}
     @if($conflictMessage)
         <div class="mt-2 flex items-start gap-2 px-3 py-2 bg-tertiary/10 border border-tertiary/20 rounded-lg">
-            <span class="material-symbols-outlined text-tertiary text-lg flex-shrink-0 mt-0.5" aria-hidden="true">warning</span>
+            <span class="material-symbols-outlined text-tertiary text-lg shrink-0 mt-0.5" aria-hidden="true">warning</span>
             <p class="text-sm text-tertiary">{{ $conflictMessage }}</p>
         </div>
     @endif
@@ -72,15 +72,15 @@
                         wire:click="pickFromSearch('{{ $system->id }}')"
                         @mouseenter="activeIndex = {{ $index }}"
                         :class="activeIndex === {{ $index }} ? 'bg-surface-container-high' : ''"
-                        class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high @if($alreadySelected) opacity-50 @endif"
+                        class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-hidden focus:bg-surface-container-high @if($alreadySelected) opacity-50 @endif"
                         role="option"
                         :aria-selected="activeIndex === {{ $index }}"
                         @if($alreadySelected) disabled @endif
                     >
                         @if($system->thumbnail_url)
-                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
+                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded-sm object-cover shrink-0" loading="lazy" aria-hidden="true">
                         @else
-                            <div class="w-10 h-10 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
+                            <div class="w-10 h-10 rounded-sm bg-surface-container flex items-center justify-center shrink-0">
                                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">casino</span>
                             </div>
                         @endif
@@ -93,7 +93,7 @@
                                 @endif
                             </div>
                             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                                <span class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                                <span class="text-xs px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary font-medium">
                                     {{ __('games.content_base_game') }}
                                 </span>
                                 @if($system->expansions_count > 0)
@@ -111,7 +111,7 @@
                         </div>
 
                         @if($system->expansions_count > 0)
-                            <span class="material-symbols-outlined text-on-surface-variant text-lg flex-shrink-0" aria-hidden="true">chevron_right</span>
+                            <span class="material-symbols-outlined text-on-surface-variant text-lg shrink-0" aria-hidden="true">chevron_right</span>
                         @endif
                     </button>
                 @endforeach
@@ -149,15 +149,15 @@
                         wire:click="pickExpansion('{{ $option->id }}')"
                         @class([
                             'w-full text-left px-4 py-3 flex items-center gap-3 transition-colors',
-                            'hover:bg-surface-container-high focus:outline-none focus:bg-surface-container-high',
+                            'hover:bg-surface-container-high focus:outline-hidden focus:bg-surface-container-high',
                             'opacity-50' => $alreadySelected,
                         ])
                         @if($alreadySelected) disabled @endif
                     >
                         @if($option->thumbnail_url)
-                            <img src="{{ $option->thumbnail_url }}" alt="" class="w-8 h-8 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
+                            <img src="{{ $option->thumbnail_url }}" alt="" class="w-8 h-8 rounded-sm object-cover shrink-0" loading="lazy" aria-hidden="true">
                         @else
-                            <div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
+                            <div class="w-8 h-8 rounded-sm bg-surface-container flex items-center justify-center shrink-0">
                                 <span class="material-symbols-outlined text-on-surface-variant text-sm" aria-hidden="true">
                                     {{ $option->is_base ? 'casino' : 'extension' }}
                                 </span>
@@ -173,14 +173,14 @@
                             </div>
                             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                 @if($option->is_base)
-                                    <span class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                                    <span class="text-xs px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary font-medium">
                                         {{ __('games.content_base_game') }}
                                     </span>
                                     <span class="text-xs text-on-surface-variant">
                                         {{ $preferenceType === 'favorite' ? __('games.content_implies_all_expansions') : __('games.content_blocks_all_expansions') }}
                                     </span>
                                 @else
-                                    <span class="text-xs px-1.5 py-0.5 rounded bg-secondary/10 text-secondary">
+                                    <span class="text-xs px-1.5 py-0.5 rounded-sm bg-secondary/10 text-secondary">
                                         {{ __('games.content_expansion') }}
                                     </span>
                                 @endif
@@ -210,9 +210,9 @@
             @foreach($systems as $system)
                 <div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full border border-outline/10 group">
                     @if($system->thumbnail_url)
-                        <img src="{{ $system->thumbnail_url }}" alt="" class="w-5 h-5 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
+                        <img src="{{ $system->thumbnail_url }}" alt="" class="w-5 h-5 rounded-sm object-cover shrink-0" loading="lazy" aria-hidden="true">
                     @else
-                        <span class="material-symbols-outlined text-on-surface-variant text-sm flex-shrink-0" aria-hidden="true">casino</span>
+                        <span class="material-symbols-outlined text-on-surface-variant text-sm shrink-0" aria-hidden="true">casino</span>
                     @endif
 
                     <span class="text-sm text-on-surface max-w-[200px] truncate">
@@ -226,7 +226,7 @@
                                 ({{ $system->baseGame?->name }})
                             </span>
                         @endif
-                        <span class="text-xs px-1.5 py-0.5 rounded bg-secondary/10 text-secondary">
+                        <span class="text-xs px-1.5 py-0.5 rounded-sm bg-secondary/10 text-secondary">
                             {{ __('games.content_expansion') }}
                         </span>
                     @else

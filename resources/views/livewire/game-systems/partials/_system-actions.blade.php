@@ -21,7 +21,7 @@
                         {{ $this->userPreference === 'avoid' ? __('games.action_remove_from_avoid_list') : __('games.action_add_to_avoid_list') }}
                     </button>
                 @else
-                    <a href="{{ route('register') }}" wire:navigate class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-shadow">
+                    <a href="{{ route('register') }}" wire:navigate class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold shadow-xs hover:shadow-md transition-shadow">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
                         {{ __('games.guest_nudge_game_systems') }}
                     </a>

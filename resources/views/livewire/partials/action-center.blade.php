@@ -59,10 +59,10 @@
                        class="flex items-start gap-3 p-3 rounded-lg hover:bg-surface-container-low transition-colors group">
 
                         {{-- Priority dot --}}
-                        <span class="w-2.5 h-2.5 rounded-full {{ $dotColor }} mt-2 flex-shrink-0" aria-label="{{ $item->priority }} priority"></span>
+                        <span class="w-2.5 h-2.5 rounded-full {{ $dotColor }} mt-2 shrink-0" aria-label="{{ $item->priority }} priority"></span>
 
                         {{-- Icon --}}
-                        <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-xl mt-0.5 flex-shrink-0"
+                        <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-xl mt-0.5 shrink-0"
                               style="font-variation-settings: 'FILL' 0">{{ $item->icon }}</span>
 
                         {{-- Content --}}
@@ -82,7 +82,7 @@
                         </div>
 
                         {{-- Action chevron --}}
-                        <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-lg mt-1 flex-shrink-0 group-hover:text-primary transition-colors"
+                        <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-lg mt-1 shrink-0 group-hover:text-primary transition-colors"
                               style="font-variation-settings: 'FILL' 0">chevron_right</span>
                     </a>
                 </li>
