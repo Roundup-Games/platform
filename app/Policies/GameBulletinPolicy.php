@@ -29,7 +29,7 @@ class GameBulletinPolicy
     public function create(User $user, Game $game): bool
     {
         return $game->status === GameStatus::Scheduled
-            && $game->owner_id === $user->id;
+            && (string) $game->owner_id === (string) $user->id;
     }
 
     /**
@@ -45,7 +45,7 @@ class GameBulletinPolicy
         }
 
         // Game owner can always view
-        if ($game->owner_id === $user->id) {
+        if ((string) $game->owner_id === (string) $user->id) {
             return true;
         }
 
@@ -63,8 +63,12 @@ class GameBulletinPolicy
     {
         $game = $gameBulletin->game;
 
+        if (! $game) {
+            return false;
+        }
+
         // Game owner can always view
-        if ($game->owner_id === $user->id) {
+        if ((string) $game->owner_id === (string) $user->id) {
             return true;
         }
 
@@ -80,7 +84,13 @@ class GameBulletinPolicy
      */
     public function delete(User $user, GameBulletin $gameBulletin): bool
     {
-        return $gameBulletin->game->owner_id === $user->id;
+        $game = $gameBulletin->game;
+
+        if (! $game) {
+            return false;
+        }
+
+        return (string) $game->owner_id === (string) $user->id;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Dto\SyncResult;
 use App\Models\BggSyncLog;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
@@ -10,6 +11,7 @@ use App\Models\GameSystemFamily;
 use App\Models\GameSystemMechanic;
 use App\Models\GameSystemPublisher;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class BggSyncService
 {
@@ -33,9 +35,8 @@ class BggSyncService
      * GameSystem records with all taxonomy, and returns a summary.
      *
      * @param  array<int, int>  $bggIds
-     * @return array{synced: int, failed: int, errors: array<string>}
      */
-    public function syncGameSystems(array $bggIds): array
+    public function syncGameSystems(array $bggIds): SyncResult
     {
         // Early return for empty input
         if (empty($bggIds)) {
@@ -50,7 +51,7 @@ class BggSyncService
 
             Log::info('BGG sync completed: 0 items (empty batch)');
 
-            return ['synced' => 0, 'failed' => 0, 'errors' => [], 'discovered_expansion_ids' => []];
+            return SyncResult::empty();
         }
 
         $log = BggSyncLog::create([
@@ -65,16 +66,19 @@ class BggSyncService
         $discoveredExpansionIds = [];
 
         try {
+            assert($this->batchSize > 0, 'Batch size must be positive');
             $chunks = array_chunk($bggIds, $this->batchSize);
             $chunkCount = count($chunks);
 
             foreach ($chunks as $batchIndex => $batch) {
-                Log::info("BGG sync: fetching batch " . ($batchIndex + 1) . "/{$chunkCount}", [
+                Log::info('BGG sync: fetching batch '.($batchIndex + 1)."/{$chunkCount}", [
                     'ids' => $batch,
                 ]);
 
                 $xml = $this->client->fetchThing($batch);
-                $items = $this->parser->parseItems($xml->asXML());
+                $xmlString = $xml->asXML();
+                assert($xmlString !== false, 'Failed to serialize BGG XML response');
+                $items = $this->parser->parseItems($xmlString);
 
                 foreach ($items as $parsed) {
                     try {
@@ -82,12 +86,13 @@ class BggSyncService
                         $synced++;
 
                         // Collect discovered expansion IDs
-                        if (!empty($parsed['expansion_ids'])) {
+                        if (! empty($parsed['expansion_ids']) && is_array($parsed['expansion_ids'])) {
                             $discoveredExpansionIds = array_merge($discoveredExpansionIds, $parsed['expansion_ids']);
                         }
                     } catch (\Throwable $e) {
                         $failed++;
-                        $errorMsg = "Failed to upsert bgg_id={$parsed['bgg_id']}: {$e->getMessage()}";
+                        $bggIdStr = to_string_id($parsed['bgg_id'] ?? null);
+                        $errorMsg = "Failed to upsert bgg_id={$bggIdStr}: {$e->getMessage()}";
                         $errors[] = $errorMsg;
                         Log::error("BGG sync: {$errorMsg}");
                     }
@@ -103,12 +108,12 @@ class BggSyncService
 
             Log::info("BGG sync completed: {$synced} synced, {$failed} failed");
 
-            return [
-                'synced' => $synced,
-                'failed' => $failed,
-                'errors' => $errors,
-                'discovered_expansion_ids' => array_values(array_unique($discoveredExpansionIds)),
-            ];
+            return new SyncResult(
+                synced: $synced,
+                failed: $failed,
+                errors: $errors,
+                discoveredExpansionIds: array_values(array_unique(array_filter($discoveredExpansionIds, fn (mixed $v) => is_int($v)))),
+            );
 
         } catch (\Throwable $e) {
             $log->update([
@@ -130,16 +135,20 @@ class BggSyncService
      *
      * Creates or updates the GameSystem, syncs all taxonomy relationships,
      * and resolves base_game_id for expansions.
+     *
+     * @param  array<string, mixed>  $data
      */
     private function upsertGameSystem(array $data): GameSystem
     {
         // Generate a slug that won't collide with existing entries.
         // BGG has different entries with identical names (e.g., multiple
         // "Italy (fan expansion for Ticket to Ride)" with different bgg_ids).
-        $slug = $this->resolveSlug($data['name'], $data['bgg_id']);
+        $name = is_string($data['name'] ?? null) ? $data['name'] : '';
+        $bggId = is_int($data['bgg_id'] ?? null) ? $data['bgg_id'] : 0;
+        $slug = $this->resolveSlug($name, $bggId);
 
         $gameSystem = GameSystem::updateOrCreate(
-            ['bgg_id' => $data['bgg_id']],
+            ['bgg_id' => $bggId],
             [
                 'name' => ['en' => $data['name']],
                 'slug' => $slug,
@@ -150,7 +159,7 @@ class BggSyncService
                 'min_players' => $data['min_players'],
                 'max_players' => $data['max_players'],
                 'average_play_time' => $data['average_play_time'],
-                'age_rating' => $data['age_rating'] !== null ? (string) $data['age_rating'] : null,
+                'age_rating' => is_int($d = $data['age_rating'] ?? null) || is_string($d) ? (string) $d : null,
                 'thumbnail_url' => $data['thumbnail_url'],
                 'bgg_average_rating' => $data['bgg_average_rating'],
                 'bgg_bayes_average' => $data['bgg_bayes_average'],
@@ -162,11 +171,11 @@ class BggSyncService
         );
 
         // Sync taxonomy relationships
-        $this->syncTaxonomy($gameSystem, 'categories', GameSystemCategory::class, $data['categories']);
-        $this->syncTaxonomy($gameSystem, 'mechanics', GameSystemMechanic::class, $data['mechanics']);
-        $this->syncTaxonomy($gameSystem, 'families', GameSystemFamily::class, $data['families']);
-        $this->syncTaxonomy($gameSystem, 'designers', GameSystemDesigner::class, $data['designers']);
-        $this->syncTaxonomy($gameSystem, 'publishers', GameSystemPublisher::class, $data['publishers']);
+        $this->syncTaxonomy($gameSystem, 'categories', GameSystemCategory::class, is_array($data['categories'] ?? null) ? $data['categories'] : []);
+        $this->syncTaxonomy($gameSystem, 'mechanics', GameSystemMechanic::class, is_array($data['mechanics'] ?? null) ? $data['mechanics'] : []);
+        $this->syncTaxonomy($gameSystem, 'families', GameSystemFamily::class, is_array($data['families'] ?? null) ? $data['families'] : []);
+        $this->syncTaxonomy($gameSystem, 'designers', GameSystemDesigner::class, is_array($data['designers'] ?? null) ? $data['designers'] : []);
+        $this->syncTaxonomy($gameSystem, 'publishers', GameSystemPublisher::class, is_array($data['publishers'] ?? null) ? $data['publishers'] : []);
 
         // Resolve base game for expansions
         if ($data['base_game_bgg_id'] !== null) {
@@ -178,7 +187,7 @@ class BggSyncService
                     'base_game_bgg_id' => $data['base_game_bgg_id'],
                     'expansion_bgg_id' => $data['bgg_id'],
                 ]);
-                $baseGame = $this->fetchAndUpsertBaseGame($data['base_game_bgg_id']);
+                $baseGame = $this->fetchAndUpsertBaseGame(is_int($data['base_game_bgg_id']) ? $data['base_game_bgg_id'] : 0);
                 if ($baseGame) {
                     $gameSystem->update(['base_game_id' => $baseGame->id]);
                     Log::info('BGG sync: auto-fetched missing base game for expansion', [
@@ -191,13 +200,16 @@ class BggSyncService
         }
 
         // Download cover image via MediaLibrary
-        if (!empty($data['image_url'])) {
+        if (! empty($data['image_url'])) {
             try {
                 $gameSystem->clearMediaCollection('cover');
-                $gameSystem->addMediaFromUrl($data['image_url'])
-                    ->toMediaCollection('cover');
+                $imageUrl = is_string($data['image_url']) ? $data['image_url'] : '';
+                if ($imageUrl !== '') {
+                    $gameSystem->addMediaFromUrl($imageUrl)
+                        ->toMediaCollection('cover');
+                }
             } catch (\Throwable $e) {
-                Log::warning("BGG sync: failed to download cover image for bgg_id={$data['bgg_id']}: {$e->getMessage()}");
+                Log::warning("BGG sync: failed to download cover image for bgg_id={$bggId}: {$e->getMessage()}");
             }
         }
 
@@ -213,7 +225,7 @@ class BggSyncService
      */
     private function resolveSlug(string $name, int $bggId): string
     {
-        $baseSlug = \Illuminate\Support\Str::slug($name);
+        $baseSlug = Str::slug($name);
 
         $existing = GameSystem::where('slug', $baseSlug)->first();
 
@@ -223,7 +235,7 @@ class BggSyncService
         }
 
         // Collision — append bgg_id to disambiguate
-        return $baseSlug . '-' . $bggId;
+        return $baseSlug.'-'.$bggId;
     }
 
     /**
@@ -240,7 +252,9 @@ class BggSyncService
             ]);
 
             $xml = $this->client->fetchThing([$bggId]);
-            $items = $this->parser->parseItems($xml->asXML());
+            $xmlString = $xml->asXML();
+            assert($xmlString !== false, 'Failed to serialize BGG XML response');
+            $items = $this->parser->parseItems($xmlString);
 
             if (empty($items)) {
                 Log::warning('BGG sync: base game not found on BGG', [
@@ -263,6 +277,8 @@ class BggSyncService
 
     /**
      * Sync a taxonomy relationship: firstOrCreate each name, then sync the IDs.
+     *
+     * @param  array<string, mixed>  $names
      */
     private function syncTaxonomy(GameSystem $gameSystem, string $relation, string $modelClass, array $names): void
     {

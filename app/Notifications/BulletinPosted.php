@@ -25,9 +25,9 @@ class BulletinPosted extends BaseNotification
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_bulletin_posted', [
@@ -49,9 +49,9 @@ class BulletinPosted extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'bulletin_posted',
@@ -75,9 +75,9 @@ class BulletinPosted extends BaseNotification
     /**
      * Get the push notification representation.
      */
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(User $notifiable): ?PushPayload
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return new PushPayload(
             title: __('notifications.push_title_bulletin_posted'),

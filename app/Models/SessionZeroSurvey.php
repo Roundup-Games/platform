@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Database\Factories\SessionZeroSurveyFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,11 +12,13 @@ use Illuminate\Support\Str;
 
 class SessionZeroSurvey extends Model
 {
+    /** @use HasFactory<SessionZeroSurveyFactory> */
     use HasFactory;
 
     protected $table = 'session_zero_surveys';
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -50,16 +54,25 @@ class SessionZeroSurvey extends Model
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return BelongsTo<GMProfile, $this>
+     */
     public function gmProfile(): BelongsTo
     {
         return $this->belongsTo(GMProfile::class, 'gm_profile_id');
     }
 
+    /**
+     * @return BelongsTo<Game, $this>
+     */
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);
     }
 
+    /**
+     * @return HasMany<SessionZeroConfirmation, $this>
+     */
     public function confirmations(): HasMany
     {
         return $this->hasMany(SessionZeroConfirmation::class, 'session_zero_survey_id');
@@ -67,12 +80,20 @@ class SessionZeroSurvey extends Model
 
     // ── Scopes ─────────────────────────────────────────
 
-    public function scopeActive($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeActive(Builder $query)
     {
         return $query->where('status', 'active');
     }
 
-    public function scopeArchived($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeArchived(Builder $query)
     {
         return $query->where('status', 'archived');
     }

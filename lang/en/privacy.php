@@ -2,11 +2,11 @@
 
 return [
     'heading_title' => 'Privacy Policy',
-    'seo_description' => 'Learn how ' . config('company.display_name') . ' collects, uses, and protects your personal data. Our privacy practices explained in plain language.',
+    'seo_description' => 'Learn how '.config('company.display_name').' collects, uses, and protects your personal data. Our privacy practices explained in plain language.',
 
     // ── Introduction ───────────────────────────────────
     'heading_introduction' => 'Introduction',
-    'content_introduction_1' => config('company.legal_name') . ' ("we", "us", "our") operates the roundup.games platform — a non-profit, open-source service that helps people find and organize local, in-person tabletop gaming sessions.',
+    'content_introduction_1' => config('company.legal_name').' ("we", "us", "our") operates the roundup.games platform — a non-profit, open-source service that helps people find and organize local, in-person tabletop gaming sessions.',
     'content_introduction_2' => 'This Privacy Policy explains what personal data we collect, why we collect it, the legal basis for doing so, who has access to it, and how long we keep it. We wrote this in plain language because transparency isn\'t optional for us — it\'s foundational.',
     'content_introduction_3' => 'This policy applies to all users of our platform, including visitors who browse without creating an account.',
 
@@ -106,7 +106,7 @@ return [
     'heading_contact' => 'Contact',
     'content_contact_intro' => 'For any questions about this Privacy Policy or your personal data, contact us:',
     'content_contact_org' => config('company.legal_name'),
-    'content_contact_email' => 'Email: ' . config('company.contact.privacy'),
+    'content_contact_email' => 'Email: '.config('company.contact.privacy'),
 
     // ── Last Updated ───────────────────────────────────
     'content_last_updated' => 'Last updated: :date',

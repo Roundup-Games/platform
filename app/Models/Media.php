@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Str;
 use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
 
+/**
+ * @property string $id
+ */
 class Media extends BaseMedia
 {
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     /**
@@ -28,7 +33,7 @@ class Media extends BaseMedia
     {
         static::creating(function (self $model) {
             if (empty($model->id)) {
-                $model->id = (string) \Illuminate\Support\Str::orderedUuid();
+                $model->id = (string) Str::orderedUuid();
             }
         });
     }

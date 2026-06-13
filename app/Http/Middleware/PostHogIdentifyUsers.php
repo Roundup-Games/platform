@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -12,7 +14,7 @@ class PostHogIdentifyUsers
 {
     public function __construct(
         private readonly PostHogClient $posthog,
-        private readonly \App\Services\PostHogConsentChecker $consentChecker,
+        private readonly PostHogConsentChecker $consentChecker,
     ) {}
 
     /**
@@ -109,13 +111,13 @@ class PostHogIdentifyUsers
      * Share user data as a view variable so the layout can inject it
      * for client-side posthog.identify().
      */
-    private function shareClientIdentifyData($user): void
+    private function shareClientIdentifyData(User $user): void
     {
         // Only share the user ID for client-side posthog.identify().
         // PII (name, email) is set exclusively via server-side identify()
         // to avoid exposing user data in the DOM where XSS could exfiltrate it.
         view()->share('posthogIdentifyData', [
-            'id' => (string) $user->getAuthIdentifier(),
+            'id' => ($id = $user->getAuthIdentifier()) instanceof \BackedEnum ? (string) $id->value : to_string_id($id),
         ]);
     }
 
@@ -126,13 +128,14 @@ class PostHogIdentifyUsers
      * Error handling is centralized in PostHogClient::identify().
      * If the SDK throws, PostHogClient catches it and logs a warning.
      */
-    private function identifyServerSide($user): void
+    private function identifyServerSide(User $user): void
     {
         if (! $this->posthog->isEnabled()) {
             return;
         }
 
-        $distinctId = (string) $user->getAuthIdentifier();
+        $authId = $user->getAuthIdentifier();
+        $distinctId = to_string_id($authId);
 
         $this->posthog->identify([
             'distinctId' => $distinctId,

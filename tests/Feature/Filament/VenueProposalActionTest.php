@@ -1,6 +1,5 @@
 <?php
 
-use App\Filament\Resources\TicketResource\Pages\ViewTicket;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\VenueProposalService;
@@ -39,7 +38,7 @@ function createVenueProposalTicket(Department $department, User $user, array $me
     return Ticket::create([
         'requester_type' => User::class,
         'requester_id' => $user->id,
-        'subject' => 'Venue Proposal: ' . ($metadataOverrides['venue_name'] ?? 'Test Venue'),
+        'subject' => 'Venue Proposal: '.($metadataOverrides['venue_name'] ?? 'Test Venue'),
         'description' => 'A venue proposal',
         'status' => TicketStatus::Open->value,
         'priority' => TicketPriority::Medium->value,

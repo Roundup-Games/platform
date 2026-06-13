@@ -2,19 +2,25 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\CampaignStatus;
+use App\Enums\ContentLanguage;
+use App\Enums\ExperienceLevel;
+use App\Enums\VibeFlag;
+use App\Enums\Visibility;
 use App\Filament\Components\SeoFields;
 use App\Filament\Resources\CampaignResource\Pages;
 use App\Filament\Resources\CampaignResource\RelationManagers\ParticipantsRelationManager;
-use App\Enums\CampaignStatus;
-use App\Enums\Visibility;
 use App\Models\Campaign;
+use BackedEnum;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\ImageColumn;
@@ -30,7 +36,7 @@ class CampaignResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    public static function getNavigationIcon(): string | BackedEnum | null
+    public static function getNavigationIcon(): string|BackedEnum|null
     {
         return Heroicon::OutlinedBookOpen;
     }
@@ -96,7 +102,7 @@ class CampaignResource extends Resource
                                     ->minValue(1)
                                     ->maxValue(99),
                                 Select::make('experience_level')
-                                    ->options(collect(\App\Enums\ExperienceLevel::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
+                                    ->options(collect(ExperienceLevel::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
                                 TextInput::make('complexity')
                                     ->numeric()
                                     ->step(0.25)
@@ -105,7 +111,7 @@ class CampaignResource extends Resource
                             ]),
                         Select::make('vibe_flags')
                             ->multiple()
-                            ->options(collect(\App\Enums\VibeFlag::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
+                            ->options(collect(VibeFlag::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
                     ]),
 
                 Section::make('Visibility & Status')
@@ -129,7 +135,7 @@ class CampaignResource extends Resource
                                     ->default('active')
                                     ->required(),
                                 Select::make('language')
-                                    ->options(collect(\App\Enums\ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
+                                    ->options(collect(ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
                                     ->default('en'),                            ]),
                     ]),
 
@@ -187,11 +193,11 @@ class CampaignResource extends Resource
                 //
             ])
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->toolbarActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

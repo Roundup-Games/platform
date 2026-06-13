@@ -37,17 +37,17 @@ trait DashboardFormatting
         }
 
         if ($dateTime->isSameWeek($now) && $dateTime->greaterThan($now)) {
-            return $dateTime->format('D') . ' ' . __('profile.dashboard_relative_at', ['time' => $time]);
+            return $dateTime->format('D').' '.__('profile.dashboard_relative_at', ['time' => $time]);
         }
 
-        return $dateTime->format('M j') . ' ' . __('profile.dashboard_relative_at', ['time' => $time]);
+        return $dateTime->format('M j').' '.__('profile.dashboard_relative_at', ['time' => $time]);
     }
 
     /**
      * Bulk-load game system preference IDs for a set of users.
      *
-     * @param  string[]  $userIds
-     * @return array<string, string[]> userId => [gameSystemId, ...]
+     * @param  array<int, mixed>  $userIds
+     * @return array<int|string, mixed>
      */
     protected function bulkLoadGameSystemPreferences(array $userIds): array
     {

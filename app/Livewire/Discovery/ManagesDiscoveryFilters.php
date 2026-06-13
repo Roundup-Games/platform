@@ -36,6 +36,7 @@ trait ManagesDiscoveryFilters
     #[Url]
     public string $experience_level = '';
 
+    /** @var array<int, int|string> */
     #[Url]
     public array $vibe_flags = [];
 
@@ -69,7 +70,7 @@ trait ManagesDiscoveryFilters
     {
         $user = Auth::user();
         if (! $this->language) {
-            $this->language = ($user && $user->preferred_language)
+            $this->language = ($user?->preferred_language)
                 ? $user->preferred_language->value
                 : app()->getLocale();
         }
@@ -84,13 +85,16 @@ trait ManagesDiscoveryFilters
         }
 
         // Pre-select vibe flags from user preferences (only if no URL values already set)
-        if ($user && empty($this->vibe_flags)) {
+        if (empty($this->vibe_flags) && $user) {
             $resolvedVibes = $user->resolvedVibePreferences();
-            if (! empty($resolvedVibes['favorites'])) {
-                foreach ($resolvedVibes['favorites'] as $flagValue) {
-                    $this->vibePreferences[$flagValue] = 'favorite';
+            $rawFavorites = is_array($resolvedVibes['favorites'] ?? null) ? $resolvedVibes['favorites'] : [];
+            $favorites = array_values(array_filter($rawFavorites, fn (mixed $v) => is_string($v) || is_int($v)));
+            if (! empty($favorites)) {
+                foreach ($favorites as $flagValue) {
+                    $flagKey = (string) $flagValue;
+                    $this->vibePreferences[$flagKey] = 'favorite';
                 }
-                $this->vibe_flags = $resolvedVibes['favorites'];
+                $this->vibe_flags = $favorites;
             }
         }
     }
@@ -142,12 +146,15 @@ trait ManagesDiscoveryFilters
     // ── Shared event listeners ─────────────────────────
 
     #[On('value-updated')]
-    public function onGameSystemUpdated($value): void
+    public function onGameSystemUpdated(mixed $value): void
     {
-        $this->game_system_id = $value;
+        $this->game_system_id = is_string($value) || $value === null ? $value : null;
         $this->displayCount = 12;
     }
 
+    /**
+     * @param  array<string, string|null>  $preferences
+     */
     #[On('vibe-preferences-changed')]
     public function onVibePreferencesChanged(array $preferences): void
     {

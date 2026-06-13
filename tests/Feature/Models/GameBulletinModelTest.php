@@ -7,6 +7,7 @@ use App\Models\GameBulletin;
 use App\Models\GameParticipant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class GameBulletinModelTest extends TestCase
@@ -41,7 +42,7 @@ class GameBulletinModelTest extends TestCase
     {
         $bulletin = GameBulletin::factory()->create(['expires_at' => now()->addHour()]);
 
-        $this->assertInstanceOf(\Illuminate\Support\Carbon::class, $bulletin->expires_at);
+        $this->assertInstanceOf(Carbon::class, $bulletin->expires_at);
     }
 
     public function test_game_relationship(): void

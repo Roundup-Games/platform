@@ -2,11 +2,11 @@
 
 return [
     'heading_title' => 'Nutzungsbedingungen',
-    'seo_description' => 'Die Geschäftsbedingungen für die Nutzung der ' . config('company.display_name') . ' Plattform. Klar, fair und in verständlicher Sprache verfasst.',
+    'seo_description' => 'Die Geschäftsbedingungen für die Nutzung der '.config('company.display_name').' Plattform. Klar, fair und in verständlicher Sprache verfasst.',
 
     // ── Einleitung ─────────────────────────────────────
     'heading_introduction' => 'Einleitung',
-    'content_introduction_1' => 'Diese Nutzungsbedingungen („Bedingungen") regeln deinen Zugang zu und die Nutzung der ' . config('company.display_name') . ' Plattform unter roundup.games („Plattform"), betrieben von ' . config('company.legal_name') . ' („wir", „uns", „unser").',
+    'content_introduction_1' => 'Diese Nutzungsbedingungen („Bedingungen") regeln deinen Zugang zu und die Nutzung der '.config('company.display_name').' Plattform unter roundup.games („Plattform"), betrieben von '.config('company.legal_name').' („wir", „uns", „unser").',
     'content_introduction_2' => 'Mit der Erstellung eines Kontos oder der Nutzung der Plattform stimmst du diesen Bedingungen zu. Wenn du nicht einverstanden bist, nutze die Plattform bitte nicht.',
     'content_introduction_3' => 'Wir haben diese Bedingungen klar und fair formuliert. Wenn etwas unklar ist, kannst du dich gerne an uns wenden.',
 
@@ -27,7 +27,7 @@ return [
 
     // ── Gemeinschaftsverhalten ─────────────────────────
     'heading_community_conduct' => 'Gemeinschaftsverhalten',
-    'content_conduct_intro' => config('company.display_name') . ' existiert, um Menschen an echten Tischen zusammenzubringen. Um die Gemeinschaft sicher und einladend zu halten, müssen alle Nutzer:',
+    'content_conduct_intro' => config('company.display_name').' existiert, um Menschen an echten Tischen zusammenzubringen. Um die Gemeinschaft sicher und einladend zu halten, müssen alle Nutzer:',
     'content_conduct_respect' => 'Alle Mitglieder respektvoll behandeln. Belästigung, Diskriminierung, Hassrede und Drohungen sind strengstens untersagt.',
     'content_conduct_honesty' => 'Ehrlich in deinen Interaktionen sein. Gib nicht falsche Identität, Erfahrung oder Absichten an.',
     'content_conduct_reliability' => 'Deine Zusagen einhalten. Wenn du dich für eine Session anmeldest, erscheine — oder sage mit angemessener Vorwarnung ab. Wiederholtes Nichterscheinen beeinträchtigt deinen Zuverlässigkeitswert und kann zu Einschränkungen führen.',
@@ -44,19 +44,19 @@ return [
 
     // ── Plattformlizenz ────────────────────────────────
     'heading_platform_license' => 'Plattformlizenz (Quelloffen)',
-    'content_license_1' => config('company.display_name') . ' ist quelloffene Software. Der Quellcode ist öffentlich auf GitHub unter der entsprechenden Open-Source-Lizenz verfügbar.',
+    'content_license_1' => config('company.display_name').' ist quelloffene Software. Der Quellcode ist öffentlich auf GitHub unter der entsprechenden Open-Source-Lizenz verfügbar.',
     'content_license_2' => 'Deine Nutzung der Plattform unterliegt diesen Bedingungen. Deine Nutzung des Quellcodes unterliegt der Lizenz des Repositoriums.',
-    'content_license_3' => 'Der Name „' . config('company.display_name') . '", das Logo und das Branding sind nicht unter der Open-Source-Lizenz lizenziert und dürfen nicht ohne schriftliche Genehmigung verwendet werden.',
+    'content_license_3' => 'Der Name „'.config('company.display_name').'", das Logo und das Branding sind nicht unter der Open-Source-Lizenz lizenziert und dürfen nicht ohne schriftliche Genehmigung verwendet werden.',
 
     // ── Abonnements & Zahlungen ────────────────────────
     'heading_subscriptions' => 'Abonnements & Zahlungen',
     'content_subscriptions_1' => 'Einige Funktionen erfordern ein kostenpflichtiges Abonnement. Abonnementgebühren werden über Paddle.com abgerechnet.',
     'content_subscriptions_2' => 'Du kannst dein Abonnement jederzeit kündigen. Der Zugriff bleibt bis zum Ende des aktuellen Abrechnungszeitraums bestehen.',
-    'content_subscriptions_3' => 'Erstattungsanfragen werden im Einzelfall geprüft. Kontaktiere uns unter ' . config('company.contact.support') . '.',
+    'content_subscriptions_3' => 'Erstattungsanfragen werden im Einzelfall geprüft. Kontaktiere uns unter '.config('company.contact.support').'.',
 
     // ── Haftungsbeschränkung ───────────────────────────
     'heading_liability' => 'Haftungsbeschränkung',
-    'content_liability_1' => config('company.display_name') . ' ist eine Gemeinschaftsplattform. Wir vermitteln Verbindungen zwischen Spielern und Organisatoren, organisieren, leiten oder beaufsichtigen jedoch keine einzelnen Spielsitzungen.',
+    'content_liability_1' => config('company.display_name').' ist eine Gemeinschaftsplattform. Wir vermitteln Verbindungen zwischen Spielern und Organisatoren, organisieren, leiten oder beaufsichtigen jedoch keine einzelnen Spielsitzungen.',
     'content_liability_2' => 'Du nimmst an Sessions auf eigenes Risiko teil. Wir haften nicht für das Verhalten anderer Nutzer, die Sicherheit physischer Veranstaltungsorte oder Vorfälle bei Präsenzveranstaltungen.',
     'content_liability_3' => 'Soweit nach deutschem Recht zulässig, ist unsere Haftung für Schäden aus der Nutzung der Plattform auf Fälle grober Fahrlässigkeit oder vorsätzlichen Fehlverhaltens beschränkt.',
     'content_liability_4' => 'Wir garantieren keinen unterbrechungsfreien oder fehlerfreien Betrieb der Plattform.',
@@ -69,7 +69,7 @@ return [
     // ── Anwendbares Recht ──────────────────────────────
     'heading_governing_law' => 'Anwendbares Recht',
     'content_governing_1' => 'Diese Bedingungen unterliegen den Gesetzen der Bundesrepublik Deutschland.',
-    'content_governing_2' => 'Streitigkeiten aus diesen Bedingungen werden vor den Gerichten in ' . config('company.governing_law.courts_city') . ', Deutschland, geklärt, sofern nicht zwingendes Verbraucherschutzrecht etwas anderes vorschreibt.',
+    'content_governing_2' => 'Streitigkeiten aus diesen Bedingungen werden vor den Gerichten in '.config('company.governing_law.courts_city').', Deutschland, geklärt, sofern nicht zwingendes Verbraucherschutzrecht etwas anderes vorschreibt.',
 
     // ── Änderungen ─────────────────────────────────────
     'heading_changes' => 'Änderungen dieser Bedingungen',
@@ -79,7 +79,7 @@ return [
     // ── Kontakt ────────────────────────────────────────
     'heading_contact' => 'Kontakt',
     'content_contact_org' => config('company.legal_name'),
-    'content_contact_email' => 'E-Mail: ' . config('company.contact.legal'),
+    'content_contact_email' => 'E-Mail: '.config('company.contact.legal'),
 
     // ── Letzte Aktualisierung ──────────────────────────
     'content_last_updated' => 'Zuletzt aktualisiert: :date',

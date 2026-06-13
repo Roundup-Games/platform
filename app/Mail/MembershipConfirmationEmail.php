@@ -24,7 +24,7 @@ class MembershipConfirmationEmail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: __('emails.content_your_roundup_games_membership_is_confirmed', ['brand' => config('company.display_name')]),
+            subject: __('emails.content_your_roundup_games_membership_is_confirmed', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
         );
     }
 

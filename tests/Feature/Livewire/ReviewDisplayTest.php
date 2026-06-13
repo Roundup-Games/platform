@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -7,10 +9,8 @@ use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
+use App\Services\ReviewAggregateService;
 use Illuminate\Support\Facades\URL;
-
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -142,7 +142,7 @@ describe('Game Detail — Review Display', function () {
 
     it('displays rating on GM profile', function () {
         $data = setupGameWithReview();
-        app(\App\Services\ReviewAggregateService::class)->updateAggregates($data['gmProfile']);
+        app(ReviewAggregateService::class)->updateAggregates($data['gmProfile']);
 
         $viewer = User::factory()->create(['profile_complete' => true]);
 
@@ -156,7 +156,7 @@ describe('Game Detail — Review Display', function () {
 
     it('displays top proficiency badges on GM profile', function () {
         $data = setupGameWithReview();
-        app(\App\Services\ReviewAggregateService::class)->updateAggregates($data['gmProfile']);
+        app(ReviewAggregateService::class)->updateAggregates($data['gmProfile']);
 
         $viewer = User::factory()->create(['profile_complete' => true]);
 
@@ -171,7 +171,7 @@ describe('Game Detail — Review Display', function () {
 
     it('displays individual reviews on GM profile', function () {
         $data = setupGameWithReview();
-        app(\App\Services\ReviewAggregateService::class)->updateAggregates($data['gmProfile']);
+        app(ReviewAggregateService::class)->updateAggregates($data['gmProfile']);
 
         $viewer = User::factory()->create(['profile_complete' => true]);
 
@@ -230,7 +230,7 @@ describe('Game Detail — Review Display', function () {
             'status' => 'published',
         ]);
 
-        app(\App\Services\ReviewAggregateService::class)->updateAggregates($gmProfile);
+        app(ReviewAggregateService::class)->updateAggregates($gmProfile);
 
         $viewer = User::factory()->create(['profile_complete' => true]);
         $response = $this->actingAs($viewer)

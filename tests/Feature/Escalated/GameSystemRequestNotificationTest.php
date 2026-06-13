@@ -1,9 +1,6 @@
 <?php
 
 use App\Enums\NotificationCategory;
-use Escalated\Laravel\Enums\TicketChannel;
-use Escalated\Laravel\Enums\TicketPriority;
-use Escalated\Laravel\Enums\TicketStatus;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\GameSystemRequestApproved;
@@ -11,6 +8,9 @@ use App\Notifications\GameSystemRequestDuplicate;
 use App\Notifications\GameSystemRequestRejected;
 use App\Services\NotificationService;
 use Database\Seeders\EscalatedSetupSeeder;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Notifications\Channels\DatabaseChannel;
@@ -145,7 +145,7 @@ describe('Mail channel rendering', function () {
 
         expect($mail->subject)->toContain('Catan')
             ->and($mail->actionUrl)->toContain('/games/create')
-            ->and($mail->actionUrl)->toContain('game_system_id=' . $gameSystem->id)
+            ->and($mail->actionUrl)->toContain('game_system_id='.$gameSystem->id)
             ->and($mail->actionText)->toBe('Create a Game');
     });
 

@@ -5,6 +5,7 @@ namespace App\Livewire\Events;
 use App\Enums\ContentLanguage;
 use App\Models\Event;
 use App\Traits\BuildsTranslatableFormFields;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -16,45 +17,72 @@ class CreateEvent extends Component
     use BuildsTranslatableFormFields;
 
     public int $step = 1;
+
     public ?string $confirmingAction = null;
+
     public const MAX_STEPS = 5;
 
     public string $name = '';
+
     public string $short_description = '';
+
     public string $description = '';
+
     public string $type = 'tournament';
+
     public string $start_date = '';
+
     public string $end_date = '';
 
     public string $language = 'en';
 
     public string $venue_name = '';
+
     public string $venue_address = '';
+
     public string $city = '';
+
     public string $country = '';
+
     public string $postal_code = '';
 
     public string $registration_type = 'team';
+
     public ?int $max_teams = null;
+
     public ?int $max_participants = null;
+
     public ?int $min_players_per_team = null;
+
     public ?int $max_players_per_team = null;
+
     public ?int $team_registration_fee = null;
+
     public ?int $individual_registration_fee = null;
+
     public ?int $early_bird_discount = null;
+
     public string $early_bird_deadline = '';
+
     public string $registration_opens_at = '';
+
     public string $registration_closes_at = '';
 
     /** @var array<int, array{name: string, description: string}> */
     public array $divisions = [];
+
     public string $newDivisionName = '';
+
     public string $newDivisionDescription = '';
 
     public string $rules = '';
+
     public string $schedule = '';
+
     public string $contact_email = '';
+
     public string $contact_phone = '';
+
     public bool $is_public = true;
 
     public function mount(): void
@@ -69,6 +97,9 @@ class CreateEvent extends Component
         }
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function getTranslatableFields(): array
     {
         return ['name', 'description', 'short_description'];
@@ -192,7 +223,7 @@ class CreateEvent extends Component
                     'type' => 'required|in:tournament,league,camp,clinic,social,other',
                     'start_date' => 'required|date|after:today',
                     'end_date' => 'required|date|after_or_equal:start_date',
-                    'language' => 'required|in:' . implode(',', ContentLanguage::values()),
+                    'language' => 'required|in:'.implode(',', ContentLanguage::values()),
                 ],
                 $this->translatableValidationRules(
                     ['name' => 'required|string|max:255', 'short_description' => 'nullable|string|max:500', 'description' => 'nullable|string'],
@@ -236,7 +267,7 @@ class CreateEvent extends Component
         }
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.events.create-event');
     }

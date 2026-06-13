@@ -8,6 +8,7 @@ use App\Models\TeamMember;
 use App\Models\User;
 use App\Services\ScopedRoleService;
 use Illuminate\Support\Facades\Gate;
+use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     seedRoles();
@@ -24,7 +25,7 @@ beforeEach(function () {
 
     // Assign global roles at team_id=null for true global scope
     setPermissionsTeamId(null);
-    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
     $this->platformAdmin->assignRole('Platform Admin');
     $this->platformAdmin->unsetRelations();
@@ -155,7 +156,7 @@ describe('Role Removal', function () {
 
         // Force fresh context
         setPermissionsTeamId(null);
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
         $this->teamAdmin->unsetRelations();
 
         expect($this->service->hasTeamPermission($this->teamAdmin, 'update team', $this->teamA))->toBeFalse();
@@ -166,7 +167,7 @@ describe('Role Removal', function () {
 
         // Force fresh context
         setPermissionsTeamId(null);
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
         $this->eventAdmin->unsetRelations();
 
         expect($this->service->hasEventPermission($this->eventAdmin, 'update event', $this->eventA))->toBeFalse();

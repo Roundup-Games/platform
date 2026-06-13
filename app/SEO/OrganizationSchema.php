@@ -16,6 +16,7 @@ class OrganizationSchema extends CustomSchemaFluent
 {
     public string $type = 'Organization';
 
+    /** @var Collection<string, mixed> */
     public Collection $data;
 
     public function initializeMarkup(SEOData $SEOData): void
@@ -23,10 +24,10 @@ class OrganizationSchema extends CustomSchemaFluent
         $this->data = collect([
             '@context' => 'https://schema.org',
             '@type' => 'Organization',
-            'name' => config('seo.site_name', config('company.display_name')),
+            'name' => is_string($sn = config('seo.site_name', config('company.display_name'))) ? $sn : '',
             'url' => config('app.url'),
             'logo' => secure_url('icons/pwa-512x512.png'),
-            'description' => $SEOData->description ?? (config('company.display_name') . ' is a non-profit platform helping communities organize and join local, in-person tabletop game sessions — board games, RPGs, and card games.'),
+            'description' => $SEOData->description ?? ((is_string($dn = config('company.display_name')) ? $dn : '').' is a non-profit platform helping communities organize and join local, in-person tabletop game sessions — board games, RPGs, and card games.'),
             'sameAs' => [
                 'https://github.com/Roundup-Games/',
             ],
@@ -35,8 +36,13 @@ class OrganizationSchema extends CustomSchemaFluent
         ]);
     }
 
+    /**
+     * @return Collection<int, mixed>
+     */
     public function generateInner(): Collection
     {
-        return $this->data->pipeThrough($this->markupTransformers);
+        $result = $this->data->pipeThrough($this->markupTransformers);
+
+        return $result instanceof Collection ? $result : collect();
     }
 }

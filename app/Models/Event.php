@@ -2,38 +2,61 @@
 
 namespace App\Models;
 
+use App\Enums\EventStatus;
+use App\Relations\StringKeyMorphMany;
+use App\Services\ShortLinkService;
+use App\Traits\StringMorphMediaKey;
+use Database\Factories\EventFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
-use RalphJSmit\Laravel\SEO\Support\SEOData;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\SchemaOrg\Event as SchemaEvent;
+use Spatie\SchemaOrg\EventStatusType;
 use Spatie\SchemaOrg\Offer;
+use Spatie\SchemaOrg\Person as SchemaPerson;
 use Spatie\SchemaOrg\Place;
 use Spatie\SchemaOrg\PostalAddress;
-use Spatie\SchemaOrg\Person as SchemaPerson;
-use Spatie\SchemaOrg\EventStatusType;
-use Spatie\MediaLibrary\InteractsWithMedia;
-use App\Enums\EventStatus;
 use Spatie\Translatable\HasTranslations;
-use App\Traits\StringMorphMediaKey;
-use App\Relations\StringKeyMorphMany;
 
+/**
+ * @property Carbon|null $start_date
+ * @property Carbon|null $end_date
+ * @property Carbon|null $registration_opens_at
+ * @property Carbon|null $registration_closes_at
+ * @property Carbon|null $early_bird_deadline
+ * @property EventStatus|null $status
+ * @property string|null $slug
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property int|null $individual_registration_fee
+ * @property int|null $team_registration_fee
+ * @property array{paddle_price_id?: string}|null $metadata
+ */
 class Event extends Model implements HasMedia
 {
+    /** @use HasFactory<EventFactory> */
     use HasFactory;
+
     use HasSEO;
+    use HasTranslations;
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
-    use HasTranslations;
 
+    /** @var array<int, string> */
     public array $translatable = ['name', 'description', 'short_description'];
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     /**
@@ -100,13 +123,14 @@ class Event extends Model implements HasMedia
                 // name is a spatie JSON column — getTranslation extracts the locale key.
                 // Falls back to the raw attribute if the value isn't JSON yet (spatie handles this).
                 $locale = $event->language ?? 'en';
-                $event->slug = Str::slug($event->getTranslation('name', $locale)) . '-' . Str::random(6);
+                $name = $event->getTranslation('name', $locale);
+                $event->slug = Str::slug(is_string($name) ? $name : '').'-'.Str::random(6);
             }
         });
 
         static::updated(function (self $event) {
-            if ($event->wasChanged('status') && in_array($event->status->value, ['completed', 'cancelled'])) {
-                app(\App\Services\ShortLinkService::class)->expireLinksForEntity($event);
+            if ($event->wasChanged('status') && in_array($event->status?->value, ['completed', 'cancelled'])) {
+                app(ShortLinkService::class)->expireLinksForEntity($event);
             }
         });
     }
@@ -122,7 +146,7 @@ class Event extends Model implements HasMedia
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
     }
 
-    public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
+    public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
             ->width(150)
@@ -147,21 +171,33 @@ class Event extends Model implements HasMedia
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function organizer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'organizer_id');
     }
 
+    /**
+     * @return HasMany<EventRegistration, $this>
+     */
     public function registrations(): HasMany
     {
         return $this->hasMany(EventRegistration::class);
     }
 
+    /**
+     * @return HasMany<EventAnnouncement, $this>
+     */
     public function announcements(): HasMany
     {
         return $this->hasMany(EventAnnouncement::class);
     }
 
+    /**
+     * @return BelongsTo<Location, $this>
+     */
     public function linkedLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'location_id');
@@ -169,35 +205,57 @@ class Event extends Model implements HasMedia
 
     // ── Short Links ────────────────────────────────────
 
-    public function shortLinks()
+    /**
+     * @return StringKeyMorphMany<ShortLink, $this>
+     */
+    public function shortLinks(): StringKeyMorphMany
     {
-        return (new StringKeyMorphMany(
+        $relation = new StringKeyMorphMany(
             $this->newRelatedInstance(ShortLink::class)->newQuery(),
             $this,
             'linkable_type',
             'linkable_id',
             'id'
-        ))->where('linkable_type', static::class);
+        );
+        $relation->getQuery()->where('linkable_type', static::class);
+
+        return $relation;
     }
 
     // ── Scopes ─────────────────────────────────────────
 
-    public function scopePublic($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopePublic(Builder $query)
     {
         return $query->where('is_public', true);
     }
 
-    public function scopeFeatured($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeFeatured(Builder $query)
     {
         return $query->where('is_featured', true);
     }
 
-    public function scopeRegistrationOpen($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeRegistrationOpen(Builder $query)
     {
         return $query->where('status', EventStatus::RegistrationOpen);
     }
 
-    public function scopeUpcoming($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeUpcoming(Builder $query): Builder
     {
         return $query->where('start_date', '>=', now())->orderBy('start_date');
     }
@@ -277,7 +335,7 @@ class Event extends Model implements HasMedia
 
             $event = (new SchemaEvent)
                 ->name($this->name)
-                ->description(filled($this->description) ? Str::limit(strip_tags($this->description), 500) : null)
+                ->description(filled($this->description) ? Str::limit(strip_tags((string) $this->description), 500) : '')
                 ->eventStatus(EventStatusType::EventScheduled)
                 ->eventAttendanceMode('OfflineEventAttendanceMode');
 
@@ -289,8 +347,9 @@ class Event extends Model implements HasMedia
                 $event->endDate($this->end_date->toDateString());
             }
 
-            // Cancelled events
-            if ($this->status === EventStatus::Cancelled) {
+            // Cancelled events — use readAttribute to avoid PHPStan type narrowing from the isPublic check
+            $status = $this->getAttribute('status');
+            if ($status === EventStatus::Cancelled) {
                 $event->eventStatus(EventStatusType::EventCancelled);
             }
 
@@ -312,14 +371,14 @@ class Event extends Model implements HasMedia
 
             // Attendance capacity
             if ($this->max_participants) {
-                $event->maximumAttendees($this->max_participants);
+                $event->maximumAttendeeCapacity($this->max_participants);
             }
 
             // Offers — individual or team registration fees
             $fee = $this->individual_registration_fee ?: $this->team_registration_fee;
             $event->isAccessibleForFree(empty($fee));
 
-            if ($fee && $fee > 0) {
+            if ($fee > 0) {
                 $event->offers(
                     (new Offer)
                         ->price($fee)

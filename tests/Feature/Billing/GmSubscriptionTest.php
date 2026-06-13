@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\GMProfile;
-use App\Models\LocalSubscription;
 use App\Models\MembershipType;
 use App\Models\User;
 use App\Services\GmRoleService;

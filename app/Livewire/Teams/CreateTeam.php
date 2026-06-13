@@ -5,6 +5,7 @@ namespace App\Livewire\Teams;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Traits\BuildsTranslatableFormFields;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -15,6 +16,7 @@ use Livewire\Component;
 class CreateTeam extends Component
 {
     use BuildsTranslatableFormFields;
+
     #[Validate('required|string|max:255')]
     public string $name = '';
 
@@ -22,6 +24,9 @@ class CreateTeam extends Component
     public string $description = '';
 
     // ── Translatable fields ──
+    /**
+     * @return array<int, string>
+     */
     public function getTranslatableFields(): array
     {
         return ['description'];
@@ -96,7 +101,7 @@ class CreateTeam extends Component
         $this->redirect(route('teams.detail', $team->slug), navigate: true);
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.teams.create-team');
     }

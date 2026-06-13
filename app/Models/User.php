@@ -11,6 +11,7 @@ use App\Services\SocialGraphService;
 use App\Services\UserAnonymizationService;
 use App\Services\UserPreferenceResolver;
 use App\Traits\StringMorphMediaKey;
+use Database\Factories\UserFactory;
 use Escalated\Laravel\Contracts\HasTickets;
 use Escalated\Laravel\Contracts\Ticketable;
 use Filament\Models\Contracts\FilamentUser;
@@ -18,10 +19,17 @@ use Filament\Panel;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Billable;
 use Laravel\Sanctum\HasApiTokens;
@@ -34,6 +42,23 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\SchemaOrg\Person as SchemaPerson;
 
+/**
+ * @property-read Game[] $ownedGames
+ * @property-read Location|null $linkedLocation
+ * @property-read GMProfile|null $gmProfile
+ * @property Carbon|null $email_verified_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $password_set_at
+ * @property Carbon|null $disabled_at
+ * @property string|null $slug
+ * @property string|null $username
+ * @property ContentLanguage|null $preferred_language
+ * @property string|null $avatar_url
+ * @property Collection<int, UserVibePreference>|null $vibePreferences
+ * @property Carbon|null $privacy_policy_accepted_at
+ * @property Carbon|null $terms_accepted_at
+ */
 #[Fillable([
     'name',
     'email',
@@ -69,7 +94,10 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 {
     use Billable;
     use HasApiTokens;
+
+    /** @use HasFactory<UserFactory> */
     use HasFactory;
+
     use HasRoles;
     use HasSEO;
     use HasTickets;
@@ -125,11 +153,13 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
     /**
      * Resolve avatar URL: media library upload first, then fallback to DB column (OAuth).
+     *
+     * @return Attribute<string, string>
      */
     protected function avatarUrl(): Attribute
     {
         return Attribute::make(
-            get: function (?string $value) {
+            get: function (mixed $value) {
                 $media = $this->getFirstMedia('avatar');
                 if ($media) {
                     return $media->getUrl();
@@ -142,11 +172,17 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return HasMany<LinkedAccount, $this>
+     */
     public function linkedAccounts()
     {
         return $this->hasMany(LinkedAccount::class);
     }
 
+    /**
+     * @return BelongsTo<Location, $this>
+     */
     public function linkedLocation()
     {
         return $this->belongsTo(Location::class, 'location_id');
@@ -185,18 +221,26 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         return $this->preferred_language?->value;
     }
 
+    /**
+     * @return BelongsTo<Location, $this>
+     */
     public function location()
     {
         return $this->belongsTo(Location::class, 'location_id');
     }
 
-    public function teams()
+    /**
+     * @return BelongsToMany<Team, $this, TeamMember>
+     */
+    public function teams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class, 'team_members')
-            ->using(TeamMember::class)
-            ->withPivot(['role', 'status', 'jersey_number', 'position', 'joined_at', 'left_at', 'invited_by', 'notes']);
+            ->using(TeamMember::class);
     }
 
+    /**
+     * @return BelongsToMany<Team, $this, TeamMember>
+     */
     public function activeTeam()
     {
         return $this->belongsToMany(Team::class, 'team_members')
@@ -207,11 +251,15 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             ->limit(1);
     }
 
-    public function ownedGames()
+    /** @return HasMany<Game, $this> */
+    public function ownedGames(): HasMany
     {
         return $this->hasMany(Game::class, 'owner_id');
     }
 
+    /**
+     * @return BelongsToMany<Game, $this, GameParticipant>
+     */
     public function gameParticipations()
     {
         return $this->belongsToMany(Game::class, 'game_participants')
@@ -220,6 +268,9 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             ->withTimestamps();
     }
 
+    /**
+     * @return BelongsToMany<Game, $this, GameApplication>
+     */
     public function gameApplications()
     {
         return $this->belongsToMany(Game::class, 'game_applications')
@@ -228,11 +279,17 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             ->withTimestamps();
     }
 
+    /**
+     * @return HasMany<Campaign, $this>
+     */
     public function ownedCampaigns()
     {
         return $this->hasMany(Campaign::class, 'owner_id');
     }
 
+    /**
+     * @return BelongsToMany<Campaign, $this, CampaignParticipant>
+     */
     public function campaignParticipations()
     {
         return $this->belongsToMany(Campaign::class, 'campaign_participants')
@@ -241,6 +298,9 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             ->withTimestamps();
     }
 
+    /**
+     * @return BelongsToMany<Campaign, $this, CampaignApplication>
+     */
     public function campaignApplications()
     {
         return $this->belongsToMany(Campaign::class, 'campaign_applications')
@@ -249,51 +309,78 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             ->withTimestamps();
     }
 
+    /**
+     * @return HasMany<Event, $this>
+     */
     public function organizedEvents()
     {
         return $this->hasMany(Event::class, 'organizer_id');
     }
 
+    /**
+     * @return HasMany<EventRegistration, $this>
+     */
     public function eventRegistrations()
     {
         return $this->hasMany(EventRegistration::class);
     }
 
-    public function gameSystemPreferences()
+    /**
+     * @return BelongsToMany<GameSystem, $this>
+     */
+    public function gameSystemPreferences(): BelongsToMany
     {
         return $this->belongsToMany(GameSystem::class, 'user_game_system_preferences')
             ->withPivot('preference_type');
     }
 
+    /**
+     * @return BelongsToMany<GameSystem, $this>
+     */
     public function favoriteGameSystems()
     {
         return $this->belongsToMany(GameSystem::class, 'user_game_system_preferences')
             ->wherePivot('preference_type', 'favorite');
     }
 
+    /**
+     * @return BelongsToMany<GameSystem, $this>
+     */
     public function avoidedGameSystems()
     {
         return $this->belongsToMany(GameSystem::class, 'user_game_system_preferences')
             ->wherePivot('preference_type', 'avoid');
     }
 
+    /**
+     * @return HasMany<UserVibePreference, $this>
+     */
     public function vibePreferences()
     {
         return $this->hasMany(UserVibePreference::class);
     }
 
+    /**
+     * @return HasMany<UserVibePreference, $this>
+     */
     public function favoriteVibes()
     {
         return $this->hasMany(UserVibePreference::class)
             ->where('preference_type', 'favorite');
     }
 
+    /**
+     * @return HasMany<UserVibePreference, $this>
+     */
     public function avoidedVibes()
     {
         return $this->hasMany(UserVibePreference::class)
             ->where('preference_type', 'avoid');
     }
 
+    /**
+     * @return HasMany<PushSubscription, $this>
+     */
     public function pushSubscriptions()
     {
         return $this->hasMany(PushSubscription::class);
@@ -301,11 +388,17 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
     // ── Preference Resolution ─────────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     public function resolvedGameSystemPreferences(): array
     {
         return app(UserPreferenceResolver::class)->resolvedGameSystemPreferences($this);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function resolvedVibePreferences(): array
     {
         return app(UserPreferenceResolver::class)->resolvedVibePreferences($this);
@@ -334,17 +427,25 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
      * Discovery view tracking row (1:1 with User).
      * Used for sweep targeting: last_discovery_view filters active users,
      * geohash_4 enables skip-if-location-unchanged optimization.
+     *
+     * @return HasOne<GMProfile, $this>
      */
     public function gmProfile()
     {
         return $this->hasOne(GMProfile::class);
     }
 
+    /**
+     * @return HasMany<GmSocialLink, $this>
+     */
     public function gmSocialLinks()
     {
         return $this->hasMany(GmSocialLink::class)->orderBy('platform');
     }
 
+    /**
+     * @return HasMany<LocalSubscription, $this>
+     */
     public function localSubscriptions()
     {
         return $this->hasMany(LocalSubscription::class);
@@ -369,6 +470,9 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             ->exists();
     }
 
+    /**
+     * @return HasOne<NearbyDiscoveryView, $this>
+     */
     public function discoveryView()
     {
         return $this->hasOne(NearbyDiscoveryView::class);
@@ -376,6 +480,8 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
     /**
      * Users who follow this user (incoming follows).
+     *
+     * @return HasMany<UserRelationship, $this>
      */
     public function followers()
     {
@@ -385,6 +491,8 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
     /**
      * Users this user follows (outgoing follows).
+     *
+     * @return HasMany<UserRelationship, $this>
      */
     public function followings()
     {
@@ -394,6 +502,8 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
     /**
      * Users this user has blocked (outgoing blocks).
+     *
+     * @return HasMany<UserRelationship, $this>
      */
     public function blocks()
     {
@@ -403,6 +513,8 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
     /**
      * Users who have blocked this user (incoming blocks).
+     *
+     * @return HasMany<UserRelationship, $this>
      */
     public function blockedBy()
     {
@@ -437,6 +549,9 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         return app(SocialGraphService::class)->hasBlocked($this, $user);
     }
 
+    /**
+     * @return list<mixed>
+     */
     public function getAllowedOwnerIdsForProtectedContent(): array
     {
         return app(SocialGraphService::class)->getAllowedOwnerIdsForProtectedContent($this);
@@ -499,11 +614,11 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         // Transliterate to ASCII first (ü→ue, ö→oe, ä→ae, é→e, etc.)
         $slug = static::transliterate($name);
         // Remove anything that's not ASCII letters, numbers, spaces, or hyphens
-        $slug = preg_replace('/[^a-zA-Z0-9\s-]/', '', $slug);
+        $slug = (string) preg_replace('/[^a-zA-Z0-9\s-]/', '', $slug);
         // Replace spaces with hyphens
-        $slug = preg_replace('/\s+/', '-', trim($slug));
+        $slug = (string) preg_replace('/\s+/', '-', trim($slug));
         // Collapse consecutive hyphens
-        $slug = preg_replace('/-+/', '-', $slug);
+        $slug = (string) preg_replace('/-+/', '-', $slug);
         // Lowercase
         $slug = mb_strtolower($slug);
         // Trim leading/trailing hyphens
@@ -605,8 +720,10 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
      * need to load anonymized users normally (they show as "Deleted User").
      *
      * Usage: User::notAnonymized()->where(...)
+     *
+     * @param  Builder<static>  $query
      */
-    public function scopeNotAnonymized($query): void
+    public function scopeNotAnonymized(Builder $query): void
     {
         $query->whereNull('anonymized_at');
     }
@@ -626,14 +743,6 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     }
 
     // ── Helpers ────────────────────────────────────────
-
-    /**
-     * Check if this user shares an active team membership with the given user.
-     */
-    private function hasSharedActiveTeamWith(self $user): bool
-    {
-        return app(SocialGraphService::class)->hasSharedActiveTeamWith($this, $user);
-    }
 
     public function hasActiveMembership(): bool
     {
@@ -689,7 +798,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
         $description = $this->bio
             ? Str::limit(strip_tags($this->bio), 160)
-            : "View {$this->name}'s profile on ".config('company.display_name').'.';
+            : "View {$this->name}'s profile on ".(is_string($dn = config('company.display_name')) ? $dn : '').'.';
 
         $image = $this->getFirstMediaUrl('avatar', 'thumb') ?: ($this->avatar_url ?: asset('images/og-default.jpg'));
 
@@ -727,11 +836,14 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             }
 
             // knowsAbout from game systems they favor/run
-            $gameSystemNames = $this->favoriteGameSystems()
-                ->pluck('game_systems.name')
-                ->unique()
-                ->values()
-                ->toArray();
+            $gameSystemNames = array_filter(
+                $this->favoriteGameSystems()
+                    ->pluck('game_systems.name')
+                    ->unique()
+                    ->values()
+                    ->toArray(),
+                'is_string'
+            );
 
             if (! empty($gameSystemNames)) {
                 $person->knowsAbout($gameSystemNames);

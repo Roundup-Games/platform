@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Models\User;
 use App\Services\SeoCacheService;
 
 /**
@@ -58,7 +59,7 @@ class SeoModelObserver
      */
     private function shouldSkipUserSave(object $model): bool
     {
-        if (! ($model instanceof \App\Models\User)) {
+        if (! ($model instanceof User)) {
             return false;
         }
 

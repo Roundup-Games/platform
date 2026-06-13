@@ -3,11 +3,15 @@
 namespace Tests\Feature\Livewire\GM;
 
 use App\Enums\GmProficiency;
+use App\Livewire\GM\GmDirectory;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GMProfile;
+use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
 class GmDirectoryTest extends TestCase
@@ -47,7 +51,7 @@ class GmDirectoryTest extends TestCase
     // ── GM Cards ───────────────────────────────────────
 
     // smoke: core value proposition — active GMs appear in directory
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
+    #[Group('smoke')]
     public function test_active_gm_appears_in_directory(): void
     {
         $gm = $this->createActiveGm(['name' => 'Alice the GM']);
@@ -116,7 +120,7 @@ class GmDirectoryTest extends TestCase
             'status' => 'completed',
         ]);
 
-        $response = $this->get('/en/gms?game_system_id=' . $system->id);
+        $response = $this->get('/en/gms?game_system_id='.$system->id);
 
         $response->assertSee($gm1->name);
         $response->assertDontSee($gm2->name);
@@ -151,7 +155,7 @@ class GmDirectoryTest extends TestCase
         $gm3 = $this->createActiveGm(['name' => 'Mid Rated'], ['average_rating' => 4.00, 'review_count' => 5]);
 
         // Default sort (highest_rated) via Livewire component — verify view data order
-        $component = \Livewire\Livewire::test(\App\Livewire\GM\GmDirectory::class);
+        $component = Livewire::test(GmDirectory::class);
         $gms = $component->viewData('results');
 
         // Results should be ordered by rating descending (compare by user_id since results are GMProfiles)
@@ -178,7 +182,7 @@ class GmDirectoryTest extends TestCase
     // ── Non-active GMs Hidden ──────────────────────────
 
     // smoke: gating works — inactive GMs are filtered out; users without profiles too
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
+    #[Group('smoke')]
     public function test_inactive_gm_not_shown_in_directory(): void
     {
         $inactiveGm = $this->createInactiveGm(['name' => 'Inactive GM']);
@@ -227,12 +231,11 @@ class GmDirectoryTest extends TestCase
         $response->assertSee('Test_GM');
     }
 
-
     public function test_gm_card_shows_proficiency_badges_from_reviews(): void
     {
         $gm = $this->createActiveGm(['name' => 'Badged GM'], ['specializations' => []]);
 
-        \App\Models\Review::factory()->create([
+        Review::factory()->create([
             'gm_profile_id' => $gm->gmProfile->id,
             'proficiency_tags' => ['storytelling', 'voices'],
             'status' => 'published',

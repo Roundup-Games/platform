@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * Add trigram GIN indexes for translatable JSONB columns.
@@ -49,10 +48,10 @@ return new class extends Migration
                 $expression = "({$column}->>'{$locale}')";
 
                 // Skip if index already exists (idempotent for re-runs)
-                $exists = DB::selectOne("
+                $exists = DB::selectOne('
                     SELECT 1 FROM pg_indexes
                     WHERE indexname = ?
-                ", [$indexName]);
+                ', [$indexName]);
 
                 if (! $exists) {
                     DB::statement("CREATE INDEX {$indexName} ON {$table} USING gin ({$expression} gin_trgm_ops)");

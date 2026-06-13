@@ -7,9 +7,13 @@ use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\VibeFlag;
 use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\Location;
+use App\Models\User;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -29,9 +33,11 @@ class BoardGamesDiscovery extends Component
 
     // ── Board-game-specific filters ─────────────────────
 
+    /** @var array<int, int|string> */
     #[Url]
     public array $category_ids = [];
 
+    /** @var array<int, int|string> */
     #[Url]
     public array $mechanic_ids = [];
 
@@ -129,7 +135,7 @@ class BoardGamesDiscovery extends Component
 
     // ── Render ─────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         seo(new SEOData(
             title: __('discovery.seo_title_browse_board_games'),
@@ -144,7 +150,7 @@ class BoardGamesDiscovery extends Component
         $lng = $this->guestLng ?? null;
 
         // Fallback to the logged-in user's saved location when browser geolocation is unavailable
-        if (! $hasLocation && $user && $user->location_id) {
+        if (! $hasLocation && $user?->location_id) {
             $userLocation = Location::find($user->location_id);
             if ($userLocation) {
                 $lat = (float) $userLocation->latitude;
@@ -179,11 +185,13 @@ class BoardGamesDiscovery extends Component
      *
      * Adds type=boardgame constraint so only board games appear
      * on the board games discovery page (no TTRPG bleed-through).
+     *
+     * @return LengthAwarePaginator<int, Game>
      */
-    protected function getBoardGameResults(DiscoveryQueryService $service, DiscoveryFilters $filters, $user, ?float $lat, ?float $lng, bool $hasLocation)
+    protected function getBoardGameResults(DiscoveryQueryService $service, DiscoveryFilters $filters, ?User $user, ?float $lat, ?float $lng, bool $hasLocation): LengthAwarePaginator
     {
         $query = $service->buildGamesQuery(
-            $filters->toArray(),
+            $filters,
             $user,
             $this->radius,
             $lat,

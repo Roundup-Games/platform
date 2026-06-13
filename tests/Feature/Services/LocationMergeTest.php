@@ -7,7 +7,6 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\LocationMergeService;
-use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     $this->service = app(LocationMergeService::class);
@@ -107,12 +106,12 @@ describe('transaction safety', function () {
         // Force a failure during source delete to trigger rollback.
         Location::deleting(function ($location) use ($sourceId) {
             if ($location->id === $sourceId) {
-                throw new \RuntimeException('forced delete failure');
+                throw new RuntimeException('forced delete failure');
             }
         });
 
         expect(fn () => $this->service->merge($this->source, $this->target))
-            ->toThrow(\RuntimeException::class);
+            ->toThrow(RuntimeException::class);
 
         // Rollback check: no partial reassignment persisted.
         expect(Location::find($sourceId))->not->toBeNull();

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Games;
 
+use App\Enums\ActivityType;
 use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
@@ -15,17 +16,20 @@ use App\Notifications\EntityCompleted;
 use App\Notifications\EntityUpdated;
 use App\Services\ActivityLogService;
 use App\Services\AttendanceService;
+use App\Services\DebriefingService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
 use App\Services\WaitlistService;
 use App\Traits\EditsVenueLocation;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 #[Layout('layouts.app')]
 class GamesPage extends Component
@@ -35,24 +39,41 @@ class GamesPage extends Component
 
     // ── Edit Game State ────────────────────────────────
     public ?string $editingGameId = null;
+
     public ?string $confirmingAction = null;
+
     public string $edit_name = '';
+
     public string $edit_description = '';
+
     public ?string $edit_expected_duration = '';
+
     public string $edit_visibility = 'private';
+
     public string $edit_location_details = '';
+
     public ?string $edit_location_id = null;
+
     public string $edit_location_instructions = '';
+
     public string $edit_location_name = '';
+
     public string $edit_location_city = '';
+
     public string $edit_location_address = '';
 
     // ── Venue Search State (edit modal) ────────────────
     public string $edit_venue_query = '';
+
+    /** @var array<int, mixed> */
     public array $edit_venue_results = [];
+
     public bool $edit_venue_searched = false;
+
     public string $edit_address_city = '';
+
     public string $edit_address_street = '';
+
     public string $edit_address_mode = 'venue'; // venue | address
 
     public function mount(): void
@@ -73,13 +94,13 @@ class GamesPage extends Component
         $this->edit_name = $game->name;
         $this->edit_description = $game->description ?? '';
         $this->edit_expected_duration = $game->expected_duration ? (string) $game->expected_duration : '';
-        $this->edit_visibility = $game->visibility?->value ?? 'private';
-        $this->edit_location_details = $game->location['details'] ?? '';
+        $this->edit_visibility = $game->visibility->value ?? 'private';
+        $this->edit_location_details = is_string($game->location['details'] ?? null) ? $game->location['details'] : '';
         $this->edit_location_id = $game->location_id;
         $this->edit_location_instructions = $game->location_instructions ?? '';
-        $this->edit_location_name = $game->linkedLocation?->name ?? '';
-        $this->edit_location_city = $game->linkedLocation?->city ?? '';
-        $this->edit_location_address = $game->linkedLocation?->address ?? '';
+        $this->edit_location_name = $game->linkedLocation->name ?? '';
+        $this->edit_location_city = $game->linkedLocation->city ?? '';
+        $this->edit_location_address = $game->linkedLocation->address ?? '';
 
         if ($game->location_id && $game->linkedLocation) {
             $this->edit_address_city = $game->linkedLocation->city ?? '';
@@ -118,7 +139,7 @@ class GamesPage extends Component
         ]);
 
         // Gate public visibility
-        if ($this->edit_visibility === 'public' && ! Auth::user()->can_create_public_entries) {
+        if ($this->edit_visibility === 'public' && ! authenticatedUser()->can_create_public_entries) {
             $this->edit_visibility = 'protected';
         }
 
@@ -159,6 +180,7 @@ class GamesPage extends Component
 
         if (empty($changes)) {
             $this->cancelEdit();
+
             return;
         }
 
@@ -166,8 +188,8 @@ class GamesPage extends Component
 
         // Log activity
         app(ActivityLogService::class)->log(
-            \App\Enums\ActivityType::GameUpdated,
-            Auth::user(),
+            ActivityType::GameUpdated,
+            authenticatedUser(),
             $game,
             ['changed_fields' => $changedLabels],
         );
@@ -188,6 +210,9 @@ class GamesPage extends Component
                     ->get();
 
                 foreach ($participants as $participant) {
+                    if ($participant->user === null) {
+                        continue;
+                    }
                     app(NotificationService::class)->send(
                         $participant->user,
                         new EntityUpdated($game, $changedLabels),
@@ -206,15 +231,15 @@ class GamesPage extends Component
         session()->flash('success', __('games.flash_game_updated'));
     }
 
-    public function render()
+    public function render(): View
     {
-        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+        seo(new SEOData(
             title: __('games.seo_title_my_games'),
-            description: __('games.seo_description_my_games', ['brand' => config('company.display_name')]),
+            description: __('games.seo_description_my_games', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
             robots: 'noindex, nofollow',
         ));
 
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $ownedGames = Game::where('owner_id', $user->id)
             ->with(['gameSystem', 'participants', 'campaign'])
@@ -249,11 +274,11 @@ class GamesPage extends Component
 
     public function leaveGame(string $gameId): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $game = Game::findOrFail($gameId);
 
         // Owner cannot leave their own game
-        if ($game->owner_id === $user->id) {
+        if ((string) $game->owner_id === (string) $user->id) {
             session()->flash('error', __('games.error_cannot_leave_own_game'));
 
             return;
@@ -304,6 +329,7 @@ class GamesPage extends Component
 
         if ($game->status !== GameStatus::Scheduled) {
             session()->flash('error', __('games.error_game_not_scheduled'));
+
             return;
         }
 
@@ -336,6 +362,9 @@ class GamesPage extends Component
                 ->get();
 
             foreach ($approvedParticipants as $participant) {
+                if ($participant->user === null) {
+                    continue;
+                }
                 app(NotificationService::class)->send(
                     $participant->user,
                     new EntityCancelled($game),
@@ -359,6 +388,7 @@ class GamesPage extends Component
 
         if ($game->status !== GameStatus::Scheduled) {
             session()->flash('error', __('games.error_game_not_scheduled'));
+
             return;
         }
 
@@ -386,6 +416,9 @@ class GamesPage extends Component
                 ->get();
 
             foreach ($approvedParticipants as $participant) {
+                if ($participant->user === null) {
+                    continue;
+                }
                 app(NotificationService::class)->send(
                     $participant->user,
                     new EntityCompleted($game),
@@ -402,7 +435,7 @@ class GamesPage extends Component
         // Send debriefing notifications if game has debriefing tools
         if ($game->hasDebriefingTools()) {
             try {
-                app(\App\Services\DebriefingService::class)->notifyParticipants($game);
+                app(DebriefingService::class)->notifyParticipants($game);
             } catch (\Throwable $e) {
                 Log::error('notification.debriefing_available_dispatch_failed', [
                     'game_id' => $game->id,
@@ -419,10 +452,14 @@ class GamesPage extends Component
         $participant = GameParticipant::findOrFail($participantId);
         $game = $participant->game;
 
+        if ($game === null) {
+            return;
+        }
+
         $result = app(ParticipantService::class)->acceptInvitation(
             $participant,
             $game,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if ($result->success) {
@@ -437,10 +474,14 @@ class GamesPage extends Component
         $participant = GameParticipant::findOrFail($participantId);
         $game = $participant->game;
 
+        if ($game === null) {
+            return;
+        }
+
         $result = app(ParticipantService::class)->declineInvitation(
             $participant,
             $game,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if ($result->success) {

@@ -72,12 +72,13 @@ class RecordShortLinkHit implements ShouldQueue
         // Compute the PostHog fingerprint from raw IP+UA before hashing.
         // This gives a consistent anonymous visitor ID without storing raw PII.
         $this->visitorFingerprint = ($ipAddress ?? '') !== '' || ($this->userAgent ?? '') !== ''
-            ? 'link:' . hash('xxh128', ($ipAddress ?? '') . ($this->userAgent ?? ''))
+            ? 'link:'.hash('xxh128', ($ipAddress ?? '').($this->userAgent ?? ''))
             : 'link:anonymous';
 
         // Hash IP at construction time so raw PII never enters the queue store.
-        $this->hashedIpAddress = $ipAddress !== null
-            ? hash('sha256', $ipAddress . config('app.key'))
+        $key = config('app.key');
+        $this->hashedIpAddress = $ipAddress !== null && is_string($key)
+            ? hash('sha256', $ipAddress.$key)
             : null;
 
         // Reduce raw User-Agent PII to a browser family string before it
@@ -184,7 +185,7 @@ class RecordShortLinkHit implements ShouldQueue
 
         Log::debug('short_link.hit.recorded', [
             'short_link_id' => $link->id,
-            'code_prefix' => substr($link->code, 0, 3) . '…',
+            'code_prefix' => substr($link->code, 0, 3).'…',
         ]);
     }
 

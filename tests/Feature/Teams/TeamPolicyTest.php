@@ -4,6 +4,7 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
+use Spatie\Permission\Models\Permission;
 
 beforeEach(function () {
     $this->captain = User::factory()->create();
@@ -87,7 +88,7 @@ describe('view', function () {
 describe('create', function () {
     test('authenticated user with permission can create team', function () {
         // Seed the permission
-        $perm = \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'create team', 'guard_name' => 'web']);
+        $perm = Permission::firstOrCreate(['name' => 'create team', 'guard_name' => 'web']);
 
         // Spatie teams feature scopes by team_id. Set a team ID and assign permission.
         setPermissionsTeamId(1); // arbitrary team ID for this test

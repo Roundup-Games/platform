@@ -27,7 +27,7 @@ class OwnerParticipantServiceTest extends TestCase
 
     // ── Game Owner Participant ─────────────────────────
 
-    public function test_ensureOwnerParticipant_creates_participant(): void
+    public function test_ensure_owner_participant_creates_participant(): void
     {
         $owner = User::factory()->create();
         $game = Game::factory()->create(['owner_id' => $owner->id]);
@@ -41,7 +41,7 @@ class OwnerParticipantServiceTest extends TestCase
         $this->assertEquals(ParticipantStatus::Approved, $participant->status);
     }
 
-    public function test_ensureOwnerParticipant_is_idempotent(): void
+    public function test_ensure_owner_participant_is_idempotent(): void
     {
         $owner = User::factory()->create();
         $game = Game::factory()->create(['owner_id' => $owner->id]);
@@ -55,7 +55,7 @@ class OwnerParticipantServiceTest extends TestCase
             ->count());
     }
 
-    public function test_ensureOwnerParticipant_returns_existing_without_creating_duplicate(): void
+    public function test_ensure_owner_participant_returns_existing_without_creating_duplicate(): void
     {
         $owner = User::factory()->create();
         $game = Game::factory()->create(['owner_id' => $owner->id]);
@@ -78,7 +78,7 @@ class OwnerParticipantServiceTest extends TestCase
 
     // ── Campaign Owner Participant ─────────────────────
 
-    public function test_ensureCampaignOwnerParticipant_creates_participant(): void
+    public function test_ensure_campaign_owner_participant_creates_participant(): void
     {
         $owner = User::factory()->create();
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
@@ -92,7 +92,7 @@ class OwnerParticipantServiceTest extends TestCase
         $this->assertEquals(ParticipantStatus::Approved, $participant->status);
     }
 
-    public function test_ensureCampaignOwnerParticipant_is_idempotent(): void
+    public function test_ensure_campaign_owner_participant_is_idempotent(): void
     {
         $owner = User::factory()->create();
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
@@ -106,7 +106,7 @@ class OwnerParticipantServiceTest extends TestCase
             ->count());
     }
 
-    public function test_ensureCampaignOwnerParticipant_returns_existing_without_creating_duplicate(): void
+    public function test_ensure_campaign_owner_participant_returns_existing_without_creating_duplicate(): void
     {
         $owner = User::factory()->create();
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);

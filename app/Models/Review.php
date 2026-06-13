@@ -3,17 +3,32 @@
 namespace App\Models;
 
 use App\Enums\GmProficiency;
+use Database\Factories\ReviewFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $content
+ * @property int $rating
+ * @property string|null $status
+ * @property int|null $avg_rating
+ * @property int|null $cnt
+ * @property int|null $count
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class Review extends Model
 {
+    /** @use HasFactory<ReviewFactory> */
     use HasFactory;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -53,21 +68,29 @@ class Review extends Model
 
     // ── Relationships ──────────────────────────────────
 
+    /** @return MorphTo<Model, $this> */
     public function reviewable(): MorphTo
     {
         return $this->morphTo();
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewer_id');
     }
 
+    /**
+     * @return BelongsTo<GMProfile, $this>
+     */
     public function gmProfile(): BelongsTo
     {
         return $this->belongsTo(GMProfile::class, 'gm_profile_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function reportedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reported_by');
@@ -75,17 +98,29 @@ class Review extends Model
 
     // ── Scopes ─────────────────────────────────────────
 
-    public function scopePublished($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopePublished(Builder $query)
     {
         return $query->where('status', 'published');
     }
 
-    public function scopeReported($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeReported(Builder $query)
     {
         return $query->where('status', 'reported');
     }
 
-    public function scopeForGm($query, string $gmProfileId)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForGm(Builder $query, string $gmProfileId)
     {
         return $query->where('gm_profile_id', $gmProfileId);
     }
@@ -99,9 +134,12 @@ class Review extends Model
      */
     public function getProficiencyEnums(): array
     {
+        /** @var string[] $tags */
+        $tags = $this->proficiency_tags ?? [];
+
         return array_map(
             fn (string $value) => GmProficiency::from($value),
-            $this->proficiency_tags ?? [],
+            $tags,
         );
     }
 

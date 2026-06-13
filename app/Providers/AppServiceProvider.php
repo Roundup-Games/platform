@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Listeners\HandleGameSystemTicketClosed;
+use App\Listeners\HandleGameSystemTicketResolved;
 use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
@@ -11,22 +13,52 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Review;
 use App\Models\Team;
+use App\Models\User;
 use App\Models\UserRelationship;
 use App\Notifications\Channels\PushChannel;
-use App\Listeners\HandleGameSystemTicketClosed;
-use App\Listeners\HandleGameSystemTicketResolved;
 use App\Observers\ActivityLogObserver;
+use App\Observers\GameBulletinObserver;
+use App\Observers\GameObserver;
+use App\Observers\GameParticipantObserver;
+use App\Observers\ReviewObserver;
 use App\Observers\SeoModelObserver;
+use App\Observers\UserRelationshipObserver;
+use App\Policies\Escalated\CannedResponsePolicy;
+use App\Policies\Escalated\EscalatedAdminPolicy;
+use App\Policies\Escalated\TicketPolicy;
+use App\Policies\GameBulletinPolicy;
+use App\SEO\BreadcrumbBuilder;
+use App\Services\AttendanceService;
+use App\Services\BenchService;
 use App\Services\EscalatedBladeRenderer;
 use App\Services\PostHogClient;
 use App\Services\PostHogFeatureFlag;
 use App\Services\ReliabilityScoreService;
-use Escalated\Laravel\Contracts\EscalatedUiRenderer;
+use App\Services\WaitlistService;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
+use Escalated\Laravel\Contracts\EscalatedUiRenderer;
 use Escalated\Laravel\Events\TicketClosed;
 use Escalated\Laravel\Events\TicketResolved;
-use Spatie\Translatable\Facades\Translatable;
+use Escalated\Laravel\Models\ApiToken;
+use Escalated\Laravel\Models\Article;
+use Escalated\Laravel\Models\ArticleCategory;
+use Escalated\Laravel\Models\AuditLog;
+use Escalated\Laravel\Models\Automation;
+use Escalated\Laravel\Models\BusinessSchedule;
+use Escalated\Laravel\Models\CannedResponse;
+use Escalated\Laravel\Models\CustomField;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\EscalationRule;
+use Escalated\Laravel\Models\Macro;
+use Escalated\Laravel\Models\Role;
+use Escalated\Laravel\Models\Skill;
+use Escalated\Laravel\Models\SlaPolicy;
+use Escalated\Laravel\Models\Tag;
+use Escalated\Laravel\Models\Ticket;
+use Escalated\Laravel\Models\TicketStatus;
+use Escalated\Laravel\Models\Webhook;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
@@ -37,13 +69,14 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
-use App\SEO\BreadcrumbBuilder;
-use RalphJSmit\Laravel\SEO\Facades\SEOManager;
-use RalphJSmit\Laravel\SEO\Support\AlternateTag;
-use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Laravel\Paddle\Cashier;
 use Minishlink\WebPush\WebPush;
 use PostHog\PostHog;
+use RalphJSmit\Laravel\SEO\Facades\SEOManager;
+use RalphJSmit\Laravel\SEO\Support\AlternateTag;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
+use RalphJSmit\Laravel\SEO\TagManager;
+use Spatie\Translatable\Facades\Translatable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -81,11 +114,11 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(ReliabilityScoreService::class);
 
-        $this->app->singleton(\App\Services\WaitlistService::class);
+        $this->app->singleton(WaitlistService::class);
 
-        $this->app->singleton(\App\Services\BenchService::class);
+        $this->app->singleton(BenchService::class);
 
-        $this->app->singleton(\App\Services\AttendanceService::class);
+        $this->app->singleton(AttendanceService::class);
 
         // Escalated customer portal: use Blade renderer instead of default Inertia.
         $this->app->singleton(EscalatedUiRenderer::class, EscalatedBladeRenderer::class);
@@ -143,31 +176,31 @@ class AppServiceProvider extends ServiceProvider
 
         // Escalated model policies — override vendor defaults for RBAC.
         // Agent resources (tickets): escalated-agent gate (Platform Admin + Service Admin)
-        Gate::policy(\Escalated\Laravel\Models\Ticket::class, \App\Policies\Escalated\TicketPolicy::class);
+        Gate::policy(Ticket::class, TicketPolicy::class);
 
         // Game bulletin policy — not auto-discovered because create() takes Game, not GameBulletin
-        Gate::policy(\App\Models\GameBulletin::class, \App\Policies\GameBulletinPolicy::class);
+        Gate::policy(GameBulletin::class, GameBulletinPolicy::class);
         // All admin-only resources use the same EscalatedAdminPolicy
         // (vendor policies for Department/Tag/SlaPolicy/EscalationRule use Gate::allows()
         // which doesn't work with Gate::forUser() in test contexts)
-        Gate::policy(\Escalated\Laravel\Models\Department::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\Tag::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\SlaPolicy::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\EscalationRule::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\CannedResponse::class, \App\Policies\Escalated\CannedResponsePolicy::class);
+        Gate::policy(Department::class, EscalatedAdminPolicy::class);
+        Gate::policy(Tag::class, EscalatedAdminPolicy::class);
+        Gate::policy(SlaPolicy::class, EscalatedAdminPolicy::class);
+        Gate::policy(EscalationRule::class, EscalatedAdminPolicy::class);
+        Gate::policy(CannedResponse::class, CannedResponsePolicy::class);
         // Resources with no vendor policy — use generic admin-only policy
-        Gate::policy(\Escalated\Laravel\Models\Macro::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\ApiToken::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\Automation::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\Webhook::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\Role::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\TicketStatus::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\Skill::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\CustomField::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\BusinessSchedule::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\Article::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\ArticleCategory::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
-        Gate::policy(\Escalated\Laravel\Models\AuditLog::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(Macro::class, EscalatedAdminPolicy::class);
+        Gate::policy(ApiToken::class, EscalatedAdminPolicy::class);
+        Gate::policy(Automation::class, EscalatedAdminPolicy::class);
+        Gate::policy(Webhook::class, EscalatedAdminPolicy::class);
+        Gate::policy(Role::class, EscalatedAdminPolicy::class);
+        Gate::policy(TicketStatus::class, EscalatedAdminPolicy::class);
+        Gate::policy(Skill::class, EscalatedAdminPolicy::class);
+        Gate::policy(CustomField::class, EscalatedAdminPolicy::class);
+        Gate::policy(BusinessSchedule::class, EscalatedAdminPolicy::class);
+        Gate::policy(Article::class, EscalatedAdminPolicy::class);
+        Gate::policy(ArticleCategory::class, EscalatedAdminPolicy::class);
+        Gate::policy(AuditLog::class, EscalatedAdminPolicy::class);
 
         // Feature flag Blade directives
         // Blade::if creates @featureFlag / @else / @endfeatureFlag automatically.
@@ -177,9 +210,10 @@ class AppServiceProvider extends ServiceProvider
         Blade::if('featureFlagVariant', fn (string $key, string $variant) => app(PostHogFeatureFlag::class)->getVariant($key) === $variant);
 
         // PostHog PHP SDK — initialize when API key is configured
-        if (config('posthog.enabled', true) && config('posthog.api_key')) {
+        $apiKey = config('posthog.api_key');
+        if (config('posthog.enabled', true) && is_string($apiKey)) {
             PostHog::init(
-                config('posthog.api_key'),
+                $apiKey,
                 [
                     'host' => config('posthog.host', 'https://eu.i.posthog.com'),
                 ],
@@ -187,7 +221,7 @@ class AppServiceProvider extends ServiceProvider
         }
         // SEO: inject locale alternates (en/de/x-default) and canonical URL on every page
         // Bind TagManager as a singleton so seo()->for($model) in components persists to {!! seo() !!} in layout
-        $this->app->singleton(\RalphJSmit\Laravel\SEO\TagManager::class);
+        $this->app->singleton(TagManager::class);
         SEOManager::SEODataTransformer(function (SEOData $SEOData): SEOData {
             // Canonical URL — derive from config to respect scheme/host behind proxies
             if ($SEOData->canonical_url === null) {
@@ -202,11 +236,16 @@ class AppServiceProvider extends ServiceProvider
                 $pathWithoutLocale = implode('/', array_slice($segments, 1));
 
                 $locales = config('app.available_locales', ['en']);
-                $defaultLocale = $locales[0];
+                if (! is_array($locales)) {
+                    $locales = ['en'];
+                }
+                $defaultLocale = is_string($locales[0] ?? null) ? $locales[0] : 'en';
 
                 $alternates = [];
                 foreach ($locales as $locale) {
-                    $alternates[] = new AlternateTag($locale, url("{$locale}/{$pathWithoutLocale}"));
+                    if (is_string($locale)) {
+                        $alternates[] = new AlternateTag($locale, url("{$locale}/{$pathWithoutLocale}"));
+                    }
                 }
                 $alternates[] = new AlternateTag('x-default', url("{$defaultLocale}/{$pathWithoutLocale}"));
 
@@ -229,12 +268,12 @@ class AppServiceProvider extends ServiceProvider
 
         // API rate limiter — used by throttle:api middleware on routes/api.php
         RateLimiter::for('api', function (Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
         // Short link rate limiter — 30 requests/minute per IP to prevent abuse
         RateLimiter::for('short-link', function (Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(30)->by($request->ip());
+            return Limit::perMinute(30)->by($request->ip());
         });
 
         // Register custom notification channels
@@ -258,13 +297,13 @@ class AppServiceProvider extends ServiceProvider
             'game_system' => GameSystem::class,
         ]);
 
-        Review::observe(\App\Observers\ReviewObserver::class);
+        Review::observe(ReviewObserver::class);
 
         // Dashboard cache invalidation observers
-        Game::observe(\App\Observers\GameObserver::class);
-        GameParticipant::observe(\App\Observers\GameParticipantObserver::class);
-        GameBulletin::observe(\App\Observers\GameBulletinObserver::class);
-        UserRelationship::observe(\App\Observers\UserRelationshipObserver::class);
+        Game::observe(GameObserver::class);
+        GameParticipant::observe(GameParticipantObserver::class);
+        GameBulletin::observe(GameBulletinObserver::class);
+        UserRelationship::observe(UserRelationshipObserver::class);
 
         // SEO sitemap cache invalidation observer
         $seoObserver = $this->app->make(SeoModelObserver::class);
@@ -273,7 +312,7 @@ class AppServiceProvider extends ServiceProvider
         Game::observe($seoObserver);
         Campaign::observe($seoObserver);
         Team::observe($seoObserver);
-        \App\Models\User::observe($seoObserver);
+        User::observe($seoObserver);
 
         // Activity logging observers — resilient, never block primary actions
         $activityObserver = $this->app->make(ActivityLogObserver::class);

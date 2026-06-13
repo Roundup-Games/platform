@@ -1,11 +1,13 @@
 <?php
 
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
-use App\Enums\ParticipantStatus;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, get};
+
+use function Pest\Laravel\assertDatabaseHas;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -37,7 +39,7 @@ describe('Game AcceptInvitation', function () {
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id)
             ->assertHasNoErrors()
             ->assertSee('Invitation accepted');
@@ -63,7 +65,7 @@ describe('Game AcceptInvitation', function () {
         ]);
 
         Livewire\Livewire::actingAs($otherUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id)
             ->assertSee('not yours');
 
@@ -87,7 +89,7 @@ describe('Game AcceptInvitation', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id)
             ->assertSee('no longer valid');
 
@@ -127,7 +129,7 @@ describe('Game AcceptInvitation', function () {
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id);
 
         // Should be moved to waitlist (bench_mode=false by default for standalone games)
@@ -157,7 +159,7 @@ describe('Game AcceptInvitation', function () {
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id)
             ->assertHasNoErrors()
             ->assertSee('Invitation accepted');
@@ -183,7 +185,7 @@ describe('Game AcceptInvitation', function () {
         // Invited user shouldn't normally be on manage-participants page,
         // but the trait method should still work via any component using it
         Livewire\Livewire::actingAs($invitedUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id)
             ->assertHasNoErrors();
 
@@ -212,7 +214,7 @@ describe('Game DeclineInvitation', function () {
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('declineInvitation', $participant->id)
             ->assertHasNoErrors()
             ->assertSee('declined');
@@ -236,7 +238,7 @@ describe('Game DeclineInvitation', function () {
         ]);
 
         Livewire\Livewire::actingAs($otherUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('declineInvitation', $participant->id)
             ->assertSee('not yours');
 
@@ -265,12 +267,9 @@ describe('Game Invitation Banner', function () {
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee('Accept Invitation')
             ->assertSee('Accept');
     })->group('smoke');
 
-
 });
-
-

@@ -8,7 +8,8 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\SeoCacheService;
 use Illuminate\Support\Facades\Cache;
-use function Pest\Laravel\{get, actingAs};
+
+use function Pest\Laravel\get;
 
 // ── GameSystem Override Precedence ───────────────────
 

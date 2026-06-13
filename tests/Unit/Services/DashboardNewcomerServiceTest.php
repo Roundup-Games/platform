@@ -11,9 +11,10 @@ use App\Models\Location;
 use App\Models\User;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardNewcomerService;
+use App\Services\Geohash;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DashboardNewcomerServiceTest extends TestCase
@@ -196,7 +197,7 @@ class DashboardNewcomerServiceTest extends TestCase
 
         // Create a game and participation
         $game = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $user->id,
             'game_system_id' => $system->id,
             'name' => 'Test Game',
@@ -212,7 +213,7 @@ class DashboardNewcomerServiceTest extends TestCase
         // Create a second user to be the participant
         $otherUser = User::create([
             'name' => 'Other User',
-            'email' => 'other-' . uniqid() . '@test.com',
+            'email' => 'other-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
         ]);
 
@@ -234,16 +235,16 @@ class DashboardNewcomerServiceTest extends TestCase
     {
         $owner = User::create([
             'name' => 'Game Owner',
-            'email' => 'owner-' . uniqid() . '@test.com',
+            'email' => 'owner-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
         ]);
 
         $player = $this->makeUser(profileComplete: true);
-        $system = GameSystem::create(['name' => 'System X', 'slug' => 'sys-x-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'System X', 'slug' => 'sys-x-'.uniqid()]);
         $player->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         $game = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $system->id,
             'name' => 'Completed Game',
@@ -312,20 +313,20 @@ class DashboardNewcomerServiceTest extends TestCase
 
         $nearbyUser = User::create([
             'name' => 'Nearby User',
-            'email' => 'nearby-' . uniqid() . '@test.com',
+            'email' => 'nearby-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
             'profile_complete' => true,
             'location_id' => $location->id,
         ]);
 
-        $system = GameSystem::create(['name' => 'Nearby System', 'slug' => 'nearby-sys-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'Nearby System', 'slug' => 'nearby-sys-'.uniqid()]);
         $nearbyUser->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         $user = $this->makeUser();
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         // Use the geohash for Berlin area
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.52, 13.405, 4);
+        $geohash4 = Geohash::tilePrefix(52.52, 13.405, 4);
 
         $result = $this->service->computeNearbyPeople($user, $geohash4);
 
@@ -355,13 +356,13 @@ class DashboardNewcomerServiceTest extends TestCase
 
         $user = User::create([
             'name' => 'Self User',
-            'email' => 'self-' . uniqid() . '@test.com',
+            'email' => 'self-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
             'profile_complete' => true,
             'location_id' => $location->id,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(48.1351, 11.582, 4);
+        $geohash4 = Geohash::tilePrefix(48.1351, 11.582, 4);
 
         $result = $this->service->computeNearbyPeople($user, $geohash4);
 
@@ -383,7 +384,7 @@ class DashboardNewcomerServiceTest extends TestCase
         for ($i = 0; $i < 8; $i++) {
             User::create([
                 'name' => "Crowded User $i",
-                'email' => "crowded-{$i}-" . uniqid() . '@test.com',
+                'email' => "crowded-{$i}-".uniqid().'@test.com',
                 'password' => bcrypt('password'),
                 'profile_complete' => true,
                 'location_id' => $location->id,
@@ -391,7 +392,7 @@ class DashboardNewcomerServiceTest extends TestCase
         }
 
         $user = $this->makeUser();
-        $geohash4 = \App\Services\Geohash::tilePrefix(50.0, 10.0, 4);
+        $geohash4 = Geohash::tilePrefix(50.0, 10.0, 4);
 
         $result = $this->service->computeNearbyPeople($user, $geohash4);
 
@@ -422,16 +423,16 @@ class DashboardNewcomerServiceTest extends TestCase
             'geohash_4' => 'u1zz',
         ]);
 
-        $system = GameSystem::create(['name' => 'Match System', 'slug' => 'match-sys-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'Match System', 'slug' => 'match-sys-'.uniqid()]);
 
         $owner = User::create([
             'name' => 'Match Owner',
-            'email' => 'match-owner-' . uniqid() . '@test.com',
+            'email' => 'match-owner-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
         ]);
 
         $game = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $system->id,
             'name' => 'Match Test Game',
@@ -451,7 +452,7 @@ class DashboardNewcomerServiceTest extends TestCase
         $user->setRelation('linkedLocation', $userLocation);
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(51.0, 10.0, 4);
+        $geohash4 = Geohash::tilePrefix(51.0, 10.0, 4);
 
         $result = $this->service->computePreferenceWeightedMatches($user, $geohash4);
 
@@ -475,18 +476,18 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 10.0,
         ]);
 
-        $preferredSystem = GameSystem::create(['name' => 'Preferred RPG', 'slug' => 'pref-rpg-' . uniqid()]);
-        $otherSystem = GameSystem::create(['name' => 'Other RPG', 'slug' => 'other-rpg-' . uniqid()]);
+        $preferredSystem = GameSystem::create(['name' => 'Preferred RPG', 'slug' => 'pref-rpg-'.uniqid()]);
+        $otherSystem = GameSystem::create(['name' => 'Other RPG', 'slug' => 'other-rpg-'.uniqid()]);
 
         $owner = User::create([
             'name' => 'Score Owner',
-            'email' => 'score-owner-' . uniqid() . '@test.com',
+            'email' => 'score-owner-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
         ]);
 
         // Game matching preferred system
         $preferredGame = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $preferredSystem->id,
             'name' => 'Preferred System Game',
@@ -503,7 +504,7 @@ class DashboardNewcomerServiceTest extends TestCase
 
         // Game NOT matching preferred system
         $otherGame = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $otherSystem->id,
             'name' => 'Other System Game',
@@ -523,7 +524,7 @@ class DashboardNewcomerServiceTest extends TestCase
         $user->setRelation('linkedLocation', $userLocation);
         $user->gameSystemPreferences()->attach($preferredSystem->id, ['preference_type' => 'favorite']);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(50.0, 10.0, 4);
+        $geohash4 = Geohash::tilePrefix(50.0, 10.0, 4);
 
         $result = $this->service->computePreferenceWeightedMatches($user, $geohash4);
 
@@ -549,15 +550,15 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 10.0,
         ]);
 
-        $system = GameSystem::create(['name' => 'Pop System', 'slug' => 'pop-sys-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'Pop System', 'slug' => 'pop-sys-'.uniqid()]);
         $owner = User::create([
             'name' => 'Pop Owner',
-            'email' => 'pop-owner-' . uniqid() . '@test.com',
+            'email' => 'pop-owner-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
         ]);
 
         $game = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $system->id,
             'name' => 'Popular Game',
@@ -576,7 +577,7 @@ class DashboardNewcomerServiceTest extends TestCase
         for ($i = 0; $i < 3; $i++) {
             $participant = User::create([
                 'name' => "Participant $i",
-                'email' => "pop-part-{$i}-" . uniqid() . '@test.com',
+                'email' => "pop-part-{$i}-".uniqid().'@test.com',
                 'password' => bcrypt('password'),
             ]);
             GameParticipant::create([
@@ -587,7 +588,7 @@ class DashboardNewcomerServiceTest extends TestCase
         }
 
         $user = $this->makeUser();
-        $geohash4 = \App\Services\Geohash::tilePrefix(51.0, 10.0, 4);
+        $geohash4 = Geohash::tilePrefix(51.0, 10.0, 4);
 
         $result = $this->service->computePreferenceWeightedMatches($user, $geohash4);
 
@@ -606,16 +607,16 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 10.0,
         ]);
 
-        $system = GameSystem::create(['name' => 'Fill System', 'slug' => 'fill-sys-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'Fill System', 'slug' => 'fill-sys-'.uniqid()]);
         $owner = User::create([
             'name' => 'Fill Owner',
-            'email' => 'fill-owner-' . uniqid() . '@test.com',
+            'email' => 'fill-owner-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
         ]);
 
         // max_players = 5, add 3 approved participants → 1 spot left → filling_fast
         $game = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $system->id,
             'name' => 'Filling Game',
@@ -633,7 +634,7 @@ class DashboardNewcomerServiceTest extends TestCase
         for ($i = 0; $i < 3; $i++) {
             $participant = User::create([
                 'name' => "Fill Part $i",
-                'email' => "fill-part-{$i}-" . uniqid() . '@test.com',
+                'email' => "fill-part-{$i}-".uniqid().'@test.com',
                 'password' => bcrypt('password'),
             ]);
             GameParticipant::create([
@@ -644,7 +645,7 @@ class DashboardNewcomerServiceTest extends TestCase
         }
 
         $user = $this->makeUser();
-        $geohash4 = \App\Services\Geohash::tilePrefix(49.0, 10.0, 4);
+        $geohash4 = Geohash::tilePrefix(49.0, 10.0, 4);
 
         $result = $this->service->computePreferenceWeightedMatches($user, $geohash4);
 
@@ -663,16 +664,16 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 10.0,
         ]);
 
-        $system = GameSystem::create(['name' => 'Soon System', 'slug' => 'soon-sys-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'Soon System', 'slug' => 'soon-sys-'.uniqid()]);
         $owner = User::create([
             'name' => 'Soon Owner',
-            'email' => 'soon-owner-' . uniqid() . '@test.com',
+            'email' => 'soon-owner-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
         ]);
 
         // Game within 3 days → starting_soon
         $game = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $system->id,
             'name' => 'Starting Soon Game',
@@ -688,7 +689,7 @@ class DashboardNewcomerServiceTest extends TestCase
         ]);
 
         $user = $this->makeUser();
-        $geohash4 = \App\Services\Geohash::tilePrefix(48.0, 10.0, 4);
+        $geohash4 = Geohash::tilePrefix(48.0, 10.0, 4);
 
         $result = $this->service->computePreferenceWeightedMatches($user, $geohash4);
 
@@ -707,9 +708,9 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 13.0,
         ]);
 
-        $system1 = GameSystem::create(['name' => 'Compat Sys 1', 'slug' => 'compat-sys1-' . uniqid()]);
-        $system2 = GameSystem::create(['name' => 'Compat Sys 2', 'slug' => 'compat-sys2-' . uniqid()]);
-        $system3 = GameSystem::create(['name' => 'Compat Sys 3', 'slug' => 'compat-sys3-' . uniqid()]);
+        $system1 = GameSystem::create(['name' => 'Compat Sys 1', 'slug' => 'compat-sys1-'.uniqid()]);
+        $system2 = GameSystem::create(['name' => 'Compat Sys 2', 'slug' => 'compat-sys2-'.uniqid()]);
+        $system3 = GameSystem::create(['name' => 'Compat Sys 3', 'slug' => 'compat-sys3-'.uniqid()]);
 
         // Viewer likes system1, system2, system3
         $user = $this->makeUser();
@@ -722,7 +723,7 @@ class DashboardNewcomerServiceTest extends TestCase
         // Candidate A: shares 3 systems (most compatible)
         $candidateA = User::create([
             'name' => 'Three Shared',
-            'email' => 'compat-a-' . uniqid() . '@test.com',
+            'email' => 'compat-a-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
             'profile_complete' => true,
             'location_id' => $location->id,
@@ -736,7 +737,7 @@ class DashboardNewcomerServiceTest extends TestCase
         // Candidate B: shares 1 system
         $candidateB = User::create([
             'name' => 'One Shared',
-            'email' => 'compat-b-' . uniqid() . '@test.com',
+            'email' => 'compat-b-'.uniqid().'@test.com',
             'password' => bcrypt('password'),
             'profile_complete' => true,
             'location_id' => $location->id,
@@ -745,7 +746,7 @@ class DashboardNewcomerServiceTest extends TestCase
             $system1->id => ['preference_type' => 'favorite'],
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.0, 13.0, 4);
+        $geohash4 = Geohash::tilePrefix(52.0, 13.0, 4);
         $result = $this->service->computeNearbyPeople($user, $geohash4);
 
         $this->assertGreaterThanOrEqual(2, count($result['people']));
@@ -825,7 +826,7 @@ class DashboardNewcomerServiceTest extends TestCase
     {
         $user = User::create([
             'name' => $name,
-            'email' => uniqid() . '@test.com',
+            'email' => uniqid().'@test.com',
             'password' => bcrypt('password'),
             'profile_complete' => $profileComplete,
         ]);

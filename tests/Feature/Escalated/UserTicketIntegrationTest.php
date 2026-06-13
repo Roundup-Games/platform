@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
+use Escalated\Laravel\Contracts\Ticketable;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Events\TicketAssigned;
@@ -13,6 +14,8 @@ use Escalated\Laravel\Events\TicketStatusChanged;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Reply;
 use Escalated\Laravel\Models\Ticket;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Event;
 
 /**
@@ -66,19 +69,19 @@ beforeEach(function () {
 describe('User model ticket relationships', function () {
     it('has escalatedTickets relationship', function () {
         expect($this->user->escalatedTickets())->toBeInstanceOf(
-            \Illuminate\Database\Eloquent\Relations\MorphMany::class
+            MorphMany::class
         );
     });
 
     it('has escalatedAssignedTickets relationship', function () {
         expect($this->user->escalatedAssignedTickets())->toBeInstanceOf(
-            \Illuminate\Database\Eloquent\Relations\HasMany::class
+            HasMany::class
         );
     });
 
     it('implements Ticketable interface', function () {
         expect($this->user)->toBeInstanceOf(
-            \Escalated\Laravel\Contracts\Ticketable::class
+            Ticketable::class
         );
     });
 

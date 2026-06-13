@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 
@@ -26,13 +27,24 @@ class SyncCloudflareCacheRules extends Command
         $apiToken = config('services.cloudflare.api_token');
         $locales = config('app.available_locales', ['en', 'de']);
 
+        if (! is_string($zoneId)) {
+            $zoneId = null;
+        }
+        if (! is_string($apiToken)) {
+            $apiToken = null;
+        }
+        if (! is_array($locales)) {
+            $locales = ['en', 'de'];
+        }
+
         $publicPaths = $this->resolvePublicPaths($locales);
-        $this->info('Public path patterns: ' . count($publicPaths));
+        $this->info('Public path patterns: '.count($publicPaths));
 
         $desiredRules = $this->buildDesiredRules($publicPaths);
 
         if ($this->option('dry-run')) {
             $this->showDryRun($desiredRules);
+
             return self::SUCCESS;
         }
 
@@ -42,6 +54,7 @@ class SyncCloudflareCacheRules extends Command
             $this->line('The API token needs these permissions:');
             $this->line('  • Zone → Cache Rules → Edit');
             $this->line('  • Zone → Cache Purge → Purge');
+
             return self::FAILURE;
         }
 
@@ -50,39 +63,57 @@ class SyncCloudflareCacheRules extends Command
         // Fetch current rules
         $this->info('Fetching current Cloudflare cache rules...');
         $ruleset = $client->getCacheRuleset();
+        if ($ruleset === []) {
+            $this->error('Failed to fetch cache ruleset from Cloudflare.');
+
+            return self::FAILURE;
+        }
         $existingRules = $ruleset['rules'] ?? [];
-        $rulesetId = $ruleset['id'];
+        assert(is_array($existingRules));
+        $rulesetId = is_string($ruleset['id'] ?? null) ? $ruleset['id'] : '';
         $this->line("  Ruleset: {$rulesetId}");
-        $this->line('  Existing rules: ' . count($existingRules));
+        $this->line('  Existing rules: '.count($existingRules));
 
         // Separate managed vs manual rules
-        $managedRules = array_filter($existingRules, fn ($r) =>
-            str_starts_with($r['description'] ?? '', self::RULE_PREFIX)
-        );
-        $manualRules = array_filter($existingRules, fn ($r) =>
-            ! str_starts_with($r['description'] ?? '', self::RULE_PREFIX)
-        );
-        $this->line('  Managed (auto): ' . count($managedRules));
-        $this->line('  Manual (preserved): ' . count($manualRules));
+        $managedRules = array_filter($existingRules, function (mixed $r) {
+            if (! is_array($r)) {
+                return false;
+            }
+            $desc = $r['description'] ?? '';
+
+            return is_string($desc) && str_starts_with($desc, self::RULE_PREFIX);
+        });
+        $manualRules = array_filter($existingRules, function (mixed $r) {
+            if (! is_array($r)) {
+                return true;
+            }
+            $desc = $r['description'] ?? '';
+
+            return ! is_string($desc) || ! str_starts_with($desc, self::RULE_PREFIX);
+        });
+        $this->line('  Managed (auto): '.count($managedRules));
+        $this->line('  Manual (preserved): '.count($manualRules));
 
         // Build API-formatted managed rules
-        $managedApiRules = array_map(fn ($r) => $this->formatRuleForApi($r), $desiredRules);
+        $managedApiRules = array_map(fn (array $r) => $this->formatRuleForApi($r), $desiredRules);
 
         // Check if update is needed
         if (! $this->option('force') && $this->isInSync($managedRules, $desiredRules)) {
             $this->info('No changes needed — cache rules are in sync.');
+
             return self::SUCCESS;
         }
 
         // Merge: manual rules first (preserved), then managed rules
-        $allRules = array_values(array_merge(
+        $allRules = array_merge(
             array_values($manualRules),
             $managedApiRules,
-        ));
+        );
 
-        $this->info('Applying ' . count($managedApiRules) . ' managed cache rules...');
+        $this->info('Applying '.count($managedApiRules).' managed cache rules...');
         foreach ($desiredRules as $rule) {
-            $this->line("  • {$rule['description']}");
+            $desc = is_string($rule['description'] ?? null) ? $rule['description'] : '';
+            $this->line('  • '.$desc);
         }
 
         $client->putCacheRules($rulesetId, $allRules);
@@ -92,6 +123,7 @@ class SyncCloudflareCacheRules extends Command
         $client->purgeEverything();
 
         $this->info('Cache rules synced successfully.');
+
         return self::SUCCESS;
     }
 
@@ -102,11 +134,12 @@ class SyncCloudflareCacheRules extends Command
      *
      * Returns grouped path info used to build the Cloudflare filter expression.
      *
-     * @param  string[]  $locales
+     * @param  array<mixed>  $locales
      * @return array{exact: string[], prefixes: string[]}
      */
     protected function resolvePublicPaths(array $locales): array
     {
+        $locales = array_filter($locales, 'is_string'); /** @var array<int, string> $locales */
         $exactPaths = [];
         $prefixPaths = [];
 
@@ -120,7 +153,7 @@ class SyncCloudflareCacheRules extends Command
                 continue;
             }
 
-            $uri = $route->uri();
+            $uri = (string) $route->uri();
             if (! str_starts_with($uri, '{locale}')) {
                 continue;
             }
@@ -135,14 +168,14 @@ class SyncCloudflareCacheRules extends Command
             }
 
             // Path after locale prefix, e.g. "game-systems/{slug}"
-            $pathAfterLocale = preg_replace('#^\{locale\}/?#', '', $uri);
+            $pathAfterLocale = (string) preg_replace('#^\{locale\}/?#', '', $uri);
 
             // Check if this route has parameters
             $hasParams = preg_match('#\{[^}]+\}#', $pathAfterLocale) === 1;
 
             // Get the full path segments
             $segments = explode('/', $pathAfterLocale);
-            $firstSegment = $segments[0] ?? '';
+            $firstSegment = $segments[0];
 
             // Root-level parameter like {locale}/{id} — just a locale path
             if ($firstSegment && preg_match('/^\{.*\}$/', $firstSegment)) {
@@ -166,6 +199,9 @@ class SyncCloudflareCacheRules extends Command
         ];
     }
 
+    /**
+     * @param  array<int, string>  $middleware
+     */
     protected function isAuthGated(array $middleware): bool
     {
         return ! empty(array_intersect($middleware, [
@@ -176,7 +212,7 @@ class SyncCloudflareCacheRules extends Command
     protected function isSkippable(string $name): bool
     {
         foreach (['sanctum.', 'livewire.', 'storage.', 'oauth.', 'locale.',
-                     'password.', 'verification.', 'register', 'login'] as $prefix) {
+            'password.', 'verification.', 'register', 'login'] as $prefix) {
             if (str_starts_with($name, $prefix)) {
                 return true;
             }
@@ -191,22 +227,22 @@ class SyncCloudflareCacheRules extends Command
      * Build the three cache rules.
      *
      * @param  array{exact: string[], prefixes: string[]}  $publicPaths
-     * @return array[]
+     * @return array<int, array<string, mixed>>
      */
     protected function buildDesiredRules(array $publicPaths): array
     {
         return [
             [
-                'description' => self::RULE_PREFIX . ' Static assets — immutable (1yr)',
+                'description' => self::RULE_PREFIX.' Static assets — immutable (1yr)',
                 'expression' => '(http.request.uri.path contains "/build/assets/" or '
-                    . 'http.request.uri.path contains "/fonts/" or '
-                    . 'http.request.uri.path contains "/icons/")',
+                    .'http.request.uri.path contains "/fonts/" or '
+                    .'http.request.uri.path contains "/icons/")',
                 'action' => 'set_cache_settings',
                 'edgeTtl' => 31536000,
                 'browserTtl' => 31536000,
             ],
             [
-                'description' => self::RULE_PREFIX . ' Public pages — anonymous (5min)',
+                'description' => self::RULE_PREFIX.' Public pages — anonymous (5min)',
                 'expression' => $this->buildPublicExpression($publicPaths),
                 'action' => 'set_cache_settings',
                 'edgeTtl' => 300,
@@ -215,28 +251,39 @@ class SyncCloudflareCacheRules extends Command
         ];
     }
 
+    /**
+     * @param  array{exact: string[], prefixes: string[]}  $publicPaths
+     */
     protected function buildPublicExpression(array $publicPaths): string
     {
         $locales = config('app.available_locales', ['en', 'de']);
+        if (! is_array($locales)) {
+            $locales = ['en', 'de'];
+        }
 
         // Free plan compatible: use starts_with instead of regex.
         // Match /en or /de (with optional trailing slash and sub-paths).
         $localeChecks = [];
         foreach ($locales as $locale) {
+            $locale = is_string($locale) ? $locale : 'en';
             $localeChecks[] = "http.request.uri.path eq \"/{$locale}\"";
             $localeChecks[] = "starts_with(http.request.uri.path, \"/{$locale}/\")";
         }
 
-        $pathExpression = '(' . implode(' or ', $localeChecks) . ')';
+        $pathExpression = '('.implode(' or ', $localeChecks).')';
 
         // Only for anonymous visitors
         return "{$pathExpression}"
-            . " and not http.cookie contains \"roundup-games-session\""
-            . " and not http.cookie contains \"XSRF-TOKEN\"";
+            .' and not http.cookie contains "roundup-games-session"'
+            .' and not http.cookie contains "XSRF-TOKEN"';
     }
 
     // ── Formatting ─────────────────────────────────────────────────────────
 
+    /**
+     * @param  array<string, mixed>  $rule
+     * @return array<string, mixed>
+     */
     protected function formatRuleForApi(array $rule): array
     {
         return [
@@ -252,6 +299,10 @@ class SyncCloudflareCacheRules extends Command
         ];
     }
 
+    /**
+     * @param  array<mixed>  $managedRules
+     * @param  array<int, array<string, mixed>>  $desiredRules
+     */
     protected function isInSync(array $managedRules, array $desiredRules): bool
     {
         if (count($managedRules) !== count($desiredRules)) {
@@ -261,6 +312,9 @@ class SyncCloudflareCacheRules extends Command
         $existing = array_values($managedRules);
         for ($i = 0; $i < count($desiredRules); $i++) {
             $e = $existing[$i] ?? [];
+            if (! is_array($e)) {
+                $e = [];
+            }
             $d = $desiredRules[$i];
             if (($e['description'] ?? '') !== $d['description']) {
                 return false;
@@ -275,17 +329,24 @@ class SyncCloudflareCacheRules extends Command
 
     // ── Dry Run ─────────────────────────────────────────────────────────────
 
+    /**
+     * @param  array<int, array<string, mixed>>  $desiredRules
+     */
     protected function showDryRun(array $desiredRules): void
     {
         $this->newLine();
         $this->info('=== Cache rules to apply ===');
 
         foreach ($desiredRules as $i => $rule) {
-            $this->comment($rule['description']);
+            $desc = is_string($rule['description'] ?? null) ? $rule['description'] : 'Rule '.$i;
+            $expr = is_string($rule['expression'] ?? null) ? $rule['expression'] : '';
+            $edgeTtl = is_int($rule['edgeTtl'] ?? null) ? (string) $rule['edgeTtl'] : '?';
+            $browserTtl = is_int($rule['browserTtl'] ?? null) ? (string) $rule['browserTtl'] : '?';
+            $this->comment($desc);
             $this->line('  Expression:');
-            $wrapped = wordwrap($rule['expression'], 100, "\n    ");
+            $wrapped = wordwrap($expr, 100, "\n    ");
             $this->line("    {$wrapped}");
-            $this->line("  Edge TTL: {$rule['edgeTtl']}s / Browser TTL: {$rule['browserTtl']}s");
+            $this->line("  Edge TTL: {$edgeTtl}s / Browser TTL: {$browserTtl}s");
             $this->newLine();
         }
 
@@ -302,7 +363,9 @@ class SyncCloudflareCacheRules extends Command
 class CloudflareClient
 {
     private string $zoneId;
+
     private string $apiToken;
+
     private string $baseUrl = 'https://api.cloudflare.com/client/v4';
 
     public function __construct(string $zoneId, string $apiToken)
@@ -313,6 +376,8 @@ class CloudflareClient
 
     /**
      * Get the entrypoint ruleset for cache settings.
+     *
+     * @return array<string, mixed>
      */
     public function getCacheRuleset(): array
     {
@@ -322,11 +387,15 @@ class CloudflareClient
 
         $this->checkResponse($response, 'get cache ruleset');
 
-        return $response->json('result', []);
+        $result = $response->json('result', []);
+
+        return is_array($result) ? $result : [];
     }
 
     /**
      * Replace all rules in the cache ruleset (PUT).
+     *
+     * @param  array<mixed>  $rules
      */
     public function putCacheRules(string $rulesetId, array $rules): void
     {
@@ -355,17 +424,19 @@ class CloudflareClient
         $this->checkResponse($response, 'purge cache');
     }
 
-    protected function checkResponse($response, string $context): void
+    protected function checkResponse(Response $response, string $context): void
     {
         if (! $response->successful()) {
             $errors = $response->json('errors', []);
-            $msg = $errors[0]['message'] ?? $response->body();
-            $code = $errors[0]['code'] ?? '?';
+            $errors = is_array($errors) ? $errors : [];
+            $first = is_array($errors[0] ?? null) ? $errors[0] : [];
+            $msg = is_string($first['message'] ?? null) ? $first['message'] : $response->body();
+            $code = $first['code'] ?? '?';
 
             $hint = '';
             if (str_contains($msg, 'authentication scheme') || $code === 10405) {
                 $hint = "\n\n  The API token needs: Zone → Cache Rules → Edit permission.\n"
-                    . "  Create at: https://dash.cloudflare.com/profile/api-tokens";
+                    .'  Create at: https://dash.cloudflare.com/profile/api-tokens';
             }
 
             throw new \RuntimeException("Cloudflare API error ({$context}): {$msg}{$hint}");
@@ -373,7 +444,9 @@ class CloudflareClient
 
         if (! $response->json('success', false)) {
             $errors = $response->json('errors', []);
-            $msg = $errors[0]['message'] ?? 'Unknown error';
+            $errors = is_array($errors) ? $errors : [];
+            $first = is_array($errors[0] ?? null) ? $errors[0] : [];
+            $msg = is_string($first['message'] ?? null) ? $first['message'] : 'Unknown error';
             throw new \RuntimeException("Cloudflare API error ({$context}): {$msg}");
         }
     }

@@ -8,7 +8,9 @@ use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
 use App\Traits\EscapesLikeWildcards;
 use App\Traits\QueriesTranslatableColumns;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -26,9 +28,11 @@ class GameSystemsPage extends Component
     #[Url(as: 'q')]
     public string $search = '';
 
+    /** @var array<int, int|string> */
     #[Url]
     public array $category_ids = [];
 
+    /** @var array<int, int|string> */
     #[Url]
     public array $mechanic_ids = [];
 
@@ -161,15 +165,18 @@ class GameSystemsPage extends Component
 
     // ── Query ──────────────────────────────────────────
 
-    protected function buildQuery()
+    /**
+     * @return Builder<GameSystem>
+     */
+    protected function buildQuery(): Builder
     {
         $query = GameSystem::query()
             ->with(['categories', 'mechanics'])
             ->withCount([
                 'games as active_sessions_count' => function ($q) {
                     $q->where('status', 'scheduled')
-                      ->where('date_time', '>', now())
-                      ->where(fn ($q2) => $q2->where('visibility', 'public')->orWhere('visibility', 'protected'));
+                        ->where('date_time', '>', now())
+                        ->where(fn ($q2) => $q2->where('visibility', 'public')->orWhere('visibility', 'protected'));
                 },
                 'expansions as expansion_count',
             ]);
@@ -200,7 +207,7 @@ class GameSystemsPage extends Component
         $query->when($this->mechanic_ids, fn ($q) => $q->whereHas('mechanics', fn ($q2) => $q2->whereIn('game_system_mechanics.id', $this->mechanic_ids)));
 
         // Play style filter: map selected PlayStyle enum values to category slugs
-        if (!empty($this->play_styles)) {
+        if (! empty($this->play_styles)) {
             $slugs = collect($this->play_styles)
                 ->map(fn (string $value) => PlayStyle::tryFrom($value))
                 ->filter()
@@ -209,7 +216,7 @@ class GameSystemsPage extends Component
                 ->values()
                 ->all();
 
-            if (!empty($slugs)) {
+            if (! empty($slugs)) {
                 $query->whereHas('categories', fn ($q) => $q->whereIn('slug', $slugs));
             }
         }
@@ -219,21 +226,21 @@ class GameSystemsPage extends Component
 
         // Sort by platform_score DESC (cold-start systems with 0 fall to bottom), then name ASC
         $query->orderByDesc('platform_score')
-              ->orderBy('name', 'asc');
+            ->orderBy('name', 'asc');
 
         return $query;
     }
 
     // ── Render ─────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         $systems = $this->buildQuery()->paginate(self::PER_PAGE);
 
         // Cache categories and mechanics per type — these rarely change.
         // Store as arrays to avoid Eloquent collection serialization issues.
-        $cacheKey = 'game-systems:filters:' . $this->type;
-        $filters = \Illuminate\Support\Facades\Cache::remember(
+        $cacheKey = 'game-systems:filters:'.$this->type;
+        $filters = Cache::remember(
             $cacheKey,
             now()->addHours(6),
             function () {

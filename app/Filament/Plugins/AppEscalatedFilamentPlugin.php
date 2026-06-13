@@ -9,10 +9,12 @@ use App\Filament\Pages\Escalated\EscalatedSettings;
 use App\Filament\Pages\Escalated\EscalatedSsoSettings;
 use App\Filament\Resources\TicketResource;
 use Escalated\Filament\EscalatedFilamentPlugin;
-use Escalated\Filament\Pages\Dashboard;
 use Escalated\Filament\Livewire\SatisfactionRating;
 use Escalated\Filament\Livewire\TicketConversation;
+use Escalated\Filament\Pages\Dashboard;
+use Escalated\Filament\Resources\DepartmentResource;
 use Filament\Panel;
+use Filament\Resources\Resource;
 
 /**
  * Application-level Escalated plugin that extends the vendor plugin.
@@ -34,13 +36,14 @@ class AppEscalatedFilamentPlugin extends EscalatedFilamentPlugin
         }
 
         // Build resource list: replace vendor resources with app-level overrides
+        /** @var class-string<\Filament\Resources\Resource>[] */
         $resources = collect($this->resources)
             ->map(function (string $resourceClass) {
                 if ($resourceClass === \Escalated\Filament\Resources\TicketResource::class) {
                     return TicketResource::class;
                 }
 
-                if ($resourceClass === \Escalated\Filament\Resources\DepartmentResource::class) {
+                if ($resourceClass === DepartmentResource::class) {
                     return \App\Filament\Resources\DepartmentResource::class;
                 }
 

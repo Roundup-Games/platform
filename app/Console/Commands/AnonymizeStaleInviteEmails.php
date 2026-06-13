@@ -7,6 +7,7 @@ use App\Enums\GameStatus;
 use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -116,8 +117,12 @@ class AnonymizeStaleInviteEmails extends Command
      * Uses atomic bulk UPDATE per chunk instead of per-row save() calls.
      * This is faster and guaranteed atomic — if any row fails, the entire
      * chunk rolls back and can be retried without partial state.
+     *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
      */
-    protected function chunkedAnonymize($query, string $tableName): int
+    protected function chunkedAnonymize(Builder $query, string $tableName): int
     {
         if (! in_array($tableName, self::VALID_TABLES, true)) {
             throw new \InvalidArgumentException("Invalid table name for anonymization: {$tableName}");
@@ -135,7 +140,7 @@ class AnonymizeStaleInviteEmails extends Command
 
                 foreach ($ids as $id) {
                     $anonymous = 'anonymous-'.Str::uuid()->toString();
-                    $cases[] = "WHEN ? THEN ?";
+                    $cases[] = 'WHEN ? THEN ?';
                     $bindings[] = $id;
                     $bindings[] = $anonymous;
                 }

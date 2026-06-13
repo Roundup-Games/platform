@@ -43,10 +43,10 @@ class MembershipExporter extends Exporter
                 ->enabledByDefault(true),
             ExportColumn::make('items.price_id')
                 ->label('Paddle Price ID')
-                ->formatStateUsing(fn ($state) => collect($state)->join(', ')),
+                ->formatStateUsing(fn (array $state) => collect($state)->join(', ')),
             ExportColumn::make('items.product_id')
                 ->label('Paddle Product ID')
-                ->formatStateUsing(fn ($state) => collect($state)->join(', ')),
+                ->formatStateUsing(fn (array $state) => collect($state)->join(', ')),
         ];
     }
 
@@ -57,10 +57,10 @@ class MembershipExporter extends Exporter
 
     public static function getCompletedNotificationBody(Export $export): string
     {
-        $body = 'Your membership report export has completed and ' . number_format($export->successful_rows) . ' ' . str('row')->plural($export->successful_rows) . ' exported.';
+        $body = 'Your membership report export has completed and '.number_format($export->successful_rows).' '.str('row')->plural($export->successful_rows).' exported.';
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' ' . number_format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to export.';
+            $body .= ' '.number_format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to export.';
         }
 
         return $body;
@@ -68,6 +68,9 @@ class MembershipExporter extends Exporter
 
     public function getFileName(Export $export): string
     {
-        return "membership-report-{$export->getKey()}.csv";
+        $id = $export->getKey();
+        $keyStr = to_string_id($id);
+
+        return "membership-report-{$keyStr}.csv";
     }
 }

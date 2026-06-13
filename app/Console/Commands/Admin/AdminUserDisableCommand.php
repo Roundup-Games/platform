@@ -4,9 +4,11 @@ namespace App\Console\Commands\Admin;
 
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 use function Laravel\Prompts\select;
+use function Laravel\Prompts\text;
 
 class AdminUserDisableCommand extends Command
 {
@@ -46,7 +48,7 @@ class AdminUserDisableCommand extends Command
             ->whereNull('model_has_roles.team_id')
             ->pluck('model_has_roles.model_id')
             ->unique()
-            ->filter(fn ($id) => ! User::find($id)?->isDisabled())
+            ->filter(fn (mixed $id) => is_string($id) && ! User::find($id)?->isDisabled())
             ->count();
 
         $hasPlatformAdmin = DB::table('model_has_roles')
@@ -107,22 +109,28 @@ class AdminUserDisableCommand extends Command
             ->get(['email', 'name']);
 
         if ($users->isNotEmpty()) {
-            return select(
+            return (string) select(
                 label: 'Select user to disable',
-                options: $users->mapWithKeys(fn ($u) => [$u->email => "{$u->name} ({$u->email})"]),
+                options: $users->mapWithKeys(fn (User $u) => [$u->email => "{$u->name} ({$u->email})"])->all(),
             );
         }
 
         return text(label: 'Email address', required: true);
     }
 
-    private function getGlobalRoles(User $user): \Illuminate\Support\Collection
+    /**
+    /**
+     * @return Collection<int, string>
+     */
+    private function getGlobalRoles(User $user): Collection
     {
         return DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.model_type', User::class)
             ->where('model_has_roles.model_id', $user->id)
             ->whereNull('model_has_roles.team_id')
-            ->pluck('roles.name');
+            ->pluck('roles.name')
+            ->filter(fn (mixed $name) => is_string($name))
+            ->map(fn (mixed $name): string => (string) $name);
     }
 }

@@ -4,13 +4,12 @@ namespace App\Livewire\People;
 
 use App\Enums\RelationshipType;
 use App\Jobs\UpdateUserDiscoveryCache;
-use App\Models\NearbyDiscoveryView;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\PeopleDiscoveryService;
 use App\Traits\HasGuestLocation;
+use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -18,6 +17,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+/** @property-read array<string, mixed> $nearbyUsers */
 #[Layout('layouts.app')]
 class PeoplePage extends Component
 {
@@ -41,7 +41,7 @@ class PeoplePage extends Component
 
     public function mount(): void
     {
-        $this->authUser = Auth::user();
+        $this->authUser = authenticatedUser();
 
         // Dispatch cache warm-up on mount so the background job starts
         // computing while the user browses the following/followers tabs.
@@ -82,7 +82,7 @@ class PeoplePage extends Component
         $service = app(PeopleDiscoveryService::class);
 
         if ($service->shouldWarmCache($this->authUser, $lat, $lng)) {
-            UpdateUserDiscoveryCache::dispatch($this->authUser->id, 'page_visit_warmup');
+            UpdateUserDiscoveryCache::dispatch((string) $this->authUser->id, 'page_visit_warmup');
             $this->nearbyWarming = true;
         }
     }
@@ -97,6 +97,9 @@ class PeoplePage extends Component
 
     // ── Tab Data ──────────────────────────────────────
 
+    /**
+     * @return LengthAwarePaginator<int, UserRelationship>
+     */
     #[Computed]
     public function followingUsers()
     {
@@ -106,6 +109,9 @@ class PeoplePage extends Component
             ->paginate(12, ['*'], 'following_page');
     }
 
+    /**
+     * @return LengthAwarePaginator<int, UserRelationship>
+     */
     #[Computed]
     public function followerUsers()
     {
@@ -115,6 +121,9 @@ class PeoplePage extends Component
             ->paginate(12, ['*'], 'followers_page');
     }
 
+    /**
+     * @return LengthAwarePaginator<int, UserRelationship>
+     */
     #[Computed]
     public function blockedUsers()
     {
@@ -134,21 +143,18 @@ class PeoplePage extends Component
      *
      * The blade template shows a "still looking" state when pending,
      * and wire:poll.5s triggers hydration when the cache fills.
+     *
+     * @return array<string, mixed>
      */
     #[Computed]
     public function nearbyUsers(): array
     {
         // Resolve viewer location: prefer linked location, fall back to guest location
-        $lat = null;
-        $lng = null;
-
         $location = $this->authUser->linkedLocation;
         if ($location && $location->latitude && $location->longitude) {
             $lat = (float) $location->latitude;
             $lng = (float) $location->longitude;
-        }
-
-        if ($lat === null || $lng === null) {
+        } else {
             $lat = $this->guestLat;
             $lng = $this->guestLng;
         }
@@ -156,7 +162,7 @@ class PeoplePage extends Component
         $service = app(PeopleDiscoveryService::class);
         $response = $service->discover($this->authUser, $lat, $lng, $this->nearbyDisplayCount, 1);
 
-        /** @var LengthAwarePaginator $paginator */
+        /** @var LengthAwarePaginator<int, array{user: User, compatibility_score: float, match_reasons: array<string, string>, tier: string, distance_km: float|null}> $paginator */
         $paginator = $response['results'];
 
         // Convert paginator items to plain arrays (user_id instead of User model)
@@ -201,7 +207,12 @@ class PeoplePage extends Component
             return -1; // sentinel: hide the count badge
         }
 
-        return $nearby['results']->total();
+        $results = $nearby['results'] ?? null;
+        if ($results instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) {
+            return $results->total();
+        }
+
+        return 0;
     }
 
     // ── Follow Stats ─────────────────────────────────
@@ -302,10 +313,10 @@ class PeoplePage extends Component
 
     public function isFollowingUser(string $userId): bool
     {
-        return $this->authUser->isFollowing(User::find($userId));
+        return $this->authUser->isFollowing(User::find($userId) ?? new User);
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.people.people-page');
     }

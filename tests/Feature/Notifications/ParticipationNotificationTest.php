@@ -1,6 +1,11 @@
 <?php
 
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Campaigns\CampaignsPage;
+use App\Livewire\Games\GamesPage;
+use App\Livewire\Games\ManageParticipants;
+use App\Livewire\Teams\ManageRoster;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -9,12 +14,13 @@ use App\Models\GameSystem;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Models\UserRelationship;
 use App\Notifications\EntityInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
 use App\Notifications\TeamMemberRemoved;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
+use Livewire\Livewire;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -43,8 +49,8 @@ describe('Accept game invitation → ParticipantJoined', function () {
             'status' => ParticipantStatus::Pending->value,
         ]);
 
-        \Livewire\Livewire::actingAs($invitee)
-            ->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($invitee)
+            ->test(GamesPage::class)
             ->call('acceptInvitation', (string) $participant->id);
 
         $notifications = $owner->notifications()->where('type', ParticipantJoined::class)->get();
@@ -80,8 +86,8 @@ describe('Accept game invitation → ParticipantJoined', function () {
             'status' => ParticipantStatus::Pending->value,
         ]);
 
-        \Livewire\Livewire::actingAs($invitee)
-            ->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($invitee)
+            ->test(GamesPage::class)
             ->call('acceptInvitation', (string) $participant->id);
 
         // GameInvitation notification should now be marked as read
@@ -92,7 +98,7 @@ describe('Accept game invitation → ParticipantJoined', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
         $invitee = User::factory()->create(['profile_complete' => true]);
 
-        \App\Models\UserRelationship::block($owner, $invitee);
+        UserRelationship::block($owner, $invitee);
 
         $gameSystem = GameSystem::factory()->create();
         $game = Game::factory()->create([
@@ -108,14 +114,13 @@ describe('Accept game invitation → ParticipantJoined', function () {
             'status' => ParticipantStatus::Pending->value,
         ]);
 
-        \Livewire\Livewire::actingAs($invitee)
-            ->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($invitee)
+            ->test(GamesPage::class)
             ->call('acceptInvitation', (string) $participant->id);
 
         // Invitation accepted (status changed) but no notification to owner
         expect($owner->notifications()->where('type', ParticipantJoined::class)->count())->toBe(0);
     });
-
 
 });
 
@@ -142,8 +147,8 @@ describe('Accept campaign invitation → ParticipantJoined', function () {
             'status' => ParticipantStatus::Pending->value,
         ]);
 
-        \Livewire\Livewire::actingAs($invitee)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
+        Livewire::actingAs($invitee)
+            ->test(CampaignsPage::class)
             ->call('acceptInvitation', (string) $participant->id);
 
         $notifications = $owner->notifications()->where('type', ParticipantJoined::class)->get();
@@ -178,8 +183,8 @@ describe('Remove participant → ParticipantRemoved', function () {
             'status' => ParticipantStatus::Approved->value,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+        Livewire::actingAs($owner)
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', (string) $participant->id);
 
         $notifications = $player->notifications()->where('type', ParticipantRemoved::class)->get();
@@ -192,8 +197,6 @@ describe('Remove participant → ParticipantRemoved', function () {
             ->and($data['removed_user_id'])->toBe($player->id)
             ->and($data)->toHaveKey('action_url');
     });
-
-
 
     it('does not dispatch ParticipantRemoved when trying to remove the owner', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -209,8 +212,8 @@ describe('Remove participant → ParticipantRemoved', function () {
             'status' => ParticipantStatus::Approved->value,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+        Livewire::actingAs($owner)
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', (string) $participant->id);
 
         $notifications = $owner->notifications()->where('type', ParticipantRemoved::class)->get();
@@ -245,8 +248,8 @@ describe('Remove team member → TeamMemberRemoved', function () {
             'joined_at' => now(),
         ]);
 
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+        Livewire::actingAs($captain)
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('removeMember', $member->id);
 
         $notifications = $player->notifications()->where('type', TeamMemberRemoved::class)->get();
@@ -260,8 +263,6 @@ describe('Remove team member → TeamMemberRemoved', function () {
             ->and($data)->toHaveKey('action_url');
     });
 
-
-
     it('does not dispatch TeamMemberRemoved for last captain removal', function () {
         $captain = User::factory()->create(['profile_complete' => true]);
         $team = Team::factory()->create(['created_by' => $captain->id]);
@@ -274,8 +275,8 @@ describe('Remove team member → TeamMemberRemoved', function () {
             'joined_at' => now(),
         ]);
 
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+        Livewire::actingAs($captain)
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('removeMember', $member->id);
 
         // Should not remove (last captain), so no notification

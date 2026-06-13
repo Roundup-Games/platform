@@ -3,12 +3,13 @@
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Gate;
+use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     seedRoles();
 
     setPermissionsTeamId(null);
-    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
     $this->platformAdmin = User::factory()->create();
     $this->platformAdmin->assignRole('Platform Admin');

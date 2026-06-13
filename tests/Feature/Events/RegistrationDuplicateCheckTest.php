@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Events\RegisterForEvent;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Team;
@@ -57,7 +58,7 @@ function regActingAsUser(User $user, Event $event, string $mode = 'individual', 
     }
 
     return Livewire::actingAs($user)
-        ->test(\App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        ->test(RegisterForEvent::class, ['slug' => $event->slug])
         ->set($params)
         ->call('register');
 }

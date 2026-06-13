@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Notifications;
 
+use App\Enums\ContentLanguage;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\EntityInvitation;
@@ -81,7 +82,7 @@ class PushLocaleTest extends TestCase
         app()->setLocale('en');
         $game = Game::factory()->create();
         $inviter = User::factory()->create();
-        $notifiable = User::factory()->create(['preferred_language' => \App\Enums\ContentLanguage::De]);
+        $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::De]);
 
         $mail = (new EntityInvitation($game, $inviter))->toMail($notifiable);
 
@@ -94,7 +95,7 @@ class PushLocaleTest extends TestCase
         app()->setLocale('en');
         $game = Game::factory()->create();
         $inviter = User::factory()->create();
-        $notifiable = User::factory()->create(['preferred_language' => \App\Enums\ContentLanguage::De]);
+        $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::De]);
 
         $data = (new EntityInvitation($game, $inviter))->toDatabase($notifiable);
 
@@ -105,7 +106,7 @@ class PushLocaleTest extends TestCase
     {
         app()->setLocale('en');
         $game = Game::factory()->create(['date_time' => now()->addHour()]);
-        $notifiable = User::factory()->create(['preferred_language' => \App\Enums\ContentLanguage::De]);
+        $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::De]);
 
         $data = (new SessionReminder($game))->toDatabase($notifiable);
 

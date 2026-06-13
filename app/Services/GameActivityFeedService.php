@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Dto\ActivityFeedItem;
 use App\Dto\FeedItem;
 use App\Enums\ParticipantRole;
-use App\Enums\RelationshipType;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -13,7 +13,6 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class GameActivityFeedService
 {
@@ -26,6 +25,8 @@ class GameActivityFeedService
      *  - game_completed: A friend/followed user's game was completed
      *
      * Each item has: type, game, user (who performed the action), created_at, description
+     *
+     * @return LengthAwarePaginator<int, FeedItem>
      */
     public function getFeed(User $viewer, int $perPage = 20): LengthAwarePaginator
     {
@@ -46,7 +47,7 @@ class GameActivityFeedService
             ->sortByDesc('created_at')
             ->values();
 
-        $page = request()->get('page', 1);
+        $page = is_int($p = request()->get('page')) || is_numeric($p) ? (int) $p : 1;
         $offset = ($page - 1) * $perPage;
 
         return new \Illuminate\Pagination\LengthAwarePaginator(
@@ -66,6 +67,8 @@ class GameActivityFeedService
      *  - player_joined: A friend/followed user joined someone's campaign (as approved player)
      *  - campaign_completed: A friend/followed user's campaign was completed
      *  - session_scheduled: A new game/session was added to a campaign
+     *
+     * @return LengthAwarePaginator<int, FeedItem>
      */
     public function getCampaignFeed(User $viewer, int $perPage = 20): LengthAwarePaginator
     {
@@ -85,7 +88,7 @@ class GameActivityFeedService
             ->sortByDesc('created_at')
             ->values();
 
-        $page = request()->get('page', 1);
+        $page = is_int($p = request()->get('page')) || is_numeric($p) ? (int) $p : 1;
         $offset = ($page - 1) * $perPage;
 
         return new \Illuminate\Pagination\LengthAwarePaginator(
@@ -99,6 +102,8 @@ class GameActivityFeedService
 
     /**
      * Get user IDs that the viewer follows or is friends with.
+     *
+     * @return array<string, mixed>
      */
     protected function getSocialCircleUserIds(User $viewer): array
     {
@@ -112,8 +117,10 @@ class GameActivityFeedService
 
     /**
      * Games created by social circle members.
+     *
+     * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getGamesCreated(array $socialCircleIds): Collection
+    protected function getGamesCreated(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
     {
         return Game::whereIn('owner_id', $socialCircleIds)
             ->with(['owner', 'gameSystem'])
@@ -121,20 +128,22 @@ class GameActivityFeedService
             ->orderBy('created_at', 'desc')
             ->limit(50)
             ->get()
-            ->map(fn (Game $game) => (object) [
-                'id' => "game_created_{$game->id}",
-                'type' => 'game_created',
-                'entity' => $game,
-                'entity_type' => 'game',
-                'user' => $game->owner,
-                'created_at' => $game->created_at,
-            ]);
+            ->map(fn (Game $game) => new ActivityFeedItem(
+                id: "game_created_{$game->id}",
+                type: 'game_created',
+                entity: $game,
+                entityType: 'game',
+                user: $game->owner,
+                createdAt: $game->created_at,
+            ));
     }
 
     /**
      * Games where social circle members joined as players.
+     *
+     * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getPlayersJoined(array $socialCircleIds, User $viewer): Collection
+    protected function getPlayersJoined(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
         // Get approved player participations by social circle users
         // We only have game_participants.created_at because the table has timestamps()
@@ -168,22 +177,24 @@ class GameActivityFeedService
                 );
                 $friend = $joinedFriends->first();
 
-                return (object) [
-                    'id' => "player_joined_game_{$game->id}",
-                    'type' => 'player_joined',
-                    'entity' => $game,
-                    'entity_type' => 'game',
-                    'user' => $friend?->user,
-                    'users' => $joinedFriends->pluck('user')->filter(),
-                    'created_at' => $game->updated_at ?? $game->created_at,
-                ];
+                return new ActivityFeedItem(
+                    id: "player_joined_game_{$game->id}",
+                    type: 'player_joined',
+                    entity: $game,
+                    entityType: 'game',
+                    user: $friend?->user,
+                    users: $joinedFriends->pluck('user')->filter(fn (mixed $u) => $u instanceof User)->values(),
+                    createdAt: $game->updated_at ?? $game->created_at,
+                );
             });
     }
 
     /**
      * Games by social circle members that were recently completed.
+     *
+     * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getGamesCompleted(array $socialCircleIds): Collection
+    protected function getGamesCompleted(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
     {
         return Game::whereIn('owner_id', $socialCircleIds)
             ->where('status', 'completed')
@@ -192,20 +203,22 @@ class GameActivityFeedService
             ->orderBy('updated_at', 'desc')
             ->limit(50)
             ->get()
-            ->map(fn (Game $game) => (object) [
-                'id' => "game_completed_{$game->id}",
-                'type' => 'game_completed',
-                'entity' => $game,
-                'entity_type' => 'game',
-                'user' => $game->owner,
-                'created_at' => $game->updated_at,
-            ]);
+            ->map(fn (Game $game) => new ActivityFeedItem(
+                id: "game_completed_{$game->id}",
+                type: 'game_completed',
+                entity: $game,
+                entityType: 'game',
+                user: $game->owner,
+                createdAt: $game->updated_at,
+            ));
     }
 
     /**
      * Games where social circle members wrote a post-session recap.
+     *
+     * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getSessionRecaps(array $socialCircleIds): Collection
+    protected function getSessionRecaps(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
     {
         return Game::whereIn('owner_id', $socialCircleIds)
             ->where('status', 'completed')
@@ -216,20 +229,22 @@ class GameActivityFeedService
             ->orderBy('updated_at', 'desc')
             ->limit(50)
             ->get()
-            ->map(fn (Game $game) => (object) [
-                'id' => "session_recapped_{$game->id}",
-                'type' => 'session_recapped',
-                'entity' => $game,
-                'entity_type' => 'game',
-                'user' => $game->owner,
-                'created_at' => $game->updated_at,
-            ]);
+            ->map(fn (Game $game) => new ActivityFeedItem(
+                id: "session_recapped_{$game->id}",
+                type: 'session_recapped',
+                entity: $game,
+                entityType: 'game',
+                user: $game->owner,
+                createdAt: $game->updated_at,
+            ));
     }
 
     /**
      * Campaigns created by social circle members.
+     *
+     * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getCampaignsCreated(array $socialCircleIds): Collection
+    protected function getCampaignsCreated(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
     {
         return Campaign::whereIn('owner_id', $socialCircleIds)
             ->with(['owner', 'gameSystem'])
@@ -237,20 +252,22 @@ class GameActivityFeedService
             ->orderBy('created_at', 'desc')
             ->limit(50)
             ->get()
-            ->map(fn (Campaign $campaign) => (object) [
-                'id' => "campaign_created_{$campaign->id}",
-                'type' => 'campaign_created',
-                'entity' => $campaign,
-                'entity_type' => 'campaign',
-                'user' => $campaign->owner,
-                'created_at' => $campaign->created_at,
-            ]);
+            ->map(fn (Campaign $campaign) => new ActivityFeedItem(
+                id: "campaign_created_{$campaign->id}",
+                type: 'campaign_created',
+                entity: $campaign,
+                entityType: 'campaign',
+                user: $campaign->owner,
+                createdAt: $campaign->created_at,
+            ));
     }
 
     /**
      * Campaigns where social circle members joined as players.
+     *
+     * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getCampaignPlayersJoined(array $socialCircleIds, User $viewer): Collection
+    protected function getCampaignPlayersJoined(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
         $campaignIds = CampaignParticipant::whereIn('user_id', $socialCircleIds)
             ->where('role', ParticipantRole::Player->value)
@@ -274,22 +291,24 @@ class GameActivityFeedService
                 $joinedFriends = $campaign->participants;
                 $friend = $joinedFriends->first();
 
-                return (object) [
-                    'id' => "player_joined_campaign_{$campaign->id}",
-                    'type' => 'player_joined',
-                    'entity' => $campaign,
-                    'entity_type' => 'campaign',
-                    'user' => $friend?->user,
-                    'users' => $joinedFriends->pluck('user')->filter(),
-                    'created_at' => $campaign->updated_at ?? $campaign->created_at,
-                ];
+                return new ActivityFeedItem(
+                    id: "player_joined_campaign_{$campaign->id}",
+                    type: 'player_joined',
+                    entity: $campaign,
+                    entityType: 'campaign',
+                    user: $friend?->user,
+                    users: $joinedFriends->pluck('user')->filter(fn (mixed $u) => $u instanceof User)->values(),
+                    createdAt: $campaign->updated_at ?? $campaign->created_at,
+                );
             });
     }
 
     /**
      * Campaigns by social circle members that were completed.
+     *
+     * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getCampaignsCompleted(array $socialCircleIds): Collection
+    protected function getCampaignsCompleted(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
     {
         return Campaign::whereIn('owner_id', $socialCircleIds)
             ->where('status', 'completed')
@@ -298,20 +317,22 @@ class GameActivityFeedService
             ->orderBy('updated_at', 'desc')
             ->limit(50)
             ->get()
-            ->map(fn (Campaign $campaign) => (object) [
-                'id' => "campaign_completed_{$campaign->id}",
-                'type' => 'campaign_completed',
-                'entity' => $campaign,
-                'entity_type' => 'campaign',
-                'user' => $campaign->owner,
-                'created_at' => $campaign->updated_at,
-            ]);
+            ->map(fn (Campaign $campaign) => new ActivityFeedItem(
+                id: "campaign_completed_{$campaign->id}",
+                type: 'campaign_completed',
+                entity: $campaign,
+                entityType: 'campaign',
+                user: $campaign->owner,
+                createdAt: $campaign->updated_at,
+            ));
     }
 
     /**
      * Sessions (games) scheduled for campaigns owned by social circle members.
+     *
+     * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getSessionsScheduled(array $socialCircleIds): Collection
+    protected function getSessionsScheduled(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
     {
         return Game::whereNotNull('campaign_id')
             ->whereHas('campaign', fn ($q) => $q->whereIn('owner_id', $socialCircleIds))
@@ -322,15 +343,15 @@ class GameActivityFeedService
             ->limit(50)
             ->get()
             ->map(function (Game $game) {
-                return (object) [
-                    'id' => "session_scheduled_{$game->id}",
-                    'type' => 'session_scheduled',
-                    'entity' => $game,
-                    'entity_type' => 'game',
-                    'entity_campaign' => $game->campaign,
-                    'user' => $game->campaign?->owner,
-                    'created_at' => $game->created_at,
-                ];
+                return new ActivityFeedItem(
+                    id: "session_scheduled_{$game->id}",
+                    type: 'session_scheduled',
+                    entity: $game,
+                    entityType: 'game',
+                    user: $game->campaign?->owner,
+                    createdAt: $game->created_at,
+                    entityCampaign: $game->campaign,
+                );
             });
     }
 
@@ -338,12 +359,12 @@ class GameActivityFeedService
      * Convert the raw (object) activity items from getFeed()/getCampaignFeed()
      * into serializable FeedItem DTOs safe for cache storage.
      *
-     * @param  \Illuminate\Support\Collection<int, object>  $activities
-     * @return \Illuminate\Support\Collection<int, FeedItem>
+     * @param  Collection<int, ActivityFeedItem>  $activities
+     * @return Collection<int, FeedItem>
      */
     public function toFeedItems(Collection $activities): Collection
     {
-        return $activities->map(function (object $item): FeedItem {
+        return $activities->map(function (ActivityFeedItem $item): FeedItem {
             $entity = $item->entity;
             $user = $item->user;
 
@@ -355,12 +376,12 @@ class GameActivityFeedService
             return new FeedItem(
                 id: $item->id,
                 type: $item->type,
-                entityType: $item->entity_type,
+                entityType: $item->entityType,
                 entityId: (string) $entity->id,
                 entityName: $entity->name,
-                userName: $user?->name ?? 'Unknown',
-                userId: (string) ($user?->id ?? ''),
-                createdAt: Carbon::parse($item->created_at),
+                userName: $user->name ?? 'Unknown',
+                userId: (string) ($user->id ?? ''),
+                createdAt: Carbon::parse($item->createdAt),
                 gameSystemName: $gameSystemName,
                 participantCount: $participantCount,
                 maxPlayers: $maxPlayers,

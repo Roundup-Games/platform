@@ -10,6 +10,7 @@ use App\Enums\VibeFlag;
 use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -30,12 +31,15 @@ class DiscoveryPage extends Component
     public int $displayCount = 12;
 
     // Page-specific filters
+    /** @var array<int, int|string> */
     #[Url]
     public array $safety_tools = [];
 
+    /** @var array<int, int|string> */
     #[Url]
     public array $category_ids = [];
 
+    /** @var array<int, int|string> */
     #[Url]
     public array $mechanic_ids = [];
 
@@ -96,6 +100,10 @@ class DiscoveryPage extends Component
         $this->displayCount = 12;
     }
 
+    /**
+     * @param  array<int, int|string>  $array
+     * @return array<int, int|string>
+     */
     private function toggleArrayValue(array $array, string $value): array
     {
         $index = array_search($value, $array, true);
@@ -144,7 +152,7 @@ class DiscoveryPage extends Component
 
     // Render
 
-    public function render()
+    public function render(): View
     {
         $title = match ($this->mode) {
             'games' => __('discovery.seo_title_browse_games'),
@@ -159,13 +167,13 @@ class DiscoveryPage extends Component
 
         $service = app(DiscoveryQueryService::class);
         $user = Auth::user();
-        $filters = DiscoveryFilters::fromLivewire($this)->toArray();
+        $filters = DiscoveryFilters::fromLivewire($this);
         $hasLocation = $this->hasGuestLocation();
         $lat = $this->guestLat ?? null;
         $lng = $this->guestLng ?? null;
 
         // Fallback to the logged-in user's saved location when browser geolocation is unavailable
-        if (! $hasLocation && $user && $user->location_id) {
+        if (! $hasLocation && $user?->location_id) {
             $userLocation = Location::find($user->location_id);
             if ($userLocation) {
                 $lat = (float) $userLocation->latitude;

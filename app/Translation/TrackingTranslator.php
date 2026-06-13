@@ -21,6 +21,10 @@ use Illuminate\Translation\Translator;
  */
 class TrackingTranslator extends Translator
 {
+    /**
+     * @param  array<string, mixed>  $replace
+     * @return array<string, mixed>|string
+     */
     public function get($key, array $replace = [], $locale = null, $fallback = true)
     {
         $result = parent::get($key, $replace, $locale, $fallback);
@@ -34,6 +38,10 @@ class TrackingTranslator extends Translator
         return $result;
     }
 
+    /**
+     * @param  array<string, mixed>  $number
+     * @param  array<string, mixed>  $replace
+     */
     public function choice($key, $number, array $replace = [], $locale = null)
     {
         $result = parent::choice($key, $number, $replace, $locale);

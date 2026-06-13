@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Components;
 
+use App\Dto\GameSystemOption;
 use App\Models\GameSystem;
 use App\Traits\EscapesLikeWildcards;
 use App\Traits\QueriesTranslatableColumns;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -36,10 +38,10 @@ class GameSystemPreferencePicker extends Component
     #[Locked]
     public string $preferenceType = 'favorite';
 
-    /** @var array<int, int> IDs of currently selected game systems */
+    /** @var array<int, string> IDs of currently selected game systems */
     public array $selectedIds = [];
 
-    /** @var array<int, int> IDs from the *other* preference type, used for conflict detection */
+    /** @var array<int, string> IDs from the *other* preference type, used for conflict detection */
     #[Locked]
     public array $conflictIds = [];
 
@@ -54,6 +56,10 @@ class GameSystemPreferencePicker extends Component
 
     public string $conflictMessage = '';
 
+    /**
+     * @param  array<int, string>  $selectedIds
+     * @param  array<int, string>  $conflictIds
+     */
     public function mount(
         string $preferenceType = 'favorite',
         array $selectedIds = [],
@@ -64,8 +70,11 @@ class GameSystemPreferencePicker extends Component
         $this->conflictIds = array_map('strval', $conflictIds);
     }
 
+    /**
+     * @return Collection<int, GameSystem>
+     */
     #[Computed]
-    public function searchResults()
+    public function searchResults(): Collection
     {
         if (mb_strlen(trim($this->search)) < 2) {
             return collect();
@@ -100,8 +109,11 @@ class GameSystemPreferencePicker extends Component
             ->get();
     }
 
+    /**
+     * @return Collection<int, GameSystem>
+     */
     #[Computed]
-    public function selectedSystems()
+    public function selectedSystems(): Collection
     {
         if (empty($this->selectedIds)) {
             return collect();
@@ -114,8 +126,11 @@ class GameSystemPreferencePicker extends Component
             ->get();
     }
 
+    /**
+     * @return Collection<int, GameSystemOption>
+     */
     #[Computed]
-    public function expansionOptions()
+    public function expansionOptions(): Collection
     {
         if (! $this->selectedBaseId) {
             return collect();
@@ -128,29 +143,30 @@ class GameSystemPreferencePicker extends Component
 
         // Base game first, then expansions sorted by popularity
         $baseItem = collect([
-            (object) [
-                'id' => $base->id,
-                'name' => $base->name,
-                'is_base' => true,
-                'bgg_rank' => $base->bgg_rank,
-                'bgg_average_rating' => $base->bgg_average_rating,
-                'thumbnail_url' => $base->thumbnail_url,
-            ],
+            new GameSystemOption(
+                id: $base->id,
+                name: $base->name,
+                is_base: true,
+                bgg_rank: $base->bgg_rank,
+                bgg_average_rating: $base->bgg_average_rating,
+                thumbnail_url: $base->thumbnail_url,
+            ),
         ]);
 
-        $expansions = $base->expansions()
+        $expansionsQuery = $base->expansions()
             ->orderBy('bgg_rank', 'asc')
             ->orderBy('bgg_average_rating', 'desc')
             ->orderBy('name')
-            ->get()
-            ->map(fn (GameSystem $exp) => (object) [
-                'id' => $exp->id,
-                'name' => $exp->name,
-                'is_base' => false,
-                'bgg_rank' => $exp->bgg_rank,
-                'bgg_average_rating' => $exp->bgg_average_rating,
-                'thumbnail_url' => $exp->thumbnail_url,
-            ]);
+            ->get();
+        /** @var Collection<int, GameSystem> $expansionsQuery */
+        $expansions = $expansionsQuery->map(fn (GameSystem $exp) => new GameSystemOption(
+            id: $exp->id,
+            name: $exp->name,
+            is_base: false,
+            bgg_rank: $exp->bgg_rank,
+            bgg_average_rating: $exp->bgg_average_rating,
+            thumbnail_url: $exp->thumbnail_url,
+        ));
 
         return $baseItem->merge($expansions);
     }
@@ -199,10 +215,11 @@ class GameSystemPreferencePicker extends Component
 
         // Block: favoriting an expansion when its base is avoided
         if ($this->preferenceType === 'favorite') {
-            $system = GameSystem::find($id);
-            if ($system && $system->base_game_id && in_array($system->base_game_id, $this->conflictIds, true)) {
-                $baseName = GameSystem::find($system->base_game_id)?->name ?? 'its base game';
-                $this->conflictMessage = __("games.error_name_s_base_game_base_name_is_in_your_avoid_list", [
+            $system = GameSystem::findOrFail($id);
+            if ($system->base_game_id && in_array($system->base_game_id, $this->conflictIds, true)) {
+                $rawBaseName = GameSystem::where('id', $system->base_game_id)->value('name');
+                $baseName = is_string($rawBaseName) ? $rawBaseName : 'its base game';
+                $this->conflictMessage = __('games.error_name_s_base_game_base_name_is_in_your_avoid_list', [
                     'name' => $system->name,
                     'baseName' => $baseName,
                 ]);
@@ -252,16 +269,17 @@ class GameSystemPreferencePicker extends Component
         if ($this->preferenceType === 'avoid') {
             // Adding to avoid: warn if the system (or its base) is in favorites (conflictIds)
             if (in_array($id, $this->conflictIds, true)) {
-                $name = $system?->name ?? 'This game';
-                $this->conflictMessage = __("games.error_name_is_in_your_favorites_the_avoid_preference", ['name' => $name]);
+                $name = $system->name ?? 'This game';
+                $this->conflictMessage = __('games.error_name_is_in_your_favorites_the_avoid_preference', ['name' => $name]);
 
                 return;
             }
 
             // Check if the system's base game is in conflictIds
             if ($system && $system->base_game_id && in_array($system->base_game_id, $this->conflictIds, true)) {
-                $baseName = GameSystem::find($system->base_game_id)?->name ?? 'its base game';
-                $this->conflictMessage = __("games.error_name_s_base_game_base_name_is_in_your_favorites", [
+                $rawBaseName2 = GameSystem::where('id', $system->base_game_id)->value('name');
+                $baseName = is_string($rawBaseName2) ? $rawBaseName2 : 'its base game';
+                $this->conflictMessage = __('games.error_name_s_base_game_base_name_is_in_your_favorites', [
                     'name' => $system->name,
                     'baseName' => $baseName,
                 ]);
@@ -271,8 +289,8 @@ class GameSystemPreferencePicker extends Component
         } elseif ($this->preferenceType === 'favorite') {
             // Adding to favorite: warn if the system is in avoid list (conflictIds)
             if (in_array($id, $this->conflictIds, true)) {
-                $name = $system?->name ?? 'This game';
-                $this->conflictMessage = __("games.error_name_is_in_your_avoid_list_the_avoid_preference", ['name' => $name]);
+                $name = $system->name ?? 'This game';
+                $this->conflictMessage = __('games.error_name_is_in_your_avoid_list_the_avoid_preference', ['name' => $name]);
 
                 return;
             }
@@ -299,7 +317,7 @@ class GameSystemPreferencePicker extends Component
         $this->selectedBaseId = null;
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.components.game-system-preference-picker');
     }

@@ -7,6 +7,8 @@ use App\Models\ShortLink;
 use App\Models\ShortLinkHit;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->gameSystem = GameSystem::factory()->create();
@@ -167,7 +169,7 @@ describe('PruneExpiredShortLinks command', function () {
 
         // Complete the game and backdate updated_at to 3 days ago (within 7-day grace)
         $game->update(['status' => 'completed']);
-        \Illuminate\Support\Facades\DB::table('games')
+        DB::table('games')
             ->where('id', $game->id)
             ->update(['updated_at' => now()->subDays(3)]);
 
@@ -194,7 +196,7 @@ describe('PruneExpiredShortLinks command', function () {
 
         // Complete the game and backdate updated_at to 10 days ago (past 7-day grace)
         $game->update(['status' => 'completed']);
-        \Illuminate\Support\Facades\DB::table('games')
+        DB::table('games')
             ->where('id', $game->id)
             ->update(['updated_at' => now()->subDays(10)]);
 
@@ -219,7 +221,7 @@ describe('PruneExpiredShortLinks command', function () {
         ]);
 
         $game->update(['status' => 'completed']);
-        \Illuminate\Support\Facades\DB::table('games')
+        DB::table('games')
             ->where('id', $game->id)
             ->update(['updated_at' => now()->subDays(10)]);
 
@@ -259,13 +261,13 @@ describe('PruneExpiredShortLinks command', function () {
             'expires_at' => now()->subDay(),
         ]);
 
-        \Illuminate\Support\Facades\Log::partialMock()
+        Log::partialMock()
             ->shouldReceive('channel')
             ->with('daily')
             ->andReturnSelf()
             ->shouldReceive('info')
             ->once()
-            ->with('prune.expired_links', \Mockery::on(function ($context) {
+            ->with('prune.expired_links', Mockery::on(function ($context) {
                 return isset($context['soft_deleted_count']) && $context['soft_deleted_count'] >= 1;
             }));
 

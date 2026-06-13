@@ -24,7 +24,7 @@ class MissingTranslationCollector
     public function record(string $key, ?string $locale = null): void
     {
         $locale ??= app()->getLocale();
-        $url = request()?->fullUrl() ?? 'cli';
+        $url = request()->fullUrl();
 
         $entryKey = "{$key}@{$locale}";
 
@@ -69,7 +69,7 @@ class MissingTranslationCollector
                 'ts' => now()->toIso8601String(),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-            fwrite($handle, $line . "\n");
+            fwrite($handle, $line."\n");
         }
 
         fclose($handle);
@@ -80,7 +80,7 @@ class MissingTranslationCollector
     /**
      * Get all unique missing keys from the JSONL log, deduplicated.
      *
-     * @return array<string, array{key: string, locales: string[], total_count: int, first_url: string, first_seen: string}>
+     * @return array<string, mixed>
      */
     public function getAccumulated(): array
     {
@@ -100,22 +100,27 @@ class MissingTranslationCollector
         while (($line = fgets($handle)) !== false) {
             $data = json_decode(trim($line), true);
 
-            if ($data === null) {
+            if ($data === null || ! is_array($data)) {
                 continue;
             }
 
-            $dedupeKey = $data['key'];
+            $dedupeKey = is_string($data['key'] ?? null) ? $data['key'] : null;
+            if ($dedupeKey === null) {
+                continue;
+            }
 
             if (isset($entries[$dedupeKey])) {
-                $entries[$dedupeKey]['total_count'] += $data['count'];
-                $entries[$dedupeKey]['locales'][$data['locale']] = true;
+                $count = is_numeric($data['count'] ?? null) ? (int) $data['count'] : 0;
+                $locale = is_string($data['locale'] ?? null) ? $data['locale'] : '';
+                $entries[$dedupeKey]['total_count'] += $count;
+                $entries[$dedupeKey]['locales'][$locale] = true;
             } else {
                 $entries[$dedupeKey] = [
-                    'key' => $data['key'],
-                    'locales' => [$data['locale'] => true],
-                    'total_count' => $data['count'],
-                    'first_url' => $data['url'],
-                    'first_seen' => $data['ts'],
+                    'key' => $dedupeKey,
+                    'locales' => [is_string($data['locale'] ?? null) ? $data['locale'] : '' => true],
+                    'total_count' => is_numeric($data['count'] ?? null) ? (int) $data['count'] : 0,
+                    'first_url' => is_string($data['url'] ?? null) ? $data['url'] : '',
+                    'first_seen' => is_string($data['ts'] ?? null) ? $data['ts'] : '',
                 ];
             }
         }

@@ -4,13 +4,15 @@ namespace App\Livewire\Events;
 
 use App\Models\Event;
 use App\Models\EventRegistration;
+use App\Traits\EscapesLikeWildcards;
+use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
-use App\Traits\EscapesLikeWildcards;
 use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
@@ -42,6 +44,9 @@ class ManageRegistrations extends Component
         $this->authorize('update', $this->event);
     }
 
+    /**
+     * @return LengthAwarePaginator<int, EventRegistration>
+     */
     #[Computed]
     public function registrations()
     {
@@ -75,6 +80,9 @@ class ManageRegistrations extends Component
         return $query->orderByDesc('created_at')->paginate(15);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Computed]
     public function statusCounts(): array
     {
@@ -89,6 +97,9 @@ class ManageRegistrations extends Component
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Computed]
     public function paymentCounts(): array
     {
@@ -246,7 +257,7 @@ class ManageRegistrations extends Component
             ->firstOrFail();
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.events.manage-registrations');
     }

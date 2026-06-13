@@ -14,6 +14,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\ShortLink;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -42,7 +43,7 @@ class ShareIntentService
         return match ($entityType) {
             'game' => $this->processGameShareIntent($entityId, $shareToken, $user),
             'campaign' => $this->processCampaignShareIntent($entityId, $shareToken, $user),
-            default => $this->failResult("Unknown entity type: {$entityType}", $user->id, $entityType, $entityId),
+            default => $this->failResult("Unknown entity type: {$entityType}", (string) $user->id, $entityType, $entityId),
         };
     }
 
@@ -65,7 +66,7 @@ class ShareIntentService
                 Campaign::find($entityId), $user, 'campaign', $shortLink
             ),
             default => $this->failShortLinkResult(
-                "Unsupported entity type: {$entityType}", $user->id, $entityType, $entityId
+                "Unsupported entity type: {$entityType}", (string) $user->id, $entityType, $entityId
             ),
         };
     }
@@ -84,11 +85,11 @@ class ShareIntentService
             return new ShareIntentResult(false, null);
         }
 
-        if (! $this->validateShareToken($game, $shareToken, 'game', $entityId, $user->id)) {
+        if (! $this->validateShareToken($game, $shareToken, 'game', $entityId, (string) $user->id)) {
             return new ShareIntentResult(false, null);
         }
 
-        if ($game->owner_id === $user->id) {
+        if ((string) $game->owner_id === (string) $user->id) {
             return new ShareIntentResult(true, 'games.show');
         }
 
@@ -109,11 +110,11 @@ class ShareIntentService
             return new ShareIntentResult(false, null);
         }
 
-        if (! $this->validateShareToken($campaign, $shareToken, 'campaign', $entityId, $user->id)) {
+        if (! $this->validateShareToken($campaign, $shareToken, 'campaign', $entityId, (string) $user->id)) {
             return new ShareIntentResult(false, null);
         }
 
-        if ($campaign->owner_id === $user->id) {
+        if ((string) $campaign->owner_id === (string) $user->id) {
             return new ShareIntentResult(true, 'campaigns.show');
         }
 
@@ -124,8 +125,9 @@ class ShareIntentService
 
     // ── Short Link Intent ───────────────────────────────────
 
+    /** @param Game|Campaign|null $entity */
     private function processShortLinkEntity(
-        $entity,
+        ?Model $entity,
         User $user,
         string $entityType,
         ShortLink $shortLink,
@@ -133,9 +135,9 @@ class ShareIntentService
         if (! in_array($entityType, ['game', 'campaign'], true)) {
             return $this->failShortLinkResult(
                 "Unsupported entity type: {$entityType}",
-                $user->id,
+                (string) $user->id,
                 $entityType,
-                $shortLink->linkable_id,
+                (string) $shortLink->linkable_id,
             );
         }
 
@@ -150,8 +152,8 @@ class ShareIntentService
             return new ShareIntentResult(false, null, shouldClearCookie: true);
         }
 
-        if ($entity->owner_id === $user->id) {
-            return new ShareIntentResult(true, $route, entityId: $entity->getKey());
+        if ((string) $entity->owner_id === (string) $user->id) {
+            return new ShareIntentResult(true, $route, entityId: is_string($k = $entity->getKey()) || is_int($k) ? (string) $k : null);
         }
 
         return $this->createParticipantForEntity(
@@ -168,13 +170,12 @@ class ShareIntentService
      * concurrent-request protection via lockForUpdate, and unique constraint
      * fallback for races lost before the lock.
      *
-     * @param  Game|Campaign  $entity
      * @param  string  $entityType  'game' or 'campaign'
      * @param  int|null  $shortLinkId  Set when arriving via short link
      * @param  bool  $clearCookieOnInactive  Whether to clear cookie when entity is inactive
      */
     private function createParticipantForEntity(
-        $entity,
+        Game|Campaign $entity,
         User $user,
         string $entityType,
         JoinSource $joinSource,
@@ -193,10 +194,10 @@ class ShareIntentService
         if ($existing) {
             Log::info('share_intent.already_participant', [
                 'user_id' => $user->id, 'entity_type' => $entityType,
-                'entity_id' => $entity->getKey(), 'existing_status' => $existing->status->value,
+                'entity_id' => $entity->getKey(), 'existing_status' => $existing->status->value ?? '',
             ]);
 
-            return new ShareIntentResult(true, $route, entityId: $entity->getKey());
+            return new ShareIntentResult(true, $route, entityId: is_string($k = $entity->getKey()) || is_int($k) ? (string) $k : null);
         }
 
         // Wrap participant creation in a transaction with lockForUpdate
@@ -204,16 +205,8 @@ class ShareIntentService
 
         try {
             DB::transaction(function () use ($entity, $user, $entityType, $joinSource, $shortLinkId, $fkColumn, $modelClass, &$status) {
-                $lockedEntity = $entity->lockForUpdate()->find($entity->getKey());
-
-                if (! $lockedEntity) {
-                    Log::error('share_intent.entity_not_found_under_lock', [
-                        'user_id' => $user->id, 'entity_type' => $entityType,
-                        'entity_id' => $entity->getKey(),
-                    ]);
-
-                    return;
-                }
+                /** @var Game|Campaign $lockedEntity */
+                $lockedEntity = $entity->lockForUpdate()->findOrFail($entity->getKey());
 
                 // Check entity is still active
                 $terminalStatuses = $entityType === 'game'
@@ -276,22 +269,23 @@ class ShareIntentService
                 'entity_id' => $entity->getKey(), 'error' => $e->getMessage(),
             ]);
 
-            return new ShareIntentResult(true, $route, entityId: $entity->getKey());
+            return new ShareIntentResult(true, $route, entityId: is_string($k = $entity->getKey()) || is_int($k) ? (string) $k : null);
         }
 
         if ($status === null) {
             return new ShareIntentResult(false, null, shouldClearCookie: $clearCookieOnInactive);
         }
 
-        return new ShareIntentResult(true, $route, entityId: $entity->getKey());
+        return new ShareIntentResult(true, $route, entityId: is_string($k = $entity->getKey()) || is_int($k) ? (string) $k : null);
     }
 
     // ── Helpers ─────────────────────────────────────────────
 
     /**
-     * Validate that the entity's share_token matches the token from the cookie.
+     * @param  Game|Campaign  $entity
+     *                                 Validate that the entity's share_token matches the token from the cookie.
      */
-    private function validateShareToken($entity, string $token, string $entityType, string $entityId, string $userId): bool
+    private function validateShareToken(Model $entity, string $token, string $entityType, string $entityId, string $userId): bool
     {
         if ($entity->share_token === null || $entity->share_token !== $token) {
             Log::warning('share_intent.token_mismatch', [
@@ -314,12 +308,13 @@ class ShareIntentService
     }
 
     /**
-     * Determine participant status based on entity capacity.
+     * @param  Game|Campaign  $entity
+     *                                 Determine participant status based on entity capacity.
      *
      * Games → benched when full + campaign session, waitlisted when full + standalone.
      * Campaigns → benched when full.
      */
-    private function determineStatus($entity, string $entityType): ParticipantStatus
+    private function determineStatus(Game|Campaign $entity, string $entityType): ParticipantStatus
     {
         $approvedCount = app(ParticipantService::class)->getApprovedParticipantCount($entity);
 
@@ -328,7 +323,7 @@ class ShareIntentService
                 return ParticipantStatus::Benched;
             }
 
-            return $entity->campaign_id !== null
+            return ($entity instanceof Game && $entity->campaign_id !== null)
                 ? ParticipantStatus::Benched
                 : ParticipantStatus::Waitlisted;
         }
@@ -340,6 +335,8 @@ class ShareIntentService
      * Parse the share_intent cookie payload.
      *
      * Returns null if the payload is malformed or contains an unsupported entity type.
+     *
+     * @return array{entity_type: string, entity_id: string, share_token: string}|null
      */
     public function parsePayload(mixed $shareIntent): ?array
     {
@@ -372,6 +369,8 @@ class ShareIntentService
      * Parse the short_link_intent cookie payload.
      *
      * Only short_link_id is expected — entity identity is derived server-side.
+     *
+     * @return array<string, mixed>
      */
     public function parseShortLinkPayload(mixed $cookieValue): ?array
     {

@@ -15,6 +15,7 @@ use App\Services\PostHogClient;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -132,12 +133,12 @@ class EnrichPostHogProfile implements ShouldQueue
      * that PostHogEventBridge actually dispatches for are permitted.
      */
     private const ALLOWED_SUBJECT_TYPES = [
-        \App\Models\Game::class,
-        \App\Models\Campaign::class,
-        \App\Models\GameParticipant::class,
-        \App\Models\Review::class,
-        \App\Models\User::class,
-        \App\Models\UserRelationship::class,
+        Game::class,
+        Campaign::class,
+        GameParticipant::class,
+        Review::class,
+        User::class,
+        UserRelationship::class,
     ];
 
     /**
@@ -145,6 +146,9 @@ class EnrichPostHogProfile implements ShouldQueue
      *
      * Expects full FQCN (e.g. App\Models\Game) as set by PostHogEventBridge.
      * Restricted to ALLOWED_SUBJECT_TYPES for defense-in-depth.
+     */
+    /**
+     * @return (Game|Campaign|GameParticipant|Review|User|UserRelationship)|null
      */
     private function resolveSubject(): ?Model
     {
@@ -161,7 +165,11 @@ class EnrichPostHogProfile implements ShouldQueue
         }
 
         try {
-            return $this->subjectType::find($this->subjectId);
+            $subject = $this->subjectType::findOrFail($this->subjectId);
+
+            return $subject instanceof Model ? $subject : null;
+        } catch (ModelNotFoundException) {
+            // Subject not found is non-critical for enrichment
         } catch (\Throwable) {
             // Subject resolution failure is non-critical for enrichment
         }

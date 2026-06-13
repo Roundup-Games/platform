@@ -2,49 +2,97 @@
 
 namespace App\Dto;
 
-
 /**
  * Encapsulates all shared filter state for discovery pages.
  *
- * Replaces the ad-hoc array of Livewire component properties that the
- * DiscoveryUtilities trait previously accessed via `$this->`.
+ * Built from a Livewire component's snake_case public properties (URL-bound)
+ * via fromLivewire(); consumed by DiscoveryQueryService. All entity IDs are
+ * UUID strings — never integers.
  */
 class DiscoveryFilters
 {
+    /**
+     * @param  array<int, string>  $vibeFlags
+     * @param  array<int, string>  $safetyTools
+     * @param  array<int, string>  $categoryIds  UUIDs of GameSystemCategory records
+     * @param  array<int, string>  $mechanicIds  UUIDs of GameSystemMechanic records
+     */
     public function __construct(
-        public string $search = '',
-        public ?string $game_system_id = null,
-        public string $experience_level = '',
-        public array $vibe_flags = [],
-        public array $safety_tools = [],
-        public string $language = '',
-        public ?string $complexity_min = null,
-        public ?string $complexity_max = null,
-        public string $price = '',
-        public array $category_ids = [],
-        public array $mechanic_ids = [],
+        public readonly string $search = '',
+        public readonly ?string $gameSystemId = null,
+        public readonly string $experienceLevel = '',
+        public readonly array $vibeFlags = [],
+        public readonly array $safetyTools = [],
+        public readonly string $language = '',
+        public readonly ?string $complexityMin = null,
+        public readonly ?string $complexityMax = null,
+        public readonly string $price = '',
+        public readonly array $categoryIds = [],
+        public readonly array $mechanicIds = [],
     ) {}
 
     /**
      * Build a DiscoveryFilters instance from a Livewire component's public properties.
+     *
+     * Livewire public properties use snake_case (URL/JS convention); this maps
+     * them onto the DTO's camelCase properties and coerces untyped values.
      *
      * @param  object  $component  A Livewire component instance (or any object with matching public properties)
      */
     public static function fromLivewire(object $component): self
     {
         return new self(
-            search: $component->search ?? '',
-            game_system_id: $component->game_system_id ?? null,
-            experience_level: $component->experience_level ?? '',
-            vibe_flags: $component->vibe_flags ?? [],
-            safety_tools: $component->safety_tools ?? [],
-            language: $component->language ?? '',
-            complexity_min: $component->complexity_min ?? null,
-            complexity_max: $component->complexity_max ?? null,
-            price: $component->price ?? '',
-            category_ids: $component->category_ids ?? [],
-            mechanic_ids: $component->mechanic_ids ?? [],
+            search: self::stringOr($component->search ?? ''),
+            gameSystemId: self::stringOrNull($component->game_system_id ?? null),
+            experienceLevel: self::stringOr($component->experience_level ?? ''),
+            vibeFlags: self::stringArray($component->vibe_flags ?? []),
+            safetyTools: self::stringArray($component->safety_tools ?? []),
+            language: self::stringOr($component->language ?? ''),
+            complexityMin: self::stringOrNull($component->complexity_min ?? null),
+            complexityMax: self::stringOrNull($component->complexity_max ?? null),
+            price: self::stringOr($component->price ?? ''),
+            categoryIds: self::stringArray($component->category_ids ?? []),
+            mechanicIds: self::stringArray($component->mechanic_ids ?? []),
         );
+    }
+
+    /**
+     * Coerce a mixed value to a non-empty string, defaulting to '' for
+     * non-string scalars. Used for filter inputs that originate from
+     * untyped Livewire public properties / URL query strings.
+     */
+    private static function stringOr(mixed $value): string
+    {
+        return is_string($value) ? $value : (is_scalar($value) ? (string) $value : '');
+    }
+
+    /**
+     * Coerce a mixed value to a nullable string. Non-string scalars are
+     * cast; everything else becomes null. Used for optional UUID filters
+     * (e.g. gameSystemId) that must be string|null at the query layer.
+     */
+    private static function stringOrNull(mixed $value): ?string
+    {
+        return is_string($value) ? $value : (is_scalar($value) ? (string) $value : null);
+    }
+
+    /**
+     * Coerce a mixed array to a list of strings. Used for multi-value
+     * filters (vibe flags, category/mechanic UUIDs) where the source may
+     * contain mixed scalar types from deserialised query strings.
+     *
+     * @return array<int, string>
+     */
+    private static function stringArray(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map(fn (mixed $v) => is_string($v) ? $v : (is_scalar($v) ? (string) $v : null), $value),
+            fn (?string $v) => $v !== null && $v !== '',
+        ));
     }
 
     /**
@@ -56,16 +104,16 @@ class DiscoveryFilters
     {
         return [
             'search' => $this->search,
-            'game_system_id' => $this->game_system_id,
-            'experience_level' => $this->experience_level,
-            'vibe_flags' => $this->vibe_flags,
-            'safety_tools' => $this->safety_tools,
+            'gameSystemId' => $this->gameSystemId,
+            'experienceLevel' => $this->experienceLevel,
+            'vibeFlags' => $this->vibeFlags,
+            'safetyTools' => $this->safetyTools,
             'language' => $this->language,
-            'complexity_min' => $this->complexity_min,
-            'complexity_max' => $this->complexity_max,
+            'complexityMin' => $this->complexityMin,
+            'complexityMax' => $this->complexityMax,
             'price' => $this->price,
-            'category_ids' => $this->category_ids,
-            'mechanic_ids' => $this->mechanic_ids,
+            'categoryIds' => $this->categoryIds,
+            'mechanicIds' => $this->mechanicIds,
         ];
     }
 }

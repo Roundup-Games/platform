@@ -3,7 +3,6 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
-
 use App\Models\GameSystem;
 use App\Models\User;
 use Escalated\Laravel\Models\Ticket;
@@ -40,9 +39,9 @@ class GameSystemRequestDuplicate extends BaseNotification
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $existingUrl = route('game-systems.show', ['locale' => $locale, 'slug' => $this->existingSystem->slug]);
         $name = $this->getGameSystemName();
 
@@ -62,9 +61,9 @@ class GameSystemRequestDuplicate extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $name = $this->getGameSystemName();
 
         return [
@@ -94,7 +93,7 @@ class GameSystemRequestDuplicate extends BaseNotification
      * Get the push notification representation.
      * Not applicable for this notification type.
      */
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(User $notifiable): ?PushPayload
     {
         return null;
     }

@@ -1,10 +1,10 @@
 <?php
 
+use App\Livewire\GM\SessionZero\CreateSessionZero;
 use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
-
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\Traits\CreatesUsers;
@@ -109,7 +109,7 @@ describe('CreateSessionZero Form Rendering', function () {
         ]);
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class, ['game_id' => $game->id])
+            ->test(CreateSessionZero::class, ['game_id' => $game->id])
             ->assertSet('title', '');
     });
 });
@@ -123,7 +123,7 @@ describe('CreateSessionZero Validation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', '')
             ->call('save')
             ->assertHasErrors(['title' => 'required']);
@@ -133,7 +133,7 @@ describe('CreateSessionZero Validation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', str_repeat('x', 256))
             ->call('save')
             ->assertHasErrors(['title' => 'max']);
@@ -143,7 +143,7 @@ describe('CreateSessionZero Validation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'My Session Zero')
             ->set('tone_and_genre', 'Heroic fantasy')
             ->set('house_rules', 'Flanking rules apply')
@@ -157,7 +157,7 @@ describe('CreateSessionZero Validation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'Minimal Session Zero')
             ->call('save')
             ->assertHasNoErrors();
@@ -167,7 +167,7 @@ describe('CreateSessionZero Validation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'Test')
             ->set('selectedSafetyTools', ['invalid-tool'])
             ->call('save')
@@ -178,7 +178,7 @@ describe('CreateSessionZero Validation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'Test')
             ->set('selectedSafetyTools', ['x-card', 'lines-and-veils'])
             ->call('save')
@@ -195,7 +195,7 @@ describe('CreateSessionZero Survey Creation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'Dragon Heist Session Zero')
             ->set('tone_and_genre', 'Urban intrigue')
             ->set('house_rules', 'Flanking rules')
@@ -217,7 +217,7 @@ describe('CreateSessionZero Survey Creation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'Test Survey')
             ->call('save');
 
@@ -230,7 +230,7 @@ describe('CreateSessionZero Survey Creation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'Safety Test')
             ->set('selectedSafetyTools', ['x-card', 'lines-and-veils', 'open-door'])
             ->set('linesAndVeilsText', 'No spiders please')
@@ -248,7 +248,7 @@ describe('CreateSessionZero Survey Creation', function () {
         $game = Game::factory()->create(['owner_id' => $gm->id]);
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class, ['game_id' => $game->id])
+            ->test(CreateSessionZero::class, ['game_id' => $game->id])
             ->set('title', 'Linked Survey')
             ->call('save');
 
@@ -262,7 +262,7 @@ describe('CreateSessionZero Survey Creation', function () {
         $game = Game::factory()->create(['owner_id' => $otherGm->id]);
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class, ['game_id' => $game->id])
+            ->test(CreateSessionZero::class, ['game_id' => $game->id])
             ->set('title', 'Unlinked Survey')
             ->call('save');
 
@@ -274,7 +274,7 @@ describe('CreateSessionZero Survey Creation', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'Status Test')
             ->call('save');
 
@@ -292,7 +292,7 @@ describe('CreateSessionZero Success State', function () {
         $gm = $this->createSubscribedGm();
 
         $component = Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'Link Test')
             ->call('save');
 
@@ -302,14 +302,14 @@ describe('CreateSessionZero Success State', function () {
             ->assertSet('saved', true)
             ->assertSet('shareableUuid', $survey->uuid)
             ->assertSee('Session Zero Survey Created!')
-            ->assertSee('session-zero/' . $survey->uuid);
+            ->assertSee('session-zero/'.$survey->uuid);
     });
 
     it('hides the form after successful save', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->set('title', 'Hide Form Test')
             ->call('save')
             ->assertDontSee('Create Survey');
@@ -325,7 +325,7 @@ describe('CreateSessionZero Safety Tool Events', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->test(CreateSessionZero::class)
             ->dispatch('safety-tools-changed', safetyRules: [
                 'tools' => ['x-card', 'open-door'],
                 'lines_and_veils_text' => 'My boundaries',
@@ -336,5 +336,3 @@ describe('CreateSessionZero Safety Tool Events', function () {
             ->assertSet('safetyCustomNote', 'Extra note');
     });
 });
-
-

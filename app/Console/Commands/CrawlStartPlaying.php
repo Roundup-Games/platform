@@ -44,7 +44,7 @@ class CrawlStartPlaying extends Command
 
     public function handle(SpClient $client, SpParser $parser): int
     {
-        $outputDir = $this->option('output');
+        $outputDir = (string) $this->option('output');
 
         if (! is_dir($outputDir)) {
             mkdir($outputDir, 0755, true);
@@ -61,6 +61,7 @@ class CrawlStartPlaying extends Command
                 $this->error("Failed to fetch {$phase['label']} listing page. Skipping.");
                 Log::warning('SP crawl: listing fetch failed', ['type' => $phase['type']]);
                 $summary[$phase['label']] = ['success' => 0, 'total' => 0];
+
                 continue;
             }
 
@@ -70,7 +71,7 @@ class CrawlStartPlaying extends Command
             $this->info("Found {$total} {$phase['label']} slugs.");
 
             $bar = $this->output->createProgressBar($total);
-            $bar->setFormat("%message% %current%/%max% [%bar%] %percent:3s%%");
+            $bar->setFormat('%message% %current%/%max% [%bar%] %percent:3s%%');
 
             $results = [];
             $successCount = 0;
@@ -88,6 +89,7 @@ class CrawlStartPlaying extends Command
                 if (! $pageCache) {
                     $this->logParseFailure($phase['type'], $slug, 'Failed to fetch page');
                     $bar->advance();
+
                     continue;
                 }
 
@@ -96,6 +98,7 @@ class CrawlStartPlaying extends Command
                 if (! $parsed) {
                     $this->logParseFailure($phase['type'], $slug, 'Parser returned null');
                     $bar->advance();
+
                     continue;
                 }
 
@@ -108,7 +111,7 @@ class CrawlStartPlaying extends Command
             $this->newLine();
 
             // Write PHP data file
-            $filePath = rtrim($outputDir, '/') . '/' . $phase['file'];
+            $filePath = rtrim($outputDir, '/').'/'.$phase['file'];
             $this->writePhpDataFile($filePath, $results);
 
             $summary[$phase['label']] = ['success' => $successCount, 'total' => $total];

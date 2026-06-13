@@ -5,26 +5,33 @@ namespace App\Livewire\Onboarding;
 use App\Enums\ContentLanguage;
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
+use App\Models\User;
 use App\Services\GeocodingService;
 use App\Services\ProfileVisibilityResolver;
 use App\Traits\HasGuestLocation;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+
 #[Layout('onboarding.layout')]
 class CompleteProfile extends Component
 {
     use HasGuestLocation;
 
+    /**
+     * @param  array<string, mixed>  $selectedIds
+     */
     #[On('selection-changed')]
     public function onSelectionChanged(string $preferenceType, array $selectedIds): void
     {
         if ($preferenceType === 'favorite') {
-            $this->favoriteGameSystemIds = $selectedIds;
+            $this->favoriteGameSystemIds = array_values($selectedIds);
         }
     }
 
@@ -63,10 +70,13 @@ class CompleteProfile extends Component
     public string $phone = '';
 
     // Step 4: Preferences properties
-    /** @var array<int> */
+    /** @var array<int|string, mixed> */
     #[Validate(['array'])]
     public array $favoriteGameSystemIds = [];
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -77,10 +87,10 @@ class CompleteProfile extends Component
 
     public function mount(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         if ($user->profile_complete) {
-            $this->redirect('/' . app()->getLocale() . '/dashboard');
+            $this->redirect('/'.app()->getLocale().'/dashboard');
 
             return;
         }
@@ -124,9 +134,12 @@ class CompleteProfile extends Component
                 $geocodingService = app(GeocodingService::class);
                 $result = $geocodingService->reverseGeocode($lat, $lng);
 
-                if ($result && isset($result['address'])) {
+                if ($result && isset($result['address']) && is_array($result['address'])) {
                     $address = $result['address'];
-                    $this->city = $address['city'] ?? $address['town'] ?? $address['village'] ?? $address['municipality'] ?? '';
+                    $this->city = is_string($address['city'] ?? null) ? $address['city']
+                        : (is_string($address['town'] ?? null) ? $address['town']
+                        : (is_string($address['village'] ?? null) ? $address['village']
+                        : (is_string($address['municipality'] ?? null) ? $address['municipality'] : '')));
                 }
             } catch (\Throwable $e) {
                 Log::warning('Reverse geocoding failed during onboarding', [
@@ -165,7 +178,7 @@ class CompleteProfile extends Component
      */
     public function findMyLocation(): void
     {
-        $query = trim($this->city . ($this->address ? ', ' . $this->address : ''));
+        $query = trim($this->city.($this->address ? ', '.$this->address : ''));
 
         if ($query === '') {
             // No text entered — trigger browser geolocation.
@@ -201,9 +214,12 @@ class CompleteProfile extends Component
             $geocodingService = app(GeocodingService::class);
             $result = $geocodingService->reverseGeocode($lat, $lng);
 
-            if ($result && isset($result['address'])) {
+            if ($result && isset($result['address']) && is_array($result['address'])) {
                 $address = $result['address'];
-                $this->city = $address['city'] ?? $address['town'] ?? $address['village'] ?? $address['municipality'] ?? '';
+                $this->city = is_string($address['city'] ?? null) ? $address['city']
+                    : (is_string($address['town'] ?? null) ? $address['town']
+                    : (is_string($address['village'] ?? null) ? $address['village']
+                    : (is_string($address['municipality'] ?? null) ? $address['municipality'] : '')));
             }
         } catch (\Throwable $e) {
             Log::warning('Reverse geocoding failed during onboarding findMyLocation', [
@@ -283,7 +299,7 @@ class CompleteProfile extends Component
             'favoriteGameSystemIds.*' => ['uuid', 'exists:game_systems,id'],
         ]);
 
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $locale = app()->getLocale();
         $preferredLanguage = match ($locale) {
@@ -319,9 +335,11 @@ class CompleteProfile extends Component
         $user->update($updateData);
 
         // Sync favorite game systems using syncWithPivotValues for idempotency
-        $syncData = collect($this->favoriteGameSystemIds)->mapWithKeys(fn ($id) => [
-            $id => ['preference_type' => 'favorite'],
-        ])->toArray();
+        $syncData = collect($this->favoriteGameSystemIds)
+            ->filter(fn (mixed $id) => is_string($id))
+            ->mapWithKeys(fn (string $id) => [
+                $id => ['preference_type' => 'favorite'],
+            ])->toArray();
         $user->gameSystemPreferences()->sync($syncData);
 
         Log::info('Onboarding completed', [
@@ -335,18 +353,18 @@ class CompleteProfile extends Component
 
         // Dispatch discovery cache population for new users with a valid location
         $freshUser = $user->fresh();
-        if ($freshUser->linkedLocation?->latitude && $freshUser->linkedLocation?->longitude) {
-            UpdateUserDiscoveryCache::dispatch($freshUser->id, 'location_change');
+        if ($freshUser && $freshUser->linkedLocation?->latitude && $freshUser->linkedLocation->longitude) {
+            UpdateUserDiscoveryCache::dispatch((string) $freshUser->id, 'location_change');
         }
 
         // Use explicit locale-prefixed redirect instead of redirectRoute('dashboard').
         // Livewire update requests hit /livewire/update (outside the {locale} route group),
         // so URL::defaults is not set by SetLocale and falls back to the fallback locale.
         $locale = app()->getLocale();
-        $this->redirect('/' . $locale . '/dashboard');
+        $this->redirect('/'.$locale.'/dashboard');
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.onboarding.complete-profile');
     }
@@ -363,7 +381,7 @@ class CompleteProfile extends Component
         $geocodingService = app(GeocodingService::class);
 
         // Try to get full geocoding data for the location
-        $query = trim($this->city . ($this->address ? ', ' . $this->address : ''));
+        $query = trim($this->city.($this->address ? ', '.$this->address : ''));
         $geocodeResult = $geocodingService->geocode($query);
 
         $placeId = null;
@@ -371,12 +389,11 @@ class CompleteProfile extends Component
         $postalCode = null;
 
         if ($geocodeResult) {
-            $placeId = $geocodeResult['place_id'] ?? null;
-            // Extract address components from raw result
-            $raw = $geocodeResult['raw'] ?? [];
-            $address = $raw['address'] ?? [];
-            // Use country_code (ISO 2-char like "DE") — country column is varchar(3)
-            $country = strtoupper($address['country_code'] ?? '') ?: null;
+            $placeId = $geocodeResult['place_id'];
+            $raw = $geocodeResult['raw'];
+            $address = is_array($raw['address'] ?? null) ? $raw['address'] : [];
+            $country = strtoupper(is_string($address['country_code'] ?? null) ? $address['country_code'] : '') ?: null;
+            $postalCode = is_string($address['postcode'] ?? null) ? $address['postcode'] : null;
             $postalCode = $address['postcode'] ?? null;
         }
 
@@ -411,7 +428,7 @@ class CompleteProfile extends Component
                 // Location step: city is required, coordinates must be confirmed
                 $this->validateOnly('city');
                 if (! $this->locationConfirmed || $this->lat === null || $this->lng === null) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         'city' => [__('location.error_please_confirm_your_location_to_continue')],
                     ]);
                 }
@@ -420,7 +437,7 @@ class CompleteProfile extends Component
                 $this->validateOnly('gender');
                 $this->validateOnly('pronouns');
                 // If gender is selected but consent not given, clear gender (only store with consent)
-                if (!$this->gender_consent) {
+                if (! $this->gender_consent) {
                     $this->gender = null;
                 }
                 $this->validate([

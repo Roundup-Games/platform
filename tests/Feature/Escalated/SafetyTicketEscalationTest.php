@@ -7,7 +7,7 @@ use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\EscalationRule;
 use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Services\EscalationService;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     seedRoles();
@@ -53,7 +53,7 @@ function createSafetyTicket($department, $reporter, array $overrides = []): Tick
         'department_id' => $department->id,
         'ticket_type' => 'review_report',
         'metadata' => [
-            'review_id' => \Illuminate\Support\Str::uuid()->toString(),
+            'review_id' => Str::uuid()->toString(),
             'report_reason' => 'harassment',
         ],
     ], $overrides));

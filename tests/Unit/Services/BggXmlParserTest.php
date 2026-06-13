@@ -123,7 +123,7 @@ describe('Malformed XML', function () {
             expect(true)->toBeFalse('Should have thrown');
         } catch (BggParseException $e) {
             expect($e->getMessage())->toContain('Failed to parse BGG XML');
-            expect($e->getPrevious())->toBeInstanceOf(\Throwable::class);
+            expect($e->getPrevious())->toBeInstanceOf(Throwable::class);
         }
     });
 });

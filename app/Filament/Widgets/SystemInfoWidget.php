@@ -30,7 +30,9 @@ class SystemInfoWidget extends StatsOverviewWidget
     {
         try {
             $driver = config('database.default');
+            $driver = is_string($driver) ? $driver : 'pgsql';
             $connection = config("database.connections.{$driver}.driver", $driver);
+            $connection = is_string($connection) ? $connection : $driver;
 
             $description = "Driver: {$connection}";
 
@@ -59,6 +61,7 @@ class SystemInfoWidget extends StatsOverviewWidget
     private function cacheDriverStat(): Stat
     {
         $driver = config('cache.default');
+        $driver = is_string($driver) ? $driver : 'file';
         $description = "Driver: {$driver}";
 
         if ($driver === 'redis') {
@@ -79,7 +82,7 @@ class SystemInfoWidget extends StatsOverviewWidget
         $env = app()->environment();
 
         return Stat::make('Environment', ucfirst($env))
-            ->description(config('app.url'))
+            ->description(is_string($url = config('app.url')) ? $url : '')
             ->descriptionIcon('heroicon-o-globe-alt')
             ->color(match ($env) {
                 'production' => 'success',
@@ -109,14 +112,17 @@ class SystemInfoWidget extends StatsOverviewWidget
         // 1. File written by S6 init on every container start
         $file = storage_path('framework/deploy-timestamp');
         if (file_exists($file)) {
-            $contents = trim(file_get_contents($file));
+            $raw = file_get_contents($file);
+            $contents = $raw !== false ? trim($raw) : '';
             if ($contents !== '') {
                 return $contents;
             }
         }
 
         // 2. Fallback to env var (CI/CD pipelines, non-Docker deploys)
-        return config('app.deploy_timestamp') ?? env('DEPLOY_TIMESTAMP');
+        $ts = config('app.deploy_timestamp');
+
+        return is_string($ts) ? $ts : null;
     }
 
     private function versionsStat(): Stat
@@ -138,11 +144,11 @@ class SystemInfoWidget extends StatsOverviewWidget
         try {
             /** @var array<string, mixed> $info */
             $info = Redis::connection()->info();
-            $stats = $info['Stats'] ?? [];
+            $stats = is_array($info['Stats'] ?? null) ? $info['Stats'] : [];
 
             return [
-                'hits' => (int) ($stats['keyspace_hits'] ?? 0),
-                'misses' => (int) ($stats['keyspace_misses'] ?? 0),
+                'hits' => is_int($stats['keyspace_hits'] ?? null) ? $stats['keyspace_hits'] : 0,
+                'misses' => is_int($stats['keyspace_misses'] ?? null) ? $stats['keyspace_misses'] : 0,
             ];
         } catch (\Throwable) {
             return null;
@@ -153,12 +159,15 @@ class SystemInfoWidget extends StatsOverviewWidget
     {
         try {
             $dbName = config('database.connections.pgsql.database');
+            if (! is_string($dbName)) {
+                return null;
+            }
             $result = DB::selectOne(
-                "SELECT pg_database_size(?) as size",
+                'SELECT pg_database_size(?) as size',
                 [$dbName]
             );
 
-            if ($result && isset($result->size)) {
+            if (is_object($result) && property_exists($result, 'size') && is_numeric($result->size)) {
                 $bytes = (int) $result->size;
                 if ($bytes >= 1073741824) {
                     return round($bytes / 1073741824, 1).' GB';

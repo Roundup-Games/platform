@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Team;
-use App\Models\User;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 describe('Team getDynamicSEOData', function () {

@@ -6,6 +6,8 @@ use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\Review;
 use App\Services\ShortLinkService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Livewire\Attributes\Computed;
@@ -55,7 +57,7 @@ class PublicGameDetail extends Component
             $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
             if ($link !== null
                 && $link->linkable_type === Game::class
-                && (string) $link->linkable_id === (string) $game->getKey()) {
+                && $link->linkable_id === (is_string($k = $game->getKey()) ? (string) $k : '')) {
                 $this->validatedShortLinkId = $link->id;
                 $this->validatedShortLinkCode = $link->code;
             }
@@ -93,6 +95,9 @@ class PublicGameDetail extends Component
             ->count();
     }
 
+    /**
+     * @return Collection<int, Review>|\Illuminate\Support\Collection<int, Review>
+     */
     #[Computed]
     public function reviews()
     {
@@ -121,17 +126,17 @@ class PublicGameDetail extends Component
         // Use the code cached during mount — avoids a DB lookup that can return null
         // if the link is revoked between mount and render, keeping hasShareLink/shareLinkUrl consistent.
         if ($this->validatedShortLinkCode !== null) {
-            return url('/link/' . $this->validatedShortLinkCode);
+            return url('/link/'.$this->validatedShortLinkCode);
         }
 
         if ($this->game->share_token === null) {
             return null;
         }
 
-        return route('games.detail', $this->game->id) . '?share=' . $this->game->share_token;
+        return route('games.detail', $this->game->id).'?share='.$this->game->share_token;
     }
 
-    public function render()
+    public function render(): View
     {
         $relations = [
             'owner', 'campaign', 'gameSystem.categories', 'gameSystem.mechanics',

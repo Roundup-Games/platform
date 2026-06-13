@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Str;
 
-class GameApplication extends Model
+class GameApplication extends Pivot
 {
+    protected $table = 'game_applications';
+
     protected $keyType = 'string';
-    public $incrementing = false;
 
     protected $fillable = ['game_id', 'user_id', 'status', 'message'];
 
@@ -22,11 +23,17 @@ class GameApplication extends Model
         });
     }
 
+    /**
+     * @return BelongsTo<Game, $this>
+     */
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

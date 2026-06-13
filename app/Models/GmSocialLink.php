@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Services\GmSocialLinkService;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GmSocialLink extends Model
 {
+    /** @use HasFactory<Factory> */
     use HasFactory;
 
     protected $table = 'gm_social_links';
@@ -27,13 +30,13 @@ class GmSocialLink extends Model
     protected static function booted(): void
     {
         static::creating(function (self $link) {
-            $link->url = app(\App\Services\GmSocialLinkService::class)
+            $link->url = app(GmSocialLinkService::class)
                 ->generateUrl($link->platform, $link->handle, $link->instance);
         });
 
         static::updating(function (self $link) {
             if ($link->isDirty('platform') || $link->isDirty('handle') || $link->isDirty('instance')) {
-                $link->url = app(\App\Services\GmSocialLinkService::class)
+                $link->url = app(GmSocialLinkService::class)
                     ->generateUrl($link->platform, $link->handle, $link->instance);
             }
         });
@@ -41,6 +44,7 @@ class GmSocialLink extends Model
 
     // ── Relationships ──────────────────────────────────
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

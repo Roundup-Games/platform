@@ -7,12 +7,13 @@ use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
-use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
+use App\Services\Geohash;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -265,7 +266,7 @@ class DashboardFeedDataTest extends TestCase
     public function get_trending_nearby_returns_real_games_for_tile(): void
     {
         $owner = User::factory()->create();
-        $location = \App\Models\Location::factory()->create([
+        $location = Location::factory()->create([
             'latitude' => 52.5163,
             'longitude' => 13.3777,
         ]);
@@ -278,7 +279,7 @@ class DashboardFeedDataTest extends TestCase
             'date_time' => now()->addDays(3),
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5163, 13.3777, 4);
+        $geohash4 = Geohash::tilePrefix(52.5163, 13.3777, 4);
 
         $result = $this->service->getTrendingNearby($geohash4);
 
@@ -291,7 +292,7 @@ class DashboardFeedDataTest extends TestCase
     public function warm_trending_nearby_scores_by_participants_and_recency(): void
     {
         $owner = User::factory()->create();
-        $location = \App\Models\Location::factory()->create([
+        $location = Location::factory()->create([
             'latitude' => 52.5163,
             'longitude' => 13.3777,
         ]);
@@ -312,7 +313,7 @@ class DashboardFeedDataTest extends TestCase
             'status' => ParticipantStatus::Approved,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5163, 13.3777, 4);
+        $geohash4 = Geohash::tilePrefix(52.5163, 13.3777, 4);
         $count = $this->service->warmTrendingNearby($geohash4);
 
         $cached = Cache::get("dashboard:trending:{$geohash4}");

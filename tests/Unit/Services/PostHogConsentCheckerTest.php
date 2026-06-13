@@ -6,7 +6,7 @@ use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
 describe('PostHogConsentChecker', function () {
     it('returns true when analytics consent is granted', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $symfonyRequest = SymfonyRequest::create('/games', 'GET');
         $symfonyRequest->cookies->set('cookie_consent', json_encode([
@@ -20,7 +20,7 @@ describe('PostHogConsentChecker', function () {
     });
 
     it('returns false when analytics consent is denied', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $symfonyRequest = SymfonyRequest::create('/games', 'GET');
         $symfonyRequest->cookies->set('cookie_consent', json_encode([
@@ -34,7 +34,7 @@ describe('PostHogConsentChecker', function () {
     });
 
     it('returns false when cookie is missing', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $request = Request::create('/games', 'GET');
 
@@ -42,7 +42,7 @@ describe('PostHogConsentChecker', function () {
     });
 
     it('returns false when cookie is malformed JSON', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $symfonyRequest = SymfonyRequest::create('/games', 'GET');
         $symfonyRequest->cookies->set('cookie_consent', 'not-json');
@@ -52,7 +52,7 @@ describe('PostHogConsentChecker', function () {
     });
 
     it('returns false when analytics key is missing from cookie', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $symfonyRequest = SymfonyRequest::create('/games', 'GET');
         $symfonyRequest->cookies->set('cookie_consent', json_encode([
@@ -64,7 +64,7 @@ describe('PostHogConsentChecker', function () {
     });
 
     it('handles already-decoded array cookie value', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $symfonyRequest = SymfonyRequest::create('/games', 'GET');
         // Simulate Laravel decrypting the cookie into an array
@@ -79,7 +79,7 @@ describe('PostHogConsentChecker', function () {
     });
 
     it('returns full consent state via getConsentState', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $symfonyRequest = SymfonyRequest::create('/games', 'GET');
         $symfonyRequest->cookies->set('cookie_consent', json_encode([
@@ -98,7 +98,7 @@ describe('PostHogConsentChecker', function () {
     });
 
     it('returns null from getConsentState when cookie is missing', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $request = Request::create('/games', 'GET');
 

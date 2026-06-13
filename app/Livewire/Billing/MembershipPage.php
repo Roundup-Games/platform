@@ -3,8 +3,9 @@
 namespace App\Livewire\Billing;
 
 use App\Models\MembershipType;
+use App\Models\User;
 use App\Services\GmRoleService;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -19,12 +20,13 @@ class MembershipPage extends Component
 
     public function initiateCheckout(string $planId): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $plan = MembershipType::active()->findOrFail($planId);
 
         // Local plans (e.g. free GM subscription) bypass Paddle
         if ($plan->type === 'local') {
             $this->handleLocalSubscription($user, $plan);
+
             return;
         }
 
@@ -50,7 +52,7 @@ class MembershipPage extends Component
         $this->redirect(route('billing.checkout', ['planId' => $plan->id]));
     }
 
-    protected function handleLocalSubscription($user, MembershipType $plan): void
+    protected function handleLocalSubscription(User $user, MembershipType $plan): void
     {
         // GM plan — activate via GmRoleService
         if (($plan->metadata['gm_plan'] ?? false) === true) {
@@ -82,9 +84,9 @@ class MembershipPage extends Component
         session()->flash('error', __('billing.error_this_plan_is_not_available_for_purchase_yet'));
     }
 
-    public function render()
+    public function render(): View
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $subscription = $user->subscription();
         $membershipTypes = MembershipType::active()->orderBy('price_cents')->get();
 
@@ -103,7 +105,7 @@ class MembershipPage extends Component
 
         // Check for active GM (local) subscription
         $gmSubscription = $user->localSubscriptions()
-            ->whereHas('membershipType', fn($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
             ->active()
             ->first();
 

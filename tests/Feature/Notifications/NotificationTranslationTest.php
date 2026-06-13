@@ -1,9 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Lang;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\View\Factory as ViewFactory;
-
 describe('Notification Translations', function () {
     it('interpolates placeholder values in :locale subjects', function (string $locale, string $key, array $replace, string $expected) {
         app()->setLocale($locale);

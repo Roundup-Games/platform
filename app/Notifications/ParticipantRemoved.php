@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
+use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -12,21 +14,21 @@ class ParticipantRemoved extends BaseNotification
 
     /**
      * @param  User  $removedUser  The user who was removed
-     * @param  \Illuminate\Database\Eloquent\Model  $entity  The Game or Campaign entity
+     * @param  Game|Campaign  $entity  The Game or Campaign entity
      * @param  string  $entityType  'game' or 'campaign'
      */
     public function __construct(
         public User $removedUser,
-        public $entity,
+        public Game|Campaign $entity,
         public string $entityType,
     ) {}
 
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $entityTypeLabel = $this->entityTypeLabel();
 
         return (new MailMessage)
@@ -46,9 +48,9 @@ class ParticipantRemoved extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'participant_removed',
@@ -89,7 +91,7 @@ class ParticipantRemoved extends BaseNotification
      * Get the push notification representation.
      * Not applicable for this notification type.
      */
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(User $notifiable): ?PushPayload
     {
         return null;
     }

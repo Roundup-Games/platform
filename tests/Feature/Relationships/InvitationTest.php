@@ -1,17 +1,18 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
+use App\Livewire\Games\ManageParticipants;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 use function Pest\Laravel\assertDatabaseHas;
-
 
 // ── Helpers ─────────────────────────────────────────
 
@@ -42,6 +43,7 @@ function inviteTestCreateGameWithOwner(array $attrs = []): array
 {
     $owner = User::factory()->create(['profile_complete' => true]);
     $game = Game::factory()->create(['owner_id' => $owner->id, ...$attrs]);
+
     return ['owner' => $owner, 'game' => $game];
 }
 
@@ -49,6 +51,7 @@ function inviteTestCreateCampaignWithOwner(array $attrs = []): array
 {
     $owner = User::factory()->create(['profile_complete' => true]);
     $campaign = Campaign::factory()->create(['owner_id' => $owner->id, ...$attrs]);
+
     return ['owner' => $owner, 'campaign' => $campaign];
 }
 
@@ -63,7 +66,7 @@ describe('Invitation — Game Creation', function () {
         inviteTestMakeFriend($owner, $friend);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants')
             ->assertHasNoErrors();
@@ -87,7 +90,7 @@ describe('Invitation — Friend Validation', function () {
         $stranger = User::factory()->create(['profile_complete' => true]);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$stranger->id])
             ->call('inviteParticipants');
 
@@ -102,7 +105,7 @@ describe('Invitation — Friend Validation', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$owner->id])
             ->call('inviteParticipants');
 
@@ -115,10 +118,10 @@ describe('Invitation — Friend Validation', function () {
 
     test('skips nonexistent user ID gracefully', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
-        $fakeUuid = \Illuminate\Support\Str::uuid()->toString();
+        $fakeUuid = Str::uuid()->toString();
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$fakeUuid])
             ->call('inviteParticipants');
 
@@ -148,7 +151,7 @@ describe('Invitation — Duplicate Prevention', function () {
         ]);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
@@ -171,7 +174,7 @@ describe('Invitation — Blocked Users', function () {
         inviteTestBlock($owner, $friend);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
@@ -190,7 +193,7 @@ describe('Invitation — Blocked Users', function () {
         inviteTestBlock($friend, $owner);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
@@ -214,7 +217,7 @@ describe('Invitation — Batch', function () {
         inviteTestMakeFriend($owner, $friend);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id, $stranger->id])
             ->call('inviteParticipants')
             ->assertHasNoErrors();
@@ -234,7 +237,7 @@ describe('Invitation — Batch', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [])
             ->call('inviteParticipants')
             ->assertHasErrors(['selectedFriendIds']);
@@ -252,7 +255,7 @@ describe('Invitation — Event Sync', function () {
         inviteTestMakeFriend($owner, $friend);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->dispatch('friends-selected', ids: [$friend->id])
             ->assertSet('selectedFriendIds', [$friend->id]);
     });

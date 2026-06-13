@@ -2,6 +2,7 @@
 
 namespace App\Policies\Escalated;
 
+use App\Models\User;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Gate;
 
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Gate;
  */
 class TicketPolicy extends \Escalated\Laravel\Policies\TicketPolicy
 {
-    public function viewAny($user): bool
+    public function viewAny(mixed $user): bool
     {
         return Gate::forUser($user)->allows('escalated-agent');
     }

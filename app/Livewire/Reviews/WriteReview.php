@@ -7,30 +7,37 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\Review;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class WriteReview extends Component
 {
-    #[\Livewire\Attributes\Locked]
+    #[Locked]
     public string $reviewableType;
 
-    #[\Livewire\Attributes\Locked]
+    #[Locked]
     public string $reviewableId;
 
     public int $rating = 0;
+
     public string $body = '';
+
+    /** @var array<int, string> */
     public array $proficiency_tags = [];
 
     public ?string $reviewableName = null;
+
     public ?string $errorMessage = null;
 
     public function mount(string $reviewable_type, string $reviewable_id): void
     {
         if (! Auth::check()) {
             $this->redirect(route('login'));
+
             return;
         }
 
@@ -41,6 +48,7 @@ class WriteReview extends Component
 
         if (! $reviewable) {
             $this->errorMessage = __('reviews.error_not_found');
+
             return;
         }
 
@@ -49,11 +57,13 @@ class WriteReview extends Component
         if ($reviewable instanceof Game) {
             if (! Gate::allows('canReviewSession', [Review::class, $reviewable])) {
                 $this->errorMessage = __('reviews.error_not_eligible');
+
                 return;
             }
         } elseif ($reviewable instanceof Campaign) {
             if (! Gate::allows('canReviewCampaign', [Review::class, $reviewable])) {
                 $this->errorMessage = __('reviews.error_not_eligible');
+
                 return;
             }
         }
@@ -78,11 +88,13 @@ class WriteReview extends Component
         if ($reviewable instanceof Game) {
             if (! Gate::allows('canReviewSession', [Review::class, $reviewable])) {
                 $this->errorMessage = __('reviews.error_not_eligible');
+
                 return;
             }
         } elseif ($reviewable instanceof Campaign) {
             if (! Gate::allows('canReviewCampaign', [Review::class, $reviewable])) {
                 $this->errorMessage = __('reviews.error_not_eligible');
+
                 return;
             }
         }
@@ -111,6 +123,9 @@ class WriteReview extends Component
         $this->redirect($redirectRoute, navigate: true);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -121,6 +136,9 @@ class WriteReview extends Component
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function messages(): array
     {
         return [
@@ -140,6 +158,7 @@ class WriteReview extends Component
         } else {
             if (count($this->proficiency_tags) >= 3) {
                 $this->addError('proficiency_tags', __('reviews.validation_tags_max'));
+
                 return;
             }
             $this->proficiency_tags[] = $tag;
@@ -148,7 +167,7 @@ class WriteReview extends Component
         $this->resetErrorBag('proficiency_tags');
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.reviews.write-review', [
             'proficiencies' => GmProficiency::cases(),
@@ -158,7 +177,7 @@ class WriteReview extends Component
 
     // ── Helpers ─────────────────────────────────────────
 
-    private function resolveReviewable(): ?object
+    private function resolveReviewable(): Game|Campaign|null
     {
         $class = match ($this->reviewableType) {
             'game', Game::class => Game::class,
@@ -173,10 +192,12 @@ class WriteReview extends Component
         // Normalize to FQCN for storage
         $this->reviewableType = $class;
 
-        return $class::find($this->reviewableId);
+        $result = $class::find($this->reviewableId);
+
+        return $result instanceof Game || $result instanceof Campaign ? $result : null;
     }
 
-    private function resolveGmProfile(object $reviewable): ?GMProfile
+    private function resolveGmProfile(Game|Campaign $reviewable): ?GMProfile
     {
         return $reviewable->owner?->gmProfile;
     }

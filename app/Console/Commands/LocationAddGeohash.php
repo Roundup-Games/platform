@@ -43,7 +43,7 @@ class LocationAddGeohash extends Command
         $updated = 0;
         $skipped = 0;
 
-        $query->chunkById($chunkSize, function ($locations) use ($bar, &$updated, &$skipped) {
+        $query->chunkById($chunkSize, function ($locations) use ($bar, &$updated) {
             foreach ($locations as $location) {
                 $hash = Geohash::tilePrefix(
                     (float) $location->latitude,

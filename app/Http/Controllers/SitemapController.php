@@ -83,9 +83,14 @@ class SitemapController extends Controller
      *
      * @return string[]
      */
+    /**
+     * @return array<int, string>
+     */
     private function locales(): array
     {
-        return config('app.available_locales', ['en']);
+        $locales = config('app.available_locales', ['en']);
+
+        return is_array($locales) ? array_map(fn (mixed $v) => is_string($v) ? $v : 'en', $locales) : ['en'];
     }
 
     /**
@@ -130,7 +135,7 @@ class SitemapController extends Controller
 
     private function buildIndexXml(): string
     {
-        $baseUrl = config('app.url');
+        $baseUrl = $this->baseUrl();
         $lines = [
             '<?xml version="1.0" encoding="UTF-8"?>',
             '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -139,8 +144,8 @@ class SitemapController extends Controller
         foreach ($this->seoCache->getSitemapTypes() as $type) {
             $lastmod = $this->getLastModForType($type);
             $lines[] = '  <sitemap>';
-            $lines[] = '    <loc>' . htmlspecialchars("{$baseUrl}/sitemap-{$type}.xml", ENT_XML1, 'UTF-8') . '</loc>';
-            $lines[] = '    <lastmod>' . htmlspecialchars($lastmod, ENT_XML1, 'UTF-8') . '</lastmod>';
+            $lines[] = '    <loc>'.htmlspecialchars("{$baseUrl}/sitemap-{$type}.xml", ENT_XML1, 'UTF-8').'</loc>';
+            $lines[] = '    <lastmod>'.htmlspecialchars($lastmod, ENT_XML1, 'UTF-8').'</lastmod>';
             $lines[] = '  </sitemap>';
         }
 
@@ -182,7 +187,7 @@ class SitemapController extends Controller
 
         $latest = $query->value('updated_at');
 
-        return $latest ? $latest->toDateString() : now()->toDateString();
+        return $latest instanceof \DateTimeInterface ? $latest->format('Y-m-d') : now()->toDateString();
     }
 
     // ── Per-type sitemap builders ──────────────────────
@@ -210,7 +215,7 @@ class SitemapController extends Controller
      */
     private function getStaticEntries(): array
     {
-        $baseUrl = config('app.url');
+        $baseUrl = $this->baseUrl();
         $entries = [];
         $now = now()->toDateString();
 
@@ -235,7 +240,7 @@ class SitemapController extends Controller
      */
     private function getGameSystemEntries(): array
     {
-        $baseUrl = config('app.url');
+        $baseUrl = $this->baseUrl();
         $entries = [];
 
         $systems = GameSystem::select('slug', 'updated_at')
@@ -264,7 +269,7 @@ class SitemapController extends Controller
      */
     private function getEventEntries(): array
     {
-        $baseUrl = config('app.url');
+        $baseUrl = $this->baseUrl();
         $entries = [];
 
         $events = Event::public()
@@ -295,7 +300,7 @@ class SitemapController extends Controller
      */
     private function getGameEntries(): array
     {
-        $baseUrl = config('app.url');
+        $baseUrl = $this->baseUrl();
         $entries = [];
 
         $games = Game::where('visibility', Visibility::Public->value)
@@ -326,7 +331,7 @@ class SitemapController extends Controller
      */
     private function getCampaignEntries(): array
     {
-        $baseUrl = config('app.url');
+        $baseUrl = $this->baseUrl();
         $entries = [];
 
         $campaigns = Campaign::where('visibility', Visibility::Public->value)
@@ -357,7 +362,7 @@ class SitemapController extends Controller
      */
     private function getTeamEntries(): array
     {
-        $baseUrl = config('app.url');
+        $baseUrl = $this->baseUrl();
         $entries = [];
 
         $teams = Team::where('is_active', true)
@@ -387,7 +392,7 @@ class SitemapController extends Controller
      */
     private function getProfileEntries(): array
     {
-        $baseUrl = config('app.url');
+        $baseUrl = $this->baseUrl();
         $entries = [];
 
         $users = User::where('profile_complete', true)
@@ -429,15 +434,22 @@ class SitemapController extends Controller
 
         foreach ($entries as $entry) {
             $lines[] = '  <url>';
-            $lines[] = '    <loc>' . htmlspecialchars($entry['loc'], ENT_XML1, 'UTF-8') . '</loc>';
-            $lines[] = '    <lastmod>' . htmlspecialchars($entry['lastmod'], ENT_XML1, 'UTF-8') . '</lastmod>';
-            $lines[] = '    <changefreq>' . htmlspecialchars($entry['changefreq'], ENT_XML1, 'UTF-8') . '</changefreq>';
-            $lines[] = '    <priority>' . htmlspecialchars($entry['priority'], ENT_XML1, 'UTF-8') . '</priority>';
+            $lines[] = '    <loc>'.htmlspecialchars($entry['loc'], ENT_XML1, 'UTF-8').'</loc>';
+            $lines[] = '    <lastmod>'.htmlspecialchars($entry['lastmod'], ENT_XML1, 'UTF-8').'</lastmod>';
+            $lines[] = '    <changefreq>'.htmlspecialchars($entry['changefreq'], ENT_XML1, 'UTF-8').'</changefreq>';
+            $lines[] = '    <priority>'.htmlspecialchars($entry['priority'], ENT_XML1, 'UTF-8').'</priority>';
             $lines[] = '  </url>';
         }
 
         $lines[] = '</urlset>';
 
         return implode("\n", $lines);
+    }
+
+    private function baseUrl(): string
+    {
+        $url = config('app.url');
+
+        return is_string($url) ? $url : 'https://roundup.games';
     }
 }

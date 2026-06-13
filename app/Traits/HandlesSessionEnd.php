@@ -2,12 +2,9 @@
 
 namespace App\Traits;
 
-use App\Models\GameParticipant;
 use App\Services\AttendanceService;
 use App\Services\DebriefingService;
 use App\Services\RecapService;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 trait HandlesSessionEnd
 {
@@ -16,11 +13,7 @@ trait HandlesSessionEnd
      */
     public function submitDebriefing(): void
     {
-        $viewer = Auth::user();
-
-        if (! $viewer) {
-            return;
-        }
+        $viewer = authenticatedUser();
 
         try {
             app(DebriefingService::class)->submitDebriefing(
@@ -43,11 +36,7 @@ trait HandlesSessionEnd
      */
     public function writeRecap(): void
     {
-        $viewer = Auth::user();
-
-        if (! $viewer) {
-            return;
-        }
+        $viewer = authenticatedUser();
 
         $this->validate([
             'recapContent' => ['required', 'string', 'max:2000', 'min:1'],
@@ -57,7 +46,7 @@ trait HandlesSessionEnd
             app(RecapService::class)->writeRecap(
                 $this->getEntity(),
                 $viewer,
-                $this->recapContent,
+                $this->recapContent ?? '',
             );
 
             $this->recapContent = null;
@@ -78,11 +67,7 @@ trait HandlesSessionEnd
      */
     public function submitAttendanceReport(string|array $participantIdOrReports, ?string $status = null): void
     {
-        $viewer = Auth::user();
-
-        if (! $viewer) {
-            return;
-        }
+        $viewer = authenticatedUser();
 
         $game = $this->getEntity();
 

@@ -2,13 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
-use App\Jobs\UpdateUserDiscoveryCache;
-use App\Services\ShortLinkService;
+use App\Models\CampaignParticipant;
+use App\Models\GameParticipant;
 use App\Services\WaitlistService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -58,18 +59,18 @@ class DataRepair extends Command
 
         $unknownRepairs = array_diff($repairs, self::REPAIR_METHODS);
         if ($unknownRepairs) {
-            $this->error('Unknown repair(s): ' . implode(', ', $unknownRepairs));
-            $this->line('Available: ' . implode(', ', self::REPAIR_METHODS));
+            $this->error('Unknown repair(s): '.implode(', ', $unknownRepairs));
+            $this->line('Available: '.implode(', ', self::REPAIR_METHODS));
 
             return self::FAILURE;
         }
 
         $label = $this->dryRun ? 'DRY RUN — previewing repairs' : 'Running repairs';
-        $this->info($label . '...');
+        $this->info($label.'...');
         Log::info('data_repair.started', ['repairs' => $repairs, 'dry_run' => $this->dryRun]);
 
         foreach ($repairs as $repair) {
-            $method = 'repair' . Str::studly($repair);
+            $method = 'repair'.Str::studly($repair);
             if (! method_exists($this, $method)) {
                 $this->warn("  Skipped {$repair}: no implementation");
 
@@ -125,7 +126,7 @@ class DataRepair extends Command
                 $join->on('short_links.linkable_id', '=', 'campaigns.id')
                     ->where('short_links.linkable_type', '=', 'App\\Models\\Campaign');
             })
-            ->whereIn('campaigns.status', [\App\Enums\CampaignStatus::Completed->value, \App\Enums\CampaignStatus::Cancelled->value])
+            ->whereIn('campaigns.status', [CampaignStatus::Completed->value, CampaignStatus::Cancelled->value])
             ->where(function ($q) {
                 $q->whereNull('short_links.expires_at')
                     ->orWhere('short_links.expires_at', '>', now());
@@ -142,7 +143,7 @@ class DataRepair extends Command
             return;
         }
 
-        $this->line("  Found {$count} stale link(s)." . ($this->dryRun ? ' (dry run)' : ''));
+        $this->line("  Found {$count} stale link(s).".($this->dryRun ? ' (dry run)' : ''));
 
         if (! $this->dryRun) {
             // Set expires_at to now for all stale links
@@ -182,7 +183,7 @@ class DataRepair extends Command
         $campaignAppIds = DB::table('campaign_applications')
             ->join('campaigns', 'campaign_applications.campaign_id', '=', 'campaigns.id')
             ->where('campaign_applications.status', 'pending')
-            ->whereIn('campaigns.status', [\App\Enums\CampaignStatus::Completed->value, \App\Enums\CampaignStatus::Cancelled->value])
+            ->whereIn('campaigns.status', [CampaignStatus::Completed->value, CampaignStatus::Cancelled->value])
             ->pluck('campaign_applications.id');
 
         $gameCount = $gameAppIds->count();
@@ -195,7 +196,7 @@ class DataRepair extends Command
             return;
         }
 
-        $this->line("  Found {$total} stale application(s): games={$gameCount}, campaigns={$campaignCount}." . ($this->dryRun ? ' (dry run)' : ''));
+        $this->line("  Found {$total} stale application(s): games={$gameCount}, campaigns={$campaignCount}.".($this->dryRun ? ' (dry run)' : ''));
 
         if (! $this->dryRun) {
             if ($gameCount > 0) {
@@ -248,7 +249,7 @@ class DataRepair extends Command
             return;
         }
 
-        $this->line("  Found {$total} stale confirmation(s)." . ($this->dryRun ? ' (dry run)' : ''));
+        $this->line("  Found {$total} stale confirmation(s).".($this->dryRun ? ' (dry run)' : ''));
 
         if ($this->dryRun) {
             $this->fixedCount += $total;
@@ -260,7 +261,7 @@ class DataRepair extends Command
 
         foreach ($gameIds as $id) {
             try {
-                $participant = \App\Models\GameParticipant::find($id);
+                $participant = GameParticipant::find(is_string($id) ? $id : null);
                 if ($participant) {
                     $waitlistService->handleExpiredConfirmation($participant);
                     $this->fixedCount++;
@@ -277,7 +278,7 @@ class DataRepair extends Command
 
         foreach ($campaignIds as $id) {
             try {
-                $participant = \App\Models\CampaignParticipant::find($id);
+                $participant = CampaignParticipant::find(is_string($id) ? $id : null);
                 if ($participant) {
                     $waitlistService->handleExpiredConfirmation($participant);
                     $this->fixedCount++;
@@ -314,7 +315,7 @@ class DataRepair extends Command
             return;
         }
 
-        $this->line("  Found {$count} orphaned view(s)." . ($this->dryRun ? ' (dry run)' : ''));
+        $this->line("  Found {$count} orphaned view(s).".($this->dryRun ? ' (dry run)' : ''));
 
         if (! $this->dryRun) {
             DB::table('nearby_discovery_views')
@@ -349,7 +350,7 @@ class DataRepair extends Command
             return;
         }
 
-        $this->line("  Found {$count} retryable job(s)." . ($this->dryRun ? ' (dry run)' : ''));
+        $this->line("  Found {$count} retryable job(s).".($this->dryRun ? ' (dry run)' : ''));
 
         if ($this->dryRun) {
             $this->fixedCount += $count;
@@ -359,7 +360,7 @@ class DataRepair extends Command
 
         foreach ($retryable as $job) {
             try {
-                artisan_call('queue:retry', ['id' => $job->id]);
+                $this->call('queue:retry', ['id' => $job->id]);
                 $this->fixedCount++;
             } catch (\Throwable $e) {
                 $this->errorCount++;
@@ -373,8 +374,11 @@ class DataRepair extends Command
 
     // ── Helpers ──────────────────────────────────────────────────────
 
+    /**
+     * @param  array<string, mixed>  $args
+     */
     private function artisanCall(string $command, array $args = []): int
     {
-        return \Illuminate\Support\Facades\Artisan::call($command, $args);
+        return Artisan::call($command, $args);
     }
 }

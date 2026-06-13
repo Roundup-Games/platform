@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -27,8 +26,8 @@ it('clears sitemap cache when a model is created', function ($sitemapType, $fact
     expect(Cache::get('seo:sitemap:index'))->toBeNull();
 })->with([
     'GameSystem' => ['game-systems', fn () => GameSystem::factory()->create()],
-    'Event'      => ['events',      fn () => Event::factory()->create()],
-    'Team'       => ['teams',        fn () => Team::factory()->create()],
+    'Event' => ['events',      fn () => Event::factory()->create()],
+    'Team' => ['teams',        fn () => Team::factory()->create()],
 ]);
 
 it('clears sitemap cache when a model is updated', function ($sitemapType, $createAndModify) {
@@ -54,8 +53,8 @@ it('clears sitemap cache when a model is deleted', function ($sitemapType, $crea
     expect(Cache::get("seo:sitemap:{$sitemapType}"))->toBeNull();
 })->with([
     'GameSystem' => ['game-systems', fn () => tap(GameSystem::factory()->create())->delete()],
-    'Event'      => ['events',      fn () => tap(Event::factory()->create())->delete()],
-    'Team'       => ['teams',        fn () => tap(Team::factory()->create())->delete()],
+    'Event' => ['events',      fn () => tap(Event::factory()->create())->delete()],
+    'Team' => ['teams',        fn () => tap(Team::factory()->create())->delete()],
 ]);
 
 // ── User observer (selective invalidation) ─────────────

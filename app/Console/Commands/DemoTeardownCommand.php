@@ -6,6 +6,8 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +31,7 @@ class DemoTeardownCommand extends Command
 
         if ($demoUserIds->isEmpty()) {
             $this->warn('No demo users found. Nothing to tear down.');
+
             return self::SUCCESS;
         }
 
@@ -39,6 +42,7 @@ class DemoTeardownCommand extends Command
             $this->newLine();
         } elseif (! $this->option('force') && ! $this->confirm('Proceed with teardown? This deletes all demo users and data.')) {
             $this->info('Aborted.');
+
             return self::SUCCESS;
         }
 
@@ -83,6 +87,7 @@ class DemoTeardownCommand extends Command
             ]);
             $this->newLine();
             $this->warn('⚠ No data was deleted. Run without --dry-run to actually tear down.');
+
             return self::SUCCESS;
         }
 
@@ -93,8 +98,8 @@ class DemoTeardownCommand extends Command
         // All operations use chunked deletes to stay under PDO's 65535 parameter limit.
 
         // Step 1: Session-related leaf tables
-        $this->info("Deleted " . $this->chunkedDelete('session_debriefings', 'game_id', $demoGameIds) . " from session_debriefings.");
-        $this->info("Deleted " . $this->chunkedDelete('attendance_reports', 'game_id', $demoGameIds) . " from attendance_reports.");
+        $this->info('Deleted '.$this->chunkedDelete('session_debriefings', 'game_id', $demoGameIds).' from session_debriefings.');
+        $this->info('Deleted '.$this->chunkedDelete('attendance_reports', 'game_id', $demoGameIds).' from attendance_reports.');
 
         // Session zero surveys by game_id and gm_profile_id
         $szDeleted = $this->chunkedDelete('session_zero_surveys', 'game_id', $demoGameIds);
@@ -118,14 +123,14 @@ class DemoTeardownCommand extends Command
         $this->info("Deleted {$reviewCount} from reviews.");
 
         // Step 3: Participants + applications
-        $this->info("Deleted " . $this->chunkedDelete('game_participants', 'game_id', $demoGameIds) . " from game_participants.");
-        $this->info("Deleted " . $this->chunkedDelete('game_applications', 'game_id', $demoGameIds) . " from game_applications.");
-        $this->info("Deleted " . $this->chunkedDelete('campaign_participants', 'campaign_id', $demoCampaignIds) . " from campaign_participants.");
-        $this->info("Deleted " . $this->chunkedDelete('campaign_applications', 'campaign_id', $demoCampaignIds) . " from campaign_applications.");
+        $this->info('Deleted '.$this->chunkedDelete('game_participants', 'game_id', $demoGameIds).' from game_participants.');
+        $this->info('Deleted '.$this->chunkedDelete('game_applications', 'game_id', $demoGameIds).' from game_applications.');
+        $this->info('Deleted '.$this->chunkedDelete('campaign_participants', 'campaign_id', $demoCampaignIds).' from campaign_participants.');
+        $this->info('Deleted '.$this->chunkedDelete('campaign_applications', 'campaign_id', $demoCampaignIds).' from campaign_applications.');
 
         // Step 4: Notifications + activity logs
-        $this->info("Deleted " . $this->chunkedDeleteWith('notifications', 'notifiable_id', $demoUserIds, 'notifiable_type', User::class) . " from notifications.");
-        $this->info("Deleted " . $this->chunkedDelete('activity_logs', 'user_id', $demoUserIds) . " from activity_logs.");
+        $this->info('Deleted '.$this->chunkedDeleteWith('notifications', 'notifiable_id', $demoUserIds, 'notifiable_type', User::class).' from notifications.');
+        $this->info('Deleted '.$this->chunkedDelete('activity_logs', 'user_id', $demoUserIds).' from activity_logs.');
 
         // Step 5: Social graph — follows to and from demo users
         $relCount = $this->chunkedDelete('user_relationships', 'user_id', $demoUserIds);
@@ -140,10 +145,10 @@ class DemoTeardownCommand extends Command
             'linked_accounts', 'push_subscriptions', 'nearby_discovery_views',
         ];
         foreach ($userTables as $table) {
-            $this->info("Deleted " . $this->chunkedDelete($table, 'user_id', $demoUserIds) . " from {$table}.");
+            $this->info('Deleted '.$this->chunkedDelete($table, 'user_id', $demoUserIds)." from {$table}.");
         }
-        $this->info("Deleted " . $this->chunkedDeleteWith('model_has_roles', 'model_id', $demoUserIds, 'model_type', User::class) . " from model_has_roles.");
-        $this->info("Deleted " . $this->chunkedDeleteWith('model_has_permissions', 'model_id', $demoUserIds, 'model_type', User::class) . " from model_has_permissions.");
+        $this->info('Deleted '.$this->chunkedDeleteWith('model_has_roles', 'model_id', $demoUserIds, 'model_type', User::class).' from model_has_roles.');
+        $this->info('Deleted '.$this->chunkedDeleteWith('model_has_permissions', 'model_id', $demoUserIds, 'model_type', User::class).' from model_has_permissions.');
 
         // Step 7: Media + short links
         $mediaCount = $this->chunkedDeleteWith('media', 'model_id', $demoUserIds, 'model_type', User::class);
@@ -159,13 +164,15 @@ class DemoTeardownCommand extends Command
         // Step 8: Games and campaigns (root entities)
         $gameDeleted = 0;
         foreach ($demoGameIds->chunk(2000) as $chunk) {
-            $gameDeleted += Game::whereIn('id', $chunk)->delete();
+            $deleted = Game::whereIn('id', $chunk)->delete();
+            $gameDeleted += is_int($deleted) ? $deleted : 0;
         }
         $this->info("Deleted {$gameDeleted} games.");
 
         $campaignDeleted = 0;
         foreach ($demoCampaignIds->chunk(2000) as $chunk) {
-            $campaignDeleted += Campaign::whereIn('id', $chunk)->delete();
+            $deleted = Campaign::whereIn('id', $chunk)->delete();
+            $campaignDeleted += is_int($deleted) ? $deleted : 0;
         }
         $this->info("Deleted {$campaignDeleted} campaigns.");
 
@@ -192,6 +199,7 @@ class DemoTeardownCommand extends Command
         foreach ($demoUserIds->chunk(200) as $chunk) {
             $keys = [];
             foreach ($chunk as $id) {
+                $id = to_string_id($id);
                 foreach ($scopes as $s) {
                     $keys[] = "dashboard:{$id}:{$s}";
                 }
@@ -208,10 +216,10 @@ class DemoTeardownCommand extends Command
             ->where('bio', 'like', "%{$marker}%")->count();
 
         $remainGames = DB::table('games')
-            ->whereRaw("name::text LIKE ?", ["%{$marker}%"])
+            ->whereRaw('name::text LIKE ?', ["%{$marker}%"])
             ->count();
         $remainCampaigns = DB::table('campaigns')
-            ->whereRaw("name::text LIKE ?", ["%{$marker}%"])
+            ->whereRaw('name::text LIKE ?', ["%{$marker}%"])
             ->count();
 
         $this->table(
@@ -225,13 +233,20 @@ class DemoTeardownCommand extends Command
 
         $this->newLine();
         $this->info('=== Demo Teardown Complete ===');
+
         return self::SUCCESS;
     }
 
     /**
      * Pluck IDs from a query in chunks to stay under PDO's 65535 parameter limit.
+     *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  EloquentBuilder<TModel>|QueryBuilder  $query
+     * @param  Collection<int, mixed>  $ids
+     * @return Collection<int, mixed>
      */
-    private function chunkedPluck($query, string $pluckColumn, string $whereColumn, Collection $ids, int $chunkSize = 2000): Collection
+    private function chunkedPluck(EloquentBuilder|QueryBuilder $query, string $pluckColumn, string $whereColumn, Collection $ids, int $chunkSize = 2000): Collection
     {
         $result = collect();
         foreach ($ids->chunk($chunkSize) as $chunk) {
@@ -239,11 +254,14 @@ class DemoTeardownCommand extends Command
                 (clone $query)->whereIn($whereColumn, $chunk)->pluck($pluckColumn)
             );
         }
+
         return $result->unique()->values();
     }
 
     /**
      * Delete rows in chunks to stay under PDO's 65535 parameter limit.
+     *
+     * @param  Collection<int, mixed>  $ids
      */
     private function chunkedDelete(string $table, string $column, Collection $ids, int $chunkSize = 2000): int
     {
@@ -251,12 +269,15 @@ class DemoTeardownCommand extends Command
         foreach ($ids->chunk($chunkSize) as $chunk) {
             $total += DB::table($table)->whereIn($column, $chunk)->delete();
         }
+
         return $total;
     }
 
     /**
      * Delete rows in chunks with an additional static condition.
      * WHERE $extraColumn = $extraValue AND $column IN ($chunk).
+     *
+     * @param  Collection<int, mixed>  $ids
      */
     private function chunkedDeleteWith(string $table, string $column, Collection $ids, string $extraColumn, string $extraValue, int $chunkSize = 2000): int
     {
@@ -267,6 +288,7 @@ class DemoTeardownCommand extends Command
                 ->whereIn($column, $chunk)
                 ->delete();
         }
+
         return $total;
     }
 }

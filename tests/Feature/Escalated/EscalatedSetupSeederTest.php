@@ -7,7 +7,7 @@ use Escalated\Laravel\Models\SlaPolicy;
 use Escalated\Laravel\Models\Tag;
 
 beforeEach(function () {
-    $this->seeder = new EscalatedSetupSeeder();
+    $this->seeder = new EscalatedSetupSeeder;
 });
 
 describe('departments', function () {

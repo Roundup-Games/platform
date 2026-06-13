@@ -160,7 +160,7 @@ return new class extends Migration
     public function down(): void
     {
         $this->info(
-            'Rollback for backfill_owner_participants is a no-op. ' .
+            'Rollback for backfill_owner_participants is a no-op. '.
             'The up() migration is idempotent — re-run it to ensure all owners have participant records.'
         );
     }
@@ -171,7 +171,7 @@ return new class extends Migration
     private function info(string $message): void
     {
         if (app()->runningInConsole()) {
-            echo $message . PHP_EOL;
+            echo $message.PHP_EOL;
         }
     }
 };

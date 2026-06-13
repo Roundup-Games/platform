@@ -5,7 +5,6 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use Livewire\Livewire;
 
-
 // ── Helper: create mutual follow (friendship) ──────────
 
 function makeTestFriend(User $a, User $b): void

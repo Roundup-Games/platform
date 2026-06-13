@@ -1,14 +1,16 @@
 <?php
 
 use App\Enums\ActivityType;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Enums\Visibility;
+use App\Livewire\Games\GamesPage;
 use App\Models\ActivityLog;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\EntityUpdated;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -37,8 +39,8 @@ describe('Edit Game Modal', function () {
     it('opens edit modal with game data', function () {
         $game = createOwnedGame($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
+
             ->call('editGame', $game->id)
             ->assertSet('editingGameId', $game->id)
             ->assertSet('edit_name', 'Test Game')
@@ -53,8 +55,8 @@ describe('Save Game Edit', function () {
     it('updates game name', function () {
         $game = createOwnedGame($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
+
             ->call('editGame', $game->id)
             ->set('edit_name', 'Updated Game Name')
             ->call('saveGameEdit');
@@ -65,8 +67,8 @@ describe('Save Game Edit', function () {
     it('logs activity on update', function () {
         $game = createOwnedGame($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
+
             ->call('editGame', $game->id)
             ->set('edit_name', 'Changed Name')
             ->call('saveGameEdit');
@@ -92,8 +94,8 @@ describe('Save Game Edit', function () {
 
         Notification::fake();
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
+
             ->call('editGame', $game->id)
             ->set('edit_name', 'Changed Name')
             ->call('saveGameEdit');
@@ -110,8 +112,8 @@ describe('Save Game Edit', function () {
 
         Notification::fake();
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
+
             ->call('editGame', $game->id)
             ->set('edit_name', 'Changed Name')
             ->call('saveGameEdit');
@@ -131,7 +133,7 @@ describe('Save Game Edit', function () {
 
         Notification::fake();
 
-        $component = Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        $component = Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id);
 
         // Verify no changes were actually made
@@ -148,7 +150,7 @@ describe('Save Game Edit', function () {
         $game = createOwnedGame($this->owner, $this->gameSystem);
         $otherUser = User::factory()->create();
 
-        Livewire::actingAs($otherUser)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($otherUser)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->assertStatus(403);
     });
@@ -157,23 +159,23 @@ describe('Save Game Edit', function () {
         $owner = User::factory()->create(['can_create_public_entries' => false]);
         $game = createOwnedGame($owner, $this->gameSystem, ['visibility' => 'protected']);
 
-        Livewire::actingAs($owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->set('edit_visibility', 'public')
             ->call('saveGameEdit');
 
-        expect($game->fresh()->visibility)->toBe(\App\Enums\Visibility::Protected);
+        expect($game->fresh()->visibility)->toBe(Visibility::Protected);
     });
 
     it('allows public visibility when user has can_create_public_entries', function () {
         $owner = User::factory()->create(['can_create_public_entries' => true]);
         $game = createOwnedGame($owner, $this->gameSystem, ['visibility' => 'protected']);
 
-        Livewire::actingAs($owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->set('edit_visibility', 'public')
             ->call('saveGameEdit');
 
-        expect($game->fresh()->visibility)->toBe(\App\Enums\Visibility::Public);
+        expect($game->fresh()->visibility)->toBe(Visibility::Public);
     });
 });

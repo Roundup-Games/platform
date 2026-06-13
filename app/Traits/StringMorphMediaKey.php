@@ -2,7 +2,9 @@
 
 namespace App\Traits;
 
+use App\Models\Media;
 use App\Relations\StringKeyMorphMany;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -18,12 +20,18 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 trait StringMorphMediaKey
 {
+    /**
+     * @return MorphMany<Media, $this>
+     */
     public function media(): MorphMany
     {
-        $instance = $this->newRelatedInstance($this->getMediaModel());
+        /** @var class-string<Model> $mediaClass */
+        $mediaClass = $this->getMediaModel();
+        $instance = $this->newRelatedInstance($mediaClass);
 
-        [$type, $id] = $this->getMorphs('model', null, null);
+        [$type, $id] = $this->getMorphs('model', '', '');
 
+        /** @var StringKeyMorphMany<Media, $this> */
         return new StringKeyMorphMany(
             $instance->newQuery(),
             $this,

@@ -2,14 +2,18 @@
 
 namespace App\Services;
 
+use App\Models\Campaign;
+use App\Models\Event;
+use App\Models\Game;
 use App\Models\ShortLink;
+use App\Models\Team;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use App\Models\User;
 
 class ShortLinkService
 {
@@ -29,7 +33,7 @@ class ShortLinkService
 
             if (! ShortLink::where('code', $code)->exists()) {
                 Log::debug('ShortLinkService: generated unique code', [
-                    'code_prefix' => substr($code, 0, 3) . '…',
+                    'code_prefix' => substr($code, 0, 3).'…',
                     'attempts' => $attempts,
                 ]);
 
@@ -46,13 +50,15 @@ class ShortLinkService
      * Auto-generates a unique code and computes the URL from the entity's public route.
      * On duplicate code collision (DB unique constraint), regenerates the code and retries
      * up to 5 times when the code was auto-generated (not explicitly passed).
+     *
+     * @param  array<string, mixed>  $params
      */
     public function createLink(Model $linkable, ?User $user = null, array $params = []): ShortLink
     {
         $url = $params['url'] ?? $this->getEntityRoute($linkable);
 
         // Security: validate that the URL is internal (prevents open-redirect via future code paths).
-        $this->validateInternalUrl($url);
+        $this->validateInternalUrl(is_string($url) ? $url : '');
 
         $explicitCode = array_key_exists('code', $params);
 
@@ -63,7 +69,7 @@ class ShortLinkService
                 'code' => $code,
                 'url' => $url,
                 'linkable_type' => get_class($linkable),
-                'linkable_id' => (string) $linkable->getKey(),
+                'linkable_id' => (is_int($k = $linkable->getKey()) || is_string($k) ? (string) $k : ''),
                 'user_id' => $user?->id,
                 'label' => $params['label'] ?? null,
                 'purpose' => $params['purpose'] ?? null,
@@ -89,7 +95,7 @@ class ShortLinkService
 
         Log::info('ShortLinkService: created short link', [
             'link_id' => $link->id,
-            'code_prefix' => substr($link->code, 0, 3) . '…',
+            'code_prefix' => substr($link->code, 0, 3).'…',
             'linkable_type' => get_class($linkable),
             'linkable_id' => $linkable->getKey(),
             'user_id' => $user?->id,
@@ -108,20 +114,20 @@ class ShortLinkService
         $link = ShortLink::where('code', $code)->first();
 
         if ($link === null) {
-            Log::debug('ShortLinkService: code not found', ['code_prefix' => substr($code, 0, 3) . '…']);
+            Log::debug('ShortLinkService: code not found', ['code_prefix' => substr($code, 0, 3).'…']);
 
             return null;
         }
 
         if ($link->isExpired()) {
-            Log::debug('ShortLinkService: link expired', ['code_prefix' => substr($code, 0, 3) . '…', 'expires_at' => $link->expires_at]);
+            Log::debug('ShortLinkService: link expired', ['code_prefix' => substr($code, 0, 3).'…', 'expires_at' => $link->expires_at]);
 
             return null;
         }
 
         if ($link->hasHitCap()) {
             Log::debug('ShortLinkService: hit cap exceeded', [
-                'code_prefix' => substr($code, 0, 3) . '…',
+                'code_prefix' => substr($code, 0, 3).'…',
                 'hit_count' => $link->hit_count,
                 'max_hits' => $link->max_hits,
             ]);
@@ -180,24 +186,31 @@ class ShortLinkService
 
     /**
      * Get all non-deleted short links for an entity, ordered newest first.
+     *
+     * @return Collection<int, ShortLink>
      */
     public function getLinksForEntity(Model $linkable): Collection
     {
         return ShortLink::where('linkable_type', get_class($linkable))
-            ->where('linkable_id', (string) $linkable->getKey())
+            ->where('linkable_id', (is_int($k = $linkable->getKey()) || is_string($k) ? (string) $k : ''))
             ->orderByDesc('created_at')
             ->get();
     }
 
     /**
      * Get all short links created by a user, grouped by linkable entity.
+     *
+     * @return Collection<(int|string), Collection<int, ShortLink>>
      */
     public function getLinksForUser(User $user): Collection
     {
-        return ShortLink::where('user_id', $user->id)
+        /** @var Collection<(int|string), Collection<int, ShortLink>> $grouped */
+        $grouped = ShortLink::where('user_id', $user->id)
             ->orderByDesc('created_at')
             ->get()
-            ->groupBy(fn (ShortLink $link) => $link->linkable_type . ':' . (string) $link->linkable_id);
+            ->groupBy(fn (ShortLink $link) => $link->linkable_type.':'.(string) $link->linkable_id);
+
+        return $grouped;
     }
 
     /**
@@ -212,7 +225,7 @@ class ShortLinkService
 
         Log::info('ShortLinkService: revoked short link', [
             'link_id' => $link->id,
-            'code_prefix' => substr($link->code, 0, 3) . '…',
+            'code_prefix' => substr($link->code, 0, 3).'…',
         ]);
     }
 
@@ -227,7 +240,7 @@ class ShortLinkService
         $maxLinks = $user->max_links_per_entity ?? 10;
 
         $currentCount = ShortLink::where('linkable_type', get_class($linkable))
-            ->where('linkable_id', (string) $linkable->getKey())
+            ->where('linkable_id', (is_int($k = $linkable->getKey()) || is_string($k) ? (string) $k : ''))
             ->where('user_id', $user->id)
             ->count();
 
@@ -248,7 +261,7 @@ class ShortLinkService
 
         // Load links first so we can invalidate caches (bulk update bypasses model events).
         $links = ShortLink::where('linkable_type', get_class($entity))
-            ->where('linkable_id', (string) $entity->getKey())
+            ->where('linkable_id', (is_int($k = $entity->getKey()) || is_string($k) ? (string) $k : ''))
             ->whereNull('expires_at')
             ->get(['id', 'code']);
 
@@ -287,7 +300,7 @@ class ShortLinkService
             return;
         }
 
-        $appUrl = config('app.url');
+        $appUrl = is_string($au = config('app.url')) ? $au : '';
         $appHost = parse_url($appUrl, PHP_URL_HOST);
         $urlHost = parse_url($url, PHP_URL_HOST);
 
@@ -297,7 +310,7 @@ class ShortLinkService
         // to catch open-redirect issues before they reach production.
         if (! app()->runningUnitTests() && ($urlHost === null || $urlHost !== $appHost)) {
             throw new \InvalidArgumentException(
-                'Short link URL must be internal. Got: ' . $url
+                'Short link URL must be internal. Got: '.$url
             );
         }
     }
@@ -305,11 +318,11 @@ class ShortLinkService
     public function getEntityRoute(Model $linkable): string
     {
         return match (get_class($linkable)) {
-            \App\Models\Game::class => route('games.detail', $linkable->getKey()),
-            \App\Models\Campaign::class => route('campaigns.detail', $linkable->getKey()),
-            \App\Models\Event::class => route('events.detail', $linkable->slug),
-            \App\Models\Team::class => route('teams.detail', $linkable->slug),
-            default => throw new \InvalidArgumentException('Unsupported linkable type: ' . get_class($linkable)),
+            Game::class => route('games.detail', $linkable->getKey()),
+            Campaign::class => route('campaigns.detail', $linkable->getKey()),
+            Event::class => route('events.detail', $linkable->slug),
+            Team::class => route('teams.detail', $linkable->slug),
+            default => throw new \InvalidArgumentException('Unsupported linkable type: '.get_class($linkable)),
         };
     }
 }

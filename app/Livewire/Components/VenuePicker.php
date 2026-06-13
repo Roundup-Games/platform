@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Components;
 
+use App\Dto\VenueSearchResult;
 use App\Models\Location;
 use App\Services\GeocodingService;
 use App\Services\VenueSearchService;
 use App\Traits\HasGuestLocation;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -42,15 +44,22 @@ class VenuePicker extends Component
     // ── Venue Search State ─────────────────────────────
 
     public string $venueQuery = '';
+
+    /** @var array<int, array<string, mixed>> */
     public array $venues = [];
+
     public bool $venueSearchPerformed = false;
 
     // ── Address Search State ───────────────────────────
 
     public string $city = '';
+
     public string $address = '';
+
     public ?float $lat = null;
+
     public ?float $lng = null;
+
     public bool $locationConfirmed = false;
 
     // ── Instructions ───────────────────────────────────
@@ -60,6 +69,7 @@ class VenuePicker extends Component
     // ── UI State ───────────────────────────────────────
 
     public string $mode = 'venue'; // 'venue' | 'address'
+
     public bool $editing = false;
 
     // Track if we already emitted the initial state
@@ -96,6 +106,9 @@ class VenuePicker extends Component
 
     // ── Rules ──────────────────────────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function rules(): array
     {
         return [
@@ -118,20 +131,20 @@ class VenuePicker extends Component
             limit: 20,
         );
 
-        $this->venues = $results->map(fn ($v) => [
+        $this->venues = $results->map(fn (VenueSearchResult $v) => [
             'id' => $v->id,
             'name' => $v->name,
             'city' => $v->city,
             'address' => $v->address,
-            'venue_type' => $v->venue_type,
-            'distance_km' => $v->distance_km,
+            'venue_type' => $v->venueType,
+            'distance_km' => $v->distanceKm,
         ])->values()->all();
     }
 
     public function selectVenue(string $venueId): void
     {
         $venue = app(VenueSearchService::class)->findVenue($venueId);
-        if (!$venue) {
+        if (! $venue) {
             $this->addError('venueQuery', __('venues.error_venue_not_found'));
 
             return;
@@ -167,7 +180,7 @@ class VenuePicker extends Component
     {
         $this->validateOnly('city');
 
-        $query = trim($this->city . ($this->address ? ', ' . $this->address : ''));
+        $query = trim($this->city.($this->address ? ', '.$this->address : ''));
 
         try {
             $geocodingService = app(GeocodingService::class);
@@ -242,7 +255,7 @@ class VenuePicker extends Component
         $this->syncGuestLocation($lat, $lng, $source);
 
         // Auto-trigger venue search once location arrives
-        if ($this->editing && $this->mode === 'venue' && !$this->venueSearchPerformed) {
+        if ($this->editing && $this->mode === 'venue' && ! $this->venueSearchPerformed) {
             $this->searchVenues();
         }
     }
@@ -260,7 +273,7 @@ class VenuePicker extends Component
     #[Computed]
     public function selectedVenue(): ?Location
     {
-        if (!$this->locationId || !$this->locationConfirmed) {
+        if (! $this->locationId || ! $this->locationConfirmed) {
             return null;
         }
 
@@ -270,7 +283,7 @@ class VenuePicker extends Component
     #[Computed]
     public function selectedIsVenue(): bool
     {
-        if (!$this->locationId || !$this->locationConfirmed) {
+        if (! $this->locationId || ! $this->locationConfirmed) {
             return false;
         }
 
@@ -310,7 +323,7 @@ class VenuePicker extends Component
         }
 
         $location = Location::create([
-            'name' => trim($this->address ? $this->address . ', ' . $this->city : $this->city),
+            'name' => trim($this->address ? $this->address.', '.$this->city : $this->city),
             'address' => $this->address ?: null,
             'city' => $this->city,
             'source' => 'manual',
@@ -328,6 +341,9 @@ class VenuePicker extends Component
         );
     }
 
+    /**
+     * @param  array<string, mixed>  $cachedGeocode
+     */
     private function resolveAddressAndEmit(?array $cachedGeocode = null): void
     {
         if ($this->lat === null || $this->lng === null) {
@@ -335,9 +351,9 @@ class VenuePicker extends Component
         }
 
         $geocodeResult = $cachedGeocode;
-        if (!$geocodeResult) {
+        if (! $geocodeResult) {
             $geocodingService = app(GeocodingService::class);
-            $query = trim($this->city . ($this->address ? ', ' . $this->address : ''));
+            $query = trim($this->city.($this->address ? ', '.$this->address : ''));
             $geocodeResult = $geocodingService->geocode($query);
         }
 
@@ -349,13 +365,18 @@ class VenuePicker extends Component
 
         if ($geocodeResult) {
             $placeId = $geocodeResult['place_id'] ?? null;
-            $raw = $geocodeResult['raw'] ?? [];
-            $addr = $raw['address'] ?? [];
-            $country = strtoupper($addr['country_code'] ?? '') ?: null;
-            $postalCode = $addr['postcode'] ?? null;
-            $resolvedCity = $addr['city'] ?? $addr['town'] ?? $addr['village'] ?? $addr['municipality'] ?? $this->city;
-            if (!$resolvedAddress) {
-                $resolvedAddress = $addr['road'] ?? null;
+            /** @var array<string, mixed> $raw */
+            $raw = $geocodeResult['raw'];
+            $rawAddr = $raw['address'] ?? null;
+            $addr = is_array($rawAddr) ? $rawAddr : [];
+            $country = strtoupper(is_string($addr['country_code'] ?? null) ? $addr['country_code'] : '') ?: null;
+            $postalCode = is_string($addr['postcode'] ?? null) ? $addr['postcode'] : null;
+            $resolvedCity = is_string($addr['city'] ?? null) ? $addr['city']
+                : (is_string($addr['town'] ?? null) ? $addr['town']
+                : (is_string($addr['village'] ?? null) ? $addr['village']
+                : (is_string($addr['municipality'] ?? null) ? $addr['municipality'] : $this->city)));
+            if (! $resolvedAddress) {
+                $resolvedAddress = is_string($addr['road'] ?? null) ? $addr['road'] : null;
             }
         }
 
@@ -404,7 +425,7 @@ class VenuePicker extends Component
         );
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.components.venue-picker');
     }

@@ -12,6 +12,10 @@ use Illuminate\Support\Arr;
  * block it.
  *
  * Use this trait AFTER the Translatable trait in edit pages that need it.
+ *
+ * See Filament docs — loaded by resource pages via OverridesAttendance::class
+ *
+ * @phpstan-ignore trait.unused
  */
 trait TransformsLocaleSwitchWithoutValidation
 {

@@ -3,7 +3,6 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
-
 use App\Models\User;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -39,13 +38,15 @@ class GameSystemRequestRejected extends BaseNotification
      */
     protected function getRejectionReason(): ?string
     {
-        return $this->ticket->metadata['rejection_reason'] ?? null;
+        $reason = $this->ticket->metadata['rejection_reason'] ?? null;
+
+        return is_string($reason) ? $reason : null;
     }
 
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
         $name = $this->getGameSystemName();
         $rejectionReason = $this->getRejectionReason();
@@ -73,7 +74,7 @@ class GameSystemRequestRejected extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
         $name = $this->getGameSystemName();
         $rejectionReason = $this->getRejectionReason();
@@ -89,7 +90,7 @@ class GameSystemRequestRejected extends BaseNotification
         ];
 
         if ($rejectionReason) {
-            $data['message'] .= ' ' . __('notifications.body_rejection_reason', [
+            $data['message'] .= ' '.__('notifications.body_rejection_reason', [
                 'reason' => $rejectionReason,
             ]);
         }
@@ -110,7 +111,7 @@ class GameSystemRequestRejected extends BaseNotification
      * Get the push notification representation.
      * Not applicable for this notification type.
      */
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(User $notifiable): ?PushPayload
     {
         return null;
     }

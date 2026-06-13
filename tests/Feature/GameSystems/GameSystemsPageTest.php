@@ -1,10 +1,12 @@
 <?php
 
+use App\Livewire\GameSystems\GameSystemsPage;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
-use function Pest\Laravel\{get};
+
+use function Pest\Laravel\get;
 
 describe('GameSystemsPage', function () {
     // smoke: game systems listing page renders for guests
@@ -24,7 +26,7 @@ describe('GameSystemsPage', function () {
             'max_players' => 4,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->assertSee('Gloomhaven')
             ->assertSee('8.8')
             ->assertSee('#1');
@@ -44,7 +46,7 @@ describe('GameSystemsPage', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->assertSee('Dungeons & Dragons')
             ->assertSee('1');
     });
@@ -63,7 +65,7 @@ describe('GameSystemsPage', function () {
             'platform_score' => 100,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->assertSeeInOrder(['Top Scored Game', 'Mid Scored Game', 'Unranked Game']);
     });
 
@@ -71,7 +73,7 @@ describe('GameSystemsPage', function () {
         GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
         GameSystem::factory()->create(['name' => ['en' => 'Ticket to Ride']]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->set('search', 'Catan')
             ->assertSee('Catan')
             ->assertDontSee('Ticket to Ride');
@@ -81,7 +83,7 @@ describe('GameSystemsPage', function () {
         $solo = GameSystem::factory()->create(['name' => ['en' => 'Solo Game'], 'min_players' => 1, 'max_players' => 1]);
         $party = GameSystem::factory()->create(['name' => ['en' => 'Party Game'], 'min_players' => 4, 'max_players' => 10]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->set('min_players', 5)
             ->assertDontSee('Solo Game')
             ->assertSee('Party Game');
@@ -91,7 +93,7 @@ describe('GameSystemsPage', function () {
         $light = GameSystem::factory()->create(['name' => ['en' => 'Light Game'], 'bgg_average_weight' => 1.50]);
         $heavy = GameSystem::factory()->create(['name' => ['en' => 'Heavy Game'], 'bgg_average_weight' => 4.20]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->set('complexity_min', '3.5')
             ->assertDontSee('Light Game')
             ->assertSee('Heavy Game');
@@ -103,7 +105,7 @@ describe('GameSystemsPage', function () {
         $strategy->categories()->attach($category);
         $party = GameSystem::factory()->create(['name' => ['en' => 'Party Game']]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->call('toggleCategory', $category->id)
             ->assertSee('Strategy Game')
             ->assertDontSee('Party Game');
@@ -115,7 +117,7 @@ describe('GameSystemsPage', function () {
         $deckBuilder->mechanics()->attach($mechanic);
         $worker = GameSystem::factory()->create(['name' => ['en' => 'Worker Placement']]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->call('toggleMechanic', $mechanic->id)
             ->assertSee('Deck Builder')
             ->assertDontSee('Worker Placement');
@@ -125,7 +127,7 @@ describe('GameSystemsPage', function () {
         GameSystem::factory()->create(['name' => ['en' => 'Alpha Game']]);
         GameSystem::factory()->create(['name' => ['en' => 'Beta Game']]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->set('search', 'Alpha')
             ->assertSee('Alpha')
             ->assertDontSee('Beta')
@@ -135,7 +137,7 @@ describe('GameSystemsPage', function () {
     });
 
     it('shows empty state when no systems match', function () {
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->set('search', 'nonexistent-xyz')
             ->assertSee('No game systems match');
     });
@@ -156,14 +158,14 @@ describe('GameSystemsPage', function () {
     });
 
     it('request CTA link is present on page', function () {
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->assertSee(route('game-systems.request'));
     });
 
     it('paginates at 24 per page', function () {
         GameSystem::factory()->count(25)->create();
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->assertViewHas('systems', fn ($systems) => $systems->count() === 24);
     });
 
@@ -171,7 +173,7 @@ describe('GameSystemsPage', function () {
         $boardGame = GameSystem::factory()->create(['name' => ['en' => 'Chess Classic'], 'type' => 'boardgame']);
         $ttrpg = GameSystem::factory()->create(['name' => ['en' => 'Dragon Quest RPG'], 'type' => 'ttrpg']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->call('setType', 'boardgame')
             ->assertSee('Chess Classic')
             ->assertDontSee('Dragon Quest RPG');
@@ -181,7 +183,7 @@ describe('GameSystemsPage', function () {
         $boardGame = GameSystem::factory()->create(['name' => ['en' => 'Checkers Fun'], 'type' => 'boardgame']);
         $ttrpg = GameSystem::factory()->create(['name' => ['en' => 'Epic Adventures'], 'type' => 'ttrpg']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->call('setType', 'ttrpg')
             ->assertSee('Epic Adventures')
             ->assertDontSee('Checkers Fun');
@@ -191,7 +193,7 @@ describe('GameSystemsPage', function () {
         GameSystem::factory()->create(['name' => ['en' => 'Board Game One'], 'type' => 'boardgame']);
         GameSystem::factory()->create(['name' => ['en' => 'TTRPG One'], 'type' => 'ttrpg']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->set('type', 'all')
             ->assertSee('Board Game One')
             ->assertSee('TTRPG One');
@@ -201,7 +203,7 @@ describe('GameSystemsPage', function () {
         GameSystem::factory()->create(['name' => ['en' => 'Board Game X'], 'type' => 'boardgame']);
         GameSystem::factory()->create(['name' => ['en' => 'TTRPG Y'], 'type' => 'ttrpg']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->call('setType', 'boardgame')
             ->assertSee('Board Game X')
             ->assertDontSee('TTRPG Y')
@@ -211,7 +213,7 @@ describe('GameSystemsPage', function () {
     });
 
     it('type filter is persisted via URL', function () {
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->set('type', 'ttrpg')
             ->assertSet('type', 'ttrpg');
     });
@@ -221,7 +223,7 @@ describe('GameSystemsPage', function () {
         $beta = GameSystem::factory()->create(['name' => ['en' => 'Beta Game'], 'platform_score' => 0]);
         $gamma = GameSystem::factory()->create(['name' => ['en' => 'Gamma Game'], 'platform_score' => 0]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->assertSeeInOrder(['Alpha Game', 'Beta Game', 'Gamma Game']);
     });
 
@@ -234,7 +236,7 @@ describe('GameSystemsPage', function () {
 
         // When filtering by boardgame type, only boardgame systems should show
         // even when both share the same category
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->call('setType', 'boardgame')
             ->call('toggleCategory', $strategy->id)
             ->assertSee('Strategy Board Game')
@@ -250,7 +252,7 @@ describe('GameSystemsPage', function () {
 
         $otherSystem = GameSystem::factory()->create(['name' => ['en' => 'Other RPG'], 'type' => 'ttrpg']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->call('setType', 'ttrpg')
             ->call('togglePlayStyle', 'narrative-first')
             ->assertSee('Narrative RPG')
@@ -260,7 +262,7 @@ describe('GameSystemsPage', function () {
     it('togglePlayStyle adds and removes play styles', function () {
         GameSystem::factory()->create(['name' => ['en' => 'Test']]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->call('togglePlayStyle', 'narrative-first')
             ->assertSet('play_styles', ['narrative-first'])
             ->call('togglePlayStyle', 'narrative-first')
@@ -270,7 +272,7 @@ describe('GameSystemsPage', function () {
     it('play styles are included in clearFilters', function () {
         GameSystem::factory()->create(['name' => ['en' => 'Test']]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+        Livewire\Livewire::test(GameSystemsPage::class)
             ->set('play_styles', ['horror'])
             ->call('clearFilters')
             ->assertSet('play_styles', []);
@@ -279,7 +281,7 @@ describe('GameSystemsPage', function () {
     it('play styles count as active filters', function () {
         GameSystem::factory()->create(['name' => ['en' => 'Test']]);
 
-        $component = Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class);
+        $component = Livewire\Livewire::test(GameSystemsPage::class);
         expect($component->instance()->hasActiveFilters())->toBeFalse();
 
         $component->set('play_styles', ['osr']);
@@ -287,7 +289,7 @@ describe('GameSystemsPage', function () {
     });
 
     it('passes play style groups to view', function () {
-        $component = Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class);
+        $component = Livewire\Livewire::test(GameSystemsPage::class);
         $groups = $component->viewData('playStyleGroups');
 
         expect($groups)->not->toBeNull();
@@ -346,7 +348,7 @@ describe('GameSystemsPage - Accessibility', function () {
     });
 
     it('decorative icons have aria-hidden on rendered page', function () {
-        $content = Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)->html();
+        $content = Livewire\Livewire::test(GameSystemsPage::class)->html();
         preg_match_all('/<span\s+[^>]*material-symbols-outlined[^>]*>/s', $content, $matches);
 
         foreach ($matches[0] as $iconTag) {

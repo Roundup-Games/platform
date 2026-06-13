@@ -4,17 +4,15 @@ use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Jobs\WarmDashboardCache;
-use App\Models\Campaign;
-use App\Models\CampaignParticipant;
+use App\Livewire\Dashboard;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
-use App\Models\GMProfile;
 use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
-use App\Services\Geohash;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
@@ -41,7 +39,7 @@ describe('Dashboard rendering', function () {
             'date_time' => now()->addDay(),
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         // Verify all 6 sections are rendered as view data
         $component->assertViewHas('smartPrompt');
@@ -63,7 +61,7 @@ describe('Dashboard rendering', function () {
 describe('Dashboard mode', function () {
     test('new user gets newcomer mode', function () {
         // Fresh user — created just now, zero attended games
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         $mode = $component->viewData('dashboardMode');
         expect($mode)->toBe('newcomer');
@@ -81,7 +79,7 @@ describe('Dashboard mode', function () {
             'attendance_status' => AttendanceStatus::Attended,
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         $mode = $component->viewData('dashboardMode');
         expect($mode)->toBe('established');
@@ -93,7 +91,7 @@ describe('Dashboard mode', function () {
         $this->actingAs($oldUser);
         URL::defaults(['locale' => 'en']);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         $mode = $component->viewData('dashboardMode');
         expect($mode)->toBe('established');
@@ -107,7 +105,7 @@ describe('Cache lifecycle', function () {
         Queue::fake();
 
         // Cold cache — no cache entries exist
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         // Week data should be computed synchronously
         $weekData = $component->viewData('weekData');
@@ -128,7 +126,7 @@ describe('Cache lifecycle', function () {
         Queue::fake();
 
         // First visit — populates cache
-        Livewire::test(\App\Livewire\Dashboard::class);
+        Livewire::test(Dashboard::class);
 
         // Verify cache was populated
         $weekKey = now()->startOfWeek()->format('Y-m-d');
@@ -140,7 +138,7 @@ describe('Cache lifecycle', function () {
 
         // Second visit — should use cache
         DB::enableQueryLog();
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $queries = DB::getQueryLog();
         DB::disableQueryLog();
 
@@ -215,7 +213,7 @@ describe('Smart Prompt', function () {
             'status' => ParticipantStatus::Pending,
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $smartPrompt = $component->viewData('smartPrompt');
 
         expect($smartPrompt['type'])->toBe('pending_invitations');
@@ -228,7 +226,7 @@ describe('Smart Prompt', function () {
             'date_time' => now()->addHours(12),
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $smartPrompt = $component->viewData('smartPrompt');
 
         expect($smartPrompt['type'])->toBe('upcoming_session');
@@ -240,7 +238,7 @@ describe('Smart Prompt', function () {
 describe('Empty states', function () {
     test('empty dashboard for new user: shows fallback prompt, no errors', function () {
         // Brand new user — no games, no follows, no location
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         // Should render without errors
         $component->assertStatus(200);
@@ -260,7 +258,7 @@ describe('Empty states', function () {
     });
 
     test('all sections have graceful empty states when data is missing', function () {
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         // Opportunities should be empty array (no location)
         $opportunities = $component->viewData('opportunities');
@@ -298,13 +296,13 @@ describe('Recaps cache', function () {
         expect(Cache::get($cacheKey))->not->toBeNull();
 
         // Dashboard render should read from cache
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $newRecaps = $component->viewData('newRecaps');
 
         // Cache key must still be populated (not cleared by render)
         expect(Cache::get($cacheKey))->not->toBeNull();
         // newRecaps is a collection of stdClass objects
-        expect($newRecaps)->toBeInstanceOf(\Illuminate\Support\Collection::class);
+        expect($newRecaps)->toBeInstanceOf(Collection::class);
     });
 
     test('recaps cache is invalidated for user', function () {

@@ -13,16 +13,20 @@ class GenerateFontUrl extends Command
     public function handle(): int
     {
         $configIcons = config('fonts.material_symbols', []);
+        if (! is_array($configIcons)) {
+            $configIcons = [];
+        }
+        /** @var string[] $configIcons */
         $usedIcons = $this->scanForIcons();
 
         $missing = array_diff($usedIcons, $configIcons);
         $unused = array_diff($configIcons, $usedIcons);
 
-        $this->info('Icons tracked in config/fonts.php: ' . count($configIcons));
-        $this->info('Icons found in codebase: ' . count($usedIcons));
+        $this->info('Icons tracked in config/fonts.php: '.count($configIcons));
+        $this->info('Icons found in codebase: '.count($usedIcons));
 
         if (! empty($missing)) {
-            $this->warn("\nIcons used in code but missing from config (" . count($missing) . '):');
+            $this->warn("\nIcons used in code but missing from config (".count($missing).'):');
             foreach (array_values($missing) as $icon) {
                 $this->line("  - {$icon}");
             }
@@ -33,7 +37,7 @@ class GenerateFontUrl extends Command
         }
 
         if (! empty($unused)) {
-            $this->comment("\nIcons in config but not found in code (" . count($unused) . '):');
+            $this->comment("\nIcons in config but not found in code (".count($unused).'):');
             foreach (array_values($unused) as $icon) {
                 $this->line("  - {$icon}");
             }
@@ -110,6 +114,8 @@ class GenerateFontUrl extends Command
      *
      * Extracts method body text using brace-depth tracking (handles nested braces),
      * then matches `return 'name'` and match-arm `=> 'name'` within it.
+     *
+     * @param  array<string, mixed>  $icons
      */
     private function scanIconMethods(string $dir, array &$icons): void
     {
@@ -122,11 +128,17 @@ class GenerateFontUrl extends Command
         );
 
         foreach ($iterator as $file) {
+            if (! ($file instanceof \SplFileInfo)) {
+                continue;
+            }
             if ($file->getExtension() !== 'php') {
                 continue;
             }
 
             $content = file_get_contents($file->getPathname());
+            if ($content === false) {
+                continue;
+            }
 
             // Find all icon method declarations
             if (! preg_match_all('/function\s+(?:get)?[Ii]con\s*\([^)]*\)\s*(?::\s*\w+\s*)?\{/', $content, $matches, PREG_OFFSET_CAPTURE)) {
@@ -166,7 +178,7 @@ class GenerateFontUrl extends Command
         $depth = 1;
         $i = $startAfterBrace;
 
-        while ($i < $len && $depth > 0) {
+        while ($i < $len) {
             $ch = $content[$i];
 
             if ($ch === '{') {
@@ -208,6 +220,8 @@ class GenerateFontUrl extends Command
      * Handles multi-line spans where the {{ }} expression spans lines.
      * Collects text from material-symbols-outlined through </span>, then
      * extracts the result-side quoted strings from ternary ? : expressions.
+     *
+     * @param  array<string, mixed>  $icons
      */
     private function scanBladeIconTernaries(string $dir, array &$icons): void
     {
@@ -220,11 +234,17 @@ class GenerateFontUrl extends Command
         );
 
         foreach ($iterator as $file) {
+            if (! ($file instanceof \SplFileInfo)) {
+                continue;
+            }
             if ($file->getExtension() !== 'php' || ! str_ends_with($file->getFilename(), '.blade.php')) {
                 continue;
             }
 
             $content = file_get_contents($file->getPathname());
+            if ($content === false) {
+                continue;
+            }
 
             // Find all material-symbols-outlined span blocks (may be multi-line)
             if (! preg_match_all('/material-symbols-outlined[^>]*>.*?<\/span>/s', $content, $blocks)) {
@@ -265,6 +285,9 @@ class GenerateFontUrl extends Command
         }
     }
 
+    /**
+     * @param  array<string, mixed>  $icons
+     */
     private function scanDirectory(string $dir, string $filePattern, string $matchPattern, array &$icons): void
     {
         if (! is_dir($dir)) {
@@ -276,11 +299,17 @@ class GenerateFontUrl extends Command
         );
 
         foreach ($iterator as $file) {
+            if (! ($file instanceof \SplFileInfo)) {
+                continue;
+            }
             if (! preg_match($filePattern, $file->getFilename())) {
                 continue;
             }
 
             $content = file_get_contents($file->getPathname());
+            if ($content === false) {
+                continue;
+            }
             if (preg_match_all($matchPattern, $content, $matches)) {
                 foreach ($matches as $group) {
                     foreach ($group as $icon) {
@@ -297,37 +326,59 @@ class GenerateFontUrl extends Command
      * The scan picks up string literals that aren't icon names (e.g., 'dark'
      * from theme toggling, 'board_game' from enum values). Only names present
      * in the codepoints mapping are actual Material Symbol icons.
+     *
+     * @param  array<string, mixed>  $icons
+     * @return string[]
      */
     private function filterValidIcons(array $icons): array
     {
         $codepointsPath = base_path('build-tools/material-symbols.codepoints');
 
+        $stringIcons = array_map(fn (mixed $v): string => is_string($v) ? $v : '', array_values($icons));
+        $uniqueIcons = array_unique($stringIcons);
+
         if (! file_exists($codepointsPath)) {
-            return array_unique(array_values($icons));
+            return array_values($uniqueIcons);
         }
 
         $valid = [];
-        foreach (file($codepointsPath) as $line) {
+        $lines = file($codepointsPath);
+        if ($lines === false) {
+            return array_values($uniqueIcons);
+        }
+        foreach ($lines as $line) {
             $parts = preg_split('/\s+/', trim($line));
-            if (count($parts) === 2) {
+            if ($parts !== false && count($parts) === 2) {
                 $valid[$parts[0]] = true;
             }
         }
 
-        return array_values(array_filter(array_unique(array_values($icons)), fn ($icon) => isset($valid[$icon])));
+        return array_values(array_filter($uniqueIcons, fn (string $icon) => isset($valid[$icon])));
     }
 
     /**
      * Append missing icons to config/fonts.php.
+     *
+     * @param  array<string, mixed>  $missing
      */
     private function addMissingIcons(array $missing): void
     {
         $path = config_path('fonts.php');
         $content = file_get_contents($path);
 
+        if ($content === false) {
+            $this->error("Failed to read {$path}");
+
+            return;
+        }
+
         // Find the material_symbols array closing bracket and insert before it
         foreach ($missing as $icon) {
-            $content = preg_replace(
+            $icon = is_string($icon) ? $icon : '';
+            if ($icon === '') {
+                continue;
+            }
+            $content = (string) preg_replace(
                 "/(\s*\],\s*\/\*.*?)$/m",
                 "        '{$icon}',\n$1",
                 $content,
@@ -336,6 +387,6 @@ class GenerateFontUrl extends Command
         }
 
         file_put_contents($path, $content);
-        $this->info('Added ' . count($missing) . ' icons to config/fonts.php');
+        $this->info('Added '.count($missing).' icons to config/fonts.php');
     }
 }

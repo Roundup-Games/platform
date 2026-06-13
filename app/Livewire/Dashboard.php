@@ -2,8 +2,10 @@
 
 namespace App\Livewire;
 
+use App\Dto\ActionItem;
 use App\Dto\FeedItem;
 use App\Models\User;
+use App\Services\ActionCenterService;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardDiscoveryService;
 use App\Services\DashboardModeService;
@@ -12,7 +14,9 @@ use App\Services\DashboardQuickActionsService;
 use App\Services\DashboardScheduleService;
 use App\Services\DashboardSmartPromptService;
 use App\Services\Geohash;
-use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -21,9 +25,9 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class Dashboard extends Component
 {
-    public function render()
+    public function render(): View
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         // Resolve dashboard mode (newcomer vs established)
         $dashboardMode = app(DashboardModeService::class)->resolve($user);
@@ -124,20 +128,19 @@ class Dashboard extends Component
         ]);
     }
 
-
     public function unreadNotificationsCount(): int
     {
-        return Auth::user()->unreadNotifications()->count();
+        return authenticatedUser()->unreadNotifications()->count();
     }
 
     #[Computed]
     public function gmAverageRating(): ?float
     {
-        if (! Auth::user()->isGM()) {
+        if (! authenticatedUser()->isGM()) {
             return null;
         }
 
-        return Auth::user()->gmProfile?->average_rating;
+        return authenticatedUser()->gmProfile?->average_rating;
     }
 
     /**
@@ -147,13 +150,18 @@ class Dashboard extends Component
      *  - friends: FeedItem[] — max 10 items from social circle activity
      *  - trending: FeedItem[] — max 5 trending items (shown when friends < 5)
      *  - show_trending: bool — whether to show the trending subsection
+
+     *
+     * @return array{friends: Collection<int, FeedItem>, trending: Collection<int, FeedItem>, show_trending: bool}
      */
     private function getCommunityFeed(User $user): array
     {
         // Read feed data from cache service (avoids double-computation)
         $feedData = app(DashboardCacheService::class)->getFeedData($user);
 
-        $friendsItems = collect($feedData['items'] ?? [])
+        /** @var array<int, array<string, mixed>> $feedItems */
+        $feedItems = $feedData['items'] ?? [];
+        $friendsItems = collect($feedItems)
             ->map(fn (array $item) => FeedItem::fromArray($item))
             ->take(10);
 
@@ -177,8 +185,11 @@ class Dashboard extends Component
      *
      * Uses DashboardCacheService trending cache for the user's geohash tile.
      * Converts raw cached arrays into FeedItem instances.
+
+     *
+     * @return Collection<int, FeedItem>
      */
-    private function getTrendingFeedItems(User $user): \Illuminate\Support\Collection
+    private function getTrendingFeedItems(User $user): Collection
     {
         $location = $user->linkedLocation;
         if (! $location || ! $location->latitude || ! $location->longitude) {
@@ -194,22 +205,28 @@ class Dashboard extends Component
         $trendingData = app(DashboardCacheService::class)->getTrendingNearby($geohash4);
         $games = $trendingData['games'] ?? [];
 
-        return collect($games)->map(function (array $gameData): FeedItem {
-            $participantCount = (int) ($gameData['participant_count'] ?? 0);
+        /** @var array<int, array<string, mixed>> $gamesList */
+        $gamesList = $games;
+
+        return collect($gamesList)->map(function (array $gameData): FeedItem {
+            $participantCount = is_int($gameData['participant_count'] ?? null) ? $gameData['participant_count'] : 0;
             $maxPlayers = $gameData['max_players'] ?? null;
+            $id = to_string_id($gameData['id'] ?? null);
+            $name = is_string($gameData['name'] ?? null) ? $gameData['name'] : '';
+            $dateTime = $gameData['date_time'] ?? 'now';
 
             return new FeedItem(
-                id: 'trending_' . $gameData['id'],
+                id: 'trending_'.$id,
                 type: 'trending',
                 entityType: 'game',
-                entityId: (string) $gameData['id'],
-                entityName: $gameData['name'],
+                entityId: $id,
+                entityName: $name,
                 userName: null,
                 userId: null,
-                createdAt: \Carbon\Carbon::parse($gameData['date_time']),
+                createdAt: Carbon::parse(is_string($dateTime) || $dateTime instanceof \DateTimeInterface ? $dateTime : 'now'),
                 gameSystemName: null,
                 participantCount: $participantCount,
-                maxPlayers: $maxPlayers !== null ? (int) $maxPlayers : null,
+                maxPlayers: is_int($maxPlayers) ? $maxPlayers : null,
                 imageUrl: null,
             );
         })->take(5);
@@ -220,6 +237,9 @@ class Dashboard extends Component
      *
      * Requires a geohash-4 prefix derived from the user's location.
      * Returns empty array if no location is set.
+
+     *
+     * @return array<string, mixed>
      */
     private function getOpportunities(User $user): array
     {
@@ -242,6 +262,9 @@ class Dashboard extends Component
      *
      * Priority chain mirrors smart prompt checks but produces action buttons.
      * Each action has: label, url, style (primary|secondary), icon.
+     *
+     * @param  array<string, mixed>  $smartPrompt
+     * @return array<int, array{label: string, url: string, style: string, icon: string}>
      */
     private function deriveQuickActions(User $user, array $smartPrompt): array
     {
@@ -250,7 +273,7 @@ class Dashboard extends Component
         // 1. If there are pending invitations, show that first
         if ($smartPrompt['type'] === 'pending_invitations') {
             $actions[] = [
-                'label' => __('profile.dashboard_prompt_view_invitations'),
+                'label' => (string) __('profile.dashboard_prompt_view_invitations'),
                 'url' => route('games.index'),
                 'style' => 'primary',
                 'icon' => 'mail',
@@ -259,9 +282,10 @@ class Dashboard extends Component
 
         // 2. If a session just completed, show write-recap action
         if ($smartPrompt['type'] === 'just_completed') {
+            $actionUrl = is_string($smartPrompt['action_url'] ?? null) ? $smartPrompt['action_url'] : route('games.index');
             $actions[] = [
-                'label' => __('profile.dashboard_prompt_write_recap'),
-                'url' => $smartPrompt['action_url'] ?? route('games.index'),
+                'label' => (string) __('profile.dashboard_prompt_write_recap'),
+                'url' => $actionUrl,
                 'style' => 'primary',
                 'icon' => 'auto_stories',
             ];
@@ -270,7 +294,7 @@ class Dashboard extends Component
         // 3. Create game is always a useful action for GMs
         if ($user->isGM()) {
             $actions[] = [
-                'label' => __('profile.dashboard_opportunities_create_cta'),
+                'label' => (string) __('profile.dashboard_opportunities_create_cta'),
                 'url' => route('games.create'),
                 'style' => count($actions) === 0 ? 'primary' : 'secondary',
                 'icon' => 'add_circle',
@@ -278,19 +302,18 @@ class Dashboard extends Component
         }
 
         // 4. Discover / find games — always useful as secondary
-        if (count($actions) < 3) {
-            $actions[] = [
-                'label' => __('discovery.action_discover'),
-                'url' => route('discover'),
-                'style' => count($actions) === 0 ? 'primary' : 'secondary',
-                'icon' => 'explore',
-            ];
-        }
+        $actions[] = [
+            'label' => (string) __('discovery.action_discover'),
+            'url' => route('discover'),
+            'style' => count($actions) === 0 ? 'primary' : 'secondary',
+            'icon' => 'explore',
+        ];
 
         // 5. View schedule if user has upcoming games
-        if (count($actions) < 3 && ($smartPrompt['metadata']['upcoming_count'] ?? 0) > 0) {
+        $meta = is_array($smartPrompt['metadata'] ?? null) ? $smartPrompt['metadata'] : [];
+        if (count($actions) < 3 && (is_int($meta['upcoming_count'] ?? null) ? $meta['upcoming_count'] : 0) > 0) {
             $actions[] = [
-                'label' => __('profile.dashboard_prompt_view_schedule'),
+                'label' => (string) __('profile.dashboard_prompt_view_schedule'),
                 'url' => route('games.index'),
                 'style' => 'secondary',
                 'icon' => 'schedule',
@@ -307,7 +330,7 @@ class Dashboard extends Component
      * Returns empty arrays for all sections when mode is 'newcomer',
      * so the view conditionals hide the established sections cleanly.
      *
-     * @return array{action_center_items: array, clear_summary: array|null, schedule_groups: array, host_again_bridge: array|null, nearby_noteworthy: array, milestone_cards: array, quick_actions: array, should_show_community_pulse: bool}
+     * @return array{action_center_items: array<int, ActionItem>, clear_summary: array<string, mixed>|null, schedule_groups: array<string, mixed>, host_again_bridge: array<string, mixed>|null, nearby_noteworthy: array<string, mixed>, milestone_cards: array<int, array<string, mixed>>, quick_actions: array<int, array{label: string, url: string, style: string, icon: string}>, should_show_community_pulse: bool}
      */
     private function getEstablishedData(User $user, string $dashboardMode): array
     {
@@ -330,13 +353,15 @@ class Dashboard extends Component
 
         // Action center (already wired in S03)
         $actionCenterRaw = $cacheService->getActionCenter($user);
-        $actionCenterItems = array_map(
-            fn (array $item) => \App\Dto\ActionItem::fromArray($item),
-            $actionCenterRaw,
-        );
+        /** @var array<int, array<string, mixed>> $actionCenterItemsRaw */
+        $actionCenterItemsRaw = $actionCenterRaw;
+        $actionCenterItems = array_values(array_map(
+            fn (array $item) => ActionItem::fromArray($item),
+            $actionCenterItemsRaw,
+        ));
         // Pass the (empty) items to avoid getClearSummary re-querying all 11 sources
         $clearSummary = empty($actionCenterItems)
-            ? app(\App\Services\ActionCenterService::class)->getClearSummary($user, [])
+            ? app(ActionCenterService::class)->getClearSummary($user, [])
             : null;
 
         // Schedule timeline
@@ -363,9 +388,9 @@ class Dashboard extends Component
             'user_id' => $user->id,
             'has_geohash' => $geohash4 !== null,
             'action_center_count' => count($actionCenterItems),
-            'schedule_today' => count($scheduleGroups['today'] ?? []),
-            'schedule_week' => count($scheduleGroups['this_week'] ?? []),
-            'schedule_coming' => count($scheduleGroups['coming_up'] ?? []),
+            'schedule_today' => count(is_array($scheduleGroups['today'] ?? null) ? $scheduleGroups['today'] : []),
+            'schedule_week' => count(is_array($scheduleGroups['this_week'] ?? null) ? $scheduleGroups['this_week'] : []),
+            'schedule_coming' => count(is_array($scheduleGroups['coming_up'] ?? null) ? $scheduleGroups['coming_up'] : []),
             'nearby_count' => count($nearbyNoteworthy),
             'milestone_count' => count($milestoneCards),
             'quick_actions_count' => count($quickActions),
@@ -391,7 +416,7 @@ class Dashboard extends Component
      * Returns empty arrays for all sections when mode is 'established',
      * so the view conditionals hide the newcomer sections cleanly.
      *
-     * @return array{welcome: array, preference_matches: array, progress_tracker: array, nearby_people: array}
+     * @return array{welcome: array<string, mixed>, preference_matches: array<string, mixed>, progress_tracker: array<string, mixed>, nearby_people: array<string, mixed>}
      */
     private function getNewcomerData(User $user, string $dashboardMode): array
     {
@@ -410,6 +435,7 @@ class Dashboard extends Component
         $welcome = $newcomerService->getWelcomeData($user);
 
         // Progress tracker (no geohash needed)
+        /** @var array{steps: array<int, array{step: string, label: string, completed: bool, total: int}>, current_step: int, completion_percentage: int} $progressTracker */
         $progressTracker = $newcomerService->getProgressTracker($user);
 
         // Geohash-dependent data — requires user location
@@ -426,9 +452,9 @@ class Dashboard extends Component
         Log::debug('dashboard.newcomer_data_loaded', [
             'user_id' => $user->id,
             'has_geohash' => $geohash4 !== null,
-            'matches_count' => count($preferenceMatches['games']),
-            'people_count' => count($nearbyPeople['people']),
-            'progress_step' => $progressTracker['current_step'] ?? 0,
+            'matches_count' => count(is_array($preferenceMatches['games'] ?? null) ? $preferenceMatches['games'] : []),
+            'people_count' => count(is_array($nearbyPeople['people'] ?? null) ? $nearbyPeople['people'] : []),
+            'progress_step' => $progressTracker['current_step'],
         ]);
 
         return [
@@ -438,5 +464,4 @@ class Dashboard extends Component
             'nearby_people' => $nearbyPeople,
         ];
     }
-
 }

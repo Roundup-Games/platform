@@ -2,33 +2,53 @@
 
 namespace App\Models;
 
+use App\Traits\StringMorphMediaKey;
+use Database\Factories\GameSystemFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
-use RalphJSmit\Laravel\SEO\Support\SEOData;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use Spatie\SchemaOrg\Product;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\SchemaOrg\AggregateRating;
-use App\Traits\StringMorphMediaKey;
+use Spatie\SchemaOrg\Product;
 use Spatie\Translatable\HasTranslations;
 
+/**
+ * @property string $id
+ * @property string $name
+ * @property string|null $description
+ * @property string|null $type
+ * @property string|null $slug
+ * @property string|null $cover_image_url
+ * @property string|null $base_game_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property array<int, array{question: string, answer: string}>|null $faq_content
+ */
 class GameSystem extends Model implements HasMedia
 {
+    /** @use HasFactory<GameSystemFactory> */
     use HasFactory;
+
     use HasSEO;
+    use HasTranslations;
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
-    use HasTranslations;
 
+    /** @var array<int, string> */
     public array $translatable = ['name', 'description'];
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -79,7 +99,8 @@ class GameSystem extends Model implements HasMedia
                 $gameSystem->id = (string) Str::orderedUuid();
             }
             if (empty($gameSystem->slug)) {
-                $gameSystem->slug = Str::slug($gameSystem->getTranslation('name', 'en'));
+                $name = $gameSystem->getTranslation('name', 'en');
+                $gameSystem->slug = Str::slug(is_string($name) ? $name : '');
             }
             if (empty($gameSystem->type)) {
                 $gameSystem->type = 'boardgame';
@@ -89,14 +110,22 @@ class GameSystem extends Model implements HasMedia
 
     // ── Scopes ─────────────────────────────────────────
 
-    public function scopeTtrpg($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeTtrpg(Builder $query): Builder
     {
-        $query->where('type', 'ttrpg');
+        return $query->where('type', 'ttrpg');
     }
 
-    public function scopeBoardgame($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeBoardgame(Builder $query): Builder
     {
-        $query->where('type', 'boardgame');
+        return $query->where('type', 'boardgame');
     }
 
     // ── Accessors ──────────────────────────────────────
@@ -113,7 +142,7 @@ class GameSystem extends Model implements HasMedia
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
     }
 
-    public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
+    public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
             ->width(150)
@@ -148,57 +177,72 @@ class GameSystem extends Model implements HasMedia
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return BelongsToMany<GameSystemCategory, $this>
+     */
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(GameSystemCategory::class, 'game_system_category');
     }
 
+    /**
+     * @return BelongsToMany<GameSystemMechanic, $this>
+     */
     public function mechanics(): BelongsToMany
     {
         return $this->belongsToMany(GameSystemMechanic::class, 'game_system_mechanic');
     }
 
+    /** @return HasMany<Game, $this> */
     public function games(): HasMany
     {
         return $this->hasMany(Game::class);
     }
 
+    /** @return HasMany<Campaign, $this> */
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class);
     }
 
+    /** @return BelongsToMany<User, $this> */
     public function favoredByUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_game_system_preferences')
             ->wherePivot('preference_type', 'favorite');
     }
 
+    /** @return BelongsToMany<GameSystemFamily, $this> */
     public function families(): BelongsToMany
     {
         return $this->belongsToMany(GameSystemFamily::class, 'game_system_family');
     }
 
+    /** @return BelongsToMany<GameSystemDesigner, $this> */
     public function designers(): BelongsToMany
     {
         return $this->belongsToMany(GameSystemDesigner::class, 'game_system_designer');
     }
 
+    /** @return BelongsToMany<GameSystemPublisher, $this> */
     public function publishers(): BelongsToMany
     {
         return $this->belongsToMany(GameSystemPublisher::class, 'game_system_publisher');
     }
 
+    /** @return BelongsTo<GameSystem, $this> */
     public function baseGame(): BelongsTo
     {
         return $this->belongsTo(GameSystem::class, 'base_game_id');
     }
 
+    /** @return HasMany<GameSystem, $this> */
     public function expansions(): HasMany
     {
         return $this->hasMany(GameSystem::class, 'base_game_id');
     }
 
+    /** @return HasMany<BggSyncLog, $this> */
     public function bggSyncLogs(): HasMany
     {
         return $this->hasMany(BggSyncLog::class);
@@ -213,7 +257,7 @@ class GameSystem extends Model implements HasMedia
         // Product schema
         $product = (new Product)
             ->name($this->name)
-            ->description(Str::limit(strip_tags($this->description ?? ''), 500) ?: null);
+            ->description(Str::limit(strip_tags((string) $this->description), 500) ?: '');
 
         if ($imageUrl = $this->coverImageUrl()) {
             $product->image($imageUrl);
@@ -245,12 +289,11 @@ class GameSystem extends Model implements HasMedia
         $schema->push($product->toArray());
 
         // FAQPage (conditional — only if FAQ content exists)
-        if (! empty($this->faq_content) && is_array($this->faq_content)) {
-            $schema->addFaqPage(function ($faqSchema) {
-                foreach ($this->faq_content as $faq) {
-                    if (isset($faq['question']) && isset($faq['answer'])) {
-                        $faqSchema->addQuestion($faq['question'], $faq['answer']);
-                    }
+        if (! empty($this->faq_content)) {
+            $faqItems = $this->faq_content;
+            $schema->addFaqPage(function ($faqSchema) use ($faqItems) {
+                foreach ($faqItems as $faq) {
+                    $faqSchema->addQuestion($faq['question'], $faq['answer']);
                 }
             });
         }

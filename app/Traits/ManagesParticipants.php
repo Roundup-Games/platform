@@ -2,8 +2,10 @@
 
 namespace App\Traits;
 
+use App\Models\CampaignParticipant;
+use App\Models\GameParticipant;
 use App\Services\ParticipantService;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\On;
 
@@ -23,7 +25,7 @@ use Livewire\Attributes\On;
  */
 trait ManagesParticipants
 {
-    /** @var int[] User IDs selected from FriendSearch component */
+    /** @var string[] */
     public array $selectedFriendIds = [];
 
     /** @var string Email address for email-based invitations */
@@ -38,6 +40,8 @@ trait ManagesParticipants
 
     /**
      * Livewire validation rules (v4 pattern — no #[Validate] attributes).
+     *
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
@@ -84,7 +88,7 @@ trait ManagesParticipants
 
         // Cannot invite to a canceled or completed entity
         $entity = $this->getEntity();
-        if (in_array($entity->status->value, ['canceled', 'cancelled', 'completed'])) {
+        if (in_array($entity->status?->value, ['canceled', 'cancelled', 'completed'])) {
             session()->flash('error', __('common.error_entity_no_longer_available'));
 
             return;
@@ -92,8 +96,8 @@ trait ManagesParticipants
 
         $result = $this->participantService()->inviteFriends(
             $this->getEntity(),
-            Auth::user(),
-            $this->selectedFriendIds,
+            authenticatedUser(),
+            array_values($this->selectedFriendIds),
         );
 
         $this->reset('selectedFriendIds');
@@ -114,7 +118,7 @@ trait ManagesParticipants
 
         // Cannot invite to a canceled or completed entity
         $entity = $this->getEntity();
-        if (in_array($entity->status->value, ['canceled', 'cancelled', 'completed'])) {
+        if (in_array($entity->status?->value, ['canceled', 'cancelled', 'completed'])) {
             session()->flash('error', __('common.error_entity_no_longer_available'));
 
             return;
@@ -136,7 +140,7 @@ trait ManagesParticipants
 
         $result = $this->participantService()->inviteByEmail(
             $this->getEntity(),
-            Auth::user(),
+            authenticatedUser(),
             $email,
         );
 
@@ -152,6 +156,8 @@ trait ManagesParticipants
 
     /**
      * Handle the friends-selected event from FriendSearch component.
+     *
+     * @param  array<int, string>  $ids
      */
     #[On('friends-selected')]
     public function onFriendsSelected(array $ids): void
@@ -169,7 +175,7 @@ trait ManagesParticipants
         $result = $this->participantService()->approveApplication(
             $participant,
             $entity,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if ($result->success) {
@@ -187,7 +193,7 @@ trait ManagesParticipants
         $result = $this->participantService()->rejectApplication(
             $participant,
             $entity,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if ($result->success) {
@@ -207,7 +213,7 @@ trait ManagesParticipants
         $result = $this->participantService()->removeParticipant(
             $participant,
             $entity,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if (! $result->success && $result->errorKey) {
@@ -229,7 +235,7 @@ trait ManagesParticipants
         $result = $this->participantService()->cancelInvite(
             $participant,
             $entity,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         session()->flash('success', __($result->messageKey));
@@ -244,7 +250,7 @@ trait ManagesParticipants
     {
         $entity = $this->getEntity();
         $participant = $this->participantService()->findParticipant($entity, $participantId);
-        $authUser = Auth::user();
+        $authUser = authenticatedUser();
 
         $result = $this->participantService()->acceptInvitation(
             $participant,
@@ -268,7 +274,7 @@ trait ManagesParticipants
     {
         $entity = $this->getEntity();
         $participant = $this->participantService()->findParticipant($entity, $participantId);
-        $authUser = Auth::user();
+        $authUser = authenticatedUser();
 
         $result = $this->participantService()->declineInvitation(
             $participant,
@@ -289,16 +295,20 @@ trait ManagesParticipants
 
     /**
      * Get all waitlisted participants ordered by queue position.
+     *
+     * @return Collection<int, CampaignParticipant>|Collection<int, GameParticipant>
      */
-    public function getWaitlistedParticipants()
+    public function getWaitlistedParticipants(): Collection
     {
         return $this->participantService()->getWaitlistedParticipants($this->getEntity());
     }
 
     /**
      * Get all benched participants ordered by bench time.
+     *
+     * @return Collection<int, CampaignParticipant>|Collection<int, GameParticipant>
      */
-    public function getBenchedParticipants()
+    public function getBenchedParticipants(): Collection
     {
         return $this->participantService()->getBenchedParticipants($this->getEntity());
     }
@@ -318,7 +328,7 @@ trait ManagesParticipants
         $result = $this->participantService()->promoteFromWaitlist(
             $participant,
             $entity,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if (! $result->success && $result->errorKey) {
@@ -343,7 +353,7 @@ trait ManagesParticipants
         $result = $this->participantService()->removeFromWaitlist(
             $participant,
             $entity,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if (! $result->success && $result->errorKey) {
@@ -368,7 +378,7 @@ trait ManagesParticipants
         $result = $this->participantService()->promoteFromBench(
             $participant,
             $entity,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if (! $result->success && $result->errorKey) {
@@ -393,7 +403,7 @@ trait ManagesParticipants
         $result = $this->participantService()->removeFromBench(
             $participant,
             $entity,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if (! $result->success && $result->errorKey) {
@@ -411,7 +421,7 @@ trait ManagesParticipants
      * Find a participant by ID scoped to the entity.
      * Kept for backwards compatibility with overrides (e.g. GameDetail::removeParticipant).
      */
-    private function findParticipant(string $participantId)
+    private function findParticipant(string $participantId): GameParticipant|CampaignParticipant
     {
         return $this->participantService()->findParticipant($this->getEntity(), $participantId);
     }

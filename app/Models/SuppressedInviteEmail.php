@@ -27,7 +27,9 @@ class SuppressedInviteEmail extends Model
      */
     public static function hashEmail(string $email): string
     {
-        return hash_hmac('sha256', strtolower(trim($email)), config('app.key'));
+        $key = config('app.key');
+
+        return hash_hmac('sha256', strtolower(trim($email)), is_string($key) ? $key : '');
     }
 
     /**

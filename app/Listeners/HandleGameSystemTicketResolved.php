@@ -4,10 +4,12 @@ namespace App\Listeners;
 
 use App\Enums\NotificationCategory;
 use App\Models\GameSystem;
+use App\Models\User;
 use App\Notifications\GameSystemRequestApproved;
 use App\Services\GameSystemRequestService;
 use App\Services\NotificationService;
 use Escalated\Laravel\Events\TicketResolved;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -27,6 +29,7 @@ use Illuminate\Support\Facades\Log;
 class HandleGameSystemTicketResolved implements ShouldQueue
 {
     use InteractsWithQueue;
+
     /**
      * Handle the event.
      */
@@ -46,7 +49,7 @@ class HandleGameSystemTicketResolved implements ShouldQueue
         $existingGameSystemId = $metadata['game_system_id'] ?? null;
 
         if ($existingGameSystemId) {
-            $gameSystem = GameSystem::find($existingGameSystemId);
+            $gameSystem = GameSystem::find(is_string($existingGameSystemId) ? $existingGameSystemId : null);
 
             if ($gameSystem) {
                 Log::info('Game system already exists from admin action — sending notification only', [
@@ -76,7 +79,7 @@ class HandleGameSystemTicketResolved implements ShouldQueue
                 try {
                     $gameSystem = $service->syncBggFromTicket($ticket);
                     $bggSynced = true;
-                } catch (\InvalidArgumentException | \RuntimeException $e) {
+                } catch (\InvalidArgumentException|\RuntimeException $e) {
                     // BGG sync failed — fall back to manual creation
                     Log::info('BGG sync failed, falling back to manual creation', [
                         'ticket_id' => $ticket->id,
@@ -115,13 +118,14 @@ class HandleGameSystemTicketResolved implements ShouldQueue
     /**
      * Send GameSystemRequestApproved notification to the ticket requester.
      */
-    protected function notifyRequester($ticket, GameSystem $gameSystem): void
+    protected function notifyRequester(Ticket $ticket, GameSystem $gameSystem): void
     {
         $requester = $ticket->requester;
 
-        if (! $requester) {
-            Log::warning('Cannot send approval notification — no requester on ticket', [
+        if (! ($requester instanceof User)) {
+            Log::warning('Cannot send approval notification — requester is not a User', [
                 'ticket_id' => $ticket->id,
+                'requester_type' => $requester ? get_class($requester) : null,
             ]);
 
             return;

@@ -1,9 +1,17 @@
 <?php
 
+use App\Livewire\Teams\BrowseTeams;
+use App\Livewire\Teams\CreateTeam;
+use App\Livewire\Teams\ManageTeam;
+use App\Livewire\Teams\TeamDetail;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\assertDatabaseMissing;
+use function Pest\Laravel\get;
 
 // ── Helpers (namespaced to this file only via describe/use blocks) ─
 
@@ -34,6 +42,7 @@ function teamCrudCreateUserWithTeamPermission(string $permission = 'create team'
     $user->givePermissionTo($permission);
     $user->unsetRelations();
     setPermissionsTeamId(1);
+
     return $user;
 }
 
@@ -58,7 +67,7 @@ describe('CreateTeam', function () {
         $user = teamCrudCreateUserWithTeamPermission();
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\CreateTeam::class)
+            ->test(CreateTeam::class)
             ->set('name', 'Roundup Ravens')
             ->set('description', 'A great team')
             ->set('city', 'Austin')
@@ -87,7 +96,7 @@ describe('CreateTeam', function () {
         $user = teamCrudCreateUserWithTeamPermission();
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\CreateTeam::class)
+            ->test(CreateTeam::class)
             ->set('name', 'Deutsch Team')
             ->set('description', 'English description')
             ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
@@ -105,7 +114,7 @@ describe('CreateTeam', function () {
 
 describe('BrowseTeams', function () {
     it('renders browse component for guests', function () {
-        Livewire\Livewire::test(App\Livewire\Teams\BrowseTeams::class)
+        Livewire\Livewire::test(BrowseTeams::class)
             ->assertOk()
             ->assertSee('Browse Teams');
     })->group('smoke');
@@ -114,12 +123,11 @@ describe('BrowseTeams', function () {
         Team::factory()->create(['name' => 'Team A', 'city' => 'Austin', 'is_active' => true]);
         Team::factory()->create(['name' => 'Team B', 'city' => 'Denver', 'is_active' => true]);
 
-        Livewire\Livewire::test(App\Livewire\Teams\BrowseTeams::class)
+        Livewire\Livewire::test(BrowseTeams::class)
             ->set('search', 'Austin')
             ->assertSee('Team A')
             ->assertDontSee('Team B');
     });
-
 
 });
 
@@ -140,7 +148,7 @@ describe('TeamDetail', function () {
             'role' => 'player', 'status' => 'removed', 'joined_at' => now(), 'left_at' => now(),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Teams\TeamDetail::class, ['slug' => $team->slug])
+        Livewire\Livewire::test(TeamDetail::class, ['slug' => $team->slug])
             ->assertSee('Active Captain')
             ->assertDontSee('Removed Player');
     });
@@ -224,7 +232,7 @@ describe('ManageTeam', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
+            ->test(ManageTeam::class, ['slug' => $team->slug])
             ->set('name', 'New Name')
             ->set('city', 'Seattle')
             ->call('save')
@@ -250,7 +258,7 @@ describe('ManageTeam', function () {
         TeamMember::create(['team_id' => $team->id, 'user_id' => $coach->id, 'role' => 'coach', 'status' => 'active', 'joined_at' => now()]);
 
         Livewire\Livewire::actingAs($coach)
-            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
+            ->test(ManageTeam::class, ['slug' => $team->slug])
             ->set('name', 'Coach Updated')
             ->call('save')
             ->assertSet('saved', true);
@@ -274,7 +282,7 @@ describe('ManageTeam', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
+            ->test(ManageTeam::class, ['slug' => $team->slug])
             ->call('deleteTeam')
             ->assertRedirect(route('teams.browse'));
 
@@ -291,7 +299,7 @@ describe('ManageTeam', function () {
 
         // Coach can access manage page but deleteTeam calls authorize('delete')
         Livewire\Livewire::actingAs($coach)
-            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
+            ->test(ManageTeam::class, ['slug' => $team->slug])
             ->call('deleteTeam')
             ->assertForbidden();
 
@@ -315,7 +323,7 @@ describe('ManageTeam', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
+            ->test(ManageTeam::class, ['slug' => $team->slug])
             ->set('description', 'English description')
             ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
             ->call('save')
@@ -346,10 +354,9 @@ describe('ManageTeam', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
+            ->test(ManageTeam::class, ['slug' => $team->slug])
             ->assertSet('description', 'English desc')
             ->assertSet('pendingTranslations.de.description', 'Deutsche Beschreibung');
     });
-
 
 });

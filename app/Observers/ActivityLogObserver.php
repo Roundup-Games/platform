@@ -12,6 +12,7 @@ use App\Models\GameParticipant;
 use App\Models\Review;
 use App\Models\UserRelationship;
 use App\Services\ActivityLogService;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Observes Eloquent events on multiple models and logs activity entries.
@@ -28,7 +29,7 @@ class ActivityLogObserver
 
     // ── Eloquent event entry points ────────────────────
 
-    public function created($model): void
+    public function created(Model $model): void
     {
         match (true) {
             $model instanceof Game => $this->handleGameCreated($model),
@@ -40,7 +41,7 @@ class ActivityLogObserver
         };
     }
 
-    public function updated($model): void
+    public function updated(Model $model): void
     {
         match (true) {
             $model instanceof Game && $model->isDirty('status') => $this->handleGameStatusChanged($model),
@@ -62,12 +63,17 @@ class ActivityLogObserver
     private function handleGameStatusChanged(Game $game): void
     {
         $status = $game->status;
+        $owner = $game->owner;
 
         if ($status === GameStatus::Completed) {
-            $this->service->log(ActivityType::GameCompleted, $game->owner, $game);
+            if ($owner) {
+                $this->service->log(ActivityType::GameCompleted, $owner, $game);
+            }
             $this->service->logForParticipants(ActivityType::GameCompleted, $game);
         } elseif ($status === GameStatus::Canceled) {
-            $this->service->log(ActivityType::GameCanceled, $game->owner, $game);
+            if ($owner) {
+                $this->service->log(ActivityType::GameCanceled, $owner, $game);
+            }
             $this->service->logForParticipants(ActivityType::GameCanceled, $game);
         }
     }

@@ -11,8 +11,8 @@ use App\Enums\GmProficiency;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
-use App\Enums\Visibility;
 use App\Enums\VibeFlag;
+use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -37,6 +37,7 @@ class DemoSeedCommand extends Command
     protected $description = 'Seed a realistic 10k-user dataset with games, campaigns, reviews, and social graph.';
 
     public const MARKER = '[TEST]';
+
     private const PASSWORD = 'Demo1234!';
 
     // ── Runtime state ──────────────────────────────────────────────
@@ -45,6 +46,7 @@ class DemoSeedCommand extends Command
     private array $locationsByCity = [];
 
     /** @var string[] all user IDs */
+    /** @var array<int, string> */
     private array $allUserIds = [];
 
     /** @var array{city: string, id: string}[] */
@@ -63,24 +65,25 @@ class DemoSeedCommand extends Command
     private array $gmProfileIds = [];
 
     /** @var array<string, string[]> user ID => follower user IDs */
+    /** @var array<string, array<int, string>> */
     private array $gmFollowers = [];
 
-    /** @var array{game_id: string, owner_id: string, participant_ids: string[]} completed non-session-zero games eligible for reviews */
+    /** @var list<array{game_id: string, owner_id: string, participant_ids: array<string>, language: string, is_session_zero: bool}> completed games eligible for reviews */
     private array $completedGames = [];
 
-    /** @var array{game_id: string, owner_id: string, reported_id: string, status: string}[] completed games needing attendance reports */
+    /** @var list<array{game_id: string, owner_id: string, reported_id: string, attendance: string}> completed games needing attendance reports */
     private array $attendanceReportQueue = [];
 
-    /** @var array{game_id: string, owner_id: string} scheduled board game sessions needing short links */
+    /** @var list<array{game_id: string, owner_id: string}> scheduled board game sessions needing short links */
     private array $scheduledBoardGames = [];
 
-    /** @var array{game_id: string, owner_id: string} campaign session games eligible for short links */
+    /** @var list<array{game_id: string, owner_id: string}> campaign session games eligible for short links */
     private array $campaignSessionGames = [];
 
-    /** @var array{game_id: string, owner_id: string, language: string} completed session zero game IDs for survey seeding */
+    /** @var list<array{game_id: string, owner_id: string, language: string, participant_ids: array<string>}> completed session zero game IDs for survey seeding */
     private array $completedSessionZeros = [];
 
-    /** @var array{campaign_id: string, owner_id: string, participant_ids: string[], language: string} campaigns eligible for reviews */
+    /** @var list<array{campaign_id: string, owner_id: string, participant_ids: array<string>, language: string}> campaigns eligible for reviews */
     private array $completedCampaignsForReview = [];
 
     /** @var array<string, string> user ID => assigned city */
@@ -101,11 +104,13 @@ class DemoSeedCommand extends Command
     /** @var array<string, string> user ID => display name (avoids per-GM User::find queries) */
     private array $userNameMap = [];
 
-    /** @var array<string, \App\Models\Location|null> location ID => cached Location model */
+    /** @var array<string, Location|null> location ID => cached Location model */
     private array $locationCache = [];
 
     private int $totalUsers;
+
     private int $totalGms;
+
     private int $totalSubscribers;
 
     /** @var bool dry-run mode: simulate without DB writes */
@@ -114,30 +119,30 @@ class DemoSeedCommand extends Command
     // ── Name pools ─────────────────────────────────────────────────
 
     private const FIRST_FEMALE = [
-        'Anna','Marie','Sophie','Emma','Hannah','Mia','Lena','Laura','Julia','Sarah',
-        'Katharina','Lisa','Eva','Nina','Clara','Lea','Lina','Maja','Helena','Franziska',
-        'Jennifer','Nicole','Sandra','Petra','Monika','Katrin','Ines','Tanja','Stefanie',
-        'Andrea','Melanie','Bianca','Sylvia','Corinna','Diana','Elena','Isabella','Lara',
-        'Nora','Charlotte','Emilia','Greta','Mathilda','Ida','Lotte','Pauline','Theresa',
-        'Josefine','Luisa','Amelie','Pia','Finja','Zoe','Mila','Leona','Thea','Annika',
+        'Anna', 'Marie', 'Sophie', 'Emma', 'Hannah', 'Mia', 'Lena', 'Laura', 'Julia', 'Sarah',
+        'Katharina', 'Lisa', 'Eva', 'Nina', 'Clara', 'Lea', 'Lina', 'Maja', 'Helena', 'Franziska',
+        'Jennifer', 'Nicole', 'Sandra', 'Petra', 'Monika', 'Katrin', 'Ines', 'Tanja', 'Stefanie',
+        'Andrea', 'Melanie', 'Bianca', 'Sylvia', 'Corinna', 'Diana', 'Elena', 'Isabella', 'Lara',
+        'Nora', 'Charlotte', 'Emilia', 'Greta', 'Mathilda', 'Ida', 'Lotte', 'Pauline', 'Theresa',
+        'Josefine', 'Luisa', 'Amelie', 'Pia', 'Finja', 'Zoe', 'Mila', 'Leona', 'Thea', 'Annika',
     ];
 
     private const FIRST_MALE = [
-        'Alexander','Maximilian','Paul','Leon','Felix','Lukas','David','Jonas','Julian',
-        'Marco','Stefan','Thomas','Christian','Daniel','Patrick','Martin','Michael',
-        'Andreas','Markus','Peter','Frank','Robert','Sebastian','Florian','Tobias',
-        'Benjamin','Jan','Philipp','Simon','Niklas','Moritz','Finn','Luis','Tim',
-        'Liam','Noah','Anton','Friedrich','Karl','Otto','Richard','Emil','Oskar',
-        'Bruno','Henrik','Johannes','Konstantin','Viktor','Gregor','Arthur','Levin',
+        'Alexander', 'Maximilian', 'Paul', 'Leon', 'Felix', 'Lukas', 'David', 'Jonas', 'Julian',
+        'Marco', 'Stefan', 'Thomas', 'Christian', 'Daniel', 'Patrick', 'Martin', 'Michael',
+        'Andreas', 'Markus', 'Peter', 'Frank', 'Robert', 'Sebastian', 'Florian', 'Tobias',
+        'Benjamin', 'Jan', 'Philipp', 'Simon', 'Niklas', 'Moritz', 'Finn', 'Luis', 'Tim',
+        'Liam', 'Noah', 'Anton', 'Friedrich', 'Karl', 'Otto', 'Richard', 'Emil', 'Oskar',
+        'Bruno', 'Henrik', 'Johannes', 'Konstantin', 'Viktor', 'Gregor', 'Arthur', 'Levin',
     ];
 
     private const LAST_NAMES = [
-        'Müller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker',
-        'Schulz','Hoffmann','Koch','Richter','Wolf','Klein','Schröder','Neumann',
-        'Schwarz','Braun','Zimmermann','Krüger','Huber','Maier','Lehmann','Hartmann',
-        'Werner','Lange','Schäfer','Schulte','Böhm','Vogt','Keller','Graf','Baumann',
-        'Schuster','Lang','Herrmann','Fuchs','Peters','Berger','Schubert','Roth',
-        'Beck','Engel','Horn','Busch','Berg','Möller','Pohl','Kraft','Stein',
+        'Müller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Meyer', 'Wagner', 'Becker',
+        'Schulz', 'Hoffmann', 'Koch', 'Richter', 'Wolf', 'Klein', 'Schröder', 'Neumann',
+        'Schwarz', 'Braun', 'Zimmermann', 'Krüger', 'Huber', 'Maier', 'Lehmann', 'Hartmann',
+        'Werner', 'Lange', 'Schäfer', 'Schulte', 'Böhm', 'Vogt', 'Keller', 'Graf', 'Baumann',
+        'Schuster', 'Lang', 'Herrmann', 'Fuchs', 'Peters', 'Berger', 'Schubert', 'Roth',
+        'Beck', 'Engel', 'Horn', 'Busch', 'Berg', 'Möller', 'Pohl', 'Kraft', 'Stein',
     ];
 
     /**
@@ -148,40 +153,40 @@ class DemoSeedCommand extends Command
      */
     private const BOARD_GAME_SLUGS = [
         // weight 5 — casual staples everyone plays
-        'catan'                        => ['min' => 3, 'max' => 4, 'dur' => 120, 'w' => 5],
-        'carcassonne'                  => ['min' => 2, 'max' => 5, 'dur' => 45,  'w' => 5],
-        'ticket-to-ride'               => ['min' => 2, 'max' => 5, 'dur' => 60,  'w' => 5],
-        'pandemic'                     => ['min' => 2, 'max' => 4, 'dur' => 45,  'w' => 5],
-        'codenames'                    => ['min' => 2, 'max' => 8, 'dur' => 15,  'w' => 5],
+        'catan' => ['min' => 3, 'max' => 4, 'dur' => 120, 'w' => 5],
+        'carcassonne' => ['min' => 2, 'max' => 5, 'dur' => 45,  'w' => 5],
+        'ticket-to-ride' => ['min' => 2, 'max' => 5, 'dur' => 60,  'w' => 5],
+        'pandemic' => ['min' => 2, 'max' => 4, 'dur' => 45,  'w' => 5],
+        'codenames' => ['min' => 2, 'max' => 8, 'dur' => 15,  'w' => 5],
         // weight 4 — popular modern
-        'azul'                         => ['min' => 2, 'max' => 4, 'dur' => 45,  'w' => 4],
-        '7-wonders'                    => ['min' => 2, 'max' => 7, 'dur' => 30,  'w' => 4],
-        'dominion'                     => ['min' => 2, 'max' => 4, 'dur' => 30,  'w' => 4],
-        'wingspan'                     => ['min' => 1, 'max' => 5, 'dur' => 70,  'w' => 4],
-        'scythe'                       => ['min' => 1, 'max' => 5, 'dur' => 115, 'w' => 4],
-        'king-of-tokyo'                => ['min' => 2, 'max' => 6, 'dur' => 30,  'w' => 4],
+        'azul' => ['min' => 2, 'max' => 4, 'dur' => 45,  'w' => 4],
+        '7-wonders' => ['min' => 2, 'max' => 7, 'dur' => 30,  'w' => 4],
+        'dominion' => ['min' => 2, 'max' => 4, 'dur' => 30,  'w' => 4],
+        'wingspan' => ['min' => 1, 'max' => 5, 'dur' => 70,  'w' => 4],
+        'scythe' => ['min' => 1, 'max' => 5, 'dur' => 115, 'w' => 4],
+        'king-of-tokyo' => ['min' => 2, 'max' => 6, 'dur' => 30,  'w' => 4],
         // weight 3 — hobby staples
-        'everdell'                     => ['min' => 1, 'max' => 4, 'dur' => 80,  'w' => 3],
-        'spirit-island'                => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 3],
-        'agricola'                     => ['min' => 1, 'max' => 5, 'dur' => 150, 'w' => 3],
-        'stone-age'                    => ['min' => 2, 'max' => 4, 'dur' => 90,  'w' => 3],
-        'power-grid'                   => ['min' => 2, 'max' => 6, 'dur' => 120, 'w' => 3],
+        'everdell' => ['min' => 1, 'max' => 4, 'dur' => 80,  'w' => 3],
+        'spirit-island' => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 3],
+        'agricola' => ['min' => 1, 'max' => 5, 'dur' => 150, 'w' => 3],
+        'stone-age' => ['min' => 2, 'max' => 4, 'dur' => 90,  'w' => 3],
+        'power-grid' => ['min' => 2, 'max' => 6, 'dur' => 120, 'w' => 3],
         'betrayal-at-house-on-the-hill' => ['min' => 3, 'max' => 6, 'dur' => 60, 'w' => 3],
-        'dune-imperium'                => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 3],
-        'nemesis'                      => ['min' => 1, 'max' => 5, 'dur' => 180, 'w' => 3],
+        'dune-imperium' => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 3],
+        'nemesis' => ['min' => 1, 'max' => 5, 'dur' => 180, 'w' => 3],
         // weight 2 — heavy / niche
-        'brass-birmingham'             => ['min' => 2, 'max' => 4, 'dur' => 120, 'w' => 2],
-        'gloomhaven'                   => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 2],
-        'the-castles-of-burgundy'      => ['min' => 2, 'max' => 4, 'dur' => 90,  'w' => 2],
-        'gloomhaven-jaws-of-the-lion'  => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 2],
+        'brass-birmingham' => ['min' => 2, 'max' => 4, 'dur' => 120, 'w' => 2],
+        'gloomhaven' => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 2],
+        'the-castles-of-burgundy' => ['min' => 2, 'max' => 4, 'dur' => 90,  'w' => 2],
+        'gloomhaven-jaws-of-the-lion' => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 2],
         'marvel-champions-the-card-game' => ['min' => 1, 'max' => 4, 'dur' => 90,  'w' => 2],
-        'terra-mystica'                => ['min' => 2, 'max' => 5, 'dur' => 150, 'w' => 2],
-        'crokinole'                    => ['min' => 2, 'max' => 4, 'dur' => 30,  'w' => 2],
-        'caverna-the-cave-farmers'      => ['min' => 1, 'max' => 7, 'dur' => 210, 'w' => 2],
+        'terra-mystica' => ['min' => 2, 'max' => 5, 'dur' => 150, 'w' => 2],
+        'crokinole' => ['min' => 2, 'max' => 4, 'dur' => 30,  'w' => 2],
+        'caverna-the-cave-farmers' => ['min' => 1, 'max' => 7, 'dur' => 210, 'w' => 2],
         // extra slug-only entries
-        'eldritch-horror'              => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 3],
-        'small-world'                  => ['min' => 2, 'max' => 4, 'dur' => 90,  'w' => 3],
-        'gaia-project'                 => ['min' => 1, 'max' => 4, 'dur' => 150, 'w' => 2],
+        'eldritch-horror' => ['min' => 1, 'max' => 4, 'dur' => 120, 'w' => 3],
+        'small-world' => ['min' => 2, 'max' => 4, 'dur' => 90,  'w' => 3],
+        'gaia-project' => ['min' => 1, 'max' => 4, 'dur' => 150, 'w' => 2],
     ];
 
     /**
@@ -190,36 +195,36 @@ class DemoSeedCommand extends Command
      */
     private const TTRPG_SLUGS = [
         // weight 6 — the biggest
-        'dungeons-and-dragons-5e'      => ['min' => 3, 'max' => 7, 'w' => 6],
+        'dungeons-and-dragons-5e' => ['min' => 3, 'max' => 7, 'w' => 6],
         // weight 5 — the big three minus D&D
-        'pathfinder-2e'                => ['min' => 3, 'max' => 6, 'w' => 5],
-        'call-of-cthulhu'              => ['min' => 3, 'max' => 6, 'w' => 5],
-        'vampire-the-masquerade-5e'    => ['min' => 3, 'max' => 5, 'w' => 5],
+        'pathfinder-2e' => ['min' => 3, 'max' => 6, 'w' => 5],
+        'call-of-cthulhu' => ['min' => 3, 'max' => 6, 'w' => 5],
+        'vampire-the-masquerade-5e' => ['min' => 3, 'max' => 5, 'w' => 5],
         // weight 4 — popular modern
-        'blades-in-the-dark'           => ['min' => 3, 'max' => 5, 'w' => 4],
-        'shadowdark-rpg'               => ['min' => 3, 'max' => 6, 'w' => 4],
-        'daggerheart'                  => ['min' => 3, 'max' => 6, 'w' => 4],
-        'savage-worlds'                => ['min' => 3, 'max' => 5, 'w' => 4],
+        'blades-in-the-dark' => ['min' => 3, 'max' => 5, 'w' => 4],
+        'shadowdark-rpg' => ['min' => 3, 'max' => 6, 'w' => 4],
+        'daggerheart' => ['min' => 3, 'max' => 6, 'w' => 4],
+        'savage-worlds' => ['min' => 3, 'max' => 5, 'w' => 4],
         // weight 3 — niche but active
-        'delta-green'                  => ['min' => 3, 'max' => 5, 'w' => 3],
-        'monster-of-the-week'          => ['min' => 3, 'max' => 5, 'w' => 3],
-        'fabula-ultima'                => ['min' => 3, 'max' => 5, 'w' => 3],
-        'cyberpunk-red'                => ['min' => 3, 'max' => 5, 'w' => 3],
+        'delta-green' => ['min' => 3, 'max' => 5, 'w' => 3],
+        'monster-of-the-week' => ['min' => 3, 'max' => 5, 'w' => 3],
+        'fabula-ultima' => ['min' => 3, 'max' => 5, 'w' => 3],
+        'cyberpunk-red' => ['min' => 3, 'max' => 5, 'w' => 3],
         // weight 2 — smaller communities
-        'alien-the-roleplaying-game'   => ['min' => 1, 'max' => 5, 'w' => 2],
-        'warhammer-fantasy-roleplay'   => ['min' => 3, 'max' => 5, 'w' => 2],
-        'mork-borg'                    => ['min' => 3, 'max' => 6, 'w' => 2],
-        'old-school-essentials'        => ['min' => 3, 'max' => 6, 'w' => 2],
-        'forbidden-lands'              => ['min' => 2, 'max' => 6, 'w' => 2],
-        'dragonbane'                   => ['min' => 1, 'max' => 6, 'w' => 2],
-        'fate'                         => ['min' => 2, 'max' => 5, 'w' => 2],
-        'mutant-year-zero'             => ['min' => 2, 'max' => 6, 'w' => 2],
-        'pirate-borg'                  => ['min' => 2, 'max' => 6, 'w' => 2],
-        'tales-of-the-valiant'         => ['min' => 3, 'max' => 5, 'w' => 2],
+        'alien-the-roleplaying-game' => ['min' => 1, 'max' => 5, 'w' => 2],
+        'warhammer-fantasy-roleplay' => ['min' => 3, 'max' => 5, 'w' => 2],
+        'mork-borg' => ['min' => 3, 'max' => 6, 'w' => 2],
+        'old-school-essentials' => ['min' => 3, 'max' => 6, 'w' => 2],
+        'forbidden-lands' => ['min' => 2, 'max' => 6, 'w' => 2],
+        'dragonbane' => ['min' => 1, 'max' => 6, 'w' => 2],
+        'fate' => ['min' => 2, 'max' => 5, 'w' => 2],
+        'mutant-year-zero' => ['min' => 2, 'max' => 6, 'w' => 2],
+        'pirate-borg' => ['min' => 2, 'max' => 6, 'w' => 2],
+        'tales-of-the-valiant' => ['min' => 3, 'max' => 5, 'w' => 2],
         // extra slug-only entries
-        'starfinder'                   => ['min' => 3, 'max' => 6, 'w' => 3],
-        'star-wars-5e'                 => ['min' => 3, 'max' => 6, 'w' => 2],
-        'the-one-ring-2e'              => ['min' => 3, 'max' => 5, 'w' => 2],
+        'starfinder' => ['min' => 3, 'max' => 6, 'w' => 3],
+        'star-wars-5e' => ['min' => 3, 'max' => 6, 'w' => 2],
+        'the-one-ring-2e' => ['min' => 3, 'max' => 5, 'w' => 2],
     ];
 
     /** @var array<string, string[]> Campaign names keyed by language */
@@ -348,7 +353,7 @@ class DemoSeedCommand extends Command
         ],
     ];
 
-    /** @var array<string, string[]> Session zero descriptions keyed by language */
+    /** @var array<string, string> Session zero descriptions keyed by language */
     private const SESSION_ZERO_DESC = [
         'en' => 'Session zero to discuss expectations, create characters, and set the tone. New players welcome.',
         'de' => 'Session Zero um Erwartungen zu besprechen, Charaktere zu erstellen und den Ton zu setzen. Auch für Neueinsteiger.',
@@ -372,16 +377,16 @@ class DemoSeedCommand extends Command
 
     /** Board-game-appropriate vibe flags (subset of VibeFlag enum values) */
     private const BOARD_VIBE_KEYS = [
-        'competitive','cooperative','tactical','lighthearted','rules-heavy',
-        'rules-light','new-player-friendly','drop-in-friendly','sandbox',
+        'competitive', 'cooperative', 'tactical', 'lighthearted', 'rules-heavy',
+        'rules-light', 'new-player-friendly', 'drop-in-friendly', 'sandbox',
     ];
 
     /** TTRPG-appropriate vibe flags (subset of VibeFlag enum values) */
     private const TTRPG_VIBE_KEYS = [
-        'story-rich','roleplay-heavy','atmospheric','serious','lighthearted',
-        'horror','character-driven','exploration','tactical','combat-focused',
-        'roleplay-light','new-player-friendly','cooperative','rule-of-cool',
-        'dungeon-crawl','theater-of-the-mind','rules-as-written',
+        'story-rich', 'roleplay-heavy', 'atmospheric', 'serious', 'lighthearted',
+        'horror', 'character-driven', 'exploration', 'tactical', 'combat-focused',
+        'roleplay-light', 'new-player-friendly', 'cooperative', 'rule-of-cool',
+        'dungeon-crawl', 'theater-of-the-mind', 'rules-as-written',
     ];
 
     private const GM_BIOS = [
@@ -474,11 +479,12 @@ class DemoSeedCommand extends Command
 
         if (! $this->dryRun) {
             $existing = User::where('email', 'like', '%@example.org')
-                ->where('bio', 'like', '%' . self::MARKER . '%')
+                ->where('bio', 'like', '%'.self::MARKER.'%')
                 ->exists();
 
             if ($existing) {
                 $this->error('Existing test data found. Run `php artisan demo:teardown` first.');
+
                 return false;
             }
         }
@@ -490,7 +496,7 @@ class DemoSeedCommand extends Command
                     $this->warn('No GM membership type found. Run MembershipTypeSeeder first.');
                 }
             } catch (\Throwable $e) {
-                $this->warn('Could not query membership_types: ' . $e->getMessage());
+                $this->warn('Could not query membership_types: '.$e->getMessage());
             }
         }
 
@@ -530,16 +536,18 @@ class DemoSeedCommand extends Command
             $gs = $boardRecords->get($slug);
             if (! $gs) {
                 $missingBoard[] = $slug;
+
                 continue;
             }
 
+            $name = $gs->getTranslation('name', 'en') ?: $slug;
             $entry = [
-                'id'   => $gs->id,
-                'name' => $gs->getTranslation('name', 'en') ?: $slug,
-                'min'  => $gs->min_players ?? $meta['min'],
-                'max'  => $gs->max_players ?? $meta['max'],
-                'dur'  => $gs->average_play_time ?? $meta['dur'],
-                'w'    => $meta['w'],
+                'id' => $gs->id,
+                'name' => is_string($name) ? $name : $slug,
+                'min' => $gs->min_players ?? $meta['min'],
+                'max' => $gs->max_players ?? $meta['max'],
+                'dur' => $gs->average_play_time ?? $meta['dur'],
+                'w' => $meta['w'],
             ];
 
             for ($i = 0; $i < $entry['w']; $i++) {
@@ -555,15 +563,17 @@ class DemoSeedCommand extends Command
             $gs = $ttrpgRecords->get($slug);
             if (! $gs) {
                 $missingTtrpg[] = $slug;
+
                 continue;
             }
 
+            $name = $gs->getTranslation('name', 'en') ?: $slug;
             $entry = [
-                'id'   => $gs->id,
-                'name' => $gs->getTranslation('name', 'en') ?: $slug,
-                'min'  => $gs->min_players ?? $meta['min'],
-                'max'  => $gs->max_players ?? $meta['max'],
-                'w'    => $meta['w'],
+                'id' => $gs->id,
+                'name' => is_string($name) ? $name : $slug,
+                'min' => $gs->min_players ?? $meta['min'],
+                'max' => $gs->max_players ?? $meta['max'],
+                'w' => $meta['w'],
             ];
 
             for ($i = 0; $i < $entry['w']; $i++) {
@@ -574,15 +584,15 @@ class DemoSeedCommand extends Command
         }
 
         $this->info('Game systems resolved: '
-            . $resolvedBoard . ' board, '
-            . $resolvedTtrpg . ' TTRPG (pools: '
-            . count($this->boardGamePool) . ' / ' . count($this->ttrpgPool) . ' weighted)');
+            .$resolvedBoard.' board, '
+            .$resolvedTtrpg.' TTRPG (pools: '
+            .count($this->boardGamePool).' / '.count($this->ttrpgPool).' weighted)');
 
-        if (!empty($missingBoard)) {
-            $this->warn('Board game slugs not found in DB (skipped): ' . implode(', ', $missingBoard));
+        if (! empty($missingBoard)) {
+            $this->warn('Board game slugs not found in DB (skipped): '.implode(', ', $missingBoard));
         }
-        if (!empty($missingTtrpg)) {
-            $this->warn('TTRPG slugs not found in DB (skipped): ' . implode(', ', $missingTtrpg));
+        if (! empty($missingTtrpg)) {
+            $this->warn('TTRPG slugs not found in DB (skipped): '.implode(', ', $missingTtrpg));
         }
 
         if (empty($this->boardGamePool) && empty($this->ttrpgPool)) {
@@ -591,45 +601,18 @@ class DemoSeedCommand extends Command
     }
 
     /**
-     * Insert a single row (or track it in dry-run mode).
-     */
-    private function dryInsert(string $table, array $row): void
-    {
-        if ($this->dryRun) {
-            $this->dryCounts[$table] = ($this->dryCounts[$table] ?? 0) + 1;
-            return;
-        }
-        DB::table($table)->insert($row);
-    }
-
-    /**
      * Insert multiple rows (or track them in dry-run mode).
      *
-     * @param  array<int, array>  $rows
+     * @param  array<int, array<string, mixed>>  $rows
      */
     private function dryInsertMany(string $table, array $rows): void
     {
         if ($this->dryRun) {
             $this->dryCounts[$table] = ($this->dryCounts[$table] ?? 0) + count($rows);
+
             return;
         }
         DB::table($table)->insert($rows);
-    }
-
-    /**
-     * Create a model (or fake it in dry-run mode by returning a stub).
-     * Returns the model in real mode, or a minimal object with ->id in dry-run.
-     */
-    private function dryCreate(string $modelClass, array $attrs): object
-    {
-        if ($this->dryRun) {
-            $table = (new $modelClass)->getTable();
-            $this->dryCounts[$table] = ($this->dryCounts[$table] ?? 0) + 1;
-            $stub = new \stdClass;
-            $stub->id = (string) Str::orderedUuid();
-            return $stub;
-        }
-        return $modelClass::create($attrs);
     }
 
     // =========================================================================
@@ -637,6 +620,8 @@ class DemoSeedCommand extends Command
     /**
      * Generate a row ID for tables with bigint auto-increment PKs.
      * Queries the current max on first call per table, then increments.
+     *
+     * @var array<string, int>
      */
     private array $rowIdCounters = [];
 
@@ -644,7 +629,7 @@ class DemoSeedCommand extends Command
     {
         if (! isset($this->rowIdCounters[$table])) {
             $max = DB::table($table)->max('id') ?? 0;
-            $this->rowIdCounters[$table] = (int) $max;
+            $this->rowIdCounters[$table] = is_numeric($max) ? (int) $max : 0;
         }
 
         return ++$this->rowIdCounters[$table];
@@ -670,8 +655,8 @@ class DemoSeedCommand extends Command
                 } else {
                     $loc = Location::create([
                         'id' => $locId = (string) Str::orderedUuid(),
-                        'name' => $v['name'] . ' ' . self::MARKER,
-                        'description' => ($v['desc'] ?? '') . ' ' . self::MARKER,
+                        'name' => (is_string($v['name'] ?? null) ? $v['name'] : '').' '.self::MARKER,
+                        'description' => (is_string($ds = $v['desc'] ?? '') ? $ds : '').' '.self::MARKER,
                         'address' => ($v['address'] ?? null),
                         'city' => $city,
                         'postal_code' => $v['plz'] ?? null,
@@ -689,9 +674,12 @@ class DemoSeedCommand extends Command
 
         $bar->finish();
         $this->newLine();
-        $this->info("Created {$total} locations across " . count($this->locationsByCity) . ' cities.');
+        $this->info("Created {$total} locations across ".count($this->locationsByCity).' cities.');
     }
 
+    /**
+     * @return array<string, list<array<string, mixed>>>
+     */
     private function allVenueData(): array
     {
         return [
@@ -701,91 +689,110 @@ class DemoSeedCommand extends Command
         ];
     }
 
+    /**
+     * @return array{lat: float, lng: float}
+     */
     private function coord(float $baseLat, float $baseLng, float $dLat, float $dLng): array
     {
         return ['lat' => round($baseLat + $dLat, 4), 'lng' => round($baseLng + $dLng, 4)];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function berlinVenues(): array
     {
         $B = 52.5200;
         $L = 13.4050;
+
         return [
-            array_merge(['name' => 'Spielwiese','address' => 'Bergmannstr. 24','plz' => '10961','desc' => 'Brettspielcafé Kreuzberg'], $this->coord($B,$L,-0.028,-0.016)),
-            array_merge(['name' => 'Café Oblomow','address' => 'Knaackstr. 22','plz' => '10405','desc' => 'Spielecafé Prenzlauer Berg'], $this->coord($B,$L,0.018,0.018)),
-            array_merge(['name' => 'Das Gift','address' => 'Herrfurthstr. 13','plz' => '12049','desc' => 'Bar & Spieleabend Neukölln'], $this->coord($B,$L,-0.040,0.029)),
-            array_merge(['name' => 'Next Level','address' => 'Oranienstr. 58','plz' => '10969','desc' => 'Gaming Bar Kreuzberg'], $this->coord($B,$L,-0.021,0.019)),
-            array_merge(['name' => 'Freiraum','address' => 'Boxhagener Str. 18','plz' => '10245','desc' => 'Community Space Friedrichshain'], $this->coord($B,$L,-0.005,0.050)),
-            array_merge(['name' => 'Zoulou Café','address' => 'Gipsstr. 5','plz' => '10119','desc' => 'Café & Spiele Mitte'], $this->coord($B,$L,0.002,-0.003)),
-            array_merge(['name' => 'B-Flat','address' => 'Rosenthaler Str. 13','plz' => '10119','desc' => 'Jazz Bar & Event Space'], $this->coord($B,$L,0.005,-0.004)),
-            array_merge(['name' => 'Tempelhofer Feld','address' => 'Columbia-Damm','plz' => '12101','desc' => 'Outdoor Gaming'], $this->coord($B,$L,-0.052,-0.018)),
-            array_merge(['name' => 'Volkspark','address' => 'Am Friedrichshain','plz' => '10249','desc' => 'Outdoor Gaming'], $this->coord($B,$L,0.008,0.052)),
-            array_merge(['name' => 'Spielkreis','address' => 'Kantstr. 28','plz' => '10623','desc' => 'Brettspielcafé Charlottenburg'], $this->coord($B,$L,-0.004,-0.100)),
-            array_merge(['name' => 'Kneipe zum Würfel','address' => 'Sonnenallee 45','plz' => '12047','desc' => 'Kneipe Neukölln'], $this->coord($B,$L,-0.041,0.030)),
-            array_merge(['name' => 'Tabletop Treff','address' => 'Gerichtstr. 23','plz' => '13347','desc' => 'Spieleclub Wedding'], $this->coord($B,$L,0.028,-0.037)),
-            array_merge(['name' => 'Arminius Markthalle','address' => 'Arminiusstr. 2','plz' => '10559','desc' => 'Brettspielbar Moabit'], $this->coord($B,$L,0.008,-0.062)),
-            array_merge(['name' => 'Spieleabend Schöneberg','address' => 'Goltzstr. 34','plz' => '10781','desc' => 'Community Space'], $this->coord($B,$L,-0.024,-0.054)),
-            array_merge(['name' => 'Wühlischspiele','address' => 'Wühlischstr. 12','plz' => '10245','desc' => 'Spiele Friedrichshain'], $this->coord($B,$L,-0.002,0.048)),
-            array_merge(['name' => 'Pankow Spielzimmer','address' => 'Breite Str. 40','plz' => '13187','desc' => 'Community Pankow'], $this->coord($B,$L,0.060,0.012)),
-            array_merge(['name' => 'Treptower Spieletreff','address' => 'Köpenicker Str. 18','plz' => '12435','desc' => 'Spieletreff Treptow'], $this->coord($B,$L,-0.035,0.062)),
-            array_merge(['name' => 'Spandau Brettspielrunde','address' => 'Claire-Waldoff-Str. 5','plz' => '13589','desc' => 'Spiele Spandau'], $this->coord($B,$L,0.015,-0.208)),
-            array_merge(['name' => 'Steglitz Spielewelt','address' => 'Schloßstr. 12','plz' => '12163','desc' => 'Spiele Steglitz'], $this->coord($B,$L,-0.063,-0.079)),
-            array_merge(['name' => 'Mitte Board Game Café','address' => 'Auguststr. 20','plz' => '10117','desc' => 'Board Game Café'], $this->coord($B,$L,0.006,-0.010)),
-            array_merge(['name' => 'Neukölln Game Night','address' => 'Hermannstr. 42','plz' => '12049','desc' => 'Game Night'], $this->coord($B,$L,-0.041,0.024)),
-            array_merge(['name' => 'Friedrichshain Tabletop Club','address' => 'Simon-Dach-Str. 10','plz' => '10245','desc' => 'Tabletop Club'], $this->coord($B,$L,-0.003,0.048)),
-            array_merge(['name' => 'Moabit Brettspiel Club','address' => 'Stromstr. 30','plz' => '10551','desc' => 'Brettspiel Club'], $this->coord($B,$L,0.010,-0.055)),
-            array_merge(['name' => 'Lichtenberg Boardgame Meet','address' => 'Frankfurter Allee 35','plz' => '10247','desc' => 'Board Game Meet'], $this->coord($B,$L,-0.002,0.091)),
+            array_merge(['name' => 'Spielwiese', 'address' => 'Bergmannstr. 24', 'plz' => '10961', 'desc' => 'Brettspielcafé Kreuzberg'], $this->coord($B, $L, -0.028, -0.016)),
+            array_merge(['name' => 'Café Oblomow', 'address' => 'Knaackstr. 22', 'plz' => '10405', 'desc' => 'Spielecafé Prenzlauer Berg'], $this->coord($B, $L, 0.018, 0.018)),
+            array_merge(['name' => 'Das Gift', 'address' => 'Herrfurthstr. 13', 'plz' => '12049', 'desc' => 'Bar & Spieleabend Neukölln'], $this->coord($B, $L, -0.040, 0.029)),
+            array_merge(['name' => 'Next Level', 'address' => 'Oranienstr. 58', 'plz' => '10969', 'desc' => 'Gaming Bar Kreuzberg'], $this->coord($B, $L, -0.021, 0.019)),
+            array_merge(['name' => 'Freiraum', 'address' => 'Boxhagener Str. 18', 'plz' => '10245', 'desc' => 'Community Space Friedrichshain'], $this->coord($B, $L, -0.005, 0.050)),
+            array_merge(['name' => 'Zoulou Café', 'address' => 'Gipsstr. 5', 'plz' => '10119', 'desc' => 'Café & Spiele Mitte'], $this->coord($B, $L, 0.002, -0.003)),
+            array_merge(['name' => 'B-Flat', 'address' => 'Rosenthaler Str. 13', 'plz' => '10119', 'desc' => 'Jazz Bar & Event Space'], $this->coord($B, $L, 0.005, -0.004)),
+            array_merge(['name' => 'Tempelhofer Feld', 'address' => 'Columbia-Damm', 'plz' => '12101', 'desc' => 'Outdoor Gaming'], $this->coord($B, $L, -0.052, -0.018)),
+            array_merge(['name' => 'Volkspark', 'address' => 'Am Friedrichshain', 'plz' => '10249', 'desc' => 'Outdoor Gaming'], $this->coord($B, $L, 0.008, 0.052)),
+            array_merge(['name' => 'Spielkreis', 'address' => 'Kantstr. 28', 'plz' => '10623', 'desc' => 'Brettspielcafé Charlottenburg'], $this->coord($B, $L, -0.004, -0.100)),
+            array_merge(['name' => 'Kneipe zum Würfel', 'address' => 'Sonnenallee 45', 'plz' => '12047', 'desc' => 'Kneipe Neukölln'], $this->coord($B, $L, -0.041, 0.030)),
+            array_merge(['name' => 'Tabletop Treff', 'address' => 'Gerichtstr. 23', 'plz' => '13347', 'desc' => 'Spieleclub Wedding'], $this->coord($B, $L, 0.028, -0.037)),
+            array_merge(['name' => 'Arminius Markthalle', 'address' => 'Arminiusstr. 2', 'plz' => '10559', 'desc' => 'Brettspielbar Moabit'], $this->coord($B, $L, 0.008, -0.062)),
+            array_merge(['name' => 'Spieleabend Schöneberg', 'address' => 'Goltzstr. 34', 'plz' => '10781', 'desc' => 'Community Space'], $this->coord($B, $L, -0.024, -0.054)),
+            array_merge(['name' => 'Wühlischspiele', 'address' => 'Wühlischstr. 12', 'plz' => '10245', 'desc' => 'Spiele Friedrichshain'], $this->coord($B, $L, -0.002, 0.048)),
+            array_merge(['name' => 'Pankow Spielzimmer', 'address' => 'Breite Str. 40', 'plz' => '13187', 'desc' => 'Community Pankow'], $this->coord($B, $L, 0.060, 0.012)),
+            array_merge(['name' => 'Treptower Spieletreff', 'address' => 'Köpenicker Str. 18', 'plz' => '12435', 'desc' => 'Spieletreff Treptow'], $this->coord($B, $L, -0.035, 0.062)),
+            array_merge(['name' => 'Spandau Brettspielrunde', 'address' => 'Claire-Waldoff-Str. 5', 'plz' => '13589', 'desc' => 'Spiele Spandau'], $this->coord($B, $L, 0.015, -0.208)),
+            array_merge(['name' => 'Steglitz Spielewelt', 'address' => 'Schloßstr. 12', 'plz' => '12163', 'desc' => 'Spiele Steglitz'], $this->coord($B, $L, -0.063, -0.079)),
+            array_merge(['name' => 'Mitte Board Game Café', 'address' => 'Auguststr. 20', 'plz' => '10117', 'desc' => 'Board Game Café'], $this->coord($B, $L, 0.006, -0.010)),
+            array_merge(['name' => 'Neukölln Game Night', 'address' => 'Hermannstr. 42', 'plz' => '12049', 'desc' => 'Game Night'], $this->coord($B, $L, -0.041, 0.024)),
+            array_merge(['name' => 'Friedrichshain Tabletop Club', 'address' => 'Simon-Dach-Str. 10', 'plz' => '10245', 'desc' => 'Tabletop Club'], $this->coord($B, $L, -0.003, 0.048)),
+            array_merge(['name' => 'Moabit Brettspiel Club', 'address' => 'Stromstr. 30', 'plz' => '10551', 'desc' => 'Brettspiel Club'], $this->coord($B, $L, 0.010, -0.055)),
+            array_merge(['name' => 'Lichtenberg Boardgame Meet', 'address' => 'Frankfurter Allee 35', 'plz' => '10247', 'desc' => 'Board Game Meet'], $this->coord($B, $L, -0.002, 0.091)),
         ];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function hamburgVenues(): array
     {
         $B = 53.5511;
         $L = 9.9937;
+
         return [
-            array_merge(['name' => 'Spielcafé St. Pauli','address' => 'Reeperbahn 20','plz' => '20359','desc' => 'Spielcafé'], $this->coord($B,$L,-0.002,-0.033)),
-            array_merge(['name' => 'Brettspielbar Sternschanze','address' => 'Sternstr. 12','plz' => '20357','desc' => 'Brettspielbar'], $this->coord($B,$L,0.009,-0.021)),
-            array_merge(['name' => 'Tabletop Treff Eimsbüttel','address' => 'Osterstr. 30','plz' => '20259','desc' => 'Tabletop Treff'], $this->coord($B,$L,0.016,-0.041)),
-            array_merge(['name' => 'Spieleabend Winterhude','address' => 'Mühlenkamp 15','plz' => '22303','desc' => 'Spieleabend'], $this->coord($B,$L,0.032,0.022)),
-            array_merge(['name' => 'Board Game Night Altona','address' => 'Ottenser Hauptstr. 10','plz' => '22769','desc' => 'Board Game Night'], $this->coord($B,$L,-0.003,-0.059)),
-            array_merge(['name' => 'Hamburg Spieletreff','address' => 'Eppendorfer Baum 8','plz' => '20249','desc' => 'Spieletreff'], $this->coord($B,$L,0.029,-0.013)),
-            array_merge(['name' => 'Kneipe zum Doppelkopf','address' => 'Süderstr. 25','plz' => '20097','desc' => 'Kneipe'], $this->coord($B,$L,-0.015,0.010)),
-            array_merge(['name' => 'Wandsbek Spielewelt','address' => 'Wandsbeker Allee 18','plz' => '22041','desc' => 'Spielewelt'], $this->coord($B,$L,0.038,0.057)),
-            array_merge(['name' => 'Harburg Brettspielabend','address' => 'Lüneburger Str. 5','plz' => '21073','desc' => 'Brettspielabend'], $this->coord($B,$L,-0.098,0.032)),
-            array_merge(['name' => 'Barmbek Game Table','address' => 'Fuhlsbüttler Str. 50','plz' => '22305','desc' => 'Game Table'], $this->coord($B,$L,0.040,0.022)),
+            array_merge(['name' => 'Spielcafé St. Pauli', 'address' => 'Reeperbahn 20', 'plz' => '20359', 'desc' => 'Spielcafé'], $this->coord($B, $L, -0.002, -0.033)),
+            array_merge(['name' => 'Brettspielbar Sternschanze', 'address' => 'Sternstr. 12', 'plz' => '20357', 'desc' => 'Brettspielbar'], $this->coord($B, $L, 0.009, -0.021)),
+            array_merge(['name' => 'Tabletop Treff Eimsbüttel', 'address' => 'Osterstr. 30', 'plz' => '20259', 'desc' => 'Tabletop Treff'], $this->coord($B, $L, 0.016, -0.041)),
+            array_merge(['name' => 'Spieleabend Winterhude', 'address' => 'Mühlenkamp 15', 'plz' => '22303', 'desc' => 'Spieleabend'], $this->coord($B, $L, 0.032, 0.022)),
+            array_merge(['name' => 'Board Game Night Altona', 'address' => 'Ottenser Hauptstr. 10', 'plz' => '22769', 'desc' => 'Board Game Night'], $this->coord($B, $L, -0.003, -0.059)),
+            array_merge(['name' => 'Hamburg Spieletreff', 'address' => 'Eppendorfer Baum 8', 'plz' => '20249', 'desc' => 'Spieletreff'], $this->coord($B, $L, 0.029, -0.013)),
+            array_merge(['name' => 'Kneipe zum Doppelkopf', 'address' => 'Süderstr. 25', 'plz' => '20097', 'desc' => 'Kneipe'], $this->coord($B, $L, -0.015, 0.010)),
+            array_merge(['name' => 'Wandsbek Spielewelt', 'address' => 'Wandsbeker Allee 18', 'plz' => '22041', 'desc' => 'Spielewelt'], $this->coord($B, $L, 0.038, 0.057)),
+            array_merge(['name' => 'Harburg Brettspielabend', 'address' => 'Lüneburger Str. 5', 'plz' => '21073', 'desc' => 'Brettspielabend'], $this->coord($B, $L, -0.098, 0.032)),
+            array_merge(['name' => 'Barmbek Game Table', 'address' => 'Fuhlsbüttler Str. 50', 'plz' => '22305', 'desc' => 'Game Table'], $this->coord($B, $L, 0.040, 0.022)),
         ];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function munchenVenues(): array
     {
         $B = 48.1351;
         $L = 11.5820;
+
         return [
-            array_merge(['name' => 'Spielcafé Schwabing','address' => 'Leopoldstr. 30','plz' => '80802','desc' => 'Spielcafé'], $this->coord($B,$L,0.026,0.000)),
-            array_merge(['name' => 'Glockenbach Brettspielbar','address' => 'Klenzestr. 12','plz' => '80469','desc' => 'Brettspielbar'], $this->coord($B,$L,-0.007,-0.013)),
-            array_merge(['name' => 'Maxvorstadt Tabletop Club','address' => 'Amalienstr. 20','plz' => '80333','desc' => 'Tabletop Club'], $this->coord($B,$L,0.016,-0.009)),
-            array_merge(['name' => 'Haidhausen Spieletreff','address' => 'Weißenburger Str. 8','plz' => '81667','desc' => 'Spieletreff'], $this->coord($B,$L,-0.001,0.017)),
-            array_merge(['name' => 'Sendlinger Spieleabend','address' => 'Sendlinger Str. 30','plz' => '80331','desc' => 'Spieleabend'], $this->coord($B,$L,-0.016,-0.036)),
-            array_merge(['name' => 'München Board Game Café','address' => 'Thalkirchner Str. 15','plz' => '80337','desc' => 'Board Game Café'], $this->coord($B,$L,-0.020,-0.023)),
-            array_merge(['name' => 'Neuhausen Brettspielrunde','address' => 'Nymphenburger Str. 40','plz' => '80335','desc' => 'Brettspielrunde'], $this->coord($B,$L,0.007,-0.034)),
-            array_merge(['name' => 'Bogenhausen Game Night','address' => 'Ismaninger Str. 50','plz' => '81675','desc' => 'Game Night'], $this->coord($B,$L,0.005,0.026)),
-            array_merge(['name' => 'Pasing Spieletreff','address' => 'Bodenseestr. 10','plz' => '81243','desc' => 'Spieletreff'], $this->coord($B,$L,0.001,-0.139)),
-            array_merge(['name' => 'Olympia Spielewelt','address' => 'Lerchenauer Str. 5','plz' => '80809','desc' => 'Spielewelt'], $this->coord($B,$L,0.034,-0.028)),
+            array_merge(['name' => 'Spielcafé Schwabing', 'address' => 'Leopoldstr. 30', 'plz' => '80802', 'desc' => 'Spielcafé'], $this->coord($B, $L, 0.026, 0.000)),
+            array_merge(['name' => 'Glockenbach Brettspielbar', 'address' => 'Klenzestr. 12', 'plz' => '80469', 'desc' => 'Brettspielbar'], $this->coord($B, $L, -0.007, -0.013)),
+            array_merge(['name' => 'Maxvorstadt Tabletop Club', 'address' => 'Amalienstr. 20', 'plz' => '80333', 'desc' => 'Tabletop Club'], $this->coord($B, $L, 0.016, -0.009)),
+            array_merge(['name' => 'Haidhausen Spieletreff', 'address' => 'Weißenburger Str. 8', 'plz' => '81667', 'desc' => 'Spieletreff'], $this->coord($B, $L, -0.001, 0.017)),
+            array_merge(['name' => 'Sendlinger Spieleabend', 'address' => 'Sendlinger Str. 30', 'plz' => '80331', 'desc' => 'Spieleabend'], $this->coord($B, $L, -0.016, -0.036)),
+            array_merge(['name' => 'München Board Game Café', 'address' => 'Thalkirchner Str. 15', 'plz' => '80337', 'desc' => 'Board Game Café'], $this->coord($B, $L, -0.020, -0.023)),
+            array_merge(['name' => 'Neuhausen Brettspielrunde', 'address' => 'Nymphenburger Str. 40', 'plz' => '80335', 'desc' => 'Brettspielrunde'], $this->coord($B, $L, 0.007, -0.034)),
+            array_merge(['name' => 'Bogenhausen Game Night', 'address' => 'Ismaninger Str. 50', 'plz' => '81675', 'desc' => 'Game Night'], $this->coord($B, $L, 0.005, 0.026)),
+            array_merge(['name' => 'Pasing Spieletreff', 'address' => 'Bodenseestr. 10', 'plz' => '81243', 'desc' => 'Spieletreff'], $this->coord($B, $L, 0.001, -0.139)),
+            array_merge(['name' => 'Olympia Spielewelt', 'address' => 'Lerchenauer Str. 5', 'plz' => '80809', 'desc' => 'Spielewelt'], $this->coord($B, $L, 0.034, -0.028)),
         ];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function genericVenues(string $city, float $cLat, float $cLng, int $count, string $plzPrefix): array
     {
-        $types = ['Spielcafé','Brettspielcafé','Spieleabend','Spieletreff','Brettspielbar','Tabletop Club','Game Night','Spielewelt'];
+        $types = ['Spielcafé', 'Brettspielcafé', 'Spieleabend', 'Spieletreff', 'Brettspielbar', 'Tabletop Club', 'Game Night', 'Spielewelt'];
         $out = [];
         for ($i = 1; $i <= $count; $i++) {
             $out[] = [
-                'name' => $types[array_rand($types)] . ' ' . $city . ' ' . ($i + 10),
-                'plz' => $plzPrefix . str_pad((string) random_int(10, 99), 2, '0', STR_PAD_LEFT),
+                'name' => $types[array_rand($types)].' '.$city.' '.($i + 10),
+                'plz' => $plzPrefix.str_pad((string) random_int(10, 99), 2, '0', STR_PAD_LEFT),
                 'lat' => round($cLat + random_int(-50, 50) / 1000, 4),
                 'lng' => round($cLng + random_int(-50, 50) / 1000, 4),
             ];
         }
+
         return $out;
     }
 
@@ -833,10 +840,10 @@ class DemoSeedCommand extends Command
                 $last = self::LAST_NAMES[array_rand(self::LAST_NAMES)];
                 $suffix = random_int(1000, 9999);
 
-                $email = Str::slug("{$first}.{$last}.{$suffix}") . '@example.org';
+                $email = Str::slug("{$first}.{$last}.{$suffix}").'@example.org';
                 while (isset($usedEmails[$email])) {
                     $suffix = random_int(1000, 9999);
-                    $email = Str::slug("{$first}.{$last}.{$suffix}") . '@example.org';
+                    $email = Str::slug("{$first}.{$last}.{$suffix}").'@example.org';
                 }
                 $usedEmails[$email] = true;
 
@@ -845,9 +852,9 @@ class DemoSeedCommand extends Command
                     'name' => "{$first} {$last}",
                     'email' => $email,
                     'password' => $password,
-                    'slug' => Str::slug("{$first}-{$last}") . '-' . Str::random(6),
+                    'slug' => Str::slug("{$first}-{$last}").'-'.Str::random(6),
                     'email_verified_at' => now(),
-                    'bio' => 'Gaming enthusiast based in ' . $city . '. ' . self::MARKER,
+                    'bio' => 'Gaming enthusiast based in '.$city.'. '.self::MARKER,
                     'pronouns' => $userPronouns,
                     'location_id' => $locs[array_rand($locs)],
                     'preferred_language' => mt_rand(0, 1) ? 'de' : 'en',
@@ -886,7 +893,7 @@ class DemoSeedCommand extends Command
 
         $bar->finish();
         $this->newLine();
-        $this->info('Created ' . count($this->allUserIds) . ' users.');
+        $this->info('Created '.count($this->allUserIds).' users.');
     }
 
     // =========================================================================
@@ -947,9 +954,9 @@ class DemoSeedCommand extends Command
             $gmProfileBatch[] = [
                 'id' => $profileId,
                 'user_id' => $uid,
-                'bio' => self::GM_BIOS[array_rand(self::GM_BIOS)] . ' ' . self::MARKER,
-                'specializations' => json_encode(array_values($specs)),
-                'slug' => Str::slug($userName) . '-' . Str::random(6),
+                'bio' => self::GM_BIOS[array_rand(self::GM_BIOS)].' '.self::MARKER,
+                'specializations' => json_encode($specs),
+                'slug' => Str::slug($userName).'-'.Str::random(6),
                 'average_rating' => null,
                 'review_count' => 0,
                 'is_active' => mt_rand() / mt_getrandmax() < 0.90, // 90% active, 10% paused
@@ -1001,7 +1008,7 @@ class DemoSeedCommand extends Command
             foreach (array_chunk($rows, 500) as $chunk) {
                 $this->dryInsertMany('local_subscriptions', $chunk);
             }
-            $this->info("Created " . count($subIds) . " GM subscriptions.");
+            $this->info('Created '.count($subIds).' GM subscriptions.');
         } elseif ($this->dryRun) {
             // In dry-run, simulate subscription count even without the plan in DB
             $this->dryCounts['local_subscriptions'] = ($this->dryCounts['local_subscriptions'] ?? 0) + $this->totalSubscribers;
@@ -1010,7 +1017,7 @@ class DemoSeedCommand extends Command
             $this->warn('No GM membership type found. Skipping subscriptions.');
         }
 
-        $this->info('GMs: ' . count($this->gmInfo) . ' set up with profiles.');
+        $this->info('GMs: '.count($this->gmInfo).' set up with profiles.');
     }
 
     private function cityForUser(string $userId): string
@@ -1028,7 +1035,7 @@ class DemoSeedCommand extends Command
                 if ($loc) {
                     $this->warn("cityForUser fallback hit for {$userId} — map may be incomplete.");
 
-                    return $this->userCityMap[$userId] = $loc->city;
+                    return $this->userCityMap[$userId] = $loc->city ?? 'Berlin';
                 }
             }
         }
@@ -1051,19 +1058,24 @@ class DemoSeedCommand extends Command
             $playersByCity[$this->cityForUser($pid)][] = $pid;
         }
 
+        /** @var list<array<string, mixed>> $insertRows */
         $insertRows = [];  // Batch accumulator
         $total = 0;
         $flushEvery = 200; // Flush every N rows to keep memory bounded
 
         $flush = function () use (&$insertRows, &$total): void {
-            if (empty($insertRows)) return;
+            if (empty($insertRows)) {
+                return;
+            }
             if ($this->dryRun) {
                 $this->dryCounts['user_relationships'] = ($this->dryCounts['user_relationships'] ?? 0) + count($insertRows);
             } else {
                 // Dedup at flush time by (user_id, related_user_id) to avoid unique violations
                 $uniqueRows = [];
                 foreach ($insertRows as $row) {
-                    $key = $row['user_id'] . ':' . $row['related_user_id'];
+                    $uid = is_string($row['user_id'] ?? null) ? $row['user_id'] : '';
+                    $rid = is_string($row['related_user_id'] ?? null) ? $row['related_user_id'] : '';
+                    $key = $uid.':'.$rid;
                     $uniqueRows[$key] = $row;
                 }
                 // Chunk to stay under PostgreSQL's 65,535 parameter limit (6 params per row → max ~10,000 rows)
@@ -1100,7 +1112,7 @@ class DemoSeedCommand extends Command
 
             // Inter-cluster: each user follows ~0-5 random users from other clusters.
             // Pre-compute all city players once; pick and skip same-cluster hits.
-            $allCityPlayers = array_values($cityPlayers);
+            $allCityPlayers = $cityPlayers;
 
             foreach ($clusters as $cluster) {
                 $clusterSet = array_flip($cluster); // O(1) membership test
@@ -1125,7 +1137,7 @@ class DemoSeedCommand extends Command
             $followerCount = min(random_int(30, 200), count($cityPlayers));
             $keys = $this->randomKeys($cityPlayers, $followerCount);
             foreach ($keys as $k) {
-                $this->addFollow($cityPlayers[$k], $gm['id'], $insertRows);
+                $this->addFollow($cityPlayers[(int) $k], $gm['id'], $insertRows);
             }
             // Flush per GM to keep memory bounded
             if (count($insertRows) >= $flushEvery) {
@@ -1162,6 +1174,8 @@ class DemoSeedCommand extends Command
     /**
      * Add a follow relationship. Batches into $insertRows.
      * Dedup is handled at flush time via insertOrIgnore.
+     *
+     * @param  array<int, array<string, mixed>>  $insertRows
      */
     private function addFollow(string $from, string $to, array &$insertRows): void
     {
@@ -1188,6 +1202,8 @@ class DemoSeedCommand extends Command
      *  - Private: only followers of the GM, joined via invitation
      *  - Protected: mix of followers (via application) + random others
      *  - Public: anyone
+     *
+     * @return array<int, string>
      */
     private function selectParticipants(string $gmId, int $count, string $visibility): array
     {
@@ -1197,6 +1213,7 @@ class DemoSeedCommand extends Command
             // Only followers, via friend_invite
             $take = min($count, count($followers));
             $keys = $this->randomKeys($followers, $take);
+
             return array_map(fn ($k) => $followers[$k], $keys);
         }
 
@@ -1210,8 +1227,9 @@ class DemoSeedCommand extends Command
             if ($remaining > 0) {
                 $pool = array_values(array_diff($this->playerIds, $picked));
                 $rKeys = $this->randomKeys($pool, min($remaining, count($pool)));
-                $picked = array_merge($picked, array_map(fn ($k) => $pool[$k], $rKeys));
+                $picked = array_merge($picked, array_map(fn ($k) => $pool[(int) $k], $rKeys));
             }
+
             return $picked;
         }
 
@@ -1219,12 +1237,16 @@ class DemoSeedCommand extends Command
         $pool = $this->playerIds;
         $take = min($count, count($pool));
         $keys = $this->randomKeys($pool, $take);
+
         return array_map(fn ($k) => $pool[$k], $keys);
     }
 
     /**
      * Safe array_rand that always returns an array of keys, even when count is 1.
      * PHP's array_rand returns a single int when count=1, which breaks (array) casts.
+     *
+     * @param  array<mixed>  $arr
+     * @return list<int|string>
      */
     private function randomKeys(array $arr, int $count): array
     {
@@ -1233,7 +1255,8 @@ class DemoSeedCommand extends Command
             return [];
         }
         $keys = array_rand($arr, $count);
-        return is_array($keys) ? $keys : [$keys];
+
+        return array_values(is_array($keys) ? $keys : [$keys]);
     }
 
     /**
@@ -1259,6 +1282,7 @@ class DemoSeedCommand extends Command
             if ($roll < 0.80) {
                 return 'share_link';
             }
+
             return 'email_invite';
         }
 
@@ -1270,6 +1294,7 @@ class DemoSeedCommand extends Command
             if ($roll < 0.80) {
                 return 'share_link';
             }
+
             return 'friend_invite';
         }
 
@@ -1281,6 +1306,7 @@ class DemoSeedCommand extends Command
         if ($roll < 0.85) {
             return 'share_link';
         }
+
         return $allowShortLink ? 'short_link' : 'share_link';
     }
 
@@ -1294,6 +1320,7 @@ class DemoSeedCommand extends Command
         $this->info('Creating completed board game sessions...');
         if (empty($this->boardGamePool)) {
             $this->warn('No board game systems in pool. Skipping.');
+
             return;
         }
 
@@ -1301,8 +1328,11 @@ class DemoSeedCommand extends Command
         $bar->setRedrawFrequency(50);
         $bar->start();
 
+        /** @var list<array<string, mixed>> $gameBatch */
         $gameBatch = [];
+        /** @var list<array<string, mixed>> $participantBatch */
         $participantBatch = [];
+        /** @var list<array<string, mixed>> $applicationBatch */
         $applicationBatch = [];
 
         foreach ($this->gmInfo as $gm) {
@@ -1350,8 +1380,8 @@ class DemoSeedCommand extends Command
                     'owner_id' => $gm['id'],
                     'campaign_id' => null,
                     'game_system_id' => $game['id'],
-                    'name' => json_encode([$language => $game['name'] . ' ' . $suffix . ' ' . self::MARKER]),
-                    'description' => json_encode([$language => $descs[array_rand($descs)] . ' ' . self::MARKER]),
+                    'name' => json_encode([$language => $game['name'].' '.$suffix.' '.self::MARKER]),
+                    'description' => json_encode([$language => $descs[array_rand($descs)].' '.self::MARKER]),
                     'game_type' => GameType::BoardGame->value,
                     'date_time' => $dateTime,
                     'expected_duration' => round($game['dur'] / 60, 1), // minutes → hours
@@ -1412,7 +1442,7 @@ class DemoSeedCommand extends Command
                         'waitlisted_at' => null,
                         'created_at' => $dateTime->copy()->subDays(random_int(1, 7)),
                     ];
-                    if (!$isCancelled && $attendance === AttendanceStatus::Attended->value) {
+                    if (! $isCancelled && $attendance === AttendanceStatus::Attended->value) {
                         $participantIds[] = $pid;
                     }
 
@@ -1431,7 +1461,7 @@ class DemoSeedCommand extends Command
                 $overflowCount = random_int(0, 4);
                 $overflowPool = array_values(array_diff($this->playerIds, $selected, [$gm['id']]));
                 $overflowKeys = $this->randomKeys($overflowPool, min($overflowCount, count($overflowPool)));
-                $overflowPlayers = array_map(fn ($k) => $overflowPool[$k], $overflowKeys);
+                $overflowPlayers = array_map(fn ($k) => $overflowPool[(int) $k], $overflowKeys);
 
                 foreach ($overflowPlayers as $pid) {
                     $status = $isBench ? ParticipantStatus::Benched->value : ParticipantStatus::Waitlisted->value;
@@ -1468,21 +1498,17 @@ class DemoSeedCommand extends Command
                     || count($applicationBatch) >= 500
                     || count($gameBatch) >= 500;
                 if ($needFlush) {
-                    if (! empty($gameBatch)) {
-                        $this->dryInsertMany('games', $gameBatch);
-                        $gameBatch = [];
-                    }
-                    if (! empty($participantBatch)) {
-                        $this->dryInsertMany('game_participants', $participantBatch);
-                        $participantBatch = [];
-                    }
+                    $this->dryInsertMany('games', $gameBatch);
+                    $gameBatch = [];
+                    $this->dryInsertMany('game_participants', $participantBatch);
+                    $participantBatch = [];
                     if (! empty($applicationBatch)) {
                         $this->dryInsertMany('game_applications', $applicationBatch);
                         $applicationBatch = [];
                     }
                 }
 
-                if (!$isCancelled) {
+                if (! $isCancelled) {
                     $this->completedGames[] = [
                         'game_id' => $gameId,
                         'owner_id' => $gm['id'],
@@ -1522,7 +1548,7 @@ class DemoSeedCommand extends Command
 
         $bar->finish();
         $this->newLine();
-        $this->info('Created ' . count($this->completedGames) . ' completed board game sessions.');
+        $this->info('Created '.count($this->completedGames).' completed board game sessions.');
     }
 
     // =========================================================================
@@ -1545,6 +1571,7 @@ class DemoSeedCommand extends Command
             $gmProfileId = $this->gmProfileIds[$game['owner_id']] ?? null;
             if (! $gmProfileId) {
                 $bar->advance();
+
                 continue;
             }
 
@@ -1555,6 +1582,7 @@ class DemoSeedCommand extends Command
 
             if (empty($participants)) {
                 $bar->advance();
+
                 continue;
             }
 
@@ -1564,8 +1592,8 @@ class DemoSeedCommand extends Command
 
             $isSessionZero = ! empty($game['is_session_zero']);
             $reviewBodies = $isSessionZero
-                ? self::SESSION_ZERO_REVIEW_BODIES[$game['language'] ?? 'en']
-                : self::REVIEW_BODIES[$game['language'] ?? 'en'];
+                ? self::SESSION_ZERO_REVIEW_BODIES[$game['language']]
+                : self::REVIEW_BODIES[$game['language']];
 
             foreach ($reviewerKeys as $k) {
                 // Distribution: 27%→5★, 36%→4★, 20%→3★, 17%→2★ (range 2-5 per spec)
@@ -1582,10 +1610,10 @@ class DemoSeedCommand extends Command
                     'id' => (string) Str::orderedUuid(),
                     'reviewable_type' => Game::class,
                     'reviewable_id' => $game['game_id'],
-                    'reviewer_id' => $participants[$k],
+                    'reviewer_id' => $participants[(int) $k],
                     'gm_profile_id' => $gmProfileId,
                     'rating' => $rating,
-                    'body' => $reviewBodies[array_rand($reviewBodies)] . ' ' . self::MARKER,
+                    'body' => $reviewBodies[array_rand($reviewBodies)].' '.self::MARKER,
                     'proficiency_tags' => json_encode($tags),
                     'status' => 'published',
                     'reported_at' => null,
@@ -1640,12 +1668,14 @@ class DemoSeedCommand extends Command
             $gmProfileId = $this->gmProfileIds[$campaign['owner_id']] ?? null;
             if (! $gmProfileId) {
                 $bar->advance();
+
                 continue;
             }
 
             $participants = $campaign['participant_ids'];
             if (empty($participants)) {
                 $bar->advance();
+
                 continue;
             }
 
@@ -1654,27 +1684,27 @@ class DemoSeedCommand extends Command
             $reviewerCount = max(1, (int) (count($participants) * $reviewRate));
             $reviewerKeys = $this->randomKeys($participants, min($reviewerCount, count($participants)));
 
-            $language = $campaign['language'] ?? 'en';
+            $language = $campaign['language']; // shape always has language
             $reviewBodies = $language === 'de'
                 ? [
-                    'Tolle Kampagne mit gutem Storyverlauf. ' . self::MARKER,
-                    'Sehr empfehlenswert! Wir hatten viel Spass. ' . self::MARKER,
-                    'Gute Balance zwischen Story und Kampf. ' . self::MARKER,
-                    'Spannende Kampagne mit interessanten Charakteren. ' . self::MARKER,
-                    'Kampagne war gut strukturiert und hat Spass gemacht. ' . self::MARKER,
-                    'Leider etwas zu lang, aber sonst gut. ' . self::MARKER,
-                    'Mittelmässig, hatte mir mehr erhofft. ' . self::MARKER,
-                    'Nicht meins, aber fair geleitet. ' . self::MARKER,
+                    'Tolle Kampagne mit gutem Storyverlauf. '.self::MARKER,
+                    'Sehr empfehlenswert! Wir hatten viel Spass. '.self::MARKER,
+                    'Gute Balance zwischen Story und Kampf. '.self::MARKER,
+                    'Spannende Kampagne mit interessanten Charakteren. '.self::MARKER,
+                    'Kampagne war gut strukturiert und hat Spass gemacht. '.self::MARKER,
+                    'Leider etwas zu lang, aber sonst gut. '.self::MARKER,
+                    'Mittelmässig, hatte mir mehr erhofft. '.self::MARKER,
+                    'Nicht meins, aber fair geleitet. '.self::MARKER,
                 ]
                 : [
-                    'Great campaign with a well-structured story arc. ' . self::MARKER,
-                    'Highly recommended! We had a blast throughout. ' . self::MARKER,
-                    'Good balance between roleplay and combat encounters. ' . self::MARKER,
-                    'Engaging campaign with memorable NPCs and plot twists. ' . self::MARKER,
-                    'Campaign was well-paced and kept everyone engaged. ' . self::MARKER,
-                    'A bit slow in the middle, but strong finish. ' . self::MARKER,
-                    'Decent but didn\'t quite live up to the premise. ' . self::MARKER,
-                    'Not my style, but the GM was fair and prepared. ' . self::MARKER,
+                    'Great campaign with a well-structured story arc. '.self::MARKER,
+                    'Highly recommended! We had a blast throughout. '.self::MARKER,
+                    'Good balance between roleplay and combat encounters. '.self::MARKER,
+                    'Engaging campaign with memorable NPCs and plot twists. '.self::MARKER,
+                    'Campaign was well-paced and kept everyone engaged. '.self::MARKER,
+                    'A bit slow in the middle, but strong finish. '.self::MARKER,
+                    'Decent but didn\'t quite live up to the premise. '.self::MARKER,
+                    'Not my style, but the GM was fair and prepared. '.self::MARKER,
                 ];
 
             foreach ($reviewerKeys as $k) {
@@ -1735,6 +1765,7 @@ class DemoSeedCommand extends Command
         $this->info('Creating campaigns...');
         if (empty($this->ttrpgPool)) {
             $this->warn('No TTRPG systems in pool. Skipping campaigns.');
+
             return;
         }
 
@@ -1750,11 +1781,17 @@ class DemoSeedCommand extends Command
         $totalSessions = 0;
 
         // Batch accumulators — flush every 500 rows for performance
+        /** @var list<array<string, mixed>> $campaignBatch */
         $campaignBatch = [];
+        /** @var list<array<string, mixed>> $campaignParticipantBatch */
         $campaignParticipantBatch = [];
+        /** @var list<array<string, mixed>> $campaignApplicationBatch */
         $campaignApplicationBatch = [];
+        /** @var list<array<string, mixed>> $gameBatch */
         $gameBatch = [];
+        /** @var list<array<string, mixed>> $gameParticipantBatch */
         $gameParticipantBatch = [];
+        /** @var list<array<string, mixed>> $gameApplicationBatch */
         $gameApplicationBatch = [];
 
         $flushAll = function () use (
@@ -1823,8 +1860,8 @@ class DemoSeedCommand extends Command
                     'owner_id' => $gm['id'],
                     'game_system_id' => $rpg['id'],
                     'location_id' => $locationId,
-                    'name' => json_encode([$language => $campaignName . ' ' . self::MARKER]),
-                    'description' => json_encode([$language => $campaignDescs[array_rand($campaignDescs)] . ' ' . self::MARKER]),
+                    'name' => json_encode([$language => $campaignName.' '.self::MARKER]),
+                    'description' => json_encode([$language => $campaignDescs[array_rand($campaignDescs)].' '.self::MARKER]),
                     'visibility' => $visibility->value,
                     'min_players' => $minPlayers,
                     'max_players' => $maxPlayers,
@@ -1833,7 +1870,7 @@ class DemoSeedCommand extends Command
                     'session_duration' => random_int(3, 5),
                     'experience_level' => $campaignExpLevel,
                     'vibe_flags' => json_encode($this->randomVibes('ttrpg')),
-                    'safety_rules' => json_encode(['tools' => ['session_zero','lines_and_veils','x-card']]),
+                    'safety_rules' => json_encode(['tools' => ['session_zero', 'lines_and_veils', 'x-card']]),
                     'bench_mode' => $isBench,
                     'status' => $campaignStatus,
                     'language' => $language,
@@ -1894,7 +1931,7 @@ class DemoSeedCommand extends Command
                 $overflowCount = random_int(0, 3);
                 $overflowPool = array_values(array_diff($this->playerIds, $selected, [$gm['id']]));
                 $overflowKeys = $this->randomKeys($overflowPool, min($overflowCount, count($overflowPool)));
-                foreach (array_map(fn ($k) => $overflowPool[$k], $overflowKeys) as $pid) {
+                foreach (array_map(fn ($k) => $overflowPool[(int) $k], $overflowKeys) as $pid) {
                     $status = $isBench ? ParticipantStatus::Benched->value : ParticipantStatus::Waitlisted->value;
 
                     $overflowJoinedAt = $campaignCreatedAt->copy()->addDays(random_int(3, 10));
@@ -1941,8 +1978,8 @@ class DemoSeedCommand extends Command
                     'owner_id' => $gm['id'],
                     'campaign_id' => $campaignId,
                     'game_system_id' => $rpg['id'],
-                    'name' => json_encode([$language => ($language === 'de' ? 'Session Zero: Charaktere & Weltenbau' : 'Session Zero: Character & World Building') . ' ' . self::MARKER]),
-                    'description' => json_encode([$language => self::SESSION_ZERO_DESC[$language] . ' ' . self::MARKER]),
+                    'name' => json_encode([$language => ($language === 'de' ? 'Session Zero: Charaktere & Weltenbau' : 'Session Zero: Character & World Building').' '.self::MARKER]),
+                    'description' => json_encode([$language => self::SESSION_ZERO_DESC[$language].' '.self::MARKER]),
                     'game_type' => GameType::Ttrpg->value,
                     'date_time' => $szDate,
                     'expected_duration' => 2.5,
@@ -1955,7 +1992,7 @@ class DemoSeedCommand extends Command
                     'max_players' => $maxPlayers,
                     'bench_mode' => $isBench,
                     'vibe_flags' => json_encode($this->randomVibes('ttrpg')),
-                    'safety_rules' => json_encode(['tools' => ['session_zero','lines_and_veils','x-card']]),
+                    'safety_rules' => json_encode(['tools' => ['session_zero', 'lines_and_veils', 'x-card']]),
                     'language' => $language,
                     'recap' => $szCompleted ? self::RECAPS[$language][array_rand(self::RECAPS[$language])] : null,
                     'created_at' => $szDate->copy()->subDays(7),
@@ -2062,15 +2099,15 @@ class DemoSeedCommand extends Command
                     : random_int(1, 3);
                 for ($p = 1; $p <= $pastSessionCount; $p++) {
                     $maxDaysAgo = max(3, $szDate->diffInDays(now()) - 1);
-                    $pastDaysAgo = random_int(3, $maxDaysAgo);
+                    $pastDaysAgo = random_int(3, (int) $maxDaysAgo);
                     $pastDate = now()->subDays($pastDaysAgo)->setTime(random_int(14, 20), random_int(0, 3) * 15);
                     $pId = (string) Str::orderedUuid();
                     $sessionNum = $p + 1; // session zero was #1
 
                     $sessionLabel = $language === 'de' ? "Sitzung {$sessionNum}" : "Session {$sessionNum}";
                     $sessionDesc = $language === 'de'
-                        ? "Abgeschlossene Kampagnensitzung {$sessionNum}. " . self::MARKER
-                        : "Completed campaign session {$sessionNum}. " . self::MARKER;
+                        ? "Abgeschlossene Kampagnensitzung {$sessionNum}. ".self::MARKER
+                        : "Completed campaign session {$sessionNum}. ".self::MARKER;
 
                     // ~3% of past sessions were cancelled
                     $isPastCancelled = mt_rand() / mt_getrandmax() < 0.03;
@@ -2083,7 +2120,7 @@ class DemoSeedCommand extends Command
                         'owner_id' => $gm['id'],
                         'campaign_id' => $campaignId,
                         'game_system_id' => $rpg['id'],
-                        'name' => json_encode([$language => $sessionLabel . ' ' . self::MARKER]),
+                        'name' => json_encode([$language => $sessionLabel.' '.self::MARKER]),
                         'description' => json_encode([$language => $sessionDesc]),
                         'game_type' => GameType::Ttrpg->value,
                         'date_time' => $pastDate,
@@ -2097,7 +2134,7 @@ class DemoSeedCommand extends Command
                         'max_players' => $maxPlayers,
                         'bench_mode' => $isBench,
                         'vibe_flags' => json_encode($this->randomVibes('ttrpg')),
-                        'safety_rules' => json_encode(['tools' => ['lines_and_veils','x-card']]),
+                        'safety_rules' => json_encode(['tools' => ['lines_and_veils', 'x-card']]),
                         'language' => $language,
                         'recap' => $isPastCancelled ? null : self::RECAPS[$language][array_rand(self::RECAPS[$language])],
                         'created_at' => $pastDate->copy()->subDays(random_int(3, 7)),
@@ -2107,15 +2144,15 @@ class DemoSeedCommand extends Command
                     $pastAttendedPids = [];
                     foreach ($campaignParticipants as $pid) {
                         $attendance = null;
-                        if (!$isPastCancelled && $pid === $gm['id']) {
+                        if (! $isPastCancelled && $pid === $gm['id']) {
                             $attendance = AttendanceStatus::Attended->value;
-                        } elseif (!$isPastCancelled) {
+                        } elseif (! $isPastCancelled) {
                             $attendance = mt_rand() / mt_getrandmax() < 0.90
                                 ? AttendanceStatus::Attended->value
                                 : AttendanceStatus::NoShow->value;
                         }
 
-                        if (!$isPastCancelled && $attendance === AttendanceStatus::Attended->value) {
+                        if (! $isPastCancelled && $attendance === AttendanceStatus::Attended->value) {
                             $pastAttendedPids[] = $pid;
                         }
 
@@ -2152,7 +2189,7 @@ class DemoSeedCommand extends Command
                     }
                     $totalSessions++;
 
-                    if (!$isPastCancelled) {
+                    if (! $isPastCancelled) {
                         // Feed completed past sessions into review generation
                         $this->completedGames[] = [
                             'game_id' => $pId,
@@ -2177,7 +2214,7 @@ class DemoSeedCommand extends Command
                         // Also generate NoShow reports for no-show players
                         $noShowPids = array_values(array_filter(
                             $campaignParticipants,
-                            fn ($pid) => $pid !== $gm['id'] && !in_array($pid, $pastAttendedPids)
+                            fn ($pid) => $pid !== $gm['id'] && ! in_array($pid, $pastAttendedPids)
                         ));
                         foreach ($noShowPids as $pid) {
                             $this->attendanceReportQueue[] = [
@@ -2203,8 +2240,8 @@ class DemoSeedCommand extends Command
 
                     $sessionLabel = $language === 'de' ? "Sitzung {$f}" : "Session {$f}";
                     $sessionDesc = $language === 'de'
-                        ? "Kampagnensitzung {$f}. " . self::MARKER
-                        : "Campaign session {$f}. " . self::MARKER;
+                        ? "Kampagnensitzung {$f}. ".self::MARKER
+                        : "Campaign session {$f}. ".self::MARKER;
 
                     // Cancelled campaigns have all future sessions cancelled too
                     if ($campaignStatus === 'cancelled') {
@@ -2221,7 +2258,7 @@ class DemoSeedCommand extends Command
                         'owner_id' => $gm['id'],
                         'campaign_id' => $campaignId,
                         'game_system_id' => $rpg['id'],
-                        'name' => json_encode([$language => $sessionLabel . ' ' . self::MARKER]),
+                        'name' => json_encode([$language => $sessionLabel.' '.self::MARKER]),
                         'description' => json_encode([$language => $sessionDesc]),
                         'game_type' => GameType::Ttrpg->value,
                         'date_time' => $futureDate,
@@ -2235,7 +2272,7 @@ class DemoSeedCommand extends Command
                         'max_players' => $maxPlayers,
                         'bench_mode' => $isBench,
                         'vibe_flags' => json_encode($this->randomVibes('ttrpg')),
-                        'safety_rules' => json_encode(['tools' => ['lines_and_veils','x-card']]),
+                        'safety_rules' => json_encode(['tools' => ['lines_and_veils', 'x-card']]),
                         'language' => $language,
                         'recap' => null,
                         'created_at' => $campaignCreatedAt->copy()->addDays(random_int(5, 12)),
@@ -2292,7 +2329,7 @@ class DemoSeedCommand extends Command
                             $gameApplicationBatch[] = [
                                 'id' => (string) Str::orderedUuid(),
                                 'game_id' => $sId,
-                                'user_id' => $nonMembers[$k],
+                                'user_id' => $nonMembers[(int) $k],
                                 'status' => $pStatus,
                                 'message' => $msgs[array_rand($msgs)],
                                 'created_at' => now()->subDays(random_int(1, 3)),
@@ -2312,14 +2349,10 @@ class DemoSeedCommand extends Command
                         || count($gameApplicationBatch) >= 500
                         || count($gameBatch) >= 500;
                     if ($needFlush) {
-                        if (! empty($gameBatch)) {
-                            $this->dryInsertMany('games', $gameBatch);
-                            $gameBatch = [];
-                        }
-                        if (! empty($gameParticipantBatch)) {
-                            $this->dryInsertMany('game_participants', $gameParticipantBatch);
-                            $gameParticipantBatch = [];
-                        }
+                        $this->dryInsertMany('games', $gameBatch);
+                        $gameBatch = [];
+                        $this->dryInsertMany('game_participants', $gameParticipantBatch);
+                        $gameParticipantBatch = [];
                         if (! empty($gameApplicationBatch)) {
                             $this->dryInsertMany('game_applications', $gameApplicationBatch);
                             $gameApplicationBatch = [];
@@ -2352,6 +2385,7 @@ class DemoSeedCommand extends Command
         $this->info('Creating scheduled (future) board game sessions...');
         if (empty($this->boardGamePool)) {
             $this->warn('No board game systems in pool. Skipping.');
+
             return;
         }
 
@@ -2360,8 +2394,11 @@ class DemoSeedCommand extends Command
         $bar->start();
 
         $totalScheduled = 0;
+        /** @var list<array<string, mixed>> $gameBatch */
         $gameBatch = [];
+        /** @var list<array<string, mixed>> $participantBatch */
         $participantBatch = [];
+        /** @var list<array<string, mixed>> $applicationBatch */
         $applicationBatch = [];
 
         foreach ($this->gmInfo as $gm) {
@@ -2401,8 +2438,8 @@ class DemoSeedCommand extends Command
                     'owner_id' => $gm['id'],
                     'campaign_id' => null,
                     'game_system_id' => $game['id'],
-                    'name' => json_encode([$language => $game['name'] . ' ' . $suffix . ' ' . self::MARKER]),
-                    'description' => json_encode([$language => $descs[array_rand($descs)] . ' ' . self::MARKER]),
+                    'name' => json_encode([$language => $game['name'].' '.$suffix.' '.self::MARKER]),
+                    'description' => json_encode([$language => $descs[array_rand($descs)].' '.self::MARKER]),
                     'game_type' => GameType::BoardGame->value,
                     'date_time' => $dateTime,
                     'expected_duration' => round($game['dur'] / 60, 1),
@@ -2484,7 +2521,7 @@ class DemoSeedCommand extends Command
                     $applicationBatch[] = [
                         'id' => (string) Str::orderedUuid(),
                         'game_id' => $gameId,
-                        'user_id' => $pendingPool[$k],
+                        'user_id' => $pendingPool[(int) $k],
                         'status' => $pStatus,
                         'message' => $msgPool[array_rand($msgPool)],
                         'created_at' => now()->subDays(random_int(1, 5)),
@@ -2497,14 +2534,10 @@ class DemoSeedCommand extends Command
                     || count($applicationBatch) >= 500
                     || count($gameBatch) >= 500;
                 if ($needFlush) {
-                    if (! empty($gameBatch)) {
-                        $this->dryInsertMany('games', $gameBatch);
-                        $gameBatch = [];
-                    }
-                    if (! empty($participantBatch)) {
-                        $this->dryInsertMany('game_participants', $participantBatch);
-                        $participantBatch = [];
-                    }
+                    $this->dryInsertMany('games', $gameBatch);
+                    $gameBatch = [];
+                    $this->dryInsertMany('game_participants', $participantBatch);
+                    $participantBatch = [];
                     if (! empty($applicationBatch)) {
                         $this->dryInsertMany('game_applications', $applicationBatch);
                         $applicationBatch = [];
@@ -2549,6 +2582,7 @@ class DemoSeedCommand extends Command
         $allSystemIds = array_merge($this->resolvedBoardIds, $this->resolvedTtrpgIds);
         if (empty($allSystemIds)) {
             $this->warn('No game systems resolved. Skipping preferences.');
+
             return;
         }
 
@@ -2572,7 +2606,7 @@ class DemoSeedCommand extends Command
                 $favKeys = $this->randomKeys($allSystemIds, min($favCount, count($allSystemIds)));
                 foreach ($favKeys as $k) {
                     $sid = $allSystemIds[$k];
-                    $pairKey = $uid . ':sys:' . $sid;
+                    $pairKey = $uid.':sys:'.$sid;
                     if (isset($seenPairs[$pairKey])) {
                         continue;
                     }
@@ -2588,7 +2622,7 @@ class DemoSeedCommand extends Command
                 if (mt_rand() / mt_getrandmax() < 0.15) {
                     $avoidKey = array_rand($allSystemIds);
                     $sid = $allSystemIds[$avoidKey];
-                    $pairKey = $uid . ':sys:' . $sid;
+                    $pairKey = $uid.':sys:'.$sid;
                     if (! isset($seenPairs[$pairKey])) {
                         $seenPairs[$pairKey] = true;
                         $batchSystem[] = [
@@ -2604,7 +2638,7 @@ class DemoSeedCommand extends Command
                 $vibeKeys = $this->randomKeys($validVibes, min($vibeFavCount, count($validVibes)));
                 foreach ($vibeKeys as $k) {
                     $v = $validVibes[$k];
-                    $pairKey = $uid . ':vibe:' . $v;
+                    $pairKey = $uid.':vibe:'.$v;
                     if (isset($seenPairs[$pairKey])) {
                         continue;
                     }
@@ -2621,7 +2655,7 @@ class DemoSeedCommand extends Command
                     $avoidKeys = $this->randomKeys($validVibes, min($avoidCount, count($validVibes)));
                     foreach ($avoidKeys as $k) {
                         $v = $validVibes[$k];
-                        $pairKey = $uid . ':vibe:' . $v;
+                        $pairKey = $uid.':vibe:'.$v;
                         if (! isset($seenPairs[$pairKey])) {
                             $seenPairs[$pairKey] = true;
                             $batchVibe[] = [
@@ -2663,11 +2697,13 @@ class DemoSeedCommand extends Command
         $this->info('Seeding GM social links...');
 
         // Platforms from config — only use platforms that exist and don't require instance
-        $availablePlatforms = array_filter(config('platforms', []), fn ($p) => empty($p['instance_required']));
+        $platforms = config('platforms', []);
+        $availablePlatforms = array_filter(is_array($platforms) ? $platforms : [], fn ($p) => is_array($p) && empty($p['instance_required']));
         $platformKeys = array_keys($availablePlatforms);
 
         if (empty($platformKeys)) {
             $this->warn('No platforms configured. Skipping GM social links.');
+
             return;
         }
 
@@ -2681,7 +2717,7 @@ class DemoSeedCommand extends Command
             $seenPlatforms = []; // Dedup per GM to avoid unique constraint violation
 
             foreach ($keys as $k) {
-                $platform = $platformKeys[$k];
+                $platform = $platformKeys[(int) $k];
                 if (isset($seenPlatforms[$platform])) {
                     continue;
                 }
@@ -2690,7 +2726,7 @@ class DemoSeedCommand extends Command
                 $handle = strtolower(Str::random($handleLen));
 
                 // Generate URL from config template
-                $urlTemplate = $availablePlatforms[$platform]['url_template'] ?? null;
+                $urlTemplate = is_string($availablePlatforms[$platform]['url_template'] ?? null) ? $availablePlatforms[$platform]['url_template'] : null;
                 $url = $urlTemplate ? str_replace('{handle}', $handle, $urlTemplate) : null;
 
                 $batch[] = [
@@ -2734,6 +2770,7 @@ class DemoSeedCommand extends Command
 
         $this->newLine();
         $this->info('Creating session zero surveys...');
+        /** @var list<array<string, mixed>> $surveyBatch */
         $surveyBatch = [];
         $confirmationBatch = [];
 
@@ -2744,16 +2781,17 @@ class DemoSeedCommand extends Command
             $gmProfileId = $this->gmProfileIds[$sz['owner_id']] ?? null;
             if (! $gmProfileId) {
                 $bar->advance();
+
                 continue;
             }
 
-            $language = $sz['language'] ?? 'en';
+            $language = $sz['language'];
             $title = $language === 'de'
-                ? 'Session Zero: Erwartungen & Sicherheit ' . self::MARKER
-                : 'Session Zero: Expectations & Safety ' . self::MARKER;
+                ? 'Session Zero: Erwartungen & Sicherheit '.self::MARKER
+                : 'Session Zero: Expectations & Safety '.self::MARKER;
 
             $surveyId = (string) Str::orderedUuid();
-            $participantIds = $sz['participant_ids'] ?? [];
+            $participantIds = $sz['participant_ids'];
 
             // 60-80% of participants confirm the session zero
             $confirmRate = random_int(60, 80) / 100;
@@ -2778,16 +2816,14 @@ class DemoSeedCommand extends Command
                     'id' => (string) Str::orderedUuid(),
                     'session_zero_survey_id' => $surveyId,
                     'confirmed_at' => now()->subDays(random_int(1, 10)),
-                    'user_id' => $participantIds[$k],
+                    'user_id' => $participantIds[(string) $k],
                 ];
             }
 
             if (count($confirmationBatch) >= 500 || count($surveyBatch) >= 500) {
-                if (! empty($surveyBatch)) {
-                    $this->dryInsertMany('session_zero_surveys', $surveyBatch);
-                    $surveyBatch = [];
-                }
-                if (! empty($confirmationBatch)) {
+                $this->dryInsertMany('session_zero_surveys', $surveyBatch);
+                $surveyBatch = [];
+                if ($confirmationBatch !== []) {
                     $this->dryInsertMany('session_zero_confirmations', $confirmationBatch);
                     $confirmationBatch = [];
                 }
@@ -2849,11 +2885,11 @@ class DemoSeedCommand extends Command
             $batch[] = [
                 'id' => $this->nextRowId('short_links'),
                 'code' => $code,
-                'url' => '/games/' . $game['id'],
+                'url' => '/games/'.$game['id'],
                 'linkable_type' => Game::class,
                 'linkable_id' => $game['id'],
                 'user_id' => $game['owner_id'],
-                'label' => 'Demo share link ' . self::MARKER,
+                'label' => 'Demo share link '.self::MARKER,
                 'purpose' => 'share',
                 'expires_at' => null,
                 'max_hits' => null,
@@ -2914,7 +2950,7 @@ class DemoSeedCommand extends Command
                       AND gp.short_link_id IS NULL
                       AND sl.linkable_type = ?
                       AND sl.linkable_id = gp.game_id
-                      AND gp.game_id IN (" . implode(',', array_fill(0, count($chunk), '?')) . ")",
+                      AND gp.game_id IN (".implode(',', array_fill(0, count($chunk), '?')).')',
                 array_merge([Game::class], $chunk->toArray())
             );
             $totalGameUpdated += $updated;
@@ -2930,7 +2966,7 @@ class DemoSeedCommand extends Command
                       AND cp.short_link_id IS NULL
                       AND sl.linkable_type = ?
                       AND sl.linkable_id = cp.campaign_id
-                      AND cp.campaign_id IN (" . implode(',', array_fill(0, count($chunk), '?')) . ")",
+                      AND cp.campaign_id IN (".implode(',', array_fill(0, count($chunk), '?')).')',
                 array_merge([Campaign::class], $chunk->toArray())
             );
             $totalCampaignUpdated += $updated;
@@ -2966,9 +3002,6 @@ class DemoSeedCommand extends Command
         // Batched updates using a VALUES CTE joined against gm_profiles.
         // This avoids N individual queries while respecting NOT NULL constraints.
         foreach (array_chunk($profileIds, 100) as $chunk) {
-            if (empty($chunk)) {
-                continue;
-            }
 
             // Build values list for the CTE with explicit type casts
             $rows = [];
@@ -2995,7 +3028,7 @@ class DemoSeedCommand extends Command
             );
         }
 
-        $this->info('GM aggregates updated (' . count($profileIds) . ' profiles).');
+        $this->info('GM aggregates updated ('.count($profileIds).' profiles).');
     }
 
     // =========================================================================
@@ -3033,7 +3066,7 @@ class DemoSeedCommand extends Command
                 foreach ($types[$type] as $field) {
                     $data[$field] = $field === 'rating' ? random_int(2, 5)
                         : ($field === 'hours_until' ? random_int(1, 24)
-                        : 'Demo ' . $field . ' ' . self::MARKER);
+                        : 'Demo '.$field.' '.self::MARKER);
                 }
 
                 $batch[] = [
@@ -3083,7 +3116,7 @@ class DemoSeedCommand extends Command
         $bar->start();
 
         foreach ($this->attendanceReportQueue as $entry) {
-            $attendanceStatus = $entry['attendance'] ?? AttendanceStatus::Attended->value;
+            $attendanceStatus = $entry['attendance'];
             $weight = $attendanceStatus === AttendanceStatus::Attended->value ? 1.0 : -0.5;
 
             $batch[] = [
@@ -3142,6 +3175,7 @@ class DemoSeedCommand extends Command
             // ~30% of completed sessions get debriefings from 1-3 participants
             if (mt_rand() / mt_getrandmax() > 0.30) {
                 $bar->advance();
+
                 continue;
             }
 
@@ -3152,6 +3186,7 @@ class DemoSeedCommand extends Command
 
             if (empty($participants)) {
                 $bar->advance();
+
                 continue;
             }
 
@@ -3161,7 +3196,7 @@ class DemoSeedCommand extends Command
             foreach ($debriefKeys as $k) {
                 $toolType = $toolTypes[array_rand($toolTypes)];
 
-                $language = $game['language'] ?? 'en';
+                $language = $game['language'];
                 $responses = $toolType === 'debriefing'
                     ? [
                         'what_worked' => $language === 'de'
@@ -3183,7 +3218,7 @@ class DemoSeedCommand extends Command
                 $batch[] = [
                     'id' => (string) Str::orderedUuid(),
                     'game_id' => $game['game_id'],
-                    'user_id' => $participants[$k],
+                    'user_id' => $participants[(int) $k],
                     'tool_type' => $toolType,
                     'responses' => json_encode($responses),
                     'submitted_at' => now()->subDays(random_int(1, 14)),
@@ -3230,7 +3265,7 @@ class DemoSeedCommand extends Command
                 'subject_type' => Game::class,
                 'subject_id' => null,
                 'event_type' => ActivityType::GameCreated->value,
-                'properties' => json_encode(['game_name' => 'Demo game ' . self::MARKER]),
+                'properties' => json_encode(['game_name' => 'Demo game '.self::MARKER]),
                 'created_at' => now()->subDays(random_int(3, 60)),
             ],
             // player_joined: player joins a game
@@ -3239,7 +3274,7 @@ class DemoSeedCommand extends Command
                 'subject_type' => Game::class,
                 'subject_id' => null,
                 'event_type' => ActivityType::PlayerJoined->value,
-                'properties' => json_encode(['game_name' => 'Demo game ' . self::MARKER]),
+                'properties' => json_encode(['game_name' => 'Demo game '.self::MARKER]),
                 'created_at' => now()->subDays(random_int(1, 30)),
             ],
             // follow_received: user gained a follower
@@ -3248,7 +3283,7 @@ class DemoSeedCommand extends Command
                 'subject_type' => User::class,
                 'subject_id' => null,
                 'event_type' => ActivityType::FollowReceived->value,
-                'properties' => json_encode(['follower_name' => 'Demo user ' . self::MARKER]),
+                'properties' => json_encode(['follower_name' => 'Demo user '.self::MARKER]),
                 'created_at' => now()->subDays(random_int(1, 45)),
             ],
             // review_received: GM received a review
@@ -3266,7 +3301,7 @@ class DemoSeedCommand extends Command
                 'subject_type' => Game::class,
                 'subject_id' => null,
                 'event_type' => ActivityType::GameCompleted->value,
-                'properties' => json_encode(['game_name' => 'Demo game ' . self::MARKER]),
+                'properties' => json_encode(['game_name' => 'Demo game '.self::MARKER]),
                 'created_at' => now()->subDays(random_int(1, 30)),
             ],
             // campaign_created: GM started a campaign
@@ -3275,7 +3310,7 @@ class DemoSeedCommand extends Command
                 'subject_type' => Campaign::class,
                 'subject_id' => null,
                 'event_type' => ActivityType::CampaignCreated->value,
-                'properties' => json_encode(['campaign_name' => 'Demo campaign ' . self::MARKER]),
+                'properties' => json_encode(['campaign_name' => 'Demo campaign '.self::MARKER]),
                 'created_at' => now()->subDays(random_int(7, 60)),
             ],
             // session_scheduled: upcoming session reminder
@@ -3284,7 +3319,7 @@ class DemoSeedCommand extends Command
                 'subject_type' => Game::class,
                 'subject_id' => null,
                 'event_type' => ActivityType::SessionScheduled->value,
-                'properties' => json_encode(['game_name' => 'Demo session ' . self::MARKER]),
+                'properties' => json_encode(['game_name' => 'Demo session '.self::MARKER]),
                 'created_at' => now()->subDays(random_int(0, 14)),
             ],
         ];
@@ -3405,7 +3440,7 @@ class DemoSeedCommand extends Command
         $this->newLine();
         $header = $this->dryRun ? 'DRY RUN — SIMULATED SEED SUMMARY' : 'DEMO DATA SEED COMPLETE';
         $this->info('╔══════════════════════════════════════════════════╗');
-        $this->info('║' . str_pad($header, 48, ' ', STR_PAD_BOTH) . '║');
+        $this->info('║'.str_pad($header, 48, ' ', STR_PAD_BOTH).'║');
         $this->info('╚══════════════════════════════════════════════════╝');
         $this->newLine();
 
@@ -3461,7 +3496,7 @@ class DemoSeedCommand extends Command
             ]);
 
             $this->newLine();
-            $this->info('Login: any user with password "' . self::PASSWORD . '"');
+            $this->info('Login: any user with password "'.self::PASSWORD.'"');
             $this->info('Email pattern: firstname.lastname.NNNN@example.org');
             $this->info('Teardown: php artisan demo:teardown');
         }
@@ -3479,12 +3514,12 @@ class DemoSeedCommand extends Command
     private function buildLocationJson(?string $locationId): string
     {
         if ($locationId === null) {
-            return json_encode(['type' => 'online', 'details' => '']);
+            return json_encode(['type' => 'online', 'details' => '']) ?: '{}';
         }
 
         // In dry-run mode, we don't have the actual location in DB — use a stub
         if ($this->dryRun) {
-            return json_encode(['type' => 'physical', 'location_id' => $locationId]);
+            return json_encode(['type' => 'physical', 'location_id' => $locationId]) ?: '{}';
         }
 
         if (! isset($this->locationCache[$locationId])) {
@@ -3495,32 +3530,38 @@ class DemoSeedCommand extends Command
         if ($loc) {
             return json_encode([
                 'type' => 'physical',
-                'address' => trim(($loc->address ?? '') . ', ' . ($loc->postal_code ?? '') . ' ' . ($loc->city ?? '')),
+                'address' => trim(($loc->address ?? '').', '.($loc->postal_code ?? '').' '.($loc->city ?? '')),
                 'lat' => (float) $loc->latitude,
                 'lng' => (float) $loc->longitude,
-            ]);
+            ]) ?: '{}';
         }
 
-        return json_encode(['type' => 'physical', 'location_id' => $locationId]);
+        return json_encode(['type' => 'physical', 'location_id' => $locationId]) ?: '{}';
     }
 
+    /**
+     * @return array<int, string>
+     */
     private function randomVibes(string $type): array
     {
         $keys = $type === 'board' ? self::BOARD_VIBE_KEYS : self::TTRPG_VIBE_KEYS;
         $validValues = VibeFlag::values();
         // Filter to only values that actually exist in the enum
         $pool = array_values(array_intersect($keys, $validValues));
-        if (empty($pool)) {
+        if (count($pool) < 2) {
             return [];
         }
         $count = random_int(2, min(4, count($pool)));
-        $picked = array_map(fn ($k) => $pool[$k], $this->randomKeys($pool, $count));
+        $picked = array_map(fn ($k) => $pool[(int) $k], $this->randomKeys($pool, $count));
+
         return $picked;
     }
 
     /**
      * Generate varied privacy settings per user.
      * Distributions: bio=70% everyone/30% friends, location=60% everyone/30% friends/10% nobody, etc.
+     *
+     * @return array<string, mixed>
      */
     private function randomPrivacySettings(): array
     {
@@ -3533,17 +3574,18 @@ class DemoSeedCommand extends Command
                     return $value;
                 }
             }
-            return array_key_last($weights);
+
+            return (string) array_key_last($weights);
         };
 
         return [
-            'location'    => $pick(['everyone' => 0.60, 'friends' => 0.30, 'nobody' => 0.10]),
-            'game_systems'=> $pick(['everyone' => 0.40, 'friends' => 0.50, 'nobody' => 0.10]),
-            'vibes'       => $pick(['everyone' => 0.35, 'friends' => 0.55, 'nobody' => 0.10]),
-            'campaigns'   => $pick(['everyone' => 0.30, 'friends' => 0.60, 'nobody' => 0.10]),
-            'teams'       => $pick(['everyone' => 0.25, 'friends' => 0.65, 'nobody' => 0.10]),
-            'gm_profile'  => $pick(['everyone' => 0.50, 'friends' => 0.40, 'nobody' => 0.10]),
-            'bio'         => $pick(['everyone' => 0.70, 'friends' => 0.25, 'nobody' => 0.05]),
+            'location' => $pick(['everyone' => 0.60, 'friends' => 0.30, 'nobody' => 0.10]),
+            'game_systems' => $pick(['everyone' => 0.40, 'friends' => 0.50, 'nobody' => 0.10]),
+            'vibes' => $pick(['everyone' => 0.35, 'friends' => 0.55, 'nobody' => 0.10]),
+            'campaigns' => $pick(['everyone' => 0.30, 'friends' => 0.60, 'nobody' => 0.10]),
+            'teams' => $pick(['everyone' => 0.25, 'friends' => 0.65, 'nobody' => 0.10]),
+            'gm_profile' => $pick(['everyone' => 0.50, 'friends' => 0.40, 'nobody' => 0.10]),
+            'bio' => $pick(['everyone' => 0.70, 'friends' => 0.25, 'nobody' => 0.05]),
         ];
     }
 }

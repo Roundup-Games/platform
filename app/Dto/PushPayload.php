@@ -20,6 +20,8 @@ class PushPayload
 
     /**
      * Convert to the array format expected by the browser Push API.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {

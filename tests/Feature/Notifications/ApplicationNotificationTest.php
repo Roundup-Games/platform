@@ -1,23 +1,23 @@
 <?php
 
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
+use App\Livewire\Campaigns\ApplyToCampaign;
+use App\Livewire\Games\ApplyToGame;
+use App\Livewire\Games\ManageParticipants;
 use App\Models\Campaign;
-use App\Models\CampaignApplication;
-use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
-use App\Models\GameSystem;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Notifications\ApplicationApproved;
 use App\Notifications\ApplicationRejected;
 use App\Notifications\NewApplication;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
+use Livewire\Livewire;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -48,8 +48,8 @@ describe('Apply to protected game → NewApplication', function () {
             'status' => 'scheduled',
         ]);
 
-        \Livewire\Livewire::actingAs($applicant)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+        Livewire::actingAs($applicant)
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'Please let me join!')
             ->call('submitApplication')
             ->assertHasNoErrors();
@@ -75,8 +75,8 @@ describe('Apply to protected game → NewApplication', function () {
             'status' => 'scheduled',
         ]);
 
-        \Livewire\Livewire::actingAs($applicant)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+        Livewire::actingAs($applicant)
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'Let me in')
             ->call('submitApplication')
             ->assertHasNoErrors();
@@ -101,8 +101,8 @@ describe('Apply to protected game → NewApplication', function () {
             'status' => 'scheduled',
         ]);
 
-        \Livewire\Livewire::actingAs($applicant)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+        Livewire::actingAs($applicant)
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'Join please')
             ->call('submitApplication')
             ->assertHasNoErrors();
@@ -127,8 +127,8 @@ describe('Apply to protected campaign → NewApplication', function () {
             'status' => 'active',
         ]);
 
-        \Livewire\Livewire::actingAs($applicant)
-            ->test(\App\Livewire\Campaigns\ApplyToCampaign::class, ['id' => $campaign->id])
+        Livewire::actingAs($applicant)
+            ->test(ApplyToCampaign::class, ['id' => $campaign->id])
             ->set('message', 'I want to join this campaign')
             ->call('submitApplication')
             ->assertHasNoErrors();
@@ -154,8 +154,8 @@ describe('Apply to protected campaign → NewApplication', function () {
             'status' => 'active',
         ]);
 
-        \Livewire\Livewire::actingAs($applicant)
-            ->test(\App\Livewire\Campaigns\ApplyToCampaign::class, ['id' => $campaign->id])
+        Livewire::actingAs($applicant)
+            ->test(ApplyToCampaign::class, ['id' => $campaign->id])
             ->set('message', 'Let me join')
             ->call('submitApplication')
             ->assertHasNoErrors();
@@ -188,8 +188,8 @@ describe('Approve application → ApplicationApproved', function () {
             'status' => ParticipantStatus::Pending->value,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+        Livewire::actingAs($owner)
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('approveApplication', (string) $participant->id);
 
         $notifications = $applicant->notifications()->where('type', ApplicationApproved::class)->get();
@@ -228,8 +228,8 @@ describe('Reject application → ApplicationRejected', function () {
             'status' => ParticipantStatus::Pending->value,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+        Livewire::actingAs($owner)
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('rejectApplication', (string) $participant->id);
 
         $notifications = $applicant->notifications()->where('type', ApplicationRejected::class)->get();

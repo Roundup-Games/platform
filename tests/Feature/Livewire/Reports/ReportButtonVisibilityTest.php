@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Campaigns\PublicCampaignDetail;
 use App\Livewire\Games\GameDetail;
@@ -11,8 +13,6 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Enums\ParticipantStatus;
-use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 

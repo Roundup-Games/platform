@@ -6,6 +6,7 @@ use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
 use App\Models\AttendanceReport;
 use App\Models\Game;
+use App\Models\User;
 use App\Notifications\AttendanceNudge;
 use App\Services\NotificationService;
 use Illuminate\Bus\Queueable;
@@ -68,7 +69,7 @@ class AttendanceNudgeJob implements ShouldQueue
             ->chunkById(100, function ($games) use ($notificationService, &$gameCount, &$totalNudged, &$totalSkipped, &$totalErrors) {
                 foreach ($games as $game) {
                     $gameCount++;
-                    $deadline = $game->attendance_window_closes_at->format('M j, Y \a\t g:i A');
+                    $deadline = $game->attendance_window_closes_at?->format('M j, Y \a\t g:i A') ?? 'unknown deadline';
 
                     // Get IDs of users who already filed a report for this game
                     $reporterIds = AttendanceReport::where('game_id', $game->id)
@@ -85,7 +86,7 @@ class AttendanceNudgeJob implements ShouldQueue
                     // as a dedup safety net (guards against delayed/retried runs)
                     $alreadyNudgedUserIds = DB::table('notifications')
                         ->where('type', AttendanceNudge::class)
-                        ->where('notifiable_type', (new \App\Models\User)->getMorphClass())
+                        ->where('notifiable_type', (new User)->getMorphClass())
                         ->whereJsonContains('data->entity_id', $game->id)
                         ->pluck('notifiable_id')
                         ->flip();
@@ -93,9 +94,14 @@ class AttendanceNudgeJob implements ShouldQueue
                     foreach ($approvedParticipants as $participant) {
                         $user = $participant->user;
 
+                        if (! $user) {
+                            continue;
+                        }
+
                         // Skip if already nudged for this game
                         if (isset($alreadyNudgedUserIds[$user->id])) {
                             $totalSkipped++;
+
                             continue;
                         }
 

@@ -10,9 +10,10 @@ use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Paddle\Subscription;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -47,7 +48,7 @@ class BillingSupport extends Component
     {
         $this->validate();
 
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         // Rate limit: 5 billing support tickets per user per hour
         $rateLimitKey = "billing-support:{$user->id}";
@@ -72,15 +73,21 @@ class BillingSupport extends Component
         $this->reset('subject', 'description', 'issueType');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
             'subject' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:5000'],
-            'issueType' => ['required', 'string', 'in:' . implode(',', array_keys(self::ISSUE_TYPES))],
+            'issueType' => ['required', 'string', 'in:'.implode(',', array_keys(self::ISSUE_TYPES))],
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function messages(): array
     {
         return [
@@ -94,6 +101,8 @@ class BillingSupport extends Component
 
     /**
      * Get the issue types for the view.
+     *
+     * @return array<string, mixed>
      */
     public function getIssueTypes(): array
     {
@@ -102,7 +111,7 @@ class BillingSupport extends Component
         ])->toArray();
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.support.billing-support', [
             'issueTypes' => $this->getIssueTypes(),
@@ -177,7 +186,7 @@ class BillingSupport extends Component
     /**
      * Build a human-readable description for the billing support ticket.
      */
-    private function buildTicketDescription(User $user, $subscription): string
+    private function buildTicketDescription(User $user, ?Subscription $subscription): string
     {
         $issueLabel = __(self::ISSUE_TYPES[$this->issueType] ?? $this->issueType);
 
@@ -189,12 +198,12 @@ class BillingSupport extends Component
         if ($subscription) {
             $lines[] = '';
             $lines[] = '**Subscription details:**';
-            $lines[] = "- Status: " . ucfirst($subscription->status);
+            $lines[] = '- Status: '.ucfirst($subscription->status);
             if ($subscription->paddle_id) {
                 $lines[] = "- Paddle Subscription ID: {$subscription->paddle_id}";
             }
             if ($subscription->type) {
-                $lines[] = "- Plan: " . ucfirst($subscription->type);
+                $lines[] = '- Plan: '.ucfirst($subscription->type);
             }
         }
 

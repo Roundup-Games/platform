@@ -1,9 +1,12 @@
 <?php
 
+use App\Livewire\Games\GameListing;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
-use function Pest\Laravel\{actingAs};
+use App\Models\UserRelationship;
+
+use function Pest\Laravel\actingAs;
 
 describe('GameListing', function () {
     it('lists public scheduled upcoming games', function () {
@@ -14,7 +17,7 @@ describe('GameListing', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->assertSee('Epic Adventure');
     })->group('smoke');
 
@@ -26,7 +29,7 @@ describe('GameListing', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->assertDontSee('Secret Session');
     })->group('smoke');
 
@@ -43,7 +46,7 @@ describe('GameListing', function () {
         ]);
 
         actingAs($stranger);
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->assertDontSee('Protected Game');
     });
 
@@ -52,8 +55,8 @@ describe('GameListing', function () {
         $friend = User::factory()->create(['profile_complete' => true]);
 
         // Mutual follow = friendship
-        \App\Models\UserRelationship::follow($owner, $friend);
-        \App\Models\UserRelationship::follow($friend, $owner);
+        UserRelationship::follow($owner, $friend);
+        UserRelationship::follow($friend, $owner);
 
         Game::factory()->create([
             'name' => ['en' => 'Friends Only Game'],
@@ -64,7 +67,7 @@ describe('GameListing', function () {
         ]);
 
         actingAs($friend);
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->assertSee('Friends Only Game');
     });
 
@@ -76,7 +79,7 @@ describe('GameListing', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->assertDontSee('Canceled Game');
     });
 
@@ -88,7 +91,7 @@ describe('GameListing', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->assertDontSee('Completed Game');
     });
 
@@ -100,7 +103,7 @@ describe('GameListing', function () {
             'date_time' => now()->subDays(3),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->assertDontSee('Past Game');
     });
 
@@ -108,7 +111,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Dragon Slayer'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Castle Siege'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('search', 'Dragon')
             ->assertSee('Dragon Slayer')
             ->assertDontSee('Castle Siege');
@@ -118,7 +121,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Game A'], 'description' => ['en' => 'A thrilling dungeon crawl experience'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Game B'], 'description' => ['en' => 'A relaxing farming simulation'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('search', 'dungeon crawl')
             ->assertSee('Game A')
             ->assertDontSee('Game B');
@@ -128,7 +131,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Real Game'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => '100% Fun Game'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('search', '100%')
             ->assertDontSee('Real Game');
     });
@@ -138,7 +141,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'D&D Game'], 'game_system_id' => $system->id, 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Other Game'], 'game_system_id' => GameSystem::factory()->create(['name' => ['en' => 'Pathfinder']])->id, 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('game_system_id', $system->id)
             ->assertSee('D&D Game')
             ->assertDontSee('Other Game');
@@ -148,7 +151,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Beginner Game'], 'experience_level' => 'beginner', 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Advanced Game'], 'experience_level' => 'advanced', 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('experience_level', 'beginner')
             ->assertSee('Beginner Game')
             ->assertDontSee('Advanced Game');
@@ -158,7 +161,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Cozy Game'], 'vibe_flags' => ['cooperative', 'lighthearted'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Hardcore Game'], 'vibe_flags' => ['competitive', 'rules-heavy'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->call('toggleVibeFlag', 'cooperative')
             ->assertSee('Cozy Game')
             ->assertDontSee('Hardcore Game');
@@ -168,7 +171,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Coop Light'], 'vibe_flags' => ['cooperative', 'lighthearted'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Coop Only'], 'vibe_flags' => ['cooperative'], 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->call('toggleVibeFlag', 'cooperative')
             ->call('toggleVibeFlag', 'lighthearted')
             ->assertSee('Coop Light')
@@ -176,7 +179,7 @@ describe('GameListing', function () {
     });
 
     it('toggles vibe flags off', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        $component = Livewire\Livewire::test(GameListing::class)
             ->call('toggleVibeFlag', 'cooperative')
             ->assertSet('vibe_flags', ['cooperative'])
             ->call('toggleVibeFlag', 'cooperative')
@@ -187,7 +190,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'English Game'], 'language' => 'en', 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'German Game'], 'language' => 'de', 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('language', 'de')
             ->assertSee('German Game')
             ->assertDontSee('English Game');
@@ -197,7 +200,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'This Week Game'], 'date_time' => min(now()->endOfWeek()->subHour(), now()->addDays(5)), 'visibility' => 'public', 'status' => 'scheduled']);
         Game::factory()->create(['name' => ['en' => 'Next Month Game'], 'date_time' => now()->addMonths(2), 'visibility' => 'public', 'status' => 'scheduled']);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('date', 'this_week')
             ->assertSee('This Week Game')
             ->assertDontSee('Next Month Game');
@@ -207,7 +210,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'This Month Game'], 'date_time' => now()->addDays(3), 'visibility' => 'public', 'status' => 'scheduled']);
         Game::factory()->create(['name' => ['en' => 'Far Future Game'], 'date_time' => now()->addMonths(3), 'visibility' => 'public', 'status' => 'scheduled']);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('date', 'this_month')
             ->assertSee('This Month Game')
             ->assertDontSee('Far Future Game');
@@ -217,7 +220,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Free Game'], 'price' => 0, 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Paid Game'], 'price' => 10, 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('price', 'free')
             ->assertSee('Free Game')
             ->assertDontSee('Paid Game');
@@ -227,7 +230,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Free Game'], 'price' => 0, 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Paid Game'], 'price' => 10, 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('price', 'paid')
             ->assertSee('Paid Game')
             ->assertDontSee('Free Game');
@@ -237,7 +240,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Simple Game'], 'complexity' => 1.5, 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Complex Game'], 'complexity' => 4.5, 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('complexity_min', '4.0')
             ->assertSee('Complex Game')
             ->assertDontSee('Simple Game');
@@ -247,7 +250,7 @@ describe('GameListing', function () {
         Game::factory()->create(['name' => ['en' => 'Beginner Game'], 'experience_level' => 'beginner', 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['name' => ['en' => 'Advanced Game'], 'experience_level' => 'advanced', 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+        Livewire\Livewire::test(GameListing::class)
             ->set('experience_level', 'beginner')
             ->assertDontSee('Advanced Game')
             ->call('clearFilters')

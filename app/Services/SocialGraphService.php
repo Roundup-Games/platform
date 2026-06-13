@@ -2,11 +2,9 @@
 
 namespace App\Services;
 
-use App\Enums\RelationshipType;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Stateless service for querying the social graph between users.
@@ -137,12 +135,16 @@ class SocialGraphService
      *
      * Friends are mutual follows (I follow them AND they follow me, no blocks).
      * Teammates are users sharing an active team membership.
+     *
+     * @return list<mixed>
      */
     public function getAllowedOwnerIdsForProtectedContent(User $user): array
     {
-        $ids = [$user->id];
+        $ids = [(string) $user->id];
 
-        $friendIds = $this->getMutualFollows($user)->pluck('id')->toArray();
+        $friendIds = $this->getMutualFollows($user)->pluck('id')
+            ->filter(fn (mixed $id) => is_string($id))->values()->toArray();
+        /** @var array<int, string> $friendIds */
         $ids = array_merge($ids, $friendIds);
 
         // Teammate user IDs: users who share an active team membership
@@ -157,9 +159,12 @@ class SocialGraphService
                 ->where('user_id', '!=', $user->id)
                 ->distinct()
                 ->pluck('user_id')
+                ->map(fn (mixed $id): string => to_string_id($id))
                 ->toArray();
             $ids = array_merge($ids, $teammateUserIds);
         }
+
+        $ids = array_filter($ids, fn (mixed $v) => is_string($v));
 
         return array_values(array_unique($ids));
     }
@@ -168,6 +173,8 @@ class SocialGraphService
      * Get the mutual follows for a user (intersection of followers and followings).
      *
      * Returns a collection of User models representing bidirectional follows.
+     *
+     * @return Collection<int, User>
      */
     public function getMutualFollows(User $user): Collection
     {

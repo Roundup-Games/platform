@@ -19,6 +19,8 @@ use App\Traits\HandlesBench;
 use App\Traits\HandlesWaitlist;
 use App\Traits\ManagesParticipants;
 use App\Traits\ManagesShortLinks;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
@@ -99,9 +101,9 @@ class CampaignDetail extends Component
 
     public function generateShareLink(): void
     {
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
-        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
+        if ((string) $this->campaign->owner_id !== (string) $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -120,9 +122,9 @@ class CampaignDetail extends Component
 
     public function revokeShareLink(): void
     {
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
-        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
+        if ((string) $this->campaign->owner_id !== (string) $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -141,8 +143,8 @@ class CampaignDetail extends Component
 
     public function regenerateShareLink(): void
     {
-        $viewer = Auth::user();
-        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
+        $viewer = authenticatedUser();
+        if ((string) $this->campaign->owner_id !== (string) $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -165,9 +167,9 @@ class CampaignDetail extends Component
 
     public function joinViaShareLink(): void
     {
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
-        if (! $viewer || ! $this->canJoinViaShareLink()) {
+        if (! $this->canJoinViaShareLink()) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -192,6 +194,10 @@ class CampaignDetail extends Component
         try {
             DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId) {
                 $campaign = Campaign::lockForUpdate()->find($this->campaign->id);
+
+                if ($campaign === null) {
+                    throw new \RuntimeException('Campaign not found during join transaction.');
+                }
 
                 // Revalidate short link under lock to catch mid-session revocation.
                 // If revoked, fall back to share token if one is still valid.
@@ -273,7 +279,8 @@ class CampaignDetail extends Component
     public function canJoinViaShareLink(): bool
     {
         $viewer = Auth::user();
-        if (! $viewer) {
+
+        if ($viewer === null) {
             return false;
         }
 
@@ -286,20 +293,20 @@ class CampaignDetail extends Component
         }
 
         // Cannot be the owner
-        if ($this->campaign->owner_id === $viewer->id) {
+        if ((string) $this->campaign->owner_id === (string) $viewer->id) {
             return false;
         }
 
         // Campaign must not be completed or cancelled
-        if ($this->campaign->status->value === CampaignStatus::Cancelled->value
-            || $this->campaign->status->value === CampaignStatus::Completed->value) {
+        if ($this->campaign->status?->value === CampaignStatus::Cancelled->value
+            || $this->campaign->status?->value === CampaignStatus::Completed->value) {
             return false;
         }
 
         // Cannot already be a participant
         $existingParticipant = $this->campaign->participants
             ->first(fn ($p) => $p->user_id === $viewer->id
-                && in_array($p->status->value, [
+                && in_array($p->status?->value, [
                     ParticipantStatus::Approved->value,
                     ParticipantStatus::Pending->value,
                     ParticipantStatus::Waitlisted->value,
@@ -317,8 +324,8 @@ class CampaignDetail extends Component
 
     public function leaveCampaign(): void
     {
-        $user = Auth::user();
-        if (! $user || $this->isOwner()) {
+        $user = authenticatedUser();
+        if ($this->isOwner()) {
             session()->flash('error', __('campaigns.error_cannot_leave_own_campaign'));
 
             return;
@@ -326,7 +333,7 @@ class CampaignDetail extends Component
 
         $participant = $this->campaign->participants
             ->first(fn ($p) => $p->user_id === $user->id
-                && in_array($p->status->value, [
+                && in_array($p->status?->value, [
                     ParticipantStatus::Approved->value,
                     ParticipantStatus::Waitlisted->value,
                     ParticipantStatus::Benched->value,
@@ -357,7 +364,7 @@ class CampaignDetail extends Component
         Log::info('Player left campaign', [
             'campaign_id' => $this->campaign->id,
             'user_id' => $user->id,
-            'previous_status' => $participant->status->value,
+            'previous_status' => $participant->status?->value,
         ]);
 
         // Promote from waitlist if applicable
@@ -373,9 +380,9 @@ class CampaignDetail extends Component
 
     // ── Computed Viewer State ───────────────────────────
 
-    private function viewerId(): ?string
+    private function viewerId(): string
     {
-        return Auth::id();
+        return (string) Auth::id();
     }
 
     /**
@@ -396,7 +403,7 @@ class CampaignDetail extends Component
     #[Computed]
     public function isOwner(): bool
     {
-        return ($id = $this->viewerId()) && $this->campaign->owner_id === $id;
+        return ($id = $this->viewerId()) && (string) $this->campaign->owner_id === (string) $id;
     }
 
     #[Computed]
@@ -404,7 +411,7 @@ class CampaignDetail extends Component
     {
         $vp = $this->viewerParticipant();
 
-        return $vp && in_array($vp->status->value, [
+        return $vp && in_array($vp->status?->value, [
             ParticipantStatus::Approved->value,
             ParticipantStatus::Pending->value,
             ParticipantStatus::Waitlisted->value,
@@ -444,7 +451,7 @@ class CampaignDetail extends Component
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && $this->campaign->visibility !== Visibility::Private
             && (! $this->isCampaignFull() || $this->campaign->isBenchMode())
-            && ! in_array($this->campaign->status->value, [CampaignStatus::Cancelled->value, CampaignStatus::Completed->value]);
+            && ! in_array($this->campaign->status?->value, [CampaignStatus::Cancelled->value, CampaignStatus::Completed->value]);
     }
 
     #[Computed]
@@ -455,7 +462,7 @@ class CampaignDetail extends Component
             && ! $this->campaign->isBenchMode()
             && $this->isCampaignFull()
             && $this->campaign->visibility !== Visibility::Private
-            && ! in_array($this->campaign->status->value, [CampaignStatus::Cancelled->value, CampaignStatus::Completed->value]);
+            && ! in_array($this->campaign->status?->value, [CampaignStatus::Cancelled->value, CampaignStatus::Completed->value]);
     }
 
     #[Computed]
@@ -492,6 +499,9 @@ class CampaignDetail extends Component
         return $vp && $vp->status === ParticipantStatus::Benched ? $vp : null;
     }
 
+    /**
+     * @return Collection<int, CampaignParticipant>
+     */
     #[Computed]
     public function waitlistedPlayers()
     {
@@ -500,6 +510,9 @@ class CampaignDetail extends Component
             : collect();
     }
 
+    /**
+     * @return Collection<int, CampaignParticipant>
+     */
     #[Computed]
     public function benchedPlayers()
     {
@@ -510,7 +523,7 @@ class CampaignDetail extends Component
 
     // ── Render ─────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         $this->campaign->load([
             'owner',
@@ -527,11 +540,9 @@ class CampaignDetail extends Component
 
         $viewer = Auth::user();
 
-        $canReview = false;
-        if ($viewer) {
-            $canReview = app(ReviewEligibilityService::class)
-                ->canReviewCampaign($viewer, $this->campaign);
-        }
+        $canReview = $viewer
+            ? app(ReviewEligibilityService::class)->canReviewCampaign($viewer, $this->campaign)
+            : false;
 
         $reviews = Review::where('reviewable_type', Campaign::class)
             ->where('reviewable_id', $this->campaign->id)

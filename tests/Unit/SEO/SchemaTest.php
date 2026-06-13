@@ -6,7 +6,7 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 describe('OrganizationSchema', function () {
     it('includes nonprofitStatus field', function () {
-        $schema = new OrganizationSchema(new SEOData());
+        $schema = new OrganizationSchema(new SEOData);
         $data = $schema->generateInner();
 
         expect($data->get('nonprofitStatus'))
@@ -14,21 +14,21 @@ describe('OrganizationSchema', function () {
     });
 
     it('includes GitHub in sameAs', function () {
-        $schema = new OrganizationSchema(new SEOData());
+        $schema = new OrganizationSchema(new SEOData);
         $data = $schema->generateInner();
 
         expect($data->get('sameAs'))->toContain('https://github.com/Roundup-Games/');
     });
 
     it('includes areaServed', function () {
-        $schema = new OrganizationSchema(new SEOData());
+        $schema = new OrganizationSchema(new SEOData);
         $data = $schema->generateInner();
 
         expect($data->get('areaServed'))->toBe('Worldwide');
     });
 
     it('uses non-profit description as fallback when no SEOData description', function () {
-        $schema = new OrganizationSchema(new SEOData());
+        $schema = new OrganizationSchema(new SEOData);
         $data = $schema->generateInner();
 
         expect($data->get('description'))->toContain('non-profit');
@@ -43,7 +43,7 @@ describe('OrganizationSchema', function () {
     });
 
     it('sets correct schema type', function () {
-        $schema = new OrganizationSchema(new SEOData());
+        $schema = new OrganizationSchema(new SEOData);
         $data = $schema->generateInner();
 
         expect($data->get('@type'))->toBe('Organization');
@@ -52,21 +52,21 @@ describe('OrganizationSchema', function () {
 
 describe('AlgorithmsSchema', function () {
     it('sets FAQPage schema type', function () {
-        $schema = new AlgorithmsSchema(new SEOData());
+        $schema = new AlgorithmsSchema(new SEOData);
         $data = $schema->generateInner();
 
         expect($data->get('@type'))->toBe('FAQPage');
     });
 
     it('contains exactly 7 FAQ questions', function () {
-        $schema = new AlgorithmsSchema(new SEOData());
+        $schema = new AlgorithmsSchema(new SEOData);
         $data = $schema->generateInner();
 
         expect($data->get('mainEntity'))->toHaveCount(7);
     });
 
     it('each question has required Question/Answer structure', function () {
-        $schema = new AlgorithmsSchema(new SEOData());
+        $schema = new AlgorithmsSchema(new SEOData);
         $data = $schema->generateInner();
 
         foreach ($data->get('mainEntity') as $question) {
@@ -81,7 +81,7 @@ describe('AlgorithmsSchema', function () {
     });
 
     it('covers all 7 algorithm topics', function () {
-        $schema = new AlgorithmsSchema(new SEOData());
+        $schema = new AlgorithmsSchema(new SEOData);
         $data = $schema->generateInner();
         $names = $data->get('mainEntity')->pluck('name')->toArray();
 
@@ -95,7 +95,7 @@ describe('AlgorithmsSchema', function () {
     });
 
     it('includes schema.org context', function () {
-        $schema = new AlgorithmsSchema(new SEOData());
+        $schema = new AlgorithmsSchema(new SEOData);
         $data = $schema->generateInner();
 
         expect($data->get('@context'))->toBe('https://schema.org');

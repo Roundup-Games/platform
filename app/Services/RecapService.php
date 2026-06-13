@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ActivityType;
 use App\Enums\GameStatus;
+use App\Enums\NotificationCategory;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\RecapPosted;
@@ -33,7 +34,7 @@ class RecapService
             throw new \LogicException(__('games.error_recap_already_written'));
         }
 
-        if ($game->owner_id !== $author->id) {
+        if ((string) $game->owner_id !== (string) $author->id) {
             throw new \LogicException(__('games.error_recap_not_host'));
         }
 
@@ -74,11 +75,14 @@ class RecapService
             ->filter();
 
         foreach ($participants as $participant) {
+            if (! ($participant instanceof User)) {
+                continue;
+            }
             try {
                 $this->notificationService->send(
                     $participant,
                     new RecapPosted($game, $author),
-                    \App\Enums\NotificationCategory::GameUpdated,
+                    NotificationCategory::GameUpdated,
                 );
             } catch (\Throwable $e) {
                 Log::warning('Failed to send recap notification', [

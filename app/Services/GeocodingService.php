@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Dto\GeocodeResult;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -32,8 +33,9 @@ class GeocodingService
         ?int $cacheTtl = null,
         ?int $timeout = null,
     ) {
-        $this->baseUrl = $baseUrl ?? config('services.nominatim.base_url', 'https://nominatim.openstreetmap.org');
-        $this->userAgent = $userAgent ?? config('services.nominatim.user_agent', config('app.name') . '/' . app()->version());
+        $this->baseUrl = $baseUrl ?? (is_string($bu = config('services.nominatim.base_url', 'https://nominatim.openstreetmap.org')) ? $bu : 'https://nominatim.openstreetmap.org');
+        $defaultAgent = is_string($name = config('app.name')) ? $name : 'App';
+        $this->userAgent = $userAgent ?? (is_string($agent = config('services.nominatim.user_agent')) ? $agent : $defaultAgent.'/'.app()->version());
         $this->cacheTtl = $cacheTtl ?? 3600; // 1 hour default
         $this->timeout = $timeout ?? 10;
     }
@@ -45,8 +47,8 @@ class GeocodingService
      * or null if no results found.
      *
      * @param  string  $address  The address to geocode
-     * @param  array  $options  Additional Nominatim parameters (countrycodes, limit, etc.)
-     * @return array|null{lat: float, lng: float, display_name: string, place_id: string|null, raw: array}
+     * @param  array<string, mixed>  $options  Additional Nominatim parameters (countrycodes, limit, etc.)
+     * @return array{lat: float, lng: float, display_name: string, place_id: string, raw: array<int|string, mixed>}|null
      */
     public function geocode(string $address, array $options = []): ?array
     {
@@ -76,7 +78,7 @@ class GeocodingService
 
                 $results = $response->json();
 
-                if (empty($results) || ! isset($results[0]['lat']) || ! isset($results[0]['lon'])) {
+                if (! is_array($results) || empty($results) || ! is_array($results[0] ?? null)) {
                     Log::info('Geocoding: no results found', ['address' => $address]);
 
                     return null;
@@ -85,10 +87,10 @@ class GeocodingService
                 $result = $results[0];
 
                 return [
-                    'lat' => (float) $result['lat'],
-                    'lng' => (float) $result['lon'],
-                    'display_name' => $result['display_name'] ?? '',
-                    'place_id' => (string) ($result['place_id'] ?? ''),
+                    'lat' => is_numeric($lat = $result['lat'] ?? 0) ? (float) $lat : 0.0,
+                    'lng' => is_numeric($lon = $result['lon'] ?? 0) ? (float) $lon : 0.0,
+                    'display_name' => is_string($result['display_name'] ?? null) ? $result['display_name'] : '',
+                    'place_id' => to_string_id($result['place_id'] ?? null),
                     'raw' => $result,
                 ];
             } catch (ConnectionException $e) {
@@ -103,11 +105,33 @@ class GeocodingService
     }
 
     /**
+     * Geocode and return a typed DTO.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    public function geocodeDto(string $address, array $options = []): ?GeocodeResult
+    {
+        $result = $this->geocode($address, $options);
+        if ($result === null) {
+            return null;
+        }
+
+        return new GeocodeResult(
+            lat: $result['lat'],
+            lng: $result['lng'],
+            displayName: $result['display_name'],
+            placeId: $result['place_id'],
+            raw: $result['raw'],
+        );
+    }
+
+    /**
      * Reverse geocode coordinates to an address.
      *
      * @param  float  $lat  Latitude
      * @param  float  $lng  Longitude
-     * @return array|null{display_name: string, address: array, raw: array}
+     * @return array{display_name: string, address: array, raw: array}|null
+     * @return array<string, mixed>|null
      */
     public function reverseGeocode(float $lat, float $lng): ?array
     {
@@ -130,13 +154,13 @@ class GeocodingService
 
                 $result = $response->json();
 
-                if (isset($result['error'])) {
+                if (! is_array($result) || isset($result['error'])) {
                     return null;
                 }
 
                 return [
-                    'display_name' => $result['display_name'] ?? '',
-                    'address' => $result['address'] ?? [],
+                    'display_name' => is_string($result['display_name'] ?? null) ? $result['display_name'] : '',
+                    'address' => is_array($result['address'] ?? null) ? $result['address'] : [],
                     'raw' => $result,
                 ];
             } catch (ConnectionException $e) {
@@ -153,12 +177,14 @@ class GeocodingService
 
     /**
      * Generate a deterministic cache key for a geocoding request.
+     *
+     * @param  array<string, mixed>  $options
      */
     private function cacheKey(string $address, array $options = []): string
     {
         $normalized = mb_strtolower(trim($address));
-        $optionsHash = empty($options) ? '' : ':' . md5(json_encode($options));
+        $optionsHash = empty($options) ? '' : ':'.md5(json_encode($options) ?: '');
 
-        return 'geocode:' . md5($normalized) . $optionsHash;
+        return 'geocode:'.md5($normalized).$optionsHash;
     }
 }

@@ -2,16 +2,20 @@
 
 namespace App\Services;
 
+use App\Dto\EntityMeta;
+use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Jobs\HandleExpiredConfirmation;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
-use App\Jobs\HandleExpiredConfirmation;
 use App\Notifications\ConfirmationExpired;
+use App\Notifications\WaitlistExpiredRejected;
 use App\Notifications\WaitlistPromoted;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -33,9 +37,9 @@ class WaitlistService
      *   < 4h               0.5
      */
     private const CONFIRMATION_WINDOWS = [
-        'far'      => 12,   // > 48h before game
-        'medium'   => 6,    // 24-48h before game
-        'near'     => 2,    // 4-24h before game
+        'far' => 12,   // > 48h before game
+        'medium' => 6,    // 24-48h before game
+        'near' => 2,    // 4-24h before game
         'imminent' => 0.5,  // < 4h before game (30 minutes)
     ];
 
@@ -47,18 +51,13 @@ class WaitlistService
      * Centralizes the repeated `instanceof` checks used throughout this service
      * for logging, locking, and querying. Accepts either an entity or a participant
      * and returns a consistent metadata array.
-     *
-     * @param  Campaign|Game|CampaignParticipant|GameParticipant  $subject
-     * @return array{type: string, foreignKey: string, class: class-string<Campaign|Game>, participantClass: class-string<CampaignParticipant|GameParticipant>, isCampaign: bool}
      */
-    private function entityMeta(Campaign|Game|CampaignParticipant|GameParticipant $subject): array
+    private function entityMeta(Campaign|Game|CampaignParticipant|GameParticipant $subject): EntityMeta
     {
         $isCampaign = $subject instanceof Campaign
             || $subject instanceof CampaignParticipant;
 
-        return $this->entityMetaFromClass(
-            $isCampaign ? Campaign::class : Game::class
-        );
+        return $isCampaign ? EntityMeta::forCampaign() : EntityMeta::forGame();
     }
 
     // ── Public API (supports both Game and Campaign) ───
@@ -73,7 +72,7 @@ class WaitlistService
         $meta = $this->entityMeta($entity);
 
         if ($entity->isBenchMode()) {
-            throw new \LogicException("Waitlist is not available for this {$meta['type']} (bench mode is enabled).");
+            throw new \LogicException("Waitlist is not available for this {$meta->type} (bench mode is enabled).");
         }
 
         $approvedCount = app(ParticipantService::class)->getApprovedParticipantCount($entity);
@@ -88,10 +87,11 @@ class WaitlistService
         }
 
         // Owner cannot join their own entity's waitlist
-        if ($entity->owner_id === $user->id) {
+        if ((string) $entity->owner_id === (string) $user->id) {
             throw new \LogicException('Cannot add to waitlist: you are the host.');
         }
 
+        /** @var CampaignParticipant|GameParticipant $participant */
         $participant = $entity->participants()->create([
             'user_id' => $user->id,
             'role' => ParticipantRole::Player->value,
@@ -100,8 +100,8 @@ class WaitlistService
         ]);
 
         Log::info('waitlist.added', [
-            'entity_type' => $meta['type'],
-            $meta['foreignKey'] => $entity->id,
+            'entity_type' => $meta->type,
+            $meta->foreignKey => $entity->id,
             'user_id' => $user->id,
             'participant_id' => $participant->id,
             'queue_position' => $this->getWaitlistPosition($participant),
@@ -121,8 +121,10 @@ class WaitlistService
     {
         return DB::transaction(function () use ($entity) {
             $meta = $this->entityMeta($entity);
-            $lockedEntity = $meta['class']::lockForUpdate()->findOrFail($entity->id);
+            /** @var Campaign|Game $lockedEntity */
+            $lockedEntity = $meta->entityClass::lockForUpdate()->findOrFail($entity->id);
 
+            /** @var CampaignParticipant|GameParticipant|null $next */
             $next = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Waitlisted->value)
                 ->orderBy('waitlisted_at', 'asc')
@@ -148,8 +150,8 @@ class WaitlistService
             ]);
 
             Log::info('waitlist.promoted', [
-                'entity_type' => $meta['type'],
-                $meta['foreignKey'] => $lockedEntity->id,
+                'entity_type' => $meta->type,
+                $meta->foreignKey => $lockedEntity->id,
                 'participant_id' => $next->id,
                 'user_id' => $next->user_id,
                 'confirmation_hours' => $confirmationHours,
@@ -175,7 +177,7 @@ class WaitlistService
 
         if ($participant->confirmation_expires_at !== null && now()->isAfter($participant->confirmation_expires_at)) {
             Log::warning('waitlist.confirm_expired', [
-                $meta['foreignKey'] => $participant->{$meta['foreignKey']},
+                $meta->foreignKey => $participant->{$meta->foreignKey},
                 'participant_id' => $participant->id,
                 'user_id' => $participant->user_id,
                 'expired_at' => $participant->confirmation_expires_at->toIso8601String(),
@@ -190,7 +192,7 @@ class WaitlistService
         ]);
 
         Log::info('waitlist.confirmed', [
-            $meta['foreignKey'] => $participant->{$meta['foreignKey']},
+            $meta->foreignKey => $participant->{$meta->foreignKey},
             'participant_id' => $participant->id,
             'user_id' => $participant->user_id,
         ]);
@@ -205,7 +207,7 @@ class WaitlistService
         $meta = $this->entityMeta($participant);
 
         Log::info('waitlist.declined', [
-            $meta['foreignKey'] => $participant->{$meta['foreignKey']},
+            $meta->foreignKey => $participant->{$meta->foreignKey},
             'participant_id' => $participant->id,
             'user_id' => $participant->user_id,
         ]);
@@ -216,8 +218,14 @@ class WaitlistService
         ]);
 
         // Load the entity relationship if not already eager-loaded
-        $participant->loadMissing($meta['isCampaign'] ? 'campaign' : 'game');
-        $entity = $meta['isCampaign'] ? $participant->campaign : $participant->game;
+        $participant->loadMissing($meta->isCampaign() ? 'campaign' : 'game');
+        $entity = $participant instanceof CampaignParticipant
+            ? $participant->campaign
+            : $participant->game;
+
+        if ($entity === null) {
+            return;
+        }
 
         $this->promoteNext($entity);
     }
@@ -229,23 +237,23 @@ class WaitlistService
     public function handleExpiredConfirmation(CampaignParticipant|GameParticipant $participant): void
     {
         $meta = $this->entityMeta($participant);
-        $entityId = $participant->{$meta['foreignKey']};
+        $entityId = $participant->{$meta->foreignKey};
 
         DB::transaction(function () use ($participant, $entityId, $meta) {
             // Lock the entity row to serialize concurrent expired-confirmation
             // handlers for the same entity.
-            $meta['class']::lockForUpdate()->findOrFail($entityId);
+            $meta->entityClass::lockForUpdate()->findOrFail($entityId);
 
             // Refresh participant within the locked transaction
             $participant->refresh();
 
             // Guard: if another handler already resolved this participant, bail out
-            if ($participant->status->value !== 'pending') {
+            if ($participant->status === null || $participant->status->value !== 'pending') {
                 return;
             }
 
             Log::warning('waitlist.confirmation_expired', [
-                $meta['foreignKey'] => $entityId,
+                $meta->foreignKey => $entityId,
                 'participant_id' => $participant->id,
                 'user_id' => $participant->user_id,
                 'expired_at' => $participant->confirmation_expires_at?->toIso8601String(),
@@ -261,7 +269,7 @@ class WaitlistService
                 ]);
 
                 Log::info('waitlist.rejected_max_expirations', [
-                    $meta['foreignKey'] => $entityId,
+                    $meta->foreignKey => $entityId,
                     'participant_id' => $participant->id,
                     'user_id' => $participant->user_id,
                     'confirmation_attempts' => $confirmationAttempts,
@@ -276,7 +284,7 @@ class WaitlistService
             }
 
             // Promote the next in line using entity ID to avoid stale model
-            $this->promoteNextFromEntityId($entityId, $meta['class'], $participant->id);
+            $this->promoteNextFromEntityId($entityId, $meta->entityClass, $participant->id);
         });
 
         // Send notification outside the transaction
@@ -285,22 +293,31 @@ class WaitlistService
         try {
             $notificationService = app(NotificationService::class);
             $user = $participant->user;
+            if ($user === null) {
+                return;
+            }
 
             // Ensure entity relationship is loaded for notification routing
-            $participant->loadMissing($meta['isCampaign'] ? 'campaign' : 'game');
-            $entity = $meta['isCampaign'] ? $participant->campaign : $participant->game;
+            $participant->loadMissing($meta->isCampaign() ? 'campaign' : 'game');
+            $entity = $participant instanceof CampaignParticipant
+                ? $participant->campaign
+                : $participant->game;
+
+            if ($entity === null) {
+                return;
+            }
 
             if ($participant->status === ParticipantStatus::Rejected) {
                 $notificationService->send(
                     $user,
-                    new \App\Notifications\WaitlistExpiredRejected($entity, $participant->confirmation_attempts),
-                    \App\Enums\NotificationCategory::ConfirmationExpired
+                    new WaitlistExpiredRejected($entity, $participant->confirmation_attempts ?? 0),
+                    NotificationCategory::ConfirmationExpired
                 );
             } else {
                 $notificationService->send(
                     $user,
                     new ConfirmationExpired($entity),
-                    \App\Enums\NotificationCategory::ConfirmationExpired
+                    NotificationCategory::ConfirmationExpired
                 );
             }
         } catch (\Throwable $e) {
@@ -328,7 +345,7 @@ class WaitlistService
         $meta = $this->entityMeta($participant);
 
         Log::info('waitlist.manually_promoted', [
-            $meta['foreignKey'] => $participant->{$meta['foreignKey']},
+            $meta->foreignKey => $participant->{$meta->foreignKey},
             'participant_id' => $participant->id,
             'user_id' => $participant->user_id,
         ]);
@@ -347,7 +364,13 @@ class WaitlistService
     public function getWaitlistPosition(CampaignParticipant|GameParticipant $participant): int
     {
         $meta = $this->entityMeta($participant);
-        $entity = $meta['isCampaign'] ? $participant->campaign : $participant->game;
+        $entity = $participant instanceof CampaignParticipant
+            ? $participant->campaign
+            : $participant->game;
+
+        if ($entity === null) {
+            return 0;
+        }
 
         return $entity->participants()
             ->where('status', ParticipantStatus::Waitlisted->value)
@@ -422,8 +445,8 @@ class WaitlistService
         }
 
         Log::info('waitlist.entity_cancelled', [
-            'entity_type' => $meta['type'],
-            $meta['foreignKey'] => $entity->id,
+            'entity_type' => $meta->type,
+            $meta->foreignKey => $entity->id,
             'affected_count' => $affected->count(),
             'affected_status' => 'rejected',
         ]);
@@ -436,19 +459,12 @@ class WaitlistService
      * is available, not an entity/participant instance).
      *
      * @param  class-string<Campaign|Game>  $entityClass
-     * @return array{type: string, foreignKey: string, class: class-string<Campaign|Game>, participantClass: class-string<CampaignParticipant|GameParticipant>, isCampaign: bool}
-     */
-    private function entityMetaFromClass(string $entityClass): array
+=     */
+    private function entityMetaFromClass(string $entityClass): EntityMeta
     {
-        $isCampaign = $entityClass === Campaign::class;
-
-        return [
-            'type' => $isCampaign ? 'campaign' : 'game',
-            'foreignKey' => $isCampaign ? 'campaign_id' : 'game_id',
-            'class' => $entityClass,
-            'participantClass' => $isCampaign ? CampaignParticipant::class : GameParticipant::class,
-            'isCampaign' => $isCampaign,
-        ];
+        return $entityClass === Campaign::class
+            ? EntityMeta::forCampaign()
+            : EntityMeta::forGame();
     }
 
     /**
@@ -461,12 +477,14 @@ class WaitlistService
      * (e.g., user confirming via web while this promotion runs).
      *
      * @see self::handleExpiredConfirmation() — caller that holds the entity lock
+     *
+     * @param  class-string<Campaign|Game>  $entityClass
      */
     private function promoteNextFromEntityId(string $entityId, string $entityClass, ?string $excludeParticipantId = null): CampaignParticipant|GameParticipant|null
     {
         $meta = $this->entityMetaFromClass($entityClass);
 
-        $query = $meta['participantClass']::where($meta['foreignKey'], $entityId)
+        $query = $meta->participantClass::where($meta->foreignKey, $entityId)
             ->where('status', ParticipantStatus::Waitlisted->value)
             ->orderBy('waitlisted_at', 'asc')
             ->orderBy('id', 'asc');
@@ -484,6 +502,10 @@ class WaitlistService
         }
 
         $entity = $entityClass::find($entityId);
+        if ($entity === null) {
+            return null;
+        }
+
         $confirmationHours = $this->computeConfirmationWindow($entity);
         $expiresAt = now()->addMinutes((int) round($confirmationHours * 60));
 
@@ -494,8 +516,8 @@ class WaitlistService
         ]);
 
         Log::info('waitlist.promoted', [
-            'entity_type' => $meta['type'],
-            $meta['foreignKey'] => $entityId,
+            'entity_type' => $meta->type,
+            $meta->foreignKey => $entityId,
             'participant_id' => $next->id,
             'user_id' => $next->user_id,
             'confirmation_hours' => $confirmationHours,
@@ -513,7 +535,7 @@ class WaitlistService
      * Compute the absolute confirmation deadline (Carbon) for a promoted participant.
      * Returns now() + urgency-scaled window based on time until game start.
      */
-    public function computeConfirmationDeadline(Campaign|Game $entity): \Carbon\Carbon
+    public function computeConfirmationDeadline(Campaign|Game $entity): Carbon
     {
         $hours = $this->computeConfirmationWindow($entity);
 
@@ -550,18 +572,21 @@ class WaitlistService
     /**
      * Dispatch the WaitlistPromoted notification through NotificationService.
      */
-    private function notifyPromotion(CampaignParticipant|GameParticipant $participant, Campaign|Game $entity, $expiresAt): void
+    private function notifyPromotion(CampaignParticipant|GameParticipant $participant, Campaign|Game $entity, Carbon $expiresAt): void
     {
         try {
             $notificationService = app(NotificationService::class);
             $user = $participant->user;
+            if ($user === null) {
+                return;
+            }
 
             $notification = new WaitlistPromoted(
                 entity: $entity,
                 confirmationDeadline: $expiresAt->isoFormat('LLL'),
             );
 
-            $notificationService->send($user, $notification, \App\Enums\NotificationCategory::ParticipantJoined);
+            $notificationService->send($user, $notification, NotificationCategory::ParticipantJoined);
         } catch (\Throwable $e) {
             Log::error('waitlist.notification_failed', [
                 'entity_id' => $entity->id,
@@ -583,7 +608,7 @@ class WaitlistService
 
         if ($entity->min_players !== null && $approvedCount < $entity->min_players) {
             Log::warning('waitlist.below_min_players', [
-                $meta['foreignKey'] => $entity->id,
+                $meta->foreignKey => $entity->id,
                 'current_roster' => $approvedCount,
                 'min_players' => $entity->min_players,
             ]);

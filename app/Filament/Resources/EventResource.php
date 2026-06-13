@@ -2,24 +2,27 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Components\SeoFields;
-use App\Filament\Resources\EventResource\Pages;
-use App\Filament\Resources\EventResource\RelationManagers\RegistrationsRelationManager;
-use App\Filament\Resources\EventResource\RelationManagers\AnnouncementsRelationManager;
-use App\Models\Event;
 use App\Enums\ContentLanguage;
 use App\Enums\EventStatus;
+use App\Filament\Components\SeoFields;
+use App\Filament\Resources\EventResource\Pages;
+use App\Filament\Resources\EventResource\RelationManagers\AnnouncementsRelationManager;
+use App\Filament\Resources\EventResource\RelationManagers\RegistrationsRelationManager;
+use App\Models\Event;
+use App\Models\Location;
+use BackedEnum;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Schemas\Components\Grid;
-use Filament\Forms\Components\RichEditor;
-use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use BackedEnum;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -36,7 +39,7 @@ class EventResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
-    public static function getNavigationIcon(): string | BackedEnum | null
+    public static function getNavigationIcon(): string|BackedEnum|null
     {
         return Heroicon::OutlinedCalendar;
     }
@@ -121,14 +124,14 @@ class EventResource extends Resource
                             ->preload()
                             ->nullable()
                             ->helperText('Link to a verified venue from the directory. Falls back to manual fields below.')
-                            ->getSearchResultsUsing(fn (string $search) => \App\Models\Location::where('is_verified', true)
+                            ->getSearchResultsUsing(fn (string $search) => Location::where('is_verified', true)
                                 ->where(fn ($q) => $q->where('name', 'ILIKE', "%{$search}%")
                                     ->orWhere('city', 'ILIKE', "%{$search}%"))
                                 ->limit(20)
                                 ->pluck('name', 'id')
                                 ->toArray())
                             ->getOptionLabelUsing(fn (?string $value): ?string => $value
-                                ? \App\Models\Location::find($value)?->name
+                                ? Location::find($value)?->name
                                 : null),
                         Grid::make(2)
                             ->schema([
@@ -268,11 +271,11 @@ class EventResource extends Resource
                 //
             ])
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->toolbarActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -293,5 +296,4 @@ class EventResource extends Resource
             'edit' => Pages\EditEvent::route('/{record}/edit'),
         ];
     }
-
 }

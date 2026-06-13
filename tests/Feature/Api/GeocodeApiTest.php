@@ -3,7 +3,8 @@
 use App\Services\GeocodingService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use function Pest\Laravel\{postJson};
+
+use function Pest\Laravel\postJson;
 
 describe('GeocodeApiTest', function () {
     beforeEach(function () {

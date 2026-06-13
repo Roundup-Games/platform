@@ -19,6 +19,11 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * PDO parameter binding, bypassing any PHP-side string casting.
  * We override to force 'whereIn' which uses PDO binding, and cast
  * all keys to string.
+ *
+ * @template TRelatedModel of Model
+ * @template TDeclaringModel of Model
+ *
+ * @extends MorphMany<TRelatedModel, TDeclaringModel>
  */
 class StringKeyMorphMany extends MorphMany
 {
@@ -29,7 +34,7 @@ class StringKeyMorphMany extends MorphMany
     {
         $key = parent::getParentKey();
 
-        return $key !== null ? (string) $key : null;
+        return $key !== null ? (is_string($key) || is_int($key) ? (string) $key : null) : null;
     }
 
     /**
@@ -62,7 +67,8 @@ class StringKeyMorphMany extends MorphMany
      */
     protected function setForeignAttributesForCreate(Model $child)
     {
-        $child->setAttribute($this->getForeignKeyName(), (string) $this->getParentKey());
+        $pk = $this->getParentKey();
+        $child->setAttribute($this->getForeignKeyName(), is_string($pk) || is_int($pk) ? (string) $pk : '');
         $child->setAttribute($this->getMorphType(), $this->morphClass);
     }
 }

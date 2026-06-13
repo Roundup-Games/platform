@@ -5,6 +5,8 @@ namespace Tests\Feature\Livewire\Notifications;
 use App\Livewire\Notifications\NotificationsPage;
 use App\Models\Game;
 use App\Models\User;
+use App\Notifications\EntityInvitation;
+use App\Notifications\NewFollower;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -29,7 +31,7 @@ class NotificationsPageTest extends TestCase
     public function test_displays_grouped_notifications(): void
     {
         $follower = User::factory()->create(['name' => 'Alice']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
+        $this->user->notify(new NewFollower($follower));
 
         $component = Livewire::actingAs($this->user)
             ->test(NotificationsPage::class);
@@ -39,7 +41,7 @@ class NotificationsPageTest extends TestCase
 
         $group = $notifications->items()[0];
         $this->assertEquals('NewFollower', $group->type);
-        $this->assertEquals('Alice followed you', $group->display_string);
+        $this->assertEquals('Alice followed you', $group->displayString);
         $this->assertEquals(1, $group->count);
     }
 
@@ -47,7 +49,7 @@ class NotificationsPageTest extends TestCase
     {
         for ($i = 0; $i < 5; $i++) {
             $follower = User::factory()->create(['name' => "Follower{$i}"]);
-            $this->user->notify(new \App\Notifications\NewFollower($follower));
+            $this->user->notify(new NewFollower($follower));
         }
 
         $component = Livewire::actingAs($this->user)
@@ -66,7 +68,7 @@ class NotificationsPageTest extends TestCase
     {
         for ($i = 0; $i < 4; $i++) {
             $follower = User::factory()->create(['name' => "Follower{$i}"]);
-            $this->user->notify(new \App\Notifications\NewFollower($follower));
+            $this->user->notify(new NewFollower($follower));
         }
 
         $component = Livewire::actingAs($this->user)
@@ -80,7 +82,7 @@ class NotificationsPageTest extends TestCase
     public function test_marks_single_group_as_read(): void
     {
         $follower = User::factory()->create(['name' => 'Charlie']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
+        $this->user->notify(new NewFollower($follower));
 
         $notification = $this->user->notifications()->first();
         $dateString = $notification->created_at->toDateString();
@@ -100,7 +102,7 @@ class NotificationsPageTest extends TestCase
     public function test_dispatches_event_when_marking_group_as_read(): void
     {
         $follower = User::factory()->create(['name' => 'Dave']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
+        $this->user->notify(new NewFollower($follower));
 
         $notification = $this->user->notifications()->first();
         $dateString = $notification->created_at->toDateString();
@@ -126,7 +128,7 @@ class NotificationsPageTest extends TestCase
     {
         for ($i = 0; $i < 3; $i++) {
             $follower = User::factory()->create(['name' => "Follower{$i}"]);
-            $this->user->notify(new \App\Notifications\NewFollower($follower));
+            $this->user->notify(new NewFollower($follower));
         }
 
         $component = Livewire::actingAs($this->user)
@@ -143,7 +145,7 @@ class NotificationsPageTest extends TestCase
     public function test_dispatches_event_when_marking_all_read(): void
     {
         $follower = User::factory()->create(['name' => 'Eve']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
+        $this->user->notify(new NewFollower($follower));
 
         Livewire::actingAs($this->user)
             ->test(NotificationsPage::class)
@@ -157,7 +159,7 @@ class NotificationsPageTest extends TestCase
     {
         for ($i = 0; $i < 2; $i++) {
             $follower = User::factory()->create(['name' => "Follower{$i}"]);
-            $this->user->notify(new \App\Notifications\NewFollower($follower));
+            $this->user->notify(new NewFollower($follower));
         }
 
         $notification = $this->user->notifications()->first();
@@ -188,7 +190,7 @@ class NotificationsPageTest extends TestCase
 
         // Add notification after mount
         $follower = User::factory()->create(['name' => 'LateFollower']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
+        $this->user->notify(new NewFollower($follower));
 
         $component->call('refreshNotifications');
 
@@ -206,7 +208,7 @@ class NotificationsPageTest extends TestCase
         $this->assertEquals(0, $component->get('unreadCount'));
 
         $follower = User::factory()->create(['name' => 'NewFollower']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
+        $this->user->notify(new NewFollower($follower));
 
         $component->dispatch('notification-received');
 
@@ -218,14 +220,14 @@ class NotificationsPageTest extends TestCase
     public function test_groups_different_notification_types_separately(): void
     {
         $follower = User::factory()->create(['name' => 'Alice']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
+        $this->user->notify(new NewFollower($follower));
 
         $inviter = User::factory()->create(['name' => 'Bob']);
         $game = Game::factory()->create([
             'owner_id' => $inviter->id,
             'status' => 'scheduled',
         ]);
-        $this->user->notify(new \App\Notifications\EntityInvitation(
+        $this->user->notify(new EntityInvitation(
             $game,
             $inviter,
         ));

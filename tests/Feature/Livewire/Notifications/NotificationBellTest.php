@@ -4,6 +4,7 @@ namespace Tests\Feature\Livewire\Notifications;
 
 use App\Livewire\Notifications\NotificationBell;
 use App\Models\User;
+use App\Notifications\NewFollower;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
@@ -41,7 +42,7 @@ class NotificationBellTest extends TestCase
     public function test_recent_notifications_returns_grouped_notifications(): void
     {
         $follower = User::factory()->create(['name' => 'Alice']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
+        $this->user->notify(new NewFollower($follower));
 
         $component = Livewire::actingAs($this->user)
             ->test(NotificationBell::class);
@@ -49,8 +50,8 @@ class NotificationBellTest extends TestCase
         $recent = $component->get('recentNotifications');
         $this->assertCount(1, $recent);
         $this->assertEquals('NewFollower', $recent->first()->type);
-        $this->assertEquals('Alice followed you', $recent->first()->display_string);
-        $this->assertFalse($recent->first()->is_read);
+        $this->assertEquals('Alice followed you', $recent->first()->displayString);
+        $this->assertFalse($recent->first()->isRead);
     }
 
     public function test_recent_notifications_limits_to_10_groups(): void
@@ -60,7 +61,7 @@ class NotificationBellTest extends TestCase
         // Create 12 NewFollower notifications — they collapse into 1 group.
         for ($i = 0; $i < 12; $i++) {
             $follower = User::factory()->create(['name' => "Follower{$i}"]);
-            $this->user->notify(new \App\Notifications\NewFollower($follower));
+            $this->user->notify(new NewFollower($follower));
         }
 
         $component = Livewire::actingAs($this->user)
@@ -77,7 +78,7 @@ class NotificationBellTest extends TestCase
     public function test_mark_as_read_updates_notification_status(): void
     {
         $follower = User::factory()->create(['name' => 'Bob']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
+        $this->user->notify(new NewFollower($follower));
 
         $notification = $this->user->notifications()->first();
         $dateString = $notification->created_at->toDateString();
@@ -169,7 +170,7 @@ class NotificationBellTest extends TestCase
     {
         for ($i = 0; $i < $count; $i++) {
             $follower = User::factory()->create(['name' => "Follower{$i}"]);
-            $user->notify(new \App\Notifications\NewFollower($follower));
+            $user->notify(new NewFollower($follower));
         }
     }
 }

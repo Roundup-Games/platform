@@ -6,8 +6,10 @@ use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Models\NearbyDiscoveryView;
 use App\Models\User;
+use App\Services\PeopleDiscoveryService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -16,6 +18,7 @@ class UpdateUserDiscoveryCacheTest extends TestCase
     use DatabaseTransactions;
 
     private const LAT = 52.5163;
+
     private const LNG = 13.3777;
 
     #[Test]
@@ -35,7 +38,7 @@ class UpdateUserDiscoveryCacheTest extends TestCase
         Log::shouldReceive('debug')->atLeast(0);
 
         $job = new UpdateUserDiscoveryCache($user->id, 'location_change');
-        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
+        $job->handle(app(PeopleDiscoveryService::class));
 
         $view = NearbyDiscoveryView::where('user_id', $user->id)->first();
         $this->assertNotNull($view);
@@ -49,8 +52,8 @@ class UpdateUserDiscoveryCacheTest extends TestCase
         Log::shouldReceive('info')->atLeast(1);
         Log::shouldReceive('warning')->once();
 
-        $job = new UpdateUserDiscoveryCache(\Illuminate\Support\Str::uuid()->toString(), 'location_change');
-        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
+        $job = new UpdateUserDiscoveryCache(Str::uuid()->toString(), 'location_change');
+        $job->handle(app(PeopleDiscoveryService::class));
 
         $this->assertEquals(0, NearbyDiscoveryView::count());
     }
@@ -71,7 +74,7 @@ class UpdateUserDiscoveryCacheTest extends TestCase
         Log::shouldReceive('info')->atLeast(1);
 
         $job = new UpdateUserDiscoveryCache($user->id, 'vibe_change');
-        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
+        $job->handle(app(PeopleDiscoveryService::class));
 
         $this->assertEquals(0, NearbyDiscoveryView::where('user_id', $user->id)->count());
     }
@@ -87,7 +90,7 @@ class UpdateUserDiscoveryCacheTest extends TestCase
         Log::shouldReceive('info')->atLeast(1);
 
         $job = new UpdateUserDiscoveryCache($user->id, 'game_system_change');
-        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
+        $job->handle(app(PeopleDiscoveryService::class));
 
         $this->assertEquals(0, NearbyDiscoveryView::where('user_id', $user->id)->count());
     }
@@ -95,7 +98,7 @@ class UpdateUserDiscoveryCacheTest extends TestCase
     #[Test]
     public function it_logs_failure_on_exception(): void
     {
-        $fakeUuid = \Illuminate\Support\Str::uuid()->toString();
+        $fakeUuid = Str::uuid()->toString();
         Log::shouldReceive('error')->once()->with('discovery.job.failed', \Mockery::on(function ($context) use ($fakeUuid) {
             return $context['user_id'] === $fakeUuid
                 && $context['trigger_type'] === 'sweep'
@@ -123,7 +126,7 @@ class UpdateUserDiscoveryCacheTest extends TestCase
         Log::shouldReceive('info')->atLeast(1);
 
         $job = new UpdateUserDiscoveryCache($user->id, 'location_change');
-        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
+        $job->handle(app(PeopleDiscoveryService::class));
 
         $this->assertEquals(0, NearbyDiscoveryView::where('user_id', $user->id)->count());
     }

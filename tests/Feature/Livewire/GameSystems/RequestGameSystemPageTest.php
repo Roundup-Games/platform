@@ -2,13 +2,16 @@
 
 namespace Tests\Feature\Livewire\GameSystems;
 
+use App\Livewire\GameSystems\RequestGameSystemPage;
 use App\Models\User;
 use App\Services\GameSystemRequestService;
 use Database\Seeders\EscalatedSetupSeeder;
+use Escalated\Laravel\Events\TicketResolved;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -37,7 +40,7 @@ class RequestGameSystemPageTest extends TestCase
     public function test_type_must_be_valid(): void
     {
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Test')
             ->set('type', 'invalid')
             ->call('submit')
@@ -49,7 +52,7 @@ class RequestGameSystemPageTest extends TestCase
     public function test_submit_creates_escalated_ticket(): void
     {
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->set('type', 'boardgame')
             ->set('publisher', 'Stonemaier Games')
@@ -68,7 +71,7 @@ class RequestGameSystemPageTest extends TestCase
     public function test_submit_sets_submitted_flag(): void
     {
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->call('submit')
             ->assertSet('submitted', true);
@@ -80,7 +83,7 @@ class RequestGameSystemPageTest extends TestCase
     public function test_submit_trims_name(): void
     {
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', '  Wingspan  ')
             ->call('submit');
 
@@ -94,7 +97,7 @@ class RequestGameSystemPageTest extends TestCase
         $department = Department::where('name', 'Game Systems')->first();
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->call('submit');
 
@@ -105,7 +108,7 @@ class RequestGameSystemPageTest extends TestCase
     public function test_submit_stores_custom_fields_in_metadata(): void
     {
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->set('type', 'boardgame')
             ->set('bgg_url', 'https://boardgamegeek.com/boardgame/266192')
@@ -126,7 +129,7 @@ class RequestGameSystemPageTest extends TestCase
         $bggTag = Tag::where('name', 'bgg-sync')->first();
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->set('bgg_url', 'https://boardgamegeek.com/boardgame/266192')
             ->call('submit');
@@ -138,7 +141,7 @@ class RequestGameSystemPageTest extends TestCase
     public function test_submit_does_not_apply_bgg_sync_tag_when_no_bgg_url(): void
     {
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->call('submit');
 
@@ -149,7 +152,7 @@ class RequestGameSystemPageTest extends TestCase
     public function test_submit_sets_metadata_flag(): void
     {
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->call('submit');
 
@@ -160,7 +163,7 @@ class RequestGameSystemPageTest extends TestCase
     public function test_submit_stores_null_fields_as_null_in_metadata(): void
     {
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->set('type', 'boardgame')
             ->call('submit');
@@ -183,7 +186,7 @@ class RequestGameSystemPageTest extends TestCase
         ]);
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->call('submit')
             ->assertHasErrors(['name']);
@@ -201,7 +204,7 @@ class RequestGameSystemPageTest extends TestCase
         ]);
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'wingspan')
             ->call('submit')
             ->assertHasErrors(['name']);
@@ -216,11 +219,11 @@ class RequestGameSystemPageTest extends TestCase
         ]);
 
         // Resolve (approve) the ticket — suppress listener side effects
-        \Illuminate\Support\Facades\Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
+        Event::forget(TicketResolved::class);
         $ticket->markResolved($this->user);
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'ApprovedGame123')
             ->call('submit')
             ->assertHasNoErrors();
@@ -238,7 +241,7 @@ class RequestGameSystemPageTest extends TestCase
         ]);
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->call('submit')
             ->assertHasNoErrors();
@@ -250,12 +253,12 @@ class RequestGameSystemPageTest extends TestCase
 
     public function test_rate_limit_blocks_fourth_request(): void
     {
-        RateLimiter::clear('game-system-request:' . $this->user->id);
+        RateLimiter::clear('game-system-request:'.$this->user->id);
 
         // Create 3 requests
         for ($i = 0; $i < 3; $i++) {
             Livewire::actingAs($this->user)
-                ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+                ->test(RequestGameSystemPage::class)
                 ->set('name', "Game $i")
                 ->call('submit')
                 ->assertHasNoErrors();
@@ -263,7 +266,7 @@ class RequestGameSystemPageTest extends TestCase
 
         // 4th should be rate limited
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Game 4')
             ->call('submit')
             ->assertHasErrors(['name']);
@@ -285,7 +288,7 @@ class RequestGameSystemPageTest extends TestCase
 
         $spy = \Log::spy();
 
-        Livewire::test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+        Livewire::test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->call('submit');
 
@@ -298,7 +301,7 @@ class RequestGameSystemPageTest extends TestCase
 
     public function test_rate_limit_hit_is_logged(): void
     {
-        RateLimiter::clear('game-system-request:' . $this->user->id);
+        RateLimiter::clear('game-system-request:'.$this->user->id);
 
         // Exhaust the limit
         for ($i = 0; $i < 3; $i++) {
@@ -307,13 +310,13 @@ class RequestGameSystemPageTest extends TestCase
                 'name' => "Game $i",
                 'type' => 'boardgame',
             ]);
-            RateLimiter::hit('game-system-request:' . $this->user->id);
+            RateLimiter::hit('game-system-request:'.$this->user->id);
         }
 
         $spy = \Log::spy();
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Game 4')
             ->call('submit');
 
@@ -328,7 +331,7 @@ class RequestGameSystemPageTest extends TestCase
         $spy = \Log::spy();
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->test(RequestGameSystemPage::class)
             ->set('name', 'Wingspan')
             ->call('submit');
 

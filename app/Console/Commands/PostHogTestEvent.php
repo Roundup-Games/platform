@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Services\PostHogClient;
+use Illuminate\Console\Command;
 
 class PostHogTestEvent extends Command
 {
@@ -28,7 +28,7 @@ class PostHogTestEvent extends Command
     public function handle(): int
     {
         $apiKey = config('posthog.api_key');
-        $host = config('posthog.host', 'https://eu.i.posthog.com');
+        $host = is_string($h = config('posthog.host', 'https://eu.i.posthog.com')) ? $h : 'https://eu.i.posthog.com';
 
         if (! $apiKey) {
             $this->error('POSTHOG_API_KEY is not configured. Add it to your .env file.');
@@ -46,7 +46,7 @@ class PostHogTestEvent extends Command
 
         try {
             $this->posthogClient->capture([
-                'distinctId' => 'test-server-' . gethostname(),
+                'distinctId' => 'test-server-'.gethostname(),
                 'event' => "{$type}_test_event",
                 'properties' => [
                     'source' => 'artisan-command',
@@ -58,13 +58,13 @@ class PostHogTestEvent extends Command
 
             $this->info("✓ Test event '{$type}_test_event' captured successfully.");
             $this->info("  Host: {$host}");
-            $this->info("  API Key: " . 'phc_***...' . substr($apiKey, -4));
+            $this->info('  API Key: '.'phc_***...'.substr(is_string($apiKey) ? $apiKey : '', -4));
             $this->newLine();
             $this->info('Check your PostHog dashboard for the event. It may take a few seconds to appear.');
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
-            $this->error('Failed to capture test event: ' . $e->getMessage());
+            $this->error('Failed to capture test event: '.$e->getMessage());
 
             return self::FAILURE;
         }

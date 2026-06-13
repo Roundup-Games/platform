@@ -4,8 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TicketResource\Pages\ViewTicket;
 use Escalated\Filament\Resources\TicketResource as BaseTicketResource;
-use Escalated\Filament\Resources\TicketResource\Pages\ListTickets;
 use Escalated\Filament\Resources\TicketResource\Pages\CreateTicket;
+use Escalated\Filament\Resources\TicketResource\Pages\ListTickets;
 
 /**
  * Application-level TicketResource extending the Escalated vendor resource.

@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\VenueType;
 use App\Livewire\Venues\ProposeVenue;
 use App\Models\Location;
 use App\Models\User;

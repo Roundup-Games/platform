@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
  *
  * The job does NOT return results — it writes to cache as a side effect.
  */
-class UpdateUserDiscoveryCache implements ShouldQueue, ShouldBeUnique
+class UpdateUserDiscoveryCache implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;
@@ -118,7 +118,10 @@ class UpdateUserDiscoveryCache implements ShouldQueue, ShouldBeUnique
         // Update the NearbyDiscoveryView tracking row with current geohash
         NearbyDiscoveryView::updateOrCreate(
             ['user_id' => $user->id],
-            ['geohash_4' => $geohash4],
+            [
+                'geohash_4' => $geohash4,
+                'last_discovery_view' => now(),
+            ],
         );
 
         $durationMs = $startedAt->diffInMilliseconds(now());

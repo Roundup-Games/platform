@@ -1,6 +1,5 @@
 <?php
 
-use App\Console\Commands\PostHogTestEvent;
 use App\Models\User;
 use Illuminate\Support\Facades\Config;
 use PostHog\Posthog;
@@ -93,14 +92,14 @@ describe('PostHog event capture shape', function () {
         expect(fn () => Posthog::capture([
             'event' => 'bad_event',
             'properties' => [],
-        ]))->toThrow(\Exception::class);
+        ]))->toThrow(Exception::class);
     });
 
     test('capture throws without event', function () {
         expect(fn () => Posthog::capture([
             'distinctId' => 'user-1',
             'properties' => [],
-        ]))->toThrow(\Exception::class);
+        ]))->toThrow(Exception::class);
     });
 });
 
@@ -130,7 +129,7 @@ describe('PostHog identify shape', function () {
     test('identify throws without distinctId', function () {
         expect(fn () => Posthog::identify([
             'properties' => ['$set' => ['name' => 'Test']],
-        ]))->toThrow(\Exception::class);
+        ]))->toThrow(Exception::class);
     });
 });
 
@@ -138,9 +137,8 @@ describe('PostHog SDK initialization', function () {
     test('init with valid key succeeds', function () {
         expect(fn () => Posthog::init('phc_test_key', [
             'host' => 'https://eu.i.posthog.com',
-        ]))->not->toThrow(\Throwable::class);
+        ]))->not->toThrow(Throwable::class);
     });
-
 
     test('init is guarded when api key is missing', function () {
         // Clear the API key to test the config guard in AppServiceProvider.

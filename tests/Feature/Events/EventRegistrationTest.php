@@ -1,13 +1,16 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Events\ManageRegistrations;
+use App\Livewire\Events\RegisterForEvent;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
-use function Pest\Laravel\{actingAs, get};
+
+use function Pest\Laravel\actingAs;
 
 // ── RegisterForEvent ───────────────────────────────────
 
@@ -21,7 +24,7 @@ describe('RegisterForEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
     });
 
@@ -37,7 +40,7 @@ describe('RegisterForEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertOk()
             ->assertSee('Register for Event')
             ->assertSee('Open Tournament')
@@ -57,7 +60,7 @@ describe('RegisterForEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->set('registrationMode', 'individual')
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
@@ -84,7 +87,7 @@ describe('RegisterForEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->set('division', 'Division A')
             ->call('register');
 
@@ -113,7 +116,7 @@ describe('RegisterForEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
     })->group('smoke');
@@ -138,7 +141,7 @@ describe('RegisterForEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
     });
@@ -171,7 +174,7 @@ describe('RegisterForEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->set('selectedTeamId', (string) $team->id)
             ->call('register');
 
@@ -212,7 +215,7 @@ describe('RegisterForEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->set('selectedTeamId', (string) $team->id)
             ->call('register')
             ->assertHasErrors('selectedTeamId');
@@ -237,7 +240,7 @@ describe('ManageRegistrations', function () {
         ]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->assertOk()
             ->assertSee('John Doe');
     });
@@ -254,7 +257,7 @@ describe('ManageRegistrations', function () {
         EventRegistration::factory()->count(1)->cancelled()->create(['event_id' => $event->id]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->assertSeeInOrder(['6', '3', '2', '1']); // total, confirmed, pending, cancelled
     });
 
@@ -265,7 +268,7 @@ describe('ManageRegistrations', function () {
         $registration = EventRegistration::factory()->pending()->create(['event_id' => $event->id]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->call('approve', $registration->id);
 
         expect($registration->fresh()->status)->toBe('confirmed');
@@ -279,7 +282,7 @@ describe('ManageRegistrations', function () {
         $registration = EventRegistration::factory()->pending()->create(['event_id' => $event->id]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->call('reject', $registration->id);
 
         expect($registration->fresh()->status)->toBe('cancelled');
@@ -297,7 +300,7 @@ describe('ManageRegistrations', function () {
         ]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->call('confirmPayment', $registration->id);
 
         $fresh = $registration->fresh();
@@ -313,7 +316,7 @@ describe('ManageRegistrations', function () {
         $registration = EventRegistration::factory()->paid()->create(['event_id' => $event->id]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->call('markRefunded', $registration->id);
 
         expect($registration->fresh()->payment_status)->toBe('refunded');
@@ -326,7 +329,7 @@ describe('ManageRegistrations', function () {
         $registration = EventRegistration::factory()->confirmed()->create(['event_id' => $event->id]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->call('cancelRegistration', $registration->id);
 
         expect($registration->fresh()->status)->toBe('cancelled');
@@ -342,7 +345,7 @@ describe('ManageRegistrations', function () {
         EventRegistration::factory()->create(['event_id' => $event->id, 'user_id' => $user2->id]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->set('search', 'Alice')
             ->assertSee('Alice Alpha')
             ->assertDontSee('Bob Beta');
@@ -359,7 +362,7 @@ describe('ManageRegistrations', function () {
         ]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->set('search', 'Thunderbolts')
             ->assertSee('Thunderbolts FC');
     });
@@ -371,7 +374,7 @@ describe('ManageRegistrations', function () {
         [$match, $noMatch] = $setup($event);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->set($filterField, $filterValue)
             ->assertSee($match)
             ->assertDontSee($noMatch);
@@ -406,7 +409,7 @@ describe('ManageRegistrations', function () {
         $registration = EventRegistration::factory()->create(['event_id' => $event->id]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->call('editInternalNotes', $registration->id)
             ->set('internalNotes', 'Special accommodation needed')
             ->call('saveInternalNotes', $registration->id);
@@ -427,7 +430,7 @@ describe('ManageRegistrations', function () {
         ]);
 
         actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
             ->assertSee('Player One')
             ->assertSee('Player Two');
     });

@@ -1,15 +1,15 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
-use App\Models\GMProfile;
 use App\Models\GameParticipant;
+use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewEligibilityService;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {

@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\Services;
 
-use App\Dto\ParticipantResult;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Enums\RelationshipType;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -13,18 +13,16 @@ use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Enums\RelationshipType;
 use App\Models\UserRelationship;
 use App\Services\ParticipantService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Tests\TestCase;
 
-uses(\Illuminate\Foundation\Testing\DatabaseTransactions::class);
+uses(DatabaseTransactions::class);
 
 describe('ParticipantService', function () {
 
     beforeEach(function () {
-        $this->service = new ParticipantService();
+        $this->service = new ParticipantService;
         $this->owner = User::factory()->create();
         $this->friend = User::factory()->create();
         $this->stranger = User::factory()->create();

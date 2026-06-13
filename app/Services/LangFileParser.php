@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
@@ -21,9 +20,12 @@ class LangFileParser
      *
      * @return string[]
      */
+    /** @return array<int|string, mixed> */
     public function getLocales(): array
     {
-        return config('app.available_locales', ['en']);
+        $locales = config('app.available_locales', ['en']);
+
+        return is_array($locales) ? $locales : ['en'];
     }
 
     /**
@@ -31,7 +33,9 @@ class LangFileParser
      */
     public function getPrimaryLocale(): string
     {
-        return config('app.fallback_locale', 'en');
+        $locale = config('app.fallback_locale', 'en');
+
+        return is_string($locale) ? $locale : 'en';
     }
 
     /**
@@ -49,7 +53,11 @@ class LangFileParser
 
         $domains = [];
 
-        foreach (glob($dir . '/*.php') as $file) {
+        $files = glob($dir.'/*.php');
+        if ($files === false) {
+            return [];
+        }
+        foreach ($files as $file) {
             $domains[] = basename($file, '.php');
         }
 
@@ -68,13 +76,20 @@ class LangFileParser
         $domains = [];
 
         foreach ($this->getLocales() as $locale) {
+            if (! is_string($locale)) {
+                continue;
+            }
             $dir = lang_path($locale);
 
             if (! is_dir($dir)) {
                 continue;
             }
 
-            foreach (glob($dir . '/*.php') as $file) {
+            $files = glob($dir.'/*.php');
+            if ($files === false) {
+                continue;
+            }
+            foreach ($files as $file) {
                 $domains[basename($file, '.php')] = true;
             }
         }
@@ -134,6 +149,9 @@ class LangFileParser
         }
 
         $content = file_get_contents($path);
+        if ($content === false) {
+            return [];
+        }
         $keyCounts = [];
 
         // Match top-level array keys: 'key_name' => ...
@@ -156,7 +174,7 @@ class LangFileParser
      * Also returns a count of dynamic __() calls (where the key is a variable)
      * for caveating dead-string detection.
      *
-     * @return array{keys: array<string, array<string, string[]>>, dynamicCount: int, dynamicFiles: string[]}
+     * @return array{keys: array<string, mixed>, dynamicCount: int, dynamicFiles: array<int, string>}
      */
     public function scanUsage(): array
     {
@@ -177,12 +195,15 @@ class LangFileParser
             );
 
             foreach ($iterator as $file) {
-                if (! $file->isFile() || $file->getExtension() !== 'php') {
+                if (! ($file instanceof \SplFileInfo) || ! $file->isFile() || $file->getExtension() !== 'php') {
                     continue;
                 }
 
                 $content = file_get_contents($file->getPathname());
-                $relativePath = str_replace(base_path() . '/', '', $file->getPathname());
+                if ($content === false) {
+                    continue;
+                }
+                $relativePath = str_replace(base_path().'/', '', $file->getPathname());
 
                 // Static patterns: __('domain.key') and __("domain.key")
                 // Domain names may contain hyphens (e.g. cookie-consent)
@@ -230,7 +251,7 @@ class LangFileParser
                 // domain.key strings in the file.
                 if (preg_match_all("/['\"](?:label_key|description_key|title_key|message_key)['\"]\\s*=>\\s*['\"]([a-z_-]+\\.[a-z0-9_-]+)['\"]/", $content, $matches)) {
                     foreach ($matches[1] as $key) {
-                        $this->addKeyReference($keys, $key, $relativePath . ' (config-indirect)');
+                        $this->addKeyReference($keys, $key, $relativePath.' (config-indirect)');
                     }
                 }
 
@@ -251,6 +272,9 @@ class LangFileParser
                 if (preg_match_all("/__\(\s*'([a-z_-]+\.[a-z0-9_-]*_)'\\s*\\.\\s*\\\$/", $content, $matches)) {
                     foreach ($matches[1] as $prefix) {
                         $dot = strpos($prefix, '.');
+                        if ($dot === false) {
+                            continue;
+                        }
                         $domain = substr($prefix, 0, $dot);
                         $keyPrefix = substr($prefix, $dot + 1);
                         $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
@@ -260,6 +284,9 @@ class LangFileParser
                 if (preg_match_all('/__\(\s*"([a-z_-]+\.[a-z0-9_-]*_)"\s*\.\s*\$/', $content, $matches)) {
                     foreach ($matches[1] as $prefix) {
                         $dot = strpos($prefix, '.');
+                        if ($dot === false) {
+                            continue;
+                        }
                         $domain = substr($prefix, 0, $dot);
                         $keyPrefix = substr($prefix, $dot + 1);
                         $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
@@ -270,15 +297,15 @@ class LangFileParser
                 // Both branches are statically known — register them as used.
                 if (preg_match_all("/__\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]+)'\s*:\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
                     for ($i = 0; $i < count($matches[1]); $i++) {
-                        $this->addKeyReference($keys, $matches[1][$i], $relativePath . ' (ternary)');
-                        $this->addKeyReference($keys, $matches[2][$i], $relativePath . ' (ternary)');
+                        $this->addKeyReference($keys, $matches[1][$i], $relativePath.' (ternary)');
+                        $this->addKeyReference($keys, $matches[2][$i], $relativePath.' (ternary)');
                     }
                 }
 
                 if (preg_match_all('/__\([^)]*\?\s*"([a-z_-]+\.[a-z0-9_-]+)"\s*:\s*"([a-z_-]+\.[a-z0-9_-]+)"/', $content, $matches)) {
                     for ($i = 0; $i < count($matches[1]); $i++) {
-                        $this->addKeyReference($keys, $matches[1][$i], $relativePath . ' (ternary)');
-                        $this->addKeyReference($keys, $matches[2][$i], $relativePath . ' (ternary)');
+                        $this->addKeyReference($keys, $matches[1][$i], $relativePath.' (ternary)');
+                        $this->addKeyReference($keys, $matches[2][$i], $relativePath.' (ternary)');
                     }
                 }
 
@@ -286,10 +313,13 @@ class LangFileParser
                 // e.g. __($status === 'confirm' ? 'domain.title_confirm' : 'domain.title_' . $status)
                 if (preg_match_all("/__\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]+)'\s*:\s*'([a-z_-]+\.[a-z0-9_-]*_)'\\s*\\./", $content, $matches)) {
                     for ($i = 0; $i < count($matches[1]); $i++) {
-                        $this->addKeyReference($keys, $matches[1][$i], $relativePath . ' (ternary-static-branch)');
+                        $this->addKeyReference($keys, $matches[1][$i], $relativePath.' (ternary-static-branch)');
                         // Register the dynamic prefix for the other branch
                         $prefix = $matches[2][$i];
                         $dot = strpos($prefix, '.');
+                        if ($dot === false) {
+                            continue;
+                        }
                         $domain = substr($prefix, 0, $dot);
                         $keyPrefix = substr($prefix, $dot + 1);
                         $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
@@ -298,9 +328,12 @@ class LangFileParser
 
                 if (preg_match_all("/__\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]*_)'\\s*\\.\\s*[^:]+\s*:\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
                     for ($i = 0; $i < count($matches[2]); $i++) {
-                        $this->addKeyReference($keys, $matches[2][$i], $relativePath . ' (ternary-static-branch)');
+                        $this->addKeyReference($keys, $matches[2][$i], $relativePath.' (ternary-static-branch)');
                         $prefix = $matches[1][$i];
                         $dot = strpos($prefix, '.');
+                        if ($dot === false) {
+                            continue;
+                        }
                         $domain = substr($prefix, 0, $dot);
                         $keyPrefix = substr($prefix, $dot + 1);
                         $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
@@ -368,7 +401,7 @@ class LangFileParser
         }
 
         if (! $hasValidPrefix) {
-            $violations[] = 'Missing recognized prefix (expected one of: ' . implode(', ', array_slice($validPrefixes, 0, 6)) . ', ...)';
+            $violations[] = 'Missing recognized prefix (expected one of: '.implode(', ', array_slice($validPrefixes, 0, 6)).', ...)';
 
         }
 
@@ -432,7 +465,7 @@ class LangFileParser
         // Count placeholder tokens vs total content
         $placeholderCount = preg_match_all('/:[a-zA-Z_]+/', $value);
         if ($placeholderCount > 0) {
-            $stripped = preg_replace('/:[a-zA-Z_]+/', '', $value);
+            $stripped = (string) preg_replace('/:[a-zA-Z_]+/', '', $value);
             $stripped = trim($stripped);
             // If the non-placeholder content is very short (≤15 chars), it's structural
             if (mb_strlen($stripped) <= 15) {
@@ -484,6 +517,9 @@ class LangFileParser
         return in_array($value, $cognates, true);
     }
 
+    /**
+     * @param  array<string, array<string, array<int, string>>>  $keys
+     */
     private function addKeyReference(array &$keys, string $dottedKey, string $file): void
     {
         $dot = strpos($dottedKey, '.');

@@ -4,8 +4,12 @@ namespace App\Console\Commands\Admin;
 
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\text;
 
 class AdminUserDemoteCommand extends Command
 {
@@ -64,9 +68,9 @@ class AdminUserDemoteCommand extends Command
         $admins = User::whereIn('id', $adminUserIds)->orderBy('name')->get(['email', 'name']);
 
         if ($admins->isNotEmpty()) {
-            return select(
+            return (string) select(
                 label: 'Select admin user to demote',
-                options: $admins->mapWithKeys(fn ($u) => [$u->email => "{$u->name} ({$u->email})"]),
+                options: $admins->mapWithKeys(fn (User $u) => [$u->email => "{$u->name} ({$u->email})"])->all(),
             );
         }
 
@@ -76,14 +80,16 @@ class AdminUserDemoteCommand extends Command
     /**
      * Get global role names for a user (team_id=null on model_has_roles).
      * Avoids the ambiguous team_id column that appears in Spatie's roles() join.
+     *
+     * @return Collection<int, string>
      */
-    private function getGlobalRoles(User $user): \Illuminate\Support\Collection
+    private function getGlobalRoles(User $user): Collection
     {
         return DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.model_type', User::class)
             ->where('model_has_roles.model_id', $user->id)
             ->whereNull('model_has_roles.team_id')
-            ->pluck('roles.name');
+            ->pluck('roles.name')->filter(fn (mixed $name) => is_string($name))->map(fn (mixed $name): string => (string) $name);
     }
 }

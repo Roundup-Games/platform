@@ -1,12 +1,14 @@
 <?php
 
+use App\Livewire\GameSystems\GameSystemDetail;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+
+use function Pest\Laravel\get;
 
 describe('GameSystemDetail - mount and resolution', function () {
     // smoke: game system detail page renders by slug
@@ -117,7 +119,7 @@ describe('GameSystemDetail - eager loaded relationships', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('sessionCampaignStats', function ($stats) {
                 return $stats['active_sessions'] === 2;
             });
@@ -139,7 +141,7 @@ describe('GameSystemDetail - eager loaded relationships', function () {
             'status' => 'completed',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('sessionCampaignStats', function ($stats) {
                 return $stats['active_campaigns'] === 1;
             });
@@ -155,7 +157,7 @@ describe('GameSystemDetail - user preference counts', function () {
             $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
         }
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('favoritedCount', 3);
     });
 
@@ -167,14 +169,14 @@ describe('GameSystemDetail - user preference counts', function () {
             $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'avoid']);
         }
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('avoidedCount', 2);
     });
 
     it('returns zero counts for systems with no preferences', function () {
         $system = GameSystem::factory()->create(['slug' => 'no-prefs-game']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('favoritedCount', 0)
             ->assertSetStrict('avoidedCount', 0);
     });
@@ -184,7 +186,7 @@ describe('GameSystemDetail - user preference property', function () {
     it('returns null for guests', function () {
         $system = GameSystem::factory()->create(['slug' => 'guest-pref-game']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('userPreference', null);
     });
 
@@ -193,7 +195,7 @@ describe('GameSystemDetail - user preference property', function () {
         $user = User::factory()->create();
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('userPreference', null);
     });
 
@@ -203,7 +205,7 @@ describe('GameSystemDetail - user preference property', function () {
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('userPreference', 'favorite');
     });
 
@@ -213,7 +215,7 @@ describe('GameSystemDetail - user preference property', function () {
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'avoid']);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('userPreference', 'avoid');
     });
 });
@@ -224,7 +226,7 @@ describe('GameSystemDetail - toggleFavorite', function () {
         $user = User::factory()->create();
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleFavorite');
 
         $this->assertDatabaseHas('user_game_system_preferences', [
@@ -240,7 +242,7 @@ describe('GameSystemDetail - toggleFavorite', function () {
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleFavorite');
 
         $this->assertDatabaseMissing('user_game_system_preferences', [
@@ -255,7 +257,7 @@ describe('GameSystemDetail - toggleFavorite', function () {
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'avoid']);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleFavorite');
 
         $this->assertDatabaseHas('user_game_system_preferences', [
@@ -273,7 +275,7 @@ describe('GameSystemDetail - toggleFavorite', function () {
     it('rejects unauthenticated toggleFavorite', function () {
         $system = GameSystem::factory()->create(['slug' => 'guest-fav-game']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleFavorite')
             ->assertStatus(403);
     });
@@ -285,7 +287,7 @@ describe('GameSystemDetail - toggleAvoid', function () {
         $user = User::factory()->create();
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleAvoid');
 
         $this->assertDatabaseHas('user_game_system_preferences', [
@@ -301,7 +303,7 @@ describe('GameSystemDetail - toggleAvoid', function () {
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'avoid']);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleAvoid');
 
         $this->assertDatabaseMissing('user_game_system_preferences', [
@@ -316,7 +318,7 @@ describe('GameSystemDetail - toggleAvoid', function () {
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleAvoid');
 
         $this->assertDatabaseHas('user_game_system_preferences', [
@@ -334,7 +336,7 @@ describe('GameSystemDetail - toggleAvoid', function () {
     it('rejects unauthenticated toggleAvoid', function () {
         $system = GameSystem::factory()->create(['slug' => 'guest-avoid-game']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleAvoid')
             ->assertStatus(403);
     });
@@ -344,7 +346,7 @@ describe('GameSystemDetail - sessionCampaignStats helper', function () {
     it('returns zeros for system with no sessions or campaigns', function () {
         $system = GameSystem::factory()->create(['slug' => 'empty-stats-game']);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('sessionCampaignStats', [
                 'active_sessions' => 0,
                 'active_campaigns' => 0,
@@ -369,7 +371,7 @@ describe('GameSystemDetail - sessionCampaignStats helper', function () {
             'status' => 'active',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
             ->assertSetStrict('sessionCampaignStats', [
                 'active_sessions' => 3,
                 'active_campaigns' => 2,
@@ -383,7 +385,7 @@ describe('GameSystemDetail - dispatches events', function () {
         $user = User::factory()->create();
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleFavorite')
             ->assertDispatched('preference-updated');
     });
@@ -393,7 +395,7 @@ describe('GameSystemDetail - dispatches events', function () {
         $user = User::factory()->create();
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\GameSystems\GameSystemDetail::class, ['slug' => $system->slug])
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
             ->call('toggleAvoid')
             ->assertDispatched('preference-updated');
     });

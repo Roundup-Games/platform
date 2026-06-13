@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\URL;
@@ -61,7 +62,7 @@ describe('Session Replay disabled state', function () {
         Config::set('posthog.api_key', 'phc_test');
 
         // Create a request to an admin route and bind it as current
-        $adminRequest = Illuminate\Http\Request::create('https://roundup.games/admin/dashboard', 'GET');
+        $adminRequest = Request::create('https://roundup.games/admin/dashboard', 'GET');
         app()->instance('request', $adminRequest);
 
         $html = Blade::render(file_get_contents(resource_path('views/partials/posthog-meta.blade.php')));
@@ -196,8 +197,6 @@ describe('Full stack config integration', function () {
         expect($config['surveys'])->toHaveKeys(['enabled']);
         expect($config['feature_flags'])->toHaveKeys(['enabled']);
     });
-
-
 
     test('partial conditionally renders all PostHog meta tags together', function () {
         $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));

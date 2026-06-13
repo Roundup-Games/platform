@@ -18,7 +18,7 @@ class GameParticipantObserver
     {
         $this->cache->invalidateForUser((string) $participant->user_id, ['week', 'progress_tracker']);
         $this->cache->invalidateActionCenterForParticipantChange(
-            $participant->user_id,
+            (string) $participant->user_id,
             $participant->game_id,
         );
 
@@ -34,14 +34,14 @@ class GameParticipantObserver
         if ($participant->wasChanged('status')) {
             $this->cache->invalidateForUser((string) $participant->user_id, ['week', 'progress_tracker']);
             $this->cache->invalidateActionCenterForParticipantChange(
-                $participant->user_id,
+                (string) $participant->user_id,
                 $participant->game_id,
             );
         }
 
         // Attendance reporting affects the unreported-attendance item
         if ($participant->wasChanged('attendance_status')) {
-            $this->cache->invalidateActionCenterForAttendance($participant->user_id);
+            $this->cache->invalidateActionCenterForAttendance((string) $participant->user_id);
 
             // Mode may transition (newcomer → established) when attendance is recorded
             $user = $participant->user;
@@ -57,7 +57,7 @@ class GameParticipantObserver
     {
         $this->cache->invalidateForUser((string) $participant->user_id, ['week', 'progress_tracker']);
         $this->cache->invalidateActionCenterForParticipantChange(
-            $participant->user_id,
+            (string) $participant->user_id,
             $participant->game_id,
         );
 

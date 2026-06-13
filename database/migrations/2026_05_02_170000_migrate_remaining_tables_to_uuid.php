@@ -120,7 +120,7 @@ return new class extends Migration
             // Restore unique constraint
             DB::statement(
                 'CREATE UNIQUE INDEX IF NOT EXISTS user_relationships_user_id_related_user_id_type_unique'
-                . ' ON user_relationships (user_id, related_user_id, type)'
+                .' ON user_relationships (user_id, related_user_id, type)'
             );
         }
     }

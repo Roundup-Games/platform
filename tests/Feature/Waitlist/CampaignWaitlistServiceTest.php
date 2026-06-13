@@ -1,12 +1,11 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\User;
 use App\Services\WaitlistService;
-use App\Enums\ParticipantRole;
-use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->service = app(WaitlistService::class);

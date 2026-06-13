@@ -1,13 +1,16 @@
 <?php
 
+use App\Livewire\Billing\BillingPortal;
+use App\Livewire\Billing\MembershipPage;
 use App\Models\MembershipType;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Subscription;
 
-use function Pest\Laravel\{actingAs, assertDatabaseHas, get, post};
+use function Pest\Laravel\actingAs;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -35,7 +38,7 @@ function portalCreateSubscription(User $user, array $overrides = []): Subscripti
         'billable_type' => get_class($user),
         'billable_id' => $user->id,
         'type' => 'default',
-        'paddle_id' => 'sub_' . \Illuminate\Support\Str::random(12),
+        'paddle_id' => 'sub_'.Str::random(12),
         'status' => 'active',
         'trial_ends_at' => null,
         'paused_at' => null,
@@ -49,7 +52,7 @@ function portalCreateCustomer(User $user, ?string $paddleId = null): void
     Cashier::$customerModel::create([
         'billable_type' => get_class($user),
         'billable_id' => $user->id,
-        'paddle_id' => $paddleId ?? 'ctm_' . $user->id,
+        'paddle_id' => $paddleId ?? 'ctm_'.$user->id,
         'name' => $user->name,
         'email' => $user->email,
     ]);
@@ -97,7 +100,7 @@ describe('Billing Portal — Cancel Subscription', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\BillingPortal::class)
+            ->test(BillingPortal::class)
             ->call('cancelSubscription');
 
         expect($subscription->fresh()->ends_at)->not->toBeNull();
@@ -129,9 +132,10 @@ describe('Checkout Route', function () {
     })->with([
         'inactive plan' => function () {
             $plan = portalCreateMembershipType(['status' => 'inactive']);
+
             return [$plan->id, 404];
         },
-        'non-existent plan' => fn () => [(string) \Illuminate\Support\Str::uuid(), 404],
+        'non-existent plan' => fn () => [(string) Str::uuid(), 404],
         'no plan or price' => fn () => ['', 400],
     ]);
 });
@@ -158,7 +162,7 @@ describe('MembershipPage Component', function () {
         $plan = portalCreateMembershipType(['name' => 'Annual Plan', 'price_cents' => 4999]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
+            ->test(MembershipPage::class)
             ->assertSee('Annual Plan')
             ->assertSee('Choose Your Plan')
             ->assertSee(format_currency(4999));
@@ -169,7 +173,7 @@ describe('MembershipPage Component', function () {
         portalCreateSubscription($user, ['status' => 'active']);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
+            ->test(MembershipPage::class)
             ->assertSee('Active Member')
             ->assertDontSee('Choose Your Plan');
     });
@@ -182,7 +186,7 @@ describe('MembershipPage Component', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
+            ->test(MembershipPage::class)
             ->assertSee('Membership Expiring Soon')
             ->assertSee('expires in 15 day');
     });
@@ -195,7 +199,7 @@ describe('MembershipPage Component', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
+            ->test(MembershipPage::class)
             ->assertDontSee('Membership Expiring Soon');
     });
 
@@ -207,7 +211,7 @@ describe('MembershipPage Component', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
+            ->test(MembershipPage::class)
             ->assertDontSee('Membership Expiring Soon');
     });
 });

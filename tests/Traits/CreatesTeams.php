@@ -37,5 +37,4 @@ trait CreatesTeams
 
         return ['captain' => $captain, 'team' => $team];
     }
-
 }

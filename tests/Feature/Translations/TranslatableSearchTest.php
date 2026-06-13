@@ -28,8 +28,10 @@ it('finds Event by translatable name using JSON path query', function () {
 
     $search = 'Dragon';
     $results = Event::where(function ($q) use ($search) {
-        $trait = new class {
+        $trait = new class
+        {
             use QueriesTranslatableColumns;
+
             public function testWhere(Builder $q, string $field, string $search): void
             {
                 $this->whereTranslatableLike($q, $field, $search);
@@ -60,8 +62,10 @@ it('finds Game by translatable name using JSON path query', function () {
 
     $search = 'Dungeon';
     $results = Game::where(function ($q) use ($search) {
-        $trait = new class {
+        $trait = new class
+        {
             use QueriesTranslatableColumns;
+
             public function testWhere(Builder $q, string $field, string $search): void
             {
                 $this->whereTranslatableLike($q, $field, $search);
@@ -82,8 +86,10 @@ it('search is case-insensitive via ILIKE', function () {
 
     $search = 'uppercase';
     $results = Event::where(function ($q) use ($search) {
-        $trait = new class {
+        $trait = new class
+        {
             use QueriesTranslatableColumns;
+
             public function testWhere(Builder $q, string $field, string $search): void
             {
                 $this->whereTranslatableLike($q, $field, $search);
@@ -108,8 +114,10 @@ it('escapes SQL wildcards in search term', function () {
     // Searching for literal '100%' should only match the first event
     $search = '100%';
     $results = Event::where(function ($q) use ($search) {
-        $trait = new class {
+        $trait = new class
+        {
             use QueriesTranslatableColumns;
+
             public function testWhere(Builder $q, string $field, string $search): void
             {
                 $this->whereTranslatableLike($q, $field, $search);
@@ -132,8 +140,10 @@ it('finds GameSystem by translatable name', function () {
 
     $search = 'Dragons';
     $results = GameSystem::where(function ($q) use ($search) {
-        $trait = new class {
+        $trait = new class
+        {
             use QueriesTranslatableColumns;
+
             public function testWhere(Builder $q, string $field, string $search): void
             {
                 $this->whereTranslatableLike($q, $field, $search);

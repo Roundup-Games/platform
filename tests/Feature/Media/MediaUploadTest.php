@@ -2,7 +2,6 @@
 
 use App\Livewire\Media\ImageUpload;
 use App\Models\Event;
-use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -150,7 +149,7 @@ describe('Media upload logging', function () {
         Storage::fake('public');
         Log::shouldReceive('debug')->zeroOrMoreTimes();
         Log::shouldReceive('info')
-            ->with('Media uploaded', \Mockery::on(fn ($ctx) => isset($ctx['collection'], $ctx['model_id'], $ctx['uploaded_by'])))
+            ->with('Media uploaded', Mockery::on(fn ($ctx) => isset($ctx['collection'], $ctx['model_id'], $ctx['uploaded_by'])))
             ->once();
 
         ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
@@ -168,7 +167,7 @@ describe('Media upload logging', function () {
         Storage::fake('public');
         Log::shouldReceive('debug')->zeroOrMoreTimes();
         Log::shouldReceive('info')
-            ->with('Media removed', \Mockery::on(fn ($ctx) => isset($ctx['collection'], $ctx['model_id'])))
+            ->with('Media removed', Mockery::on(fn ($ctx) => isset($ctx['collection'], $ctx['model_id'])))
             ->once();
 
         ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();

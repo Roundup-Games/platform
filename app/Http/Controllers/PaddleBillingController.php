@@ -6,7 +6,6 @@ use App\Models\Event;
 use App\Models\MembershipType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class PaddleBillingController extends Controller
@@ -18,7 +17,7 @@ class PaddleBillingController extends Controller
      */
     public function checkout(Request $request, MembershipType $membershipType): RedirectResponse
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         if (! $membershipType->paddle_price_id) {
             Log::error('Paddle checkout attempted for membership type without Paddle price ID', [
@@ -53,7 +52,7 @@ class PaddleBillingController extends Controller
             'event_id' => 'required|string|uuid|exists:events,id',
         ]);
 
-        $user = Auth::user();
+        $user = authenticatedUser();
         $priceId = $request->input('price_id');
         $eventId = $request->input('event_id');
 

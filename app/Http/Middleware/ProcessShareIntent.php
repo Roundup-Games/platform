@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Dto\ShareIntentResult;
+use App\Models\User;
 use App\Services\ShareIntentService;
 use App\Services\ShortLinkService;
 use Closure;
@@ -37,7 +38,7 @@ class ProcessShareIntent
         $user = $request->user();
 
         // Only process for authenticated users on page-level GET requests
-        if (! $user || ! $this->shouldProcess($request)) {
+        if (! $user instanceof User || ! $this->shouldProcess($request)) {
             return $next($request);
         }
 
@@ -60,7 +61,7 @@ class ProcessShareIntent
 
                 return $response;
             }
-        } elseif ($shortLinkIntent && ! $user->profile_complete) {
+        } elseif ($shortLinkIntent) {
             Log::debug('short_link_intent.deferred_profile_incomplete', [
                 'user_id' => $user->id,
                 'path' => $request->path(),
@@ -93,7 +94,10 @@ class ProcessShareIntent
             return $this->clearCookie($next($request));
         }
 
-        $result = $this->shareIntentService->processShareIntent($payload, $user);
+        $result = $this->shareIntentService->processShareIntent(
+            $payload,
+            $user,
+        );
 
         if ($result->shouldRedirect && $result->redirectRoute) {
             Log::info('share_intent.redirecting', [
@@ -116,7 +120,7 @@ class ProcessShareIntent
     /**
      * Process the short_link_intent cookie using the domain service.
      */
-    private function processShortLinkIntent(mixed $cookieValue, $user)
+    private function processShortLinkIntent(mixed $cookieValue, User $user): ShareIntentResult
     {
         $payload = $this->shareIntentService->parseShortLinkPayload($cookieValue);
 
@@ -126,7 +130,8 @@ class ProcessShareIntent
             return new ShareIntentResult(false, null, shouldClearCookie: true);
         }
 
-        $shortLink = $this->shortLinkService->resolveLinkById((int) $payload['short_link_id']);
+        $shortLinkId = $payload['short_link_id'] ?? null;
+        $shortLink = $this->shortLinkService->resolveLinkById(is_int($shortLinkId) || is_string($shortLinkId) ? (int) $shortLinkId : 0);
 
         if ($shortLink === null) {
             Log::warning('short_link_intent.link_not_found', [
@@ -141,7 +146,7 @@ class ProcessShareIntent
 
     private function clearCookie(Response $response): Response
     {
-        $response->withCookie(cookie()->forget('share_intent'));
+        $response->headers->setCookie(cookie()->forget('share_intent'));
 
         return $response;
     }

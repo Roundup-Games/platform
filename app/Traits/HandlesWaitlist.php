@@ -5,10 +5,14 @@ namespace App\Traits;
 use App\Enums\AttendanceStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
+use App\Models\Campaign;
+use App\Models\CampaignParticipant;
+use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Notifications\BelowMinPlayersWarning;
 use App\Services\NotificationService;
+use App\Services\ParticipantService;
 use App\Services\WaitlistService;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -19,11 +23,7 @@ trait HandlesWaitlist
      */
     public function joinWaitlist(): void
     {
-        $viewer = Auth::user();
-
-        if (! $viewer) {
-            return;
-        }
+        $viewer = authenticatedUser();
 
         try {
             app(WaitlistService::class)->addToWaitlist($this->getEntity(), $viewer);
@@ -39,7 +39,7 @@ trait HandlesWaitlist
     public function confirmWaitlistSpot(string $participantId): void
     {
         $participant = $this->findParticipantOrFail($participantId);
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
         if ($participant->user_id !== $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
@@ -67,7 +67,7 @@ trait HandlesWaitlist
     public function declineWaitlistSpot(string $participantId): void
     {
         $participant = $this->findParticipantOrFail($participantId);
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
         if ($participant->user_id !== $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
@@ -90,9 +90,9 @@ trait HandlesWaitlist
      */
     public function manualPromote(string $participantId): void
     {
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
-        if ($this->getEntity()->owner_id !== $viewer->id) {
+        if ((string) $this->getEntity()->owner_id !== (string) $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -116,7 +116,7 @@ trait HandlesWaitlist
     public function cancelOwnParticipation(string $participantId): void
     {
         $participant = $this->findParticipantOrFail($participantId);
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
         $entity = $this->getEntity();
 
         if ($participant->user_id !== $viewer->id) {
@@ -126,7 +126,7 @@ trait HandlesWaitlist
         }
 
         // Attendance status based on cancellation timing (games only — campaigns have no date_time)
-        if ($entity instanceof \App\Models\Game && $entity->date_time && $entity->date_time->isFuture()) {
+        if ($entity instanceof Game && $entity->date_time && $entity->date_time->isFuture()) {
             $hoursUntilGame = now()->diffInHours($entity->date_time, false);
 
             if ($hoursUntilGame < 24) {
@@ -157,10 +157,10 @@ trait HandlesWaitlist
         // Remove the participant
         $participant->update(['status' => ParticipantStatus::Rejected]);
 
-        $entityType = $entity instanceof \App\Models\Campaign ? 'campaign' : 'game';
+        $entityType = $entity instanceof Campaign ? 'campaign' : 'game';
         $entityIdColumn = $this->getEntityIdColumn();
 
-        Log::info(ucfirst($entityType) . ' participant self-cancelled', [
+        Log::info(ucfirst($entityType).' participant self-cancelled', [
             $entityIdColumn => $entity->id,
             'user_id' => $viewer->id,
         ]);
@@ -183,7 +183,7 @@ trait HandlesWaitlist
     public function leaveWaitlist(string $participantId): void
     {
         $participant = $this->findParticipantOrFail($participantId);
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
         if ($participant->user_id !== $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
@@ -232,7 +232,7 @@ trait HandlesWaitlist
     /**
      * Find a participant by ID scoped to the current entity, or throw 404.
      */
-    protected function findParticipantOrFail(string $participantId)
+    protected function findParticipantOrFail(string $participantId): GameParticipant|CampaignParticipant
     {
         $model = $this->getParticipantModel();
         $entity = $this->getEntity();
@@ -253,7 +253,7 @@ trait HandlesWaitlist
             return;
         }
 
-        $approvedCount = app(\App\Services\ParticipantService::class)->getApprovedParticipantCount($entity);
+        $approvedCount = app(ParticipantService::class)->getApprovedParticipantCount($entity);
 
         if ($approvedCount < $entity->min_players) {
             $entityIdColumn = $this->getEntityIdColumn();
@@ -265,20 +265,20 @@ trait HandlesWaitlist
                 'min_players' => $entity->min_players,
             ]);
 
-            try {
-                $owner = $entity->owner;
-                if ($owner) {
+            $owner = $entity->owner;
+            if ($owner && $entity instanceof Game) {
+                try {
                     app(NotificationService::class)->send(
                         $owner,
                         new BelowMinPlayersWarning($entity, $approvedCount, $entity->min_players),
                         NotificationCategory::BelowMinPlayers
                     );
+                } catch (\Throwable $e) {
+                    Log::error('notification.below_min_players_dispatch_failed', [
+                        $entityIdColumn => $entity->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-            } catch (\Throwable $e) {
-                Log::error('notification.below_min_players_dispatch_failed', [
-                    $entityIdColumn => $entity->id,
-                    'error' => $e->getMessage(),
-                ]);
             }
         }
     }

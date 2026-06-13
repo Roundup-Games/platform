@@ -33,10 +33,10 @@ return new class extends Migration
         // Expand CHECK constraints to include 'removed' status
         $newValues = "ARRAY['approved'::character varying, 'rejected'::character varying, 'pending'::character varying, 'waitlisted'::character varying, 'benched'::character varying, 'removed'::character varying]";
 
-        DB::statement("ALTER TABLE game_participants DROP CONSTRAINT IF EXISTS game_participants_status_check");
+        DB::statement('ALTER TABLE game_participants DROP CONSTRAINT IF EXISTS game_participants_status_check');
         DB::statement("ALTER TABLE game_participants ADD CONSTRAINT game_participants_status_check CHECK ((status)::text = ANY ({$newValues}::text[]))");
 
-        DB::statement("ALTER TABLE campaign_participants DROP CONSTRAINT IF EXISTS campaign_participants_status_check");
+        DB::statement('ALTER TABLE campaign_participants DROP CONSTRAINT IF EXISTS campaign_participants_status_check');
         DB::statement("ALTER TABLE campaign_participants ADD CONSTRAINT campaign_participants_status_check CHECK ((status)::text = ANY ({$newValues}::text[]))");
     }
 
@@ -60,10 +60,10 @@ return new class extends Migration
         // Revert CHECK constraints
         $oldValues = "ARRAY['approved'::character varying, 'rejected'::character varying, 'pending'::character varying, 'waitlisted'::character varying, 'benched'::character varying]";
 
-        DB::statement("ALTER TABLE game_participants DROP CONSTRAINT IF EXISTS game_participants_status_check");
+        DB::statement('ALTER TABLE game_participants DROP CONSTRAINT IF EXISTS game_participants_status_check');
         DB::statement("ALTER TABLE game_participants ADD CONSTRAINT game_participants_status_check CHECK ((status)::text = ANY ({$oldValues}::text[]))");
 
-        DB::statement("ALTER TABLE campaign_participants DROP CONSTRAINT IF EXISTS campaign_participants_status_check");
+        DB::statement('ALTER TABLE campaign_participants DROP CONSTRAINT IF EXISTS campaign_participants_status_check');
         DB::statement("ALTER TABLE campaign_participants ADD CONSTRAINT campaign_participants_status_check CHECK ((status)::text = ANY ({$oldValues}::text[]))");
     }
 };

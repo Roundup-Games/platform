@@ -40,7 +40,9 @@ class HashShortLinkIps extends Command
         $hashed = 0;
         $query->chunkById(500, function ($hits) use (&$hashed) {
             foreach ($hits as $hit) {
-                $hit->ip_address = hash('sha256', $hit->ip_address . config('app.key'));
+                $ip = $hit->ip_address;
+                $key = config('app.key');
+                $hit->ip_address = is_string($ip) && is_string($key) ? hash('sha256', $ip.$key) : $ip;
                 $hit->save();
                 $hashed++;
             }

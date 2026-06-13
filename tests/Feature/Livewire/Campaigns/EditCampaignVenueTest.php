@@ -1,14 +1,15 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Enums\VenueType;
+use App\Livewire\Campaigns\CampaignsPage;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Notifications\EntityUpdated;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -58,7 +59,7 @@ describe('Campaign location notification uses shared i18n key', function () {
 
         Notification::fake();
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
             ->call('editCampaign', $campaign->id)
             ->set('edit_location_id', $newVenue->id)
             ->call('saveCampaignEdit');
@@ -84,7 +85,7 @@ describe('Campaign location notification uses shared i18n key', function () {
 
         Notification::fake();
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
             ->call('editCampaign', $campaign->id)
             ->set('edit_description', 'New description')
             ->call('saveCampaignEdit');
@@ -109,7 +110,7 @@ describe('Campaign location data pre-loaded in edit modal', function () {
         ]);
         $campaign = createOwnedCampaignWithLocation($this->owner, $this->gameSystem, $location);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
             ->call('editCampaign', $campaign->id)
             ->assertSet('edit_location_name', 'RPG Store')
             ->assertSet('edit_location_city', 'Munich')
@@ -119,7 +120,7 @@ describe('Campaign location data pre-loaded in edit modal', function () {
     it('handles null location gracefully', function () {
         $campaign = createOwnedCampaignWithLocation($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
             ->call('editCampaign', $campaign->id)
             ->assertSet('edit_location_name', '')
             ->assertSet('edit_location_city', '')
@@ -140,7 +141,7 @@ describe('EditsVenueLocation trait integration (campaigns)', function () {
             'venue_type' => VenueType::Flgs,
         ]);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
             ->call('editCampaign', $campaign->id)
             ->call('editSelectVenue', $venue->id)
             ->assertSet('edit_location_id', $venue->id)
@@ -151,7 +152,7 @@ describe('EditsVenueLocation trait integration (campaigns)', function () {
     it('creates a new Location via editSaveAddress', function () {
         $campaign = createOwnedCampaignWithLocation($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
             ->call('editCampaign', $campaign->id)
             ->set('edit_address_mode', 'address')
             ->set('edit_address_city', 'Frankfurt')
@@ -165,7 +166,7 @@ describe('EditsVenueLocation trait integration (campaigns)', function () {
         $location = Location::factory()->create(['name' => 'Venue', 'city' => 'Berlin']);
         $campaign = createOwnedCampaignWithLocation($this->owner, $this->gameSystem, $location);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
             ->call('editCampaign', $campaign->id)
             ->call('editClearLocation')
             ->assertSet('edit_location_id', null)

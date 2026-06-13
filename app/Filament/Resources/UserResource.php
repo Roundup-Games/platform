@@ -8,16 +8,20 @@ use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers\LinkedAccountsRelationManager;
 use App\Models\User;
 use App\Rules\ValidUserName;
+use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
-use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -27,7 +31,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class UserResource extends Resource
 {
@@ -44,7 +50,7 @@ class UserResource extends Resource
      * This requires overriding resolveRecordRouteBinding to handle slug-to-id
      * resolution, since we can't change the model's getRouteKey() globally.
      */
-    public static function resolveRecordRouteBinding(int | string $key, ?\Closure $modifyQuery = null): ?\Illuminate\Database\Eloquent\Model
+    public static function resolveRecordRouteBinding(int|string $key, ?\Closure $modifyQuery = null): ?Model
     {
         $query = static::getRecordRouteBindingEloquentQuery();
 
@@ -53,7 +59,7 @@ class UserResource extends Resource
         }
 
         // If the key looks like a UUID, resolve by id directly
-        if (\Illuminate\Support\Str::isUuid($key)) {
+        if (Str::isUuid($key)) {
             return $query->where('id', $key)->first();
         }
 
@@ -61,7 +67,7 @@ class UserResource extends Resource
         return $query->where('slug', $key)->first();
     }
 
-    public static function getNavigationIcon(): string | BackedEnum | null
+    public static function getNavigationIcon(): string|BackedEnum|null
     {
         return Heroicon::OutlinedUsers;
     }
@@ -86,7 +92,7 @@ class UserResource extends Resource
                                     ->rules(['regex:/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/'])
                                     ->unique(ignoreRecord: true)
                                     ->suffixAction(
-                                        \Filament\Actions\Action::make('view_profile')
+                                        Action::make('view_profile')
                                             ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
                                             ->url(fn (?User $record): ?string => $record ? route('profile.public', $record->slug) : null)
                                             ->openUrlInNewTab()
@@ -110,7 +116,7 @@ class UserResource extends Resource
                                     ]),
                                 TextInput::make('pronouns')
                                     ->maxLength(50),
-                                \Filament\Forms\Components\Textarea::make('bio')
+                                Textarea::make('bio')
                                     ->maxLength(500)
                                     ->rows(3)
                                     ->columnSpanFull(),
@@ -118,7 +124,7 @@ class UserResource extends Resource
                                     ->label('Preferred Language')
                                     ->options(
                                         collect(ContentLanguage::cases())->mapWithKeys(
-                                            fn(ContentLanguage $lang) => [$lang->value => $lang->label()]
+                                            fn (ContentLanguage $lang) => [$lang->value => $lang->label()]
                                         )
                                     ),
                                 TextInput::make('avatar_url')
@@ -140,10 +146,10 @@ class UserResource extends Resource
                                     ->label('Profile Complete'),
                                 Placeholder::make('password_status')
                                     ->label('Password Set')
-                                    ->content(fn(?User $record): string => $record?->hasPasswordSet() ? 'Yes' : 'No (OAuth only)'),
+                                    ->content(fn (?User $record): string => $record?->hasPasswordSet() ? 'Yes' : 'No (OAuth only)'),
                                 Placeholder::make('password_set_at')
                                     ->label('Password Set At')
-                                    ->content(fn(?User $record): string => $record?->password_set_at?->format('M j, Y H:i') ?? '—'),
+                                    ->content(fn (?User $record): string => $record?->password_set_at?->format('M j, Y H:i') ?? '—'),
                             ]),
                         Grid::make(2)
                             ->schema([
@@ -160,7 +166,7 @@ class UserResource extends Resource
                                 Select::make('location_id')
                                     ->label('Location')
                                     ->relationship('linkedLocation', 'address')
-                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->address ?? $record->city ?? ($record->latitude . ', ' . $record->longitude))
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->address ?? $record->city ?? ($record->latitude.', '.$record->longitude))
                                     ->searchable()
                                     ->preload()
                                     ->helperText('Geocoded location from profile or onboarding.'),
@@ -175,7 +181,7 @@ class UserResource extends Resource
                             ->helperText('Disabled users are immediately logged out and cannot log back in. Their content remains visible but they lose all access.'),
                         DateTimePicker::make('disabled_at')
                             ->label('Disabled At')
-                            ->visible(fn(callable $get): bool => (bool) $get('is_disabled'))
+                            ->visible(fn (callable $get): bool => (bool) $get('is_disabled'))
                             ->helperText('Automatically set when account is disabled.'),
                     ]),
 
@@ -185,16 +191,16 @@ class UserResource extends Resource
                             ->schema([
                                 Placeholder::make('created_at')
                                     ->label('Created At')
-                                    ->content(fn(?User $record): string => $record?->created_at?->format('M j, Y H:i') ?? '—'),
+                                    ->content(fn (?User $record): string => $record?->created_at?->format('M j, Y H:i') ?? '—'),
                                 Placeholder::make('updated_at')
                                     ->label('Updated At')
-                                    ->content(fn(?User $record): string => $record?->updated_at?->format('M j, Y H:i') ?? '—'),
+                                    ->content(fn (?User $record): string => $record?->updated_at?->format('M j, Y H:i') ?? '—'),
                                 Placeholder::make('profile_updated_at')
                                     ->label('Profile Updated At')
-                                    ->content(fn(?User $record): string => $record?->profile_updated_at?->format('M j, Y H:i') ?? '—'),
+                                    ->content(fn (?User $record): string => $record?->profile_updated_at?->format('M j, Y H:i') ?? '—'),
                                 Placeholder::make('profile_version')
                                     ->label('Profile Version')
-                                    ->content(fn(?User $record): string => (string) ($record?->profile_version ?? '—')),
+                                    ->content(fn (?User $record): string => (string) ($record?->profile_version ?? '—')),
                             ]),
                     ]),
 
@@ -279,9 +285,9 @@ class UserResource extends Resource
                     ->trueLabel('Verified only')
                     ->falseLabel('Unverified only')
                     ->queries(
-                        true: fn(Builder $query) => $query->whereNotNull('email_verified_at'),
-                        false: fn(Builder $query) => $query->whereNull('email_verified_at'),
-                        blank: fn(Builder $query) => $query,
+                        true: fn (Builder $query) => $query->whereNotNull('email_verified_at'),
+                        false: fn (Builder $query) => $query->whereNull('email_verified_at'),
+                        blank: fn (Builder $query) => $query,
                     ),
                 TernaryFilter::make('profile_complete')
                     ->label('Profile Complete'),
@@ -289,12 +295,12 @@ class UserResource extends Resource
                     ->label('Language')
                     ->options(
                         collect(ContentLanguage::cases())->mapWithKeys(
-                            fn(ContentLanguage $lang) => [$lang->value => $lang->label()]
+                            fn (ContentLanguage $lang) => [$lang->value => $lang->label()]
                         )
                     ),
             ])
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
                 Action::make('disable')
                     ->label('Disable')
                     ->icon(Heroicon::OutlinedLockClosed)
@@ -302,7 +308,7 @@ class UserResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Disable User Account')
                     ->modalDescription('This user will be immediately logged out and cannot log back in. Their data will be preserved.')
-                    ->visible(fn(User $record): bool => !$record->is_disabled)
+                    ->visible(fn (User $record): bool => ! $record->is_disabled)
                     ->action(function (User $record) {
                         $record->update([
                             'is_disabled' => true,
@@ -320,7 +326,7 @@ class UserResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Re-enable User Account')
                     ->modalDescription('This user will be able to log in again.')
-                    ->visible(fn(User $record): bool => $record->is_disabled)
+                    ->visible(fn (User $record): bool => $record->is_disabled)
                     ->action(function (User $record) {
                         $record->update([
                             'is_disabled' => false,
@@ -333,8 +339,8 @@ class UserResource extends Resource
                     }),
             ])
             ->toolbarActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

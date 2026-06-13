@@ -1,16 +1,17 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Livewire\Reviews\WriteReview;
 use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
-
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -34,7 +35,7 @@ function createEligibleGameSession(): array
     ]);
 
     $player = createReviewUser();
-    \App\Models\GameParticipant::create([
+    GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $player->id,
         'role' => ParticipantRole::Player->value,
@@ -61,7 +62,7 @@ function createEligibleCampaign(): array
     ]);
 
     $player = createReviewUser();
-    \App\Models\CampaignParticipant::create([
+    CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $player->id,
         'role' => ParticipantRole::Player->value,
@@ -113,7 +114,7 @@ describe('WriteReview — Game Session', function () {
         ]);
 
         $player = createReviewUser();
-        \App\Models\GameParticipant::create([
+        GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
             'role' => ParticipantRole::Player->value,

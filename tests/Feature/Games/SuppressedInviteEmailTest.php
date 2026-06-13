@@ -1,13 +1,12 @@
 <?php
 
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Games\ManageParticipants as GameManageParticipants;
 use App\Mail\EntityInvitationEmail;
 use App\Models\GameParticipant;
 use App\Models\SuppressedInviteEmail;
-use App\Models\User;
-use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Mail;
 use Tests\Traits\CreatesGameInstances;
 

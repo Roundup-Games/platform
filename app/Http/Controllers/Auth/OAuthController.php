@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Auth;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Rules\ValidUserName;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -22,12 +23,15 @@ class OAuthController
     private function localeUrl(string $path): string
     {
         $locale = session('locale', config('app.fallback_locale'));
+        $locale = is_string($locale) ? $locale : 'en';
 
-        return '/' . $locale . '/' . ltrim($path, '/');
+        return '/'.$locale.'/'.ltrim($path, '/');
     }
 
     /**
      * Redirect the user to the OAuth provider's authentication page.
+     *
+     * @return RedirectResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
     public function redirect(Request $request, string $provider)
     {
@@ -45,6 +49,8 @@ class OAuthController
 
     /**
      * Handle the OAuth provider callback — login, register, or link account.
+     *
+     * @return RedirectResponse
      */
     public function callback(Request $request, string $provider)
     {
@@ -53,6 +59,7 @@ class OAuthController
         }
 
         try {
+            /** @var \Laravel\Socialite\Two\User $socialiteUser */
             $socialiteUser = Socialite::driver($provider)->user();
         } catch (\Throwable $e) {
             report($e);
@@ -61,15 +68,20 @@ class OAuthController
                 'error' => $e->getMessage(),
             ]);
 
-            return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unable to authenticate with ' . ucfirst($provider) . '. Please try again.']);
+            return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unable to authenticate with '.ucfirst($provider).'. Please try again.']);
         }
 
         $providerUserId = $socialiteUser->getId();
         $isLinking = $request->session()->pull('oauth_linking', false);
 
         // ── Account linking flow (logged-in user connecting a provider) ──
-        if ($isLinking && $request->user()) {
-            return $this->linkAccount($request->user(), $provider, $socialiteUser, $providerUserId);
+        if ($isLinking) {
+            $currentUser = $request->user();
+            if (! $currentUser) {
+                return redirect($this->localeUrl('login'));
+            }
+
+            return $this->linkAccount($currentUser, $provider, $socialiteUser, $providerUserId);
         }
 
         // ── Standard login/register flow ──
@@ -105,6 +117,15 @@ class OAuthController
             $linkedAccount->refresh();
 
             $user = $linkedAccount->user;
+
+            if (! $user) {
+                Log::error('OAuth login — linked account has no associated user', [
+                    'provider' => $provider,
+                    'linked_account_id' => $linkedAccount->id,
+                ]);
+
+                return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Authentication failed. Please try again.']);
+            }
 
             if ($socialiteUser->getAvatar() && ! $user->avatar_url) {
                 $user->update(['avatar_url' => $socialiteUser->getAvatar()]);
@@ -142,7 +163,7 @@ class OAuthController
         }
 
         // New user — register and link (no password — OAuth-only until they set one)
-        $rawName = $socialiteUser->getName() ?? Str::before($socialiteUser->getEmail(), '@');
+        $rawName = $socialiteUser->getName() ?? Str::before((string) $socialiteUser->getEmail(), '@');
         $sanitizedName = ValidUserName::sanitize($rawName);
 
         $user = User::create([
@@ -170,7 +191,7 @@ class OAuthController
     /**
      * Link a provider to an already-authenticated user's account.
      */
-    private function linkAccount(User $user, string $provider, $socialiteUser, string $providerUserId): \Illuminate\Http\RedirectResponse
+    private function linkAccount(User $user, string $provider, \Laravel\Socialite\Two\User $socialiteUser, string $providerUserId): RedirectResponse
     {
         // Use firstOrCreate for atomicity — the unique constraint on
         // (provider, provider_user_id) prevents race-condition duplicates.
@@ -178,7 +199,7 @@ class OAuthController
             ->where('provider_user_id', $providerUserId)
             ->first();
 
-        if ($linkedAccount && $linkedAccount->user_id !== $user->id) {
+        if ($linkedAccount && (string) $linkedAccount->user_id !== (string) $user->id) {
             Log::warning('OAuth link attempted — provider already linked to another user', [
                 'provider' => $provider,
                 'user_id' => $user->id,
@@ -187,13 +208,13 @@ class OAuthController
             ]);
 
             return redirect($this->localeUrl('profile/view'))
-                ->withErrors(['oauth' => 'This ' . ucfirst($provider) . ' account is already linked to another user.']);
+                ->withErrors(['oauth' => 'This '.ucfirst($provider).' account is already linked to another user.']);
         }
 
         // Already linked to this user
         if ($linkedAccount) {
             return redirect($this->localeUrl('profile/view'))
-                ->with('status', ucfirst($provider) . ' account is already linked.');
+                ->with('status', ucfirst($provider).' account is already linked.');
         }
 
         // Atomically create via firstOrCreate to prevent race conditions
@@ -210,7 +231,7 @@ class OAuthController
                     'avatar' => $socialiteUser->getAvatar(),
                 ],
             ]);
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             // Unique constraint violation — another request beat us to it
             if (str_contains($e->getMessage(), 'Unique violation') || str_contains($e->getMessage(), 'Duplicate entry') || str_contains($e->getMessage(), 'UNIQUE constraint failed')) {
                 Log::warning('OAuth link race — provider already linked (caught by unique constraint)', [
@@ -220,7 +241,7 @@ class OAuthController
                 ]);
 
                 return redirect($this->localeUrl('profile/view'))
-                    ->withErrors(['oauth' => 'This ' . ucfirst($provider) . ' account is already linked.']);
+                    ->withErrors(['oauth' => 'This '.ucfirst($provider).' account is already linked.']);
             }
 
             throw $e;
@@ -233,13 +254,13 @@ class OAuthController
         ]);
 
         return redirect($this->localeUrl('profile/view'))
-            ->with('status', ucfirst($provider) . ' account linked successfully.');
+            ->with('status', ucfirst($provider).' account linked successfully.');
     }
 
     /**
      * Create a LinkedAccount record from OAuth data.
      */
-    private function createLinkedAccount(User $user, string $provider, $socialiteUser, string $providerUserId): LinkedAccount
+    private function createLinkedAccount(User $user, string $provider, \Laravel\Socialite\Two\User $socialiteUser, string $providerUserId): LinkedAccount
     {
         return LinkedAccount::create([
             'user_id' => $user->id,
@@ -258,14 +279,15 @@ class OAuthController
     /**
      * Determine where to redirect after login based on profile state.
      */
-    private function redirectAfterLogin(User $user): \Illuminate\Http\RedirectResponse
+    private function redirectAfterLogin(User $user): RedirectResponse
     {
         $locale = session('locale', config('app.fallback_locale'));
+        $locale = is_string($locale) ? $locale : 'en';
 
         if (! $user->profile_complete) {
-            return redirect()->to('/' . $locale . '/onboarding');
+            return redirect()->to('/'.$locale.'/onboarding');
         }
 
-        return redirect()->intended('/' . $locale . '/dashboard');
+        return redirect()->intended('/'.$locale.'/dashboard');
     }
 }

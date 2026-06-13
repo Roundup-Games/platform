@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
+use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -11,12 +13,12 @@ class ApplicationRejected extends BaseNotification
     use HasUnsubscribeLink;
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Model  $entity  The Game or Campaign entity
+     * @param  Game|Campaign  $entity  The Game or Campaign entity
      * @param  string  $entityType  'game' or 'campaign'
      * @param  User  $rejector  The user who rejected the application
      */
     public function __construct(
-        public $entity,
+        public Game|Campaign $entity,
         public string $entityType,
         public User $rejector,
     ) {}
@@ -24,9 +26,9 @@ class ApplicationRejected extends BaseNotification
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_application_rejected', [
@@ -45,9 +47,9 @@ class ApplicationRejected extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'application_rejected',
@@ -72,7 +74,7 @@ class ApplicationRejected extends BaseNotification
      * Get the push notification representation.
      * Not applicable for this notification type.
      */
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(User $notifiable): ?PushPayload
     {
         return null;
     }

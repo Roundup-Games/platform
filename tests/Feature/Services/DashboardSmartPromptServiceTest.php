@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Enums\GameStatus;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
@@ -14,7 +15,6 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardSmartPromptService;
-use App\Enums\ParticipantRole;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\URL;

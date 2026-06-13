@@ -5,13 +5,12 @@ namespace App\Services;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
-use App\Services\DashboardCacheService;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Stateless service that determines which contextual nudge to show
@@ -35,7 +34,7 @@ class DashboardSmartPromptService
     /**
      * Resolve the highest-priority smart prompt for the given user.
      *
-     * @return array{type: string, message: string, action_url: string|null, action_label: string|null, metadata: array}
+     * @return array<string, mixed>
      */
     public function getPrompt(User $user): array
     {
@@ -44,14 +43,17 @@ class DashboardSmartPromptService
             ?? $this->checkJustCompleted($user)
             ?? $this->checkEmptyWeek($user)
             ?? $this->checkNewFollower($user)
-            ?? $this->checkFallbackActive($user)
-            ?? $this->fallbackNew($user);
+            ?? $this->checkFallbackActive($user);
     }
 
     // ── Priority 1: Pending invitations ────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     private function checkPendingInvitations(User $user): ?array
     {
+        /** @var Collection<int, GameParticipant> $pendingGames */
         $pendingGames = GameParticipant::query()
             ->where('user_id', $user->id)
             ->where('status', ParticipantStatus::Pending)
@@ -75,7 +77,7 @@ class DashboardSmartPromptService
 
         $message = $total === 1 && $game
             ? __('profile.dashboard_prompt_msg_invited_single', [
-                'name' => $game->owner?->name ?? __('Someone'),
+                'name' => $game->owner->name ?? __('Someone'),
                 'game' => $game->name,
             ])
             : trans_choice('profile.dashboard_prompt_msg_invited_multiple', $total, ['count' => $total]);
@@ -97,11 +99,14 @@ class DashboardSmartPromptService
 
     // ── Priority 2: Upcoming session within 24 h ───────
 
+    /**
+     * @return array<string, mixed>
+     */
     private function checkUpcomingSession(User $user): ?array
     {
         $game = $this->nextUpcomingGame($user);
 
-        if (! $game || $game->date_time->diffInHours(now(), absolute: false) < -24) {
+        if (! $game || $game->date_time === null || $game->date_time->diffInHours(now(), absolute: false) < -24) {
             return null;
         }
 
@@ -127,6 +132,9 @@ class DashboardSmartPromptService
 
     // ── Priority 3: Just completed, recap missing ──────
 
+    /**
+     * @return array<string, mixed>
+     */
     private function checkJustCompleted(User $user): ?array
     {
         $game = Game::query()
@@ -160,6 +168,9 @@ class DashboardSmartPromptService
 
     // ── Priority 4: Empty week (Mon–Wed) ───────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     private function checkEmptyWeek(User $user): ?array
     {
         $dayOfWeek = now()->dayOfWeekIso; // 1=Mon … 7=Sun
@@ -169,7 +180,8 @@ class DashboardSmartPromptService
         }
 
         $weekData = $this->dashboardCacheService->getWeekData($user);
-        $gamesThisWeek = $weekData['summary']['total'] ?? 0;
+        $summary = is_array($weekData['summary'] ?? null) ? $weekData['summary'] : [];
+        $gamesThisWeek = is_numeric($t = ($summary['total'] ?? 0)) ? (int) $t : 0;
 
         if ($gamesThisWeek > 0) {
             return null;
@@ -197,8 +209,12 @@ class DashboardSmartPromptService
 
     // ── Priority 5: New follower ───────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     private function checkNewFollower(User $user): ?array
     {
+        /** @var UserRelationship|null $follower */
         $follower = UserRelationship::query()
             ->where('related_user_id', $user->id)
             ->where('type', RelationshipType::Follow)
@@ -214,9 +230,17 @@ class DashboardSmartPromptService
         $followerUser = $follower->user;
 
         // Shared game systems
-        $userSystemIds = $user->gameSystemPreferences()->pluck('game_system_id')->toArray();
-        $followerSystemIds = $followerUser?->gameSystemPreferences()->pluck('game_system_id')->toArray() ?? [];
-        $sharedSystems = array_values(array_intersect($userSystemIds, $followerSystemIds));
+        $userSystemIds = $user->gameSystemPreferences()->pluck('game_system_id')
+            ->map(fn (mixed $id) => is_numeric($id) ? (string) $id : '')->values()->toArray();
+        $followerSystemIds = [];
+        if ($followerUser) {
+            $followerSystemIds = $followerUser->gameSystemPreferences()->pluck('game_system_id')
+                ->map(fn (mixed $id) => is_numeric($id) ? (string) $id : '')->values()->toArray();
+        }
+        $sharedSystems = array_intersect(
+            array_map(fn (mixed $v) => is_numeric($v) ? (string) $v : '', $userSystemIds),
+            array_map(fn (mixed $v) => is_numeric($v) ? (string) $v : '', $followerSystemIds)
+        );
 
         $message = $sharedSystems
             ? trans_choice('profile.dashboard_prompt_msg_new_follower_shared', count($sharedSystems), [
@@ -240,7 +264,10 @@ class DashboardSmartPromptService
 
     // ── Priority 6: Fallback active ────────────────────
 
-    private function checkFallbackActive(User $user): ?array
+    /**
+     * @return array<string, mixed>
+     */
+    private function checkFallbackActive(User $user): array
     {
         $hour = now()->hour;
         $timeOfDay = $hour < 12 ? __('profile.dashboard_prompt_msg_time_morning') : ($hour < 17 ? __('profile.dashboard_prompt_msg_time_afternoon') : __('profile.dashboard_prompt_msg_time_evening'));
@@ -266,27 +293,12 @@ class DashboardSmartPromptService
             'message' => __('profile.dashboard_prompt_msg_greeting', [
                 'time_of_day' => $timeOfDay,
                 'name' => $firstName,
-            ]) . $suffix,
+            ]).$suffix,
             'action_url' => $upcomingCount > 0 ? route('games.index') : null,
             'action_label' => $upcomingCount > 0 ? __('profile.dashboard_prompt_view_schedule') : null,
             'metadata' => [
                 'time_of_day' => $timeOfDay,
                 'upcoming_count' => $upcomingCount,
-            ],
-        ];
-    }
-
-    // ── Priority 7: Fallback new ───────────────────────
-
-    private function fallbackNew(User $user): array
-    {
-        return [
-            'type' => 'fallback_new',
-            'message' => __('profile.dashboard_prompt_msg_welcome', ['brand' => config('company.display_name')]),
-            'action_url' => route('games.index'),
-            'action_label' => __('profile.dashboard_prompt_find_game'),
-            'metadata' => [
-                'user_created_at' => $user->created_at->toIso8601String(),
             ],
         ];
     }

@@ -2,11 +2,16 @@
 
 namespace App\Livewire\Components;
 
+use App\Dto\NearbySessionItem;
+use App\Dto\ProximityResult;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\Location;
+use App\Services\GeocodingService;
 use App\Services\ProximityQuery;
 use App\Traits\HasGuestLocation;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
@@ -52,7 +57,7 @@ class NearbySessions extends Component
     /** Whether results came from the fallback radius */
     public bool $usingFallbackRadius = false;
 
-    /** Cached session results to avoid re-querying */
+    /** @var Collection<int, NearbySessionItem>|null Cached session results to avoid re-querying */
     protected ?Collection $cachedSessions = null;
 
     public function mount(float $radius = 10, int $limit = 4, bool $includeCampaigns = true): void
@@ -78,11 +83,11 @@ class NearbySessions extends Component
         $this->usingFallbackRadius = false;
         $this->cachedSessions = null;
 
-        $count = $this->getSessions()->count();
+        $sessions = $this->getSessions();
 
         Log::info('Location gate converted', [
             'source' => $source,
-            'result_count' => $count,
+            'result_count' => $sessions->count(),
             'is_fallback' => $this->usingFallbackRadius,
             'radius_km' => $this->usingFallbackRadius ? $this->fallbackRadius : $this->radius,
         ]);
@@ -100,10 +105,10 @@ class NearbySessions extends Component
         ]);
 
         try {
-            $geocodingService = app(\App\Services\GeocodingService::class);
-            $results = $geocodingService->geocode($this->cityQuery);
+            $geocodingService = app(GeocodingService::class);
+            $results = $geocodingService->geocode((string) $this->cityQuery);
 
-            if (!empty($results)) {
+            if (! empty($results)) {
                 $first = $results;
                 $this->guestLat = (float) $first['lat'];
                 $this->guestLng = (float) $first['lng'];
@@ -142,7 +147,9 @@ class NearbySessions extends Component
     /**
      * Get nearby sessions, sorted by BGG rank then date.
      *
-     * @return Collection<int, object{entity: Game|Campaign, location: \App\Models\Location|null, distance_km: float, game_system: \App\Models\GameSystem|null, participant_count: int, type: string}>
+     * @return Collection<int, NearbySessionItem>
+     *
+     * @phpstan-impure
      */
     #[Computed]
     public function getSessions(): Collection
@@ -151,7 +158,7 @@ class NearbySessions extends Component
             return $this->cachedSessions;
         }
 
-        if (!$this->hasGuestLocation()) {
+        if (! $this->hasGuestLocation()) {
             return collect();
         }
 
@@ -160,8 +167,8 @@ class NearbySessions extends Component
 
         // Query games (sessions)
         $gameResults = $proximity->nearby(
-            $this->guestLat,
-            $this->guestLng,
+            (float) $this->guestLat,
+            (float) $this->guestLng,
             $radius,
             'game',
             ['limit' => $this->limit * 2, 'status_filter' => true, 'visibility' => [Visibility::Public->value]],
@@ -174,65 +181,75 @@ class NearbySessions extends Component
         }
 
         // Combine and format
-        $all = $gameResults->map(function ($result) {
+        $all = $gameResults->map(function (mixed $result) {
+            if (! $result instanceof ProximityResult) {
+                return null;
+            }
             $game = $result->entity;
-            return (object) [
-                'entity' => $game,
-                'location' => $result->location,
-                'distance_km' => $result->distance_km,
-                'game_system' => $game->gameSystem,
-                'participant_count' => $game->participants()->count(),
-                'type' => 'session',
-            ];
-        })->merge($campaignResults->map(function ($result) {
-            $campaign = $result->entity;
-            return (object) [
-                'entity' => $campaign,
-                'location' => $result->location,
-                'distance_km' => $result->distance_km,
-                'game_system' => $campaign->gameSystem,
-                'participant_count' => $campaign->participants()->count(),
-                'type' => 'campaign',
-            ];
-        }));
+            if (! $game instanceof Game) {
+                return null;
+            }
+
+            return new NearbySessionItem(
+                entity: $game,
+                location: $result->location,
+                distance_km: $result->distanceKm,
+                game_system: $game->gameSystem,
+                participant_count: $game->participants()->count(),
+                type: 'session',
+            );
+        })->merge($campaignResults);
+
+        $all = $all->filter(fn (mixed $item) => $item instanceof NearbySessionItem);
 
         // Sort by BGG rank (nulls last), then by distance
-        $sorted = $all->sortBy(function ($item) {
+        $sorted = $all->sortBy(function (NearbySessionItem $item) {
             $rank = $item->game_system?->bgg_rank;
+
             return [$rank === null ? PHP_INT_MAX : $rank, $item->distance_km];
         })->values();
 
         // If primary radius returns nothing, try fallback
-        if ($sorted->isEmpty() && !$this->triedFallback) {
+        if ($sorted->isEmpty() && ! $this->triedFallback) {
             $this->triedFallback = true;
             $this->usingFallbackRadius = true;
 
             // Re-query with fallback radius
             $fallbackResults = $proximity->nearby(
-                $this->guestLat,
-                $this->guestLng,
+                (float) $this->guestLat,
+                (float) $this->guestLng,
                 $this->fallbackRadius,
                 'game',
                 ['limit' => $this->limit, 'status_filter' => true, 'visibility' => [Visibility::Public->value]],
             );
 
-            $sorted = $fallbackResults->map(function ($result) {
+            $sorted = $fallbackResults->map(function (mixed $result) {
+                if (! $result instanceof ProximityResult) {
+                    return null;
+                }
                 $game = $result->entity;
-                return (object) [
-                    'entity' => $game,
-                    'location' => $result->location,
-                    'distance_km' => $result->distance_km,
-                    'game_system' => $game->gameSystem,
-                    'participant_count' => $game->participants()->count(),
-                    'type' => 'session',
-                ];
-            })->sortBy(function ($item) {
+                if (! $game instanceof Game) {
+                    return null;
+                }
+
+                return new NearbySessionItem(
+                    entity: $game,
+                    location: $result->location,
+                    distance_km: $result->distanceKm,
+                    game_system: $game->gameSystem,
+                    participant_count: $game->participants()->count(),
+                    type: 'session',
+                );
+            })->filter(fn (mixed $item) => $item instanceof NearbySessionItem)->sortBy(function (NearbySessionItem $item) {
                 $rank = $item->game_system?->bgg_rank;
+
                 return [$rank === null ? PHP_INT_MAX : $rank, $item->distance_km];
             })->values();
         }
 
-        return $this->cachedSessions = $sorted->take($this->limit);
+        $this->cachedSessions = $sorted->take($this->limit);
+
+        return $this->cachedSessions;
     }
 
     /**
@@ -252,18 +269,21 @@ class NearbySessions extends Component
         if ($km < 1) {
             return __('discovery.content_meters_m_away', ['meters' => round($km * 1000)]);
         }
+
         return __('discovery.content_km_km_away', ['km' => number_format($km, 1)]);
     }
 
     /**
      * Get nearby campaigns through their scheduled sessions' locations.
+     *
+     * @return Collection<int, NearbySessionItem>
      */
     protected function getNearbyCampaigns(ProximityQuery $proximity, float $radius): Collection
     {
         // Get public scheduled games that belong to campaigns within radius
         $gameResults = $proximity->nearby(
-            $this->guestLat,
-            $this->guestLng,
+            (float) $this->guestLat,
+            (float) $this->guestLng,
             $radius,
             'game',
             ['limit' => 50, 'status_filter' => true, 'visibility' => [Visibility::Public->value]],
@@ -271,11 +291,24 @@ class NearbySessions extends Component
 
         // Group by campaign_id to deduplicate
         $campaignIds = $gameResults
-            ->filter(fn ($r) => $r->entity->campaign_id !== null)
-            ->groupBy('entity.campaign_id')
-            ->map(fn ($group) => $group->sortBy('distance_km')->first());
+            ->filter(function (mixed $r) {
+                if (! $r instanceof ProximityResult) {
+                    return false;
+                }
 
-        if ($campaignIds->isEmpty()) {
+                return $r->entity->getAttribute('campaign_id') !== null;
+            })
+            ->groupBy('entity.campaign_id')
+            ->map(function (mixed $group) {
+                if (! $group instanceof Collection) { // @phpstan-ignore instanceof.alwaysTrue
+                    return null;
+                }
+                $first = $group->sortBy(fn (mixed $a, mixed $b) => ($a instanceof ProximityResult && $b instanceof ProximityResult) ? $a->distanceKm <=> $b->distanceKm : 0)->first(); // @phpstan-ignore instanceof.alwaysFalse, booleanAnd.alwaysFalse
+
+                return $first instanceof ProximityResult ? $first : null;
+            });
+
+        if ($campaignIds->count() === 0) {
             return collect();
         }
 
@@ -287,15 +320,21 @@ class NearbySessions extends Component
 
         return $campaigns->map(function ($campaign) use ($campaignIds) {
             $gameResult = $campaignIds->get($campaign->id);
-            return (object) [
-                'entity' => $campaign,
-                'location' => $gameResult?->location,
-                'distance_km' => $gameResult?->distance_km ?? 0,
-            ];
+            $loc = $gameResult instanceof ProximityResult ? $gameResult->location : null;
+            $dist = $gameResult instanceof ProximityResult ? $gameResult->distanceKm : 0;
+
+            return new NearbySessionItem(
+                entity: $campaign,
+                location: $loc,
+                distance_km: $dist,
+                game_system: $campaign->gameSystem,
+                participant_count: $campaign->participants()->count(),
+                type: 'campaign',
+            );
         });
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.components.nearby-sessions');
     }

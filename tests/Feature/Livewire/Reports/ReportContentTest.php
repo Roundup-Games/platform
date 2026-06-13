@@ -9,8 +9,8 @@ use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -187,7 +187,7 @@ it('rejects invalid entity type', function () {
 it('handles non-existent entity gracefully', function () {
     seedSafetyDepartment();
     $reporter = User::factory()->create(['profile_complete' => true]);
-    $fakeId = (string) \Illuminate\Support\Str::uuid();
+    $fakeId = (string) Str::uuid();
 
     Livewire::actingAs($reporter)
         ->test(ReportContent::class, ['entityType' => 'game', 'entityId' => $fakeId])

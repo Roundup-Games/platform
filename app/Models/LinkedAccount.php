@@ -2,16 +2,26 @@
 
 namespace App\Models;
 
+use Database\Factories\LinkedAccountFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $id
+ * @property Carbon|null $token_expires_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class LinkedAccount extends Model
 {
+    /** @use HasFactory<LinkedAccountFactory> */
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -38,6 +48,9 @@ class LinkedAccount extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

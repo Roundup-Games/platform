@@ -5,14 +5,15 @@ use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
+use App\Services\ReviewAggregateService;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
-
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -141,7 +142,7 @@ it('prevents reviewer from reporting their own review', function () {
 
 it('handles non-existent review gracefully', function () {
     $reporter = User::factory()->create(['profile_complete' => true]);
-    $fakeId = (string) \Illuminate\Support\Str::uuid();
+    $fakeId = (string) Str::uuid();
 
     Livewire::actingAs($reporter)
         ->test(ReportReview::class, ['reviewId' => $fakeId])
@@ -169,7 +170,7 @@ it('review report method triggers aggregate recalculation', function () {
     ['review' => $review, 'gmProfile' => $gmProfile] = createReportableReview();
 
     // Recalculate to establish baseline
-    app(\App\Services\ReviewAggregateService::class)->updateAggregates($gmProfile);
+    app(ReviewAggregateService::class)->updateAggregates($gmProfile);
     expect($gmProfile->fresh()->review_count)->toBe(1);
 
     // Report the review — should trigger observer and reduce published count

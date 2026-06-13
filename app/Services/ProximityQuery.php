@@ -2,9 +2,13 @@
 
 namespace App\Services;
 
+use App\Dto\BBox;
+use App\Dto\ProximityResult;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -57,6 +61,8 @@ class ProximityQuery
      * Build the Haversine distance SQL expression.
      *
      * Returns [sql, bindings] where sql contains parameter placeholders.
+     *
+     * @return list{string, list<int|float>}
      */
     private function haversineSql(string $latCol, string $lngCol, float $centerLat, float $centerLng): array
     {
@@ -82,10 +88,10 @@ class ProximityQuery
      * @param  float  $lng  Center longitude
      * @param  float  $radiusKm  Search radius in kilometers (default 50)
      * @param  string  $entityType  'game' or 'event'
-     * @param  array  $options  Additional options: limit, status_filter, with
-     * @return \Illuminate\Support\Collection Each item has: entity, location, distance_km
+     * @param  array{limit?: int, status_filter?: bool, visibility?: string|list<string>, with?: list<string>}  $options  Additional options: limit, status_filter, with
+     * @param  array<string, mixed>  $options
      */
-    public function nearby(float $lat, float $lng, float $radiusKm = 50, string $entityType = 'game', array $options = []): \Illuminate\Support\Collection
+    public function nearby(float $lat, float $lng, float $radiusKm = 50, string $entityType = 'game', array $options = []): Collection // @phpstan-ignore missingType.generics
     {
         $startTime = microtime(true);
 
@@ -96,12 +102,13 @@ class ProximityQuery
 
         $model = $config['model'];
         $relationship = $config['relationship'];
-        $limit = $options['limit'] ?? 50;
+        $limit = is_int($options['limit'] ?? null) ? $options['limit'] : 50;
 
         // Calculate bounding box from center point and radius
         $bounds = $this->boundingBox($lat, $lng, $radiusKm);
 
         $table = (new $model)->getTable();
+        /** @var literal-string $distSql */
         [$distSql, $distBindings] = $this->haversineSql('locations.latitude', 'locations.longitude', $lat, $lng);
 
         // Inner query: join with locations, compute distance, bounding box filter
@@ -111,8 +118,8 @@ class ProximityQuery
             ->join('locations', "{$table}.location_id", '=', 'locations.id')
             ->whereNotNull('locations.latitude')
             ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds['minLat'], $bounds['maxLat']])
-            ->whereBetween('locations.longitude', [$bounds['minLng'], $bounds['maxLng']]);
+            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
+            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng]);
 
         // Apply status scope if defined for this entity type
         if (isset($config['status_scope']) && ($options['status_filter'] ?? true)) {
@@ -126,7 +133,9 @@ class ProximityQuery
         }
 
         // Outer query: filter by exact radius using WHERE (not HAVING)
-        $results = DB::table(DB::raw("({$innerQuery->toSql()}) AS proxied"))
+        /** @var literal-string $subSql */
+        $subSql = "({$innerQuery->toSql()}) AS proxied";
+        $results = DB::table(DB::raw($subSql))
             ->mergeBindings($innerQuery)
             ->where('distance_km', '<=', $radiusKm)
             ->orderBy('distance_km')
@@ -151,11 +160,15 @@ class ProximityQuery
         $distanceMap = $results->pluck('distance_km', 'id');
 
         return $modelInstances->map(function ($entity) use ($distanceMap, $relationship) {
-            return (object) [
-                'entity' => $entity,
-                'location' => $entity->$relationship,
-                'distance_km' => round((float) ($distanceMap[$entity->id] ?? 0), 2),
-            ];
+            $distanceRaw = $distanceMap[$entity->getKey()] ?? 0;
+            $distance = is_numeric($distanceRaw) ? (float) $distanceRaw : 0;
+            $location = $entity->$relationship;
+
+            return new ProximityResult(
+                entity: $entity,
+                location: $location instanceof Location ? $location : new Location,
+                distanceKm: round($distance, 2),
+            );
         });
     }
 
@@ -169,9 +182,8 @@ class ProximityQuery
      * @param  float  $lat  Center latitude
      * @param  float  $lng  Center longitude
      * @param  float  $radiusKm  Search radius in kilometers (default 10)
-     * @return \Illuminate\Support\Collection Each item: location, active_sessions_count, distance_km
      */
-    public function hubs(float $lat, float $lng, float $radiusKm = 10): \Illuminate\Support\Collection
+    public function hubs(float $lat, float $lng, float $radiusKm = 10): Collection // @phpstan-ignore missingType.generics
     {
         $tilePrefix = Geohash::tilePrefix($lat, $lng, self::DEFAULT_GEOHASH_PRECISION);
         $cacheKey = "proximity:hubs:{$tilePrefix}:{$radiusKm}km";
@@ -180,6 +192,7 @@ class ProximityQuery
 
         $results = Cache::remember($cacheKey, self::HUB_CACHE_TTL, function () use ($lat, $lng, $radiusKm) {
             $bounds = $this->boundingBox($lat, $lng, $radiusKm);
+            /** @var literal-string $distSql */
             [$distSql, $distBindings] = $this->haversineSql('locations.latitude', 'locations.longitude', $lat, $lng);
 
             // Inner query: compute distance and active session count
@@ -193,11 +206,14 @@ class ProximityQuery
                 ) AS active_sessions_count', ['scheduled'])
                 ->whereNotNull('locations.latitude')
                 ->whereNotNull('locations.longitude')
-                ->whereBetween('locations.latitude', [$bounds['minLat'], $bounds['maxLat']])
-                ->whereBetween('locations.longitude', [$bounds['minLng'], $bounds['maxLng']]);
+                ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
+                ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng]);
 
             // Outer query: filter by exact radius
-            return DB::table(DB::raw("({$innerQuery->toSql()}) AS proxied"))
+            /** @var literal-string $subSql */
+            $subSql = "({$innerQuery->toSql()}) AS proxied";
+
+            return DB::table(DB::raw($subSql))
                 ->mergeBindings($innerQuery)
                 ->where('distance_km', '<=', $radiusKm)
                 ->orderBy('distance_km')
@@ -216,15 +232,24 @@ class ProximityQuery
         ]);
 
         // Hydrate Location models
-        $locations = Location::hydrate($results->map(fn ($r) => collect($r)->except('distance_km', 'active_sessions_count')->toArray())->toArray());
+        /** @var list<array<string, mixed>> $hydratable */
+        $hydratable = $results->map(fn (mixed $r) => (array) $r)->map(fn (array $r) => Arr::except($r, ['distance_km', 'active_sessions_count']))->toArray();
+        $locations = Location::hydrate($hydratable);
         $distanceMap = $results->pluck('distance_km', 'id');
         $sessionMap = $results->pluck('active_sessions_count', 'id');
 
-        return $locations->map(fn ($location) => (object) [
-            'location' => $location,
-            'active_sessions_count' => (int) ($sessionMap[$location->id] ?? 0),
-            'distance_km' => round((float) ($distanceMap[$location->id] ?? 0), 2),
-        ]);
+        return $locations->map(function (Location $location) use ($distanceMap, $sessionMap) {
+            $sessionsRaw = $sessionMap[$location->id] ?? 0;
+            $distanceRaw = $distanceMap[$location->id] ?? 0;
+            $sessions = is_numeric($sessionsRaw) ? (int) $sessionsRaw : 0;
+            $distance = is_numeric($distanceRaw) ? (float) $distanceRaw : 0;
+
+            return (object) [
+                'location' => $location,
+                'active_sessions_count' => $sessions,
+                'distance_km' => round($distance, 2),
+            ];
+        });
     }
 
     /**
@@ -237,9 +262,8 @@ class ProximityQuery
      * @param  float  $lat  Center latitude
      * @param  float  $lng  Center longitude
      * @param  float  $radiusKm  Radius in kilometers
-     * @return array{minLat: float, maxLat: float, minLng: float, maxLng: float}
      */
-    public function boundingBox(float $lat, float $lng, float $radiusKm): array
+    public function boundingBox(float $lat, float $lng, float $radiusKm): BBox
     {
         $angularRadius = $radiusKm / self::EARTH_RADIUS_KM;
 
@@ -253,12 +277,12 @@ class ProximityQuery
         $minLng = $lng - $lngOffset;
         $maxLng = $lng + $lngOffset;
 
-        return [
-            'minLat' => max(-90, $minLat),
-            'maxLat' => min(90, $maxLat),
-            'minLng' => $minLng,
-            'maxLng' => $maxLng,
-        ];
+        return new BBox(
+            minLat: max(-90, $minLat),
+            maxLat: min(90, $maxLat),
+            minLng: $minLng,
+            maxLng: $maxLng,
+        );
     }
 
     /**

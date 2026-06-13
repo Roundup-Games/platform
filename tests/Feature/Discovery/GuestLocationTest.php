@@ -2,7 +2,8 @@
 
 use App\Livewire\Discovery\DiscoveryPage;
 use App\Models\User;
-use function Pest\Laravel\{actingAs};
+
+use function Pest\Laravel\actingAs;
 
 /**
  * Tests for the HasGuestLocation trait integration with Livewire components.

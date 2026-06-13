@@ -1,23 +1,19 @@
 <?php
 
-use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
-use App\Models\Campaign;
-use App\Models\CampaignParticipant;
+use App\Livewire\Dashboard;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
-use App\Models\GMProfile;
 use App\Models\Location;
-use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Services\Geohash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
@@ -64,7 +60,7 @@ test('established user sees established mode', function () {
     $user = createEstablishedUser();
     $this->actingAs($user);
 
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
     expect($component->viewData('dashboardMode'))->toBe('established');
 });
 
@@ -113,7 +109,7 @@ test('schedule timeline shows grouped upcoming games', function () {
         'status' => ParticipantStatus::Approved->value,
     ]);
 
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
 
     $scheduleGroups = $component->viewData('scheduleGroups');
     expect($scheduleGroups['today'])->toHaveCount(1);
@@ -150,12 +146,12 @@ test('host-again bridge appears when no upcoming games and links to clone url', 
         'date_time' => now()->subDays(3),
     ]);
 
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
 
     $bridge = $component->viewData('hostAgainBridge');
     expect($bridge)->not->toBeNull();
     expect($bridge['game']['id'])->toBe($completedGame->id);
-    expect($bridge['clone_url'])->toContain('clone=' . $completedGame->id);
+    expect($bridge['clone_url'])->toContain('clone='.$completedGame->id);
 });
 
 // ── Nearby games with relevance tags ───────────────────
@@ -187,7 +183,7 @@ test('nearby games show with correct relevance tags', function () {
         'max_players' => 6,
     ]);
 
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
 
     $nearby = $component->viewData('nearbyNoteworthy');
     expect($nearby)->not->toBeEmpty();
@@ -204,14 +200,14 @@ test('community pulse absent when user has fewer than 3 follows', function () {
     $followed = User::factory()->count(2)->create();
     foreach ($followed as $f) {
         UserRelationship::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'user_id' => $user->id,
             'related_user_id' => $f->id,
             'type' => RelationshipType::Follow->value,
         ]);
     }
 
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
     expect($component->viewData('shouldShowCommunityPulse'))->toBeFalse();
 });
 
@@ -222,7 +218,7 @@ test('your story absent when user has fewer than 3 attended games', function () 
     $this->actingAs($user);
 
     // The helper creates 1 completed participation, which is not enough for any milestone
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
 
     $milestoneCards = $component->viewData('milestoneCards');
     expect($milestoneCards)->toBeEmpty();
@@ -257,7 +253,7 @@ test('your story shows earned milestone cards when user qualifies', function () 
         ]);
     }
 
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
 
     $milestoneCards = $component->viewData('milestoneCards');
     expect($milestoneCards)->not->toBeEmpty();
@@ -272,7 +268,7 @@ test('quick actions show role-appropriate buttons for player', function () {
     $user = createEstablishedUser();
     $this->actingAs($user);
 
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
 
     $quickActions = $component->viewData('establishedQuickActions');
     expect($quickActions)->not->toBeEmpty();
@@ -296,7 +292,7 @@ test('quick actions show gm workspace for gm with upcoming games', function () {
         'status' => GameStatus::Scheduled->value,
     ]);
 
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
 
     $quickActions = $component->viewData('establishedQuickActions');
     expect($quickActions[0]['label'])->toBe('profile.dashboard_quick_gm_workspace');
@@ -309,7 +305,7 @@ test('sections without data pass empty arrays not null', function () {
     $user = createEstablishedUser();
     $this->actingAs($user);
 
-    $component = Livewire::test(\App\Livewire\Dashboard::class);
+    $component = Livewire::test(Dashboard::class);
 
     // Schedule groups should be arrays
     $scheduleGroups = $component->viewData('scheduleGroups');

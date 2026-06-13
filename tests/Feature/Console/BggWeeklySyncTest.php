@@ -17,7 +17,7 @@ it('syncs all game systems with bgg_ids', function () {
     // Create one without bgg_id — should be excluded
     GameSystem::factory()->create(['name' => ['en' => 'No BGG'], 'bgg_id' => null]);
 
-    $multiXml = <<<XML
+    $multiXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgame" id="174430">

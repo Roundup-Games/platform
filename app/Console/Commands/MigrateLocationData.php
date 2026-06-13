@@ -21,18 +21,26 @@ class MigrateLocationData extends Command
     // ── Statistics tracking ────────────────────────────
 
     protected int $locationsCreated = 0;
+
     protected int $locationsReused = 0;
+
     protected int $gamesMigrated = 0;
+
     protected int $gamesSkipped = 0;
+
     protected int $eventsMigrated = 0;
+
     protected int $eventsSkipped = 0;
+
     protected int $usersMigrated = 0;
+
     protected int $usersSkipped = 0;
+
     protected int $errors = 0;
 
     // ── In-memory dedup cache ──────────────────────────
 
-    /** @var array<string, int> Maps a dedup key to a location ID */
+    /** @var array<string, string> Maps a dedup key to a location ID */
     protected array $dedupCache = [];
 
     public function handle(): int
@@ -90,12 +98,12 @@ class MigrateLocationData extends Command
         foreach ($existing as $loc) {
             // Index by place_id if present
             if ($loc->place_id) {
-                $this->dedupCache['place:' . $loc->place_id] = $loc->id;
+                $this->dedupCache['place:'.$loc->place_id] = $loc->id;
             }
             // Index by normalized address
             $addressKey = $this->addressKey($loc->address, $loc->city, $loc->country);
             if ($addressKey) {
-                $this->dedupCache['addr:' . $addressKey] = $loc->id;
+                $this->dedupCache['addr:'.$addressKey] = $loc->id;
             }
         }
 
@@ -122,17 +130,19 @@ class MigrateLocationData extends Command
      * 1. If a place_id is provided, match by place_id (Google Places ID).
      * 2. Otherwise, match by normalized address (address + city + country).
      * 3. If neither matches, create a new location.
+     *
+     * @param  array<string, mixed>  $attributes
      */
-    protected function findOrCreateLocation(array $attributes): ?int
+    protected function findOrCreateLocation(array $attributes): ?string
     {
-        $placeId = $attributes['place_id'] ?? null;
-        $address = $attributes['address'] ?? null;
-        $city = $attributes['city'] ?? null;
-        $country = $attributes['country'] ?? null;
+        $placeId = is_string($attributes['place_id'] ?? null) ? $attributes['place_id'] : null;
+        $address = is_string($attributes['address'] ?? null) ? $attributes['address'] : null;
+        $city = is_string($attributes['city'] ?? null) ? $attributes['city'] : null;
+        $country = is_string($attributes['country'] ?? null) ? $attributes['country'] : null;
 
         // Try place_id dedup first
         if ($placeId) {
-            $key = 'place:' . $placeId;
+            $key = 'place:'.$placeId;
             if (isset($this->dedupCache[$key])) {
                 $this->locationsReused++;
 
@@ -143,7 +153,7 @@ class MigrateLocationData extends Command
         // Try address dedup
         $addrKey = $this->addressKey($address, $city, $country);
         if ($addrKey) {
-            $key = 'addr:' . $addrKey;
+            $key = 'addr:'.$addrKey;
             if (isset($this->dedupCache[$key])) {
                 $this->locationsReused++;
 
@@ -164,10 +174,10 @@ class MigrateLocationData extends Command
 
             // Add to dedup cache for subsequent records
             if ($placeId) {
-                $this->dedupCache['place:' . $placeId] = $location->id;
+                $this->dedupCache['place:'.$placeId] = $location->id;
             }
             if ($addrKey) {
-                $this->dedupCache['addr:' . $addrKey] = $location->id;
+                $this->dedupCache['addr:'.$addrKey] = $location->id;
             }
 
             return $location->id;
@@ -205,7 +215,7 @@ class MigrateLocationData extends Command
             foreach ($games as $game) {
                 $locationData = $game->location;
 
-                if (! is_array($locationData) || empty($locationData)) {
+                if (! is_array($locationData) || $locationData === []) {
                     $this->gamesSkipped++;
                     $bar->advance();
 
@@ -248,15 +258,18 @@ class MigrateLocationData extends Command
      * - {type: 'online', details: 'url'} → skip (no physical location)
      * - {type: 'offline', details: 'address text'} → create with details as address
      * - {address, lat, lng, placeId} → legacy format with coordinates
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
      */
     protected function parseGameLocation(array $data): ?array
     {
         $type = $data['type'] ?? null;
         $details = $data['details'] ?? null;
         $address = $data['address'] ?? null;
-        $lat = $data['lat'] ?? null;
-        $lng = $data['lng'] ?? null;
-        $placeId = $data['placeId'] ?? null;
+        $lat = is_numeric($data['lat'] ?? null) ? $data['lat'] : null;
+        $lng = is_numeric($data['lng'] ?? null) ? $data['lng'] : null;
+        $placeId = is_string($data['placeId'] ?? null) ? $data['placeId'] : null;
 
         // Online games — no physical location to migrate
         if ($type === 'online') {
@@ -400,14 +413,17 @@ class MigrateLocationData extends Command
             foreach ($users as $user) {
                 $locationData = $user->location;
 
-                if (! is_array($locationData) || empty($locationData)) {
+                if (empty($locationData)) {
                     $this->usersSkipped++;
                     $bar->advance();
 
                     continue;
                 }
 
-                $attributes = $this->parseUserLocation($locationData);
+                /** @var array<string, mixed> $parsedLocation */
+                $parsedLocation = $locationData;
+
+                $attributes = $this->parseUserLocation($parsedLocation);
 
                 if ($attributes === null) {
                     $this->usersSkipped++;
@@ -439,6 +455,9 @@ class MigrateLocationData extends Command
      * Parse user location JSON into Location attributes.
      *
      * Users store location as: {address: 'text'}
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
      */
     protected function parseUserLocation(array $data): ?array
     {

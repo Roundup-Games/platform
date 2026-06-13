@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\Team;
-use App\Models\User;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
+use App\Models\Team;
+use App\Models\User;
 
 // ── Team Translations (smoke test for JSON column configuration) ──────
 

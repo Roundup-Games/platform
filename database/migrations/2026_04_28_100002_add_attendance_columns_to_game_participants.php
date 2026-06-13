@@ -16,7 +16,7 @@ return new class extends Migration
             $table->enum('attendance_status', AttendanceStatus::values())->nullable()->after('status');
         });
 
-        \Log::info('Added attendance_status column to game_participants.');
+        Log::info('Added attendance_status column to game_participants.');
     }
 
     /**

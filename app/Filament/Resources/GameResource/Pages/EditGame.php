@@ -6,6 +6,7 @@ use App\Enums\AttendanceResolutionMethod;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameResource;
 use App\Services\AttendanceService;
+use App\Services\SeoCacheService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
@@ -56,6 +57,6 @@ class EditGame extends EditRecord
 
     protected function afterSave(): void
     {
-        app(\App\Services\SeoCacheService::class)->forgetByModel($this->record);
+        app(SeoCacheService::class)->forgetByModel($this->record);
     }
 }

@@ -6,9 +6,10 @@ use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\VibeFlag;
 use App\Models\Campaign;
+use App\Models\GameSystem;
 use App\Traits\EscapesLikeWildcards;
 use App\Traits\QueriesTranslatableColumns;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -30,6 +31,7 @@ class CampaignListing extends Component
     #[Url]
     public string $experience_level = '';
 
+    /** @var array<int, string> */
     #[Url]
     public array $vibe_flags = [];
 
@@ -50,9 +52,9 @@ class CampaignListing extends Component
 
     public function mount(): void
     {
-        $user = Auth::user();
-        if (!$this->language) {
-            $this->language = ($user && $user->preferred_language)
+        $user = authenticatedUser();
+        if (! $this->language) {
+            $this->language = ($user->preferred_language)
                 ? $user->preferred_language->value
                 : app()->getLocale();
         }
@@ -129,7 +131,7 @@ class CampaignListing extends Component
         return $this->search
             || $this->game_system_id
             || $this->experience_level
-            || !empty($this->vibe_flags)
+            || ! empty($this->vibe_flags)
             || ($this->language && $this->language !== app()->getLocale())
             || $this->recurrence
             || $this->price
@@ -137,24 +139,22 @@ class CampaignListing extends Component
             || $this->complexity_max;
     }
 
-    public function render()
+    public function render(): View
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $query = Campaign::query()
             // Visibility scoping: public for everyone, protected for friends/teammates/participants, private excluded
             ->where(function ($q) use ($user) {
                 $q->where('visibility', 'public');
-                if ($user) {
-                    $q->orWhere(function ($q) use ($user) {
-                        $q->where('visibility', 'protected')
-                            ->where(function ($q) use ($user) {
-                                $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
-                                $q->whereIn('owner_id', $allowedOwnerIds)
-                                    ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
-                            });
-                    });
-                }
+                $q->orWhere(function ($q) use ($user) {
+                    $q->where('visibility', 'protected')
+                        ->where(function ($q) use ($user) {
+                            $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
+                            $q->whereIn('owner_id', $allowedOwnerIds)
+                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
+                        });
+                });
             })
             // Only active campaigns
             ->where('status', 'active')
@@ -174,7 +174,7 @@ class CampaignListing extends Component
         $query->when($this->experience_level, fn ($q) => $q->where('experience_level', $this->experience_level));
 
         // Vibe flags filter (JSON containment — campaign must have ALL selected flags)
-        $query->when(!empty($this->vibe_flags), function ($q) {
+        $query->when(! empty($this->vibe_flags), function ($q) {
             foreach ($this->vibe_flags as $flag) {
                 $q->whereJsonContains('vibe_flags', $flag);
             }
@@ -198,7 +198,7 @@ class CampaignListing extends Component
 
         return view('livewire.campaigns.campaign-listing', [
             'campaigns' => $campaigns,
-            'gameSystems' => \App\Models\GameSystem::orderBy('name')->get(['id', 'name']),
+            'gameSystems' => GameSystem::orderBy('name')->get(['id', 'name']),
             'experienceLevels' => ExperienceLevel::cases(),
             'vibeFlagGroups' => VibeFlag::grouped(),
             'languages' => ContentLanguage::cases(),

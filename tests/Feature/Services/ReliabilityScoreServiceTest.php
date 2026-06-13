@@ -3,12 +3,12 @@
 namespace Tests\Feature\Services;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\ReliabilityScoreService;
-use App\Enums\ParticipantRole;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 

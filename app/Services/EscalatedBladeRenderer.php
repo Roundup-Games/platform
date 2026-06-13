@@ -17,6 +17,8 @@ class EscalatedBladeRenderer implements EscalatedUiRenderer
 {
     /**
      * Map escalated page identifiers to Blade view names.
+     *
+     * @param  array<string, mixed>  $props
      */
     private const VIEW_MAP = [
         'Escalated/Customer/Index' => 'escalated.customer.index',
@@ -24,12 +26,15 @@ class EscalatedBladeRenderer implements EscalatedUiRenderer
         'Escalated/Customer/Show' => 'escalated.customer.show',
     ];
 
+    /**
+     * @param  array<string, mixed>  $props
+     */
     public function render(string $page, array $props = []): Response
     {
         $viewName = self::VIEW_MAP[$page] ?? null;
 
         if ($viewName === null || ! view()->exists($viewName)) {
-            abort(404, "Support page not found.");
+            abort(404, 'Support page not found.');
         }
 
         return response()->view($viewName, $props);

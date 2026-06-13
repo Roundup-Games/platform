@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Escalated\Laravel\Models\Ticket;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class ExportDownloadController extends Controller
@@ -20,6 +22,8 @@ class ExportDownloadController extends Controller
      * - Signed URL leakage from granting access to re-generated exports
      *
      * The signed URL expires after 7 days.
+     *
+     * @return StreamedResponse|RedirectResponse
      */
     public function download(Request $request, string $locale, User $user)
     {
@@ -62,6 +66,9 @@ class ExportDownloadController extends Controller
         }
 
         $filePath = $ticket->metadata['export_path'];
+        if (! is_string($filePath)) {
+            abort(404, 'Export file not found.');
+        }
 
         // Validate the file token from the signed URL matches the resolved export.
         // This prevents a stale signed URL (from a previous export) from downloading
@@ -97,9 +104,9 @@ class ExportDownloadController extends Controller
         // Note: realpath() returns false for virtual/faked storage in tests;
         // the primary prefix check above is the authoritative guard in that case.
         $realBase = realpath(storage_path('app/exports'));
-        $realPath = realpath(storage_path('app/' . $filePath));
+        $realPath = realpath(storage_path('app/'.$filePath));
 
-        if ($realBase !== false && $realPath !== false && ! str_starts_with($realPath, $realBase . '/')) {
+        if ($realBase !== false && $realPath !== false && ! str_starts_with($realPath, $realBase.'/')) {
             Log::warning('export.download.path_escape', [
                 'user_id' => $user->id,
                 'ticket_id' => $ticket->id,
@@ -143,6 +150,8 @@ class ExportDownloadController extends Controller
      */
     public static function deriveFileToken(string $filePath): string
     {
-        return substr(hash_hmac('sha256', $filePath, config('app.key')), 0, 16);
+        $key = config('app.key');
+
+        return substr(hash_hmac('sha256', $filePath, is_string($key) ? $key : ''), 0, 16);
     }
 }

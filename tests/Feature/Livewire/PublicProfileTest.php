@@ -1,13 +1,14 @@
 <?php
 
-use App\Enums\RelationshipType;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Enums\RelationshipType;
 use App\Livewire\Profile\PublicProfile;
+use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Enums\ParticipantStatus;
 use Livewire\Livewire;
-
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS
@@ -242,7 +243,7 @@ describe('Unauthenticated viewer', function () {
 describe('Game session visibility on profile', function () {
     it('shows public owned games to a stranger', function () {
         $profileUser = createProfileUser();
-        $game = \App\Models\Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'public',
             'status' => 'scheduled',
@@ -258,7 +259,7 @@ describe('Game session visibility on profile', function () {
 
     it('hides protected games from a stranger', function () {
         $profileUser = createProfileUser();
-        \App\Models\Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'protected',
             'status' => 'scheduled',
@@ -280,7 +281,7 @@ describe('Game session visibility on profile', function () {
         UserRelationship::follow($viewer, $profileUser);
         UserRelationship::follow($profileUser, $viewer);
 
-        $game = \App\Models\Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'protected',
             'status' => 'scheduled',
@@ -299,7 +300,7 @@ describe('Game session visibility on profile', function () {
         UserRelationship::follow($viewer, $profileUser);
         UserRelationship::follow($profileUser, $viewer);
 
-        \App\Models\Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'private',
             'status' => 'scheduled',
@@ -315,14 +316,14 @@ describe('Game session visibility on profile', function () {
         $profileUser = createProfileUser();
         $otherOwner = createProfileUser();
 
-        $game = \App\Models\Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $otherOwner->id,
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
         ]);
 
-        \App\Models\GameParticipant::create([
+        GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $profileUser->id,
             'role' => ParticipantRole::Player->value,
@@ -338,7 +339,7 @@ describe('Game session visibility on profile', function () {
 
     it('does not show past games', function () {
         $profileUser = createProfileUser();
-        \App\Models\Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'public',
             'status' => 'scheduled',
@@ -354,14 +355,14 @@ describe('Game session visibility on profile', function () {
 
     it('deduplicates when user owns and participates in same game', function () {
         $profileUser = createProfileUser();
-        $game = \App\Models\Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
         ]);
 
-        \App\Models\GameParticipant::create([
+        GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $profileUser->id,
             'role' => ParticipantRole::Owner->value,
@@ -381,7 +382,7 @@ describe('Game session visibility on profile', function () {
 
         UserRelationship::block($profileUser, $viewer);
 
-        \App\Models\Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'public',
             'status' => 'scheduled',
@@ -395,7 +396,7 @@ describe('Game session visibility on profile', function () {
 
     it('own profile sees all games including private', function () {
         $profileUser = createProfileUser();
-        \App\Models\Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'private',
             'status' => 'scheduled',
@@ -409,7 +410,7 @@ describe('Game session visibility on profile', function () {
 
     it('shows public games to guest (unauthenticated)', function () {
         $profileUser = createProfileUser();
-        \App\Models\Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'public',
             'status' => 'scheduled',

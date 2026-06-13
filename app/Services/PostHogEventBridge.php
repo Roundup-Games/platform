@@ -56,6 +56,8 @@ class PostHogEventBridge
      * Forward an activity event to PostHog with enriched properties.
      *
      * Failures are caught and logged — this method never throws.
+     *
+     * @param  array<string, mixed>  $properties
      */
     public function forwardEvent(
         ActivityType $type,
@@ -96,7 +98,7 @@ class PostHogEventBridge
             if (in_array($type, self::ENRICHED_TYPES, true)) {
                 EnrichPostHogProfile::dispatch(
                     $type->value,
-                    $user->id,
+                    (string) $user->id,
                     $subject ? get_class($subject) : null,
                     $subject?->getKey(),
                     true, // hasConsent — already verified above
@@ -119,11 +121,10 @@ class PostHogEventBridge
      * Uses a consistent naming convention: namespace.action format
      * that works well with PostHog's event filtering and funnel tools.
      *
-     * IMPORTANT: When adding a new ActivityType case, both this method
-     * and extractProperties() must be updated. The `default` branch
-     * prevents crashes but results in events with no properties and
-     * a generic name — not useful for analytics. Add an explicit match
-     * arm instead.
+     * IMPORTANT: This match is exhaustive — when a new ActivityType case is
+     * added, PHPStan forces an explicit arm here (a missing arm is a
+     * compile error, not a silent fallback). extractProperties() still
+     * carries a defensive `default`; keep both methods in sync.
      */
     private function resolveEventName(ActivityType $type): string
     {
@@ -144,7 +145,6 @@ class PostHogEventBridge
             ActivityType::FollowReceived => 'follow.received',
             ActivityType::SessionRecapped => 'session.recapped',
             ActivityType::DebriefingSubmitted => 'session.debriefing_submitted',
-            default => 'activity.' . $type->value,
         };
     }
 
@@ -153,6 +153,8 @@ class PostHogEventBridge
      *
      * Each case inspects the subject model for properties that are
      * valuable for analytics funnels and segmentation.
+     *
+     * @return array<string, mixed>
      */
     private function extractProperties(ActivityType $type, ?Model $subject): array
     {
@@ -179,16 +181,15 @@ class PostHogEventBridge
             ActivityType::FollowReceived => $this->extractFollowProperties($subject),
 
             // Events without subject-specific enrichment
-            ActivityType::SessionRecapped,
-            ActivityType::DebriefingSubmitted => [],
-
-            // Future ActivityType cases get forwarded without enrichment
+            // Events without subject-specific enrichment (includes SessionRecapped)
             default => [],
         };
     }
 
     /**
      * Game properties: game_system, visibility, max_players, location_type, is_online.
+     *
+     * @return array<string, mixed>
      */
     private function extractGameProperties(?Model $subject): array
     {
@@ -197,6 +198,7 @@ class PostHogEventBridge
         }
 
         $subject->loadMissing('gameSystem');
+        /** @var GameSystem|null $gameSystem */
         $gameSystem = $subject->gameSystem;
 
         return [
@@ -214,6 +216,8 @@ class PostHogEventBridge
 
     /**
      * Campaign properties: game_system, visibility, max_players.
+     *
+     * @return array<string, mixed>
      */
     private function extractCampaignProperties(?Model $subject): array
     {
@@ -222,6 +226,7 @@ class PostHogEventBridge
         }
 
         $subject->loadMissing('gameSystem');
+        /** @var GameSystem|null $gameSystem */
         $gameSystem = $subject->gameSystem;
 
         return [
@@ -240,18 +245,22 @@ class PostHogEventBridge
      * Expects a GameParticipant subject for full enrichment (role, source).
      * Falls back to Game subject properties when a Game is passed directly.
      * Callers should pass GameParticipant for PlayerJoined events.
+     *
+     * @return array<string, mixed>
      */
     private function extractPlayerJoinedProperties(?Model $subject): array
     {
         if ($subject instanceof GameParticipant) {
             $subject->loadMissing('game.gameSystem');
+            /** @var Game|null $game */
             $game = $subject->game;
+            /** @var GameSystem|null $gameSystem */
             $gameSystem = $game?->gameSystem;
 
             return [
                 'game_id' => $subject->game_id,
                 'game_system' => $gameSystem?->name,
-                'participant_role' => $subject->role->value,
+                'participant_role' => $subject->role->value ?? '',
                 'source' => $subject->join_source?->value,
             ];
         }
@@ -266,6 +275,8 @@ class PostHogEventBridge
 
     /**
      * Session scheduled properties: game_system, scheduled_date, location_type.
+     *
+     * @return array<string, mixed>
      */
     private function extractSessionScheduledProperties(?Model $subject): array
     {
@@ -274,6 +285,7 @@ class PostHogEventBridge
         }
 
         $subject->loadMissing('gameSystem');
+        /** @var GameSystem|null $gameSystem */
         $gameSystem = $subject->gameSystem;
 
         return [
@@ -287,6 +299,8 @@ class PostHogEventBridge
 
     /**
      * Invitation properties: source_type (game/campaign), inviter_id.
+     *
+     * @return array<string, mixed>
      */
     private function extractInvitationProperties(?Model $subject, ActivityType $type): array
     {
@@ -311,6 +325,8 @@ class PostHogEventBridge
 
     /**
      * Review properties: rating, game_system.
+     *
+     * @return array<string, mixed>
      */
     private function extractReviewProperties(?Model $subject): array
     {
@@ -342,6 +358,8 @@ class PostHogEventBridge
      * Follow properties: followed user ID only.
      * Follower count is offloaded to the EnrichPostHogProfile job to
      * avoid an inline DB query on every follow event.
+     *
+     * @return array<string, mixed>
      */
     private function extractFollowProperties(?Model $subject): array
     {

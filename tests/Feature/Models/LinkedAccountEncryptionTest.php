@@ -21,7 +21,7 @@ describe('LinkedAccount encryption', function () {
         expect($account->refresh_token)->toBe('plaintext-refresh-token');
 
         // Raw DB value should NOT be plaintext
-        $raw = \DB::table('linked_accounts')->where('id', $account->id)->first();
+        $raw = DB::table('linked_accounts')->where('id', $account->id)->first();
         expect($raw->token)->not->toBe('plaintext-access-token');
         expect($raw->refresh_token)->not->toBe('plaintext-refresh-token');
 
@@ -43,7 +43,7 @@ describe('LinkedAccount encryption', function () {
 
         expect($account->refresh_token)->toBeNull();
 
-        $raw = \DB::table('linked_accounts')->where('id', $account->id)->first();
+        $raw = DB::table('linked_accounts')->where('id', $account->id)->first();
         expect($raw->refresh_token)->toBeNull();
     });
 

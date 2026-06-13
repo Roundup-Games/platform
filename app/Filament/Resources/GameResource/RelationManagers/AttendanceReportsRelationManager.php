@@ -6,8 +6,10 @@ use App\Enums\AttendanceStatus;
 use App\Filament\Concerns\OverridesAttendance;
 use App\Models\GameParticipant;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class AttendanceReportsRelationManager extends RelationManager
@@ -64,7 +66,7 @@ class AttendanceReportsRelationManager extends RelationManager
                     ->toggleable(),
             ])
             ->filters([
-                \Filament\Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->options(
                         collect(AttendanceStatus::cases())->mapWithKeys(
                             fn (AttendanceStatus $case) => [$case->value => $case->label()]
@@ -86,7 +88,7 @@ class AttendanceReportsRelationManager extends RelationManager
                             ->first();
 
                         if (! $participant) {
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('No participant record found for this reported user.')
                                 ->danger()
                                 ->send();

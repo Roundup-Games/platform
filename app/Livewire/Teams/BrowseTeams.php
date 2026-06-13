@@ -3,11 +3,11 @@
 namespace App\Livewire\Teams;
 
 use App\Models\Team;
-use Illuminate\Support\Facades\Auth;
+use App\Traits\EscapesLikeWildcards;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use App\Traits\EscapesLikeWildcards;
 use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
@@ -27,15 +27,15 @@ class BrowseTeams extends Component
         $this->resetPage();
     }
 
-    public function render()
+    public function render(): View
     {
         $teams = Team::query()
             ->where('is_active', true)
             ->when($this->search, fn ($q) => $q->where(function ($q) {
                 $escaped = $this->escapeLikeWildcards($this->search);
                 $q->where('name', $this->likeOperator(), "%{$escaped}%")
-                  ->orWhere('city', $this->likeOperator(), "%{$escaped}%")
-                  ->orWhere('country', $this->likeOperator(), "%{$escaped}%");
+                    ->orWhere('city', $this->likeOperator(), "%{$escaped}%")
+                    ->orWhere('country', $this->likeOperator(), "%{$escaped}%");
             }))
             ->withCount('activeMembers')
             ->when($this->sort === 'newest', fn ($q) => $q->orderByDesc('created_at'))

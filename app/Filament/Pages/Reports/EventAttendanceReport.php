@@ -5,13 +5,14 @@ namespace App\Filament\Pages\Reports;
 use App\Filament\Exports\EventAttendanceExporter;
 use App\Models\EventRegistration;
 use Filament\Actions\ExportAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -19,12 +20,12 @@ class EventAttendanceReport extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    public static function getNavigationIcon(): string | \BackedEnum | null
+    public static function getNavigationIcon(): string|\BackedEnum|null
     {
         return 'heroicon-o-calendar-days';
     }
 
-    public static function getNavigationGroup(): string | \UnitEnum | null
+    public static function getNavigationGroup(): string|\UnitEnum|null
     {
         return 'Reports';
     }
@@ -152,9 +153,9 @@ class EventAttendanceReport extends Page implements HasTable
                     ]),
                 Filter::make('created_at')
                     ->form([
-                        \Filament\Forms\Components\DatePicker::make('registered_from')
+                        DatePicker::make('registered_from')
                             ->label('Registered From'),
-                        \Filament\Forms\Components\DatePicker::make('registered_until')
+                        DatePicker::make('registered_until')
                             ->label('Registered Until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {

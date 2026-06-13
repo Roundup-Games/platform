@@ -2,12 +2,15 @@
 
 namespace Tests\Feature\Services;
 
+use App\Dto\SyncResult;
+use App\Listeners\HandleGameSystemTicketResolved;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\BggSyncService;
 use App\Services\GameSystemRequestService;
 use Database\Seeders\EscalatedSetupSeeder;
 use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Events\TicketResolved;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -19,7 +22,9 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
     use DatabaseTransactions;
 
     private User $user;
+
     private Department $department;
+
     private GameSystemRequestService $service;
 
     protected function setUp(): void
@@ -168,7 +173,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
             $mock->shouldReceive('syncGameSystems')
                 ->once()
                 ->with([12345])
-                ->andReturn(['synced' => 1, 'failed' => 0, 'errors' => []]);
+                ->andReturn(new SyncResult(synced: 1, failed: 0, errors: []));
         });
 
         // Pre-create the GameSystem that would result from sync
@@ -265,7 +270,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
             $mock->shouldReceive('syncGameSystems')
                 ->once()
                 ->with([99999])
-                ->andReturn(['synced' => 0, 'failed' => 1, 'errors' => ['API timeout']]);
+                ->andReturn(new SyncResult(synced: 0, failed: 1, errors: ['API timeout']));
         });
 
         $ticket = $this->createGameSystemTicket([
@@ -291,7 +296,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
 
         $this->mock(BggSyncService::class, function ($mock) {
             $mock->shouldReceive('syncGameSystems')
-                ->andReturn(['synced' => 1, 'failed' => 0, 'errors' => []]);
+                ->andReturn(new SyncResult(synced: 1, failed: 0, errors: []));
         });
 
         GameSystem::factory()->create([
@@ -381,7 +386,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
             $mock->shouldReceive('syncGameSystems')
                 ->once()
                 ->with([12345])
-                ->andReturn(['synced' => 1, 'failed' => 0, 'errors' => []]);
+                ->andReturn(new SyncResult(synced: 1, failed: 0, errors: []));
         });
 
         GameSystem::factory()->create([
@@ -402,8 +407,8 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
             ],
         ]);
 
-        $event = new \Escalated\Laravel\Events\TicketResolved($ticket, null);
-        app(\App\Listeners\HandleGameSystemTicketResolved::class)->handle($event);
+        $event = new TicketResolved($ticket, null);
+        app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Verify GameSystem was found via BGG sync
         $ticket->refresh();
@@ -425,8 +430,8 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
             ],
         ]);
 
-        $event = new \Escalated\Laravel\Events\TicketResolved($ticket, null);
-        app(\App\Listeners\HandleGameSystemTicketResolved::class)->handle($event);
+        $event = new TicketResolved($ticket, null);
+        app(HandleGameSystemTicketResolved::class)->handle($event);
 
         $gameSystem = GameSystem::where('name->en', 'Wingspan')->first();
         $this->assertNotNull($gameSystem);

@@ -16,6 +16,7 @@ class NearbyBehavioralTest extends TestCase
 
     // Central Berlin (Mitte) — all candidates share this geohash-4 tile
     private const LAT = 52.5163;
+
     private const LNG = 13.3777;
 
     protected function setUp(): void

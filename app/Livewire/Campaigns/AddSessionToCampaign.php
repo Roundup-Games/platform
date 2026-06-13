@@ -4,6 +4,7 @@ namespace App\Livewire\Campaigns;
 
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -12,7 +13,7 @@ use App\Notifications\SessionAddedToCampaign;
 use App\Services\NotificationService;
 use App\Services\OwnerParticipantService;
 use App\Services\ParticipantService;
-use App\Enums\ParticipantStatus;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -38,6 +39,9 @@ class AddSessionToCampaign extends Component
         $this->authorize('update', $this->campaign);
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function rules(): array
     {
         return [
@@ -148,7 +152,7 @@ class AddSessionToCampaign extends Component
                 ->pluck('user_id');
 
             foreach ($notifiedUserIds as $userId) {
-                $participant = User::find($userId);
+                $participant = User::find(is_string($userId) ? $userId : null);
                 if ($participant) {
                     $notificationService->send(
                         $participant,
@@ -170,7 +174,7 @@ class AddSessionToCampaign extends Component
         $this->redirect(route('games.show', $game->id), navigate: true);
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.campaigns.add-session-to-campaign');
     }

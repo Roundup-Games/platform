@@ -2,9 +2,12 @@
 
 namespace App\Livewire\Components;
 
+use App\Dto\GameSystemOption;
 use App\Models\GameSystem;
 use App\Traits\EscapesLikeWildcards;
 use App\Traits\QueriesTranslatableColumns;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -33,6 +36,7 @@ class GameSystemPicker extends Component
 {
     use EscapesLikeWildcards;
     use QueriesTranslatableColumns;
+
     #[Locked]
     public string $fieldId = 'game-system';
 
@@ -89,11 +93,15 @@ class GameSystemPicker extends Component
         $this->dispatch('value-updated', value: $this->value);
     }
 
+    /**
+     * @return Collection<int, GameSystem>
+     */
     #[Computed]
-    public function favoriteSystems()
+    public function favoriteSystems(): Collection
     {
         $user = Auth::user();
-        if (! $user) {
+
+        if ($user === null) {
             return collect();
         }
 
@@ -104,8 +112,11 @@ class GameSystemPicker extends Component
             ->get();
     }
 
+    /**
+     * @return Collection<int, GameSystem>
+     */
     #[Computed]
-    public function searchResults()
+    public function searchResults(): Collection
     {
         if (mb_strlen(trim($this->search)) < 2) {
             return collect();
@@ -158,8 +169,11 @@ class GameSystemPicker extends Component
         return $query->get();
     }
 
+    /**
+     * @return Collection<int, GameSystemOption>
+     */
     #[Computed]
-    public function expansionOptions()
+    public function expansionOptions(): Collection
     {
         if (! $this->selectedBaseId) {
             return collect();
@@ -172,29 +186,30 @@ class GameSystemPicker extends Component
 
         // Base game first, then expansions sorted by popularity
         $baseItem = collect([
-            (object) [
-                'id' => $base->id,
-                'name' => $base->name,
-                'is_base' => true,
-                'bgg_rank' => $base->bgg_rank,
-                'bgg_average_rating' => $base->bgg_average_rating,
-                'thumbnail_url' => $base->thumbnail_url,
-            ],
+            new GameSystemOption(
+                id: $base->id,
+                name: $base->name,
+                is_base: true,
+                bgg_rank: $base->bgg_rank,
+                bgg_average_rating: $base->bgg_average_rating,
+                thumbnail_url: $base->thumbnail_url,
+            ),
         ]);
 
-        $expansions = $base->expansions()
+        $expansionsQuery = $base->expansions()
             ->orderBy('bgg_rank', 'asc')
             ->orderBy('bgg_average_rating', 'desc')
             ->orderBy('name')
-            ->get()
-            ->map(fn (GameSystem $exp) => (object) [
-                'id' => $exp->id,
-                'name' => $exp->name,
-                'is_base' => false,
-                'bgg_rank' => $exp->bgg_rank,
-                'bgg_average_rating' => $exp->bgg_average_rating,
-                'thumbnail_url' => $exp->thumbnail_url,
-            ]);
+            ->get();
+        /** @var Collection<int, GameSystem> $expansionsQuery */
+        $expansions = $expansionsQuery->map(fn (GameSystem $exp) => new GameSystemOption(
+            id: $exp->id,
+            name: $exp->name,
+            is_base: false,
+            bgg_rank: $exp->bgg_rank,
+            bgg_average_rating: $exp->bgg_average_rating,
+            thumbnail_url: $exp->thumbnail_url,
+        ));
 
         return $baseItem->merge($expansions);
     }
@@ -312,7 +327,7 @@ class GameSystemPicker extends Component
         }
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.components.game-system-picker');
     }

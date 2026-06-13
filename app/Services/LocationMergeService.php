@@ -66,7 +66,7 @@ class LocationMergeService
             'source_id' => $sourceId,
             'target_id' => $targetId,
             'counts' => $counts,
-            'merged_by' => $actedBy?->id ?? auth()->id(),
+            'merged_by' => $actedBy->id ?? auth()->id(),
         ]);
 
         return [

@@ -72,14 +72,13 @@ return new class extends Migration
      * This is safe because they are hardcoded static values in this file,
      * never derived from user input or dynamic data.
      */
-
     public function up(): void
     {
         // 1. Drop the old translations table only when confirmed empty
         if (Schema::hasTable('translations')) {
             $hasRows = DB::table('translations')->exists();
             if ($hasRows) {
-                throw new \RuntimeException(
+                throw new RuntimeException(
                     'Refusing to drop non-empty translations table. Migrate data before rerunning.'
                 );
             }
@@ -99,10 +98,10 @@ return new class extends Migration
             DB::transaction(function () use ($table, $columns) {
                 foreach ($columns as [$column, $nullable]) {
                     // Skip columns already converted to JSONB (rerun safety).
-                    $dataType = DB::selectOne("
+                    $dataType = DB::selectOne('
                         SELECT data_type FROM information_schema.columns
                         WHERE table_name = ? AND column_name = ?
-                    ", [$table, $column])?->data_type;
+                    ', [$table, $column])?->data_type;
 
                     if ($dataType !== 'character varying' && $dataType !== 'text') {
                         continue;

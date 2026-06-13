@@ -47,12 +47,12 @@ class ShortLinkController extends Controller
         // to avoid the Cache::add race where concurrent requests could both add
         // and then both increment from the same base.
         $missKey = "short_link_misses:{$ip}";
-        $misses = (int) Cache::get($missKey, 0);
+        $misses = is_numeric($v = Cache::get($missKey, 0)) ? (int) $v : 0;
 
         if ($misses >= static::MISS_THRESHOLD) {
             Log::warning('short_link.redirect.miss_threshold_exceeded', [
-                'code_prefix' => substr($code, 0, 3) . '…',
-                'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
+                'code_prefix' => substr($code, 0, 3).'…',
+                'ip_hash' => hash_hmac('sha256', (string) $ip, is_string($k = config('app.key')) ? $k : ''),
                 'misses' => $misses,
             ]);
 
@@ -80,8 +80,8 @@ class ShortLinkController extends Controller
             }
 
             Log::debug('short_link.redirect.not_found', [
-                'code_prefix' => substr($code, 0, 3) . '…',
-                'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
+                'code_prefix' => substr($code, 0, 3).'…',
+                'ip_hash' => hash_hmac('sha256', (string) $ip, is_string($k = config('app.key')) ? $k : ''),
                 'misses' => $newMisses,
             ]);
 
@@ -97,8 +97,8 @@ class ShortLinkController extends Controller
             Cache::forget($cacheKey);
 
             Log::debug('short_link.redirect.expired', [
-                'code_prefix' => substr($code, 0, 3) . '…',
-                'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
+                'code_prefix' => substr($code, 0, 3).'…',
+                'ip_hash' => hash_hmac('sha256', (string) $ip, is_string($k = config('app.key')) ? $k : ''),
                 'expires_at' => $link->expires_at?->toIso8601String(),
             ]);
 
@@ -109,8 +109,8 @@ class ShortLinkController extends Controller
             Cache::forget($cacheKey);
 
             Log::debug('short_link.redirect.hit_cap_exceeded', [
-                'code_prefix' => substr($code, 0, 3) . '…',
-                'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
+                'code_prefix' => substr($code, 0, 3).'…',
+                'ip_hash' => hash_hmac('sha256', (string) $ip, is_string($k = config('app.key')) ? $k : ''),
                 'hit_count' => $link->hit_count,
                 'max_hits' => $link->max_hits,
             ]);
@@ -143,12 +143,12 @@ class ShortLinkController extends Controller
         // record itself — no attacker-controlled payload in the cookie.
         $intentCookie = cookie('short_link_intent', json_encode([
             'short_link_id' => $link->id,
-        ]), 24 * 60); // 24 hours
+        ]) ?: '{}', 24 * 60); // 24 hours
 
         Log::info('short_link.redirect.success', [
-            'code_prefix' => substr($code, 0, 3) . '…',
+            'code_prefix' => substr($code, 0, 3).'…',
             'link_id' => $link->id,
-            'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
+            'ip_hash' => hash_hmac('sha256', (string) $ip, is_string($k = config('app.key')) ? $k : ''),
             'url_host' => parse_url($link->url, PHP_URL_HOST),
         ]);
 

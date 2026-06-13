@@ -3,19 +3,21 @@
 namespace App\Livewire\GM;
 
 use App\Enums\ParticipantRole;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\SessionZeroSurvey;
 use App\Models\ShortLink;
 use App\Models\ShortLinkHit;
+use App\Models\User;
 use App\Services\GmRoleService;
 use App\Services\ReviewAggregateService;
-use Illuminate\Support\Facades\Auth;
+use App\Services\ShortLinkService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Services\ShortLinkService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -29,18 +31,19 @@ class GmWorkspace extends Component
 
     public function mount(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $gmRoleService = app(GmRoleService::class);
 
         if (! $gmRoleService->isGmActive($user)) {
             $this->redirect(route('dashboard', app()->getLocale()));
+
             return;
         }
 
         $this->gmProfile = $user->gmProfile;
     }
 
-    public function render()
+    public function render(): View
     {
         if (! $this->gmProfile) {
             return view('livewire.gm.gm-workspace', [
@@ -58,7 +61,7 @@ class GmWorkspace extends Component
             ]);
         }
 
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         // (1) Upcoming Sessions — games owned by this GM, scheduled, next 7 days
         $upcomingSessions = Game::where('owner_id', $user->id)
@@ -108,7 +111,6 @@ class GmWorkspace extends Component
         ]);
     }
 
-
     /**
      * Revoke a short link from the workspace analytics table.
      *
@@ -118,7 +120,7 @@ class GmWorkspace extends Component
     #[On('revoke-link')]
     public function revokeLink(int $linkId): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $link = ShortLink::where('id', $linkId)
             ->where('user_id', $user->id)
@@ -135,6 +137,7 @@ class GmWorkspace extends Component
                 'linkable_type' => $link->linkable_type, 'linkable_id' => $link->linkable_id,
             ]);
             session()->flash('error', __('common.error_not_authorized'));
+
             return;
         }
 
@@ -151,14 +154,15 @@ class GmWorkspace extends Component
         session()->flash('success', __('common.flash_share_link_revoked'));
     }
 
-
     /**
      * Get cached participant and entity stats for the GM.
      *
      * Returns [totalUniquePlayers, repeatPlayers, totalGames, activeCampaigns].
      * Cached for 1 hour — these are aggregate counts that change slowly.
+     *
+     * @return array{0: int, 1: int, 2: int, 3: int}
      */
-    private function getCachedParticipantStats($user): array
+    private function getCachedParticipantStats(User $user): array
     {
         $cacheKey = "gm_workspace:participant_stats:{$user->id}";
 
@@ -178,12 +182,14 @@ class GmWorkspace extends Component
                 ->groupBy('user_id')
                 ->havingRaw('COUNT(*) >= 2')
                 ->selectRaw('1');
-            $repeatPlayers = (int) DB::table(DB::raw("({$repeatSub->toSql()}) as repeat_sub"))
+            /** @var literal-string $subSql */
+            $subSql = "({$repeatSub->toSql()}) as repeat_sub";
+            $repeatPlayers = (int) DB::table(DB::raw($subSql))
                 ->mergeBindings($repeatSub->getQuery())
                 ->count();
 
             $totalGames = $gameIds->count();
-            $activeCampaigns = \App\Models\Campaign::where('owner_id', $user->id)
+            $activeCampaigns = Campaign::where('owner_id', $user->id)
                 ->where('status', 'active')
                 ->count();
 
@@ -197,12 +203,14 @@ class GmWorkspace extends Component
      * Returns [summaryStats, topLinks, topReferrers].
      * Cached for 1 hour since analytics are expensive aggregations
      * and data changes slowly (async queue jobs update hit counts).
+     *
+     * @return array<int, mixed>
      */
-    private function getLinkAnalytics($user): array
+    private function getLinkAnalytics(User $user): array
     {
         $cacheKey = "gm_workspace:link_analytics:{$user->id}";
 
-        return Cache::remember($cacheKey, now()->addHour(), function () use ($user) {
+        $result = Cache::remember($cacheKey, now()->addHour(), function () use ($user) {
             // Subquery for GM's short link IDs — avoids loading all IDs into PHP
             // and generates efficient WHERE short_link_id IN (SELECT ...) instead.
             $gmLinkSub = fn ($q) => $q->select('id')
@@ -215,7 +223,8 @@ class GmWorkspace extends Component
                 ->groupBy('linkable_type')
                 ->get()
                 ->mapWithKeys(function ($item) {
-                    $type = class_basename($item->linkable_type) ?? 'Unknown';
+                    $type = class_basename($item->linkable_type);
+
                     return [$type => $item->count];
                 });
 
@@ -253,8 +262,13 @@ class GmWorkspace extends Component
 
             return [$linkAnalytics, $topLinks, $topReferrers];
         });
+
+        return $result;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function emptyLinkAnalytics(): array
     {
         return [

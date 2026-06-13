@@ -16,7 +16,7 @@ beforeEach(function () {
 afterEach(function () {
     // Clean up temp locale directory
     if (is_dir($this->testDir)) {
-        $files = glob($this->testDir . '/*.php');
+        $files = glob($this->testDir.'/*.php');
         foreach ($files as $file) {
             unlink($file);
         }
@@ -34,7 +34,7 @@ function writeTempLangFile(string $dir, string $domain, string $content): string
 
 describe('parseDomain', function () {
     it('parses a valid PHP file and flattens nested keys', function () {
-        writeTempLangFile($this->testDir, 'flat', <<<PHP
+        writeTempLangFile($this->testDir, 'flat', <<<'PHP'
 <?php
 return [
     'key1' => 'value1',
@@ -91,7 +91,7 @@ PHP);
     });
 
     it('flattens deeply nested arrays to dotted notation', function () {
-        writeTempLangFile($this->testDir, 'deep', <<<PHP
+        writeTempLangFile($this->testDir, 'deep', <<<'PHP'
 <?php
 return [
     'a' => [
@@ -109,7 +109,7 @@ PHP);
     });
 
     it('handles mixed string and nested array values', function () {
-        writeTempLangFile($this->testDir, 'mixed', <<<PHP
+        writeTempLangFile($this->testDir, 'mixed', <<<'PHP'
 <?php
 return [
     'simple' => 'val',
@@ -129,7 +129,7 @@ PHP);
     });
 
     it('handles numeric keys in arrays', function () {
-        writeTempLangFile($this->testDir, 'numeric', <<<PHP
+        writeTempLangFile($this->testDir, 'numeric', <<<'PHP'
 <?php
 return [
     'items' => ['first', 'second'],
@@ -146,7 +146,7 @@ PHP);
     });
 
     it('handles boolean and null values', function () {
-        writeTempLangFile($this->testDir, 'types', <<<PHP
+        writeTempLangFile($this->testDir, 'types', <<<'PHP'
 <?php
 return [
     'flag' => true,
@@ -168,7 +168,7 @@ PHP);
 
 describe('getKeys', function () {
     it('returns flat key list from a domain file', function () {
-        writeTempLangFile($this->testDir, 'keys_test', <<<PHP
+        writeTempLangFile($this->testDir, 'keys_test', <<<'PHP'
 <?php
 return [
     'action_save' => 'Save',
@@ -196,7 +196,7 @@ PHP);
 
 describe('findDuplicateKeys', function () {
     it('detects duplicate top-level keys', function () {
-        writeTempLangFile($this->testDir, 'dupes', <<<PHP
+        writeTempLangFile($this->testDir, 'dupes', <<<'PHP'
 <?php
 return [
     'action_save' => 'Save',

@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Rules\ValidUserName;
+use Illuminate\Support\Str;
 
 /**
  * Edge-case tests for the complete user profile system:
@@ -332,7 +333,7 @@ describe('Route model binding edge cases', function () {
     });
 
     it('resolves valid UUID that does not match any user', function () {
-        $uuid = (string) \Illuminate\Support\Str::uuid();
+        $uuid = (string) Str::uuid();
         $resolved = (new User)->resolveRouteBinding($uuid);
 
         expect($resolved)->toBeNull();

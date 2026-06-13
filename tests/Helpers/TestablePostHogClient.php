@@ -13,11 +13,15 @@ use App\Services\PostHogClient;
 class TestablePostHogClient extends PostHogClient
 {
     public array $capturedCalls = [];
+
     public array $identifyCalls = [];
+
     public array $groupIdentifyCalls = [];
+
     public array $featureFlagCalls = [];
 
     private bool $enabled = true;
+
     private array $flagResults = [];
 
     public function setEnabled(bool $enabled): void

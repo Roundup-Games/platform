@@ -7,6 +7,7 @@ use App\Models\Campaign;
 use App\Models\CampaignApplication;
 use App\Models\CampaignParticipant;
 use App\Traits\HandlesApplicationSubmission;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -52,7 +53,7 @@ class ApplyToCampaign extends Component
         }
     }
 
-    protected function getEntity(): \Illuminate\Database\Eloquent\Model
+    protected function getEntity(): Campaign
     {
         return $this->campaign;
     }
@@ -81,7 +82,7 @@ class ApplyToCampaign extends Component
         ];
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.campaigns.apply-to-campaign', [
             'campaign' => $this->campaign,

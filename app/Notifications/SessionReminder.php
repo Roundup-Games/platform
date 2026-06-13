@@ -28,8 +28,10 @@ class SessionReminder extends BaseNotification
     /**
      * Database-only notification — no mail channel.
      * Override BaseNotification's default which includes MailChannel.
+     *
+     * @return array<int, string>
      */
-    public function via(object $notifiable): array
+    public function via(User $notifiable): array
     {
         return [DatabaseChannel::class];
     }
@@ -39,9 +41,9 @@ class SessionReminder extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'session_reminder',
@@ -53,7 +55,6 @@ class SessionReminder extends BaseNotification
         ];
     }
 
-
     /**
      * Get the push notification representation.
      *
@@ -61,9 +62,9 @@ class SessionReminder extends BaseNotification
      * target audience) and include the timezone abbreviation for clarity,
      * e.g. "3:00 PM CEST".
      */
-    public function toPush(object $notifiable): PushPayload
+    public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $timezone = $notifiable->timezone ?? 'Europe/Berlin';
 
         $time = $this->game->date_time
@@ -90,7 +91,6 @@ class SessionReminder extends BaseNotification
         );
     }
 
-
     /**
      * No actor for block-list checking — this is a system notification.
      */
@@ -98,5 +98,4 @@ class SessionReminder extends BaseNotification
     {
         return null;
     }
-
 }

@@ -4,7 +4,6 @@ use App\Jobs\RecordShortLinkHit;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\ShortLink;
-use App\Models\ShortLinkHit;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 

@@ -1,0 +1,19 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+    level: 9
+    stubFiles:
+        - stubs/EscalatedTicket.stub
+        - stubs/EscalatedDepartment.stub
+        - stubs/EscalatedReply.stub
+        - stubs/EscalatedTicketStatus.stub
+        - stubs/HasTranslations.stub
+        - stubs/IlluminateCache.stub
+        - stubs/IlluminateCacheLockInterface.stub
+        - stubs/SchemaOrg.stub
+    excludePaths:
+        - app/Filament/Resources
+    reportUnmatchedIgnoredErrors: true

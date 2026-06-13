@@ -1,0 +1,38 @@
+<?php
+
+// Stub for Spatie\SchemaOrg types to add typed method signatures
+// for methods used in the codebase that have untyped parameters in v4.
+// These stubs only declare the methods used - PHPStan merges with the real class.
+
+namespace Spatie\SchemaOrg;
+
+/**
+ * @method $this eventStatus(string $eventStatus)
+ * @method $this eventAttendanceMode(string $eventAttendanceMode)
+ * @method $this startDate(string $startDate)
+ * @method $this endDate(string $endDate)
+ */
+class Event {}
+
+/**
+ * @method $this availability(string $availability)
+ * @method $this price(float|int|string $price)
+ * @method $this priceCurrency(string $priceCurrency)
+ */
+class Offer {}
+
+/**
+ * @method $this brand(string $brand)
+ */
+class Product {}
+
+/**
+ * @method $this foundingDate(string $foundingDate)
+ * @method $this sameAs(string[] $sameAs)
+ */
+class Organization {}
+
+/**
+ * @method $this mainEntity(mixed $mainEntity)
+ */
+class FAQPage {}

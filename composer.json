@@ -51,6 +51,7 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.10",
         "laravel/breeze": "^2.4",
         "laravel/pail": "^1.2.5",
         "laravel/pint": "^1.27",
@@ -76,6 +77,9 @@
         }
     },
     "scripts": {
+        "install-hooks": [
+            "cp scripts/git/pre-commit.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
+        ],
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
@@ -108,9 +112,14 @@
             "@php artisan filament:upgrade",
             "@bash scripts/patch-escalated-uuid.sh"
         ],
-        "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        "post-install-cmd": [
+            "@install-hooks"
         ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@install-hooks"
+        ],
+
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],

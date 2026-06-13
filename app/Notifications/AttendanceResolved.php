@@ -24,9 +24,9 @@ class AttendanceResolved extends BaseNotification
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $date = $this->game->date_time?->format('M j, Y') ?? '';
         $status = $this->status->label();
 
@@ -52,9 +52,9 @@ class AttendanceResolved extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'attendance_resolved',
@@ -82,9 +82,9 @@ class AttendanceResolved extends BaseNotification
     /**
      * Get the push notification representation.
      */
-    public function toPush(object $notifiable): PushPayload
+    public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $status = $this->status->label();
 
         return new PushPayload(

@@ -43,7 +43,7 @@ class I18nDeadStringsCommand extends Command
             }
 
             $totalKeys += count($keys);
-            $usedInDomain = $usage['keys'][$domain] ?? [];
+            $usedInDomain = is_array($u = $usage['keys'][$domain] ?? []) ? $u : [];
 
             foreach ($keys as $key) {
                 if (! isset($usedInDomain[$key])) {
@@ -84,7 +84,7 @@ class I18nDeadStringsCommand extends Command
         // Group by domain for display
         $grouped = collect($deadKeys)->groupBy('domain');
 
-        $this->warn('Found ' . count($deadKeys) . " potentially dead translation key(s) across {$grouped->count()} domain(s):");
+        $this->warn('Found '.count($deadKeys)." potentially dead translation key(s) across {$grouped->count()} domain(s):");
         $this->newLine();
 
         foreach ($grouped as $domain => $keys) {
@@ -116,7 +116,10 @@ class I18nDeadStringsCommand extends Command
      * and cannot be detected by static analysis. We exclude them based on known
      * dynamic usage patterns from the codebase.
      *
-     * @return array Filtered dead keys
+     * @param  list<array{domain: string, key: string, dotted: string, value: string}>  $deadKeys
+     * @param  array{keys: array<string, array<string, array<string>>>, dynamicCount: int, dynamicFiles: array<string>}  $usage
+     * @param  array<string, mixed>  $usage
+     * @return list<array{domain: string, key: string, dotted: string, value: string}>
      */
     private function filterDynamicKnownKeys(array $deadKeys, array $usage): array
     {
@@ -198,8 +201,12 @@ class I18nDeadStringsCommand extends Command
 
             // Check Blade dynamic prefix patterns detected by the scanner
             // e.g. __('games.status_' . $var) registers '__dynamic_prefix__:status_'
-            $domainKeys = $usage['keys'][$domain] ?? [];
+            $keys = $usage['keys'] ?? [];
+            $domainKeys = is_array($keys) && isset($keys[$domain]) && is_array($keys[$domain]) ? $keys[$domain] : [];
             foreach ($domainKeys as $usedKey => $files) {
+                if (! is_string($usedKey)) {
+                    continue;
+                }
                 if (str_starts_with($usedKey, '__dynamic_prefix__:')) {
                     $prefix = substr($usedKey, strlen('__dynamic_prefix__:'));
                     if (str_starts_with($key, $prefix)) {
@@ -212,6 +219,9 @@ class I18nDeadStringsCommand extends Command
         }));
     }
 
+    /**
+     * @param  list<array{domain: string, key: string, dotted: string, value: string}>  $deadKeys
+     */
     private function pruneKeys(LangFileParser $parser, array $deadKeys): int
     {
         $this->newLine();
@@ -228,30 +238,32 @@ class I18nDeadStringsCommand extends Command
             if ($removeAll) {
                 $this->removeKeyFromAllLocales($parser, $locales, $dead['domain'], $dead['key']);
                 $removed++;
+
                 continue;
             }
 
             $this->line("  <fg=yellow>{$dead['dotted']}</>");
             $this->line("    Value: {$dead['value']}");
-            $choice = strtolower($this->ask('Remove? [y/n/a/q]', 'n'));
+            $rawChoice = $this->ask('Remove? [y/n/a/q]', 'n');
+            $choice = strtolower(is_string($rawChoice) ? $rawChoice : 'n');
 
             switch ($choice) {
                 case 'y':
                     $this->removeKeyFromAllLocales($parser, $locales, $dead['domain'], $dead['key']);
                     $removed++;
-                    $this->line("    <fg=green>✓ Removed</>");
+                    $this->line('    <fg=green>✓ Removed</>');
                     break;
                 case 'a':
                     $removeAll = true;
                     $this->removeKeyFromAllLocales($parser, $locales, $dead['domain'], $dead['key']);
                     $removed++;
-                    $this->line("    <fg=green>✓ Removed (all remaining will be auto-removed)</>");
+                    $this->line('    <fg=green>✓ Removed (all remaining will be auto-removed)</>');
                     break;
                 case 'q':
                     break 2;
                 default:
                     $kept++;
-                    $this->line("    Kept.");
+                    $this->line('    Kept.');
                     break;
             }
         }
@@ -264,10 +276,15 @@ class I18nDeadStringsCommand extends Command
 
     /**
      * Remove a key from a domain file in all locales.
+     *
+     * @param  array<int|string, mixed>  $locales
      */
     private function removeKeyFromAllLocales(LangFileParser $parser, array $locales, string $domain, string $key): void
     {
         foreach ($locales as $locale) {
+            if (! is_string($locale)) {
+                continue;
+            }
             $path = lang_path("$locale/$domain.php");
 
             if (! file_exists($path)) {
@@ -275,15 +292,24 @@ class I18nDeadStringsCommand extends Command
             }
 
             $content = file_get_contents($path);
+            if ($content === false) {
+                continue;
+            }
 
             // Match the key's entire line (including trailing comma and whitespace)
             // Handles both single-line and multi-line array entries
-            $pattern = "/^\s*'" . preg_quote($key, '/') . "'\s*=>\s*[^,]+,?\s*$/m";
+            $pattern = "/^\s*'".preg_quote($key, '/')."'\s*=>\s*[^,]+,?\s*$/m";
 
             if (preg_match($pattern, $content)) {
-                $content = preg_replace($pattern, '', $content);
+                $replaced = preg_replace($pattern, '', $content);
+                if ($replaced !== null) {
+                    $content = $replaced;
+                }
                 // Clean up double blank lines left by removal
-                $content = preg_replace("/\n{3,}/", "\n\n", $content);
+                $cleaned = preg_replace("/\n{3,}/", "\n\n", $content);
+                if ($cleaned !== null) {
+                    $content = $cleaned;
+                }
                 file_put_contents($path, $content);
             }
         }

@@ -9,7 +9,6 @@ use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Services\TicketService;
-use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     seedRoles();
@@ -151,7 +150,7 @@ it('remove action triggers ReviewObserver aggregate recalculation', function () 
 
     // The aggregate recalculation ran without errors (ReviewObserver handles it)
     $gmProfile->refresh();
-    expect($gmProfile)->toBeInstanceOf(\App\Models\GMProfile::class);
+    expect($gmProfile)->toBeInstanceOf(GMProfile::class);
 });
 
 // ── Escalate Action Tests ──────────────────────────────────────────────

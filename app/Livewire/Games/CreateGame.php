@@ -6,14 +6,15 @@ use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
-use App\Enums\Visibility;
 use App\Enums\VibeFlag;
+use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Services\OwnerParticipantService;
-use App\Services\VenueTrustService;
 use App\Services\ShortLinkService;
+use App\Services\VenueTrustService;
 use App\Traits\BuildsTranslatableFormFields;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -24,6 +25,7 @@ use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
+/** @property-read bool $canCreatePublic */
 #[Layout('layouts.app')]
 class CreateGame extends Component
 {
@@ -36,6 +38,9 @@ class CreateGame extends Component
     public string $name = '';
 
     // ── Translatable fields ──
+    /**
+     * @return array<int, string>
+     */
     public function getTranslatableFields(): array
     {
         return ['name', 'description'];
@@ -63,8 +68,10 @@ class CreateGame extends Component
 
     public string $visibility = 'protected';
 
+    /** @var array<string, mixed> */
     public array $minimum_requirements = [];
 
+    /** @var array<string, mixed> */
     public array $safety_rules = [];
 
     public ?int $min_players = null;
@@ -75,7 +82,7 @@ class CreateGame extends Component
 
     public ?string $complexity = null;
 
-    /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', from VibePreferencePicker */
+    /** @var array<int|string, mixed> VibeFlag value → null|'favorite'|'avoid', from VibePreferencePicker */
     public array $vibePreferences = [];
 
     public string $comfort_notes = '';
@@ -84,17 +91,20 @@ class CreateGame extends Component
 
     public bool $bench_mode = false;
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return array_merge([
             'name' => 'required|string|max:255',
-            'game_type' => 'required|string|in:' . implode(',', GameType::values()),
+            'game_type' => 'required|string|in:'.implode(',', GameType::values()),
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
             'date_time' => 'required|date',
             'description' => 'nullable|string|max:5000',
             'expected_duration' => 'nullable|numeric|min:0.5|max:24',
             'price' => 'nullable|numeric|min:0',
-            'language' => 'required|string|in:' . implode(',', ContentLanguage::values()),
+            'language' => 'required|string|in:'.implode(',', ContentLanguage::values()),
             'location_id' => 'nullable|uuid|exists:locations,id',
             'location_instructions' => 'nullable|string|max:1000',
             'visibility' => Visibility::validationRule(),
@@ -106,7 +116,7 @@ class CreateGame extends Component
             'safety_rules.custom_note' => 'nullable|string|max:1000',
             'min_players' => 'nullable|integer|min:1|max:99',
             'max_players' => 'required|integer|min:2|max:30',
-            'experience_level' => 'nullable|string|in:' . implode(',', ExperienceLevel::values()),
+            'experience_level' => 'nullable|string|in:'.implode(',', ExperienceLevel::values()),
             'comfort_notes' => 'nullable|string|max:1000',
             'min_reliability_preference' => 'nullable|numeric|min:0|max:100',
             'complexity' => 'nullable|numeric|min:0|max:5',
@@ -137,12 +147,18 @@ class CreateGame extends Component
         $this->location_instructions = $instructions;
     }
 
+    /**
+     * @param  array<string, mixed>  $preferences
+     */
     #[On('vibe-preferences-changed')]
     public function onVibePreferencesChanged(array $preferences): void
     {
         $this->vibePreferences = $preferences;
     }
 
+    /**
+     * @param  array<string, mixed>  $safetyRules
+     */
     #[On('safety-tools-changed')]
     public function onSafetyToolsChanged(array $safetyRules): void
     {
@@ -150,7 +166,7 @@ class CreateGame extends Component
     }
 
     #[On('value-updated')]
-    public function onGameSystemPicked($value): void
+    public function onGameSystemPicked(mixed $value): void
     {
         $id = is_string($value) && Str::isUuid($value) ? $value : null;
         $this->game_system_id = $id;
@@ -176,7 +192,7 @@ class CreateGame extends Component
         $this->authorize('create', Game::class);
 
         // Set game type and apply defaults first
-        $this->game_type = $source->game_type?->value ?? 'board_game';
+        $this->game_type = $source->game_type->value ?? 'board_game';
         $this->step = 'form';
         $this->applyTypeDefaults($this->game_type);
 
@@ -188,28 +204,29 @@ class CreateGame extends Component
         $this->location_instructions = $source->location_instructions ?? '';
         $this->price = $source->price !== null ? (string) $source->price : '';
         $this->language = $source->language ?? 'en';
-        $this->visibility = $source->visibility?->value ?? 'protected';
+        $this->visibility = $source->visibility->value ?? 'protected';
         $this->min_players = $source->min_players;
         $this->max_players = $source->max_players;
         $this->experience_level = $source->experience_level;
         $this->complexity = $source->complexity !== null ? (string) $source->complexity : null;
-        $this->expected_duration = $source->expected_duration !== null ? (string) $source->expected_duration : '';
+        $this->expected_duration = (string) ($source->expected_duration ?? '');
         $this->min_reliability_preference = $source->min_reliability_preference !== null
             ? (string) $source->min_reliability_preference
             : null;
 
         // Load vibe_flags into vibePreferences array (flat DB array → favorite map)
-        if ($source->vibe_flags && is_array($source->vibe_flags)) {
-            foreach ($source->vibe_flags as $flag) {
+        if (! empty($source->vibe_flags)) {
+            foreach ((array) $source->vibe_flags as $flag) {
                 $this->vibePreferences[$flag] = 'favorite';
             }
         }
 
         // Load safety_rules based on game type
-        if ($source->safety_rules && is_array($source->safety_rules)) {
-            if (($source->game_type?->value ?? 'board_game') === 'board_game') {
+        if (! empty($source->safety_rules)) {
+            if (($source->game_type->value ?? 'board_game') === 'board_game') {
                 // Board games store comfort_notes in safety_rules JSON
-                $this->comfort_notes = $source->safety_rules['comfort_notes'] ?? '';
+                $rawNotes = $source->safety_rules['comfort_notes'] ?? '';
+                $this->comfort_notes = is_string($rawNotes) ? $rawNotes : '';
             } else {
                 // TTRPG uses safety_rules directly
                 $this->safety_rules = $source->safety_rules;
@@ -282,62 +299,74 @@ class CreateGame extends Component
 
     // ── Computed ─────────────────────────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Computed]
     public function languageOptions(): array
     {
         $options = [];
         foreach (ContentLanguage::cases() as $case) {
-            $options[$case->value] = __('common.label_language_' . $case->value);
+            $options[$case->value] = __('common.label_language_'.$case->value);
         }
 
         return $options;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Computed]
     public function gameTypeOptions(): array
     {
         $options = [];
         foreach (GameType::cases() as $case) {
-            $options[$case->value] = __('games.type_' . $case->value);
+            $options[$case->value] = __('games.type_'.$case->value);
         }
 
         return $options;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Computed]
     public function experienceLevelOptions(): array
     {
         $options = ['' => __('discovery.content_any')];
         foreach (ExperienceLevel::cases() as $case) {
-            $options[$case->value] = __('games.content_experience_' . $case->value);
+            $options[$case->value] = __('games.content_experience_'.$case->value);
         }
 
         return $options;
     }
 
+    /**
+     * @return array<int|string, string>
+     */
     #[Computed]
     public function attendanceToleranceOptions(): array
     {
         return [
-            '' => __('games.content_attendance_any'),
-            '70' => __('games.content_attendance_relaxed'),
-            '85' => __('games.content_attendance_moderate'),
-            '95' => __('games.content_attendance_strict'),
+            '' => (string) __('games.content_attendance_any'),
+            '70' => (string) __('games.content_attendance_relaxed'),
+            '85' => (string) __('games.content_attendance_moderate'),
+            '95' => (string) __('games.content_attendance_strict'),
         ];
     }
 
     #[Computed]
     public function canCreatePublic(): bool
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
-        return $user && app(VenueTrustService::class)->canCreatePublic($user, $this->location_id);
+        return app(VenueTrustService::class)->canCreatePublic($user, $this->location_id);
     }
 
     #[Computed]
     public function publicViaVenue(): bool
     {
-        if ($this->canCreatePublic && Auth::user()?->can_create_public_entries) {
+        if ($this->canCreatePublic && authenticatedUser()->can_create_public_entries) {
             return false; // GM — doesn't need venue indicator
         }
 
@@ -384,7 +413,7 @@ class CreateGame extends Component
 
         // Gate bench_mode to GM users only (defense-in-depth; UI disables toggle for non-GMs)
         $benchMode = $this->bench_mode;
-        if ($benchMode && ! Auth::user()->isGM()) {
+        if ($benchMode && ! authenticatedUser()->isGM()) {
             Log::warning('Non-GM user attempted to enable bench_mode on game creation', [
                 'user_id' => Auth::id(),
                 'attempted_bench_mode' => true,
@@ -445,9 +474,9 @@ class CreateGame extends Component
         Log::info('Game created', $logContext);
 
         // Auto-generate short link for GMs
-        if (Auth::user()->isGM()) {
+        if (authenticatedUser()->isGM()) {
             try {
-                app(ShortLinkService::class)->createLink($game, Auth::user(), [
+                app(ShortLinkService::class)->createLink($game, authenticatedUser(), [
                     'label' => 'Default',
                     'expires_at' => now()->addDays(30),
                 ]);
@@ -464,10 +493,10 @@ class CreateGame extends Component
         $this->redirect(route('games.show', $game->id), navigate: true);
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.games.create-game', [
-            'isGM' => Auth::user()?->isGM() ?? false,
+            'isGM' => authenticatedUser()->isGM(),
         ]);
     }
 
@@ -544,7 +573,7 @@ class CreateGame extends Component
      * Extract favorite flags from the picker as a flat array for DB storage.
      * Validates against the VibeFlag enum to prevent tampering.
      *
-     * @return string[]
+     * @return array<int, string>
      */
     protected function selectedVibeFlags(): array
     {
@@ -553,7 +582,8 @@ class CreateGame extends Component
         return collect($this->vibePreferences)
             ->filter(fn ($value) => $value === 'favorite')
             ->keys()
-            ->filter(fn ($key) => in_array($key, $validValues))
+            ->filter(fn ($key) => in_array($key, $validValues, true))
+            ->map(fn (mixed $k): string => (string) $k)
             ->values()
             ->all();
     }

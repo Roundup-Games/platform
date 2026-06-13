@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
 use App\Models\Game;
@@ -9,8 +11,6 @@ use App\Models\User;
 use App\Models\UserAppVisit;
 use App\Models\UserRelationship;
 use App\Services\PwaEligibilityService;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 
 beforeEach(function () {
     $this->service = new PwaEligibilityService;
@@ -400,5 +400,3 @@ describe('Edge cases', function () {
         expect($result->reason)->toBe('trypass_game_joined');
     });
 });
-
-

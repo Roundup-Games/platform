@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\NotificationCategory;
+use App\Models\Game;
 use App\Models\User;
+use App\Notifications\EntityInvitation;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -55,7 +57,7 @@ it('preserves other category settings when unsubscribing', function () {
 });
 
 it('rejects unsigned URLs with 403', function () {
-    $url = url('/en/notifications/unsubscribe/' . $this->user->id . '/game_invitation');
+    $url = url('/en/notifications/unsubscribe/'.$this->user->id.'/game_invitation');
 
     $this->actingAs($this->user)
         ->get($url)
@@ -112,8 +114,8 @@ it('redirects to home for non-logged-in users', function () {
 });
 
 it('generates valid unsubscribe URLs in notification emails', function () {
-    $notification = new \App\Notifications\EntityInvitation(
-        entity: \App\Models\Game::factory()->create(),
+    $notification = new EntityInvitation(
+        entity: Game::factory()->create(),
         inviter: User::factory()->create(),
     );
 
@@ -121,6 +123,6 @@ it('generates valid unsubscribe URLs in notification emails', function () {
     $rendered = (string) $mail->render();
 
     // Should contain an unsubscribe link
-    expect($rendered)->toContain('notifications/unsubscribe/' . $this->user->id . '/game_invitation');
+    expect($rendered)->toContain('notifications/unsubscribe/'.$this->user->id.'/game_invitation');
     expect($rendered)->toContain('signature');
 });

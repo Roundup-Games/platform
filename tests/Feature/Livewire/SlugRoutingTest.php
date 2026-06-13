@@ -33,17 +33,17 @@ describe('Slug-based profile routing', function () {
         ]);
 
         // Access via UUID instead of slug
-        $url = '/' . app()->getLocale() . '/u/' . $user->id;
+        $url = '/'.app()->getLocale().'/u/'.$user->id;
 
         $response = $this->get($url);
 
         $response->assertRedirect();
         expect($response->getStatusCode())->toBe(301);
-        $response->assertRedirectContains('/u/' . $user->slug);
+        $response->assertRedirectContains('/u/'.$user->slug);
     });
 
     it('returns 404 for non-existent slug', function () {
-        $response = $this->get('/' . app()->getLocale() . '/u/nonexistent-user-slug');
+        $response = $this->get('/'.app()->getLocale().'/u/nonexistent-user-slug');
 
         $response->assertNotFound();
     });
@@ -51,7 +51,7 @@ describe('Slug-based profile routing', function () {
     it('returns 404 for non-existent UUID', function () {
         $fakeUuid = (string) Str::uuid();
 
-        $response = $this->get('/' . app()->getLocale() . '/u/' . $fakeUuid);
+        $response = $this->get('/'.app()->getLocale().'/u/'.$fakeUuid);
 
         $response->assertStatus(404);
     });

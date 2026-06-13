@@ -3,13 +3,14 @@
 namespace App\Livewire\Teams;
 
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantStatus;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Notifications\TeamInvitation;
 use App\Notifications\TeamMemberRemoved;
 use App\Services\NotificationService;
-use App\Enums\ParticipantStatus;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -41,7 +42,7 @@ class ManageRoster extends Component
         $team = Team::where('slug', $slug)->firstOrFail();
 
         // Allow access if user can manageMembers (captain) OR is an active member
-        $user = Auth::user();
+        $user = authenticatedUser();
         if ($user->can('manageMembers', $team) || $team->hasMember($user)) {
             $this->team = $team;
         } else {
@@ -142,7 +143,7 @@ class ManageRoster extends Component
         try {
             app(NotificationService::class)->send(
                 $targetUser,
-                new TeamInvitation($this->team, Auth::user()),
+                new TeamInvitation($this->team, authenticatedUser()),
                 NotificationCategory::TeamInvitation,
             );
         } catch (\Throwable $e) {
@@ -345,7 +346,7 @@ class ManageRoster extends Component
             if ($removedUser) {
                 app(NotificationService::class)->send(
                     $removedUser,
-                    new TeamMemberRemoved($this->team, Auth::user()),
+                    new TeamMemberRemoved($this->team, authenticatedUser()),
                     NotificationCategory::TeamMemberRemoved
                 );
             }
@@ -429,7 +430,7 @@ class ManageRoster extends Component
             ->firstOrFail();
     }
 
-    public function render()
+    public function render(): View
     {
         $roleOrder = [
             'captain' => 1,
@@ -441,14 +442,14 @@ class ManageRoster extends Component
         $activeMembers = $this->team->activeMembers()
             ->with('user')
             ->get()
-            ->sortBy(fn ($m) => $roleOrder[$m->role] ?? 99);
+            ->sortBy(fn ($m) => $roleOrder[$m->role ?? ''] ?? 99);
 
         $pendingInvites = $this->team->members()
             ->where('status', 'pending')
             ->with(['user', 'invitedBy'])
             ->get();
 
-        $isCaptain = $this->team->isCaptain(Auth::user());
+        $isCaptain = $this->team->isCaptain(authenticatedUser());
 
         return view('livewire.teams.manage-roster', [
             'team' => $this->team,

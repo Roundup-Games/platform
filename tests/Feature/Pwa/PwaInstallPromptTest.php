@@ -1,13 +1,15 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\Location;
 use App\Models\User;
 use App\Models\UserAppVisit;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
-use function Pest\Laravel\{actingAs, get};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 beforeEach(function () {
     $this->location = Location::factory()->create();

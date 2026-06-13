@@ -2,7 +2,7 @@
 
 use App\Enums\ActivityType;
 use App\Enums\ParticipantRole;
-use App\Enums\Visibility;
+use App\Enums\ParticipantStatus;
 use App\Models\ActivityLog;
 use App\Models\Campaign;
 use App\Models\Game;
@@ -12,11 +12,12 @@ use App\Services\ActivityLogService;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
 use App\Services\PostHogEventBridge;
-use App\Enums\ParticipantStatus;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Tests\Helpers\TestablePostHogClient;
 
 /**
  * Testable ActivityLogService that records PostHog forwarding calls.
@@ -30,7 +31,7 @@ class TestableActivityLogService extends ActivityLogService
     protected function forwardToPostHog(
         ActivityType $type,
         User $user,
-        ?\Illuminate\Database\Eloquent\Model $subject = null,
+        ?Model $subject = null,
         array $properties = [],
     ): void {
         $this->posthogCalls[] = [
@@ -46,7 +47,7 @@ beforeEach(function () {
     Config::set('posthog.enabled', true);
     Config::set('posthog.api_key', 'phc_test_key');
 
-    $this->posthogClient = new Tests\Helpers\TestablePostHogClient();
+    $this->posthogClient = new TestablePostHogClient;
     $this->app->instance(PostHogClient::class, $this->posthogClient);
 
     // Grant analytics consent by default
@@ -64,7 +65,7 @@ it('forwards event to PostHog after successful log write', function () {
         'game_system_id' => GameSystem::factory()->create()->id,
     ]);
 
-    $service = new TestableActivityLogService();
+    $service = new TestableActivityLogService;
     $result = $service->log(ActivityType::GameCreated, $user, $game, ['custom' => 'prop']);
 
     // ActivityLog entry created
@@ -82,7 +83,7 @@ it('forwards event to PostHog after successful log write', function () {
 it('does not forward to PostHog when log write fails', function () {
     $user = User::factory()->make(['id' => Str::uuid()]); // Non-persisted user with synthetic ID
 
-    $service = new TestableActivityLogService();
+    $service = new TestableActivityLogService;
 
     // This will fail because user doesn't exist in DB (FK constraint or invalid data)
     // But the service catches it and returns null
@@ -96,7 +97,7 @@ it('does not forward to PostHog when log write fails', function () {
 it('forwards different activity types correctly', function () {
     $user = User::factory()->create();
 
-    $service = new TestableActivityLogService();
+    $service = new TestableActivityLogService;
 
     $service->log(ActivityType::FollowReceived, $user);
     $service->log(ActivityType::ReviewReceived, $user);
@@ -109,7 +110,7 @@ it('forwards different activity types correctly', function () {
 it('forwards event with null subject', function () {
     $user = User::factory()->create();
 
-    $service = new TestableActivityLogService();
+    $service = new TestableActivityLogService;
     $result = $service->log(ActivityType::FollowReceived, $user, null);
 
     expect($result)->not->toBeNull();
@@ -144,7 +145,7 @@ it('forwards participant event to PostHog for game owner', function () {
         'created_at' => now(),
     ]);
 
-    $service = new TestableActivityLogService();
+    $service = new TestableActivityLogService;
     $service->logForParticipants(ActivityType::GameCreated, $game, ['key' => 'value']);
 
     // PostHog forwarding called once for the owner
@@ -179,7 +180,7 @@ it('forwards participant event to PostHog for campaign owner', function () {
         'created_at' => now(),
     ]);
 
-    $service = new TestableActivityLogService();
+    $service = new TestableActivityLogService;
     $service->logForParticipants(ActivityType::CampaignCreated, $campaign);
 
     expect($service->posthogCalls)->toHaveCount(1);
@@ -196,7 +197,7 @@ it('does not forward when logForParticipants has no participants', function () {
     ]);
     // No participants added — early return
 
-    $service = new TestableActivityLogService();
+    $service = new TestableActivityLogService;
     $service->logForParticipants(ActivityType::GameCreated, $game);
 
     expect($service->posthogCalls)->toHaveCount(0);
@@ -211,11 +212,12 @@ it('never blocks log write when PostHog forwarding throws unexpectedly', functio
     // that bypasses the normal try/catch inside forwardToPostHog.
     // The outer catch in log() catches this and returns null, but the DB
     // entry was already committed before the forwarding call.
-    $service = new class extends ActivityLogService {
+    $service = new class extends ActivityLogService
+    {
         protected function forwardToPostHog(
             ActivityType $type,
             User $user,
-            ?\Illuminate\Database\Eloquent\Model $subject = null,
+            ?Model $subject = null,
             array $properties = [],
         ): void {
             throw new RuntimeException('PostHog completely down');
@@ -247,13 +249,14 @@ it('resolves PostHogEventBridge from container and calls forwardEvent', function
     ]);
 
     // Use a testable bridge registered in the container
-    $testBridge = new class(app(PostHogClient::class), app(PostHogConsentChecker::class)) extends PostHogEventBridge {
+    $testBridge = new class(app(PostHogClient::class), app(PostHogConsentChecker::class)) extends PostHogEventBridge
+    {
         public array $forwardedCalls = [];
 
         public function forwardEvent(
-            \App\Enums\ActivityType $type,
+            ActivityType $type,
             User $user,
-            ?\Illuminate\Database\Eloquent\Model $subject = null,
+            ?Model $subject = null,
             array $properties = [],
         ): void {
             $this->forwardedCalls[] = [
@@ -266,7 +269,7 @@ it('resolves PostHogEventBridge from container and calls forwardEvent', function
 
     app()->instance(PostHogEventBridge::class, $testBridge);
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $result = $service->log(ActivityType::GameCreated, $user, $game, ['test' => true]);
 
     expect($result)->not->toBeNull();
@@ -291,7 +294,7 @@ it('logs warning when PostHog bridge resolution fails', function () {
                 && str_contains($ctx['error'], 'Container resolution failed');
         }));
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $result = $service->log(ActivityType::GameCreated, $user);
 
     // DB write still succeeded despite PostHog failure

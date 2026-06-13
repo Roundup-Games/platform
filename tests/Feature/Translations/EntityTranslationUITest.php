@@ -1,9 +1,20 @@
 <?php
 
+use App\Livewire\Campaigns\CreateCampaign;
+use App\Livewire\Events\CreateEvent;
+use App\Livewire\Events\EventAnnouncements;
+use App\Livewire\Events\EventDetail;
+use App\Livewire\Events\EventListing;
+use App\Livewire\Events\ManageEvent;
+use App\Livewire\Games\CreateGame;
+use App\Livewire\Teams\ManageTeam;
+use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
+use App\Models\Game;
+use App\Models\Team;
+use App\Models\TeamMember;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 
 // ── EventDetail Display ──────────────────────────────
 
@@ -19,7 +30,7 @@ describe('EventDetail Translations', function () {
 
         app()->setLocale('de');
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Deutsches Turnier')
             ->assertDontSee('English Tournament');
     });
@@ -38,7 +49,7 @@ describe('EventDetail Translations', function () {
 
         app()->setLocale('de');
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Deutsche Beschreibung')
             ->assertSee('Deutsche Kurzbeschreibung')
             ->assertDontSee('English description text')
@@ -59,7 +70,7 @@ describe('EventDetail Translations', function () {
 
         app()->setLocale('de');
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Check-in');
     });
 
@@ -74,7 +85,7 @@ describe('EventDetail Translations', function () {
 
         app()->setLocale('de');
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('English Only Event')
             ->assertDontSee('Verfügbar in:');
     });
@@ -92,7 +103,7 @@ describe('EventDetail Translations', function () {
 
         app()->setLocale('de');
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Zweisprachiges Event')
             ->assertDontSee('Bilingual Event')
             ->assertDontSee('Verfügbar in:');
@@ -117,7 +128,7 @@ describe('EventDetail Translations', function () {
 
         app()->setLocale('de');
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Willkommen!')
             ->assertSee('Deutscher Ankündigungsinhalt')
             ->assertDontSee('Welcome!')
@@ -136,7 +147,7 @@ describe('EventDetail Translations', function () {
         app()->setLocale('de');
 
         // Spatie accessor resolves from JSON column — no translations relation needed
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Testveranstaltung')
             ->assertDontSee('Test Event');
     });
@@ -154,7 +165,7 @@ describe('EventListing Translations', function () {
 
         app()->setLocale('de');
 
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
+        Livewire\Livewire::test(EventListing::class)
             ->assertSee('English Only');
     });
 
@@ -165,7 +176,7 @@ describe('EventListing Translations', function () {
         ]);
 
         // Verify the listing renders correctly without translations eager loading
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventListing::class);
+        $component = Livewire\Livewire::test(EventListing::class);
         $events = $component->viewData('events');
 
         // Each event should render its own name directly
@@ -189,7 +200,7 @@ describe('CreateEvent Translations', function () {
     });
 
     it('creates event with language=en only without DE fields', function () {
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'English Only Event')
             ->set('type', 'tournament')
             ->set('language', 'en')
@@ -208,7 +219,7 @@ describe('CreateEvent Translations', function () {
     });
 
     it('creates event with language=de and stores content correctly', function () {
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'Deutsches Event')
             ->set('type', 'tournament')
             ->set('language', 'de')
@@ -244,13 +255,13 @@ describe('ManageEvent Translations', function () {
     });
 
     it('loads event content with primary locale values', function () {
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $this->event->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
             ->assertSet('name', 'Test Event')
             ->assertSet('language', 'de');
     });
 
     it('saves event content through translatable values', function () {
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $this->event->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
             ->set('name', 'Aktualisierte Veranstaltung')
             ->set('short_description', 'Neue Kurzbeschreibung')
             ->call('save')
@@ -270,7 +281,7 @@ describe('ManageEvent Translations', function () {
             'status' => 'draft',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $enEvent->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $enEvent->slug])
             ->set('pendingTranslations.de.name', 'Deutscher Name')
             ->set('language', 'de')
             ->call('save')
@@ -294,7 +305,7 @@ describe('EventAnnouncements Translations', function () {
     });
 
     it('creates announcement without DE fields', function () {
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $this->event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $this->event->slug])
             ->call('showCreateForm')
             ->set('title', 'Test Announcement')
             ->set('content', 'Test content')
@@ -315,7 +326,7 @@ describe('EventAnnouncements Translations', function () {
             'is_published' => true,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $this->event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $this->event->slug])
             ->call('editAnnouncement', $announcement->id)
             ->assertSet('title', 'Original Title')
             ->assertSet('content', 'Original content');
@@ -336,14 +347,14 @@ describe('Locale Switcher — switchLocale', function () {
     });
 
     it('changes activeLocale when switching to a secondary locale', function () {
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->assertSet('activeLocale', 'en')
             ->call('switchLocale', 'de')
             ->assertSet('activeLocale', 'de');
     });
 
     it('snapshots baseline values into pendingTranslations when leaving baseline', function () {
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'English Name')
             ->call('switchLocale', 'de')
             ->assertSet('activeLocale', 'de')
@@ -351,7 +362,7 @@ describe('Locale Switcher — switchLocale', function () {
     });
 
     it('restores baseline values when switching back to baseline locale', function () {
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'English Name')
             ->call('switchLocale', 'de')
             ->assertSet('activeLocale', 'de')
@@ -371,7 +382,7 @@ describe('Locale Switcher — switchLocale', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+            ->test(ManageEvent::class, ['slug' => $event->slug])
             ->assertSet('activeLocale', 'en')
             ->assertSet('name', 'English Event')
             ->call('switchLocale', 'de')
@@ -393,7 +404,7 @@ describe('Locale Switcher — copyFromBaseline', function () {
     });
 
     it('copies baseline field value into active secondary locale', function () {
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'English Name')
             ->set('description', 'English Description')
             ->call('switchLocale', 'de')
@@ -402,7 +413,7 @@ describe('Locale Switcher — copyFromBaseline', function () {
     });
 
     it('only copies the specified field, not all fields', function () {
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'English Name')
             ->set('description', 'English Description')
             ->call('switchLocale', 'de')
@@ -412,7 +423,7 @@ describe('Locale Switcher — copyFromBaseline', function () {
     });
 
     it('does not copy when on baseline locale', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        $component = Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'English Name')
             ->call('copyFromBaseline', 'name');
 
@@ -423,7 +434,7 @@ describe('Locale Switcher — copyFromBaseline', function () {
 
 describe('Locale Switcher — CreateGame', function () {
     it('switches locale and saves German translation via pendingTranslations', function () {
-        $user = \App\Models\User::factory()->create(['profile_complete' => true]);
+        $user = User::factory()->create(['profile_complete' => true]);
         seedPermissions();
         setPermissionsTeamId(1);
         $user->givePermissionTo('create game');
@@ -431,7 +442,7 @@ describe('Locale Switcher — CreateGame', function () {
         setPermissionsTeamId(1);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->call('selectType', 'board_game')
             ->set('name', 'English Game')
             ->set('description', 'English desc')
@@ -445,7 +456,7 @@ describe('Locale Switcher — CreateGame', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = \App\Models\Game::where('name->en', 'English Game')->first();
+        $game = Game::where('name->en', 'English Game')->first();
         expect($game)->not->toBeNull()
             ->and($game->getTranslation('name', 'de'))->toBe('Deutsches Spiel')
             ->and($game->getTranslation('description', 'de'))->toBe('Deutsche Beschreibung');
@@ -454,7 +465,7 @@ describe('Locale Switcher — CreateGame', function () {
 
 describe('Locale Switcher — CreateCampaign', function () {
     it('switches locale and saves German translation via pendingTranslations', function () {
-        $user = \App\Models\User::factory()->create(['profile_complete' => true]);
+        $user = User::factory()->create(['profile_complete' => true]);
         seedPermissions();
         setPermissionsTeamId(1);
         $user->givePermissionTo('create campaign');
@@ -462,7 +473,7 @@ describe('Locale Switcher — CreateCampaign', function () {
         setPermissionsTeamId(1);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'English Campaign')
             ->set('description', 'English desc')
             ->set('language', 'en')
@@ -475,13 +486,13 @@ describe('Locale Switcher — CreateCampaign', function () {
             ->call('save')
             ->assertRedirect();
 
-        $campaign = \App\Models\Campaign::where('owner_id', $user->id)->firstOrFail();
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
         expect($campaign->getTranslation('name', 'de'))->toBe('Deutsche Kampagne')
             ->and($campaign->getTranslation('description', 'de'))->toBe('Deutsche Beschreibung');
     });
 
     it('does not affect non-translatable fields like safety_rules', function () {
-        $user = \App\Models\User::factory()->create(['profile_complete' => true]);
+        $user = User::factory()->create(['profile_complete' => true]);
         seedPermissions();
         setPermissionsTeamId(1);
         $user->givePermissionTo('create campaign');
@@ -489,7 +500,7 @@ describe('Locale Switcher — CreateCampaign', function () {
         setPermissionsTeamId(1);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'Safety Test Campaign')
             ->set('language', 'en')
             ->set('safety_rules', ['tools' => ['x-card']])
@@ -501,7 +512,7 @@ describe('Locale Switcher — CreateCampaign', function () {
             ->call('save')
             ->assertRedirect();
 
-        $campaign = \App\Models\Campaign::where('owner_id', $user->id)->firstOrFail();
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
         expect($campaign->safety_rules)->toBe(['tools' => ['x-card']])
             ->and($campaign->minimum_requirements)->toBe(['min_age' => 18]);
     });
@@ -509,8 +520,8 @@ describe('Locale Switcher — CreateCampaign', function () {
 
 describe('Locale Switcher — ManageTeam', function () {
     it('loads existing German translation into pendingTranslations and switches locale', function () {
-        $user = \App\Models\User::factory()->create(['profile_complete' => true]);
-        $team = \App\Models\Team::factory()->create([
+        $user = User::factory()->create(['profile_complete' => true]);
+        $team = Team::factory()->create([
             'is_active' => true,
             'created_by' => $user->id,
             'name' => 'Locale Team',
@@ -519,7 +530,7 @@ describe('Locale Switcher — ManageTeam', function () {
         $team->setTranslation('description', 'de', 'Deutsche Beschreibung');
         $team->save();
 
-        \App\Models\TeamMember::create([
+        TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'role' => 'captain',
@@ -528,7 +539,7 @@ describe('Locale Switcher — ManageTeam', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
+            ->test(ManageTeam::class, ['slug' => $team->slug])
             ->assertSet('description', 'English desc')
             ->assertSet('pendingTranslations.de.description', 'Deutsche Beschreibung')
             ->call('switchLocale', 'de')
@@ -548,7 +559,7 @@ describe('DE Form Fields Present', function () {
         setPermissionsTeamId(1);
         $this->actingAs($user);
 
-        $html = Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)->html();
+        $html = Livewire\Livewire::test(CreateEvent::class)->html();
 
         expect($html)
             ->toContain('pendingTranslations')
@@ -565,7 +576,7 @@ describe('DE Form Fields Present', function () {
             'status' => 'draft',
         ]);
 
-        $html = Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])->html();
+        $html = Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])->html();
 
         expect($html)
             ->toContain('pendingTranslations')
@@ -582,7 +593,7 @@ describe('DE Form Fields Present', function () {
             'status' => 'registration_open',
         ]);
 
-        $html = Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        $html = Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->call('showCreateForm')
             ->call('switchLocale', 'de')
             ->html();

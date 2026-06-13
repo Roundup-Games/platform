@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\AttendanceStatus;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;
@@ -11,6 +10,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->gameSystem = GameSystem::factory()->create();
@@ -129,7 +129,7 @@ describe('backfill owner participants migration', function () {
 
         // Pre-existing player participant for the owner (from prior flow)
         GameParticipant::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $owner->id,
             'role' => ParticipantRole::Player->value,
@@ -270,7 +270,7 @@ describe('backfill owner participants migration', function () {
 
         // Pre-existing player participant (not the owner)
         $playerParticipant = GameParticipant::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $player->id,
             'role' => ParticipantRole::Player->value,

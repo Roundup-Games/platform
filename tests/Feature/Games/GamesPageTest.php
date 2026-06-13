@@ -1,12 +1,12 @@
 <?php
 
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Livewire\Games\GamesPage;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Enums\ParticipantStatus;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;

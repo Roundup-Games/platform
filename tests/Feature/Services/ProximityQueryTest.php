@@ -4,6 +4,7 @@
 
 namespace Tests\Feature\Services;
 
+use App\Enums\GameStatus;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
@@ -11,17 +12,18 @@ use App\Services\ProximityQuery;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ProximityQueryTest extends TestCase
 {
     use DatabaseTransactions;
+
     private ProximityQuery $proximity;
 
     // Berlin Alexanderplatz
     private float $centerLat = 52.5219;
+
     private float $centerLng = 13.4117;
 
     protected function setUp(): void
@@ -50,7 +52,7 @@ class ProximityQueryTest extends TestCase
         $results = $this->proximity->nearby($this->centerLat, $this->centerLng, 5, 'game');
 
         $this->assertCount(1, $results);
-        $this->assertLessThan(1, $results->first()->distance_km);
+        $this->assertLessThan(1, $results->first()->distanceKm);
         $this->assertInstanceOf(Game::class, $results->first()->entity);
     }
 
@@ -101,8 +103,8 @@ class ProximityQueryTest extends TestCase
 
         $this->assertCount(2, $results);
         $this->assertLessThanOrEqual(
-            $results[1]->distance_km,
-            $results[0]->distance_km,
+            $results[1]->distanceKm,
+            $results[0]->distanceKm,
             'Results should be sorted by distance ascending'
         );
     }
@@ -131,7 +133,7 @@ class ProximityQueryTest extends TestCase
         $results = $this->proximity->nearby($this->centerLat, $this->centerLng, 5, 'game');
 
         $this->assertCount(1, $results);
-        $this->assertEquals(\App\Enums\GameStatus::Scheduled, $results->first()->entity->status);
+        $this->assertEquals(GameStatus::Scheduled, $results->first()->entity->status);
     }
 
     #[Test]

@@ -2,10 +2,14 @@
 
 namespace App\Livewire\GameSystems;
 
+use App\Models\GameSystem;
+use App\Models\User;
 use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -28,10 +32,13 @@ class MyRequestsPage extends Component
 
     // ── Query ─────────────────────────────────────────
 
+    /**
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, Ticket>
+     */
     protected function getRequests(): LengthAwarePaginator
     {
         return Ticket::query()
-            ->where('requester_type', \App\Models\User::class)
+            ->where('requester_type', User::class)
             ->where('requester_id', Auth::id())
             ->where('ticket_type', 'game_system_request')
             ->orderByDesc('created_at')
@@ -74,7 +81,7 @@ class MyRequestsPage extends Component
             'boardgame' => __('games.type_board_game'),
             'ttrpg' => __('games.type_ttrpg'),
             'other' => __('games.type_other'),
-            default => ucfirst($type),
+            default => ucfirst(is_string($type) ? $type : ''),
         };
     }
 
@@ -83,13 +90,13 @@ class MyRequestsPage extends Component
         $subject = $ticket->subject ?? '';
 
         if (str_starts_with($subject, 'Game System Request: ')) {
-            return trim(\Illuminate\Support\Str::after($subject, 'Game System Request: '));
+            return trim(Str::after($subject, 'Game System Request: '));
         }
 
         return trim($subject);
     }
 
-    public function getGameSystem(Ticket $ticket): ?\App\Models\GameSystem
+    public function getGameSystem(Ticket $ticket): ?GameSystem
     {
         $gameSystemId = $ticket->metadata['game_system_id'] ?? null;
 
@@ -97,7 +104,7 @@ class MyRequestsPage extends Component
             return null;
         }
 
-        return \App\Models\GameSystem::find($gameSystemId);
+        return GameSystem::find(is_string($gameSystemId) ? $gameSystemId : null);
     }
 
     public function getRejectionReason(Ticket $ticket): ?string
@@ -106,12 +113,14 @@ class MyRequestsPage extends Component
             return null;
         }
 
-        return $ticket->metadata['rejection_reason'] ?? null;
+        $reason = $ticket->metadata['rejection_reason'] ?? null;
+
+        return is_string($reason) ? $reason : null;
     }
 
     // ── Render ────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.game-systems.my-requests-page', [
             'requests' => $this->getRequests(),
@@ -124,7 +133,7 @@ class MyRequestsPage extends Component
     {
         $status = $ticket->status instanceof TicketStatus
             ? $ticket->status
-            : TicketStatus::tryFrom($ticket->status);
+            : TicketStatus::tryFrom($ticket->status ?? '');
 
         if ($status === TicketStatus::Open || $status === TicketStatus::InProgress) {
             return 'pending';
@@ -136,9 +145,11 @@ class MyRequestsPage extends Component
 
         if ($status === TicketStatus::Closed) {
             // Check metadata for close reason
-            $metadata = $ticket->metadata ?? [];
+            $metadata = is_array($ticket->metadata) ? $ticket->metadata : [];
 
-            return $metadata['close_reason'] ?? 'rejected';
+            $closeReason = $metadata['close_reason'] ?? 'rejected';
+
+            return is_string($closeReason) ? $closeReason : 'rejected';
         }
 
         return 'pending';

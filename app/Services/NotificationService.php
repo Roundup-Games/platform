@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Notifications\Channels\PushChannel;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
+use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -78,7 +80,7 @@ class NotificationService
             // Uses notify() (queued) — BaseNotification implements ShouldQueue so
             // all notifications are processed asynchronously by Horizon workers.
             // In tests, QUEUE_CONNECTION=sync makes this behave identically to notifyNow().
-            $notifiable->notify($notification, $channels);
+            $notifiable->notify($notification);
 
             Log::info('notification.dispatched', [
                 'notifiable_id' => $notifiable->id,
@@ -156,6 +158,9 @@ class NotificationService
      *
      * Returns a collection of notifications sorted by created_at desc.
      * Grouping by read/unread is a stub for future UI categorization.
+
+     *
+     * @return Collection<(int|string), DatabaseNotificationCollection<int, DatabaseNotification>>
      */
     public function getGroupedRecent(User $user, int $limit = 10): Collection
     {
@@ -182,6 +187,7 @@ class NotificationService
      */
     public function resolveChannels(User $user, NotificationCategory $category): array
     {
+        /** @var array<string, mixed>|null $settings */
         $settings = $user->notification_settings;
         $categoryKey = $category->value;
         $defaults = NotificationCategory::defaultSettings();

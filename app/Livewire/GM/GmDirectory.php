@@ -5,11 +5,13 @@ namespace App\Livewire\GM;
 use App\Enums\GmProficiency;
 use App\Models\GMProfile;
 use App\Traits\EscapesLikeWildcards;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 #[Layout('components.public-layout')]
 class GmDirectory extends Component
@@ -64,9 +66,9 @@ class GmDirectory extends Component
     }
 
     #[On('value-updated')]
-    public function onGameSystemUpdated($value): void
+    public function onGameSystemUpdated(mixed $value): void
     {
-        $this->game_system_id = $value;
+        $this->game_system_id = is_string($value) ? $value : null;
         $this->displayCount = 12;
     }
 
@@ -92,9 +94,9 @@ class GmDirectory extends Component
 
     // ── Render ──────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
-        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+        seo(new SEOData(
             title: __('gms.seo_title_gm_directory'),
             description: __('gms.seo_description_gm_directory'),
         ));
@@ -141,6 +143,7 @@ class GmDirectory extends Component
         // Load top proficiencies for each GM
         $results->through(function ($gmProfile) {
             $gmProfile->top_proficiencies = $gmProfile->topProficiencies(3);
+
             return $gmProfile;
         });
 

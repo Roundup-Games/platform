@@ -1,10 +1,11 @@
 <?php
 
+use App\Livewire\Events\EventDetail;
+use App\Livewire\Events\EventListing;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\EventRegistration;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
 
 // ── EventListing ───────────────────────────────────────
 
@@ -17,7 +18,7 @@ describe('EventListing', function () {
             'status' => 'registration_open',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
+        Livewire\Livewire::test(EventListing::class)
             ->assertSee('Spring Tournament');
     })->group('smoke');
 
@@ -28,7 +29,7 @@ describe('EventListing', function () {
             'status' => 'registration_open',
         ], $overrides));
 
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
+        Livewire\Livewire::test(EventListing::class)
             ->assertDontSee('Excluded Event');
     })->with([
         'non-public' => [['is_public' => false]],
@@ -40,7 +41,7 @@ describe('EventListing', function () {
         Event::factory()->create(['name' => ['en' => 'Alpha Tournament'], 'is_public' => true, 'status' => 'registration_open']);
         Event::factory()->create(['name' => ['en' => 'Beta League'], 'is_public' => true, 'status' => 'registration_open']);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
+        Livewire\Livewire::test(EventListing::class)
             ->set('search', 'Alpha')
             ->assertSee('Alpha Tournament')
             ->assertDontSee('Beta League');
@@ -50,7 +51,7 @@ describe('EventListing', function () {
         Event::factory()->create(['name' => ['en' => 'Tourney A'], 'type' => 'tournament', 'is_public' => true, 'status' => 'registration_open']);
         Event::factory()->create(['name' => ['en' => 'Camp B'], 'type' => 'camp', 'is_public' => true, 'status' => 'registration_open']);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
+        Livewire\Livewire::test(EventListing::class)
             ->set('type', 'tournament')
             ->assertSee('Tourney A')
             ->assertDontSee('Camp B');
@@ -60,7 +61,7 @@ describe('EventListing', function () {
         Event::factory()->create(['name' => ['en' => 'Future Event'], 'start_date' => now()->addDays(30), 'is_public' => true, 'status' => 'registration_open']);
         Event::factory()->create(['name' => ['en' => 'Past Event'], 'start_date' => now()->subDays(30), 'end_date' => now()->subDays(28), 'is_public' => true, 'status' => 'completed']);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
+        Livewire\Livewire::test(EventListing::class)
             ->set('date', 'upcoming')
             ->assertSee('Future Event')
             ->assertDontSee('Past Event');
@@ -70,7 +71,7 @@ describe('EventListing', function () {
         $regular = Event::factory()->create(['name' => ['en' => 'Regular Event'], 'is_featured' => false, 'is_public' => true, 'status' => 'registration_open', 'start_date' => now()->addDays(10)]);
         $featured = Event::factory()->create(['name' => ['en' => 'Featured Event'], 'is_featured' => true, 'is_public' => true, 'status' => 'registration_open', 'start_date' => now()->addDays(20)]);
 
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventListing::class);
+        $component = Livewire\Livewire::test(EventListing::class);
         $events = $component->viewData('events');
 
         expect($events->first()->name)->toBe('Featured Event');
@@ -87,7 +88,7 @@ describe('EventDetail', function () {
             'status' => 'registration_open',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertOk()
             ->assertSee('Grand Tournament');
     });
@@ -103,7 +104,7 @@ describe('EventDetail', function () {
             ],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Divisions')
             ->assertSee('Open Division')
             ->assertSee('Pro Division');
@@ -120,7 +121,7 @@ describe('EventDetail', function () {
             ],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Schedule')
             ->assertSee('Check-in')
             ->assertSee('Matches Begin');
@@ -149,7 +150,7 @@ describe('EventDetail', function () {
             ]);
         }
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('3/10');
     });
 
@@ -162,7 +163,7 @@ describe('EventDetail', function () {
             'individual_registration_fee' => 5000, // $50.00
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee(format_currency(25000))
             ->assertSee(format_currency(5000));
     });
@@ -190,7 +191,7 @@ describe('EventDetail', function () {
             'is_published' => false,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Announcements')
             ->assertSee('Welcome!')
             ->assertSee('This event will be amazing.')
@@ -221,7 +222,7 @@ describe('EventDetail', function () {
             'is_pinned' => true,
         ]);
 
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug]);
+        $component = Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug]);
         $announcements = $component->viewData('announcements');
 
         expect($announcements->first()->title)->toBe('Pinned Announcement');
@@ -237,7 +238,7 @@ describe('EventDetail', function () {
             'early_bird_deadline' => now()->addDays(7),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Early bird')
             ->assertSee(format_currency(2000));
     });

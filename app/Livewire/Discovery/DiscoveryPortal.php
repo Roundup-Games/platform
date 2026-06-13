@@ -4,15 +4,17 @@ namespace App\Livewire\Discovery;
 
 use App\Models\Campaign;
 use App\Models\Game;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 #[Layout('components.public-layout')]
 class DiscoveryPortal extends Component
 {
-    public function render()
+    public function render(): View
     {
-        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+        seo(new SEOData(
             title: __('discovery.seo_title_discover'),
             description: __('discovery.seo_description_discover'),
         ));

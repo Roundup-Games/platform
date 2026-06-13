@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\People;
 
+use App\Livewire\People\PeoplePage;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\PeopleDiscoveryService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
@@ -13,11 +15,12 @@ use Tests\Traits\CreatesUsers;
 
 class NearbyPeopleTest extends TestCase
 {
-    use DatabaseTransactions;
     use CreatesUsers;
+    use DatabaseTransactions;
 
     // Berlin coordinates (Mitte area)
     private const LAT = 52.5163;
+
     private const LNG = 13.3777;
 
     private User $user;
@@ -47,15 +50,23 @@ class NearbyPeopleTest extends TestCase
     {
         // User with no location_id and no guest location → noLocation = true
         $component = Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class)
+            ->test(PeoplePage::class)
             ->set('activeTab', 'nearby')
             ->assertSet('nearbyUsers.noLocation', true);
 
         // Now set guest location — should fall back to it
         $nearby = $this->createUserWithLinkedLocation(48.1351 + 0.001, 11.5820, ['name' => 'Guest Nearby']);
 
-        $component->call('onGuestLocationUpdated', 48.1351, 11.5820, 'test');
-        $component->set('activeTab', 'nearby');
+        // Pre-warm discovery cache (async warming is normally done via background job).
+        // Must happen before the component reads nearbyUsers so the cache is hot.
+        app(PeopleDiscoveryService::class)
+            ->computeAndCache($this->user, 48.1351, 11.5820);
+
+        // Fresh component so computed cache is clean and picks up the warmed cache
+        $component = Livewire::actingAs($this->user)
+            ->test(PeoplePage::class)
+            ->call('onGuestLocationUpdated', 48.1351, 11.5820, 'test')
+            ->set('activeTab', 'nearby');
 
         $nearbyUsers = $component->get('nearbyUsers');
         $this->assertFalse($nearbyUsers['noLocation']);
@@ -78,12 +89,12 @@ class NearbyPeopleTest extends TestCase
         $nearby = $this->createUserWithLinkedLocation(self::LAT + 0.001, self::LNG, ['name' => 'Nearby Player']);
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class)
+            ->test(PeoplePage::class)
             ->set('activeTab', 'nearby');
 
         // Access the computed property and verify
         $component = Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class);
+            ->test(PeoplePage::class);
         $component->set('activeTab', 'nearby');
 
         $nearbyUsers = $component->get('nearbyUsers');
@@ -107,7 +118,7 @@ class NearbyPeopleTest extends TestCase
         $nearbyGuest = $this->createUserWithLinkedLocation(48.1351 + 0.001, 11.5820, ['name' => 'Near Guest']);
 
         $component = Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class);
+            ->test(PeoplePage::class);
 
         // Set guest location to Munich
         $component->call('onGuestLocationUpdated', 48.1351, 11.5820, 'test');
@@ -136,7 +147,7 @@ class NearbyPeopleTest extends TestCase
         $this->assertFalse($this->user->isFollowing($nearby));
 
         Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class)
+            ->test(PeoplePage::class)
             ->set('activeTab', 'nearby')
             ->call('followFromNearby', $nearby->id)
             ->assertSee(__('common.flash_now_following', ['name' => 'Follow Target']));
@@ -155,7 +166,7 @@ class NearbyPeopleTest extends TestCase
         $nearby = $this->createUserWithLinkedLocation(self::LAT + 0.001, self::LNG, ['name' => 'Will Disappear']);
 
         $component = Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class);
+            ->test(PeoplePage::class);
         $component->set('activeTab', 'nearby');
 
         // Verify candidate appears initially
@@ -186,7 +197,7 @@ class NearbyPeopleTest extends TestCase
         }
 
         $component = Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class);
+            ->test(PeoplePage::class);
         $component->set('activeTab', 'nearby');
 
         $component->assertSet('nearbyCount', 3);

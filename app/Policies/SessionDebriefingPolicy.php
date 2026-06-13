@@ -44,7 +44,13 @@ class SessionDebriefingPolicy
      */
     public function view(User $user, SessionDebriefing $debriefing): bool
     {
-        return $debriefing->game->participants()
+        $game = $debriefing->game;
+
+        if (! $game) {
+            return false;
+        }
+
+        return $game->participants()
             ->where('user_id', $user->id)
             ->where('status', ParticipantStatus::Approved)
             ->exists();

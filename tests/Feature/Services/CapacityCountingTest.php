@@ -16,9 +16,8 @@ use App\Services\BenchService;
 use App\Services\DashboardCacheService;
 use App\Services\ParticipantService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Tests\TestCase;
 
-uses(\Illuminate\Foundation\Testing\DatabaseTransactions::class);
+uses(DatabaseTransactions::class);
 
 // ── Helper: create game with owner participant ─────
 
@@ -45,8 +44,8 @@ function createGameWithOwner(GameSystem $system, int $maxPlayers, array $extra =
 describe('Capacity and Counting Correctness', function () {
 
     beforeEach(function () {
-        $this->service = new ParticipantService();
-        $this->benchService = new BenchService();
+        $this->service = new ParticipantService;
+        $this->benchService = new BenchService;
         $this->system = GameSystem::factory()->create();
     });
 

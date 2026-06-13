@@ -135,7 +135,7 @@ describe('Backfill command', function () {
     it('generates slugs for users without one', function () {
         // Create user normally (gets auto-slug), then clear slug in DB to simulate pre-slug data
         $user = User::factory()->create(['name' => 'Backfill Test User']);
-        \DB::table('users')->where('id', $user->id)->update(['slug' => null]);
+        DB::table('users')->where('id', $user->id)->update(['slug' => null]);
 
         $this->artisan('users:backfill-slugs')
             ->expectsOutputToContain('Updated 1 users with slugs.')
@@ -158,8 +158,8 @@ describe('Backfill command', function () {
     it('handles multiple users without slugs', function () {
         $u1 = User::factory()->create(['name' => 'User Alpha']);
         $u2 = User::factory()->create(['name' => 'User Beta']);
-        \DB::table('users')->where('id', $u1->id)->update(['slug' => null]);
-        \DB::table('users')->where('id', $u2->id)->update(['slug' => null]);
+        DB::table('users')->where('id', $u1->id)->update(['slug' => null]);
+        DB::table('users')->where('id', $u2->id)->update(['slug' => null]);
 
         $this->artisan('users:backfill-slugs')
             ->expectsOutputToContain('Updated 2 users with slugs.')
@@ -172,8 +172,8 @@ describe('Backfill command', function () {
     it('handles duplicate names during backfill', function () {
         $u1 = User::factory()->create(['name' => 'Same Name']);
         $u2 = User::factory()->create(['name' => 'Same Name']);
-        \DB::table('users')->where('id', $u1->id)->update(['slug' => null]);
-        \DB::table('users')->where('id', $u2->id)->update(['slug' => null]);
+        DB::table('users')->where('id', $u1->id)->update(['slug' => null]);
+        DB::table('users')->where('id', $u2->id)->update(['slug' => null]);
 
         $this->artisan('users:backfill-slugs')
             ->expectsOutputToContain('Updated 2 users with slugs.')
@@ -187,7 +187,7 @@ describe('Backfill command', function () {
 
     it('supports dry run mode', function () {
         $user = User::factory()->create(['name' => 'Dry Run User']);
-        \DB::table('users')->where('id', $user->id)->update(['slug' => null]);
+        DB::table('users')->where('id', $user->id)->update(['slug' => null]);
 
         $this->artisan('users:backfill-slugs', ['--dry-run' => true])
             ->expectsOutputToContain('Would update 1 users with slugs.')

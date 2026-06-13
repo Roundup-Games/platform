@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Dto\PwaEligibilityResult;
 use App\Enums\RelationshipType;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -158,12 +159,12 @@ class PwaEligibilityService
         }
 
         // 2e. First campaign creation within last 5 minutes
-        $recentlyCreatedCampaign = \App\Models\Campaign::where('owner_id', $user->id)
+        $recentlyCreatedCampaign = Campaign::where('owner_id', $user->id)
             ->where('created_at', '>=', now()->subMinutes(5))
             ->exists();
 
         if ($recentlyCreatedCampaign) {
-            $totalOwnedCampaigns = \App\Models\Campaign::where('owner_id', $user->id)->count();
+            $totalOwnedCampaigns = Campaign::where('owner_id', $user->id)->count();
 
             if ($totalOwnedCampaigns <= 1) {
                 return PwaEligibilityResult::eligibleViaTrypass('trypass_first_campaign_created');
@@ -219,7 +220,7 @@ class PwaEligibilityService
         }
 
         // Cache structure: ['result' => [...], 'expires' => timestamp]
-        if (! isset($cached['expires']) || now()->timestamp > $cached['expires']) {
+        if (! is_array($cached) || ! isset($cached['expires']) || now()->timestamp > $cached['expires']) {
             session()->forget($key);
 
             return null;
@@ -227,15 +228,15 @@ class PwaEligibilityService
 
         Log::channel('daily')->debug('pwa.eligibility.cache_hit', [
             'user_id' => $user->id,
-            'eligible' => $cached['eligible'],
-            'reason' => $cached['reason'],
-            'source' => $cached['source'],
+            'eligible' => $cached['eligible'] ?? null,
+            'reason' => $cached['reason'] ?? null,
+            'source' => $cached['source'] ?? null,
         ]);
 
         return new PwaEligibilityResult(
-            eligible: $cached['eligible'],
-            reason: $cached['reason'],
-            source: $cached['source'],
+            eligible: is_bool($cached['eligible'] ?? null) ? $cached['eligible'] : false,
+            reason: is_string($cached['reason'] ?? null) ? $cached['reason'] : '',
+            source: is_string($cached['source'] ?? null) ? $cached['source'] : 'none',
         );
     }
 

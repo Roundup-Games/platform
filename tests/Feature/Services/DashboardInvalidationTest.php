@@ -2,9 +2,10 @@
 
 namespace Tests\Feature\Services;
 
+use App\Dto\ActionItem;
+use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
-use App\Dto\ActionItem;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
@@ -311,7 +312,7 @@ class DashboardInvalidationTest extends TestCase
         Cache::flush();
         Cache::put("dashboard:action_center:{$player->id}", ['old'], 300);
 
-        $participant->attendance_status = \App\Enums\AttendanceStatus::Attended;
+        $participant->attendance_status = AttendanceStatus::Attended;
         $participant->save();
 
         $this->assertNull(Cache::get("dashboard:action_center:{$player->id}"));

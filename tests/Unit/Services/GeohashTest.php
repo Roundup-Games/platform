@@ -78,20 +78,20 @@ class GeohashTest extends TestCase
     public function test_prefix_bounds_contains_original_coordinates(): void
     {
         $bounds = Geohash::prefixBounds('u33d');
-        $this->assertGreaterThanOrEqual($bounds['minLat'], 52.52);
-        $this->assertLessThanOrEqual($bounds['maxLat'], 52.52);
-        $this->assertGreaterThanOrEqual($bounds['minLng'], 13.405);
-        $this->assertLessThanOrEqual($bounds['maxLng'], 13.405);
+        $this->assertGreaterThanOrEqual($bounds->minLat, 52.52);
+        $this->assertLessThanOrEqual($bounds->maxLat, 52.52);
+        $this->assertGreaterThanOrEqual($bounds->minLng, 13.405);
+        $this->assertLessThanOrEqual($bounds->maxLng, 13.405);
     }
 
     // 11. prefixBounds with invalid char — partial decode still returns valid bounds
     public function test_prefix_bounds_with_invalid_char_returns_valid_bounds(): void
     {
         $bounds = Geohash::prefixBounds('u3@');
-        $this->assertArrayHasKey('minLat', $bounds);
-        $this->assertArrayHasKey('maxLat', $bounds);
-        $this->assertArrayHasKey('minLng', $bounds);
-        $this->assertArrayHasKey('maxLng', $bounds);
+        $this->assertTrue(property_exists($bounds, 'minLat'));
+        $this->assertTrue(property_exists($bounds, 'maxLat'));
+        $this->assertTrue(property_exists($bounds, 'minLng'));
+        $this->assertTrue(property_exists($bounds, 'maxLng'));
         // Only the valid 'u3' portion is decoded
         $validBounds = Geohash::prefixBounds('u3');
         $this->assertEquals($validBounds, $bounds);
@@ -169,8 +169,8 @@ class GeohashTest extends TestCase
         $bounds4 = Geohash::prefixBounds(Geohash::tilePrefix(52.5163, 13.3777, 4));
         $bounds5 = Geohash::prefixBounds(Geohash::tilePrefix(52.5163, 13.3777, 5));
 
-        $span4 = ($bounds4['maxLat'] - $bounds4['minLat']);
-        $span5 = ($bounds5['maxLat'] - $bounds5['minLat']);
+        $span4 = ($bounds4->maxLat - $bounds4->minLat);
+        $span5 = ($bounds5->maxLat - $bounds5->minLat);
 
         $this->assertGreaterThan($span5, $span4, 'Shorter prefix should have larger bounds');
     }

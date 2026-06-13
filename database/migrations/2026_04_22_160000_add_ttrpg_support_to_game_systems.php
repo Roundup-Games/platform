@@ -24,11 +24,11 @@ return new class extends Migration
         });
 
         // Data migration: populate type from existing bgg_type
-        DB::statement("
+        DB::statement('
             UPDATE game_systems
             SET type = bgg_type
             WHERE bgg_type IS NOT NULL
-        ");
+        ');
     }
 
     public function down(): void

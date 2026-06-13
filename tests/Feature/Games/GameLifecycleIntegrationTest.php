@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Enums\AttendanceStatus;
-use App\Enums\ParticipantStatus;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;

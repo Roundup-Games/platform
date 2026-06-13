@@ -1,12 +1,14 @@
 <?php
 
+use App\Livewire\Discovery\BoardGamesDiscovery;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
 use App\Models\User;
-use function Pest\Laravel\{actingAs};
+
+use function Pest\Laravel\actingAs;
 
 describe('BoardGamesDiscovery', function () {
     it('shows only games — no campaigns appear', function () {
@@ -23,7 +25,7 @@ describe('BoardGamesDiscovery', function () {
             'status' => 'active',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->assertSee('Public Board Game')
             ->assertDontSee('Hidden Campaign');
     });
@@ -48,7 +50,7 @@ describe('BoardGamesDiscovery', function () {
             'game_system_id' => $system2->id,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->set('game_system_id', $system1->id)
             ->assertSee('TTR Game')
             ->assertDontSee('Wingspan Game');
@@ -72,7 +74,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->assertSee('Recommended for You')
             ->assertSee('Recommended Board Game');
     });
@@ -93,7 +95,7 @@ describe('BoardGamesDiscovery', function () {
 
         actingAs($user);
         // With only a ttrpg system favorited, no recommendations should appear
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->assertDontSee('Recommended for You');
     });
 
@@ -114,7 +116,7 @@ describe('BoardGamesDiscovery', function () {
             'experience_level' => 'expert',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->set('experience_level', 'beginner')
             ->assertSee('Beginner Game')
             ->assertDontSee('Expert Game');
@@ -137,7 +139,7 @@ describe('BoardGamesDiscovery', function () {
             'language' => 'de',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->set('language', 'en')
             ->assertSee('English Game')
             ->assertDontSee('German Game');
@@ -160,7 +162,7 @@ describe('BoardGamesDiscovery', function () {
             'complexity' => 4.5,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->set('complexity_max', '2')
             ->assertSee('Light Game')
             ->assertDontSee('Heavy Game');
@@ -191,7 +193,7 @@ describe('BoardGamesDiscovery', function () {
 
         actingAs($user);
         // Verify recommendations contain only the favorite system game
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class);
+        $component = Livewire\Livewire::test(BoardGamesDiscovery::class);
         $recommendations = $component->viewData('recommendations');
         expect($recommendations)->not->toBeNull();
         $recNames = collect($recommendations)->pluck('name')->toArray();
@@ -226,7 +228,7 @@ describe('BoardGamesDiscovery', function () {
         actingAs($user);
         // Avoided system game should not appear in recommendations
         // but may still appear in main results
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class);
+        $component = Livewire\Livewire::test(BoardGamesDiscovery::class);
         $recommendations = $component->viewData('recommendations');
         expect($recommendations)->not->toBeEmpty('Expected recommendations for user with fav+avoid systems');
 
@@ -258,7 +260,7 @@ describe('BoardGamesDiscovery', function () {
 
         actingAs($user);
         // Recommendations should only contain games, not campaigns
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class);
+        $component = Livewire\Livewire::test(BoardGamesDiscovery::class);
         $recommendations = $component->viewData('recommendations');
         expect($recommendations)->not->toBeEmpty('Expected recommendations for user with favorite boardgame system');
 
@@ -289,7 +291,7 @@ describe('BoardGamesDiscovery', function () {
             'game_system_id' => $otherSystem->id,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->set('category_ids', [$category->id])
             ->assertSee('Categorized Game')
             ->assertDontSee('Uncategorized Game');
@@ -317,7 +319,7 @@ describe('BoardGamesDiscovery', function () {
             'game_system_id' => $otherSystem->id,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->set('mechanic_ids', [$mechanic->id])
             ->assertSee('Mechanic Game')
             ->assertDontSee('No Mechanic Game');
@@ -349,7 +351,7 @@ describe('BoardGamesDiscovery', function () {
             'game_system_id' => $otherSystem->id,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+        Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->set('category_ids', [$category->id])
             ->set('mechanic_ids', [$mechanic->id])
             ->assertSee('Both Filters Game')

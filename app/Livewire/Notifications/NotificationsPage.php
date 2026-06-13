@@ -2,8 +2,11 @@
 
 namespace App\Livewire\Notifications;
 
+use App\Dto\NotificationGroup;
+use App\Models\User;
 use App\Services\NotificationQueryService;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -35,7 +38,7 @@ class NotificationsPage extends Component
      * The authenticated user (locked to prevent tampering).
      */
     #[Locked]
-    public $authUser;
+    public User $authUser;
 
     private NotificationQueryService $queryService;
 
@@ -46,16 +49,18 @@ class NotificationsPage extends Component
 
     public function mount(): void
     {
-        $this->authUser = Auth::user();
+        $this->authUser = authenticatedUser();
     }
 
     /**
      * Get paginated grouped notifications for the full history view.
      *
      * Each page shows 20 groups (collapsed from raw notifications).
+     *
+     * @return LengthAwarePaginator<int, NotificationGroup>
      */
     #[Computed]
-    public function notifications()
+    public function notifications(): LengthAwarePaginator
     {
         return $this->queryService->getPaginatedForUser($this->authUser, perPage: 20);
     }
@@ -171,7 +176,7 @@ class NotificationsPage extends Component
         return null;
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.notifications.notifications-page')
             ->title(__('notifications.page_title'));

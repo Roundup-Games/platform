@@ -3,7 +3,6 @@
 namespace Tests\Unit\Enums;
 
 use App\Enums\ParticipantRole;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ParticipantRoleTest extends TestCase

@@ -3,7 +3,6 @@
 use App\Livewire\Profile\Show;
 use App\Models\GmSocialLink;
 use App\Models\User;
-use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\Traits\CreatesUsers;

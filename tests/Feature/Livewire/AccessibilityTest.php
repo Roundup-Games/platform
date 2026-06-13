@@ -1,10 +1,10 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Livewire\Dashboard;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
-use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Support\Facades\Cache;
@@ -19,7 +19,7 @@ beforeEach(function () {
 
 describe('Dashboard — decorative icons have aria-hidden', function () {
     test('smart prompt icon has aria-hidden attribute', function () {
-        $html = Livewire::test(\App\Livewire\Dashboard::class)
+        $html = Livewire::test(Dashboard::class)
             ->html();
 
         // All material-symbols-outlined spans should have aria-hidden="true"
@@ -32,7 +32,7 @@ describe('Dashboard — decorative icons have aria-hidden', function () {
 
 describe('Dashboard — smart prompt has live region attributes', function () {
     test('smart prompt container has role=status and aria-live=polite', function () {
-        $html = Livewire::test(\App\Livewire\Dashboard::class)
+        $html = Livewire::test(Dashboard::class)
             ->html();
 
         expect($html)->toContain('role="status"');
@@ -73,7 +73,7 @@ describe('Dashboard — community feed uses semantic list structure', function (
         ]);
 
         Cache::flush();
-        $html = Livewire::test(\App\Livewire\Dashboard::class)
+        $html = Livewire::test(Dashboard::class)
             ->html();
 
         // Feed items list uses ul/li
@@ -114,7 +114,7 @@ describe('Dashboard — community feed uses semantic list structure', function (
         ]);
 
         Cache::flush();
-        $html = Livewire::test(\App\Livewire\Dashboard::class)
+        $html = Livewire::test(Dashboard::class)
             ->html();
 
         // Timestamps should use <time> with datetime attribute
@@ -125,7 +125,7 @@ describe('Dashboard — community feed uses semantic list structure', function (
 
 describe('Dashboard — quick actions use nav with aria-label', function () {
     test('quick actions container has nav element with aria-label', function () {
-        $html = Livewire::test(\App\Livewire\Dashboard::class)
+        $html = Livewire::test(Dashboard::class)
             ->html();
 
         // Quick actions should use <nav> with aria-label
@@ -136,7 +136,7 @@ describe('Dashboard — quick actions use nav with aria-label', function () {
 
 describe('Dashboard — heading hierarchy is correct', function () {
     test('section headings use h3 elements', function () {
-        $html = Livewire::test(\App\Livewire\Dashboard::class)
+        $html = Livewire::test(Dashboard::class)
             ->html();
 
         // Main section headings should use h3

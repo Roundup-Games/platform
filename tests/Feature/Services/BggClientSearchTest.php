@@ -3,6 +3,7 @@
 use App\Exceptions\BggApiException;
 use App\Exceptions\BggParseException;
 use App\Services\BggClient;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -78,7 +79,7 @@ it('handles special characters in search query', function () {
         ),
     ]);
 
-    $this->client->search("A Game of Thrones");
+    $this->client->search('A Game of Thrones');
 
     Http::assertSent(function ($request) {
         return str_contains($request->url(), 'query=A+Game+of+Thrones')
@@ -126,7 +127,7 @@ it('throws BggApiException on server error', function () {
 
 it('throws BggApiException on timeout', function () {
     Http::fake(function () {
-        throw new \Illuminate\Http\Client\ConnectionException('Connection timed out');
+        throw new ConnectionException('Connection timed out');
     });
 
     $this->client->search('Catan');

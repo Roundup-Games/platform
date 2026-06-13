@@ -1,13 +1,13 @@
 <?php
 
 use App\Enums\DebriefingToolType;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\SessionDebriefing;
 use App\Models\User;
 use App\Policies\SessionDebriefingPolicy;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 
 beforeEach(function () {
     seedPermissions();

@@ -49,7 +49,7 @@ describe('ShortLinkService — generateUniqueCode', function () {
 
         try {
             expect(fn () => $this->service->generateUniqueCode())
-                ->toThrow(\RuntimeException::class, 'Unable to generate a unique short link code');
+                ->toThrow(RuntimeException::class, 'Unable to generate a unique short link code');
         } finally {
             Str::createRandomStringsUsing(null);
         }
@@ -258,11 +258,11 @@ describe('ShortLinkService — revokeLink', function () {
             'code' => 'CACHREV',
         ]);
 
-        Cache::put("short_link:CACHREV", $link, 3600);
+        Cache::put('short_link:CACHREV', $link, 3600);
 
         $this->service->revokeLink($link);
 
-        expect(Cache::has("short_link:CACHREV"))->toBeFalse();
+        expect(Cache::has('short_link:CACHREV'))->toBeFalse();
     });
 });
 

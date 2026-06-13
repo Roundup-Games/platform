@@ -156,7 +156,7 @@ test('add to bench throws for standalone game', function () {
     $applicant = User::factory()->create();
 
     $this->service->addToBench($game, $applicant);
-})->throws(\LogicException::class, 'Bench is only available for campaigns, campaign sessions, and games with bench_mode enabled.');
+})->throws(LogicException::class, 'Bench is only available for campaigns, campaign sessions, and games with bench_mode enabled.');
 
 test('add to bench throws when entity is not full', function () {
     $campaign = Campaign::create([
@@ -185,7 +185,7 @@ test('add to bench throws when entity is not full', function () {
     $applicant = User::factory()->create();
 
     $this->service->addToBench($campaign, $applicant);
-})->throws(\LogicException::class, 'Cannot add to bench: entity is not full.');
+})->throws(LogicException::class, 'Cannot add to bench: entity is not full.');
 
 test('add to bench throws when user is already a participant', function () {
     $campaign = benchCreateFullCampaign($this->owner, $this->gameSystem, maxPlayers: 2);
@@ -196,7 +196,7 @@ test('add to bench throws when user is already a participant', function () {
         ->where('status', ParticipantStatus::Approved->value)
         ->first();
     $this->service->addToBench($campaign, User::find($existingPlayer->user_id));
-})->throws(\LogicException::class, 'User is already a participant.');
+})->throws(LogicException::class, 'User is already a participant.');
 
 // ── promoteFromBench ─────────────────────────────────────
 
@@ -249,7 +249,7 @@ test('promote from bench fails when no capacity', function () {
 
     // No slot opened — still full
     $this->service->promoteFromBench($participant->id, 'campaign');
-})->throws(\LogicException::class, 'Cannot promote: entity is full.');
+})->throws(LogicException::class, 'Cannot promote: entity is full.');
 
 test('promote from bench fails when participant is not benched', function () {
     $campaign = benchCreateFullCampaign($this->owner, $this->gameSystem, maxPlayers: 2);
@@ -261,7 +261,7 @@ test('promote from bench fails when participant is not benched', function () {
         ->first();
 
     $this->service->promoteFromBench($approvedParticipant->id, 'campaign');
-})->throws(\LogicException::class, 'Participant is not on the bench.');
+})->throws(LogicException::class, 'Participant is not on the bench.');
 
 // ── getBenchList ─────────────────────────────────────────
 

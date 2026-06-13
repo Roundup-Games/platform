@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class LocaleController extends Controller
 {
@@ -12,7 +12,8 @@ class LocaleController extends Controller
      */
     public function switch(Request $request, string $locale): RedirectResponse
     {
-        if (! in_array($locale, config('app.available_locales'), true)) {
+        $locales = config('app.available_locales');
+        if (! is_array($locales) || ! in_array($locale, $locales, true)) {
             abort(400);
         }
 
@@ -21,8 +22,8 @@ class LocaleController extends Controller
         $redirect = $request->query('redirect', '/');
 
         // Prevent open redirects — only allow relative paths
-        if ($redirect !== '/' . $locale . '/' && ! str_starts_with($redirect, '/' . $locale . '/')) {
-            $redirect = '/' . $locale . '/';
+        if ($redirect !== '/'.$locale.'/' && ! str_starts_with($redirect, '/'.$locale.'/')) {
+            $redirect = '/'.$locale.'/';
         }
 
         return redirect($redirect);

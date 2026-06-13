@@ -2,6 +2,7 @@
 
 use App\Models\PushSubscription;
 use App\Models\User;
+use App\Services\GeocodingService;
 use Illuminate\Support\Facades\Config;
 
 beforeEach(function () {
@@ -58,7 +59,7 @@ describe('API v1 route authentication', function () {
     });
 
     it('allows unauthenticated POST /api/v1/geocode', function () {
-        $mock = Mockery::mock(\App\Services\GeocodingService::class);
+        $mock = Mockery::mock(GeocodingService::class);
         $mock->shouldReceive('geocode')
             ->once()
             ->andReturn([
@@ -68,7 +69,7 @@ describe('API v1 route authentication', function () {
                 'place_id' => '1',
                 'raw' => ['address' => ['city' => 'Berlin', 'country' => 'Germany']],
             ]);
-        $this->app->instance(\App\Services\GeocodingService::class, $mock);
+        $this->app->instance(GeocodingService::class, $mock);
 
         $this->postJson('/api/v1/geocode', ['query' => 'Berlin'])
             ->assertOk();

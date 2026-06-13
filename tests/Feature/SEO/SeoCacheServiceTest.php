@@ -101,11 +101,11 @@ describe('forgetByModel', function () {
         expect($this->service->getIndex())->toBeNull();
     })->with([
         'GameSystem' => ['game-systems', fn () => GameSystem::factory()->create()],
-        'Event'      => ['events',      fn () => Event::factory()->create(['status' => 'published'])],
-        'Game'       => ['games',        fn () => Game::factory()->create()],
-        'Campaign'   => ['campaigns',    fn () => Campaign::factory()->create()],
-        'Team'       => ['teams',        fn () => Team::factory()->create()],
-        'User'       => ['profiles',     fn () => User::factory()->create(['profile_complete' => true])],
+        'Event' => ['events',      fn () => Event::factory()->create(['status' => 'published'])],
+        'Game' => ['games',        fn () => Game::factory()->create()],
+        'Campaign' => ['campaigns',    fn () => Campaign::factory()->create()],
+        'Team' => ['teams',        fn () => Team::factory()->create()],
+        'User' => ['profiles',     fn () => User::factory()->create(['profile_complete' => true])],
     ]);
 
     it('is a no-op for unmapped model classes', function () {
@@ -113,7 +113,7 @@ describe('forgetByModel', function () {
         $this->service->setIndex('<idx/>');
 
         // Use an anonymous class that isn't mapped
-        $this->service->forgetByModel(new \stdClass);
+        $this->service->forgetByModel(new stdClass);
 
         expect($this->service->getSitemap('games'))->toBe('<games/>');
         expect($this->service->getIndex())->toBe('<idx/>');

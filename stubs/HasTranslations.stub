@@ -1,0 +1,10 @@
+<?php
+
+namespace Spatie\Translatable;
+
+/**
+ * @method mixed getTranslation(string $key, string $locale, bool $useFallbackLocale = true)
+ */
+trait HasTranslations
+{
+}

@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\ParticipantStatus;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -110,7 +110,7 @@ test('add to waitlist throws for campaign with bench_mode=true', function () {
     $user = User::factory()->create();
 
     expect(fn () => $this->service->addToWaitlist($campaign, $user))
-        ->toThrow(\LogicException::class, 'Waitlist is not available for this campaign (bench mode is enabled).');
+        ->toThrow(LogicException::class, 'Waitlist is not available for this campaign (bench mode is enabled).');
 });
 
 test('promote next waitlisted for campaign', function () {
@@ -260,7 +260,7 @@ test('standalone game with bench_mode=true rejects waitlist', function () {
     $user = User::factory()->create();
 
     expect(fn () => $this->service->addToWaitlist($game, $user))
-        ->toThrow(\LogicException::class, 'bench mode is enabled');
+        ->toThrow(LogicException::class, 'bench mode is enabled');
 });
 
 test('campaign with bench_mode=false rejects bench', function () {

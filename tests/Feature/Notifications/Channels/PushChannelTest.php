@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\MessageSentReport;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
-use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 describe('PushChannel', function () {
@@ -32,23 +31,41 @@ describe('PushChannel', function () {
         $notificationWithPush = new class($payload) extends Notification
         {
             public function __construct(private PushPayload $payload) {}
-            public function via(object $notifiable): array { return []; }
-            public function toPush(object $notifiable): PushPayload { return $this->payload; }
+
+            public function via(object $notifiable): array
+            {
+                return [];
+            }
+
+            public function toPush(object $notifiable): PushPayload
+            {
+                return $this->payload;
+            }
         };
         $channel->send($user, $notificationWithPush);
 
         // 2. Notification has no toPush method — should not throw
         $notificationNoPush = new class extends Notification
         {
-            public function via(object $notifiable): array { return []; }
+            public function via(object $notifiable): array
+            {
+                return [];
+            }
         };
         $this->channel->send($user, $notificationNoPush);
 
         // 3. toPush returns null (opted out) — should not throw
         $notificationNull = new class extends Notification
         {
-            public function via(object $notifiable): array { return []; }
-            public function toPush(object $notifiable): ?PushPayload { return null; }
+            public function via(object $notifiable): array
+            {
+                return [];
+            }
+
+            public function toPush(object $notifiable): ?PushPayload
+            {
+                return null;
+            }
         };
         $this->channel->send($user, $notificationNull);
 
@@ -240,7 +257,9 @@ describe('PushChannel', function () {
         // flush still gets called (empty batch, returns empty generator)
         $this->webPush->shouldReceive('flush')
             ->once()
-            ->andReturn((function () { yield from []; })());
+            ->andReturn((function () {
+                yield from [];
+            })());
 
         Log::shouldReceive('warning')
             ->with('push.queue_failed', Mockery::on(function ($ctx) {

@@ -29,7 +29,7 @@ class LinkedAccountsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('provider')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'google' => 'success',
                         'github' => 'gray',
                         default => 'info',
@@ -39,7 +39,7 @@ class LinkedAccountsRelationManager extends RelationManager
                     ->label('Provider User ID')
                     ->limit(30)
                     ->copyable()
-                    ->tooltip(fn($record): string => $record->provider_user_id),
+                    ->tooltip(fn ($record): string => $record->provider_user_id),
                 TextColumn::make('created_at')
                     ->label('Linked At')
                     ->dateTime()

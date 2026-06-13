@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -30,7 +31,7 @@ describe('write recap action', function () {
         $game = recapCreateCompletedGame($this->owner, $this->gameSystem);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->set('recapContent', 'An epic adventure unfolded!')
             ->call('writeRecap')
             ->assertHasNoErrors();
@@ -42,7 +43,7 @@ describe('write recap action', function () {
         $game = recapCreateCompletedGame($this->owner, $this->gameSystem);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->set('recapContent', str_repeat('a', 2001))
             ->call('writeRecap')
             ->assertHasErrors(['recapContent' => 'max']);
@@ -59,7 +60,7 @@ describe('write recap action', function () {
         ]);
 
         Livewire::actingAs($nonOwner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->set('recapContent', 'Sneaky recap attempt')
             ->call('writeRecap');
 

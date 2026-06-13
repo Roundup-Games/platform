@@ -21,8 +21,8 @@ class LinkedAccountFactory extends Factory
             'user_id' => User::factory(),
             'provider' => 'google',
             'provider_user_id' => (string) Str::uuid(),
-            'token' => 'fake-oauth-token-' . Str::random(32),
-            'refresh_token' => 'fake-refresh-token-' . Str::random(32),
+            'token' => 'fake-oauth-token-'.Str::random(32),
+            'refresh_token' => 'fake-refresh-token-'.Str::random(32),
             'provider_meta' => null,
         ];
     }

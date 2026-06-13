@@ -4,8 +4,10 @@ namespace App\Filament\Resources\TicketResource\Pages;
 
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
+use App\Enums\VenueType;
 use App\Filament\Resources\GameSystemResource;
 use App\Filament\Resources\TicketResource;
+use App\Http\Controllers\ExportDownloadController;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -27,12 +29,13 @@ use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Services\TicketService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Infolists;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Artisan;
@@ -119,7 +122,7 @@ class ViewTicket extends BaseViewTicket
         // Insert the metadata section into the left column (first Group, columnSpan 2)
         // after the Ticket Information section
         $components = $parent->getComponents();
-        if (isset($components[0]) && $components[0] instanceof \Filament\Schemas\Components\Group) {
+        if (isset($components[0]) && $components[0] instanceof Group) {
             $leftChildren = $components[0]->getChildComponents();
             array_splice($leftChildren, 1, 0, [$metadataSection]);
             $components[0]->childComponents($leftChildren);
@@ -478,7 +481,7 @@ class ViewTicket extends BaseViewTicket
                 $name = $entity['name'] ?? $entity['id'] ?? 'Unknown';
                 $url = $this->resolveEntityUrl($entity['type'] ?? null, $entity['id'] ?? null);
                 $entries[] = Infolists\Components\TextEntry::make("structured_entity_{$i}")
-                    ->label('Entity' . (count($metadata['entities']) > 1 ? ' ' . ($i + 1) : ''))
+                    ->label('Entity'.(count($metadata['entities']) > 1 ? ' '.($i + 1) : ''))
                     ->state($name)
                     ->url($url, shouldOpenInNewTab: true)
                     ->color('primary')
@@ -902,7 +905,7 @@ class ViewTicket extends BaseViewTicket
 
         // Venue type
         if (! empty($metadata['venue_type'])) {
-            $venueTypeLabel = \App\Enums\VenueType::tryFrom($metadata['venue_type'])?->label() ?? $metadata['venue_type'];
+            $venueTypeLabel = VenueType::tryFrom($metadata['venue_type'])?->label() ?? $metadata['venue_type'];
             $entries[] = Infolists\Components\TextEntry::make('metadata_venue_type')
                 ->label('Venue type')
                 ->state($venueTypeLabel)
@@ -1263,9 +1266,6 @@ class ViewTicket extends BaseViewTicket
     }
 
     /**
-     * Escalate the report: reassign to Platform Admin role, increase priority to Urgent.
-     */
-    /**
      * Find another Platform Admin to assign escalation to.
      * Falls back to the current user if no other Platform Admin exists.
      *
@@ -1426,7 +1426,7 @@ class ViewTicket extends BaseViewTicket
                 'export.download',
                 [
                     'user' => $requester->id,
-                    'token' => \App\Http\Controllers\ExportDownloadController::deriveFileToken($storedPath),
+                    'token' => ExportDownloadController::deriveFileToken($storedPath),
                 ],
                 now()->addDays(7),
             );

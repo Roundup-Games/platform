@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Models\Game;
 use App\Models\ShortLink;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -19,7 +18,7 @@ class ShortLinkFactory extends Factory
     {
         return [
             'code' => Str::random(7),
-            'url' => 'https://example.com/' . Str::random(6),
+            'url' => 'https://example.com/'.Str::random(6),
             'linkable_type' => Game::class,
             'linkable_id' => Game::factory(),
             'user_id' => null,

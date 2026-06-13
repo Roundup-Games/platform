@@ -5,24 +5,28 @@ namespace App\Filament\Resources;
 use App\Enums\VenueType;
 use App\Filament\Resources\LocationResource\Pages;
 use App\Models\Location;
+use App\Services\LocationMergeService;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select as FormSelect;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
-use App\Services\LocationMergeService;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Select as FormSelect;
-use Filament\Support\Enums\Width;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Log;
 
@@ -32,7 +36,7 @@ class LocationResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
-    public static function getNavigationIcon(): string | BackedEnum | null
+    public static function getNavigationIcon(): string|BackedEnum|null
     {
         return Heroicon::OutlinedMapPin;
     }
@@ -112,7 +116,7 @@ class LocationResource extends Resource
                                     ->rows(3)
                                     ->columnSpanFull()
                                     ->disabled()
-                                    ->formatStateUsing(fn ($state): string => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : ($state ?? ''))
+                                    ->formatStateUsing(fn ($state): string => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : ($state ?? '')),
                             ]),
                     ]),
             ]);
@@ -183,7 +187,7 @@ class LocationResource extends Resource
                     ->label('Country'),
             ])
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
 
                 Action::make('verify')
                     ->label('Verify as Venue')
@@ -209,7 +213,7 @@ class LocationResource extends Resource
                             'venue_type' => $data['venue_type'],
                             'verified_by' => auth()->id(),
                         ]);
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Location verified')
                             ->success()
                             ->send();
@@ -232,7 +236,7 @@ class LocationResource extends Resource
                             'location_id' => $record->id,
                             'unverified_by' => auth()->id(),
                         ]);
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Location unverified')
                             ->warning()
                             ->send();
@@ -261,7 +265,7 @@ class LocationResource extends Resource
                         $target = Location::find($data['target_location_id']);
 
                         if (! $target) {
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Target location not found')
                                 ->danger()
                                 ->send();
@@ -270,7 +274,7 @@ class LocationResource extends Resource
                         }
 
                         if ($target->id === $record->id) {
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Cannot merge a location into itself')
                                 ->danger()
                                 ->send();
@@ -280,7 +284,7 @@ class LocationResource extends Resource
 
                         $result = app(LocationMergeService::class)->merge($record, $target, auth()->user());
 
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Locations merged successfully')
                             ->success()
                             ->body(sprintf(
@@ -295,8 +299,8 @@ class LocationResource extends Resource
                     }),
             ])
             ->toolbarActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

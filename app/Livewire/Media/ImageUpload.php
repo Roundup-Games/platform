@@ -2,13 +2,17 @@
 
 namespace App\Livewire\Media;
 
+use App\Models\Media;
+use App\Models\Team;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
-use App\Models\Media;
+use Spatie\MediaLibrary\HasMedia;
 
 class ImageUpload extends Component
 {
@@ -36,19 +40,21 @@ class ImageUpload extends Component
     public string $dimensionHint = '';
 
     /** The uploaded file (Livewire temporary). */
-    public $image = null;
+    public ?TemporaryUploadedFile $image = null;
 
     /** Whether we're currently processing. */
     public bool $uploading = false;
 
     /** Flash message. */
     public ?string $message = null;
+
     public ?string $messageType = null;
 
     public function mount(Model $model, string $collection = 'logo', string $label = 'Image'): void
     {
         $this->model_type = get_class($model);
-        $this->model_id = $model->getKey();
+        $key = $model->getKey();
+        $this->model_id = to_string_id($key);
         $this->collection = $collection;
         $this->label = $label;
     }
@@ -56,18 +62,23 @@ class ImageUpload extends Component
     /**
      * Resolve the Eloquent model from stored type and ID.
      */
-    private function resolveModel(): Model
+    private function resolveModel(): HasMedia
     {
-        return app($this->model_type)::findOrFail((string) $this->model_id);
+        $model = app($this->model_type)::findOrFail((string) $this->model_id);
+
+        return $model;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
             'image' => [
                 'required',
                 'image',
-                'max:' . $this->maxSize,
+                'max:'.$this->maxSize,
                 'mimes:jpeg,png,gif,webp',
             ],
         ];
@@ -89,6 +100,10 @@ class ImageUpload extends Component
         try {
             // Clear existing media in this collection (singleFile behavior)
             $model->clearMediaCollection($this->collection);
+
+            if ($this->image === null) {
+                return;
+            }
 
             $model->addMedia($this->image->getRealPath())
                 ->usingName($this->image->getClientOriginalName())
@@ -154,12 +169,16 @@ class ImageUpload extends Component
         return $this->resolveModel()->hasMedia($this->collection);
     }
 
-    public function getCurrentMediaProperty(): ?Media
+    public function getCurrentMediaProperty(): ?\Spatie\MediaLibrary\MediaCollections\Models\Media
     {
-        return $this->resolveModel()->getFirstMedia($this->collection);
+        $media = $this->resolveModel()->getMedia($this->collection);
+
+        $first = $media->isNotEmpty() ? $media->first() : null;
+
+        return $first instanceof \Spatie\MediaLibrary\MediaCollections\Models\Media ? $first : null;
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.media.image-upload');
     }

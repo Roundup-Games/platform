@@ -1,7 +1,8 @@
 <?php
 
-use App\Enums\ParticipantStatus;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -73,12 +74,12 @@ describe('apply when full shows waitlist position', function () {
 
         // Apply by joining waitlist
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('joinWaitlist');
 
         // Reload component to see the waitlist position
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee(__('games.content_waitlist_position', ['position' => 1]));
     });
 });
@@ -109,7 +110,7 @@ describe('promoted player sees confirm UI', function () {
         app(WaitlistService::class)->promoteNext($game);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee(__('games.action_confirm_spot'))
             ->assertSee(__('games.action_decline_spot'));
     });
@@ -131,7 +132,7 @@ describe('host sees waitlist management', function () {
         ]);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee(__('games.action_manual_promote'));
     });
 });
@@ -164,7 +165,7 @@ describe('confirm button promotes player', function () {
 
         // User clicks confirm button
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('confirmWaitlistSpot', $promoted->id);
 
         // Participant should now be approved

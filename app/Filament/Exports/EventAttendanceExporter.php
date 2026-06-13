@@ -69,10 +69,10 @@ class EventAttendanceExporter extends Exporter
 
     public static function getCompletedNotificationBody(Export $export): string
     {
-        $body = 'Your event attendance report export has completed and ' . number_format($export->successful_rows) . ' ' . str('row')->plural($export->successful_rows) . ' exported.';
+        $body = 'Your event attendance report export has completed and '.number_format($export->successful_rows).' '.str('row')->plural($export->successful_rows).' exported.';
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' ' . number_format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to export.';
+            $body .= ' '.number_format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to export.';
         }
 
         return $body;
@@ -80,6 +80,9 @@ class EventAttendanceExporter extends Exporter
 
     public function getFileName(Export $export): string
     {
-        return "event-attendance-report-{$export->getKey()}.csv";
+        $id = $export->getKey();
+        $keyStr = to_string_id($id);
+
+        return "event-attendance-report-{$keyStr}.csv";
     }
 }

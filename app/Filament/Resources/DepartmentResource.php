@@ -3,8 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\DepartmentResource\Pages;
-use Escalated\Filament\Resources\DepartmentResource as BaseDepartmentResource;
 use App\Models\User;
+use Escalated\Filament\Resources\DepartmentResource as BaseDepartmentResource;
 use Filament\Forms;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;

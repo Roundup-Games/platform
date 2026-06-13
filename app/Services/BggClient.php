@@ -27,9 +27,12 @@ class BggClient
         int $maxRetries = 3,
         int $retrySleepSeconds = 5,
     ) {
-        $this->baseUrl = $baseUrl ?? config('services.bgg.base_url');
-        $this->token = $token ?? config('services.bgg.token');
-        $this->rateLimitSeconds = $rateLimitSeconds ?? config('services.bgg.rate_limit_seconds', 2);
+        $baseUrl = is_string($baseUrl) ? $baseUrl : null;
+        $token = is_string($token) ? $token : null;
+        $this->baseUrl = $baseUrl ?? (is_string($url = config('services.bgg.base_url')) ? $url : '');
+        $this->token = $token ?? (is_string($t = config('services.bgg.token')) ? $t : null);
+        $rlConfig = config('services.bgg.rate_limit_seconds', 2);
+        $this->rateLimitSeconds = $rateLimitSeconds ?? (is_int($rlConfig) ? $rlConfig : 2);
         $this->maxRetries = $maxRetries;
         $this->retrySleepSeconds = $retrySleepSeconds;
     }
@@ -84,6 +87,7 @@ class BggClient
                 }
 
                 sleep($this->retrySleepSeconds);
+
                 continue;
             }
 
@@ -117,7 +121,7 @@ class BggClient
      */
     public function search(string $query): SimpleXMLElement
     {
-        $url = "{$this->baseUrl}/search?query=" . urlencode($query) . '&type=boardgame,boardgameexpansion';
+        $url = "{$this->baseUrl}/search?query=".urlencode($query).'&type=boardgame,boardgameexpansion';
 
         $attempt = 0;
         $lastSleepUntil = null;
@@ -154,6 +158,7 @@ class BggClient
                 }
 
                 sleep($this->retrySleepSeconds);
+
                 continue;
             }
 

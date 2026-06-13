@@ -1,11 +1,13 @@
 <?php
 
+use App\Livewire\Discovery\AdventuresDiscovery;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\User;
-use function Pest\Laravel\{actingAs};
+
+use function Pest\Laravel\actingAs;
 
 describe('AdventuresDiscovery', function () {
     // ── Core rendering ──────────────────────────────────
@@ -28,7 +30,7 @@ describe('AdventuresDiscovery', function () {
             'game_system_id' => $ttrpgSystem->id,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->assertSee('Public TTRPG Game')
             ->assertSee('Public TTRPG Campaign');
     });
@@ -53,7 +55,7 @@ describe('AdventuresDiscovery', function () {
             'game_system_id' => $ttrpgSystem->id,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->assertDontSee('Board Game Session')
             ->assertSee('TTRPG Session');
     });
@@ -87,7 +89,7 @@ describe('AdventuresDiscovery', function () {
             'game_system_id' => $tacticalSystem->id,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->set('play_styles', ['narrative-first'])
             ->assertSee('Narrative Game')
             ->assertDontSee('Tactical Game');
@@ -135,7 +137,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         // Multiple play styles: both narrative-first AND horror should appear, tactical should not
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->set('play_styles', ['narrative-first', 'horror'])
             ->assertSee('Narrative Game')
             ->assertSee('Horror Game')
@@ -170,7 +172,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         // Campaign Sessions tab: shows campaign session games, NOT campaign entities
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->set('session_type', 'campaign')
             ->assertSee('Campaign Session')
             ->assertDontSee('One-shot Game')
@@ -196,7 +198,7 @@ describe('AdventuresDiscovery', function () {
             'campaign_id' => null,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->set('session_type', 'oneshot')
             ->assertSee('One-shot Game')
             ->assertDontSee('Active Campaign');
@@ -223,7 +225,7 @@ describe('AdventuresDiscovery', function () {
             'safety_rules' => ['tools' => ['x-card']],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->set('session_zero', true)
             ->assertSee('Session Zero Included')
             ->assertDontSee('No Session Zero');
@@ -279,7 +281,7 @@ describe('AdventuresDiscovery', function () {
             'safety_rules' => ['tools' => []],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->set('session_zero', true)
             ->assertSee('Session Zero: Character Creation')
             ->assertSee('Session 0: World Building')
@@ -309,7 +311,7 @@ describe('AdventuresDiscovery', function () {
             'campaign_id' => null,
         ]);
 
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class);
+        $component = Livewire\Livewire::test(AdventuresDiscovery::class);
         $results = $component->viewData('results');
 
         $firstItem = $results->first();
@@ -344,7 +346,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class);
+        $component = Livewire\Livewire::test(AdventuresDiscovery::class);
         $recommendations = $component->viewData('recommendations');
 
         expect($recommendations)->not->toBeEmpty('Expected recommendations for TTRPG+boardgame user');
@@ -369,7 +371,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->assertDontSee('Recommended for You');
     });
 
@@ -386,7 +388,7 @@ describe('AdventuresDiscovery', function () {
             'game_system_id' => $system->id,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->set('search', 'test')
             ->set('game_system_id', $system->id)
             ->set('play_styles', ['narrative-first'])
@@ -408,7 +410,7 @@ describe('AdventuresDiscovery', function () {
             'game_system_id' => $system->id,
         ]);
 
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class);
+        $component = Livewire\Livewire::test(AdventuresDiscovery::class);
         expect($component->instance()->hasActiveFilters())->toBeFalse();
 
         $component->set('session_type', 'campaign');
@@ -453,7 +455,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         // All tab: sees everything
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->assertSee('One-shot Game')
             ->assertSee('Campaign Session Game')
             ->assertSee('Campaign With No Sessions');
@@ -487,7 +489,7 @@ describe('AdventuresDiscovery', function () {
             'campaign_id' => $campaign->id,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+        Livewire\Livewire::test(AdventuresDiscovery::class)
             ->set('session_type', 'campaign')
             ->assertSee('Session 1: The Beginning')
             ->assertDontSee('Standalone Game')

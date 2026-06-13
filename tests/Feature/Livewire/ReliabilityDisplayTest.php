@@ -2,7 +2,8 @@
 
 use App\Models\Game;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get, assertDatabaseHas};
+
+use function Pest\Laravel\actingAs;
 
 // ── Helpers ──────────────────────────────────────────────
 

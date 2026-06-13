@@ -30,6 +30,8 @@ class ActivityLogService
      *
      * Uses app() resolution for resilience — if the container cannot resolve
      * the bridge, the error is caught and logged without affecting the caller.
+     *
+     * @param  array<string, mixed>  $properties
      */
     protected function forwardToPostHog(
         ActivityType $type,
@@ -47,10 +49,13 @@ class ActivityLogService
             ]);
         }
     }
+
     /**
      * Record an activity log entry for a user.
      *
      * Failures are caught and logged — this method never throws.
+     *
+     * @param  array<string, mixed>  $properties
      */
     public function log(
         ActivityType $type,
@@ -64,7 +69,7 @@ class ActivityLogService
                 'subject_type' => $subject ? get_class($subject) : null,
                 'subject_id' => $subject?->getKey(),
                 'event_type' => $type,
-                'properties' => !empty($properties) ? $properties : null,
+                'properties' => ! empty($properties) ? $properties : null,
                 'created_at' => now(),
             ]);
 
@@ -87,6 +92,8 @@ class ActivityLogService
     /**
      * Return the most recent activity log entries for a user,
      * with subject eager-loaded, ordered newest first.
+     *
+     * @return Collection<int, ActivityLog>
      */
     public function getRecentForUser(User $user, int $limit = 20): Collection
     {
@@ -102,6 +109,8 @@ class ActivityLogService
      *
      * Used for events like game_created / campaign_created where every
      * participant should see the event in their activity feed.
+     *
+     * @param  array<string, mixed>  $properties
      */
     public function logForParticipants(
         ActivityType $type,
@@ -121,7 +130,7 @@ class ActivityLogService
             'subject_type' => get_class($subject),
             'subject_id' => $subject->getKey(),
             'event_type' => $type->value,
-            'properties' => !empty($properties) ? json_encode($properties) : null,
+            'properties' => ! empty($properties) ? json_encode($properties) : null,
             'created_at' => $now,
         ], $userIds);
 
@@ -151,6 +160,8 @@ class ActivityLogService
      * scoped events (e.g. game_created, campaign_created). We forward only
      * for the owner to avoid duplicate events — the owner is the actor,
      * participants are passive recipients of the log entry.
+     *
+     * @param  array<string, mixed>  $properties
      */
     protected function forwardParticipantEventToPostHog(
         ActivityType $type,
@@ -182,14 +193,14 @@ class ActivityLogService
         if ($subject instanceof Game) {
             return $subject->participants()
                 ->pluck('user_id')
-                ->map(fn ($id) => (string) $id)
+                ->map(fn (mixed $id): string => to_string_id($id))
                 ->all();
         }
 
         if ($subject instanceof Campaign) {
             return $subject->participants()
                 ->pluck('user_id')
-                ->map(fn ($id) => (string) $id)
+                ->map(fn (mixed $id): string => to_string_id($id))
                 ->all();
         }
 

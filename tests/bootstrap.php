@@ -1,6 +1,9 @@
 <?php
 
+use Docker\API\Exception\ContainerExecConflictException;
+use Docker\API\Exception\ContainerExecNotFoundException;
 use Testcontainers\Modules\PostgresContainer;
+use Testcontainers\Wait\WaitForHostPort;
 
 /**
  * PHPUnit bootstrap for testcontainers.
@@ -17,7 +20,7 @@ use Testcontainers\Modules\PostgresContainer;
  */
 
 // Require the autoloader first
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
 // Only start container when running via PHPUnit (not composer scripts or artisan)
 $runningPhpunit = false;
@@ -34,7 +37,7 @@ if (! $runningPhpunit) {
 
 // Ensure Docker socket is discoverable (Docker Desktop on macOS uses ~/.docker/run/)
 if (! getenv('DOCKER_HOST')) {
-    $dockerSocket = getenv('HOME') . '/.docker/run/docker.sock';
+    $dockerSocket = getenv('HOME').'/.docker/run/docker.sock';
     if (file_exists($dockerSocket)) {
         putenv("DOCKER_HOST=unix://{$dockerSocket}");
         $_ENV['DOCKER_HOST'] = "unix://{$dockerSocket}";
@@ -47,14 +50,14 @@ $token = (int) (getenv('TEST_TOKEN') ?: 0);
 $isPrimary = ! $isParallel || $token === 1;
 
 // Temp file for sharing container details across parallel workers
-$cacheFile = sys_get_temp_dir() . '/roundup_testcontainers_' . getmypid();
+$cacheFile = sys_get_temp_dir().'/roundup_testcontainers_'.getmypid();
 
 // In parallel mode, use a stable cache key based on the parent paratest PID
 // so all sibling workers share the same file.
 if ($isParallel) {
     // UNIQUE_TEST_TOKEN is "TOKEN_randomhex" — extract a stable key from the
     // paratest runner's tmp-dir or fall back to a sentinel file.
-    $cacheFile = sys_get_temp_dir() . '/roundup_testcontainers_parallel';
+    $cacheFile = sys_get_temp_dir().'/roundup_testcontainers_parallel';
 }
 
 /**
@@ -84,9 +87,9 @@ function applyConnection(string $host, int $port): void
  */
 function runMigrations(): void
 {
-    $artisan = escapeshellarg(realpath(__DIR__ . '/..') . '/artisan');
+    $artisan = escapeshellarg(realpath(__DIR__.'/..').'/artisan');
     $env = "DB_CONNECTION=pgsql DB_HOST={$_ENV['DB_HOST']} DB_PORT={$_ENV['DB_PORT']}"
-        . ' DB_DATABASE=roundup_games_test DB_USERNAME=test DB_PASSWORD=test APP_ENV=testing';
+        .' DB_DATABASE=roundup_games_test DB_USERNAME=test DB_PASSWORD=test APP_ENV=testing';
 
     $migrateOutput = shell_exec("{$env} php {$artisan} migrate --force --no-interaction 2>&1");
     if (str_contains($migrateOutput ?? '', 'ERROR') || str_contains($migrateOutput ?? '', 'Exception')) {
@@ -110,7 +113,7 @@ if ($isParallel) {
             database: 'roundup_games_test',
         );
         // Docker 29.x: use WaitForHostPort to avoid 409 during startup exec
-        $container->withWait(new \Testcontainers\Wait\WaitForHostPort(timeout: 30000));
+        $container->withWait(new WaitForHostPort(timeout: 30000));
         $container->withAutoRemove(true);
         $started = $container->start();
 
@@ -123,10 +126,10 @@ if ($isParallel) {
                     $pgReady = true;
                     break;
                 }
-            } catch (\Docker\API\Exception\ContainerExecConflictException |
-                      \Docker\API\Exception\ContainerExecNotFoundException) {
-                // Container not yet ready for exec (Docker 29.x startup race) — wait and retry
-            }
+            } catch (ContainerExecConflictException|
+                      ContainerExecNotFoundException) {
+                          // Container not yet ready for exec (Docker 29.x startup race) — wait and retry
+                      }
             usleep(500_000); // 0.5s
         }
         if (! $pgReady) {
@@ -194,7 +197,7 @@ if ($isParallel) {
     // ContainerExecConflictException before its retry loop can catch it.
     // Use WaitForHostPort (TCP probe) to confirm the port is open, then do a
     // manual pg_isready exec loop with 409-retry logic.
-    $container->withWait(new \Testcontainers\Wait\WaitForHostPort(timeout: 30000));
+    $container->withWait(new WaitForHostPort(timeout: 30000));
     $started = $container->start();
 
     // Verify PostgreSQL is actually ready for queries (not just port-open).
@@ -209,10 +212,10 @@ if ($isParallel) {
                 $pgReady = true;
                 break;
             }
-        } catch (\Docker\API\Exception\ContainerExecConflictException |
-                  \Docker\API\Exception\ContainerExecNotFoundException) {
-            // Container not yet ready for exec (Docker 29.x startup race) — wait and retry
-        }
+        } catch (ContainerExecConflictException|
+                  ContainerExecNotFoundException) {
+                      // Container not yet ready for exec (Docker 29.x startup race) — wait and retry
+                  }
         usleep(500_000); // 0.5s
     }
 

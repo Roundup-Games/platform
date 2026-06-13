@@ -67,7 +67,7 @@ class ResolveAttendance implements ShouldQueue
         if ($this->game !== null) {
             Log::info('resolve_attendance.job.single.started', [
                 'game_id' => $this->game->id,
-                'method' => $this->method?->value ?? 'timeout',
+                'method' => $this->method->value ?? 'timeout',
             ]);
 
             $attendanceService->resolveGameAttendance(

@@ -3,7 +3,6 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
-
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
@@ -25,9 +24,9 @@ class SessionAddedToCampaign extends BaseNotification
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $actionUrl = route('games.show', ['locale' => $locale, 'id' => $this->session->id]);
 
         return (new MailMessage)
@@ -47,9 +46,9 @@ class SessionAddedToCampaign extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'session_added_to_campaign',
@@ -75,7 +74,7 @@ class SessionAddedToCampaign extends BaseNotification
      * Get the push notification representation.
      * Not applicable for this notification type.
      */
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(User $notifiable): ?PushPayload
     {
         return null;
     }

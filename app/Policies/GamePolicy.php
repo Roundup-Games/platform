@@ -7,12 +7,12 @@ use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\ScopedRoleService;
-use App\Services\ShortLinkService;
 use App\Traits\ValidatesShortLinkCookie;
 
 class GamePolicy
 {
     use ValidatesShortLinkCookie;
+
     /**
      * Global admin bypass.
      */
@@ -62,14 +62,14 @@ class GamePolicy
 
         if ($game->visibility === Visibility::Protected) {
             return $user !== null
-                && ($game->owner_id === $user->id
-                    || $user->isFriendOrTeammate($game->owner)
+                && ((string) $game->owner_id === (string) $user->id
+                    || ($game->owner && $user->isFriendOrTeammate($game->owner))
                     || $game->participants()->where('user_id', $user->id)->exists());
         }
 
         // Private games require auth and ownership (or participation)
         return $user !== null
-            && ($game->owner_id === $user->id
+            && ((string) $game->owner_id === (string) $user->id
                 || $game->participants()->where('user_id', $user->id)->exists());
     }
 
@@ -87,7 +87,7 @@ class GamePolicy
      */
     public function update(User $user, Game $game): bool
     {
-        if ($game->owner_id === $user->id) {
+        if ((string) $game->owner_id === (string) $user->id) {
             return true;
         }
 
@@ -99,7 +99,7 @@ class GamePolicy
      */
     public function delete(User $user, Game $game): bool
     {
-        if ($game->owner_id === $user->id) {
+        if ((string) $game->owner_id === (string) $user->id) {
             return true;
         }
 

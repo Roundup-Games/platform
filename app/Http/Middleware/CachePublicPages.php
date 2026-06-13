@@ -75,7 +75,7 @@ class CachePublicPages
             if (str_ends_with($pattern, '.*')) {
                 // Wildcard match: "notifications.*" matches "notifications.index"
                 $prefix = rtrim($pattern, '.*');
-                if (str_starts_with($routeName, $prefix . '.') || $routeName === $prefix) {
+                if (str_starts_with($routeName, $prefix.'.') || $routeName === $prefix) {
                     return true;
                 }
             } elseif ($routeName === $pattern) {

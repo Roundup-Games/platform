@@ -15,13 +15,13 @@ use App\Models\User;
 use App\Notifications\AttendanceReported;
 use App\Notifications\AttendanceResolved;
 use App\Notifications\DisputeResolved;
-use App\Services\NotificationService;
-use App\Services\ReliabilityScoreService;
-use App\Services\ScopedRoleService;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -29,16 +29,75 @@ class AttendanceService
 {
     // ── Tunable thresholds (read from config/attendance.php) ────
 
-    public static function timelinessThresholdHours(): int { return config('attendance.timeliness_threshold_hours', 72); }
-    public static function quarantineThreshold(): int { return config('attendance.quarantine_threshold', 3); }
-    public static function quarantineLookbackDays(): int { return config('attendance.quarantine_lookback_days', 30); }
-    public static function lowReliabilityThreshold(): float { return config('attendance.low_reliability_threshold', 50.0); }
-    public static function lowReliabilityMultiplier(): float { return config('attendance.low_reliability_multiplier', 0.5); }
-    public static function lateReportMultiplier(): float { return config('attendance.late_report_multiplier', 0.7); }
-    public static function hostCancelMinRoster(): int { return config('attendance.host_cancel_min_roster', 1); }
-    public static function hostCancelLateHours(): int { return config('attendance.host_cancel_late_hours', 24); }
-    public static function participationThreshold(): float { return config('attendance.participation_threshold', 0.5); }
-    public static function noShowMajority(): float { return config('attendance.no_show_majority', 0.5); }
+    public static function timelinessThresholdHours(): int
+    {
+        $v = config('attendance.timeliness_threshold_hours', 72);
+
+        return is_int($v) ? $v : 72;
+    }
+
+    public static function quarantineThreshold(): int
+    {
+        $v = config('attendance.quarantine_threshold', 3);
+
+        return is_int($v) ? $v : 3;
+    }
+
+    public static function quarantineLookbackDays(): int
+    {
+        $v = config('attendance.quarantine_lookback_days', 30);
+
+        return is_int($v) ? $v : 30;
+    }
+
+    public static function lowReliabilityThreshold(): float
+    {
+        $v = config('attendance.low_reliability_threshold', 50.0);
+
+        return is_numeric($v) ? (float) $v : 50.0;
+    }
+
+    public static function lowReliabilityMultiplier(): float
+    {
+        $v = config('attendance.low_reliability_multiplier', 0.5);
+
+        return is_numeric($v) ? (float) $v : 0.5;
+    }
+
+    public static function lateReportMultiplier(): float
+    {
+        $v = config('attendance.late_report_multiplier', 0.7);
+
+        return is_numeric($v) ? (float) $v : 0.7;
+    }
+
+    public static function hostCancelMinRoster(): int
+    {
+        $v = config('attendance.host_cancel_min_roster', 1);
+
+        return is_int($v) ? $v : 1;
+    }
+
+    public static function hostCancelLateHours(): int
+    {
+        $v = config('attendance.host_cancel_late_hours', 24);
+
+        return is_int($v) ? $v : 24;
+    }
+
+    public static function participationThreshold(): float
+    {
+        $v = config('attendance.participation_threshold', 0.5);
+
+        return is_numeric($v) ? (float) $v : 0.5;
+    }
+
+    public static function noShowMajority(): float
+    {
+        $v = config('attendance.no_show_majority', 0.5);
+
+        return is_numeric($v) ? (float) $v : 0.5;
+    }
 
     public function __construct(
         private readonly ReliabilityScoreService $reliabilityService,
@@ -75,6 +134,7 @@ class AttendanceService
         }
 
         // Reporter must be an approved participant
+        /** @var GameParticipant|null $reporterParticipant */
         $reporterParticipant = $game->participants()
             ->where('user_id', $reporter->id)
             ->where('status', ParticipantStatus::Approved->value)
@@ -85,7 +145,7 @@ class AttendanceService
         }
 
         // Determine if reporter is the host
-        $isHost = $game->owner_id === $reporter->id;
+        $isHost = (string) $game->owner_id === (string) $reporter->id;
 
         // Apply grief resistance once for the reporter
         $griefCheck = $this->checkGriefResistance($reporter, $game);
@@ -97,7 +157,7 @@ class AttendanceService
                 'reason' => $griefCheck['reason'] ?? 'quarantined',
             ]);
 
-            return ['success' => false, 'reason' => 'Report blocked: ' . ($griefCheck['reason'] ?? 'reporter is quarantined')];
+            return ['success' => false, 'reason' => 'Report blocked: '.($griefCheck['reason'] ?? 'reporter is quarantined')];
         }
 
         $weight = $griefCheck['weight_multiplier'];
@@ -118,8 +178,8 @@ class AttendanceService
         $validStatuses = [AttendanceStatus::Attended->value, AttendanceStatus::NoShow->value, AttendanceStatus::Excused->value];
 
         foreach ($reports as $entry) {
-            $reportedId = $entry['reported_id'] ?? null;
-            $status = $entry['status'] ?? null;
+            $reportedId = $entry['reported_id'];
+            $status = $entry['status'];
 
             if (! $reportedId || ! $status) {
                 return ['success' => false, 'reason' => 'Each report must include reported_id and status'];
@@ -291,6 +351,7 @@ class AttendanceService
         $resolutionMethod = $method ?? AttendanceResolutionMethod::Timeout;
 
         // Get all approved participants
+        /** @var Collection<int, GameParticipant> $participants */
         $participants = $game->participants()
             ->where('status', ParticipantStatus::Approved->value)
             ->get();
@@ -306,8 +367,9 @@ class AttendanceService
         DB::transaction(function () use ($game, $participants, $totalParticipants, $resolutionMethod, $allReports, $participationThreshold, $noShowMajority) {
             // Lock the game row to prevent concurrent resolution (e.g., early-consensus
             // job and timeout sweeper racing for the same game).
+            /** @var Game|null $locked */
             $locked = Game::where('id', $game->id)->lockForUpdate()->first();
-            if ($locked->attendance_resolved_at !== null) {
+            if ($locked === null || $locked->attendance_resolved_at !== null) {
                 return; // Already resolved by another process
             }
 
@@ -331,6 +393,7 @@ class AttendanceService
                 if ($totalNonSelf <= 0) {
                     // Solo game (only this participant) — default to attended
                     $this->applyResolvedStatus($participant, AttendanceStatus::Attended);
+
                     continue;
                 }
 
@@ -393,6 +456,7 @@ class AttendanceService
                 if ($totalWeighted <= 0) {
                     // No meaningful votes — default to Attended
                     $this->applyResolvedStatus($participant, AttendanceStatus::Attended);
+
                     continue;
                 }
 
@@ -401,8 +465,9 @@ class AttendanceService
                     $resolvedStatus = AttendanceStatus::NoShow;
 
                     // If this participant is the game owner (host), apply host_no_show weight
-                    if ($participant->user_id === $game->owner_id) {
-                        $hostWeight = (float) config('attendance.host_no_show_weight', -1.5);
+                    if ((string) $participant->user_id === (string) $game->owner_id) {
+                        $hw = config('attendance.host_no_show_weight', -1.5);
+                        $hostWeight = is_numeric($hw) ? (float) $hw : -1.5;
                         $participant->forceFill([
                             'attendance_status' => $resolvedStatus,
                             'attendance_reported_at' => now(),
@@ -466,6 +531,7 @@ class AttendanceService
         // load('user') only eager-loads the relationship — it does NOT refresh attributes.
         try {
             $notificationService = app(NotificationService::class);
+            /** @var Collection<int, GameParticipant> $resolvedParticipants */
             $resolvedParticipants = $game->participants()
                 ->where('status', ParticipantStatus::Approved->value)
                 ->with('user')
@@ -473,6 +539,10 @@ class AttendanceService
 
             foreach ($resolvedParticipants as $participant) {
                 if ($participant->attendance_status === null) {
+                    continue;
+                }
+
+                if ($participant->user === null) {
                     continue;
                 }
 
@@ -498,7 +568,7 @@ class AttendanceService
         $participant->forceFill([
             'attendance_status' => $status,
             'attendance_reported_at' => now(),
-            'attendance_weight' => ReliabilityScoreService::WEIGHTS[$status->value] ?? 0.0,
+            'attendance_weight' => ReliabilityScoreService::WEIGHTS[$status->value],
         ])->save();
 
         $this->reliabilityService->recomputeAfterAttendance($participant);
@@ -519,8 +589,11 @@ class AttendanceService
         $quarantined = false;
 
         // 1. Check reporter's own reliability score
+        /** @var array{score?: float, game_count?: int, tier?: string, weights_applied?: array<string, mixed>}|null $reliabilityData */
         $reliabilityData = $reporter->reliability_score;
-        $reporterScore = $reliabilityData['score'] ?? 100.0; // Default to full for newcomers
+        $reporterScore = is_array($reliabilityData) && isset($reliabilityData['score'])
+            ? (float) $reliabilityData['score']
+            : 100.0;
 
         if ($reporterScore < self::lowReliabilityThreshold()) {
             $weightMultiplier *= self::lowReliabilityMultiplier();
@@ -554,12 +627,12 @@ class AttendanceService
                 'allowed' => false,
                 'weight_multiplier' => 0.0,
                 'quarantined' => true,
-                'reason' => 'Quarantined: ' . $uncorroboratedGameCount . ' uncorroborated game sessions in ' . self::quarantineLookbackDays() . ' days',
+                'reason' => 'Quarantined: '.$uncorroboratedGameCount.' uncorroborated game sessions in '.self::quarantineLookbackDays().' days',
             ];
         }
 
         // 3. Check timeliness: reduce weight if >72h since game
-        $hoursSinceGame = $game->date_time->diffInHours(now());
+        $hoursSinceGame = $game->date_time ? $game->date_time->diffInHours(now()) : 0;
         if ($hoursSinceGame > self::timelinessThresholdHours()) {
             $weightMultiplier *= self::lateReportMultiplier();
 
@@ -596,7 +669,7 @@ class AttendanceService
         }
 
         // Game must have occurred
-        if ($game->date_time->isFuture()) {
+        if ($game->date_time?->isFuture() ?? false) {
             return ['success' => false, 'reason' => 'Cannot report attendance for a future game'];
         }
 
@@ -606,25 +679,27 @@ class AttendanceService
         }
 
         // Reporter must be an approved participant or the game owner.
+        /** @var GameParticipant|null $reporterParticipant */
         $reporterParticipant = $game->participants()
             ->where('user_id', $reporter->id)
             ->first();
 
-        if (! $reporterParticipant && $game->owner_id !== $reporter->id) {
+        if (! $reporterParticipant && (string) $game->owner_id !== (string) $reporter->id) {
             return ['success' => false, 'reason' => 'Reporter is not a participant in this game'];
         }
 
         // Reported user must be a participant or the game owner.
+        /** @var GameParticipant|null $reportedParticipant */
         $reportedParticipant = $game->participants()
             ->where('user_id', $reported->id)
             ->first();
 
-        if (! $reportedParticipant && $game->owner_id !== $reported->id) {
+        if (! $reportedParticipant && (string) $game->owner_id !== (string) $reported->id) {
             return ['success' => false, 'reason' => 'Reported user is not a participant in this game'];
         }
 
         // Cannot self-report as host for own attendance
-        if ($reporter->id === $reported->id && $game->owner_id === $reporter->id) {
+        if ((string) $reporter->id === (string) $reported->id && (string) $game->owner_id === (string) $reporter->id) {
             return ['success' => false, 'reason' => 'Host cannot self-report attendance'];
         }
 
@@ -644,7 +719,7 @@ class AttendanceService
                 'reason' => $griefCheck['reason'] ?? 'quarantined',
             ]);
 
-            return ['success' => false, 'reason' => 'Report blocked: ' . ($griefCheck['reason'] ?? 'reporter is quarantined')];
+            return ['success' => false, 'reason' => 'Report blocked: '.($griefCheck['reason'] ?? 'reporter is quarantined')];
         }
 
         $weight = $griefCheck['weight_multiplier'];
@@ -654,7 +729,7 @@ class AttendanceService
             Log::error('Attendance report skipped: reported user has no participant record (data integrity gap)', [
                 'game_id' => $game->id,
                 'reported_id' => $reported->id,
-                'is_owner' => $game->owner_id === $reported->id,
+                'is_owner' => (string) $game->owner_id === (string) $reported->id,
             ]);
 
             return ['success' => false, 'reason' => 'Reported user has no participant record'];
@@ -688,6 +763,7 @@ class AttendanceService
         // Notify the reported user
         try {
             $notificationService = app(NotificationService::class);
+            /** @var AttendanceReport|null $report */
             $report = AttendanceReport::where('game_id', $game->id)
                 ->where('reported_id', $reported->id)
                 ->where('reporter_id', $reporter->id)
@@ -843,6 +919,7 @@ class AttendanceService
         $tallies = [];
 
         foreach ($rows as $row) {
+            /** @var string $reportedId */
             $reportedId = $row->reported_id;
 
             if (! isset($tallies[$reportedId])) {
@@ -851,9 +928,7 @@ class AttendanceService
                 $tallies[$reportedId] = ['attended' => 0, 'no_show' => 0, 'excused' => 0];
             }
 
-            $statusKey = $row->status instanceof AttendanceStatus
-                ? $row->status->value
-                : $row->status;
+            $statusKey = $row->status->value;
 
             if (isset($tallies[$reportedId][$statusKey])) {
                 $tallies[$reportedId][$statusKey] = (int) $row->count;
@@ -880,6 +955,7 @@ class AttendanceService
      */
     public function getUserReportedStatus(Game $game, User $viewer): ?AttendanceStatus
     {
+        /** @var GameParticipant|null $participant */
         $participant = $game->participants()
             ->where('user_id', $viewer->id)
             ->first();
@@ -895,7 +971,8 @@ class AttendanceService
     public function handleGameCompletion(Game $game): void
     {
         $windowOpens = now();
-        $windowCloses = $windowOpens->copy()->addHours(config('attendance.reporting_window_hours', 72));
+        $wh = config('attendance.reporting_window_hours', 72);
+        $windowCloses = $windowOpens->copy()->addHours(is_numeric($wh) ? (int) $wh : 72);
 
         $game->forceFill([
             'attendance_window_opens_at' => $windowOpens,
@@ -945,6 +1022,10 @@ class AttendanceService
 
         $game = $participant->game;
 
+        if ($game === null) {
+            return ['success' => false, 'reason' => 'Game not found'];
+        }
+
         // Gather attendance report IDs for this participant
         $reportIds = AttendanceReport::where('game_id', $game->id)
             ->where('reported_id', $participant->user_id)
@@ -967,13 +1048,13 @@ class AttendanceService
             $ticket = Ticket::create([
                 'requester_type' => User::class,
                 'requester_id' => $caller->id,
-                'subject' => 'Attendance Dispute: ' . $game->name,
+                'subject' => 'Attendance Dispute: '.$game->name,
                 'description' => $reason,
                 'status' => TicketStatus::Open->value,
-                'priority' => \Escalated\Laravel\Enums\TicketPriority::Medium->value,
+                'priority' => TicketPriority::Medium->value,
                 'department_id' => $department?->id,
                 'ticket_type' => 'attendance_dispute',
-                'channel' => \Escalated\Laravel\Enums\TicketChannel::Web->value,
+                'channel' => TicketChannel::Web->value,
                 'metadata' => [
                     'game_id' => $game->id,
                     'participant_id' => $participant->id,
@@ -1001,7 +1082,7 @@ class AttendanceService
                 'user_id' => $caller->id,
                 'ticket_id' => $ticket->id,
                 'ticket_reference' => $ticket->reference,
-                'disputed_status' => $participant->attendance_status->value,
+                'disputed_status' => $participant->attendance_status->value ?? '',
             ]);
         });
 
@@ -1037,6 +1118,11 @@ class AttendanceService
         }
 
         $game = $participant->game;
+
+        if ($game === null) {
+            return ['success' => false, 'reason' => 'Game not found'];
+        }
+
         $oldStatus = $participant->attendance_status;
 
         DB::transaction(function () use ($participant, $newStatus, $admin, $overrideReason, $game, $oldStatus) {
@@ -1049,14 +1135,14 @@ class AttendanceService
                 'weight_applied' => 1.0,
                 'is_corroborated' => true,
                 'quarantined' => false,
-                'reason' => 'Admin override: ' . $overrideReason,
+                'reason' => 'Admin override: '.$overrideReason,
             ]);
 
             // Apply the new status
             $participant->forceFill([
                 'attendance_status' => $newStatus,
                 'attendance_reported_at' => now(),
-                'attendance_weight' => ReliabilityScoreService::WEIGHTS[$newStatus->value] ?? 0.0,
+                'attendance_weight' => ReliabilityScoreService::WEIGHTS[$newStatus->value],
                 'attendance_disputed_at' => null, // Clear dispute flag
             ])->save();
 
@@ -1082,11 +1168,13 @@ class AttendanceService
             : 'upheld';
 
         try {
-            app(NotificationService::class)->send(
-                $participant->user,
-                new DisputeResolved($game, $resolutionKey),
-                NotificationCategory::DisputeResolved,
-            );
+            if ($participant->user !== null) {
+                app(NotificationService::class)->send(
+                    $participant->user,
+                    new DisputeResolved($game, $resolutionKey),
+                    NotificationCategory::DisputeResolved,
+                );
+            }
         } catch (\Throwable $e) {
             Log::warning('Failed to send DisputeResolved notification', [
                 'user_id' => $participant->user_id,

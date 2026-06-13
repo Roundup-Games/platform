@@ -1,19 +1,17 @@
 <?php
 
-use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
-use App\Enums\NotificationCategory;
-use App\Models\Campaign;
-use App\Models\CampaignParticipant;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GamesPage;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\EntityCancelled;
 use App\Notifications\EntityCompleted;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
+use Livewire\Livewire;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -39,8 +37,8 @@ describe('Cancel game → GameCancelled', function () {
         GameParticipant::create(['game_id' => $game->id, 'user_id' => $player1->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
         GameParticipant::create(['game_id' => $game->id, 'user_id' => $player2->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($owner)
+            ->test(GamesPage::class)
             ->call('cancelGame', $game->id);
 
         foreach ([$player1, $player2] as $player) {
@@ -73,14 +71,13 @@ describe('Cancel game → GameCancelled', function () {
         GameParticipant::create(['game_id' => $game->id, 'user_id' => $pending->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value]);
         GameParticipant::create(['game_id' => $game->id, 'user_id' => $rejected->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Rejected->value]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($owner)
+            ->test(GamesPage::class)
             ->call('cancelGame', $game->id);
 
         expect($pending->notifications()->where('type', EntityCancelled::class)->count())->toBe(0);
         expect($rejected->notifications()->where('type', EntityCancelled::class)->count())->toBe(0);
-});
-
+    });
 
 });
 
@@ -102,8 +99,8 @@ describe('Complete game → GameCompleted', function () {
 
         GameParticipant::create(['game_id' => $game->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($owner)
+            ->test(GamesPage::class)
             ->call('completeGame', $game->id);
 
         $notifications = $player->notifications()->where('type', EntityCompleted::class)->get();
@@ -131,13 +128,12 @@ describe('Complete game → GameCompleted', function () {
 
         GameParticipant::create(['game_id' => $game->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($owner)
+            ->test(GamesPage::class)
             ->call('completeGame', $game->id);
 
         expect($player->notifications()->where('type', EntityCompleted::class)->count())->toBe(0);
     });
-
 
 });
 
@@ -154,8 +150,8 @@ describe('Status change edge cases', function () {
             'status' => 'scheduled',
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($owner)
+            ->test(GamesPage::class)
             ->call('cancelGame', $game->id)
             ->assertHasNoErrors();
 

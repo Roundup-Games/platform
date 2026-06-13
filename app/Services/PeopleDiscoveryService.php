@@ -4,9 +4,7 @@ namespace App\Services;
 
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\User;
-use App\Models\UserRelationship;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -71,8 +69,8 @@ class PeopleDiscoveryService
      * dispatch UpdateUserDiscoveryCache to warm the cache, then
      * poll via wire:poll until results are available.
      *
-     * @return array{results: LengthAwarePaginator, status: string}
-     *   status is one of: 'ok', 'pending', 'no_location'
+     * @return array<string, mixed>
+     *                              - status is one of: 'ok', 'pending', 'no_location'
      */
     public function discover(User $viewer, ?float $lat = null, ?float $lng = null, int $perPage = 12, int $page = 1): array
     {
@@ -89,7 +87,7 @@ class PeopleDiscoveryService
         $cached = Cache::get($cacheKey);
 
         // Cache miss → pending (caller will dispatch warm-up job)
-        if ($cached === null) {
+        if ($cached === null || ! is_array($cached)) {
             Log::debug('discovery.cache_miss_pending', [
                 'viewer_id' => $viewer->id,
                 'geohash' => $viewerGeohash,
@@ -102,7 +100,7 @@ class PeopleDiscoveryService
         }
 
         // Guard against stale cache entries that stored User models
-        $firstItem = $cached[0] ?? null;
+        $firstItem = isset($cached[0]) && is_array($cached[0]) ? $cached[0] : null;
         if ($firstItem && ! isset($firstItem['user_id'])) {
             Log::warning('discovery.stale_cache_format', [
                 'viewer_id' => $viewer->id,
@@ -152,7 +150,7 @@ class PeopleDiscoveryService
      *   3. Hydrate User models, privacy filter, distance calc
      *   4. Cache user_id-based results
      *
-     * @return array<int, array{user: User, compatibility_score: float, match_reasons: string[], tier: int, distance_km: float}>
+     * @return array<int, array{user: User, compatibility_score: mixed, match_reasons: mixed, tier: int, distance_km: float}>
      */
     public function computeAndCache(User $viewer, float $lat, float $lng): array
     {
@@ -160,7 +158,7 @@ class PeopleDiscoveryService
         $cacheKey = "people:nearby:{$viewer->id}:{$viewerGeohash}";
         $ttl = now()->addMinutes(5);
 
-        self::invalidateCacheFor($viewer->id);
+        self::invalidateCacheFor((string) $viewer->id);
 
         $queryCount = 0;
         DB::listen(function () use (&$queryCount) {
@@ -172,7 +170,7 @@ class PeopleDiscoveryService
 
         if (empty($candidateMeta)) {
             Cache::put($cacheKey, [], $ttl);
-            $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
+            $this->trackCacheKey((string) $viewer->id, $cacheKey, $ttl);
 
             Log::debug('discovery.stats', [
                 'viewer_id' => $viewer->id,
@@ -196,15 +194,22 @@ class PeopleDiscoveryService
             ->keyBy('id');
 
         // Pre-load viewer preferences for privacy-aware reweighting
-        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->all();
+        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->filter(fn (mixed $id) => is_string($id))->values()->all();
         $viewerVibes = $viewer->favoriteVibes()->pluck('vibe_preference_value')
-            ->map(fn ($flag) => $flag->value)->unique()->values()->all();
-        $viewerTeamIds = $viewer->teams()->wherePivot('status', 'active')->pluck('teams.id')->all();
+            ->map(fn (mixed $flag) => $flag instanceof \BackedEnum ? (string) $flag->value : (is_string($flag) ? $flag : ''))->unique()->values()->all();
+        $viewerTeamIds = $viewer->teams()->wherePivot('status', 'active')->pluck('teams.id')->filter(fn (mixed $id) => is_string($id))->values()->all();
 
         // Build final results with privacy-aware scoring + distance
         $results = [];
         foreach ($scoredRows as $row) {
-            $candidate = $candidateUsers->get($row['user_id']);
+            if (! is_array($row)) {
+                continue;
+            }
+            $userId = is_string($row['user_id'] ?? null) ? $row['user_id'] : null;
+            if ($userId === null) {
+                continue;
+            }
+            $candidate = $candidateUsers->get($userId);
             if (! $candidate) {
                 continue;
             }
@@ -219,7 +224,7 @@ class PeopleDiscoveryService
                 $viewerGameIds, $viewerVibes, $viewerTeamIds,
             );
 
-            $meta = $candidateMeta[$row['user_id']] ?? null;
+            $meta = $candidateMeta[$userId] ?? null;
             $distanceKm = 0.0;
             if ($meta) {
                 $distanceKm = $this->haversineDistance(
@@ -249,7 +254,7 @@ class PeopleDiscoveryService
         ], $results);
 
         Cache::put($cacheKey, $cacheable, $ttl);
-        $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
+        $this->trackCacheKey((string) $viewer->id, $cacheKey, $ttl);
 
         $total = count($results);
 
@@ -280,9 +285,14 @@ class PeopleDiscoveryService
     {
         $keySetKey = "people:nearby:keys:{$userId}";
         $keys = Cache::get($keySetKey, []);
+        if (! is_array($keys)) {
+            $keys = [];
+        }
 
         foreach ($keys as $key) {
-            Cache::forget($key);
+            if (is_string($key)) {
+                Cache::forget($key);
+            }
         }
 
         Cache::forget($keySetKey);
@@ -336,8 +346,8 @@ class PeopleDiscoveryService
             ORDER BY tier ASC
             LIMIT ?
         ", [
-            $geohash4 . '%', $geohash3 . '%',
-            $geohash4 . '%', $geohash3 . '%',
+            $geohash4.'%', $geohash3.'%',
+            $geohash4.'%', $geohash3.'%',
             $viewer->id, $viewer->id, $viewer->id,
             self::MAX_GEO_CANDIDATES,
         ]);
@@ -370,13 +380,13 @@ class PeopleDiscoveryService
      */
     private function supplementWithTasteCandidates(User $viewer, array $existing): array
     {
-        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->all();
+        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->filter(fn (mixed $id) => is_string($id))->values()->all();
         if (empty($viewerGameIds)) {
             return $existing;
         }
 
         $existingIds = array_keys($existing);
-        $viewerId = $viewer->id;
+        $viewerId = (string) $viewer->id;
 
         $existingSql = '';
         $existingParams = [];
@@ -453,8 +463,8 @@ class PeopleDiscoveryService
      *   - shared_teams
      *   - mutual_follow
      *
-     * @param  int[]  $candidateIds
-     * @return array<int, array{user_id: int, compatibility_score: float, match_reasons: string[], tier: int, shared_games: int, candidate_game_count: int, shared_vibes: int, candidate_vibe_count: int, shared_teams: int, mutual_follow: bool}>
+     * @param  array<int, mixed>  $candidateIds
+     * @return array<int, mixed>
      */
     private function computeScores(User $viewer, array $candidateIds): array
     {
@@ -462,20 +472,23 @@ class PeopleDiscoveryService
             return [];
         }
 
-        $viewerId = $viewer->id;
+        $viewerId = (string) $viewer->id;
 
         // Pre-load viewer preferences (3 tiny queries)
-        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->all();
+        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->filter(fn (mixed $id) => is_string($id))->values()->all();
         $viewerVibes = $viewer->favoriteVibes()->pluck('vibe_preference_value')
-            ->map(fn ($flag) => $flag->value)->unique()->values()->all();
-        $viewerTeamIds = $viewer->teams()->wherePivot('status', 'active')->pluck('teams.id')->all();
+            ->map(fn (mixed $flag) => $flag instanceof \BackedEnum ? (string) $flag->value : (is_string($flag) ? $flag : ''))->unique()->values()->all();
+        $viewerTeamIds = $viewer->teams()->wherePivot('status', 'active')->pluck('teams.id')->filter(fn (mixed $id) => is_string($id))->values()->all();
 
         $viewerGameCount = count($viewerGameIds);
         $viewerVibeCount = count($viewerVibes);
 
-        [$sql, $params] = $this->buildScoreSQL(
+        $scoreResult = $this->buildScoreSQL(
             $viewerId, $viewerGameIds, $viewerVibes, $viewerTeamIds, $candidateIds,
         );
+
+        $sql = is_string($scoreResult[0] ?? null) ? $scoreResult[0] : '';
+        $params = is_array($scoreResult[1] ?? null) ? $scoreResult[1] : [];
 
         $rows = DB::select($sql, $params);
 
@@ -563,7 +576,11 @@ class PeopleDiscoveryService
      *
      * Each JOIN computes overlap counts via conditional aggregation.
      *
-     * @return array{0: string, 1: array} [sql, params]
+     * @param  array<int, string>  $viewerGameIds
+     * @param  array<int, string>  $viewerVibes
+     * @param  array<int, string>  $viewerTeamIds
+     * @param  array<int, mixed>  $candidateIds
+     * @return array<int, mixed>
      */
     private function buildScoreSQL(
         string $viewerId,
@@ -590,7 +607,7 @@ class PeopleDiscoveryService
             ) g ON g.user_id = u.id";
             $params = array_merge($params, $viewerGameIds, $candidateIds);
         } else {
-            $joins[] = "LEFT JOIN (SELECT user_id, 0 AS shared, 0 AS candidate_total FROM user_game_system_preferences WHERE 1=0) g ON g.user_id = u.id";
+            $joins[] = 'LEFT JOIN (SELECT user_id, 0 AS shared, 0 AS candidate_total FROM user_game_system_preferences WHERE 1=0) g ON g.user_id = u.id';
         }
 
         // Vibes JOIN
@@ -606,7 +623,7 @@ class PeopleDiscoveryService
             ) v ON v.user_id = u.id";
             $params = array_merge($params, $viewerVibes, $candidateIds);
         } else {
-            $joins[] = "LEFT JOIN (SELECT user_id, 0 AS shared, 0 AS candidate_total FROM user_vibe_preferences WHERE 1=0) v ON v.user_id = u.id";
+            $joins[] = 'LEFT JOIN (SELECT user_id, 0 AS shared, 0 AS candidate_total FROM user_vibe_preferences WHERE 1=0) v ON v.user_id = u.id';
         }
 
         // Teams JOIN
@@ -621,7 +638,7 @@ class PeopleDiscoveryService
             ) t ON t.user_id = u.id";
             $params = array_merge($params, $viewerTeamIds, $candidateIds);
         } else {
-            $joins[] = "LEFT JOIN (SELECT user_id, 0 AS shared FROM team_members WHERE 1=0) t ON t.user_id = u.id";
+            $joins[] = 'LEFT JOIN (SELECT user_id, 0 AS shared FROM team_members WHERE 1=0) t ON t.user_id = u.id';
         }
 
         // Mutual follow JOIN (targeted: only "does candidate follow viewer?")
@@ -633,7 +650,7 @@ class PeopleDiscoveryService
 
         $params = array_merge($params, $candidateIds);
 
-        $sql = "
+        $sql = '
             SELECT
                 u.id AS user_id,
                 COALESCE(g.shared, 0) AS shared_games,
@@ -643,7 +660,7 @@ class PeopleDiscoveryService
                 COALESCE(t.shared, 0) AS shared_teams,
                 CASE WHEN mf.user_id IS NOT NULL THEN 1 ELSE 0 END AS mutual_follow
             FROM users u
-            " . implode("\n", $joins) . "
+            '.implode("\n", $joins)."
             WHERE u.id IN ({$cPh})
         ";
 
@@ -657,7 +674,12 @@ class PeopleDiscoveryService
      *
      * Hidden fields are excluded from scoring as if the viewer had zero overlap.
      *
-     * @return array{compatibility_score: float, match_reasons: string[]}
+     * @param  array<string, mixed>  $row
+     * @param  array<int, string>  $visibleFields
+     * @param  array<int, string>  $viewerGameIds
+     * @param  array<int, string>  $viewerVibes
+     * @param  array<int, string>  $viewerTeamIds
+     * @return array<string, mixed>
      */
     private function applyPrivacyReweight(
         array $row,
@@ -674,15 +696,20 @@ class PeopleDiscoveryService
         $tasteComponents = [];
         $matchReasons = [];
 
-        if ($gameSystemsVisible && $row['shared_games'] > 0 && ! empty($viewerGameIds)) {
-            $union = count($viewerGameIds) + $row['candidate_game_count'] - $row['shared_games'];
-            $tasteComponents[] = $union > 0 ? $row['shared_games'] / $union : 0;
+        $sharedGames = is_numeric($v = $row['shared_games'] ?? null) ? (int) $v : 0;
+        $candidateGameCount = is_numeric($v = $row['candidate_game_count'] ?? null) ? (int) $v : 0;
+        $sharedVibes = is_numeric($v = $row['shared_vibes'] ?? null) ? (int) $v : 0;
+        $candidateVibeCount = is_numeric($v = $row['candidate_vibe_count'] ?? null) ? (int) $v : 0;
+
+        if ($gameSystemsVisible && $sharedGames > 0 && ! empty($viewerGameIds)) {
+            $union = count($viewerGameIds) + $candidateGameCount - $sharedGames;
+            $tasteComponents[] = $union > 0 ? $sharedGames / $union : 0;
             $matchReasons[] = 'shared_game_systems';
         }
 
-        if ($vibesVisible && $row['shared_vibes'] > 0 && ! empty($viewerVibes)) {
-            $union = count($viewerVibes) + $row['candidate_vibe_count'] - $row['shared_vibes'];
-            $tasteComponents[] = $union > 0 ? $row['shared_vibes'] / $union : 0;
+        if ($vibesVisible && $sharedVibes > 0 && ! empty($viewerVibes)) {
+            $union = count($viewerVibes) + $candidateVibeCount - $sharedVibes;
+            $tasteComponents[] = $union > 0 ? $sharedVibes / $union : 0;
             $matchReasons[] = 'shared_vibes';
         }
 
@@ -692,8 +719,9 @@ class PeopleDiscoveryService
 
         $socialComponents = [];
 
-        if ($teamsVisible && $row['shared_teams'] > 0 && ! empty($viewerTeamIds)) {
-            $socialComponents[] = min($row['shared_teams'] / count($viewerTeamIds), 1.0);
+        $sharedTeams = is_numeric($v = $row['shared_teams'] ?? null) ? (int) $v : 0;
+        if ($teamsVisible && $sharedTeams > 0 && ! empty($viewerTeamIds)) {
+            $socialComponents[] = min($sharedTeams / count($viewerTeamIds), 1.0);
             $matchReasons[] = 'shared_teams';
         }
 
@@ -728,34 +756,13 @@ class PeopleDiscoveryService
         ];
     }
 
-    /**
-     * Compute Jaccard similarity between two arrays.
-     *
-     * J(A, B) = |A ∩ B| / |A ∪ B|
-     */
-    private function jaccard(array $a, array $b): float
-    {
-        if (empty($a) && empty($b)) {
-            return 0.0;
-        }
-
-        $setA = array_flip($a);
-        $setB = array_flip($b);
-
-        $intersection = count(array_intersect_key($setA, $setB));
-        $union = count($setA) + count($setB) - $intersection;
-
-        if ($union === 0) {
-            return 0.0;
-        }
-
-        return $intersection / $union;
-    }
-
     // ── Cache Helpers ─────────────────────────────────
 
     /**
      * Build a paginated response from cached user_id-based data.
+     *
+     * @param  array<string, mixed>  $cached
+     * @return array<string, mixed>
      */
     private function paginatedFromCache(array $cached, int $perPage, int $page): array
     {
@@ -765,18 +772,22 @@ class PeopleDiscoveryService
             ->get()
             ->keyBy('id');
 
-        $items = collect($cached)->map(function (array $cachedItem) use ($users) {
-            $user = $users->get($cachedItem['user_id']);
+        $items = collect($cached)->map(function (mixed $cachedItem) use ($users) {
+            if (! is_array($cachedItem)) {
+                return null;
+            }
+            $userId = $cachedItem['user_id'] ?? null;
+            $user = $users->get(is_string($userId) ? $userId : null);
             if (! $user) {
                 return null;
             }
 
             return [
                 'user' => $user,
-                'compatibility_score' => $cachedItem['compatibility_score'],
-                'match_reasons' => $cachedItem['match_reasons'],
-                'tier' => $cachedItem['tier'],
-                'distance_km' => $cachedItem['distance_km'],
+                'compatibility_score' => is_numeric($cachedItem['compatibility_score'] ?? null) ? (float) $cachedItem['compatibility_score'] : 0.0,
+                'match_reasons' => is_array($cachedItem['match_reasons'] ?? null) ? $cachedItem['match_reasons'] : [],
+                'tier' => is_int($cachedItem['tier'] ?? null) ? $cachedItem['tier'] : 99,
+                'distance_km' => is_numeric($cachedItem['distance_km'] ?? null) ? (float) $cachedItem['distance_km'] : null,
             ];
         })->filter()->values();
 
@@ -785,7 +796,7 @@ class PeopleDiscoveryService
 
         return [
             'results' => new LengthAwarePaginator($paginatedItems, $total, $perPage, $page, [
-                'path' => request()?->url(),
+                'path' => request()->url(),
             ]),
             'status' => 'ok',
         ];
@@ -794,10 +805,13 @@ class PeopleDiscoveryService
     /**
      * Track a cache key in the user's key set for later invalidation.
      */
-    private function trackCacheKey(string $userId, string $cacheKey, $ttl): void
+    private function trackCacheKey(string $userId, string $cacheKey, \DateTimeInterface|\DateInterval|int $ttl): void
     {
         $keySetKey = "people:nearby:keys:{$userId}";
         $existingKeys = Cache::get($keySetKey, []);
+        if (! is_array($existingKeys)) {
+            $existingKeys = [];
+        }
         if (! in_array($cacheKey, $existingKeys)) {
             $existingKeys[] = $cacheKey;
             Cache::put($keySetKey, $existingKeys, $ttl);
@@ -819,5 +833,30 @@ class PeopleDiscoveryService
             * sin($dLng / 2) ** 2;
 
         return $earthRadius * 2 * asin(sqrt($a));
+    }
+
+    /**
+     * Jaccard similarity coefficient between two sets.
+     *
+     * |A ∩ B| / |A ∪ B| — returns 0 when both sets are empty.
+     * This is the PHP reference implementation; the SQL scoring in
+     * buildScoreSQL() computes the same formula server-side for performance.
+     *
+     * @param  array<int, string|int>  $a
+     * @param  array<int, string|int>  $b
+     */
+    public static function jaccard(array $a, array $b): float
+    {
+        $setA = array_values(array_unique($a));
+        $setB = array_values(array_unique($b));
+
+        if (count($setA) === 0 && count($setB) === 0) {
+            return 0.0;
+        }
+
+        $intersection = count(array_intersect($setA, $setB));
+        $union = count(array_unique(array_merge($setA, $setB)));
+
+        return $union > 0 ? $intersection / $union : 0.0;
     }
 }

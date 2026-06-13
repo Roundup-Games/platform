@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\ApplyToCampaign;
 use App\Livewire\Campaigns\ManageParticipants as CampaignManageParticipants;
 use App\Livewire\Games\ApplyToGame;
@@ -10,8 +12,7 @@ use App\Models\CampaignParticipant;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\User;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
+use App\Models\UserRelationship;
 use Tests\Traits\CreatesGameInstances;
 use Tests\Traits\CreatesRelationships;
 
@@ -112,8 +113,8 @@ describe('Application submission join_source attribution', function () {
     test('protected game application sets join_source to application', function () {
         ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'protected']);
         $user = User::factory()->create(['profile_complete' => true]);
-        \App\Models\UserRelationship::follow($user, $owner);
-        \App\Models\UserRelationship::follow($owner, $user);
+        UserRelationship::follow($user, $owner);
+        UserRelationship::follow($owner, $user);
 
         Livewire\Livewire::actingAs($user)
             ->test(ApplyToGame::class, ['id' => $game->id])
@@ -146,8 +147,8 @@ describe('Application submission join_source attribution', function () {
     test('protected campaign application sets join_source to application', function () {
         ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner(['visibility' => 'protected']);
         $user = User::factory()->create(['profile_complete' => true]);
-        \App\Models\UserRelationship::follow($user, $owner);
-        \App\Models\UserRelationship::follow($owner, $user);
+        UserRelationship::follow($user, $owner);
+        UserRelationship::follow($owner, $user);
 
         Livewire\Livewire::actingAs($user)
             ->test(ApplyToCampaign::class, ['id' => $campaign->id])

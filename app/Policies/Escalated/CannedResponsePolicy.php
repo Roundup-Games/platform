@@ -2,6 +2,8 @@
 
 namespace App\Policies\Escalated;
 
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -13,27 +15,27 @@ use Illuminate\Support\Facades\Gate;
  */
 class CannedResponsePolicy
 {
-    public function viewAny($user): bool
+    public function viewAny(User $user): bool
     {
         return Gate::forUser($user)->allows('escalated-admin');
     }
 
-    public function view($user, $model): bool
+    public function view(User $user, Model $model): bool
     {
         return Gate::forUser($user)->allows('escalated-admin');
     }
 
-    public function create($user): bool
+    public function create(User $user): bool
     {
         return Gate::forUser($user)->allows('escalated-admin');
     }
 
-    public function update($user, $model): bool
+    public function update(User $user, Model $model): bool
     {
         return Gate::forUser($user)->allows('escalated-admin');
     }
 
-    public function delete($user, $model): bool
+    public function delete(User $user, Model $model): bool
     {
         return Gate::forUser($user)->allows('escalated-admin');
     }

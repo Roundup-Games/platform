@@ -1,9 +1,9 @@
 <?php
 
-use App\Enums\CampaignStatus;
-use App\Enums\GameStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Campaigns\CreateCampaign;
+use App\Livewire\Games\CreateGame;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -14,11 +14,8 @@ use App\Models\User;
 use App\Policies\CampaignPolicy;
 use App\Policies\GamePolicy;
 use App\Services\ShortLinkService;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Role;
 use Tests\Traits\CreatesUsers;
 
 uses(CreatesUsers::class);
@@ -38,7 +35,7 @@ describe('short link auto-generation on entity creation', function () {
         $gm->givePermissionTo('create game');
 
         Livewire::actingAs($gm)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->call('selectType', 'board_game')
             ->set('name', 'Test Game')
@@ -64,7 +61,7 @@ describe('short link auto-generation on entity creation', function () {
         $gm->givePermissionTo('create campaign');
 
         Livewire::actingAs($gm)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'Test Campaign')
             ->set('game_system_id', $this->gameSystem->id)
             ->set('max_players', 6)

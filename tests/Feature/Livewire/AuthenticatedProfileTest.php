@@ -1,10 +1,10 @@
 <?php
 
 use App\Livewire\Profile\AuthenticatedProfile;
+use App\Models\Game;
 use App\Models\User;
 use App\Models\UserRelationship;
 use Livewire\Livewire;
-
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS
@@ -168,7 +168,7 @@ describe('Block / Unblock actions (authenticated)', function () {
 describe('Game session visibility on authenticated profile', function () {
     it('shows public owned games to a stranger', function () {
         $profileUser = createAuthProfileUser();
-        $game = \App\Models\Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'public',
             'status' => 'scheduled',
@@ -184,7 +184,7 @@ describe('Game session visibility on authenticated profile', function () {
 
     it('hides protected games from a stranger', function () {
         $profileUser = createAuthProfileUser();
-        \App\Models\Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'protected',
             'status' => 'scheduled',
@@ -205,7 +205,7 @@ describe('Game session visibility on authenticated profile', function () {
         UserRelationship::follow($viewer, $profileUser);
         UserRelationship::follow($profileUser, $viewer);
 
-        $game = \App\Models\Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'protected',
             'status' => 'scheduled',
@@ -219,7 +219,7 @@ describe('Game session visibility on authenticated profile', function () {
 
     it('own profile sees all games including private', function () {
         $profileUser = createAuthProfileUser();
-        \App\Models\Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $profileUser->id,
             'visibility' => 'private',
             'status' => 'scheduled',

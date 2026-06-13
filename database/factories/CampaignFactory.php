@@ -22,7 +22,7 @@ class CampaignFactory extends Factory
         return [
             'owner_id' => User::factory(),
             'game_system_id' => GameSystem::factory(),
-            'name' => ['en' => fake()->words(3, true) . ' Campaign'],
+            'name' => ['en' => fake()->words(3, true).' Campaign'],
             'description' => ['en' => fake()->paragraph()],
             'visibility' => 'public',
             'recurrence' => 'weekly',
