@@ -78,7 +78,7 @@
     },
     "scripts": {
         "install-hooks": [
-            "cp scripts/git/pre-commit.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
+            "test -d .git && test -f scripts/git/pre-commit.sh && mkdir -p .git/hooks && cp scripts/git/pre-commit.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit || true"
         ],
         "setup": [
             "composer install",
@@ -110,7 +110,7 @@
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi",
             "@php artisan filament:upgrade",
-            "@bash scripts/patch-escalated-uuid.sh"
+            "test -f scripts/patch-escalated-uuid.sh && bash scripts/patch-escalated-uuid.sh || true"
         ],
         "post-install-cmd": [
             "@install-hooks"
