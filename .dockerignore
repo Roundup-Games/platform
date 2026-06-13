@@ -13,3 +13,10 @@ tests
 .phpunit.result.cache
 .php-cs-fixer.cache
 docker/entrypoint.sh
+
+# Local Laravel cache files — generated in dev, must not leak into the prod image.
+# bootstrap/cache/packages.php & services.php are regenerated at build time from
+# the prod vendor; shipping the dev version (which references laravel/pail etc.)
+# causes a fatal "provider not found" on boot under --no-dev.
+bootstrap/cache/services.php
+bootstrap/cache/packages.php

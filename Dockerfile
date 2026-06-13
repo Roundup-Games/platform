@@ -40,8 +40,15 @@ COPY --from=frontend --chown=www-data:www-data /app/public/build /var/www/html/p
 # Patch third-party packages that assume int user IDs (we use UUIDs)
 RUN bash scripts/patch-escalated-uuid.sh
 
+# Regenerate the package-discovery cache from the prod vendor. Any host cache
+# (which may reference dev-only providers like laravel/pail, absent under
+# --no-dev) is discarded so artisan boots cleanly. Belt-and-suspenders with
+# the .dockerignore exclusion of bootstrap/cache/*.php.
+RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php \
+ && php artisan package:discover --ansi
+
 # Storage link and ensure writable dirs
-RUN php artisan storage:link --force 2>/dev/null; true \
+RUN php artisan storage:link --force || true \
  && mkdir -p storage/framework/{sessions,views,cache} \
              storage/logs \
              bootstrap/cache
