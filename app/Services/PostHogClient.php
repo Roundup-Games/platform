@@ -36,7 +36,9 @@ class PostHogClient
     /**
      * Capture an event. No-op when PostHog is disabled.
      *
-     * @param  array<string, mixed>  $payload
+     * Mirrors the PostHog SDK capture() payload shape.
+     *
+     * @param  array{event: string, distinctId?: string, distinct_id?: string, properties?: array<string, mixed>, groups?: array<string, mixed>}  $payload
      */
     public function capture(array $payload): void
     {
@@ -48,7 +50,7 @@ class PostHogClient
             PostHog::capture($payload);
         } catch (\Throwable $e) {
             Log::channel('daily')->warning('posthog.client.capture_failed', [
-                'event' => $payload['event'] ?? 'unknown',
+                'event' => $payload['event'],
                 'error' => $e->getMessage(),
             ]);
         }
@@ -57,7 +59,9 @@ class PostHogClient
     /**
      * Identify a user with $set/$set_once properties. No-op when disabled.
      *
-     * @param  array<string, mixed>  $payload
+     * Mirrors the PostHog SDK identify() payload shape.
+     *
+     * @param  array{distinctId?: string, distinct_id?: string, properties?: array<string, mixed>}  $payload
      */
     public function identify(array $payload): void
     {
