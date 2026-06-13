@@ -75,9 +75,9 @@
 
             {{-- Divider --}}
             <div class="relative flex items-center my-5">
-                <div class="flex-grow border-t border-outline-variant/30"></div>
-                <span class="flex-shrink mx-3 text-xs text-on-surface-variant uppercase tracking-wider">{{ __('common.content_or') }}</span>
-                <div class="flex-grow border-t border-outline-variant/30"></div>
+                <div class="grow border-t border-outline-variant/30"></div>
+                <span class="shrink mx-3 text-xs text-on-surface-variant uppercase tracking-wider">{{ __('common.content_or') }}</span>
+                <div class="grow border-t border-outline-variant/30"></div>
             </div>
 
             {{-- Method 2: Email invite --}}
@@ -283,7 +283,7 @@
                     @foreach($waitlistedParticipants as $participant)
                         <div class="py-3 first:pt-0 last:pb-0 space-y-2">
                             <div class="flex items-center gap-3">
-                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-tertiary/10 text-tertiary text-xs font-bold flex-shrink-0">
+                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-tertiary/10 text-tertiary text-xs font-bold shrink-0">
                                     #{{ $loop->iteration }}
                                 </span>
                                 <div class="flex-1 min-w-0">

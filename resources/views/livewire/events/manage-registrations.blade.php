@@ -119,7 +119,7 @@
 
                                 {{-- Type --}}
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $registration->registration_type === 'team' ? 'bg-primary/10 text-primary' : 'bg-tertiary/10 text-on-tertiary-container' }}">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ $registration->registration_type === 'team' ? 'bg-primary/10 text-primary' : 'bg-tertiary/10 text-on-tertiary-container' }}">
                                         {{ ucfirst($registration->registration_type) }}
                                     </span>
                                 </td>
@@ -139,7 +139,7 @@
                                             'waitlisted' => 'bg-surface-container text-on-surface-variant',
                                         ];
                                     @endphp
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $statusColors[$registration->status] ?? 'bg-surface-container text-on-surface-variant' }}">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ $statusColors[$registration->status] ?? 'bg-surface-container text-on-surface-variant' }}">
                                         {{ ucfirst($registration->status) }}
                                     </span>
                                 </td>
@@ -177,7 +177,7 @@
                                                 action="approve('{{ $registration->id }}')"
                                                 id="approve-registration-{{ $registration->id }}"
                                                 :trigger-label="__('events.action_approve')"
-                                                trigger-class="text-xs px-2 py-1 rounded bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
+                                                trigger-class="text-xs px-2 py-1 rounded-sm bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
                                                 :confirm-label="__('events.action_approve')"
                                                 :cancel-label="__('common.action_cancel')"
                                                 :message="__('events.flash_approve_this_registration')"
@@ -189,7 +189,7 @@
                                                 action="reject('{{ $registration->id }}')"
                                                 id="reject-registration-{{ $registration->id }}"
                                                 :trigger-label="__('common.action_reject')"
-                                                trigger-class="text-xs px-2 py-1 rounded bg-error-container text-on-error-container hover:opacity-90 transition-opacity"
+                                                trigger-class="text-xs px-2 py-1 rounded-sm bg-error-container text-on-error-container hover:opacity-90 transition-opacity"
                                                 :confirm-label="__('common.action_reject')"
                                                 :cancel-label="__('common.action_keep')"
                                                 :message="__('events.content_reject_this_registration')"
@@ -204,7 +204,7 @@
                                                 action="confirmPayment('{{ $registration->id }}')"
                                                 id="confirm-payment-{{ $registration->id }}"
                                                 :trigger-label="__('billing.status_paid')"
-                                                trigger-class="text-xs px-2 py-1 rounded bg-primary/10 text-primary hover:opacity-90 transition-opacity"
+                                                trigger-class="text-xs px-2 py-1 rounded-sm bg-primary/10 text-primary hover:opacity-90 transition-opacity"
                                                 :confirm-label="__('billing.status_paid')"
                                                 :cancel-label="__('common.action_cancel')"
                                                 :message="__('billing.flash_mark_payment_as_received')"
@@ -219,7 +219,7 @@
                                                 action="markRefunded('{{ $registration->id }}')"
                                                 id="mark-refunded-{{ $registration->id }}"
                                                 :trigger-label="__('billing.content_refund')"
-                                                trigger-class="text-xs px-2 py-1 rounded bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors"
+                                                trigger-class="text-xs px-2 py-1 rounded-sm bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors"
                                                 :confirm-label="__('billing.content_refund')"
                                                 :cancel-label="__('common.action_keep')"
                                                 :message="__('billing.flash_mark_this_payment_as_refunded')"
@@ -234,7 +234,7 @@
                                                 action="cancelRegistration('{{ $registration->id }}')"
                                                 id="cancel-registration-{{ $registration->id }}"
                                                 :trigger-label="__('common.action_cancel')"
-                                                trigger-class="text-xs px-2 py-1 rounded text-on-surface-variant hover:text-error transition-colors"
+                                                trigger-class="text-xs px-2 py-1 rounded-sm text-on-surface-variant hover:text-error transition-colors"
                                                 :confirm-label="__('common.action_cancel')"
                                                 :cancel-label="__('common.action_keep')"
                                                 :message="__('events.flash_cancel_this_registration')"
@@ -260,8 +260,8 @@
                                     @if($editingRegistrationId === (string) $registration->id)
                                         <div class="mt-2 pt-2 border-t border-outline-variant/30">
                                             <textarea wire:model="internalNotes" rows="2" placeholder="{{ __('common.content_internal_notes_visible_only_to_organizers') }}"
-                                                class="w-full bg-surface-container-high border border-transparent rounded text-on-surface text-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20"></textarea>
-                                            <button wire:click="saveInternalNotes('{{ $registration->id }}')" class="mt-1 text-xs px-2 py-1 bg-primary text-on-primary rounded hover:opacity-90 transition-opacity">
+                                                class="w-full bg-surface-container-high border border-transparent rounded-sm text-on-surface text-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20"></textarea>
+                                            <button wire:click="saveInternalNotes('{{ $registration->id }}')" class="mt-1 text-xs px-2 py-1 bg-primary text-on-primary rounded-sm hover:opacity-90 transition-opacity">
                                                 {{ __('common.field_save_notes') }}
                                             </button>
                                         </div>

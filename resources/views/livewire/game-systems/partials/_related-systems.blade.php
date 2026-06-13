@@ -51,7 +51,7 @@
                                     </div>
                                 @endif
                                 @if($expansion->bgg_average_rating)
-                                    <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-on-primary/80 text-primary backdrop-blur-sm">
+                                    <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-on-primary/80 text-primary backdrop-blur-xs">
                                         {{ number_format($expansion->bgg_average_rating, 1) }} ★
                                     </span>
                                 @endif

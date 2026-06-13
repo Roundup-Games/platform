@@ -51,14 +51,14 @@
         <!-- Remember Me -->
         <div class="block mt-4">
             <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-outline-variant text-primary shadow-sm focus:ring-primary/20" name="remember">
+                <input id="remember_me" type="checkbox" class="rounded-sm border-outline-variant text-primary shadow-xs focus:ring-primary/20" name="remember">
                 <span class="ms-2 text-sm text-on-surface-variant">{{ __('auth.content_remember_me') }}</span>
             </label>
         </div>
 
         <div class="flex items-center justify-between mt-6">
             @if (Route::has('password.request'))
-                <a class="text-sm text-primary hover:text-primary-fixed-dim font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition" href="{{ route('password.request') }}">
+                <a class="text-sm text-primary hover:text-primary-fixed-dim font-medium rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 transition" href="{{ route('password.request') }}">
                     {{ __('auth.content_forgot_your_password') }}
                 </a>
             @endif

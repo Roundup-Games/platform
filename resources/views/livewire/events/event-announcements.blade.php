@@ -71,16 +71,16 @@
                     :baseline-locale="$baselineLocale"
                     :all-locales="$allLocales"
                     :required="['title']"
-                    inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
+                    inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs"
                 />
 
                 <div class="flex items-center gap-6">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" wire:model="is_published" class="rounded border-outline text-primary focus:ring-primary/20" />
+                        <input type="checkbox" wire:model="is_published" class="rounded-sm border-outline text-primary focus:ring-primary/20" />
                         <span class="text-sm text-on-surface-variant">{{ __('common.action_publish_immediately') }}</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" wire:model="is_pinned" class="rounded border-outline text-primary focus:ring-primary/20" />
+                        <input type="checkbox" wire:model="is_pinned" class="rounded-sm border-outline text-primary focus:ring-primary/20" />
                         <span class="text-sm text-on-surface-variant">{{ __('common.content_pin_to_top') }}</span>
                     </label>
                 </div>
@@ -132,15 +132,15 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">
                                     @if($announcement->is_pinned)
-                                        <span class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary inline-flex items-center gap-1">
+                                        <span class="text-xs px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary inline-flex items-center gap-1">
                                             <span class="material-symbols-outlined text-xs" aria-hidden="true">push_pin</span>
                                             {{ __('common.content_pinned') }}
                                         </span>
                                     @endif
                                     @if($announcement->is_published)
-                                        <span class="text-xs px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container">{{ __('common.status_published') }}</span>
+                                        <span class="text-xs px-1.5 py-0.5 rounded-sm bg-secondary-container text-on-secondary-container">{{ __('common.status_published') }}</span>
                                     @else
-                                        <span class="text-xs px-1.5 py-0.5 rounded bg-tertiary/10 text-on-tertiary-container">{{ __('common.status_draft') }}</span>
+                                        <span class="text-xs px-1.5 py-0.5 rounded-sm bg-tertiary/10 text-on-tertiary-container">{{ __('common.status_draft') }}</span>
                                     @endif
                                 </div>
                                 <h4 class="font-medium text-on-surface {{ $announcement->is_pinned ? 'text-base' : '' }}">{{ $announcement->title }}</h4>
@@ -153,28 +153,28 @@
                             {{-- Actions --}}
                             <div class="flex items-center gap-1 shrink-0">
                                 <button wire:click="togglePin('{{ $announcement->id }}')"
-                                        class="p-1.5 rounded text-on-surface-variant hover:text-primary transition-colors"
+                                        class="p-1.5 rounded-sm text-on-surface-variant hover:text-primary transition-colors"
                                         aria-label="{{ $announcement->is_pinned ? __('common.content_unpin') : __('common.content_pin') }}"
                                         title="{{ $announcement->is_pinned ? __('common.content_unpin') : __('common.content_pin') }}">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">push_pin</span>
                                 </button>
                                 @if($announcement->is_published)
                                     <button wire:click="unpublishAnnouncement('{{ $announcement->id }}')"
-                                            class="p-1.5 rounded text-on-surface-variant hover:text-tertiary transition-colors"
+                                            class="p-1.5 rounded-sm text-on-surface-variant hover:text-tertiary transition-colors"
                                             aria-label="{{ __('common.action_unpublish') }}"
                                             title="{{ __('common.action_unpublish') }}">
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">visibility_off</span>
                                     </button>
                                 @else
                                     <button wire:click="publishAnnouncement('{{ $announcement->id }}')"
-                                            class="p-1.5 rounded text-on-surface-variant hover:text-secondary transition-colors"
+                                            class="p-1.5 rounded-sm text-on-surface-variant hover:text-secondary transition-colors"
                                             aria-label="{{ __('common.action_publish') }}"
                                             title="{{ __('common.action_publish') }}">
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
                                     </button>
                                 @endif
                                 <button wire:click="editAnnouncement('{{ $announcement->id }}')"
-                                        class="p-1.5 rounded text-on-surface-variant hover:text-on-surface transition-colors"
+                                        class="p-1.5 rounded-sm text-on-surface-variant hover:text-on-surface transition-colors"
                                         aria-label="{{ __('events.action_edit_announcement') }}"
                                         title="{{ __('common.action_edit') }}">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
@@ -183,7 +183,7 @@
                                     action="deleteAnnouncement('{{ $announcement->id }}')"
                                     id="delete-announcement-{{ $announcement->id }}"
                                     :icon="'delete'"
-                                    trigger-class="p-1.5 rounded text-on-surface-variant hover:text-error transition-colors"
+                                    trigger-class="p-1.5 rounded-sm text-on-surface-variant hover:text-error transition-colors"
                                     :confirm-label="__('common.action_delete')"
                                     :cancel-label="__('common.action_keep')"
                                     :message="__('events.flash_delete_this_announcement')"

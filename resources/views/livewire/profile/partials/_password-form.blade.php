@@ -19,7 +19,7 @@
                 <div>
                     <label for="profile-current-password" class="block text-sm font-medium text-on-surface mb-1">{{ __('auth.field_current_password') }}</label>
                     <input type="password" id="profile-current-password" wire:model="current_password" autocomplete="current-password"
-                           class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
+                           class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
                     @error('current_password') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
             @else
@@ -34,14 +34,14 @@
             <div>
                 <label for="profile-new-password" class="block text-sm font-medium text-on-surface mb-1">{{ __('auth.field_new_password') }}</label>
                 <input type="password" id="profile-new-password" wire:model="password" autocomplete="new-password"
-                       class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
+                       class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
                 @error('password') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
             </div>
 
             <div>
                 <label for="profile-confirm-password" class="block text-sm font-medium text-on-surface mb-1">{{ __('auth.field_confirm_password') }}</label>
                 <input type="password" id="profile-confirm-password" wire:model="password_confirmation" autocomplete="new-password"
-                       class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
+                       class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
             </div>
 
             <div class="flex items-center gap-3 pt-2">

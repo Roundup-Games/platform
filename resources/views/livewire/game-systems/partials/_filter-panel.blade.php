@@ -7,7 +7,7 @@
         @foreach($visibleCategories as $category)
             @php($active = in_array($category->id, $category_ids))
             <button wire:click="toggleCategory('{{ $category->id }}')"
-                    class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 {{ $active ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
+                    class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 {{ $active ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
                 {{ $category->translatedName() }}
             </button>
         @endforeach
@@ -29,7 +29,7 @@
                     @php($styleIcon = $group['icons'][$styleValue] ?? '')
                     @php($styleDesc = $group['descriptions'][$styleValue] ?? '')
                     <button wire:click="togglePlayStyle('{{ $styleValue }}')"
-                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 {{ in_array($styleValue, $play_styles) ? 'bg-tertiary-container text-on-tertiary-container shadow-sm ring-1 ring-tertiary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-tertiary-container/50 hover:text-on-tertiary-container' }}"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 {{ in_array($styleValue, $play_styles) ? 'bg-tertiary-container text-on-tertiary-container shadow-xs ring-1 ring-tertiary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-tertiary-container/50 hover:text-on-tertiary-container' }}"
                             title="{{ $styleDesc }}">
                         @if($styleIcon)
                             <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $styleIcon }}</span>
@@ -50,7 +50,7 @@
         @foreach($visibleMechanics as $mechanic)
             @php($active = in_array($mechanic->id, $mechanic_ids))
             <button wire:click="toggleMechanic('{{ $mechanic->id }}')"
-                    class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 {{ $active ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-secondary-container/50 hover:text-on-secondary-container' }}">
+                    class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 {{ $active ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'bg-surface-container-high text-on-surface-variant hover:bg-secondary-container/50 hover:text-on-secondary-container' }}">
                 {{ $mechanic->translatedName() }}
             </button>
         @endforeach
@@ -102,8 +102,8 @@
                        wire:change="$set('complexity_min', $event.target.value <= 1 ? null : $event.target.value)"
                        aria-label="{{ __('games.field_minimum_complexity') }}"
                        class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-secondary
-                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-sm
-                              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-xs
+                              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-xs" />
             </div>
             <span class="text-xs text-on-surface-variant w-6 text-right">{{ $complexity_min ?? '1' }}</span>
         </div>
@@ -114,8 +114,8 @@
                        wire:change="$set('complexity_max', $event.target.value >= 5 ? null : $event.target.value)"
                        aria-label="{{ __('games.field_maximum_complexity') }}"
                        class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-secondary
-                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-sm
-                              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-xs
+                              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-xs" />
             </div>
             <span class="text-xs text-on-surface-variant w-6 text-right">{{ $complexity_max ?? '5' }}</span>
         </div>
@@ -129,7 +129,7 @@
 {{-- ── Expansions Toggle ─────────────────────────────────────────── --}}
 <div>
     <label class="flex items-center gap-2 cursor-pointer">
-        <input type="checkbox" wire:model.live="showExpansions" class="rounded border-outline text-primary focus:ring-primary/20" />
+        <input type="checkbox" wire:model.live="showExpansions" class="rounded-sm border-outline text-primary focus:ring-primary/20" />
         <span class="text-sm text-on-surface-variant">{{ __('games.action_include_expansions') }}</span>
     </label>
 </div>

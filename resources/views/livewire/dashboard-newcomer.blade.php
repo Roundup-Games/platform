@@ -13,7 +13,7 @@
 @if($hasWelcome)
 <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 sm:p-8" role="status" aria-live="polite">
     <div class="flex items-start gap-4">
-        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1" aria-hidden="true">waving_hand</span>
         </div>
         <div class="flex-1 min-w-0">
@@ -60,7 +60,7 @@
         @if(($unreadNotificationsCount ?? 0) > 0)
             <a href="{{ route('notifications.index') }}" wire:navigate
                aria-label="{{ $unreadNotificationsCount }} {{ __('profile.dashboard_stats_unread_notifications') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors flex-shrink-0">
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors shrink-0">
                 <span aria-hidden="true" class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">notifications</span>
                 {{ $unreadNotificationsCount }} {{ __('profile.dashboard_stats_unread_notifications') }}
             </a>
@@ -73,7 +73,7 @@
 @if(isset($smartPrompt) && ($smartPrompt['message'] ?? null))
 <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-4 sm:p-5" role="status" aria-live="polite">
     <div class="flex items-start gap-3">
-        <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0"
+        <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0"
               style="font-variation-settings: 'FILL' 0">auto_awesome</span>
         <div class="min-w-0">
             <p class="text-on-surface text-sm leading-relaxed">{{ $smartPrompt['message'] }}</p>
@@ -123,7 +123,7 @@
                 $spotsLeft = ($game['max_players'] ?? 0) - ($game['participant_count'] ?? 0);
             @endphp
             <a href="{{ route('games.show', $game['id']) }}" wire:navigate
-               class="flex-shrink-0 w-56 sm:w-64 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-4 group"
+               class="shrink-0 w-56 sm:w-64 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-4 group"
                role="listitem">
                 <div class="min-w-0">
                     {{-- System badge --}}
@@ -256,7 +256,7 @@
     <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list" aria-label="{{ __('profile.dashboard_newcomer_nearby_people_heading') }}">
         @foreach($people['people'] as $person)
             <a href="{{ route('profile.show', $person['id']) }}" wire:navigate
-               class="flex-shrink-0 w-32 sm:w-36 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-3 group text-center"
+               class="shrink-0 w-32 sm:w-36 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-3 group text-center"
                role="listitem">
                 {{-- Avatar --}}
                 <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-heading font-bold text-sm mx-auto overflow-hidden">

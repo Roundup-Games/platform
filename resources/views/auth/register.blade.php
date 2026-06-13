@@ -60,7 +60,7 @@
         </div>
 
         <div class="flex items-center justify-end mt-6">
-            <a class="text-sm text-primary hover:text-primary-fixed-dim font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition" href="{{ route('login') }}">
+            <a class="text-sm text-primary hover:text-primary-fixed-dim font-medium rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 transition" href="{{ route('login') }}">
                 {{ __('auth.content_already_registered') }}
             </a>
 

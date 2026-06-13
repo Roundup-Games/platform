@@ -14,7 +14,7 @@
                     <span>&nbsp;</span>
                 @endif
                 @if($event->status === 'registration_open')
-                    <span class="text-xs font-medium text-on-primary/80 bg-on-primary/20 backdrop-blur-sm px-2 py-0.5 rounded-full">{{ __('events.content_registration_open') }}</span>
+                    <span class="text-xs font-medium text-on-primary/80 bg-on-primary/20 backdrop-blur-xs px-2 py-0.5 rounded-full">{{ __('events.content_registration_open') }}</span>
                 @endif
             </div>
         </div>

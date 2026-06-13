@@ -1,8 +1,153 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-/* ── Self-hosted fonts ────────────────────────────────────────────────────────
+@plugin '@tailwindcss/forms';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans:
+    Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-heading:
+    'Noto Serif', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-headline:
+    'Noto Serif', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-body:
+    Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-label:
+    Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-full: 9999px;
+
+  --color-primary: rgb(var(--rgb-primary));
+  --color-primary-container: rgb(var(--rgb-primary-container));
+  --color-primary-fixed: rgb(var(--rgb-primary-fixed));
+  --color-primary-fixed-dim: rgb(var(--rgb-primary-fixed-dim));
+
+  --color-on-primary: rgb(var(--rgb-on-primary));
+  --color-on-primary-fixed-variant: rgb(var(--rgb-on-primary-fixed-variant));
+  --color-on-primary-fixed: rgb(var(--rgb-on-primary-fixed));
+  --color-on-primary-container: rgb(var(--rgb-on-primary-container));
+
+  --color-secondary: rgb(var(--rgb-secondary));
+  --color-secondary-container: rgb(var(--rgb-secondary-container));
+  --color-secondary-fixed: rgb(var(--rgb-secondary-fixed));
+  --color-secondary-fixed-dim: rgb(var(--rgb-secondary-fixed-dim));
+
+  --color-on-secondary: rgb(var(--rgb-on-secondary));
+  --color-on-secondary-fixed-variant: rgb(
+    var(--rgb-on-secondary-fixed-variant)
+  );
+  --color-on-secondary-fixed: rgb(var(--rgb-on-secondary-fixed));
+  --color-on-secondary-container: rgb(var(--rgb-on-secondary-container));
+
+  --color-tertiary: rgb(var(--rgb-tertiary));
+  --color-tertiary-container: rgb(var(--rgb-tertiary-container));
+  --color-tertiary-fixed: rgb(var(--rgb-tertiary-fixed));
+  --color-tertiary-fixed-dim: rgb(var(--rgb-tertiary-fixed-dim));
+
+  --color-on-tertiary: rgb(var(--rgb-on-tertiary));
+  --color-on-tertiary-fixed-variant: rgb(var(--rgb-on-tertiary-fixed-variant));
+  --color-on-tertiary-fixed: rgb(var(--rgb-on-tertiary-fixed));
+  --color-on-tertiary-container: rgb(var(--rgb-on-tertiary-container));
+
+  --color-surface: rgb(var(--rgb-surface));
+  --color-surface-dim: rgb(var(--rgb-surface-dim));
+  --color-surface-bright: rgb(var(--rgb-surface-bright));
+  --color-surface-tint: rgb(var(--rgb-surface-tint));
+  --color-surface-variant: rgb(var(--rgb-surface-variant));
+
+  --color-surface-container: rgb(var(--rgb-surface-container));
+  --color-surface-container-lowest: rgb(var(--rgb-surface-container-lowest));
+  --color-surface-container-low: rgb(var(--rgb-surface-container-low));
+  --color-surface-container-high: rgb(var(--rgb-surface-container-high));
+  --color-surface-container-highest: rgb(var(--rgb-surface-container-highest));
+
+  --color-on-surface: rgb(var(--rgb-on-surface));
+  --color-on-surface-variant: rgb(var(--rgb-on-surface-variant));
+
+  --color-outline: rgb(var(--rgb-outline));
+  --color-outline-variant: rgb(var(--rgb-outline-variant));
+
+  --color-error: rgb(var(--rgb-error));
+  --color-error-container: rgb(var(--rgb-error-container));
+
+  --color-on-error: rgb(var(--rgb-on-error));
+  --color-on-error-container: rgb(var(--rgb-on-error-container));
+
+  --color-inverse-surface: rgb(var(--rgb-inverse-surface));
+  --color-inverse-on-surface: rgb(var(--rgb-inverse-on-surface));
+  --color-inverse-primary: rgb(var(--rgb-inverse-primary));
+  --color-background: rgb(var(--rgb-background));
+  --color-on-background: rgb(var(--rgb-on-background));
+
+  --shadow-ambient: 0 12px 40px rgba(82, 69, 52, 0.06);
+  --shadow-ambient-md: 0 4px 16px rgba(82, 69, 52, 0.08);
+  --shadow-ambient-lg: 0 20px 60px rgba(82, 69, 52, 0.1);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility btn-brand {
+  /* Primary button */
+  @apply inline-flex items-center justify-center px-5 py-2.5 bg-primary border border-transparent rounded-xl font-heading font-semibold text-sm text-on-primary tracking-tight hover:brightness-110 active:brightness-95 focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
+}
+
+@utility btn-brand-outline {
+  /* Secondary outline button */
+  @apply inline-flex items-center justify-center px-5 py-2.5 bg-secondary-container border border-transparent rounded-xl font-heading font-semibold text-sm text-on-secondary-container tracking-tight hover:brightness-110 focus:outline-hidden focus:ring-2 focus:ring-secondary focus:ring-offset-2 transition ease-in-out duration-150;
+}
+
+@utility input-brand {
+  /* Input styling */
+  @apply bg-surface-container-high border border-transparent rounded-md shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20;
+}
+
+@utility btn-google {
+  /* Google OAuth button */
+  @apply inline-flex items-center justify-center w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant/15 rounded-xl text-sm font-semibold text-on-surface hover:bg-surface-container-low focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
+}
+
+@utility editorial-shadow {
+  /* Ultra-diffused ambient shadow */
+  box-shadow: var(--shadow-ambient);
+}
+
+@utility glass-overlay {
+  /* Glassmorphism overlay — adapts to light/dark */
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+@layer utilities {
+  /* ── Self-hosted fonts ────────────────────────────────────────────────────────
  * Inter (body) and Noto Serif (headings) are self-hosted to eliminate cross-
  * origin requests from the critical path. Material Symbols remain on Google
  * Fonts CDN with icon subsetting (see config/fonts.php).
@@ -12,90 +157,109 @@
  * See: https://github.com/bramstein/font-face-dataset
  */
 
-/* Inter — latin-ext (covers en + de characters, loaded first for wider coverage) */
-@font-face {
+  /* Inter — latin-ext (covers en + de characters, loaded first for wider coverage) */
+  @font-face {
     font-family: 'Inter';
     font-style: normal;
     font-weight: 100 900;
     font-display: swap;
     src: url('/fonts/inter-latin-ext-var.woff2') format('woff2');
-    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
+    unicode-range:
+      U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+      U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+      U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
 
-/* Inter — latin (basic ASCII + Western European) */
-@font-face {
+  /* Inter — latin (basic ASCII + Western European) */
+  @font-face {
     font-family: 'Inter';
     font-style: normal;
     font-weight: 100 900;
     font-display: swap;
     src: url('/fonts/inter-latin-var.woff2') format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
+    unicode-range:
+      U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+      U+2212, U+2215, U+FEFF, U+FFFD;
+  }
 
-/* Noto Serif — latin-ext */
-@font-face {
+  /* Noto Serif — latin-ext */
+  @font-face {
     font-family: 'Noto Serif';
     font-style: normal;
     font-weight: 100 900;
     font-display: swap;
     src: url('/fonts/noto-serif-latin-ext-var.woff2') format('woff2');
-    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
+    unicode-range:
+      U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+      U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+      U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
 
-/* Noto Serif — latin */
-@font-face {
+  /* Noto Serif — latin */
+  @font-face {
     font-family: 'Noto Serif';
     font-style: normal;
     font-weight: 100 900;
     font-display: swap;
     src: url('/fonts/noto-serif-latin-var.woff2') format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
+    unicode-range:
+      U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+      U+2212, U+2215, U+FEFF, U+FFFD;
+  }
 
-/* Noto Serif Italic — latin-ext */
-@font-face {
+  /* Noto Serif Italic — latin-ext */
+  @font-face {
     font-family: 'Noto Serif';
     font-style: italic;
     font-weight: 100 900;
     font-display: swap;
     src: url('/fonts/noto-serif-italic-latin-ext-var.woff2') format('woff2');
-    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
+    unicode-range:
+      U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+      U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+      U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
 
-/* Noto Serif Italic — latin */
-@font-face {
+  /* Noto Serif Italic — latin */
+  @font-face {
     font-family: 'Noto Serif';
     font-style: italic;
     font-weight: 100 900;
     font-display: swap;
     src: url('/fonts/noto-serif-italic-latin-var.woff2') format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
+    unicode-range:
+      U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+      U+2212, U+2215, U+FEFF, U+FFFD;
+  }
 
-/* ── Fallback font metrics (CLS prevention) ─────────────────────────────────
+  /* ── Fallback font metrics (CLS prevention) ─────────────────────────────────
  * These @font-face declarations for system fonts are sized to match Inter and
  * Noto Serif metrics. During the font-display: swap period, the browser uses
  * these metrics, preventing layout shift when web fonts load.
  */
 
-/* Inter fallback — matches system sans-serif metrics to Inter */
-@font-face {
+  /* Inter fallback — matches system sans-serif metrics to Inter */
+  @font-face {
     font-family: 'Inter-fallback';
     src: local('Helvetica Neue'), local('Arial'), local('sans-serif');
     ascent-override: 90%;
     descent-override: 22%;
     line-gap-override: 0%;
     size-adjust: 107%;
-}
+  }
 
-/* Noto Serif fallback — matches Georgia metrics to Noto Serif */
-@font-face {
+  /* Noto Serif fallback — matches Georgia metrics to Noto Serif */
+  @font-face {
     font-family: 'Noto Serif-fallback';
     src: local('Georgia'), local('Times New Roman'), local('serif');
     ascent-override: 97%;
     descent-override: 30%;
     line-gap-override: 0%;
     size-adjust: 101%;
+  }
 }
 
 @layer base {
@@ -313,41 +477,5 @@
         textarea::placeholder {
             color: rgb(var(--rgb-on-surface-variant));
         }
-    }
-}
-
-@layer components {
-    /* Primary button */
-    .btn-brand {
-        @apply inline-flex items-center justify-center px-5 py-2.5 bg-primary border border-transparent rounded-xl font-heading font-semibold text-sm text-on-primary tracking-tight hover:brightness-110 active:brightness-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
-    }
-
-    /* Secondary outline button */
-    .btn-brand-outline {
-        @apply inline-flex items-center justify-center px-5 py-2.5 bg-secondary-container border border-transparent rounded-xl font-heading font-semibold text-sm text-on-secondary-container tracking-tight hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 transition ease-in-out duration-150;
-    }
-
-    /* Input styling */
-    .input-brand {
-        @apply bg-surface-container-high border border-transparent rounded-md shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20;
-    }
-
-    /* Google OAuth button */
-    .btn-google {
-        @apply inline-flex items-center justify-center w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant/15 rounded-xl text-sm font-semibold text-on-surface hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
-    }
-}
-
-@layer utilities {
-    /* Ultra-diffused ambient shadow */
-    .editorial-shadow {
-        box-shadow: var(--shadow-ambient);
-    }
-
-    /* Glassmorphism overlay — adapts to light/dark */
-    .glass-overlay {
-        background: var(--glass-bg);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
     }
 }

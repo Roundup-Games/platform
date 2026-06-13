@@ -2,7 +2,7 @@
 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
     <div class="flex items-center justify-between flex-wrap gap-4">
         <div class="flex items-center gap-3">
-            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div class="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <span class="material-symbols-outlined text-lg text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">contact_support</span>
             </div>
             <div>
@@ -39,7 +39,7 @@
                 <div>
                     <label for="delete-password" class="block text-sm font-medium text-on-surface mb-1">{{ __('auth.field_confirm_your_password') }}</label>
                     <input type="password" id="delete-password" wire:model="delete_password" autocomplete="current-password"
-                           class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-sm focus:border-error/30 focus:ring-1 focus:ring-error/30 text-on-surface" />
+                           class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-xs focus:border-error/30 focus:ring-1 focus:ring-error/30 text-on-surface" />
                     @error('delete_password') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
             @else
@@ -48,7 +48,7 @@
                         {!! __('discovery.content_type_word_to_confirm', ['word' => '<strong class="text-error">DELETE</strong>']) !!}
                     </label>
                     <input type="text" id="delete-confirm" wire:model="delete_confirmation" autocomplete="off"
-                           class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-sm focus:border-error/30 focus:ring-1 focus:ring-error/30 text-on-surface" />
+                           class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-xs focus:border-error/30 focus:ring-1 focus:ring-error/30 text-on-surface" />
                     @error('delete_confirmation') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
             @endif

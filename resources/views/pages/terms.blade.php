@@ -70,15 +70,15 @@
                     <p>{{ __('terms.content_account_deletion_1') }}</p>
                     <div class="pl-4 space-y-2">
                         <div class="flex items-start gap-3">
-                            <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                            <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                             <span>{{ __('terms.content_account_deletion_2') }}</span>
                         </div>
                         <div class="flex items-start gap-3">
-                            <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                            <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                             <span>{{ __('terms.content_account_deletion_3') }}</span>
                         </div>
                         <div class="flex items-start gap-3">
-                            <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                            <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                             <span>{{ __('terms.content_account_deletion_4') }}</span>
                         </div>
                     </div>
@@ -98,7 +98,7 @@
             <div class="space-y-3">
                 @foreach (['respect', 'honesty', 'reliability', 'safety', 'legal'] as $rule)
                     <div class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                         <span class="text-on-surface-variant leading-relaxed">{{ __('terms.content_conduct_' . $rule) }}</span>
                     </div>
                 @endforeach
@@ -118,15 +118,15 @@
             </h2>
             <div class="space-y-4 text-on-surface-variant leading-relaxed">
                 <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                     <span>{{ __('terms.content_yours') }}</span>
                 </div>
                 <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">info</span>
+                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">info</span>
                     <span>{{ __('terms.content_license') }}</span>
                 </div>
                 <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">warning</span>
+                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">warning</span>
                     <span>{{ __('terms.content_responsibility') }}</span>
                 </div>
                 <p>{{ __('terms.content_removal') }}</p>

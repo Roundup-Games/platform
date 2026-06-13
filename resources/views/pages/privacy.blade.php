@@ -88,7 +88,7 @@
             <div class="space-y-3">
                 @foreach (['contract', 'consent', 'legitimate', 'obligation'] as $basis)
                     <div class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                         <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_legal_' . $basis) }}</span>
                     </div>
                 @endforeach
@@ -106,11 +106,11 @@
 
             <div class="space-y-3">
                 <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">lock</span>
+                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">lock</span>
                     <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_cookies_necessary') }}</span>
                 </div>
                 <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">monitoring</span>
+                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">monitoring</span>
                     <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_cookies_analytics') }}</span>
                 </div>
             </div>
@@ -152,7 +152,7 @@
             <div class="space-y-3">
                 @foreach (['access', 'rectification', 'erasure', 'portability', 'objection', 'restriction', 'withdraw'] as $right)
                     <div class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">check_circle</span>
                         <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_rights_' . $right) }}</span>
                     </div>
                 @endforeach
@@ -176,7 +176,7 @@
             <div class="space-y-3">
                 @foreach (['account', 'activity', 'analytics', 'legal'] as $type)
                     <div class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">schedule</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">schedule</span>
                         <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_retention_' . $type) }}</span>
                     </div>
                 @endforeach

@@ -24,7 +24,7 @@
                         type="button"
                         wire:click="accept"
                         x-on:click="visible = false"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl bg-primary text-on-primary hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        class="px-4 py-2 text-sm font-semibold rounded-xl bg-primary text-on-primary hover:bg-primary/90 transition-colors focus:outline-hidden focus:ring-2 focus:ring-primary/50"
                     >
                         {{ __('common.action_accept') }}
                     </button>
@@ -32,7 +32,7 @@
                         type="button"
                         wire:click="dismiss"
                         x-on:click="visible = false"
-                        class="px-4 py-2 text-sm font-medium rounded-xl text-on-surface-variant hover:bg-surface-container-highest transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        class="px-4 py-2 text-sm font-medium rounded-xl text-on-surface-variant hover:bg-surface-container-highest transition-colors focus:outline-hidden focus:ring-2 focus:ring-primary/50"
                     >
                         {{ __('common.action_dismiss') }}
                     </button>

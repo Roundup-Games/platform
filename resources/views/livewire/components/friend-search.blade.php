@@ -75,7 +75,7 @@
                             wire:click="selectFriend('{{ $friend->id }}')"
                             @mouseenter="activeIndex = {{ $index }}"
                             :class="activeIndex === {{ $index }} ? 'bg-surface-container-high' : ''"
-                            class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high"
+                            class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-hidden focus:bg-surface-container-high"
                             role="option"
                             :aria-selected="activeIndex === {{ $index }}"
                         >

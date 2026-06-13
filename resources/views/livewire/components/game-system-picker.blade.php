@@ -60,7 +60,7 @@
         @if($selectedSystem)
             <div class="mt-2 flex items-center gap-2 px-3 py-2 bg-surface-container rounded-lg">
                 @if($selectedSystem->thumbnail_url)
-                    <img src="{{ $selectedSystem->thumbnail_url }}" alt="" class="w-8 h-8 rounded object-cover" loading="lazy" aria-hidden="true">
+                    <img src="{{ $selectedSystem->thumbnail_url }}" alt="" class="w-8 h-8 rounded-sm object-cover" loading="lazy" aria-hidden="true">
                 @else
                     <span class="material-symbols-outlined text-on-surface-variant text-lg" aria-hidden="true">casino</span>
                 @endif
@@ -98,14 +98,14 @@
                         wire:click="pickFromSearch('{{ $system->id }}')"
                         @mouseenter="activeIndex = {{ $index }}"
                         :class="activeIndex === {{ $index }} ? 'bg-surface-container-high' : ''"
-                        class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high"
+                        class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-hidden focus:bg-surface-container-high"
                         role="option"
                         :aria-selected="activeIndex === {{ $index }}"
                     >
                         @if($system->thumbnail_url)
-                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
+                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded-sm object-cover shrink-0" loading="lazy" aria-hidden="true">
                         @else
-                            <div class="w-10 h-10 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
+                            <div class="w-10 h-10 rounded-sm bg-surface-container flex items-center justify-center shrink-0">
                                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">casino</span>
                             </div>
                         @endif
@@ -115,7 +115,7 @@
                                 {{ $system->name }}
                             </div>
                             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                                <span class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                                <span class="text-xs px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary font-medium">
                                     {{ __('games.content_base_game') }}
                                 </span>
                                 @if($system->expansions_count > 0)
@@ -154,13 +154,13 @@
                     <button
                         type="button"
                         wire:click="pickFavorite('{{ $system->id }}')"
-                        class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high"
+                        class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-hidden focus:bg-surface-container-high"
                         role="option"
                     >
                         @if($system->thumbnail_url)
-                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
+                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded-sm object-cover shrink-0" loading="lazy" aria-hidden="true">
                         @else
-                            <div class="w-10 h-10 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
+                            <div class="w-10 h-10 rounded-sm bg-surface-container flex items-center justify-center shrink-0">
                                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">casino</span>
                             </div>
                         @endif
@@ -205,9 +205,9 @@
                         ])
                     >
                         @if($option->thumbnail_url)
-                            <img src="{{ $option->thumbnail_url }}" alt="" class="w-8 h-8 rounded object-cover flex-shrink-0" aria-hidden="true">
+                            <img src="{{ $option->thumbnail_url }}" alt="" class="w-8 h-8 rounded-sm object-cover shrink-0" aria-hidden="true">
                         @else
-                            <div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
+                            <div class="w-8 h-8 rounded-sm bg-surface-container flex items-center justify-center shrink-0">
                                 <span class="material-symbols-outlined text-on-surface-variant text-sm" aria-hidden="true">
                                     {{ $option->is_base ? 'casino' : 'extension' }}
                                 </span>
@@ -220,11 +220,11 @@
                             </div>
                             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                 @if($option->is_base)
-                                    <span class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                                    <span class="text-xs px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary font-medium">
                                         {{ __('games.content_base_game') }}
                                     </span>
                                 @else
-                                    <span class="text-xs px-1.5 py-0.5 rounded bg-secondary/10 text-secondary">
+                                    <span class="text-xs px-1.5 py-0.5 rounded-sm bg-secondary/10 text-secondary">
                                         {{ __('games.content_expansion') }}
                                     </span>
                                 @endif

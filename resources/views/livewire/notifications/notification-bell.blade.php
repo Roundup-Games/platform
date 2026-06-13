@@ -79,7 +79,7 @@
                 >
                     <div class="flex items-start gap-3">
                         {{-- Unread indicator --}}
-                        <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full {{ $group->isRead ? 'bg-transparent' : 'bg-primary' }}"></span>
+                        <span class="mt-1.5 shrink-0 w-2 h-2 rounded-full {{ $group->isRead ? 'bg-transparent' : 'bg-primary' }}"></span>
 
                         <div class="flex-1 min-w-0">
                             {{-- Display string --}}

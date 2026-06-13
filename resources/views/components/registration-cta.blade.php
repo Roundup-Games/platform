@@ -11,7 +11,7 @@
             <p class="text-sm sm:text-base text-on-surface">{{ $message }}</p>
         </div>
         <a href="{{ route('register') }}"
-           class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-on-primary shadow-sm hover:bg-primary/90 transition-colors whitespace-nowrap shrink-0">
+           class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-on-primary shadow-xs hover:bg-primary/90 transition-colors whitespace-nowrap shrink-0">
             {{ __('auth.content_sign_up_free') }}
         </a>
     </div>

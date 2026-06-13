@@ -18,9 +18,9 @@
     <section class="relative bg-primary text-on-primary overflow-hidden min-h-[280px] sm:min-h-[380px]">
         @if($coverUrl)
             <div class="absolute inset-0">
-                <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-sm scale-105" aria-hidden="true" fetchpriority="high" data-fallback="hide">
+                <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-xs scale-105" aria-hidden="true" fetchpriority="high" data-fallback="hide">
             </div>
-            <div class="absolute inset-0 bg-gradient-to-b from-primary/85 via-primary/95 to-primary"></div>
+            <div class="absolute inset-0 bg-linear-to-b from-primary/85 via-primary/95 to-primary"></div>
         @endif
 
         <div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 text-center">
@@ -100,7 +100,7 @@
                 <div class="mt-4 flex items-center justify-center gap-3 max-w-xs mx-auto">
                     <span class="text-xs text-on-primary/60">{{ __('games.content_weight_light') }}</span>
                     <div class="flex-1 h-2 bg-on-primary/15 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full bg-gradient-to-r from-green-300 via-amber-300 to-red-300" style="width: {{ min(100, ($system->bgg_average_weight / 5) * 100) }}%"></div>
+                        <div class="h-full rounded-full bg-linear-to-r from-green-300 via-amber-300 to-red-300" style="width: {{ min(100, ($system->bgg_average_weight / 5) * 100) }}%"></div>
                     </div>
                     <span class="text-xs text-on-primary/60">{{ __('games.content_weight_heavy') }}</span>
                     <span class="text-xs font-semibold text-on-primary">{{ number_format($system->bgg_average_weight, 1) }}/5</span>

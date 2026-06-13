@@ -60,7 +60,7 @@ $maxWidth = [
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
     >
-        <div class="absolute inset-0 bg-on-surface/30 backdrop-blur-sm"></div>
+        <div class="absolute inset-0 bg-on-surface/30 backdrop-blur-xs"></div>
     </div>
 
     <div

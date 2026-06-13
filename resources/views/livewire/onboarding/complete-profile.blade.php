@@ -85,7 +85,7 @@
                             {{ __('location.field_city') }} <span class="text-error">*</span>
                         </label>
                         <input type="text" id="city" wire:model="city" placeholder="{{ __('location.field_enter_your_city') }}"
-                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
@@ -94,7 +94,7 @@
                             {{ __('location.field_address') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                         </label>
                         <input type="text" id="address" wire:model="address" placeholder="{{ __('location.placeholder_street_address_neighborhood') }}"
-                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         <p class="mt-1 text-xs text-on-surface-variant">{{ __('location.hint_address_private') }}</p>
                         @error('address') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
@@ -123,7 +123,7 @@
                         {{ __('common.field_gender') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                     </label>
                     <select id="gender" wire:model="gender"
-                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant">
+                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant">
                         <option value="">{{ __('common.content_select') }}</option>
                         <option value="male">{{ __('common.content_male') }}</option>
                         <option value="female">{{ __('common.content_female') }}</option>
@@ -137,7 +137,7 @@
                 {{-- Gender consent checkbox (GDPR Art. 9(2)(a)) --}}
                 <div class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-high/50 border border-outline-variant/10">
                     <input type="checkbox" id="gender_consent" wire:model="gender_consent"
-                           class="mt-0.5 rounded border-outline-variant text-primary focus:ring-primary/20" />
+                           class="mt-0.5 rounded-sm border-outline-variant text-primary focus:ring-primary/20" />
                     <label for="gender_consent" class="text-xs text-on-surface-variant leading-relaxed cursor-pointer">
                         {{ __('auth.content_gender_consent_explanation') }}
                     </label>
@@ -148,7 +148,7 @@
                         {{ __('profile.content_pronouns') }} <span class="text-error">*</span>
                     </label>
                     <select id="pronouns" wire:model="pronouns"
-                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant">
+                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant">
                         <option value="">{{ __('common.content_select') }}</option>
                         <option value="he/him">{{ __('common.content_he_him') }}</option>
                         <option value="she/her">{{ __('common.content_she_her') }}</option>
@@ -163,10 +163,10 @@
                     <label for="slug" class="block text-sm font-medium text-on-surface mb-1">
                         {{ __('profile.field_username') }} <span class="text-error">*</span>
                     </label>
-                    <div class="flex items-center rounded-md bg-surface-container-high border border-transparent shadow-sm overflow-hidden focus-within:border-secondary/20 focus-within:ring-1 focus-within:ring-secondary/20">
+                    <div class="flex items-center rounded-md bg-surface-container-high border border-transparent shadow-xs overflow-hidden focus-within:border-secondary/20 focus-within:ring-1 focus-within:ring-secondary/20">
                         <span class="pl-3 text-sm text-on-surface-variant select-none">roundup.games/u/</span>
                         <input type="text" id="slug" wire:model="slug"
-                               class="flex-1 bg-transparent border-0 px-2 py-2.5 text-on-surface placeholder:text-on-surface-variant focus:ring-0 focus:border-0 focus:outline-none"
+                               class="flex-1 bg-transparent border-0 px-2 py-2.5 text-on-surface placeholder:text-on-surface-variant focus:ring-0 focus:border-0 focus:outline-hidden"
                                placeholder="{{ __('profile.placeholder_username') }}" />
                     </div>
                     <p class="mt-1 text-xs text-on-surface-variant">{{ __('profile.hint_username_onboarding') }}</p>
@@ -189,7 +189,7 @@
                     {{ __('common.field_phone_number') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                 </label>
                 <input type="tel" id="phone" wire:model="phone" placeholder="+1 (555) 000-0000"
-                       class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                       class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                 @error('phone') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
             </div>
         @endif

@@ -77,28 +77,28 @@
                 </div>
                 <div class="space-y-6">
                     <div class="flex items-start gap-4">
-                        <span class="material-symbols-outlined text-primary text-xl mt-1 flex-shrink-0" aria-hidden="true">visibility</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-1 shrink-0" aria-hidden="true">visibility</span>
                         <div>
                             <h4 class="font-heading font-semibold text-on-surface">{{ __('campaigns.content_transparent_sessions') }}</h4>
                             <p class="text-sm text-on-surface-variant mt-1">{{ __('campaigns.content_every_public_session_is_visible') }}</p>
                         </div>
                     </div>
                     <div class="flex items-start gap-4">
-                        <span class="material-symbols-outlined text-primary text-xl mt-1 flex-shrink-0" aria-hidden="true">person</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-1 shrink-0" aria-hidden="true">person</span>
                         <div>
                             <h4 class="font-heading font-semibold text-on-surface">{{ __('profile.content_organizer_profiles') }}</h4>
                             <p class="text-sm text-on-surface-variant mt-1">{{ __('pages.content_organizer_profiles_are_public_you') }}</p>
                         </div>
                     </div>
                     <div class="flex items-start gap-4">
-                        <span class="material-symbols-outlined text-primary text-xl mt-1 flex-shrink-0" aria-hidden="true">group</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-1 shrink-0" aria-hidden="true">group</span>
                         <div>
                             <h4 class="font-heading font-semibold text-on-surface">{{ __('campaigns.content_protected_sessions') }}</h4>
                             <p class="text-sm text-on-surface-variant mt-1">{{ __('campaigns.content_protected_sessions_require_membership_approval') }}</p>
                         </div>
                     </div>
                     <div class="flex items-start gap-4">
-                        <span class="material-symbols-outlined text-primary text-xl mt-1 flex-shrink-0" aria-hidden="true">forum</span>
+                        <span class="material-symbols-outlined text-primary text-xl mt-1 shrink-0" aria-hidden="true">forum</span>
                         <div>
                             <h4 class="font-heading font-semibold text-on-surface">{{ __('safety.content_session_zero_support') }}</h4>
                             <p class="text-sm text-on-surface-variant mt-1">{{ __('safety.content_for_rpg_campaigns_we_encourage') }}</p>

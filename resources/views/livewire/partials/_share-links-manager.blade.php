@@ -29,7 +29,7 @@
                 @foreach($links as $link)
                     <tr class="border-b border-outline-variant/10 hover:bg-surface-container-high/30 transition-colors">
                         <td class="py-2.5 px-3">
-                            <code class="text-xs font-mono bg-surface-container-high px-1.5 py-0.5 rounded">{{ $link->code }}</code>
+                            <code class="text-xs font-mono bg-surface-container-high px-1.5 py-0.5 rounded-sm">{{ $link->code }}</code>
                         </td>
                         <td class="py-2.5 px-3 text-on-surface">
                             {{ $link->label ?? '—' }}
@@ -46,19 +46,19 @@
                         </td>
                         <td class="py-2.5 px-3">
                             @if($link->trashed())
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-error-container text-on-error-container">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-error-container text-on-error-container">
                                     {{ __('gws.link_status_revoked') }}
                                 </span>
                             @elseif($link->isExpired())
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-tertiary-container text-on-tertiary-container">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-tertiary-container text-on-tertiary-container">
                                     {{ __('gws.link_status_expired') }}
                                 </span>
                             @elseif($link->hasHitCap())
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-secondary-container text-on-secondary-container">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-secondary-container text-on-secondary-container">
                                     {{ __('gws.link_status_cap_reached') }}
                                 </span>
                             @else
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary-container text-on-primary-container">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-primary-container text-on-primary-container">
                                     {{ __('gws.link_status_active') }}
                                 </span>
                             @endif
@@ -71,7 +71,7 @@
                                 @unless($link->trashed())
                                     <button type="button"
                                         onclick="if(confirm(@js(__('gws.link_confirm_revoke')))) { Livewire.dispatch('revoke-link', { linkId: {{ $link->id }} }) }"
-                                        class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-error-container/50 text-on-error-container hover:bg-error-container transition-colors">
+                                        class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-sm bg-error-container/50 text-on-error-container hover:bg-error-container transition-colors">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">link_off</span>
                                         {{ __('gws.link_action_revoke') }}
                                     </button>

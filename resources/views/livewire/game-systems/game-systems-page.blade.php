@@ -31,22 +31,22 @@
                        aria-label="{{ __('games.action_search_game_systems') }}"
                        wire:model.live.debounce.300ms="search"
                        placeholder="{{ __('games.action_search_game_systems') }}"
-                       class="w-full pl-12 pr-4 py-3 bg-surface-container-high border border-transparent rounded-full text-on-surface text-sm placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+                       class="w-full pl-12 pr-4 py-3 bg-surface-container-high border border-transparent rounded-full text-on-surface text-sm placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
             </div>
         </div>
 
         {{-- ── Type Tabs ──────────────────────────────────────────────────────── --}}
         <div class="flex items-center justify-center gap-2 mb-6">
             <button wire:click="setType('all')"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'all' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
+                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'all' ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
                 {{ __('games.action_type_all') }}
             </button>
             <button wire:click="setType('boardgame')"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'boardgame' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
+                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'boardgame' ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
                 {{ __('games.action_type_boardgame') }}
             </button>
             <button wire:click="setType('ttrpg')"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'ttrpg' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
+                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'ttrpg' ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
                 {{ __('games.action_type_ttrpg') }}
             </button>
         </div>
@@ -129,7 +129,7 @@
         <div class="flex gap-6">
 
             {{-- ── Filter Sidebar (desktop: always visible; mobile: slide-over sheet) --}}
-            <aside class="hidden lg:block w-64 flex-shrink-0">
+            <aside class="hidden lg:block w-64 shrink-0">
                 <div class="sticky top-24 space-y-5 max-h-[calc(100vh-8rem)] overflow-y-auto pr-1">
                     @include('livewire.game-systems.partials._filter-panel')
                 </div>
@@ -173,7 +173,7 @@
                                wire:navigate
                                class="block bg-surface-container rounded-xl shadow-ambient hover:shadow-lg transition-all duration-200 overflow-hidden group">
                                 {{-- Cover Image --}}
-                                <div class="aspect-[4/3] bg-surface-container-high relative overflow-hidden">
+                                <div class="aspect-4/3 bg-surface-container-high relative overflow-hidden">
                                     @php($coverUrl = $system->coverImageUrl('thumb'))
                                     @if($coverUrl)
                                         <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" data-fallback="placeholder">
@@ -186,13 +186,13 @@
                                     {{-- Overlay badges --}}
                                     <div class="absolute top-2 right-2 flex flex-col gap-1">
                                         @if($system->active_sessions_count > 0)
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-secondary-container text-on-secondary-container shadow-sm">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-secondary-container text-on-secondary-container shadow-xs">
                                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
                                                 {{ $system->active_sessions_count }}
                                             </span>
                                         @endif
                                         @if($system->expansion_count > 0)
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-tertiary-container text-on-tertiary-container shadow-sm">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-tertiary-container text-on-tertiary-container shadow-xs">
                                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">extension</span>
                                                 {{ $system->expansion_count }}
                                             </span>
@@ -201,14 +201,14 @@
 
                                     {{-- BGG rank badge --}}
                                     @if($system->bgg_rank)
-                                        <span class="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-bold bg-primary text-on-primary shadow-sm">
+                                        <span class="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-bold bg-primary text-on-primary shadow-xs">
                                             #{{ number_format($system->bgg_rank) }}
                                         </span>
                                     @endif
 
                                     {{-- Expansion indicator badge --}}
                                     @if($system->base_game_id)
-                                        <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-container text-on-primary-container shadow-sm">
+                                        <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-container text-on-primary-container shadow-xs">
                                             <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">extension</span>
                                         </span>
                                     @endif
@@ -246,7 +246,7 @@
                                     @if($system->bgg_average_weight && $system->bgg_average_weight > 0)
                                         <div class="flex items-center gap-2">
                                             <div class="flex-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-                                                <div class="h-full rounded-full bg-gradient-to-r from-green-400 via-amber-400 to-red-400" style="width: {{ min(100, ($system->bgg_average_weight / 5) * 100) }}%"></div>
+                                                <div class="h-full rounded-full bg-linear-to-r from-green-400 via-amber-400 to-red-400" style="width: {{ min(100, ($system->bgg_average_weight / 5) * 100) }}%"></div>
                                             </div>
                                             <span class="text-[10px] text-on-surface-variant w-6 text-right">{{ number_format($system->bgg_average_weight, 1) }}</span>
                                         </div>
@@ -256,10 +256,10 @@
                                     @if($system->categories->count())
                                         <div class="flex flex-wrap gap-1">
                                             @foreach($system->categories->take(2) as $cat)
-                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/5 text-primary">{{ $cat->translatedName() }}</span>
+                                                <span class="px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-primary/5 text-primary">{{ $cat->translatedName() }}</span>
                                             @endforeach
                                             @if($system->categories->count() > 2)
-                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-container text-on-surface-variant">+{{ $system->categories->count() - 2 }}</span>
+                                                <span class="px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-surface-container text-on-surface-variant">+{{ $system->categories->count() - 2 }}</span>
                                             @endif
                                         </div>
                                     @endif

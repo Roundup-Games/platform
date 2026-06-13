@@ -162,7 +162,7 @@
             <div class="flex justify-end">
                 <button type="submit"
                         wire:loading.attr="disabled"
-                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-on-primary text-sm font-medium shadow-sm hover:shadow-md transition-all disabled:opacity-50">
+                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-on-primary text-sm font-medium shadow-xs hover:shadow-md transition-all disabled:opacity-50">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">send</span>
                     {{ __('location.action_submit_proposal') }}
                     <span wire:loading class="inline-flex items-center">

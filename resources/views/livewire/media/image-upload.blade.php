@@ -48,7 +48,7 @@
             <img src="{{ $currentMedia->getUrl() }}"
                  alt="{{ $label }}"
                  class="w-full max-w-xs rounded-lg object-cover border border-outline-variant/30
-                        @if($collection === 'banner') aspect-[2/1] @else aspect-square max-w-32 @endif" />
+                        @if($collection === 'banner') aspect-2/1 @else aspect-square max-w-32 @endif" />
 
             {{-- Overlay with remove button --}}
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">

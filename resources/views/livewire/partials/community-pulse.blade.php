@@ -35,7 +35,7 @@
                 <a href="{{ route($routeName, $item->entityId) }}" wire:navigate
                    class="flex items-center gap-3 py-2 {{ !$loop->last ? 'border-b border-outline-variant/20' : '' }} hover:bg-surface-container-low transition-colors rounded-lg px-2 -mx-2 group">
                     {{-- Avatar --}}
-                    <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         @if($item->userName)
                             <span class="text-primary text-[10px] font-semibold">
                                 {{ Str::upper(Str::substr($item->userName, 0, 1)) }}
@@ -55,7 +55,7 @@
                         </p>
                     </div>
                     @if($item->createdAt)
-                        <time class="text-[10px] text-on-surface-variant flex-shrink-0"
+                        <time class="text-[10px] text-on-surface-variant shrink-0"
                               datetime="{{ $item->createdAt->toIso8601String() }}">
                             {{ $item->createdAt->diffForHumans(['short' => true]) }}
                         </time>

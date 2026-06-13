@@ -68,7 +68,7 @@
                         default => 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300',
                     };
                 @endphp
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium flex-shrink-0 {{ $statusColor }}">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium shrink-0 {{ $statusColor }}">
                     {{ $ticket->status->label() }}
                 </span>
             </div>

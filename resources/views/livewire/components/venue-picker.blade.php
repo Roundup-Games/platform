@@ -15,7 +15,7 @@
                     wire:click="switchMode('venue')"
                     @class([
                         'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150',
-                        'bg-primary text-on-primary shadow-sm' => $mode === 'venue',
+                        'bg-primary text-on-primary shadow-xs' => $mode === 'venue',
                         'text-on-surface-variant hover:text-on-surface' => $mode !== 'venue',
                     ])>
                 <span class="material-symbols-outlined text-sm align-middle mr-1" style="font-variation-settings: 'FILL' 1">store</span>
@@ -25,7 +25,7 @@
                     wire:click="switchMode('address')"
                     @class([
                         'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150',
-                        'bg-primary text-on-primary shadow-sm' => $mode === 'address',
+                        'bg-primary text-on-primary shadow-xs' => $mode === 'address',
                         'text-on-surface-variant hover:text-on-surface' => $mode !== 'address',
                     ])>
                 <span class="material-symbols-outlined text-sm align-middle mr-1">pin_drop</span>
@@ -42,7 +42,7 @@
                            wire:model="venueQuery"
                            wire:keydown.enter="searchVenues"
                            placeholder="{{ __('venues.placeholder_search_venues') }}"
-                           class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant text-sm" />
+                           class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant text-sm" />
                 </div>
 
                 <button type="button" wire:click="searchVenues"
@@ -71,7 +71,7 @@
                                             @endif
                                         </p>
                                     </div>
-                                    <div class="flex items-center gap-2 ml-3 flex-shrink-0">
+                                    <div class="flex items-center gap-2 ml-3 shrink-0">
                                         @if($venue['venue_type'])
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary-container/40 text-on-primary-container">
                                                 {{ __('location.type_' . $venue['venue_type']) }}
@@ -105,7 +105,7 @@
                         {{ __('location.field_city') }} <span class="text-error">*</span>
                     </label>
                     <input type="text" id="vp-city" wire:model="city" placeholder="{{ __('location.field_enter_your_city') }}"
-                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                     @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
 
@@ -114,7 +114,7 @@
                         {{ __('location.field_address_optional') }}
                     </label>
                     <input type="text" id="vp-address" wire:model="address" placeholder="{{ __('location.placeholder_street_address_neighborhood') }}"
-                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                 </div>
 
                 <button type="button" wire:click="confirmAddress"
@@ -135,9 +135,9 @@
         <div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg">
             <div class="flex items-center gap-2 min-w-0">
                 @if($selectedIsVenue)
-                    <span class="material-symbols-outlined text-lg text-primary flex-shrink-0" style="font-variation-settings: 'FILL' 1">store</span>
+                    <span class="material-symbols-outlined text-lg text-primary shrink-0" style="font-variation-settings: 'FILL' 1">store</span>
                 @else
-                    <span class="material-symbols-outlined text-lg text-primary flex-shrink-0" style="font-variation-settings: 'FILL' 1">pin_drop</span>
+                    <span class="material-symbols-outlined text-lg text-primary shrink-0" style="font-variation-settings: 'FILL' 1">pin_drop</span>
                 @endif
                 <div class="min-w-0">
                     @if($selectedVenue)
@@ -158,7 +158,7 @@
                     @endif
                 </div>
             </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="flex items-center gap-2 shrink-0">
                 <button type="button" wire:click="startEditing"
                         class="text-xs text-on-surface-variant hover:text-primary transition-colors">
                     {{ __('common.action_edit') }}
@@ -191,7 +191,7 @@
             <input type="text" id="vp-instructions"
                    wire:model="locationInstructions"
                    placeholder="{{ __('venues.placeholder_location_instructions') }}"
-                   class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant text-sm" />
+                   class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant text-sm" />
             <p class="mt-1 text-xs text-on-surface-variant">{{ __('venues.hint_location_instructions') }}</p>
         </div>
     @endif

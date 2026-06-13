@@ -162,7 +162,7 @@
                                 @foreach(array_slice($showcase['items'] ?? [], 0, 8) as $item)
                                     <div class="snap-start shrink-0 w-24 flex flex-col items-center gap-1.5 text-center">
                                         @if(!empty($item['image']))
-                                            <div class="w-14 h-14 rounded-xl overflow-hidden bg-surface-container-high shadow-sm">
+                                            <div class="w-14 h-14 rounded-xl overflow-hidden bg-surface-container-high shadow-xs">
                                                 <img src="{{ $item['image'] }}" alt="{{ $item['title'] ?? '' }}" class="w-full h-full object-cover" loading="lazy">
                                             </div>
                                         @endif

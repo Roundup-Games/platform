@@ -20,10 +20,10 @@
             <div class="flex-1 relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg text-on-surface-variant">search</span>
                 <input type="text" aria-label="Search teams" wire:model.live.debounce.300ms="search" placeholder="{{ __('discovery.action_search_by_name_city_or_country') }}"
-                       class="w-full pl-10 rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                       class="w-full pl-10 rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
             </div>
             <select wire:model.live="sort" aria-label="Sort teams"
-                    class="rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface">
+                    class="rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface">
                 <option value="newest">{{ __('common.content_newest') }}</option>
                 <option value="name">{{ __('common.field_name_a_z') }}</option>
                 <option value="members">{{ __('teams.content_most_members') }}</option>

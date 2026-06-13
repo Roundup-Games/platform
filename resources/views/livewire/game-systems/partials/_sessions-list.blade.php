@@ -15,16 +15,16 @@
                 <div class="flex flex-wrap gap-3">
                     @if($sessionCount > 0)
                         @if($isTtrpg)
-                            <a href="{{ route($sessionRoute, ['game_system_id' => $system->id, 'session_type' => 'oneshot']) }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-shadow">
+                            <a href="{{ route($sessionRoute, ['game_system_id' => $system->id, 'session_type' => 'oneshot']) }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-semibold shadow-xs hover:shadow-md transition-shadow">
                         @else
-                            <a href="{{ route($sessionRoute, ['game_system_id' => $system->id]) }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-shadow">
+                            <a href="{{ route($sessionRoute, ['game_system_id' => $system->id]) }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-semibold shadow-xs hover:shadow-md transition-shadow">
                         @endif
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">group</span>
                             {{ __('games.content_active_sessions', ['count' => $sessionCount]) }}
                         </a>
                     @endif
                     @if($campaignCount > 0)
-                        <a href="{{ route('discover.adventures', ['game_system_id' => $system->id, 'session_type' => 'campaign']) }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-secondary-container text-on-secondary-container rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-shadow">
+                        <a href="{{ route('discover.adventures', ['game_system_id' => $system->id, 'session_type' => 'campaign']) }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-secondary-container text-on-secondary-container rounded-xl text-sm font-semibold shadow-xs hover:shadow-md transition-shadow">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">campaign</span>
                             {{ __('games.content_active_campaigns', ['count' => $campaignCount]) }}
                         </a>
