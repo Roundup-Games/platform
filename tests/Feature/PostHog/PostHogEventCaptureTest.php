@@ -88,11 +88,15 @@ describe('PostHog event capture shape', function () {
         expect($result)->toBeTrue();
     });
 
-    test('capture throws without distinctId', function () {
-        expect(fn () => Posthog::capture([
-            'event' => 'bad_event',
+    test('capture succeeds without distinctId (auto-generated UUID)', function () {
+        // posthog-php v4 made distinctId optional — a random UUID is used
+        // when omitted (no person profile created). The call must not throw.
+        $result = Posthog::capture([
+            'event' => 'anonymous_event',
             'properties' => [],
-        ]))->toThrow(Exception::class);
+        ]);
+
+        expect($result)->toBeTrue();
     });
 
     test('capture throws without event', function () {

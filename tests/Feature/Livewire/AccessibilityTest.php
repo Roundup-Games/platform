@@ -118,7 +118,7 @@ describe('Dashboard — community feed uses semantic list structure', function (
             ->html();
 
         // Timestamps should use <time> with datetime attribute
-        expect($html)->toContain('<time class="text-[10px] text-on-surface-variant flex-shrink-0"');
+        expect($html)->toContain('<time class="text-[10px] text-on-surface-variant shrink-0"');
         expect($html)->toContain('datetime="');
     });
 });
