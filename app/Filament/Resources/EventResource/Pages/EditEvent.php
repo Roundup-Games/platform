@@ -29,6 +29,6 @@ class EditEvent extends EditRecord
 
     protected function afterSave(): void
     {
-        app(SeoCacheService::class)->forgetByModel($this->record);
+        app(SeoCacheService::class)->forgetByModel($this->getRecord());
     }
 }

@@ -7,6 +7,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class EventsRelationManager extends RelationManager
 {
@@ -32,7 +33,7 @@ class EventsRelationManager extends RelationManager
                     ->badge(),
                 TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn (EventStatus $state): string => $state->label()),
+                    ->formatStateUsing(fn (EventStatus $state): string => Str::headline($state->value)),
                 IconColumn::make('is_public')
                     ->label('Public')
                     ->boolean(),

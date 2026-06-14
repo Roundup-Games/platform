@@ -32,10 +32,10 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Get;
 use Filament\Infolists;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Artisan;
@@ -92,6 +92,8 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * Full BGG thing data for the selected game, fetched for preview.
+     *
+     * @var array<string, mixed>|null
      */
     public ?array $bggPreviewData = null;
 
@@ -109,7 +111,7 @@ class ViewTicket extends BaseViewTicket
         $ticket = $this->getRecord();
         $metadata = $ticket->metadata ?? [];
 
-        if (empty($metadata) || ! is_array($metadata)) {
+        if (empty($metadata)) {
             return $parent;
         }
 
@@ -133,6 +135,8 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * Build the metadata Infolist section for a ticket.
+     *
+     * @param  array<string, mixed>  $metadata
      */
     protected function buildMetadataSection(Ticket $ticket, array $metadata): ?Section
     {
@@ -150,14 +154,17 @@ class ViewTicket extends BaseViewTicket
         };
     }
 
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
     protected function buildContentReportSection(array $metadata): Section
     {
         $entries = [];
 
         // Reported entity
-        $entityType = $metadata['entity_type'] ?? null;
-        $entityId = $metadata['entity_id'] ?? null;
-        $entityName = $metadata['entity_name'] ?? $entityId;
+        $entityType = isset($metadata['entity_type']) ? self::asString($metadata['entity_type']) : null;
+        $entityId = isset($metadata['entity_id']) ? self::asString($metadata['entity_id']) : null;
+        $entityName = isset($metadata['entity_name']) ? self::asString($metadata['entity_name']) : $entityId;
 
         if ($entityType) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_entity_type')
@@ -190,7 +197,7 @@ class ViewTicket extends BaseViewTicket
         if (isset($metadata['report_reason'])) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_reason')
                 ->label('Reason')
-                ->state(ucfirst($metadata['report_reason']))
+                ->state(ucfirst(self::asString($metadata['report_reason'])))
                 ->badge()
                 ->color('warning');
         }
@@ -214,6 +221,9 @@ class ViewTicket extends BaseViewTicket
             ->icon('heroicon-o-shield-exclamation');
     }
 
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
     protected function buildReviewReportSection(array $metadata): Section
     {
         $entries = [];
@@ -229,10 +239,10 @@ class ViewTicket extends BaseViewTicket
         // Review author
         $reviewAuthorId = $metadata['review_author_id'] ?? null;
         if ($reviewAuthorId) {
-            $author = User::find($reviewAuthorId);
+            $author = User::find(self::asString($reviewAuthorId));
             $entries[] = Infolists\Components\TextEntry::make('metadata_review_author')
                 ->label('Review author')
-                ->state($author?->name ?? $reviewAuthorId)
+                ->state($author->name ?? self::asString($reviewAuthorId))
                 ->url($author ? "/profile/{$author->id}" : null, shouldOpenInNewTab: true)
                 ->color('primary');
         }
@@ -240,7 +250,7 @@ class ViewTicket extends BaseViewTicket
         if (isset($metadata['report_reason'])) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_reason')
                 ->label('Reason')
-                ->state(ucfirst($metadata['report_reason']))
+                ->state(ucfirst(self::asString($metadata['report_reason'])))
                 ->badge()
                 ->color('warning');
         }
@@ -262,6 +272,9 @@ class ViewTicket extends BaseViewTicket
             ->icon('heroicon-o-shield-exclamation');
     }
 
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
     protected function buildGameSystemRequestSection(array $metadata): Section
     {
         $entries = [];
@@ -270,7 +283,7 @@ class ViewTicket extends BaseViewTicket
         if (isset($metadata['game_system_type'])) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_system_type')
                 ->label('System type')
-                ->state(ucfirst(str_replace('_', ' ', $metadata['game_system_type'])))
+                ->state(ucfirst(str_replace('_', ' ', self::asString($metadata['game_system_type']))))
                 ->badge()
                 ->color('info');
         }
@@ -280,7 +293,7 @@ class ViewTicket extends BaseViewTicket
             $entries[] = Infolists\Components\TextEntry::make('metadata_bgg_url')
                 ->label('BGG URL')
                 ->state($metadata['bgg_url'])
-                ->url($metadata['bgg_url'], shouldOpenInNewTab: true)
+                ->url(self::asString($metadata['bgg_url']), shouldOpenInNewTab: true)
                 ->color('primary')
                 ->columnSpanFull();
         } else {
@@ -315,10 +328,11 @@ class ViewTicket extends BaseViewTicket
 
         // Linked game system (after sync)
         if (! empty($metadata['game_system_id'])) {
-            $gs = GameSystem::find($metadata['game_system_id']);
+            $gameSystemId = self::asString($metadata['game_system_id']);
+            $gs = GameSystem::find($gameSystemId);
             $entries[] = Infolists\Components\TextEntry::make('metadata_game_system')
                 ->label('Linked game system')
-                ->state($gs ? $gs->name : "ID: {$metadata['game_system_id']}")
+                ->state($gs ? $gs->name : "ID: {$gameSystemId}")
                 ->url($gs ? GameSystemResource::getUrl('edit', ['record' => $gs->id]) : null, shouldOpenInNewTab: true)
                 ->color('success')
                 ->icon('heroicon-o-check-circle');
@@ -333,6 +347,9 @@ class ViewTicket extends BaseViewTicket
             ->columns(2);
     }
 
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
     protected function buildAccountSupportSection(array $metadata): Section
     {
         $entries = [];
@@ -340,7 +357,7 @@ class ViewTicket extends BaseViewTicket
         if (isset($metadata['issue_type'])) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_issue_type')
                 ->label('Issue type')
-                ->state(ucfirst(str_replace('_', ' ', $metadata['issue_type'])))
+                ->state(ucfirst(str_replace('_', ' ', self::asString($metadata['issue_type']))))
                 ->badge()
                 ->color('info');
         }
@@ -361,6 +378,9 @@ class ViewTicket extends BaseViewTicket
             ->columns(2);
     }
 
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
     protected function buildBillingSupportSection(array $metadata): Section
     {
         $entries = [];
@@ -368,7 +388,7 @@ class ViewTicket extends BaseViewTicket
         if (isset($metadata['issue_type'])) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_issue_type')
                 ->label('Issue type')
-                ->state(ucfirst(str_replace('_', ' ', $metadata['issue_type'])))
+                ->state(ucfirst(str_replace('_', ' ', self::asString($metadata['issue_type']))))
                 ->badge()
                 ->color('info');
         }
@@ -414,6 +434,8 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * Generic fallback: render all metadata keys as a key-value grid.
+     *
+     * @param  array<string, mixed>  $metadata
      */
     protected function buildGenericMetadataSection(array $metadata): Section
     {
@@ -429,7 +451,7 @@ class ViewTicket extends BaseViewTicket
             $label = ucfirst(str_replace('_', ' ', $key));
             $entries[] = Infolists\Components\TextEntry::make("metadata_{$key}")
                 ->label($label)
-                ->state((string) $value)
+                ->state($value)
                 ->copyable();
         }
 
@@ -452,17 +474,20 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * Build entries from the structured payload schema (actor, entities, reason).
+     *
+     * @param  array<string, mixed>  $metadata
+     * @return array<int, Infolists\Components\TextEntry>
      */
     protected function buildStructuredEntries(array $metadata): array
     {
         $entries = [];
 
         // Actor
-        if (isset($metadata['actor']) && is_array($metadata['actor'])) {
-            $actor = $metadata['actor'];
-            $actorName = $actor['name'] ?? 'Unknown';
+        $actor = $metadata['actor'] ?? null;
+        if (is_array($actor)) {
+            $actorName = isset($actor['name']) ? self::asString($actor['name']) : 'Unknown';
             $actorUrl = ($actor['type'] ?? '') === 'user' && isset($actor['id'])
-                ? "/profile/{$actor['id']}"
+                ? '/profile/'.self::asString($actor['id'])
                 : null;
 
             $entries[] = Infolists\Components\TextEntry::make('structured_actor')
@@ -473,15 +498,19 @@ class ViewTicket extends BaseViewTicket
         }
 
         // Entities
-        if (isset($metadata['entities']) && is_array($metadata['entities'])) {
-            foreach ($metadata['entities'] as $i => $entity) {
+        $entities = $metadata['entities'] ?? null;
+        if (is_array($entities)) {
+            foreach ($entities as $i => $entity) {
                 if (! is_array($entity)) {
                     continue;
                 }
                 $name = $entity['name'] ?? $entity['id'] ?? 'Unknown';
-                $url = $this->resolveEntityUrl($entity['type'] ?? null, $entity['id'] ?? null);
+                $url = $this->resolveEntityUrl(
+                    isset($entity['type']) ? self::asString($entity['type']) : null,
+                    isset($entity['id']) ? self::asString($entity['id']) : null,
+                );
                 $entries[] = Infolists\Components\TextEntry::make("structured_entity_{$i}")
-                    ->label('Entity'.(count($metadata['entities']) > 1 ? ' '.($i + 1) : ''))
+                    ->label('Entity'.(count($entities) > 1 ? ' '.($i + 1) : ''))
                     ->state($name)
                     ->url($url, shouldOpenInNewTab: true)
                     ->color('primary')
@@ -490,6 +519,18 @@ class ViewTicket extends BaseViewTicket
         }
 
         return $entries;
+    }
+
+    /**
+     * Safely convert a mixed metadata value to a string.
+     *
+     * Scalar values are stringified; arrays, objects, and other non-scalar
+     * values become an empty string. This avoids PHPStan's level-9 rejection
+     * of casting `mixed` directly to string.
+     */
+    protected static function asString(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 
     /**
@@ -552,12 +593,15 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * Get game-system-specific actions. Only visible on game system request tickets.
+     *
+     * @return array<int, Action>
      */
     protected function getGameSystemActions(): array
     {
+        /** @var Ticket $ticket */
         $ticket = $this->getRecord();
 
-        if (! $ticket || ! $this->isGameSystemRequest($ticket)) {
+        if (! $this->isGameSystemRequest($ticket)) {
             return [];
         }
 
@@ -572,7 +616,7 @@ class ViewTicket extends BaseViewTicket
                     $bggUrl = $ticket->metadata['bgg_url'] ?? null;
 
                     return $bggUrl
-                        ? "This will sync game data from BGG using the URL: {$bggUrl}"
+                        ? 'This will sync game data from BGG using the URL: '.self::asString($bggUrl)
                         : 'No BGG URL found in ticket metadata.';
                 })
                 ->modalSubmitActionLabel('Sync Now')
@@ -626,25 +670,28 @@ class ViewTicket extends BaseViewTicket
                         ->label('Search')
                         ->icon(Heroicon::OutlinedMagnifyingGlass)
                         ->action(function (Get $get) {
-                            $query = $get('bgg_search_query') ?? '';
+                            $query = self::asString($get('bgg_search_query') ?? '');
                             if (! empty(trim($query))) {
                                 $this->performBggSearch($query);
                             }
                         })
-                        ->closeModalAfterClicking(false),
+                        ->close(false),
                     Action::make('syncSelectedBgg')
                         ->label('Sync Selected')
                         ->icon(Heroicon::OutlinedArrowPath)
                         ->color('success')
                         ->visible(fn () => $this->selectedBggId !== null)
                         ->action(function () {
+                            if ($this->selectedBggId === null) {
+                                return;
+                            }
                             $this->performBggSyncById($this->selectedBggId);
                         }),
                     Action::make('clearBggSelection')
                         ->label('Clear Selection')
                         ->color('gray')
                         ->visible(fn () => $this->selectedBggId !== null)
-                        ->closeModalAfterClicking(false)
+                        ->close(false)
                         ->action(function () {
                             $this->selectedBggId = null;
                             $this->selectedBggName = null;
@@ -672,12 +719,15 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * Get data export actions. Only visible on data_export_request tickets that are still open.
+     *
+     * @return array<int, Action>
      */
     protected function getDataExportActions(): array
     {
+        /** @var Ticket $ticket */
         $ticket = $this->getRecord();
 
-        if (! $ticket || ($ticket->ticket_type ?? null) !== 'data_export_request') {
+        if (($ticket->ticket_type ?? null) !== 'data_export_request') {
             return [];
         }
 
@@ -689,7 +739,7 @@ class ViewTicket extends BaseViewTicket
                 ->requiresConfirmation()
                 ->modalHeading('Generate Data Export')
                 ->modalDescription(function () use ($ticket) {
-                    $requesterName = $ticket->requester?->name ?? $ticket->guest_name ?? 'Unknown User';
+                    $requesterName = $ticket->requester->name ?? $ticket->guest_name ?? 'Unknown User';
 
                     return "This will generate a full data export for {$requesterName}. The export will be attached as a reply with a download link, and the ticket will be resolved.";
                 })
@@ -729,12 +779,15 @@ class ViewTicket extends BaseViewTicket
     /**
      * Get review moderation actions. Only visible on Safety department review_report tickets
      * that are still open (not closed/resolved).
+     *
+     * @return array<int, Action>
      */
     protected function getReviewModerationActions(): array
     {
+        /** @var Ticket $ticket */
         $ticket = $this->getRecord();
 
-        if (! $ticket || ! $this->isReviewReport($ticket)) {
+        if (! $this->isReviewReport($ticket)) {
             return [];
         }
 
@@ -786,7 +839,7 @@ class ViewTicket extends BaseViewTicket
     protected function isReviewReport(Ticket $ticket): bool
     {
         return ($ticket->ticket_type ?? null) === 'review_report'
-            && ($ticket->department?->name ?? null) === 'Safety';
+            && ($ticket->department->name ?? null) === 'Safety';
     }
 
     /**
@@ -795,7 +848,7 @@ class ViewTicket extends BaseViewTicket
     protected function isContentReport(Ticket $ticket): bool
     {
         return ($ticket->ticket_type ?? null) === 'content_report'
-            && ($ticket->department?->name ?? null) === 'Safety';
+            && ($ticket->department->name ?? null) === 'Safety';
     }
 
     /**
@@ -809,12 +862,15 @@ class ViewTicket extends BaseViewTicket
     /**
      * Get venue proposal actions. Only visible on Events department venue_proposal tickets
      * that are still open (not closed/resolved).
+     *
+     * @return array<int, Action>
      */
     protected function getVenueProposalActions(): array
     {
+        /** @var Ticket $ticket */
         $ticket = $this->getRecord();
 
-        if (! $ticket || ! $this->isVenueProposal($ticket)) {
+        if (! $this->isVenueProposal($ticket)) {
             return [];
         }
 
@@ -826,13 +882,13 @@ class ViewTicket extends BaseViewTicket
                 ->requiresConfirmation()
                 ->modalHeading('Approve Venue Proposal')
                 ->modalDescription(function () use ($ticket) {
-                    $name = $ticket->metadata['venue_name'] ?? $ticket->subject;
+                    $name = isset($ticket->metadata['venue_name']) ? self::asString($ticket->metadata['venue_name']) : ($ticket->subject ?? '');
                     $existing = $ticket->metadata['existing_location_id'] ?? null;
                     if ($existing) {
-                        return "This will update the existing location (ID: {$existing}) with the proposed venue details and mark it as verified.";
+                        return 'This will update the existing location (ID: '.self::asString($existing).') with the proposed venue details and mark it as verified.';
                     }
 
-                    return "This will create a new verified location for \"{$name}\" and resolve the ticket.";
+                    return 'This will create a new verified location for "'.$name.'" and resolve the ticket.';
                 })
                 ->modalSubmitActionLabel('Approve')
                 ->visible(fn () => $ticket->isOpen())
@@ -863,6 +919,8 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * Build the metadata Infolist section for a venue proposal ticket.
+     *
+     * @param  array<string, mixed>  $metadata
      */
     protected function buildVenueProposalSection(array $metadata): Section
     {
@@ -905,7 +963,7 @@ class ViewTicket extends BaseViewTicket
 
         // Venue type
         if (! empty($metadata['venue_type'])) {
-            $venueTypeLabel = VenueType::tryFrom($metadata['venue_type'])?->label() ?? $metadata['venue_type'];
+            $venueTypeLabel = VenueType::tryFrom(self::asString($metadata['venue_type']))?->label() ?? $metadata['venue_type'];
             $entries[] = Infolists\Components\TextEntry::make('metadata_venue_type')
                 ->label('Venue type')
                 ->state($venueTypeLabel)
@@ -918,7 +976,7 @@ class ViewTicket extends BaseViewTicket
             $entries[] = Infolists\Components\TextEntry::make('metadata_website_url')
                 ->label('Website')
                 ->state($metadata['website_url'])
-                ->url($metadata['website_url'], shouldOpenInNewTab: true)
+                ->url(self::asString($metadata['website_url']), shouldOpenInNewTab: true)
                 ->color('primary')
                 ->columnSpanFull();
         }
@@ -934,10 +992,10 @@ class ViewTicket extends BaseViewTicket
 
         // Existing location link
         if (! empty($metadata['existing_location_id'])) {
-            $existingLocation = Location::find($metadata['existing_location_id']);
+            $existingLocation = Location::find(self::asString($metadata['existing_location_id']));
             $entries[] = Infolists\Components\TextEntry::make('metadata_existing_location')
                 ->label('Existing location')
-                ->state($existingLocation ? $existingLocation->name : "ID: {$metadata['existing_location_id']}")
+                ->state($existingLocation ? $existingLocation->name : 'ID: '.self::asString($metadata['existing_location_id']))
                 ->url($existingLocation ? "/admin/locations/{$existingLocation->id}/edit" : null, shouldOpenInNewTab: true)
                 ->color('warning')
                 ->icon('heroicon-o-link');
@@ -945,10 +1003,10 @@ class ViewTicket extends BaseViewTicket
 
         // Linked location (after approval)
         if (! empty($metadata['location_id'])) {
-            $location = Location::find($metadata['location_id']);
+            $location = Location::find(self::asString($metadata['location_id']));
             $entries[] = Infolists\Components\TextEntry::make('metadata_linked_location')
                 ->label('Linked location')
-                ->state($location ? $location->name : "ID: {$metadata['location_id']}")
+                ->state($location ? $location->name : 'ID: '.self::asString($metadata['location_id']))
                 ->url($location ? "/admin/locations/{$location->id}/edit" : null, shouldOpenInNewTab: true)
                 ->color('success')
                 ->icon('heroicon-o-check-circle');
@@ -981,12 +1039,13 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $admin = auth()->user();
+            if (! $admin instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
             $proposalService = app(VenueProposalService::class);
 
-            $location = null;
-
-            DB::transaction(function () use ($ticket, $admin, $ticketService, $proposalService, &$location) {
+            $location = DB::transaction(function () use ($ticket, $admin, $ticketService, $proposalService) {
                 $lockedTicket = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
                 if (! $lockedTicket->isOpen()) {
                     throw new \RuntimeException('This ticket is no longer open.');
@@ -1000,6 +1059,8 @@ class ViewTicket extends BaseViewTicket
 
                 // Resolve the ticket
                 $ticketService->resolve($lockedTicket, $admin);
+
+                return $location;
             });
 
             Log::info('venue_proposal.approved_by_admin', [
@@ -1037,6 +1098,9 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $admin = auth()->user();
+            if (! $admin instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
 
             DB::transaction(function () use ($ticket, $admin, $ticketService, $reason) {
@@ -1085,17 +1149,20 @@ class ViewTicket extends BaseViewTicket
     /**
      * Get content moderation actions. Only visible on Safety department content_report tickets
      * that are still open (not closed/resolved).
+     *
+     * @return array<int, Action>
      */
     protected function getContentReportActions(): array
     {
+        /** @var Ticket $ticket */
         $ticket = $this->getRecord();
 
-        if (! $ticket || ! $this->isContentReport($ticket)) {
+        if (! $this->isContentReport($ticket)) {
             return [];
         }
 
-        $entityType = $ticket->metadata['entity_type'] ?? null;
-        $entityName = $ticket->metadata['entity_name'] ?? 'this content';
+        $entityType = isset($ticket->metadata['entity_type']) ? self::asString($ticket->metadata['entity_type']) : null;
+        $entityName = isset($ticket->metadata['entity_name']) ? self::asString($ticket->metadata['entity_name']) : 'this content';
 
         return [
             Action::make('dismissContentReport')
@@ -1178,6 +1245,9 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $user = auth()->user();
+            if (! $user instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
 
             DB::transaction(function () use ($ticket, $user, $ticketService) {
@@ -1225,6 +1295,9 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $user = auth()->user();
+            if (! $user instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
 
             DB::transaction(function () use ($ticket, $user, $ticketService) {
@@ -1275,11 +1348,11 @@ class ViewTicket extends BaseViewTicket
     {
         $admin = User::role('Platform Admin')
             ->where('id', '!=', $currentUser->id)
-            ->first();
+            ->first() ?? $currentUser;
 
         return [
-            'admin' => $admin ?? $currentUser,
-            'assigned_name' => $admin?->name ?? $currentUser->name,
+            'admin' => $admin,
+            'assigned_name' => $admin->name,
         ];
     }
 
@@ -1287,6 +1360,9 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $user = auth()->user();
+            if (! $user instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
 
             $assignmentInfo = null;
@@ -1313,6 +1389,9 @@ class ViewTicket extends BaseViewTicket
                 }
             });
 
+            if ($assignmentInfo === null) {
+                return;
+            }
             ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $assignmentInfo;
 
             Log::info('review.report.escalated', [
@@ -1320,7 +1399,7 @@ class ViewTicket extends BaseViewTicket
                 'ticket_reference' => $ticket->reference,
                 'review_id' => $ticket->metadata['review_id'] ?? null,
                 'escalated_by' => $user->id,
-                'assigned_to' => $platformAdmin?->id ?? $user->id,
+                'assigned_to' => $platformAdmin->id,
             ]);
 
             Notification::make()
@@ -1355,10 +1434,10 @@ class ViewTicket extends BaseViewTicket
             throw new \RuntimeException('Review ID is missing from ticket metadata.');
         }
 
-        $review = Review::find($reviewId);
+        $review = Review::find(self::asString($reviewId));
 
         if (! $review) {
-            throw new \RuntimeException("Review {$reviewId} was not found.");
+            throw new \RuntimeException('Review '.self::asString($reviewId).' was not found.');
         }
 
         $review->update(['status' => $status]);
@@ -1396,6 +1475,9 @@ class ViewTicket extends BaseViewTicket
         }
 
         $admin = auth()->user();
+        if (! $admin instanceof User) {
+            return;
+        }
         $ticketService = app(TicketService::class);
 
         try {
@@ -1506,6 +1588,9 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $user = auth()->user();
+            if (! $user instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
 
             DB::transaction(function () use ($ticket, $user, $ticketService) {
@@ -1548,6 +1633,9 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $admin = auth()->user();
+            if (! $admin instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
 
             $reportedUser = $this->resolveReportedUser($ticket, $entityType);
@@ -1576,7 +1664,7 @@ class ViewTicket extends BaseViewTicket
             $reportedUser->notify(new ContentReportWarning(
                 $entityType ?? 'content',
                 $entityName ?? 'reported content',
-                $reason,
+                self::asString($reason),
             ));
 
             Log::info('content_report.user_warned', [
@@ -1615,6 +1703,9 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $admin = auth()->user();
+            if (! $admin instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
 
             $entityId = $ticket->metadata['entity_id'] ?? null;
@@ -1624,8 +1715,8 @@ class ViewTicket extends BaseViewTicket
             // are atomic. If either fails, everything rolls back.
             DB::transaction(function () use ($ticket, $admin, $ticketService, $entityType, $entityId, &$removed) {
                 match ($entityType) {
-                    'game' => $removed = $this->removeGame($entityId),
-                    'campaign' => $removed = $this->removeCampaign($entityId),
+                    'game' => $removed = $this->removeGame($entityId !== null ? self::asString($entityId) : null),
+                    'campaign' => $removed = $this->removeCampaign($entityId !== null ? self::asString($entityId) : null),
                     default => $removed = false,
                 };
 
@@ -1643,7 +1734,7 @@ class ViewTicket extends BaseViewTicket
                     $reportedUser->notify(new ContentRemoved(
                         $entityType ?? 'content',
                         $entityName ?? 'reported content',
-                        $reason,
+                        self::asString($reason),
                     ));
                 }
             }
@@ -1686,6 +1777,9 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $admin = auth()->user();
+            if (! $admin instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
 
             $reportedUser = $this->resolveReportedUser($ticket, $entityType);
@@ -1712,7 +1806,7 @@ class ViewTicket extends BaseViewTicket
 
             // Send suspension notification after transaction commits
             $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
-            $reportedUser->notify(new AccountSuspended($reason));
+            $reportedUser->notify(new AccountSuspended(self::asString($reason)));
 
             Log::info('content_report.user_suspended', [
                 'ticket_id' => $ticket->id,
@@ -1749,6 +1843,9 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $user = auth()->user();
+            if (! $user instanceof User) {
+                return;
+            }
             $ticketService = app(TicketService::class);
 
             $assignmentInfo = null;
@@ -1769,13 +1866,16 @@ class ViewTicket extends BaseViewTicket
                 }
             });
 
+            if ($assignmentInfo === null) {
+                return;
+            }
             ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $assignmentInfo;
 
             Log::info('content_report.escalated', [
                 'ticket_id' => $ticket->id,
                 'ticket_reference' => $ticket->reference,
                 'escalated_by' => $user->id,
-                'assigned_to' => $platformAdmin?->id ?? $user->id,
+                'assigned_to' => $platformAdmin->id,
             ]);
 
             Notification::make()
@@ -1808,9 +1908,9 @@ class ViewTicket extends BaseViewTicket
         $entityId = $ticket->metadata['entity_id'] ?? null;
 
         return match ($entityType) {
-            'user' => User::find($entityId),
-            'game' => Game::find($entityId)?->owner,
-            'campaign' => Campaign::find($entityId)?->owner,
+            'user' => $entityId !== null ? User::find(self::asString($entityId)) : null,
+            'game' => $entityId !== null ? Game::find(self::asString($entityId))?->owner : null,
+            'campaign' => $entityId !== null ? Campaign::find(self::asString($entityId))?->owner : null,
             default => null,
         };
     }
@@ -1899,14 +1999,15 @@ class ViewTicket extends BaseViewTicket
      */
     protected function performBggSyncById(int $bggId): void
     {
+        /** @var Ticket $ticket */
         $ticket = $this->getRecord();
 
         try {
             $result = app(BggSyncService::class)->syncGameSystems([$bggId]);
 
-            if ($result['failed'] > 0 && $result['synced'] === 0) {
+            if ($result->failed > 0 && $result->synced === 0) {
                 throw new \RuntimeException(
-                    'BGG sync failed: '.implode('; ', $result['errors'])
+                    'BGG sync failed: '.implode('; ', $result->errors)
                 );
             }
 
@@ -1991,7 +2092,11 @@ class ViewTicket extends BaseViewTicket
 
         try {
             $xml = app(BggClient::class)->search($query);
-            $results = app(BggXmlParser::class)->parseSearchResults($xml->asXML());
+            $xmlString = $xml->asXML();
+            if ($xmlString === false) {
+                throw new \RuntimeException('Failed to serialize BGG search response.');
+            }
+            $results = app(BggXmlParser::class)->parseSearchResults($xmlString);
 
             $this->bggSearchResults = $results;
 
@@ -2029,7 +2134,11 @@ class ViewTicket extends BaseViewTicket
     {
         try {
             $xml = app(BggClient::class)->fetchThing([$bggId]);
-            $items = app(BggXmlParser::class)->parseItems($xml->asXML());
+            $xmlString = $xml->asXML();
+            if ($xmlString === false) {
+                throw new \RuntimeException('Failed to serialize BGG thing response.');
+            }
+            $items = app(BggXmlParser::class)->parseItems($xmlString);
 
             $this->bggPreviewData = $items[0] ?? null;
         } catch (\Throwable $e) {
@@ -2063,11 +2172,11 @@ class ViewTicket extends BaseViewTicket
                 ? ' <span class="inline-flex items-center rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">Selected</span>'
                 : '';
 
-            $typeLabel = match ($result['bgg_type'] ?? '') {
+            $typeLabel = match ($result['bgg_type']) {
                 'boardgame' => 'Board Game',
                 'boardgameexpansion' => 'Expansion',
                 'boardgameaccessory' => 'Accessory',
-                default => $result['bgg_type'] ?? 'Unknown',
+                default => $result['bgg_type'],
             };
 
             $selectButton = $isSelected

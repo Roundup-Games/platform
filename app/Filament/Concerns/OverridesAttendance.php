@@ -4,8 +4,9 @@ namespace App\Filament\Concerns;
 
 use App\Enums\AttendanceStatus;
 use App\Models\GameParticipant;
+use App\Models\User;
 use App\Services\AttendanceService;
-use Filament\Forms\Components\Component;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -24,9 +25,17 @@ use Filament\Notifications\Notification;
 trait OverridesAttendance
 {
     /**
+     * Narrow a mixed value to a non-empty string (level-9 safe).
+     */
+    private static function asString(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
      * Build the override action form fields.
      *
-     * @return array<int, Component>
+     * @return array<int, Field>
      */
     protected function attendanceOverrideFormFields(): array
     {
@@ -48,11 +57,16 @@ trait OverridesAttendance
 
     /**
      * Execute the admin attendance override and send a Filament notification.
+     *
+     * @param  array<string, mixed>  $data
      */
     protected function executeAttendanceOverride(GameParticipant $participant, array $data): void
     {
         $admin = auth()->user();
-        $newStatus = AttendanceStatus::from($data['new_status']);
+        if (! $admin instanceof User) {
+            return;
+        }
+        $newStatus = AttendanceStatus::from(self::asString($data['new_status']));
 
         /** @var AttendanceService $service */
         $service = app(AttendanceService::class);
@@ -61,7 +75,7 @@ trait OverridesAttendance
             $participant,
             $newStatus,
             $admin,
-            $data['override_reason'],
+            self::asString($data['override_reason']),
             false, // allow override without prior dispute
         );
 

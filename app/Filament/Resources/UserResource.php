@@ -32,6 +32,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -197,10 +198,19 @@ class UserResource extends Resource
                                     ->content(fn (?User $record): string => $record?->updated_at?->format('M j, Y H:i') ?? '—'),
                                 Placeholder::make('profile_updated_at')
                                     ->label('Profile Updated At')
-                                    ->content(fn (?User $record): string => $record?->profile_updated_at?->format('M j, Y H:i') ?? '—'),
+                                    ->content(function (?User $record): string {
+                                        if ($record === null) {
+                                            return '—';
+                                        }
+
+                                        /** @var Carbon|null $date */
+                                        $date = $record->profile_updated_at;
+
+                                        return $date?->format('M j, Y H:i') ?? '—';
+                                    }),
                                 Placeholder::make('profile_version')
                                     ->label('Profile Version')
-                                    ->content(fn (?User $record): string => (string) ($record?->profile_version ?? '—')),
+                                    ->content(fn (?User $record): string => (string) ($record->profile_version ?? '—')),
                             ]),
                     ]),
 

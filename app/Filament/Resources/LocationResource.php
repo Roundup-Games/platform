@@ -264,7 +264,7 @@ class LocationResource extends Resource
                     ->action(function (Location $record, array $data) {
                         $target = Location::find($data['target_location_id']);
 
-                        if (! $target) {
+                        if (! $target instanceof Location) {
                             Notification::make()
                                 ->title('Target location not found')
                                 ->danger()
