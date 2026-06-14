@@ -43,7 +43,7 @@ class RegistrationsRelationManager extends RelationManager
                             ])
                             ->required()
                             ->default('individual'),
-                        Select::make('division')
+                        TextInput::make('division')
                             ->maxLength(100),
                         Select::make('status')
                             ->options([

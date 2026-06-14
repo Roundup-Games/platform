@@ -3,6 +3,7 @@
 namespace App\Filament\Concerns;
 
 use Illuminate\Support\Arr;
+use LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin;
 
 /**
  * Override the lara-zeus/spatie-translatable locale switch behavior to skip
@@ -21,7 +22,8 @@ trait TransformsLocaleSwitchWithoutValidation
 {
     public function updatedActiveLocale(): void
     {
-        if (filament('spatie-translatable')?->getPersistLocale()) {
+        $plugin = filament('spatie-translatable');
+        if ($plugin instanceof SpatieTranslatablePlugin && $plugin->getPersistLocale()) {
             session()->put('spatie_translatable_active_locale', $this->activeLocale);
         }
 
@@ -35,9 +37,10 @@ trait TransformsLocaleSwitchWithoutValidation
 
         // Use getRawState() instead of getState() to skip validation.
         // The locale switch is a navigation action, not a save.
+        /** @var array<string, mixed> $rawState */
         $rawState = $this->form->getRawState();
 
-        $this->otherLocaleData[$this->oldActiveLocale] = Arr::only(
+        $this->otherLocaleData[(string) $this->oldActiveLocale] = Arr::only(
             $rawState,
             $translatableAttributes,
         );
@@ -47,9 +50,9 @@ trait TransformsLocaleSwitchWithoutValidation
                 $rawState,
                 $translatableAttributes,
             ),
-            ...$this->otherLocaleData[$this->activeLocale] ?? [],
+            ...$this->otherLocaleData[(string) $this->activeLocale] ?? [],
         ]);
 
-        unset($this->otherLocaleData[$this->activeLocale]);
+        unset($this->otherLocaleData[(string) $this->activeLocale]);
     }
 }

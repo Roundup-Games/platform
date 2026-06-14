@@ -26,7 +26,12 @@ class ListGameSystems extends ListRecords
                 ->modalHeading('Re-sync selected from BoardGameGeek')
                 ->modalDescription('This will re-fetch data from BGG for all selected game systems that have a BGG ID. Continue?')
                 ->action(function (Collection $records) {
-                    $bggIds = $records->filter(fn ($r) => $r->bgg_id)->pluck('bgg_id')->values()->toArray();
+                    /** @var array<int, int> $bggIds */
+                    $bggIds = $records
+                        ->filter(fn ($r) => $r->getAttribute('bgg_id') !== null)
+                        ->pluck('bgg_id')
+                        ->values()
+                        ->toArray();
 
                     if (empty($bggIds)) {
                         Notification::make()
@@ -44,7 +49,7 @@ class ListGameSystems extends ListRecords
                         Notification::make()
                             ->success()
                             ->title('Bulk sync complete')
-                            ->body("Synced {$result['synced']} game system(s), {$result['failed']} failed.")
+                            ->body("Synced {$result->synced} game system(s), {$result->failed} failed.")
                             ->send();
                     } catch (BggApiException $e) {
                         Notification::make()

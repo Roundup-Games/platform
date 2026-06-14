@@ -2,14 +2,18 @@
 
 namespace App\Filament\Resources\GameResource\RelationManagers;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Filament\Concerns\OverridesAttendance;
+use App\Models\Game;
+use App\Models\GameParticipant;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
@@ -116,7 +120,17 @@ class ParticipantsRelationManager extends RelationManager
                 Action::make('overrideAttendance')
                     ->label('Override Attendance')
                     ->icon('heroicon-o-pencil-square')
-                    ->visible(fn ($record) => $record->status?->value === 'approved' && $this->ownerRecord->status?->value === 'completed')
+                    ->visible(function ($record): bool {
+                        if (! $record instanceof GameParticipant) {
+                            return false;
+                        }
+
+                        /** @var Game $owner */
+                        $owner = $this->ownerRecord;
+
+                        return $record->status?->value === 'approved'
+                            && $owner->status?->value === 'completed';
+                    })
                     ->requiresConfirmation()
                     ->modalHeading('Override Attendance Status')
                     ->modalDescription('This will change the participant\'s attendance status and recalculate their reliability score. The change is logged with your admin identity. Use with care.')
