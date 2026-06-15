@@ -15,8 +15,19 @@ use Testcontainers\Wait\WaitForHostPort;
  * It writes connection details to a temp file. Other workers wait for that file
  * and reuse the same container, avoiding Docker resource contention.
  *
- * A shutdown function from worker 1 removes the temp file on exit.
- * The container itself has autoRemove=true — Docker handles cleanup.
+ * Lifecycle (so no containers leak):
+ * - Sequential: this process stops the single container on shutdown.
+ * - Parallel: ONE shared container is started by the primary worker and
+ *   reused by all siblings. No worker stops it on its own exit — that would
+ *   tear down the shared server while siblings are still running (the prior
+ *   approach did exactly that). Instead the primary tags the container with a
+ *   stable label; at the start of each parallel run it prunes any orphaned
+ *   containers carrying that label from previous runs that were hard-killed
+ *   or whose prune was skipped. This trades at most one transient leftover
+ *   for guaranteed correctness during the run.
+ *
+ * Note: register_shutdown_function does NOT fire on SIGKILL/OOM, so a hard
+ * kill still orphans the container; the next run's prune cleans it up.
  */
 
 // Require the autoloader first
@@ -44,20 +55,45 @@ if (! getenv('DOCKER_HOST')) {
         $_SERVER['DOCKER_HOST'] = "unix://{$dockerSocket}";
     }
 }
+// Capture the resolved Docker host so the shutdown refcount-releaser can
+// reconstruct the container handle and stop it (the env may not be visible
+// to a freshly-built Docker client in the shutdown context on macOS).
+$dockerHost = (string) (getenv('DOCKER_HOST') ?: '');
 
 $isParallel = (bool) getenv('PARATEST');
 $token = (int) (getenv('TEST_TOKEN') ?: 0);
 $isPrimary = ! $isParallel || $token === 1;
 
-// Temp file for sharing container details across parallel workers
+// Temp file for sharing container details across parallel workers.
+// Sequential mode keys it by PID (exclusive process); parallel mode uses a
+// stable name shared by all sibling workers of one paratest run.
 $cacheFile = sys_get_temp_dir().'/roundup_testcontainers_'.getmypid();
-
-// In parallel mode, use a stable cache key based on the parent paratest PID
-// so all sibling workers share the same file.
 if ($isParallel) {
-    // UNIQUE_TEST_TOKEN is "TOKEN_randomhex" — extract a stable key from the
-    // paratest runner's tmp-dir or fall back to a sentinel file.
     $cacheFile = sys_get_temp_dir().'/roundup_testcontainers_parallel';
+}
+
+// This project only runs postgres:16-alpine via tests/bootstrap.php, so pruning
+// by ancestor is safe and needs no custom label (and there is no first-party
+// `docker label` CLI to add one to a running container anyway).
+
+/**
+ * Prune orphaned postgres testcontainers from prior parallel runs. Runs once
+ * at the start of each parallel run (primary worker only), before starting a
+ * fresh container. Safe: this project only uses the filtered ancestor for the
+ * test container, so removal cannot touch unrelated containers.
+ */
+function pruneOrphanedParallelContainers(string $dockerHost): void
+{
+    $hostArg = $dockerHost !== '' ? '--host '.escapeshellarg($dockerHost) : '';
+    $ids = @shell_exec("docker {$hostArg} ps -aq --filter ancestor=postgres:16-alpine 2>/dev/null");
+    if (is_string($ids) && trim($ids) !== '') {
+        $list = preg_split('/\s+/', trim($ids)) ?: [];
+        foreach ($list as $id) {
+            if ($id !== '') {
+                @shell_exec(sprintf('docker %s rm -f %s >/dev/null 2>&1', $hostArg, escapeshellarg($id)));
+            }
+        }
+    }
 }
 
 /**
@@ -103,6 +139,10 @@ function runMigrations(): void
 
 if ($isParallel) {
     if ($isPrimary) {
+        // Clean up orphans from prior hard-killed parallel runs BEFORE starting
+        // a fresh container, so we never accumulate stale labelled containers.
+        pruneOrphanedParallelContainers($dockerHost);
+
         // Primary worker: start the container and write details for siblings
         $pgVersion = getenv('TEST_PG_VERSION') ?: '16-alpine';
 
@@ -142,15 +182,29 @@ if ($isParallel) {
         applyConnection($host, $port);
         runMigrations();
 
-        // Write connection details for sibling workers
-        file_put_contents($cacheFile, json_encode(['host' => $host, 'port' => $port]));
+        // Write connection details for sibling workers. The container id is
+        // stored only for diagnostics — no worker stops the shared container
+        // during its own shutdown (that would race siblings). Cleanup of this
+        // container happens at the START of the next parallel run via
+        // pruneOrphanedParallelContainers().
+        file_put_contents($cacheFile, json_encode([
+            'host' => $host,
+            'port' => $port,
+            'id' => $started->getId(),
+        ]));
 
-        // Clean up the cache file when this process exits
+        // Also remove the cache file on a clean exit so a healthy run leaves no
+        // stale cache for the next run's secondary workers to read by mistake.
         register_shutdown_function(function () use ($cacheFile) {
-            if (file_exists($cacheFile)) {
+            if (is_file($cacheFile)) {
                 @unlink($cacheFile);
             }
         });
+
+        // NOTE: the running container is intentionally NOT stopped here. No
+        // worker can safely stop the shared container during its own shutdown
+        // (racing siblings that are still mid-query). Instead the next parallel
+        // run prunes it at startup via pruneOrphanedParallelContainers() above.
 
         echo "  Testcontainers: PostgreSQL ready at {$host}:{$port} (primary worker)\n";
     } else {
@@ -170,7 +224,7 @@ if ($isParallel) {
         // Small delay to ensure the file is fully written
         usleep(100_000);
 
-        $details = json_decode(file_get_contents($cacheFile), true);
+        $details = json_decode((string) file_get_contents($cacheFile), true);
         if (! $details || ! isset($details['host'], $details['port'])) {
             fwrite(STDERR, "  Testcontainers: invalid cache file from primary worker\n");
             exit(1);
@@ -178,6 +232,8 @@ if ($isParallel) {
 
         applyConnection($details['host'], (int) $details['port']);
 
+        // Secondary workers do NOT stop the shared container on exit — only
+        // the primary created it and only the next run's prune removes it.
         echo "  Testcontainers: reusing PostgreSQL at {$details['host']}:{$details['port']} (worker {$token})\n";
     }
 } else {
@@ -225,6 +281,17 @@ if ($isParallel) {
 
     applyConnection($started->getHost(), $started->getFirstMappedPort());
     runMigrations();
+
+    // Stop the container (and remove it + its anonymous volume via autoRemove)
+    // when the test process exits. register_shutdown_function fires on normal
+    // completion and fatal errors, but NOT on SIGKILL/OOM.
+    register_shutdown_function(function () use ($started) {
+        try {
+            $started->stop();
+        } catch (Throwable) {
+            // Container may already be stopped/removed — ignore.
+        }
+    });
 
     echo "  Testcontainers: PostgreSQL ready at {$started->getHost()}:{$started->getFirstMappedPort()}\n";
 }

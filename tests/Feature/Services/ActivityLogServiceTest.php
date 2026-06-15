@@ -52,13 +52,19 @@ describe('log()', function () {
     });
 
     it('returns null when logging fails', function () {
+        // Clear any rows first so the CHECK constraint can be added (PostgreSQL
+        // rejects ADD CONSTRAINT when existing rows would violate it). Both the
+        // rows and the constraint roll back with DatabaseTransactions (PostgreSQL
+        // DDL is transactional).
+        ActivityLog::query()->delete();
+
         Log::shouldReceive('warning')
             ->once()
             ->with('Activity log write failed', Mockery::on(fn ($ctx) => $ctx['event_type'] === 'review_received'
                 && $ctx['user_id'] === $this->user->id
             ));
 
-        // Add a CHECK constraint that always rejects inserts, forcing a real DB error
+        // Add a CHECK constraint that rejects the insert, forcing a real DB error
         DB::statement("ALTER TABLE activity_logs ADD CONSTRAINT test_fail_check CHECK (event_type != 'review_received')");
 
         $result = $this->service->log(ActivityType::ReviewReceived, $this->user);
@@ -165,6 +171,10 @@ describe('logForParticipants()', function () {
     });
 
     it('does nothing for unsupported subject types', function () {
+        // Clear observer-generated logs so the count assertion is isolated to
+        // this test's logForParticipants() call (matches the sibling test above).
+        ActivityLog::query()->delete();
+
         $user = User::factory()->create();
 
         $this->service->logForParticipants(ActivityType::FollowReceived, $user);

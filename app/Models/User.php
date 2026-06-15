@@ -634,37 +634,53 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
      */
     protected static function transliterate(string $text): string
     {
-        // Apply German-specific expansions BEFORE iconv so that ü→ue survives
-        // transliteration. iconv on many systems (especially macOS) converts
-        // ü to combining-diaeresis + u (e.g. "u) which the post-iconv replacement
-        // cannot match. Pre-expanding avoids this entirely.
-        $germanMap = ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss',
-            'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue'];
-        $text = strtr($text, $germanMap);
+        // Deterministic, platform-independent transliteration.
+        //
+        // The previous implementation pre-expanded only German umlauts and
+        // then relied on iconv('UTF-8', 'ASCII//TRANSLIT') for the rest. iconv's
+        // output is locale- and system-dependent — on macOS it produces
+        // combining-character sequences (e.g. é → 'e with a combining acute)
+        // that the downstream preg_replace strips inconsistently, making
+        // User::generateSlug non-deterministic across platforms. Apply the full
+        // Latin transliteration map here so iconv never sees the common cases.
+        $map = [
+            // German expansions (multi-char)
+            'ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss',
+            'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue',
+            // Nordic
+            'æ' => 'ae', 'ø' => 'oe', 'å' => 'aa',
+            'Æ' => 'Ae', 'Ø' => 'Oe', 'Å' => 'Aa',
+            // Latin accented vowels
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a',
+            'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+            'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o',
+            'ú' => 'u', 'ù' => 'u', 'û' => 'u',
+            'ý' => 'y', 'ÿ' => 'y',
+            'ñ' => 'n', 'ç' => 'c',
+            // Slavic / Central European
+            'ž' => 'z', 'š' => 's', 'č' => 'c', 'ř' => 'r',
+            'ď' => 'd', 'ť' => 't', 'ň' => 'n',
+            'ł' => 'l', 'ś' => 's', 'ź' => 'z',
+            'Ž' => 'Z', 'Š' => 'S', 'Č' => 'C', 'Ř' => 'R',
+            'Ď' => 'D', 'Ť' => 'T', 'Ň' => 'N',
+            'Ł' => 'L', 'Ś' => 'S', 'Ź' => 'Z',
+            // Uppercase accented vowels
+            'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+            'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A',
+            'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
+            'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O',
+            'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U',
+            'Ý' => 'Y', 'Ñ' => 'N', 'Ç' => 'C',
+        ];
+        $text = strtr($text, $map);
 
-        // iconv with //TRANSLIT handles locale-aware transliteration for remaining chars
+        // iconv handles any remaining characters the map doesn't cover.
+        // Worst case (no TRANSLIT support / unmappable char) it returns false
+        // and we keep the pre-mapped text as-is.
         $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
 
-        // Fallback if iconv fails
-        if ($transliterated === false) {
-            $map = [
-                'æ' => 'ae', 'ø' => 'oe', 'å' => 'aa',
-                'Æ' => 'Ae', 'Ø' => 'Oe', 'Å' => 'Aa',
-                'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
-                'á' => 'a', 'à' => 'a', 'â' => 'a',
-                'í' => 'i', 'ì' => 'i', 'î' => 'i',
-                'ó' => 'o', 'ò' => 'o', 'ô' => 'o',
-                'ú' => 'u', 'ù' => 'u', 'û' => 'u',
-                'ñ' => 'n', 'ç' => 'c',
-                'ž' => 'z', 'š' => 's', 'č' => 'c', 'ř' => 'r',
-                'ď' => 'd', 'ť' => 't', 'ň' => 'n',
-                'ł' => 'l', 'ś' => 's', 'ź' => 'z',
-            ];
-
-            return strtr($text, $map);
-        }
-
-        return $transliterated;
+        return $transliterated !== false ? $transliterated : $text;
     }
 
     /**

@@ -30,6 +30,13 @@ class DashboardSmartPromptServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Default to Thursday so the empty_week prompt (Priority 4, fires
+        // Mon–Wed when the week is empty) cannot preempt the lower-priority
+        // prompts under test here. Tests that explicitly assert empty_week
+        // behaviour override this with their own travelTo().
+        $this->travelTo(now()->startOfWeek()->addDays(3)); // Thursday
+
         $cacheService = $this->createMock(DashboardCacheService::class);
         $cacheService->method('getWeekData')->willReturn([
             'summary' => ['total' => 0],
