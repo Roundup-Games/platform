@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
+    // Default to Thursday so the empty_week smart prompt (Priority 4, fires
+    // Mon-Wed when the week is empty) cannot shadow the prompts under test.
+    $this->travelTo(now()->startOfWeek()->addDays(3)); // Thursday
+
     $this->user = User::factory()->create();
     $this->actingAs($this->user);
     Cache::flush();

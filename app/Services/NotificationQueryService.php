@@ -215,6 +215,18 @@ class NotificationQueryService
             }
         }
 
+        // Stabilize actor ordering within each group. Notifications that arrive
+        // in the same second (common — e.g. a burst of follows) tie on
+        // created_at, and ORDER BY created_at DESC is non-deterministic under
+        // ties, so actorNames (and therefore displayString) can vary between
+        // page loads. Sorting alphabetically makes the display string
+        // deterministic for both tests and real users.
+        foreach ($groups as $group) {
+            if (count($group->actorNames) > 1) {
+                array_multisort($group->actorNames, $group->actorIds, SORT_ASC, SORT_STRING);
+            }
+        }
+
         // Batch-resolve actor user IDs to profile URLs (single query)
         $actorIds = [];
         foreach ($groups as $g) {
