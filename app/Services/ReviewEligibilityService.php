@@ -71,8 +71,9 @@ class ReviewEligibilityService
      * they were an approved participant of a completed game or campaign session
      * at that location. The single authority LocationDisclosureService::
      * isPublicVenuePage() gates first so the "what counts as a public venue"
-     * rule (MEM717 — verified commercial only) can never drift from the venue
-     * 404 gate, the <x-venue-link> affordance, and the sitemap.
+     * rule (verified OR admin-managed commercial — broadened in S04; MEM717
+     * keeps private locations out of every public surface) can never drift
+     * from the venue 404 gate, the <x-venue-link> affordance, and the sitemap.
      *
      * Per D085(2) game hosts and the venue's managed_by operator are NOT
      * excluded — eligibility is purely approved-participant-of-completed-
@@ -80,7 +81,9 @@ class ReviewEligibilityService
      */
     public function canReviewVenue(User $user, Location $location): bool
     {
-        // (a) Single-authority gate: only verified commercial venues are reviewable.
+        // (a) Single-authority gate: verified OR admin-managed commercial venues
+        //     are reviewable (delegates to isPublicVenuePage, the same authority
+        //     used by the venue 404 gate, <x-venue-link>, and the sitemap).
         if (! app(LocationDisclosureService::class)->isPublicVenuePage($location)) {
             return false;
         }
