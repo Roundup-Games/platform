@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -49,6 +50,7 @@ class SeoCacheService
         'campaigns',
         'teams',
         'profiles',
+        'venues',
     ];
 
     /** @var array<string, class-string> Maps sitemap type to the model class that triggers invalidation */
@@ -59,6 +61,7 @@ class SeoCacheService
         'campaigns' => Campaign::class,
         'teams' => Team::class,
         'profiles' => User::class,
+        'venues' => Location::class,
     ];
 
     // ── Read methods ───────────────────────────────────

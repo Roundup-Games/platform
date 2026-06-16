@@ -532,6 +532,193 @@ class LocationDisclosureServiceTest extends TestCase
     }
 
     // ══════════════════════════════════════════════════
+    //  STRANGER PREVIEW (T08 organizer picker preview)
+    // ══════════════════════════════════════════════════
+
+    #[Test]
+    public function stranger_preview_is_exact_for_every_commercial_type(): void
+    {
+        foreach ($this->commercialVenueTypes() as $venueType) {
+            $location = $this->location($venueType, verified: true);
+
+            $this->assertEquals(
+                DisclosureLevel::Exact,
+                $this->service->strangerPreviewLevel($location),
+                "Venue type {$venueType->value} should preview as exact for a stranger."
+            );
+        }
+    }
+
+    #[Test]
+    public function stranger_preview_is_area_for_private_location(): void
+    {
+        $private = $this->location(type: null, verified: false);
+
+        $this->assertEquals(DisclosureLevel::Area, $this->service->strangerPreviewLevel($private));
+    }
+
+    #[Test]
+    public function stranger_preview_is_area_for_unverified_commercial_type(): void
+    {
+        $unverifiedCafe = $this->location(VenueType::Cafe, verified: false);
+
+        $this->assertEquals(DisclosureLevel::Area, $this->service->strangerPreviewLevel($unverifiedCafe));
+    }
+
+    #[Test]
+    public function stranger_preview_is_area_for_other_venue_type_even_when_verified(): void
+    {
+        $verifiedOther = $this->location(VenueType::Other, verified: true);
+
+        $this->assertEquals(DisclosureLevel::Area, $this->service->strangerPreviewLevel($verifiedOther));
+    }
+
+    #[Test]
+    public function stranger_preview_is_area_for_verified_location_missing_venue_type(): void
+    {
+        // Fail-closed: verified flag set but no type → never exact.
+        $anomalous = $this->location(type: null, verified: true);
+
+        $this->assertEquals(DisclosureLevel::Area, $this->service->strangerPreviewLevel($anomalous));
+    }
+
+    #[Test]
+    public function stranger_preview_is_area_for_null_location(): void
+    {
+        $this->assertEquals(DisclosureLevel::Area, $this->service->strangerPreviewLevel(null));
+    }
+
+    #[Test]
+    public function stranger_preview_matches_guest_address_level_for_every_location_nature(): void
+    {
+        // The preview must be consistent with what a guest actually sees via
+        // addressLevel(). This is the core safety contract of T08: the preview
+        // can never over-disclose relative to the real rendered value.
+        $owner = User::factory()->create();
+        $game = $this->game($owner);
+
+        $cases = [
+            'verified cafe' => $this->location(VenueType::Cafe, verified: true),
+            'verified other' => $this->location(VenueType::Other, verified: true),
+            'unverified cafe' => $this->location(VenueType::Cafe, verified: false),
+            'private home' => $this->location(type: null, verified: false),
+            'verified missing type' => $this->location(type: null, verified: true),
+        ];
+
+        foreach ($cases as $label => $location) {
+            $this->assertEquals(
+                $this->service->addressLevel($location, null, $game),
+                $this->service->strangerPreviewLevel($location),
+                "Preview for '{$label}' must match what a guest actually sees."
+            );
+        }
+    }
+
+    // ══════════════════════════════════════════════════
+    //  PUBLIC VENUE PAGE ELIGIBILITY (S02/T01 — MEM717)
+    //  isPublicVenuePage() is the single authority for "what counts as a
+    //  public venue page". It mirrors the VenueType × verification × null
+    //  matrix of addressLevel()'s public-venue branch: true only for verified
+    //  + commercial VenueType; false for unverified, Other, null venue_type,
+    //  null location, and the managed_by-set-but-unverified case (S04 broadens
+    //  the latter later by editing ONLY isPublicVenuePage()).
+    // ══════════════════════════════════════════════════
+
+    #[Test]
+    public function is_public_venue_page_is_true_for_every_verified_commercial_type(): void
+    {
+        foreach ($this->commercialVenueTypes() as $venueType) {
+            $location = $this->location($venueType, verified: true);
+
+            $this->assertTrue(
+                $this->service->isPublicVenuePage($location),
+                "Venue type {$venueType->value} should be a public venue page."
+            );
+        }
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_false_for_unverified_commercial_type(): void
+    {
+        $unverifiedCafe = $this->location(VenueType::Cafe, verified: false);
+
+        $this->assertFalse($this->service->isPublicVenuePage($unverifiedCafe));
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_false_for_other_venue_type_even_when_verified(): void
+    {
+        $verifiedOther = $this->location(VenueType::Other, verified: true);
+
+        $this->assertFalse($this->service->isPublicVenuePage($verifiedOther));
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_false_for_null_venue_type_even_when_verified(): void
+    {
+        // Anomalous: verified flag set but no venue type → fail-closed.
+        $anomalous = $this->location(type: null, verified: true);
+
+        $this->assertFalse($this->service->isPublicVenuePage($anomalous));
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_false_for_private_home(): void
+    {
+        $private = $this->location(type: null, verified: false);
+
+        $this->assertFalse($this->service->isPublicVenuePage($private));
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_false_for_null_location(): void
+    {
+        $this->assertFalse($this->service->isPublicVenuePage(null));
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_false_for_managed_but_unverified_venue(): void
+    {
+        // S04 broadens eligibility to admin-managed venues by editing ONLY
+        // isPublicVenuePage(). Until then a managed_by link alone — without
+        // verification — does NOT grant a public venue page.
+        $managedUnverified = Location::factory()->create([
+            'venue_type' => VenueType::Cafe->value,
+            'is_verified' => false,
+            'managed_by' => User::factory()->create()->id,
+        ]);
+
+        $this->assertFalse($this->service->isPublicVenuePage($managedUnverified));
+    }
+
+    #[Test]
+    public function is_public_venue_page_matches_stranger_preview_exact_branch_for_every_location_nature(): void
+    {
+        // isPublicVenuePage() and the Exact branch of strangerPreviewLevel()
+        // are the same decision ("is this a verified commercial venue"), so
+        // they must agree for every location nature. This guards against drift
+        // when S04 broadens the rule.
+        foreach ($this->commercialVenueTypes() as $venueType) {
+            $location = $this->location($venueType, verified: true);
+            $this->assertSame(
+                $this->service->isPublicVenuePage($location),
+                $this->service->strangerPreviewLevel($location) === DisclosureLevel::Exact,
+                "isPublicVenuePage must agree with strangerPreview Exact for {$venueType->value}."
+            );
+        }
+
+        foreach ([$this->location(VenueType::Other, verified: true),
+            $this->location(VenueType::Cafe, verified: false),
+            $this->location(type: null, verified: false),
+            $this->location(type: null, verified: true)] as $location) {
+            $this->assertFalse(
+                $this->service->isPublicVenuePage($location),
+                'Non-commercial natures must not be public venue pages.'
+            );
+        }
+    }
+
+    // ══════════════════════════════════════════════════
     //  Value objects
     // ══════════════════════════════════════════════════
 

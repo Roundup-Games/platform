@@ -147,11 +147,12 @@ describe('Accessor methods', function () {
             'campaigns',
             'teams',
             'profiles',
+            'venues',
         ]);
     });
 
     it('validates correct sitemap types', function () {
-        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles'] as $type) {
+        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'] as $type) {
             expect($this->service->isValidType($type))->toBeTrue();
         }
     });

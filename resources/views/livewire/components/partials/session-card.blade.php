@@ -78,6 +78,17 @@
             </div>
         @endif
 
+        {{-- Venue-name → venue-page link (M053/S02/T03 demo entry point).
+             Renders nothing for private/unverified/`other` locations — no name
+             chip, no leak — so strangers see only the disclosure-governed
+             distance/address, never a private home's name. --}}
+        @if($entity->relationLoaded('linkedLocation') && $entity->linkedLocation)
+            <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
+                <span class="material-symbols-outlined text-sm" aria-hidden="true">storefront</span>
+                <x-venue-link :location="$entity->linkedLocation" />
+            </div>
+        @endif
+
         {{-- Player slots --}}
         <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
             <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>

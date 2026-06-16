@@ -71,6 +71,11 @@
             @endif
             @if($game->relationLoaded('linkedLocation') && $game->linkedLocation)
                 <x-location-display :entity="$game" :location="$game->linkedLocation" />
+                {{-- M053/S02/T03: venue-name → venue-page link. Renders nothing for
+                     private/unverified/`other` locations (no name leak), so no
+                     external wrapper/icon is needed. Light class: hero is
+                     bg-primary text-on-primary. --}}
+                <x-venue-link :location="$game->linkedLocation" class="hover:underline text-on-primary" />
             @endif
             {{-- M053/S1/T02: address granularity now flows through the single
                  <x-location-display> component (LocationDisclosureService), the

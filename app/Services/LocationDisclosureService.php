@@ -99,6 +99,53 @@ class LocationDisclosureService
     }
 
     /**
+     * The single authority for "what counts as a public venue page" (MEM717).
+     *
+     * True only for verified commercial venues. This is the one gate consumed
+     * by the VenueDetail 404 route, the <x-venue-link> affordance, and the
+     * venues sitemap — every surface that must decide "does this location get
+     * a public page / a clickable name / an indexed entry" routes through
+     * here so the rule can never drift across surfaces.
+     *
+     * S04 broadens this to admin-managed venues by editing ONLY this method;
+     * consumers stay unchanged. No LocationPolicy is introduced because the
+     * rule is "is a public venue", a property of the location's nature, not a
+     * per-viewer authorization decision.
+     */
+    public function isPublicVenuePage(?Location $location): bool
+    {
+        return $this->isVerifiedCommercialVenue($location);
+    }
+
+    /**
+     * Compute the disclosure level a stranger (unauthenticated / unrelated
+     * viewer) would see for a location — the organizer's picker preview (T08).
+     *
+     * This is the guest branch of {@see addressLevel()} surfaced as a preview
+     * helper: it takes no Game|Campaign entity because a stranger's disclosure
+     * depends solely on the location's nature, never on an owner relationship.
+     * It reuses the private {@see isVerifiedCommercialVenue()} primitive so the
+     * "what counts as a public venue" decision stays in one place.
+     *
+     *   Verified commercial venue → Exact (full address)
+     *   Everything else (private, unverified, 'other', null) → Area
+     *
+     * Fail-closed: a null/unresolvable location or a verified-but-untyped
+     * location returns Area (never Exact), exactly matching what a stranger
+     * actually sees through addressLevel(). This MUST stay consistent with the
+     * guest branch of addressLevel() — the preview must never over-disclose
+     * relative to the real rendered value.
+     */
+    public function strangerPreviewLevel(?Location $location): DisclosureLevel
+    {
+        if ($this->isVerifiedCommercialVenue($location)) {
+            return DisclosureLevel::Exact;
+        }
+
+        return DisclosureLevel::Area;
+    }
+
+    /**
      * Resolve the distance display value for a location as seen by a viewer.
      *
      * Precise distance is permitted only for verified commercial venues (public

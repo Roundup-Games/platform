@@ -62,6 +62,9 @@
                 @endif
                 @if($campaign->relationLoaded('linkedLocation') && $campaign->linkedLocation)
                     <x-location-display :entity="$campaign" :location="$campaign->linkedLocation" />
+                    {{-- M053/S02/T03: venue-name → venue-page link. Renders nothing for
+                         private/unverified/`other` locations (no name leak). --}}
+                    <x-venue-link :location="$campaign->linkedLocation" class="hover:underline text-on-primary" />
                 @endif
                 {{-- M053/S1/T02: address granularity via <x-location-display>
                      (LocationDisclosureService). Legacy `location` JSON

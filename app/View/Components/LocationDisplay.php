@@ -77,6 +77,23 @@ class LocationDisplay extends Component
             return;
         }
 
+        // Venue-direct path (M053/S02): the public venue page passes a bare
+        // Location with no Game|Campaign entity — a venue page is inherently a
+        // stranger/public directory view, so disclosure resolves through
+        // strangerPreviewLevel(). That yields Exact (fullAddress) for verified
+        // commercial venues — the only locations that ever reach this path, since
+        // VenueDetail::mount() 404s everything else — and Area (or None) for any
+        // anomaly, which renders nothing via resolveGraduatedLine (fail-closed).
+        // Keeps the venue page out of raw address attributes entirely.
+        if ($location !== null) {
+            $level = app(LocationDisclosureService::class)
+                ->strangerPreviewLevel($location);
+
+            $this->addressLine = $this->resolveGraduatedLine($level, $location);
+
+            return;
+        }
+
         // Raw-city path (T06): compose the provided city-level fields. A caller
         // may pass a single pre-composed `$city` string (verbatim) or multiple
         // parts (composed here with ", "). filled() drops nulls/empties so a

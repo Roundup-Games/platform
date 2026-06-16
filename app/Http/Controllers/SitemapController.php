@@ -9,6 +9,7 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\SeoCacheService;
@@ -59,6 +60,7 @@ class SitemapController extends Controller
         'campaigns' => '0.8',
         'teams' => '0.6',
         'profiles' => '0.5',
+        'venues' => '0.7',
     ];
 
     /**
@@ -72,6 +74,7 @@ class SitemapController extends Controller
         'campaigns' => 'weekly',
         'teams' => 'weekly',
         'profiles' => 'weekly',
+        'venues' => 'weekly',
     ];
 
     public function __construct(
@@ -178,6 +181,10 @@ class SitemapController extends Controller
                 ->where('is_disabled', false)
                 ->whereNull('anonymized_at')
                 ->orderByDesc('updated_at'),
+            'venues' => Location::where('is_verified', true)
+                ->whereIn('venue_type', self::COMMERCIAL_VENUE_TYPES)
+                ->whereNotNull('slug')
+                ->orderByDesc('updated_at'),
             default => null,
         };
 
@@ -202,6 +209,7 @@ class SitemapController extends Controller
             'campaigns' => $this->getCampaignEntries(),
             'teams' => $this->getTeamEntries(),
             'profiles' => $this->getProfileEntries(),
+            'venues' => $this->getVenueEntries(),
             default => [],
         };
 
@@ -411,6 +419,55 @@ class SitemapController extends Controller
                     'lastmod' => $user->updated_at?->toDateString() ?? now()->toDateString(),
                     'changefreq' => self::TYPE_CHANGEFREQ['profiles'],
                     'priority' => self::TYPE_PRIORITIES['profiles'],
+                ];
+            }
+        }
+
+        return $entries;
+    }
+
+    // ── Venues ─────────────────────────────────────────
+
+    /**
+     * Venue types that count as public commercial venues when verified.
+     *
+     * MUST stay in sync with LocationDisclosureService::COMMERCIAL_VENUE_TYPES
+     * (the public-venue-page eligibility authority). Sitemap entries are a
+     * crawler-visible mirror of isPublicVenuePage(), so the two lists must
+     * never drift — private/unverified/`other` locations are never indexable.
+     */
+    private const COMMERCIAL_VENUE_TYPES = [
+        'cafe',
+        'flgs',
+        'library',
+        'community_center',
+        'convention',
+        'bar',
+    ];
+
+    /**
+     * @return array<int, array{loc: string, lastmod: string, changefreq: string, priority: string}>
+     */
+    private function getVenueEntries(): array
+    {
+        $baseUrl = $this->baseUrl();
+        $entries = [];
+
+        $venues = Location::where('is_verified', true)
+            ->whereIn('venue_type', self::COMMERCIAL_VENUE_TYPES)
+            ->whereNotNull('slug')
+            ->select('slug', 'updated_at')
+            ->orderByDesc('updated_at')
+            ->limit(self::MAX_ENTITIES_PER_SITEMAP)
+            ->get();
+
+        foreach ($venues as $venue) {
+            foreach ($this->locales() as $locale) {
+                $entries[] = [
+                    'loc' => "{$baseUrl}/{$locale}/venue/{$venue->slug}",
+                    'lastmod' => $venue->updated_at?->toDateString() ?? now()->toDateString(),
+                    'changefreq' => self::TYPE_CHANGEFREQ['venues'],
+                    'priority' => self::TYPE_PRIORITIES['venues'],
                 ];
             }
         }
