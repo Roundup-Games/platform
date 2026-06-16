@@ -38,10 +38,13 @@ use Spatie\SchemaOrg\PostalAddress;
  * @property VenueType|null $venue_type
  * @property array<string, mixed>|null $venue_metadata
  * @property string|null $website_url
- * @property int|null $managed_by
+ * @property string|null $managed_by
  * @property string|null $venue_notes
  * @property float|null $average_rating
  * @property int $review_count
+ * @property string $drift_status
+ * @property Carbon|null $drift_detected_at
+ * @property array<string, mixed>|null $drift_metadata
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -79,6 +82,9 @@ class Location extends Model
         'venue_metadata',
         'average_rating',
         'review_count',
+        'drift_status',
+        'drift_detected_at',
+        'drift_metadata',
     ];
 
     protected function casts(): array
@@ -92,6 +98,9 @@ class Location extends Model
             'venue_metadata' => 'array',
             'average_rating' => 'decimal:2',
             'review_count' => 'integer',
+            'drift_status' => 'string',
+            'drift_detected_at' => 'datetime',
+            'drift_metadata' => 'array',
         ];
     }
 

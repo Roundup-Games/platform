@@ -55,6 +55,18 @@
                         </a>
                     </span>
                 @endif
+
+                {{-- Claim-this-venue affordance (M053/S04/T04): only for
+                     authenticated visitors when the venue has no manager yet.
+                     Managed venues show the manager instead (block above). --}}
+                @if(auth()->check() && $location->managed_by === null)
+                    <a href="{{ route('venues.claim', ['locale' => app()->getLocale(), 'slug' => $location->slug]) }}"
+                       wire:navigate
+                       class="inline-flex items-center gap-1.5 text-primary hover:underline">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">verified_user</span>
+                        {{ __('venue.action_claim_venue') }}
+                    </a>
+                @endif
             </div>
         </div>
     </section>

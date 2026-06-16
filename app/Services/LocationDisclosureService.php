@@ -101,20 +101,31 @@ class LocationDisclosureService
     /**
      * The single authority for "what counts as a public venue page" (MEM717).
      *
-     * True only for verified commercial venues. This is the one gate consumed
-     * by the VenueDetail 404 route, the <x-venue-link> affordance, and the
-     * venues sitemap — every surface that must decide "does this location get
-     * a public page / a clickable name / an indexed entry" routes through
-     * here so the rule can never drift across surfaces.
+     * True for verified commercial venues OR admin-managed commercial venues
+     * (a claim-a-venue approval sets managed_by, S04/T02). Both branches gate
+     * on a commercial VenueType and fail closed on a null type, so `Other`,
+     * private (null type), and a null location always return false — a
+     * managed_by link alone never grants a page to a non-commercial nature.
      *
-     * S04 broadens this to admin-managed venues by editing ONLY this method;
-     * consumers stay unchanged. No LocationPolicy is introduced because the
-     * rule is "is a public venue", a property of the location's nature, not a
-     * per-viewer authorization decision.
+     * This is the one gate consumed by the VenueDetail 404 route, the
+     * <x-venue-link> affordance, and the venues sitemap — every surface that
+     * must decide "does this location get a public page / a clickable name / an
+     * indexed entry" routes through here so the rule can never drift across
+     * surfaces.
+     *
+     * Page eligibility is deliberately decoupled from address disclosure:
+     * {@see addressLevel()} / {@see DistanceDisplay()} / {@see
+     * strangerPreviewLevel()} still grant exact/precise values only for
+     * *verified* commercial venues. A managed-but-unverified venue gets a
+     * public page, but its address granularity is governed by those methods
+     * independently. No LocationPolicy is introduced because the rule is "is a
+     * public venue", a property of the location's nature, not a per-viewer
+     * authorization decision.
      */
     public function isPublicVenuePage(?Location $location): bool
     {
-        return $this->isVerifiedCommercialVenue($location);
+        return $this->isVerifiedCommercialVenue($location)
+            || $this->isManagedCommercialVenue($location);
     }
 
     /**
@@ -218,6 +229,39 @@ class LocationDisclosureService
         }
 
         if (! $isVerified) {
+            return false;
+        }
+
+        return in_array($venueType, self::COMMERCIAL_VENUE_TYPES, true);
+    }
+
+    /**
+     * True only when the location is an *admin-managed* commercial venue type
+     * (managed_by set by a claim-a-venue approval, S04/T02).
+     *
+     * Mirrors {@see isVerifiedCommercialVenue()} exactly, but tests
+     * managed_by !== null instead of is_verified. The commercial-type gate
+     * and the fail-closed-on-null-venue-type behavior are identical, so a
+     * managed_by link alone never grants page eligibility to a non-commercial
+     * nature (`Other`, private/null type). Verification is intentionally NOT
+     * required here — admin stewardship is the independent second path to a
+     * public page alongside organic verification.
+     */
+    private function isManagedCommercialVenue(?Location $location): bool
+    {
+        if ($location === null) {
+            return false;
+        }
+
+        $venueType = $location->venue_type;
+
+        // Fail closed first on any missing venue type — a null type can never
+        // qualify as a managed commercial venue, regardless of managed_by.
+        if ($venueType === null) {
+            return false;
+        }
+
+        if ($location->managed_by === null) {
             return false;
         }
 

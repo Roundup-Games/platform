@@ -677,36 +677,122 @@ class LocationDisclosureServiceTest extends TestCase
     }
 
     #[Test]
-    public function is_public_venue_page_is_false_for_managed_but_unverified_venue(): void
+    public function is_public_venue_page_is_true_for_managed_commercial_venue_for_every_commercial_type(): void
     {
-        // S04 broadens eligibility to admin-managed venues by editing ONLY
-        // isPublicVenuePage(). Until then a managed_by link alone — without
-        // verification — does NOT grant a public venue page.
+        // S04/T01 broadens eligibility: an admin-managed commercial venue gets
+        // a public venue page even without organic verification. A claim-a-venue
+        // approval sets managed_by (T02); this is the second, independent path
+        // to a public page alongside verification.
+        foreach ($this->commercialVenueTypes() as $venueType) {
+            $managedUnverified = Location::factory()->create([
+                'venue_type' => $venueType->value,
+                'is_verified' => false,
+                'managed_by' => User::factory()->create()->id,
+            ]);
+
+            $this->assertTrue(
+                $this->service->isPublicVenuePage($managedUnverified),
+                "Managed unverified venue type {$venueType->value} should be a public venue page."
+            );
+        }
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_true_for_managed_and_verified_commercial_venue(): void
+    {
+        // Both eligibility branches can apply at once; managed_by must never
+        // DISQUALIFY a venue that is also verified.
+        $managedVerified = Location::factory()->create([
+            'venue_type' => VenueType::Cafe->value,
+            'is_verified' => true,
+            'managed_by' => User::factory()->create()->id,
+        ]);
+
+        $this->assertTrue($this->service->isPublicVenuePage($managedVerified));
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_false_for_managed_other_venue_type(): void
+    {
+        // MEM717 preserved: managed_by alone never grants a page to a
+        // non-commercial nature. `Other` stays excluded even when managed.
+        $managedOther = Location::factory()->create([
+            'venue_type' => VenueType::Other->value,
+            'is_verified' => false,
+            'managed_by' => User::factory()->create()->id,
+        ]);
+
+        $this->assertFalse($this->service->isPublicVenuePage($managedOther));
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_false_for_managed_private_null_venue_type(): void
+    {
+        // A private home (null venue type) is never a public venue, even when
+        // an admin links a manager. Fail-closed on the missing type.
+        $managedPrivate = Location::factory()->create([
+            'venue_type' => null,
+            'is_verified' => false,
+            'managed_by' => User::factory()->create()->id,
+        ]);
+
+        $this->assertFalse($this->service->isPublicVenuePage($managedPrivate));
+    }
+
+    #[Test]
+    public function is_public_venue_page_is_false_for_commercial_venue_with_null_managed_by_and_unverified(): void
+    {
+        // A commercial venue that is neither verified nor managed gets no page.
+        $unmanagedUnverified = Location::factory()->create([
+            'venue_type' => VenueType::Cafe->value,
+            'is_verified' => false,
+            'managed_by' => null,
+        ]);
+
+        $this->assertFalse($this->service->isPublicVenuePage($unmanagedUnverified));
+    }
+
+    #[Test]
+    public function stranger_preview_exact_implies_public_venue_page_but_not_conversely_after_s04(): void
+    {
+        // Directional invariant after S04: strangerPreviewLevel() === Exact (a
+        // stranger would see the exact address) IMPLIES isPublicVenuePage() ===
+        // true, because the Exact preview still requires a *verified* commercial
+        // venue, which is itself page-eligible. The CONVERSE no longer holds by
+        // design: a managed-but-unverified commercial venue is page-eligible
+        // but previews as Area — page eligibility was deliberately decoupled
+        // from address disclosure (see the isPublicVenuePage() docblock). This
+        // pins both halves of the safety contract.
+
+        // Verified commercial → preview Exact AND page true (agree).
+        foreach ($this->commercialVenueTypes() as $venueType) {
+            $location = $this->location($venueType, verified: true);
+            $this->assertSame(
+                DisclosureLevel::Exact,
+                $this->service->strangerPreviewLevel($location),
+                "Verified {$venueType->value} should preview Exact."
+            );
+            $this->assertTrue(
+                $this->service->isPublicVenuePage($location),
+                "Verified {$venueType->value} should be a public venue page."
+            );
+        }
+
+        // Managed-but-unverified commercial → page true, preview Area (the
+        // decoupling: the page exists but a stranger does not see the address).
         $managedUnverified = Location::factory()->create([
             'venue_type' => VenueType::Cafe->value,
             'is_verified' => false,
             'managed_by' => User::factory()->create()->id,
         ]);
+        $this->assertTrue($this->service->isPublicVenuePage($managedUnverified));
+        $this->assertSame(
+            DisclosureLevel::Area,
+            $this->service->strangerPreviewLevel($managedUnverified),
+            'Managed-but-unverified venue previews as Area: page eligibility does not grant exact address disclosure.'
+        );
 
-        $this->assertFalse($this->service->isPublicVenuePage($managedUnverified));
-    }
-
-    #[Test]
-    public function is_public_venue_page_matches_stranger_preview_exact_branch_for_every_location_nature(): void
-    {
-        // isPublicVenuePage() and the Exact branch of strangerPreviewLevel()
-        // are the same decision ("is this a verified commercial venue"), so
-        // they must agree for every location nature. This guards against drift
-        // when S04 broadens the rule.
-        foreach ($this->commercialVenueTypes() as $venueType) {
-            $location = $this->location($venueType, verified: true);
-            $this->assertSame(
-                $this->service->isPublicVenuePage($location),
-                $this->service->strangerPreviewLevel($location) === DisclosureLevel::Exact,
-                "isPublicVenuePage must agree with strangerPreview Exact for {$venueType->value}."
-            );
-        }
-
+        // Non-commercial natures → page false AND preview Area (agree on "no").
         foreach ([$this->location(VenueType::Other, verified: true),
             $this->location(VenueType::Cafe, verified: false),
             $this->location(type: null, verified: false),
@@ -714,6 +800,11 @@ class LocationDisclosureServiceTest extends TestCase
             $this->assertFalse(
                 $this->service->isPublicVenuePage($location),
                 'Non-commercial natures must not be public venue pages.'
+            );
+            $this->assertSame(
+                DisclosureLevel::Area,
+                $this->service->strangerPreviewLevel($location),
+                'Non-commercial natures preview as Area.'
             );
         }
     }

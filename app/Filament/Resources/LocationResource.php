@@ -130,6 +130,16 @@ class LocationResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(30),
+                TextColumn::make('drift_status')
+                    ->label('Drift')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'duplicate' => 'warning',
+                        'stale_geocode' => 'danger',
+                        default => 'gray',
+                    })
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('address')
                     ->searchable()
                     ->toggleable(),
@@ -176,6 +186,13 @@ class LocationResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
+                SelectFilter::make('drift_status')
+                    ->label('Drift Status')
+                    ->options([
+                        'clean' => 'Clean',
+                        'duplicate' => 'Duplicate',
+                        'stale_geocode' => 'Stale Geocode',
+                    ]),
                 TernaryFilter::make('is_verified')
                     ->label('Verified'),
                 SelectFilter::make('venue_type')

@@ -60,6 +60,7 @@ use App\Livewire\Teams\ManageRoster;
 use App\Livewire\Teams\ManageTeam;
 use App\Livewire\Teams\PendingInvites;
 use App\Livewire\Teams\TeamDetail;
+use App\Livewire\Venues\ClaimVenue;
 use App\Livewire\Venues\ProposeVenue;
 use App\Livewire\Venues\VenueDetail;
 use App\Models\User;
@@ -291,6 +292,14 @@ Route::prefix('{locale}')
         // via LocationDisclosureService::isPublicVenuePage() (the single authority).
         Route::get('/venue/{slug}', VenueDetail::class)
             ->name('venues.detail')
+            ->where('slug', '[a-zA-Z0-9\-]+');
+
+        // M053/S04/T04: claim-an-existing-venue form. Auth + profile.complete
+        // gated. ClaimVenue::mount() re-runs the same isPublicVenuePage() 404
+        // gate as VenueDetail so only public venue pages are claimable.
+        Route::get('/venue/{slug}/claim', ClaimVenue::class)
+            ->middleware(['auth', 'profile.complete'])
+            ->name('venues.claim')
             ->where('slug', '[a-zA-Z0-9\-]+');
 
         // ── Billing (authenticated) ───────────────────

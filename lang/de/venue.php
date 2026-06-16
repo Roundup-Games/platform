@@ -41,4 +41,23 @@ return [
     'flash_venue_review_submitted' => 'Deine Veranstaltungsort-Bewertung wurde gesendet. Vielen Dank!',
     'validation_venue_rating_required' => 'Bitte wähle eine Bewertung aus.',
     'validation_venue_body_max' => 'Der Bewertungstext darf 2000 Zeichen nicht überschreiten.',
+
+    // ── Veranstaltungsort beanspruchen (M053/S04/T04) ────────────────────────
+    'heading_claim_venue' => 'Veranstaltungsort beanspruchen',
+    'content_claim_subtitle' => 'Sag uns, warum du „:name“ verwalten solltest, und unser Team prüft deinen Antrag.',
+    'field_justification' => 'Warum solltest du diesen Ort verwalten?',
+    'placeholder_justification' => 'z. B. Ich bin Eigentümer / Betreiber dieses Orts und möchte die Seite aktuell halten.',
+    'heading_optional_proof' => 'Optionaler Nachweis',
+    'field_website' => 'Webseite',
+    'placeholder_claim_website' => 'https://example.com',
+    'field_contact_email' => 'Kontakt-E-Mail',
+    'hint_contact_email' => 'Wird nur von unserem Team verwendet, um deine Zugehörigkeit zu diesem Ort zu prüfen.',
+    'action_submit_claim' => 'Antrag einreichen',
+    'action_claim_venue' => 'Diesen Ort beanspruchen',
+    'action_back_to_venue' => 'Zurück zum Veranstaltungsort',
+    'content_claim_success' => 'Dein Antrag wurde eingereicht! Unser Team wird ihn in Kürze prüfen.',
+    'content_claim_reference' => 'Referenz: :reference',
+    'error_claim_duplicate' => 'Du hast bereits einen ausstehenden Antrag für diesen Ort.',
+    'error_claim_rate_limit' => 'Du hast zu viele Anträge eingereicht. Bitte versuche es in :hours Stunden erneut.',
+    'error_claim_submission_failed' => 'Antrag konnte nicht gesendet werden. Bitte versuche es später erneut.',
 ];
