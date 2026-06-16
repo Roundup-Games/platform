@@ -30,4 +30,15 @@ return [
     // Reviews (S03 hook)
     'reviews_heading' => 'Bewertungen',
     'content_reviews_soon' => 'Bewertungen für diesen Veranstaltungsort folgen in Kürze.',
+
+    // Bewertungs-Oberfläche (M053/S03/T04 VenueReviews-Komponente)
+    'content_no_reviews' => 'Noch keine Bewertungen für diesen Veranstaltungsort.',
+    'reviews_count' => ':count Bewertung|:count Bewertungen',
+    'label_your_rating' => 'Deine Bewertung',
+    'placeholder_venue_review' => 'Erzähl uns von deiner Erfahrung an diesem Ort (optional)',
+    'action_submit_venue_review' => 'Bewertung abgeben',
+    'content_not_eligible' => 'Du kannst diesen Veranstaltungsort bewerten, nachdem du an einer abgeschlossenen Sitzung hier teilgenommen hast.',
+    'flash_venue_review_submitted' => 'Deine Veranstaltungsort-Bewertung wurde gesendet. Vielen Dank!',
+    'validation_venue_rating_required' => 'Bitte wähle eine Bewertung aus.',
+    'validation_venue_body_max' => 'Der Bewertungstext darf 2000 Zeichen nicht überschreiten.',
 ];

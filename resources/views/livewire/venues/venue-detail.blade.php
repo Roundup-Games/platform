@@ -177,15 +177,17 @@
             @endif
         </section>
 
-        {{-- ── Reviews hook (S03: venue reviews mount here) ──── --}}
-        {{-- S03 will replace this stub with the real venue-reviews component.
-             Kept as a section now so the page structure is S03-ready. --}}
+        {{-- ── Reviews (S03: venue reviews mount here) ──── --}}
+        {{-- M053/S03/T04: the stub is replaced with the real venue-reviews
+             component — aggregate + list + attended-only write affordance.
+             The section heading (venue.reviews_heading) is the page's own;
+             everything inside the component is self-contained. --}}
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">rate_review</span>
                 {{ __('venue.reviews_heading') }}
             </h2>
-            <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('venue.content_reviews_soon') }}</p>
+            <livewire:reviews.venue-reviews :location="$location" />
         </section>
     </div>
 </div>

@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\Location;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewEligibilityService;
@@ -88,6 +89,16 @@ class ReviewPolicy
     public function canReviewCampaign(User $user, Campaign $campaign): bool
     {
         return $this->eligibilityService->canReviewCampaign($user, $campaign);
+    }
+
+    /**
+     * Can the user review a specific venue (Location)?
+     * Delegates to ReviewEligibilityService for the attended-only /
+     * verified-commercial-venue gate (D081, MEM717).
+     */
+    public function canReviewVenue(User $user, Location $location): bool
+    {
+        return $this->eligibilityService->canReviewVenue($user, $location);
     }
 
     /**

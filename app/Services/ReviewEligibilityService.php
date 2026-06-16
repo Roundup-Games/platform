@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Models\Location;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -61,6 +62,38 @@ class ReviewEligibilityService
         }
 
         return true;
+    }
+
+    /**
+     * Can the given user review the given venue (Location)?
+     *
+     * Attended-only invariant (D081/MEM718): a user may review a venue only if
+     * they were an approved participant of a completed game or campaign session
+     * at that location. The single authority LocationDisclosureService::
+     * isPublicVenuePage() gates first so the "what counts as a public venue"
+     * rule (MEM717 — verified commercial only) can never drift from the venue
+     * 404 gate, the <x-venue-link> affordance, and the sitemap.
+     *
+     * Per D085(2) game hosts and the venue's managed_by operator are NOT
+     * excluded — eligibility is purely approved-participant-of-completed-
+     * session-at-venue.
+     */
+    public function canReviewVenue(User $user, Location $location): bool
+    {
+        // (a) Single-authority gate: only verified commercial venues are reviewable.
+        if (! app(LocationDisclosureService::class)->isPublicVenuePage($location)) {
+            return false;
+        }
+
+        // (b) One review per (user, venue).
+        if ($this->hasAlreadyReviewed($user, Location::class, $location->id)) {
+            return false;
+        }
+
+        // (c) Attended-only: approved participant of a completed game OR
+        //     campaign session that took place at this venue.
+        return $this->isApprovedCompletedGameParticipantAtVenue($user, $location)
+            || $this->isApprovedCompletedCampaignParticipantAtVenue($user, $location);
     }
 
     /**
@@ -175,6 +208,46 @@ class ReviewEligibilityService
     {
         return $campaign->sessions()
             ->where('date_time', '<', now())
+            ->exists();
+    }
+
+    /**
+     * True when the user is an approved participant of a game scheduled at the
+     * given venue whose date_time has passed (MEM735: Approved + past
+     * date_time — the same signal canReviewSession uses).
+     *
+     * Hosts are intentionally NOT excluded (D085(2)).
+     */
+    private function isApprovedCompletedGameParticipantAtVenue(User $user, Location $location): bool
+    {
+        return GameParticipant::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereHas('game', function ($game) use ($location) {
+                $game->where('location_id', $location->id)
+                    ->where('date_time', '<', now());
+            })
+            ->exists();
+    }
+
+    /**
+     * True when the user is an approved participant of a campaign hosted at the
+     * given venue that has at least one completed session (MEM735: reuses the
+     * campaignHasCompletedSession pattern scoped to the campaign).
+     *
+     * Organizers are intentionally NOT excluded (D085(2)).
+     */
+    private function isApprovedCompletedCampaignParticipantAtVenue(User $user, Location $location): bool
+    {
+        return CampaignParticipant::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereHas('campaign', function ($campaign) use ($location) {
+                $campaign->where('location_id', $location->id)
+                    ->whereHas('sessions', function ($session) {
+                        $session->where('date_time', '<', now());
+                    });
+            })
             ->exists();
     }
 }

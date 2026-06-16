@@ -30,4 +30,15 @@ return [
     // Reviews (S03 hook)
     'reviews_heading' => 'Reviews',
     'content_reviews_soon' => 'Reviews for this venue are coming soon.',
+
+    // Reviews surface (M053/S03/T04 VenueReviews component)
+    'content_no_reviews' => 'No reviews for this venue yet.',
+    'reviews_count' => ':count review|:count reviews',
+    'label_your_rating' => 'Your Rating',
+    'placeholder_venue_review' => 'Tell us about your experience at this venue (optional)',
+    'action_submit_venue_review' => 'Leave a Review',
+    'content_not_eligible' => 'You can review this venue after attending a completed session here.',
+    'flash_venue_review_submitted' => 'Your venue review has been submitted. Thank you!',
+    'validation_venue_rating_required' => 'Please select a rating.',
+    'validation_venue_body_max' => 'Review text cannot exceed 2000 characters.',
 ];

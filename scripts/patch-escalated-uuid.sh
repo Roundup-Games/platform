@@ -35,7 +35,14 @@ sed -i.bak -E 's/(public function scope(ForAgent|AssignedTo|ForUser)\(\$query, )
 # Models: instance methods — Ticket
 sed -i.bak -E 's/(public function (isFollowedBy|follow|unfollow)\()int (\$[a-zA-Z]+)/\1\3/g' \
     "$VENDOR_DIR/Models/Ticket.php"
-sed -i.bak -E 's/public function assign\(Model\|int/public function assign(Model|string|int/' \
+# assign(): normalize the union type to Model|string|int. This must be
+# idempotent and self-healing — older versions of this patch appended a
+# redundant "string" onto an upstream signature that had already grown it
+# (e.g. Model|string|int|string), which is a FATAL on PHP 8.5
+# ("Duplicate type string is redundant"). Matching the whole type list and
+# replacing it with the canonical union repairs stale vendor dirs as well
+# as fresh installs.
+sed -i.bak -E 's/public function assign\(Model\|[a-z|]+/public function assign(Model|string|int/' \
     "$VENDOR_DIR/Models/Ticket.php"
 
 # Models: instance methods — Contact, AgentProfile
