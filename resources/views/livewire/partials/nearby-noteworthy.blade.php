@@ -71,9 +71,8 @@
                                 </span>
                             @endif
                             @if($distanceKm !== null)
-                                <span class="text-[11px] text-on-surface-variant flex items-center gap-0.5">
-                                    <span class="material-symbols-outlined text-xs" aria-hidden="true">location_on</span>
-                                    {{ $distanceKm }} {{ __('common.unit_km') }}
+                                <span class="text-[11px] text-on-surface-variant">
+                                    <x-distance-display :precise-km="$distanceKm" grid-snap icon="location_on" />
                                 </span>
                             @endif
                         </div>

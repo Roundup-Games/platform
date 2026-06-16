@@ -76,8 +76,13 @@
                                     <input type="radio" wire:model.live="selectedTeamId" value="{{ $team->id }}" class="text-primary focus:ring-primary/20" />
                                     <div>
                                         <p class="font-medium text-on-surface">{{ $team->name }}</p>
+                                        {{-- M053/S1/T06: routed through <x-location-display> (the sole
+                                             address-rendering authority). This is the viewer's own
+                                             team list; raw-city path renders city as-is. --}}
                                         @if($team->city)
-                                            <p class="text-sm text-on-surface-variant">{{ $team->city }}</p>
+                                            <p class="text-sm text-on-surface-variant">
+                                                <x-location-display :city="$team->city" without-icon />
+                                            </p>
                                         @endif
                                     </div>
                                     @if(!$team->isCaptain(auth()->user()))

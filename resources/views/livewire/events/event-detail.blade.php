@@ -53,11 +53,17 @@
                     @endif
                 </span>
 
-                {{-- Location --}}
-                @if($event->venue_name || $event->city)
-                    <span class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                        {{ collect([$event->venue_name, $event->city, $event->country])->filter()->join(', ') }}
+                {{-- Location — M053/S1/T06: routed through <x-location-display> (the sole
+                     address-rendering authority) so no raw city leaks. Events carry
+                     denormalized fields (no Location owner), so this uses the raw-city
+                     path at City granularity. --}}
+                @if($event->venue_name || $event->city || $event->country)
+                    <span class="inline-flex">
+                        <x-location-display
+                            :venue-name="$event->venue_name"
+                            :city="$event->city"
+                            :country="$event->country"
+                        />
                     </span>
                 @endif
 
@@ -277,21 +283,26 @@
                     </div>
                 </div>
 
-                {{-- Venue Card --}}
-                @if($event->venue_name || $event->venue_address)
+                {{-- Venue Card — M053/S1/T06: the full venue locality (name/address/city/
+                     country/postal) now flows through <x-location-display> (the sole
+                     address-rendering authority). Events carry denormalized fields (no
+                     Location owner), so this uses the raw-city path at City granularity.
+                     without-icon: the card heading carries its own location marker. --}}
+                @if($event->venue_name || $event->venue_address || $event->city || $event->country || $event->postal_code)
                     <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h3 class="font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
                             {{ __('location.content_venue') }}
                         </h3>
-                        <div class="mt-3 text-sm text-on-surface-variant space-y-1">
-                            @if($event->venue_name)
-                                <p class="font-medium text-on-surface">{{ $event->venue_name }}</p>
-                            @endif
-                            @if($event->venue_address)
-                                <p>{{ $event->venue_address }}</p>
-                            @endif
-                            <p>{{ collect([$event->city, $event->country, $event->postal_code])->filter()->join(', ') }}</p>
+                        <div class="mt-3 text-sm text-on-surface-variant">
+                            <x-location-display
+                                :venue-name="$event->venue_name"
+                                :address="$event->venue_address"
+                                :city="$event->city"
+                                :postal-code="$event->postal_code"
+                                :country="$event->country"
+                                without-icon
+                            />
                         </div>
                     </div>
                 @endif

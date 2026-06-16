@@ -186,3 +186,116 @@ it('restores confirmed state on cancel', function () {
         ->assertSet('locationConfirmed', true)
         ->assertSet('editing', false);
 });
+
+// ── Disclosure-Consequence Preview (T08) ────────────────
+
+it('shows the full-address preview for a verified commercial venue', function () {
+    $venue = Location::factory()->create([
+        'is_verified' => true,
+        'venue_type' => VenueType::Cafe,
+        'name' => 'Board Cafe',
+        'address' => '123 Main St',
+        'city' => 'Berlin',
+        'postal_code' => '10115',
+    ]);
+
+    $component = Livewire::test(VenuePicker::class, ['locationId' => $venue->id]);
+
+    // The computed resolves the stranger preview level via the disclosure service.
+    $preview = $component->instance()->disclosurePreview;
+    expect($preview['level'])->toBe('exact')
+        ->and($preview['address'])->toBe('123 Main St, 10115 Berlin');
+
+    // The view renders the consequence line with the full address.
+    $component->assertSee(__('location.content_preview_heading'))
+        ->assertSee(__('location.content_preview_exact', ['address' => '123 Main St, 10115 Berlin']));
+});
+
+it('shows the in-your-area preview for a private address', function () {
+    $private = Location::factory()->create([
+        'is_verified' => false,
+        'venue_type' => null,
+        'name' => 'My Apartment',
+        'address' => '123 Main St',
+        'city' => 'Berlin',
+    ]);
+
+    $component = Livewire::test(VenuePicker::class, ['locationId' => $private->id]);
+
+    $preview = $component->instance()->disclosurePreview;
+    expect($preview['level'])->toBe('area')
+        ->and($preview['address'])->toBeNull();
+
+    $component->assertSee(__('location.content_preview_heading'))
+        ->assertSee(__('location.content_preview_area'))
+        // The exact-address line must NOT appear for a private location.
+        ->assertDontSee(__('location.content_preview_exact', ['address' => '123 Main St']));
+});
+
+it('shows the in-your-area preview for a verified "other" venue type', function () {
+    // VenueType::Other is intentionally excluded from commercial types — a
+    // verified 'other' is treated as private for stranger disclosure.
+    $other = Location::factory()->create([
+        'is_verified' => true,
+        'venue_type' => VenueType::Other,
+        'name' => 'Clubhouse',
+        'address' => '5 Side St',
+        'city' => 'Berlin',
+    ]);
+
+    $component = Livewire::test(VenuePicker::class, ['locationId' => $other->id]);
+
+    $preview = $component->instance()->disclosurePreview;
+    expect($preview['level'])->toBe('area')
+        ->and($preview['address'])->toBeNull();
+
+    $component->assertSee(__('location.content_preview_area'))
+        ->assertDontSee(__('location.content_preview_exact', ['address' => '5 Side St']));
+});
+
+it('does not render the preview before a location is confirmed', function () {
+    // No location selected → no preview.
+    Livewire::test(VenuePicker::class)
+        ->assertDontSee(__('location.content_preview_heading'))
+        ->assertDontSee(__('location.content_preview_area'))
+        ->assertDontSee(__('location.content_preview_exact', ['address' => '']));
+});
+
+it('updates the preview when switching from a private to a verified venue', function () {
+    $private = Location::factory()->create([
+        'is_verified' => false,
+        'venue_type' => null,
+        'city' => 'Berlin',
+    ]);
+    $venue = Location::factory()->create([
+        'is_verified' => true,
+        'venue_type' => VenueType::Cafe,
+        'name' => 'Board Cafe',
+        'address' => '123 Main St',
+        'city' => 'Berlin',
+        'latitude' => 52.52,
+        'longitude' => 13.41,
+    ]);
+
+    $component = Livewire::test(VenuePicker::class, ['locationId' => $private->id])
+        ->assertSee(__('location.content_preview_area'));
+
+    // Switch to the verified venue.
+    $component->call('startEditing')
+        ->call('selectVenue', $venue->id)
+        ->assertSee(__('location.content_preview_exact', ['address' => $venue->fresh()->fullAddress()]));
+});
+
+it('renders the preview with an aria-hidden decorative icon', function () {
+    // Decorative icons must carry aria-hidden per the a11y convention.
+    $venue = Location::factory()->create([
+        'is_verified' => true,
+        'venue_type' => VenueType::Cafe,
+        'name' => 'Board Cafe',
+        'address' => '123 Main St',
+        'city' => 'Berlin',
+    ]);
+
+    Livewire::test(VenuePicker::class, ['locationId' => $venue->id])
+        ->assertSeeHtml('aria-hidden="true"');
+});

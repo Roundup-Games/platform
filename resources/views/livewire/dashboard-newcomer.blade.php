@@ -161,10 +161,10 @@
                         </span>
                     @endif
 
-                    {{-- Distance --}}
+                    {{-- Distance (D060 grid-snap; cached array has no Location model) --}}
                     @if($game['distance_km'] ?? null)
                         <p class="text-[10px] text-on-surface-variant mt-1.5">
-                            {{ $game['distance_km'] }} {{ __('common.unit_km') }}
+                            <x-distance-display :precise-km="$game['distance_km']" grid-snap icon="" />
                         </p>
                     @endif
                 </div>

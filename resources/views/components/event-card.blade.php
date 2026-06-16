@@ -38,11 +38,13 @@
                     @endif
                 </div>
 
-                {{-- Location --}}
-                @if($event->city)
-                    <div class="flex items-center gap-2 text-sm text-on-surface-variant">
-                        <span class="material-symbols-outlined text-primary text-base" aria-hidden="true">location_on</span>
-                        {{ $event->city }}
+                {{-- Location — M053/S1/T06: routed through <x-location-display>
+                     (the sole address-rendering authority) so no raw city leaks.
+                     Events carry denormalized city fields (no Location owner),
+                     so this uses the raw-city path at City granularity. --}}
+                @if($event->city || $event->country)
+                    <div class="text-sm text-on-surface-variant">
+                        <x-location-display :city="$event->city" :country="$event->country" icon-class="text-primary text-base" />
                     </div>
                 @endif
 

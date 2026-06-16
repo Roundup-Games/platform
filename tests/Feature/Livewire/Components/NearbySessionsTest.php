@@ -349,3 +349,79 @@ describe('Observability', function () {
             ->call('onGuestLocationUpdated', $this->centerLat, $this->centerLng, 'browser');
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// GUEST COORDINATE RATE-LIMITING (T07 / MEDIUM-4 DEFENCE-IN-DEPTH)
+// ═══════════════════════════════════════════════════════════
+
+describe('Guest coordinate rate-limiting (T07 defence-in-depth)', function () {
+    it('allows up to 10 guest coordinate updates per minute then silently retains the last accepted coordinates', function () {
+        $component = Livewire::test(NearbySessions::class);
+
+        // 10 rapid updates from one session are accepted (per-session/IP cap = 10/min)
+        for ($i = 1; $i <= 10; $i++) {
+            $component->call('onGuestLocationUpdated', 52.50 + ($i * 0.001), 13.40 + ($i * 0.001), 'browser');
+            expect($component->get('guestLat'))->toBe(52.50 + ($i * 0.001), "update #{$i} should be accepted");
+        }
+
+        // The 11th update is silently throttled — coordinates stay at the last
+        // accepted value (no visible error; an attacker gets no feedback).
+        $component->call('onGuestLocationUpdated', 89.999, -179.999, 'browser');
+
+        expect($component->get('guestLat'))->toBe(52.50 + (10 * 0.001))
+            ->and($component->get('guestLng'))->toBe(13.40 + (10 * 0.001))
+            ->and($component->get('guestLocationSource'))->toBe('browser');
+    });
+
+    it('does not re-query sessions or emit a conversion log when throttled', function () {
+        // The throttled handler returns before getSessions()/conversion logging,
+        // so only the 10 accepted updates emit 'Location gate converted'.
+        $conversionCount = 0;
+        $rateLimitCount = 0;
+        Log::shouldReceive('info')
+            ->andReturnUsing(function (string $message) use (&$conversionCount, &$rateLimitCount) {
+                if ($message === 'Location gate converted') {
+                    $conversionCount++;
+                }
+                if ($message === 'guest_location.rate_limited') {
+                    $rateLimitCount++;
+                }
+            });
+
+        $component = Livewire::test(NearbySessions::class);
+        for ($i = 1; $i <= 15; $i++) {
+            $component->call('onGuestLocationUpdated', 52.50 + ($i * 0.001), 13.40 + ($i * 0.001), 'browser');
+        }
+
+        expect($conversionCount)->toBe(10, 'Only the 10 accepted updates emit a conversion log')
+            ->and($rateLimitCount)->toBe(5, 'Updates 11-15 (5 calls) each log the rate-limit hit');
+    });
+
+    it('logs rate-limit hits at info level with an IP hash and never the raw IP', function () {
+        $rateLimitContexts = [];
+        Log::shouldReceive('info')
+            ->andReturnUsing(function (string $message, array $context = []) use (&$rateLimitContexts) {
+                if ($message === 'guest_location.rate_limited') {
+                    $rateLimitContexts[] = $context;
+                }
+            });
+
+        $component = Livewire::test(NearbySessions::class);
+        for ($i = 1; $i <= 11; $i++) {
+            $component->call('onGuestLocationUpdated', 52.50 + ($i * 0.001), 13.40 + ($i * 0.001), 'browser');
+        }
+
+        expect($rateLimitContexts)->toHaveCount(1, 'the 11th update triggers exactly one rate-limit log');
+
+        $ctx = $rateLimitContexts[0];
+        expect($ctx)->toHaveKey('ip_hash')
+            ->and(strlen($ctx['ip_hash']))->toBe(64, 'ip_hash is a sha256 hex (64 chars)')
+            ->and($ctx)->not->toHaveKey('ip')
+            ->and($ctx)->not->toHaveKey('ip_address');
+        // The raw IP must never appear as a context value either
+        $rawIp = request()->ip();
+        if ($rawIp !== null) {
+            expect($ctx['ip_hash'])->not->toBe($rawIp);
+        }
+    });
+});

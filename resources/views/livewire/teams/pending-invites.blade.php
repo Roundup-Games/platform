@@ -51,10 +51,11 @@
                                         {!! __('common.field_by_name', ['name' => e($invite->invitedBy?->name)]) !!}
                                     @endif
                                 </p>
+                                {{-- M053/S1/T06: routed through <x-location-display> (the sole
+                                     address-rendering authority). Raw-city path. --}}
                                 @if($invite->team->city)
-                                    <p class="text-xs text-on-surface-variant/70 mt-1 flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-xs">location_on</span>
-                                        {{ $invite->team->city }}{{ $invite->team->country ? ', ' . $invite->team->country : '' }}
+                                    <p class="text-xs text-on-surface-variant/70 mt-1">
+                                        <x-location-display :city="$invite->team->city" :country="$invite->team->country" icon-class="text-xs" />
                                     </p>
                                 @endif
                             </div>

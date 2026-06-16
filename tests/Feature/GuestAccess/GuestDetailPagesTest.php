@@ -109,7 +109,12 @@ describe('R020 — Guest game detail page', function () {
             ->assertForbidden();
     });
 
-    it('shows location on game detail', function () {
+    it('does not leak the legacy address to a guest on game detail', function () {
+        // M053/S1/T02: the games `location` JSON column is render-dead (HIGH-2).
+        // A guest viewing the public detail of a game carrying only legacy
+        // JSON (no normalized linkedLocation) must never see the street — the
+        // <x-location-display> component is never invoked (linkedLocation is
+        // null), so no address line renders at all.
         $game = guestTestCreatePublicGame([
             'location' => [
                 'type' => 'in_person',
@@ -117,10 +122,9 @@ describe('R020 — Guest game detail page', function () {
             ],
         ]);
 
-        $response = get(route('games.detail', $game->id));
-
-        $response->assertOk()
-            ->assertSee('123 Main Street');
+        get(route('games.detail', $game->id))
+            ->assertOk()
+            ->assertDontSee('123 Main Street');
     });
 
     it('shows discover back link to guest on game detail', function () {

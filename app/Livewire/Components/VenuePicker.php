@@ -3,8 +3,10 @@
 namespace App\Livewire\Components;
 
 use App\Dto\VenueSearchResult;
+use App\Enums\DisclosureLevel;
 use App\Models\Location;
 use App\Services\GeocodingService;
+use App\Services\LocationDisclosureService;
 use App\Services\VenueSearchService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
@@ -278,6 +280,35 @@ class VenuePicker extends Component
         }
 
         return Location::find($this->locationId);
+    }
+
+    /**
+     * Disclosure-consequence preview for the organizer (T08).
+     *
+     * Computes what a representative stranger viewer will see for the selected
+     * location via LocationDisclosureService::strangerPreviewLevel(), so the
+     * organizer understands the consequence of their choice before saving.
+     * Returns null when nothing is selected. Mirrors addressLevel()'s guest
+     * branch, so the preview can never over-disclose relative to the real
+     * rendered value.
+     *
+     * @return array{level: string, address: string|null}|null
+     */
+    #[Computed]
+    public function disclosurePreview(): ?array
+    {
+        $location = $this->selectedVenue();
+
+        if ($location === null) {
+            return null;
+        }
+
+        $level = app(LocationDisclosureService::class)->strangerPreviewLevel($location);
+
+        return [
+            'level' => $level->value,
+            'address' => $level === DisclosureLevel::Exact ? $location->fullAddress() : null,
+        ];
     }
 
     #[Computed]

@@ -61,16 +61,11 @@
                     </span>
                 @endif
                 @if($campaign->relationLoaded('linkedLocation') && $campaign->linkedLocation)
-                    <span class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                        {{ $campaign->linkedLocation->city }}
-                    </span>
-                @elseif($campaign->location && !empty($campaign->location['details']))
-                    <span class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                        {{ trim(explode(',', $campaign->location['details'])[0]) }}
-                    </span>
+                    <x-location-display :entity="$campaign" :location="$campaign->linkedLocation" />
                 @endif
+                {{-- M053/S1/T02: address granularity via <x-location-display>
+                     (LocationDisclosureService). Legacy `location` JSON
+                     address path is render-dead (HIGH-2). --}}
             </div>
         </div>
     </section>

@@ -118,11 +118,17 @@
                                 @endif
                             </p>
 
-                            {{-- Location --}}
+                            {{-- Location — M053/S1/T06: routed through <x-location-display>
+                                 (the sole address-rendering authority) so no raw city leaks.
+                                 Events carry denormalized fields (no Location owner), so this
+                                 uses the raw-city path at City granularity. --}}
                             @if($event->city || $event->venue_name)
-                                <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-base" aria-hidden="true">location_on</span>
-                                    {{ collect([$event->venue_name, $event->city])->filter()->join(' · ') }}
+                                <p class="mt-1 text-sm text-on-surface-variant">
+                                    <x-location-display
+                                        :venue-name="$event->venue_name"
+                                        :city="$event->city"
+                                        icon-class="text-base"
+                                    />
                                 </p>
                             @endif
 

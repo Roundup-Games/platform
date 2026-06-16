@@ -542,14 +542,11 @@ class Game extends Model
                 ->address($address);
         }
 
-        // Fallback to location JSON array
-        if ($this->location && ! empty($this->location['details'])) {
-            $details = $this->location['details'];
-
-            return (new Place)
-                ->name(is_string($details) ? $details : '');
-        }
-
+        // Legacy `location` JSON address path retired (M053/S1, HIGH-2).
+        // The column is retained for backward-compat data but is render-dead:
+        // no view or structured-data (JSON-LD) surface reads it. A game with no
+        // normalized linkedLocation exposes no Place at all (fail-closed) rather
+        // than leak the legacy free-text address onto an indexable page.
         return null;
     }
 }
