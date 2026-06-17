@@ -283,6 +283,35 @@ describe('VenueDetail SEO', function () {
         expect($business)->toHaveKey('sameAs');
         expect($business['sameAs'])->toContain('https://example.com/venue-site');
     });
+
+    it('omits the PostalAddress from JSON-LD when the venue is managed but unverified', function () {
+        // A managed-but-unverified commercial venue has a public page
+        // (isPublicVenuePage() is true via the managed-commercial branch) but a
+        // stranger only sees the Area rung ("In your area") — no street
+        // address. The structured data must never be more permissive than the
+        // HTML, so no PostalAddress is emitted at all. Regression guard for the
+        // is_verified gate on Location::getDynamicSEOData().
+        $manager = User::factory()->create();
+        $venue = createVerifiedVenue([
+            'is_verified' => false,
+            'managed_by' => $manager->id,
+            'address' => '789 Hidden Lane',
+            'postal_code' => '20000',
+            'city' => 'Hamburg',
+        ]);
+
+        $response = get(route('venues.detail', ['slug' => $venue->slug]));
+        $response->assertOk();
+
+        $schemas = extractJsonLdSchemas($response->content());
+        $business = findSchemaByType($schemas, 'LocalBusiness');
+        expect($business)->not->toBeNull('Missing LocalBusiness schema');
+
+        // No PostalAddress node at all → the address rung matches the Area HTML.
+        expect($business)->not->toHaveKey('address');
+        // Belt-and-suspenders: the private street never reaches the rendered page.
+        expect($response->content())->not->toContain('789 Hidden Lane');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════

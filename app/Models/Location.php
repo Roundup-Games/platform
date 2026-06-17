@@ -201,6 +201,35 @@ class Location extends Model
     // ── Scopes ─────────────────────────────────────────
 
     /**
+     * Scope to locations eligible for a public venue page — the query form of
+     * {@see LocationDisclosureService::isPublicVenuePage()} (D079 / MEM717).
+     *
+     * Verified commercial venues OR admin-managed commercial venues. Private /
+     * unverified / `other` / null-type locations are excluded. The commercial-type
+     * set is the single source of truth on {@see VenueType::COMMERCIAL_TYPES};
+     * this scope and the disclosure service's in-memory check both read it, so
+     * the sitemap, the venue 404 gate, and <x-venue-link> can never drift.
+     *
+     * Callers that need a resolvable slug (sitemap, route) add ->whereNotNull('slug').
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopePublicVenuePage(Builder $query): Builder
+    {
+        $commercial = VenueType::commercialValues();
+
+        return $query->where(fn ($q) => $q
+            ->where('is_verified', true)
+            ->whereIn('venue_type', $commercial)
+            ->orWhere(fn ($q) => $q
+                ->whereNotNull('managed_by')
+                ->whereIn('venue_type', $commercial)
+            )
+        );
+    }
+
+    /**
      * Scope to locations within a bounding box.
      * Used for proximity queries per D037 (10km bounding box approximation).
      *
@@ -421,20 +450,31 @@ class Location extends Model
             $business->description(Str::limit(strip_tags((string) $this->description), 500));
         }
 
-        $address = (new PostalAddress);
-        if ($this->address) {
-            $address->streetAddress($this->address);
+        // Address: emit a PostalAddress ONLY for verified commercial venues.
+        // Verified venues resolve to the Exact address rung for every viewer, so
+        // the structured data matches what <x-location-display> renders. A
+        // managed-but-unverified commercial venue resolves to the Area rung for
+        // strangers ("In your area" — no address shown), so emitting a full
+        // PostalAddress here would make the indexed JSON-LD strictly more
+        // permissive than the HTML. The VenueDetail route gate already
+        // guarantees a commercial type, so is_verified alone is the
+        // discriminator (mirrors isVerifiedCommercialVenue).
+        if ($this->is_verified) {
+            $address = (new PostalAddress);
+            if ($this->address) {
+                $address->streetAddress($this->address);
+            }
+            if ($this->postal_code) {
+                $address->postalCode($this->postal_code);
+            }
+            if ($this->city) {
+                $address->addressLocality($this->city);
+            }
+            if ($this->country) {
+                $address->addressCountry($this->country);
+            }
+            $business->address($address);
         }
-        if ($this->postal_code) {
-            $address->postalCode($this->postal_code);
-        }
-        if ($this->city) {
-            $address->addressLocality($this->city);
-        }
-        if ($this->country) {
-            $address->addressCountry($this->country);
-        }
-        $business->address($address);
 
         $sameAs = [];
         if ($this->website_url) {

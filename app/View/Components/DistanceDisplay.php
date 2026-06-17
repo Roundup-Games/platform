@@ -51,14 +51,41 @@ class DistanceDisplay extends Component
     ) {
         $resolvedViewer = $viewer ?? Auth::user();
 
-        $display = $this->precise
-            ? DistanceValue::precise($this->preciseKm)
-            : ($this->gridSnap
-                ? $this->pureGridSnap($this->preciseKm)
-                : app(LocationDisclosureService::class)
-                    ->distanceDisplay($this->preciseKm, $this->location, $resolvedViewer, $entity));
+        $display = $this->resolveDisplay($entity, $resolvedViewer);
 
         $this->label = $display->display();
+    }
+
+    /**
+     * Resolve the disclosure-governed DistanceDisplay value.
+     *
+     * Defence-in-depth on the CRITICAL-1 trilateration vector: the `precise`
+     * flag is only honoured as a raw figure when NO Location is available (the
+     * cached-widget / DTO path, where the caller has already guaranteed a
+     * verified-venue result set — e.g. VenuePicker feeds VenueSearchService
+     * output filtered to is_verified=true). When a Location IS passed with
+     * `precise`, the value is routed through LocationDisclosureService, which
+     * returns precise only for a verified commercial venue and grid-snaps
+     * everything else — so a future caller that passes `precise` with a private
+     * or unverified location cannot accidentally render a sub-5km distance.
+     */
+    private function resolveDisplay(Game|Campaign|null $entity, ?User $viewer): DistanceValue
+    {
+        if ($this->precise && $this->location !== null) {
+            return app(LocationDisclosureService::class)
+                ->distanceDisplay($this->preciseKm, $this->location, $viewer, $entity);
+        }
+
+        if ($this->precise) {
+            return DistanceValue::precise($this->preciseKm);
+        }
+
+        if ($this->gridSnap) {
+            return $this->pureGridSnap($this->preciseKm);
+        }
+
+        return app(LocationDisclosureService::class)
+            ->distanceDisplay($this->preciseKm, $this->location, $viewer, $entity);
     }
 
     public function render(): View

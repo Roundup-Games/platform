@@ -232,28 +232,40 @@ class LocationDriftService
     private function checkStaleGeocode(bool $dryRun, array &$flagged, ?int $limit, bool $refreshGeocode): array
     {
         $flaggedIds = [];
-
-        $query = DB::table('locations');
-        if ($limit !== null && $limit > 0) {
-            $query->take($limit);
-        }
-        $rows = $query->orderBy('id')->get(['id', 'latitude', 'longitude', 'geohash_4']);
-
         $byReason = [];
-        foreach ($rows as $row) {
-            $id = (string) $row->id;
-            if (isset($flagged[$id])) {
-                continue; // duplicate takes precedence
-            }
 
-            $reason = $this->staleGeocodeReason($row);
-            if ($reason !== null) {
-                $this->flag($id, 'stale_geocode', ['reason' => $reason], $dryRun, $reason);
-                $flagged[$id] = true;
-                $flaggedIds[] = $id;
-                $byReason[$reason] = ($byReason[$reason] ?? 0) + 1;
-            }
-        }
+        // chunkById keeps this memory-bounded regardless of table size. The
+        // scheduled sweep (routes/console.php) passes no --limit, so without
+        // chunking the whole locations table would hydrate into one collection
+        // on the daily cron — a latent OOM as the table grows. An optional
+        // $limit caps how many rows are inspected (manual/operator use); null
+        // means scan every row, still one chunk at a time. Returning false from
+        // the callback halts chunkById once the limit is reached.
+        $processed = 0;
+        DB::table('locations')
+            ->select(['id', 'latitude', 'longitude', 'geohash_4'])
+            ->orderBy('id')
+            ->chunkById(500, function ($rows) use ($dryRun, &$flagged, &$flaggedIds, &$byReason, $limit, &$processed) {
+                foreach ($rows as $row) {
+                    if ($limit !== null && $processed >= $limit) {
+                        return false;
+                    }
+                    $processed++;
+
+                    $id = (string) $row->id;
+                    if (isset($flagged[$id])) {
+                        continue; // duplicate takes precedence
+                    }
+
+                    $reason = $this->staleGeocodeReason($row);
+                    if ($reason !== null) {
+                        $this->flag($id, 'stale_geocode', ['reason' => $reason], $dryRun, $reason);
+                        $flagged[$id] = true;
+                        $flaggedIds[] = $id;
+                        $byReason[$reason] = ($byReason[$reason] ?? 0) + 1;
+                    }
+                }
+            });
 
         $refreshed = 0;
         if ($refreshGeocode) {
@@ -317,43 +329,53 @@ class LocationDriftService
      */
     private function flagGeocodeDrift(bool $dryRun, array &$flagged, ?int $limit, array &$flaggedIds, array &$byReason): int
     {
-        $query = Location::whereNotNull('latitude')->whereNotNull('longitude')->orderBy('id');
-        if ($limit !== null && $limit > 0) {
-            $query->take($limit);
-        }
-        $rows = $query->get(['id', 'latitude', 'longitude']);
         $processed = 0;
 
-        foreach ($rows as $location) {
-            $id = (string) $location->id;
-            if (isset($flagged[$id])) {
-                continue;
-            }
+        // chunkById bounds memory on the opt-in refresh path (an operator can
+        // run --refresh-geocode without --limit). The address columns are
+        // selected so fullAddress() resolves a real query string — previously
+        // only id/lat/lng were loaded and fullAddress() returned an empty
+        // string, making the refresh path silently no-op on every row.
+        Location::whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->select(['id', 'latitude', 'longitude', 'address', 'postal_code', 'city'])
+            ->orderBy('id')
+            ->chunkById(500, function ($rows) use ($dryRun, &$flagged, &$flaggedIds, &$byReason, $limit, &$processed) {
+                foreach ($rows as $location) {
+                    if ($limit !== null && $processed >= $limit) {
+                        return false;
+                    }
 
-            $processed++;
-            $result = $this->geocoding->geocode($location->fullAddress());
+                    $id = (string) $location->id;
+                    if (isset($flagged[$id])) {
+                        continue;
+                    }
 
-            // Respect Nominatim usage policy (max 1 req/sec).
-            if ($this->geocodeThrottleMicroseconds > 0) {
-                usleep($this->geocodeThrottleMicroseconds);
-            }
+                    $processed++;
+                    $result = $this->geocoding->geocode($location->fullAddress());
 
-            if ($result === null) {
-                continue; // geocoder returned nothing — not actionable as drift
-            }
+                    // Respect Nominatim usage policy (max 1 req/sec).
+                    if ($this->geocodeThrottleMicroseconds > 0) {
+                        usleep($this->geocodeThrottleMicroseconds);
+                    }
 
-            $distKm = $location->distanceTo($result['lat'], $result['lng']);
-            if ($distKm > self::GEOCODE_DRIFT_KM) {
-                $reason = 'geocode_drift';
-                $this->flag($id, 'stale_geocode', [
-                    'reason' => $reason,
-                    'distance_m' => (int) round($distKm * 1000),
-                ], $dryRun, $reason);
-                $flagged[$id] = true;
-                $flaggedIds[] = $id;
-                $byReason[$reason] = ($byReason[$reason] ?? 0) + 1;
-            }
-        }
+                    if ($result === null) {
+                        continue; // geocoder returned nothing — not actionable as drift
+                    }
+
+                    $distKm = $location->distanceTo($result['lat'], $result['lng']);
+                    if ($distKm > self::GEOCODE_DRIFT_KM) {
+                        $reason = 'geocode_drift';
+                        $this->flag($id, 'stale_geocode', [
+                            'reason' => $reason,
+                            'distance_m' => (int) round($distKm * 1000),
+                        ], $dryRun, $reason);
+                        $flagged[$id] = true;
+                        $flaggedIds[] = $id;
+                        $byReason[$reason] = ($byReason[$reason] ?? 0) + 1;
+                    }
+                }
+            });
 
         return $processed;
     }

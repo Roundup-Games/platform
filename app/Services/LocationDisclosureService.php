@@ -39,19 +39,6 @@ use Illuminate\Support\Facades\Log;
  */
 class LocationDisclosureService
 {
-    /**
-     * Venue types that count as public commercial venues when verified.
-     * `Other` is intentionally excluded — it does not imply a public space.
-     */
-    private const COMMERCIAL_VENUE_TYPES = [
-        VenueType::Cafe,
-        VenueType::Flgs,
-        VenueType::Library,
-        VenueType::CommunityCenter,
-        VenueType::Convention,
-        VenueType::Bar,
-    ];
-
     private const GRID_SIZE_KM = 5;
 
     public function __construct(
@@ -74,9 +61,14 @@ class LocationDisclosureService
             return DisclosureLevel::None;
         }
 
+        // Resolve the relationship ONCE — resolveRelationship() already
+        // accounts for the blocked case (and a null viewer) as its first tier,
+        // so we derive 'blocked' from it instead of calling isBlocked() twice.
+        $relationship = $this->resolveRelationship($viewer, $entity);
+
         // Blocked viewers never see the address — even for a public venue,
         // a block means this owner's content is invisible to them.
-        if ($this->isBlocked($viewer, $entity)) {
+        if ($relationship === 'blocked') {
             return DisclosureLevel::None;
         }
 
@@ -85,13 +77,16 @@ class LocationDisclosureService
             return DisclosureLevel::Exact;
         }
 
-        // Guest (unauthenticated) → only the area rung.
+        // Guest (unauthenticated) → only the area rung. resolveRelationship()
+        // returns 'stranger' for a null viewer, so this also covers that path,
+        // but the explicit guard documents intent and short-circuits before the
+        // match for clarity.
         if ($viewer === null) {
             return DisclosureLevel::Area;
         }
 
         // Private / unverified location → graduate by relationship to the owner.
-        return match ($this->resolveRelationship($viewer, $entity)) {
+        return match ($relationship) {
             'owner', 'approved_participant' => DisclosureLevel::Exact,
             'friend_or_teammate' => DisclosureLevel::City,
             default => DisclosureLevel::Area, // stranger (incl. unresolvable owner)
@@ -232,7 +227,7 @@ class LocationDisclosureService
             return false;
         }
 
-        return in_array($venueType, self::COMMERCIAL_VENUE_TYPES, true);
+        return in_array($venueType, VenueType::COMMERCIAL_TYPES, true);
     }
 
     /**
@@ -265,7 +260,7 @@ class LocationDisclosureService
             return false;
         }
 
-        return in_array($venueType, self::COMMERCIAL_VENUE_TYPES, true);
+        return in_array($venueType, VenueType::COMMERCIAL_TYPES, true);
     }
 
     /**

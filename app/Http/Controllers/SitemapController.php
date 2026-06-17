@@ -182,14 +182,7 @@ class SitemapController extends Controller
                 ->whereNull('anonymized_at')
                 ->orderByDesc('updated_at'),
             'venues' => Location::whereNotNull('slug')
-                ->where(fn ($q) => $q
-                    ->where('is_verified', true)
-                    ->whereIn('venue_type', self::COMMERCIAL_VENUE_TYPES)
-                    ->orWhere(fn ($q) => $q
-                        ->whereNotNull('managed_by')
-                        ->whereIn('venue_type', self::COMMERCIAL_VENUE_TYPES)
-                    )
-                )
+                ->publicVenuePage()
                 ->orderByDesc('updated_at'),
             default => null,
         };
@@ -435,25 +428,6 @@ class SitemapController extends Controller
     // ── Venues ─────────────────────────────────────────
 
     /**
-     * Venue types that count as public commercial venues when verified.
-     *
-     * MUST stay in sync with LocationDisclosureService::COMMERCIAL_VENUE_TYPES
-     * (the public-venue-page eligibility authority). Sitemap entries are a
-     * crawler-visible mirror of isPublicVenuePage(), so the two eligibility
-     * predicates (verified OR admin-managed) must never drift — private /
-     * `other` / null-type locations are never indexable; an unverified
-     * commercial venue is indexable only when admin-managed (managed_by set).
-     */
-    private const COMMERCIAL_VENUE_TYPES = [
-        'cafe',
-        'flgs',
-        'library',
-        'community_center',
-        'convention',
-        'bar',
-    ];
-
-    /**
      * @return array<int, array{loc: string, lastmod: string, changefreq: string, priority: string}>
      */
     private function getVenueEntries(): array
@@ -461,19 +435,12 @@ class SitemapController extends Controller
         $baseUrl = $this->baseUrl();
         $entries = [];
 
-        // Eligibility mirrors LocationDisclosureService::isPublicVenuePage():
-        // a verified commercial venue OR an admin-managed commercial venue. The
-        // two branches are grouped so the OR stays inside the slug predicate —
-        // private / `other` / null-type locations are never indexable.
+        // Eligibility is Location::scopePublicVenuePage() — the single named
+        // authority (mirrors LocationDisclosureService::isPublicVenuePage()).
+        // Routing the sitemap through the scope keeps the indexed surface from
+        // drifting out of sync with the venue 404 gate and <x-venue-link>.
         $venues = Location::whereNotNull('slug')
-            ->where(fn ($q) => $q
-                ->where('is_verified', true)
-                ->whereIn('venue_type', self::COMMERCIAL_VENUE_TYPES)
-                ->orWhere(fn ($q) => $q
-                    ->whereNotNull('managed_by')
-                    ->whereIn('venue_type', self::COMMERCIAL_VENUE_TYPES)
-                )
-            )
+            ->publicVenuePage()
             ->select('slug', 'updated_at')
             ->orderByDesc('updated_at')
             ->limit(self::MAX_ENTITIES_PER_SITEMAP)

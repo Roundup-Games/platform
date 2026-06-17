@@ -29,7 +29,7 @@ class ReviewObserver
 
         if ($review->reviewable_type === Location::class) {
             $location = $review->reviewable;
-            if ($location) {
+            if ($location instanceof Location) {
                 $this->aggregateService->updateLocationAggregates($location);
             }
         }
@@ -54,7 +54,7 @@ class ReviewObserver
 
             if ($review->reviewable_type === Location::class) {
                 $location = $review->reviewable;
-                if ($location) {
+                if ($location instanceof Location) {
                     $this->aggregateService->updateLocationAggregates($location);
                 }
             }
@@ -76,7 +76,7 @@ class ReviewObserver
 
         if ($review->reviewable_type === Location::class) {
             $location = $review->reviewable;
-            if ($location) {
+            if ($location instanceof Location) {
                 $this->aggregateService->updateLocationAggregates($location);
             }
         }

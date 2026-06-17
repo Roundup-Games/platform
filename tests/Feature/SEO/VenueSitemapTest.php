@@ -83,6 +83,28 @@ describe('Venues Sitemap — inclusion', function () {
 });
 
 describe('Venues Sitemap — exclusion (the safety contract)', function () {
+    it('includes an admin-managed unverified commercial venue (the S04 broadening)', function () {
+        // isPublicVenuePage() admits admin-managed commercial venues even when
+        // unverified — they get a public page (claimable / manageable). The
+        // sitemap mirrors that via scopePublicVenuePage(), so a managed-but-
+        // unverified commercial venue IS indexable. (The address itself stays
+        // gated: the page renders "In your area" to strangers and the JSON-LD
+        // omits the PostalAddress — see VenueDetailTest.) This locks the
+        // centralization: the scope must capture the managed branch too.
+        $manager = User::factory()->create();
+        $venue = Location::factory()->create([
+            'is_verified' => false,
+            'managed_by' => $manager->id,
+            'venue_type' => VenueType::Cafe,
+            'slug' => 'managed-unverified-sitemap',
+        ]);
+
+        $content = get('/sitemap-venues.xml')->content();
+
+        expect($content)->toContain("/en/venue/{$venue->slug}");
+        expect($content)->toContain("/de/venue/{$venue->slug}");
+    });
+
     it('excludes private (unverified) locations', function () {
         $private = Location::factory()->create([
             'is_verified' => false,
