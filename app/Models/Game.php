@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\DisclosureLevel;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\Visibility;
 use App\Relations\StringKeyMorphMany;
+use App\Services\LocationDisclosureService;
 use App\Services\ShortLinkService;
 use App\Services\SocialGraphService;
 use Database\Factories\GameFactory;
@@ -524,29 +526,42 @@ class Game extends Model
      */
     private function buildEventPlace(): ?Place
     {
-        // Prefer linked location relationship (has city, address, etc.)
-        if ($this->linkedLocation) {
-            $address = (new PostalAddress);
-            if ($this->linkedLocation->address) {
-                $address->streetAddress($this->linkedLocation->address);
-            }
-            if ($this->linkedLocation->city) {
-                $address->addressLocality($this->linkedLocation->city);
-            }
-            if ($this->linkedLocation->country) {
-                $address->addressCountry($this->linkedLocation->country);
-            }
-
-            return (new Place)
-                ->name($this->linkedLocation->name)
-                ->address($address);
+        // No normalized location → no Place (fail-closed).
+        if (! $this->linkedLocation) {
+            return null;
         }
 
-        // Legacy `location` JSON address path retired (M053/S1, HIGH-2).
-        // The column is retained for backward-compat data but is render-dead:
-        // no view or structured-data (JSON-LD) surface reads it. A game with no
-        // normalized linkedLocation exposes no Place at all (fail-closed) rather
-        // than leak the legacy free-text address onto an indexable page.
-        return null;
+        $location = $this->linkedLocation;
+
+        // JSON-LD is a single server-rendered artifact served to EVERY viewer
+        // (including crawlers), so the structured-data location MUST reflect the
+        // most-restrictive (stranger) disclosure level — never more. A public
+        // game at a private home would otherwise leak the host's street address
+        // in the Event schema even though <x-location-display> correctly hides
+        // it in the HTML body. Only a verified commercial venue (the Exact rung
+        // for a stranger, via the single authority) gets a PostalAddress; every
+        // other location emits NO Place so no street/locality reaches an
+        // indexed route. Mirrors the Location::getDynamicSEOData is_verified
+        // gate and the HTML stranger view (Area rung = "In your area").
+        $level = app(LocationDisclosureService::class)->strangerPreviewLevel($location);
+
+        if ($level !== DisclosureLevel::Exact) {
+            return null;
+        }
+
+        $address = (new PostalAddress);
+        if ($location->address) {
+            $address->streetAddress($location->address);
+        }
+        if ($location->city) {
+            $address->addressLocality($location->city);
+        }
+        if ($location->country) {
+            $address->addressCountry($location->country);
+        }
+
+        return (new Place)
+            ->name($location->name)
+            ->address($address);
     }
 }

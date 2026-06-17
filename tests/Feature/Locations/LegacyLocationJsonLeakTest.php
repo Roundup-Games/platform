@@ -2,6 +2,7 @@
 
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Enums\VenueType;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -251,11 +252,29 @@ it('does not embed the legacy address in the schema.org JSON-LD Place', function
     expect($method->invoke($jsonOnlyGame))
         ->toBeNull('A game with only legacy JSON must expose no JSON-LD Place');
 
-    // Steady state: backfilled -> Place comes from the normalized Location,
-    // never the legacy free-text.
-    $backfilledGame = legacyGame($this->gameSystem, $this->owner, $this->normalizedLocation->id);
-    $place = $method->invoke($backfilledGame);
-    expect($place)->not->toBeNull('A backfilled game should expose a JSON-LD Place from its linkedLocation');
+    // M053 disclosure-aware JSON-LD: a PRIVATE normalized location (the realistic
+    // HIGH-2 home-game scenario) emits NO Place at all, so neither the legacy
+    // free-text nor the private street/city can reach an indexed route. This is
+    // strictly stricter than the pre-fix behavior, which emitted the normalized
+    // address unconditionally — a structured-data leak of a private home.
+    $privateBackfilled = legacyGame($this->gameSystem, $this->owner, $this->normalizedLocation->id);
+    expect($method->invoke($privateBackfilled))
+        ->toBeNull('A game at a private/unverified location must expose no JSON-LD Place (fail-closed)');
+
+    // A VERIFIED commercial venue still emits a Place from its linkedLocation
+    // (positive proof the normalized path works for public venues), carrying
+    // the venue's city — never the legacy free-text.
+    $venue = Location::factory()->verifiedVenue()->create([
+        'venue_type' => VenueType::Cafe,
+        'name' => 'The Boardroom Café',
+        'address' => '9 Guild Row',
+        'city' => 'Metropolis',
+        'country' => 'DEU',
+        'is_verified' => true,
+    ]);
+    $venueGame = legacyGame($this->gameSystem, $this->owner, $venue->id);
+    $place = $method->invoke($venueGame);
+    expect($place)->not->toBeNull('A game at a verified commercial venue should expose a JSON-LD Place');
 
     $serialized = json_encode($place);
     foreach (legacyFragments() as $fragment) {
