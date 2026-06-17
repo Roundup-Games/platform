@@ -11,6 +11,7 @@ use App\Models\Location;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -242,7 +243,7 @@ describe('VenueReviews — eligibility gate', function () {
         // A private location never reaches VenueDetail (404), but the component
         // is still defensive: canReviewVenue fails the isPublicVenuePage gate.
         $privateLocation = Location::factory()->create([
-            'slug' => 'private-'.uniqid(),
+            'slug' => 'private-'.Str::random(8),
             'is_verified' => false,
             'venue_type' => VenueType::Cafe,
         ]);
@@ -257,7 +258,7 @@ describe('VenueReviews — eligibility gate', function () {
 
     it('shows no form for a verified-but-Other venue type', function () {
         $otherVenue = Location::factory()->verifiedVenue()->create([
-            'slug' => 'other-'.uniqid(),
+            'slug' => 'other-'.Str::random(8),
             'venue_type' => VenueType::Other,
         ]);
         $user = User::factory()->create(['profile_complete' => true]);

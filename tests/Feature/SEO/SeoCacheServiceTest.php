@@ -4,6 +4,7 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\SeoCacheService;
@@ -106,6 +107,7 @@ describe('forgetByModel', function () {
         'Campaign' => ['campaigns',    fn () => Campaign::factory()->create()],
         'Team' => ['teams',        fn () => Team::factory()->create()],
         'User' => ['profiles',     fn () => User::factory()->create(['profile_complete' => true])],
+        'Location' => ['venues',   fn () => Location::factory()->create()],
     ]);
 
     it('is a no-op for unmapped model classes', function () {

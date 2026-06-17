@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -223,8 +224,12 @@ function createVerifiedVenue(array $overrides = []): Location
 {
     return Location::factory()->verifiedVenue()->create(array_merge([
         'venue_type' => VenueType::Cafe,
-        'slug' => 'test-venue-'.uniqid(),
-        'name' => 'Test Venue '.uniqid(),
+        // Str::random (not uniqid) because the slug column is UNIQUE: uniqid()
+        // is microtime-based with no entropy, so two parallel Pest workers
+        // starting in the same microsecond can collide and trip a unique
+        // violation. Str::random(8) gives real entropy for parallel safety.
+        'slug' => 'test-venue-'.Str::random(8),
+        'name' => 'Test Venue '.Str::random(8),
         'address' => '123 Test Street',
         'postal_code' => '10115',
         'city' => 'Berlin',

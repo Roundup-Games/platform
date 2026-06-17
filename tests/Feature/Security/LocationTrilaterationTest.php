@@ -320,9 +320,13 @@ describe('brute-force yield cap', function () {
         for ($i = 0; $i < 10; $i++) {
             // Spread 10 vantage points on a rough ring around the target.
             $bearing = (2 * M_PI * $i) / 10;
-            $radiusDeg = 0.05; // ~5.5km
-            $lat = TARGET_LAT + rad2deg($radiusDeg * cos($bearing));
-            $lng = TARGET_LNG + rad2deg($radiusDeg * sin($bearing) / max(0.01, cos(deg2rad(TARGET_LAT))));
+            $radiusDeg = 0.05; // ~5.5km in degrees of latitude
+            // Small-angle offset in DEGREES (radiusDeg is already degrees, so no
+            // rad2deg() — wrapping it would treat 0.05° as radians and inflate the
+            // ring to ~318km, trivially outside any grid-snap and a far weaker
+            // test than the intended ~5.5km ring sitting right on the 5km floor).
+            $lat = TARGET_LAT + ($radiusDeg * cos($bearing));
+            $lng = TARGET_LNG + ($radiusDeg * sin($bearing) / max(0.01, cos(deg2rad(TARGET_LAT))));
 
             $precise = tri_preciseDistanceBetween($lat, $lng, TARGET_LAT, TARGET_LNG);
             $html = tri_renderSessionCard($this->privateGame, $this->gameSystem, $precise);

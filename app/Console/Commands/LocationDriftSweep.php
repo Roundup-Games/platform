@@ -45,7 +45,20 @@ class LocationDriftSweep extends Command
     {
         $dryRun = (bool) $this->option('dry-run');
         $limitRaw = $this->option('limit');
-        $limit = ($limitRaw !== null && $limitRaw !== '') ? (int) $limitRaw : null;
+        if ($limitRaw !== null && $limitRaw !== '') {
+            // Validate up front: an invalid --limit (non-numeric or <= 0) must
+            // fail fast rather than coerce to 0. With limit=0 the sweep would
+            // still reset every drift flag (runChecks resets when !dry-run) but
+            // process zero rows — silently wiping the admin queue. Reject instead.
+            if (! ctype_digit((string) $limitRaw) || (int) $limitRaw <= 0) {
+                $this->error('The --limit option must be a positive integer.');
+
+                return self::FAILURE;
+            }
+            $limit = (int) $limitRaw;
+        } else {
+            $limit = null;
+        }
         $refreshGeocode = (bool) $this->option('refresh-geocode');
         $startedAt = now();
 

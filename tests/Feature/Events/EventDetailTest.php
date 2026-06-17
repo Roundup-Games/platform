@@ -62,7 +62,9 @@ describe('EventDetailTest', function () {
 
         $html = Livewire::test(EventDetail::class, ['slug' => $event->slug])->html();
 
-        // Fail-closed: empty raw-city set renders nothing.
+        // Fail-closed: empty raw-city set renders nothing — no location line
+        // (the <x-location-display> icon) and no stray address/city text.
         expect($html)->toContain('No Venue Event');
+        expect($html)->not->toContain('location_on');
     });
 });

@@ -62,7 +62,8 @@ describe('Venues Sitemap — inclusion', function () {
 
         $content = get('/sitemap-venues.xml')->content();
 
-        preg_match('/<url>.*?<\/url>/s', $content, $match);
+        $matched = preg_match('/<url>.*?<\/url>/s', $content, $match);
+        expect($matched)->toBe(1, 'expected at least one <url> entry in the venues sitemap');
         expect($match[0])->toContain('<changefreq>weekly</changefreq>');
         expect($match[0])->toContain('<priority>0.7</priority>');
     });

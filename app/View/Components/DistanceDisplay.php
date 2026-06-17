@@ -71,6 +71,16 @@ class DistanceDisplay extends Component
      */
     private function resolveDisplay(Game|Campaign|null $entity, ?User $viewer): DistanceValue
     {
+        // gridSnap (cached-widget path) takes precedence over precise by
+        // construction: it is the explicit fail-closed path (always grid-snaps,
+        // ignores any Location). No current caller passes both flags — they are
+        // mutually exclusive (gridSnap = cached widgets with no Location;
+        // precise = verified-venue DTOs) — but if a future caller ever sets
+        // both, the safer (grid-snapped) value wins rather than a raw figure.
+        if ($this->gridSnap) {
+            return $this->pureGridSnap($this->preciseKm);
+        }
+
         if ($this->precise && $this->location !== null) {
             return app(LocationDisclosureService::class)
                 ->distanceDisplay($this->preciseKm, $this->location, $viewer, $entity);
@@ -78,10 +88,6 @@ class DistanceDisplay extends Component
 
         if ($this->precise) {
             return DistanceValue::precise($this->preciseKm);
-        }
-
-        if ($this->gridSnap) {
-            return $this->pureGridSnap($this->preciseKm);
         }
 
         return app(LocationDisclosureService::class)

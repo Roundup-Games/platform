@@ -311,9 +311,13 @@ class LocationDisclosureServiceTest extends TestCase
     }
 
     #[Test]
-    public function address_verified_location_with_null_venue_type_never_exact(): void
+    public function address_verified_but_untyped_location_stranger_area_participant_exact(): void
     {
-        // Anomalous: verified flag set but no venue type → fail-closed to private.
+        // Anomalous: verified flag set but no venue type → treated as private
+        // (fail-closed on the venue-type axis). A STRANGER therefore gets Area
+        // (never Exact). An APPROVED PARTICIPANT still gets Exact via the
+        // relationship axis — venue type governs the public/venue path, not the
+        // private-location relationship ladder.
         $owner = User::factory()->create();
         $game = $this->game($owner);
         $location = $this->location(type: null, verified: true);
@@ -323,7 +327,6 @@ class LocationDisclosureServiceTest extends TestCase
         $this->approvedParticipant($participant, $game);
 
         $this->assertEquals(DisclosureLevel::Area, $this->service->addressLevel($location, $stranger, $game));
-        // Even an approved participant never gets exact when the venue type is missing.
         $this->assertEquals(DisclosureLevel::Exact, $this->service->addressLevel($location, $participant, $game),
             'Approved participants still get exact on private locations (relationship axis), but strangers never do.');
     }
@@ -583,9 +586,13 @@ class LocationDisclosureServiceTest extends TestCase
     }
 
     #[Test]
-    public function stranger_preview_is_area_for_null_location(): void
+    public function stranger_preview_is_none_for_null_location(): void
     {
-        $this->assertEquals(DisclosureLevel::Area, $this->service->strangerPreviewLevel(null));
+        // Fail-closed parity with addressLevel(): a null location previews as
+        // None (not Area), matching the guest branch of addressLevel(). The
+        // preview must never over-disclose relative to the real rendered value,
+        // and a null location renders nothing — so its preview is None.
+        $this->assertEquals(DisclosureLevel::None, $this->service->strangerPreviewLevel(null));
     }
 
     #[Test]

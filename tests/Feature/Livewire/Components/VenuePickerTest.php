@@ -297,5 +297,9 @@ it('renders the preview with an aria-hidden decorative icon', function () {
     ]);
 
     Livewire::test(VenuePicker::class, ['locationId' => $venue->id])
-        ->assertSeeHtml('aria-hidden="true"');
+        // Assert the PREVIEW's decorative icon specifically (the `visibility`
+        // icon from the disclosure-preview block), not just any aria-hidden icon
+        // on the page — the broad assertion would pass even if the preview
+        // failed to render, as long as any other decorative icon appeared.
+        ->assertSeeHtml('>visibility</span>');
 });

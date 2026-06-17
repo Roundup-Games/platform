@@ -31,12 +31,17 @@
 <article class="relative bg-surface-container-low rounded-2xl border border-outline-variant overflow-hidden hover:shadow-md transition-shadow"
          aria-label="{{ $entity->name }}">
 
-    {{-- Distance badge (D060 disclosure-governed; CRITICAL-1 surface) --}}
+    {{-- Distance badge (D060 disclosure-governed; CRITICAL-1 surface).
+         Guarded like the venue-name link below: only render when linkedLocation
+         is eager-loaded AND present, so cards rendered in a loop (NearbySessions)
+         never trigger a lazy N+1, and an entity with no location shows no empty pill. --}}
+    @if($entity->relationLoaded('linkedLocation') && $entity->linkedLocation)
     <div class="absolute top-3 right-3 z-10">
             <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium">
             <x-distance-display :precise-km="$distanceKm" :location="$entity->linkedLocation" :entity="$entity" icon="straighten" />
         </span>
     </div>
+    @endif
 
     {{-- Card body --}}
     <div class="p-4 sm:p-5">

@@ -134,16 +134,26 @@ class LocationDisclosureService
      * "what counts as a public venue" decision stays in one place.
      *
      *   Verified commercial venue → Exact (full address)
-     *   Everything else (private, unverified, 'other', null) → Area
+     *   Private / unverified / 'other' → Area
+     *   null → None (fail-closed — nothing to preview)
      *
-     * Fail-closed: a null/unresolvable location or a verified-but-untyped
-     * location returns Area (never Exact), exactly matching what a stranger
-     * actually sees through addressLevel(). This MUST stay consistent with the
-     * guest branch of addressLevel() — the preview must never over-disclose
-     * relative to the real rendered value.
+     * Fail-closed parity with addressLevel(): a null location returns None
+     * (never Area), exactly matching the guest branch of addressLevel() — the
+     * preview must never over-disclose relative to the real rendered value. A
+     * non-null non-verified location returns Area (the stranger's area rung).
+     * This MUST stay consistent with the guest branch of addressLevel().
      */
     public function strangerPreviewLevel(?Location $location): DisclosureLevel
     {
+        // Fail-closed: a null location previews as None, matching addressLevel().
+        // No caller passes null today (VenuePicker's disclosurePreview returns
+        // null early, LocationDisplay guards on $location !== null), but the
+        // contract must match addressLevel's null → None so the two paths can
+        // never disagree on the fail-closed case.
+        if ($location === null) {
+            return DisclosureLevel::None;
+        }
+
         if ($this->isVerifiedCommercialVenue($location)) {
             return DisclosureLevel::Exact;
         }

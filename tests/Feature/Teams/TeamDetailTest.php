@@ -41,5 +41,7 @@ describe('TeamDetailTest', function () {
         $html = Livewire::test(TeamDetail::class, ['slug' => $team->slug])->html();
 
         expect($html)->toContain('Wanderers FC');
+        // No location line renders when both city and country are null.
+        expect($html)->not->toContain('location_on');
     });
 });

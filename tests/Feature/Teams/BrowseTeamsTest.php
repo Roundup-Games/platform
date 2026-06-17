@@ -40,5 +40,6 @@ describe('BrowseTeamsTest', function () {
 
         // The team card has no location_on icon — the component rendered nothing.
         expect($html)->toContain('Nomad Squad FC');
+        expect($html)->not->toContain('location_on');
     });
 });

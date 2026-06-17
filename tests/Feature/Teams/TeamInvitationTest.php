@@ -43,5 +43,6 @@ describe('TeamInvitationTest', function () {
 
         // No "Based in" line renders when the raw-city set is empty.
         expect($rendered)->toContain('Nomad Squad FC');
+        expect($rendered)->not->toContain(__('common.content_based_in'));
     });
 });

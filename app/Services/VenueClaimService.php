@@ -141,7 +141,11 @@ class VenueClaimService
             }
 
             /** @var Location|null $location */
-            $location = Location::find($locationId);
+            // Lock the location row for the managed_by check + write so two
+            // concurrent admin approvals of the same venue cannot both read
+            // managed_by = null and both write (last-write-wins). Held within
+            // this transaction until commit, mirroring the ticket lock above.
+            $location = Location::lockForUpdate()->find($locationId);
             if (! $location) {
                 throw new \RuntimeException('Target location no longer exists.');
             }
@@ -188,19 +192,31 @@ class VenueClaimService
      */
     public function rejectClaim(Ticket $ticket, string $reason): void
     {
+        // Mirror approveClaim's pre-flight guards so a non-claim ticket or an
+        // already-resolved ticket cannot be rejected, and concurrent rejects of
+        // the same ticket serialize on the row lock. The Location is NOT mutated.
+        if (! $this->isVenueClaimTicket($ticket)) {
+            throw new \InvalidArgumentException('Ticket is not a venue claim.');
+        }
+
+        $lockedTicket = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+        if (! $lockedTicket->isOpen()) {
+            throw new \RuntimeException('This ticket is no longer open.');
+        }
+
         $admin = $this->actingUser();
         $body = "Venue claim rejected: {$reason}";
 
         if ($admin) {
-            $this->ticketService->reply($ticket, $admin, $body);
-            $this->ticketService->addNote($ticket, $admin, "Venue claim rejected. Reason: {$reason}");
-            $this->ticketService->resolve($ticket, $admin);
+            $this->ticketService->reply($lockedTicket, $admin, $body);
+            $this->ticketService->addNote($lockedTicket, $admin, "Venue claim rejected. Reason: {$reason}");
+            $this->ticketService->resolve($lockedTicket, $admin);
         } else {
-            $this->ticketService->resolve($ticket);
+            $this->ticketService->resolve($lockedTicket);
         }
 
         Log::info('venue_claim.rejected', [
-            'ticket_id' => $ticket->id,
+            'ticket_id' => $lockedTicket->id,
             'ticket_reference' => $ticket->reference,
             'reason' => $reason,
         ]);

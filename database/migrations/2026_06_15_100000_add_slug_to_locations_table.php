@@ -18,13 +18,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('locations', function (Blueprint $table) {
-            $table->string('slug')->nullable()->unique()->index();
+            $table->string('slug')->nullable()->unique();
         });
 
         // Backfill slugs for verified commercial venues only. These mirror the
         // LocationDisclosureService commercial-venue set (the single "what
         // counts as a public venue" authority); only they ever expose a public
         // venue page, so only they need a resolvable slug right now.
+        //
+        // Note: unique() already creates the backing index, so no separate
+        // ->index() is chained (a redundant second index would only add write
+        // overhead).
         //
         // The commercial-type list is INTENTIONALLY inlined here (not
         // referenced via VenueType::COMMERCIAL_TYPES) so this migration

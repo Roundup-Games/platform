@@ -52,10 +52,13 @@
                                     @endif
                                 </p>
                                 {{-- M053/S1/T06: routed through <x-location-display> (the sole
-                                     address-rendering authority). Raw-city path. --}}
-                                @if($invite->team->city)
+                                     address-rendering authority). Raw-city path.
+                                     Null-team guard: an invite whose team was deleted
+                                     (FK set null) must not fatal on ->city access; and
+                                     the line shows when EITHER city or country is set. --}}
+                                @if($invite->team && ($invite->team->city || $invite->team->country))
                                     <p class="text-xs text-on-surface-variant/70 mt-1">
-                                        <x-location-display :city="$invite->team->city" :country="$invite->team->country" icon-class="text-xs" />
+                                        <x-location-display :city="$invite->team?->city" :country="$invite->team?->country" icon-class="text-xs" />
                                     </p>
                                 @endif
                             </div>
