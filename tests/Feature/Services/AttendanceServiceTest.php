@@ -265,6 +265,116 @@ describe('checkGriefResistance', function () {
     });
 });
 
+// ── markCorroborated ─────────────────────────────────────
+
+describe('markCorroborated', function () {
+    it('corroborates reports when two independent reporters agree on the same status', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(4);
+        $reported = $participants[2];
+
+        // Two independent reporters agree: attended
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $participants[0]->id, 'reported_id' => $reported->id,
+            'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
+        ]);
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $participants[1]->id, 'reported_id' => $reported->id,
+            'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
+        ]);
+
+        $count = $this->service->markCorroborated($game);
+
+        expect($count)->toBe(2);
+        expect(AttendanceReport::where('game_id', $game->id)->where('reported_id', $reported->id)->count())
+            ->toBe(2);
+        expect(AttendanceReport::where('game_id', $game->id)->where('reported_id', $reported->id)->where('is_corroborated', true)->count())
+            ->toBe(2);
+    });
+
+    it('does not corroborate when reporters disagree on status', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(4);
+        $reported = $participants[2];
+
+        // Two reporters, different statuses — no agreement
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $participants[0]->id, 'reported_id' => $reported->id,
+            'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
+        ]);
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $participants[1]->id, 'reported_id' => $reported->id,
+            'status' => 'no_show', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
+        ]);
+
+        $count = $this->service->markCorroborated($game);
+
+        expect($count)->toBe(0);
+        expect(AttendanceReport::where('game_id', $game->id)->where('reported_id', $reported->id)->where('is_corroborated', true)->count())
+            ->toBe(0);
+    });
+
+    it('does not count self-reports toward corroboration', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+        $reported = $participants[2];
+
+        // A self-report plus one other reporter is NOT two independent voices.
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $reported->id, 'reported_id' => $reported->id,
+            'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
+        ]);
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $participants[0]->id, 'reported_id' => $reported->id,
+            'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
+        ]);
+
+        $count = $this->service->markCorroborated($game);
+
+        expect($count)->toBe(0);
+        expect(AttendanceReport::where('game_id', $game->id)->where('reported_id', $reported->id)->where('is_corroborated', true)->count())
+            ->toBe(0);
+    });
+
+    it('is idempotent — running twice corroborates the same reports and returns 0 the second time', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(4);
+        $reported = $participants[2];
+
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $participants[0]->id, 'reported_id' => $reported->id,
+            'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
+        ]);
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $participants[1]->id, 'reported_id' => $reported->id,
+            'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
+        ]);
+
+        expect($this->service->markCorroborated($game))->toBe(2);
+        expect($this->service->markCorroborated($game))->toBe(0);
+    });
+
+    it('re-satisfies the threshold even if one report is already corroborated', function () {
+        // Guards against a counting bug: the group query must count ALL reporters,
+        // not only the still-uncorroborated ones.
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(4);
+        $reported = $participants[2];
+
+        // First reporter already corroborated (e.g. by a prior partial run);
+        // second still uncorroborated. The pair still satisfies >= 2 independent.
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $participants[0]->id, 'reported_id' => $reported->id,
+            'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => true, 'quarantined' => false,
+        ]);
+        AttendanceReport::create([
+            'game_id' => $game->id, 'reporter_id' => $participants[1]->id, 'reported_id' => $reported->id,
+            'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
+        ]);
+
+        $count = $this->service->markCorroborated($game);
+
+        expect($count)->toBe(1); // only the still-false one flips
+        expect(AttendanceReport::where('game_id', $game->id)->where('reported_id', $reported->id)->where('is_corroborated', true)->count())
+            ->toBe(2);
+    });
+});
+
 // ── recordAttendance ─────────────────────────────────────
 
 describe('recordAttendance', function () {

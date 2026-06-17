@@ -635,3 +635,105 @@ describe('weight application', function () {
         expect($participant->attendance_weight)->toBe(ReliabilityScoreService::WEIGHTS['excused']);
     });
 });
+
+// ── corroboration prevents grief-resistance quarantine ────
+
+describe('corroboration during resolution', function () {
+    test('resolveGameAttendance corroborates agreeing reports (timeout safety net)', function () {
+        ['game' => $game, 'host' => $host, 'players' => $players] = createCompletedGameWithPlayers(4);
+        $target = $players[0];
+
+        // Two independent reporters agree on no_show for $target, but these were
+        // filed directly (bypassing submitReport), so corroboration only happens
+        // at resolution time — exactly the timeout-sweeper scenario.
+        fileReport($game, $host, $target, 'no_show');
+        fileReport($game, $players[1], $target, 'no_show');
+
+        resolveAndRefresh($game);
+
+        $reports = AttendanceReport::where('game_id', $game->id)
+            ->where('reported_id', $target->id)
+            ->where('status', 'no_show')
+            ->get();
+
+        expect($reports)->toHaveCount(2);
+        expect($reports->every(fn ($r) => $r->is_corroborated === true))->toBeTrue();
+    });
+
+    test('a host who reports three corroborated games is NOT quarantined', function () {
+        // Regression for the production symptom: a legitimate host reporting
+        // attendance for 3 games in 30 days was quarantined because every report
+        // stayed is_corroborated=false. With corroboration restored, the host's
+        // reports get corroborated by a second independent reporter and drop out
+        // of the uncorroborated-game count.
+        [$service, $mock] = getAttendanceServiceWithMock();
+
+        // Host under test
+        $host = User::factory()->create(['profile_complete' => true]);
+
+        // Build 3 distinct completed games, each with the host + 2 players,
+        // and have the host + one player both report the other player attended.
+        for ($g = 0; $g < 3; $g++) {
+            $otherHost = User::factory()->create(['profile_complete' => true]);
+            $system = GameSystem::factory()->create();
+            $game = Game::factory()->create([
+                'owner_id' => $otherHost->id,
+                'game_system_id' => $system->id,
+                'status' => GameStatus::Completed->value,
+                'date_time' => now()->subHours(3),
+                'attendance_window_opens_at' => now()->subHour(),
+                'attendance_window_closes_at' => now()->addHours(72),
+            ]);
+
+            foreach ([$otherHost, $host, User::factory()->create(['profile_complete' => true])] as $u) {
+                GameParticipant::create([
+                    'game_id' => $game->id, 'user_id' => $u->id,
+                    'role' => $u->is($otherHost) ? 'owner' : 'player',
+                    'status' => ParticipantStatus::Approved->value,
+                ]);
+            }
+
+            $reported = $game->participants()->where('user_id', '!=', $host->id)->where('role', 'player')->first()->user;
+
+            // Host files (the report that would otherwise count against them)
+            $service->submitReport($game, $host, [
+                ['reported_id' => $reported->id, 'status' => 'attended'],
+            ]);
+            // A second independent reporter agrees — this must corroborate the host's report
+            $service->submitReport($game, $otherHost, [
+                ['reported_id' => $reported->id, 'status' => 'attended'],
+            ]);
+
+            expect(AttendanceReport::where('game_id', $game->id)
+                ->where('reporter_id', $host->id)
+                ->where('reported_id', $reported->id)
+                ->value('is_corroborated'))
+                ->toBeTrue();
+        }
+
+        // Build one more completed game for the grief-resistance probe so the
+        // host is an approved participant of it.
+        $probeHost = User::factory()->create(['profile_complete' => true]);
+        $system = GameSystem::factory()->create();
+        $probeGame = Game::factory()->create([
+            'owner_id' => $probeHost->id,
+            'game_system_id' => $system->id,
+            'status' => GameStatus::Completed->value,
+            'date_time' => now()->subHours(3),
+            'attendance_window_opens_at' => now()->subHour(),
+            'attendance_window_closes_at' => now()->addHours(72),
+        ]);
+        foreach ([$probeHost, $host] as $u) {
+            GameParticipant::create([
+                'game_id' => $probeGame->id, 'user_id' => $u->id,
+                'role' => $u->is($probeHost) ? 'owner' : 'player',
+                'status' => ParticipantStatus::Approved->value,
+            ]);
+        }
+
+        $grief = $service->checkGriefResistance($host, $probeGame);
+
+        expect($grief['allowed'])->toBeTrue();
+        expect($grief['quarantined'])->toBeFalse();
+    });
+});
