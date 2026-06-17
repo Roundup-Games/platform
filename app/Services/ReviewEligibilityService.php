@@ -238,6 +238,17 @@ class ReviewEligibilityService
      * given venue that has at least one completed session (MEM735: reuses the
      * campaignHasCompletedSession pattern scoped to the campaign).
      *
+     * The venue is matched on the CAMPAIGN's location_id, not the session's
+     * (Game's) location_id. This is deliberate, not a bug: AddSessionToCampaign
+     * creates session Games without a location_id (it records only the legacy
+     * free-text location.details), so a session-level location match would
+     * reject EVERY legitimate campaign-at-venue review. The campaign's
+     * location_id is the platform's only reliable signal for "where this
+     * campaign plays", so the attendance proxy is: approved participant of a
+     * campaign home-based at the venue with a completed session. The safety
+     * property D081 guards (no non-attendee reviews) still holds — a genuine
+     * approved campaign participation is always required.
+     *
      * Organizers are intentionally NOT excluded (D085(2)).
      */
     private function isApprovedCompletedCampaignParticipantAtVenue(User $user, Location $location): bool

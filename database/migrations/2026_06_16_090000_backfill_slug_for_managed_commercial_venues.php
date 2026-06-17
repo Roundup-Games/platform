@@ -42,6 +42,12 @@ return new class extends Migration
         // 2026_06_15 backfill skipped. `whereNull('slug')` makes this idempotent
         // and avoids touching rows a prior run (or organic verification) already
         // assigned a slug to.
+        //
+        // The commercial-type list is INTENTIONALLY inlined here (not
+        // referenced via VenueType::COMMERCIAL_TYPES) so this migration
+        // snapshots the eligibility rule as of its run date — mirroring
+        // 2026_06_15. Do not "DRY this up" by referencing the const; a future
+        // enum change must not retroactively alter a historic backfill.
         Location::whereNotNull('managed_by')
             ->whereIn('venue_type', $commercialTypes)
             ->whereNull('slug')

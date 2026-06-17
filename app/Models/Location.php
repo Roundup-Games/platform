@@ -219,10 +219,14 @@ class Location extends Model
     {
         $commercial = VenueType::commercialValues();
 
-        return $query->where(fn ($q) => $q
+        // Verified commercial venues OR admin-managed commercial venues.
+        // The two branches are OR'd at the top level; each inner closure is
+        // self-contained (the outer query is not referenced inside), so the
+        // AND/OR precedence this scope depends on is unambiguous.
+        return $query->where(fn ($outer) => $outer
             ->where('is_verified', true)
             ->whereIn('venue_type', $commercial)
-            ->orWhere(fn ($q) => $q
+            ->orWhere(fn ($inner) => $inner
                 ->whereNotNull('managed_by')
                 ->whereIn('venue_type', $commercial)
             )
@@ -264,13 +268,16 @@ class Location extends Model
         return (bool) $this->is_verified;
     }
 
-    /**
-     * Public venue pages are slug-routed (/{locale}/venue/{slug}).
-     */
-    public function getRouteKeyName(): string
-    {
-        return 'slug';
-    }
+    // Note: getRouteKeyName() is intentionally NOT overridden to 'slug'.
+    // Public venue pages are slug-routed, but they resolve the slug explicitly
+    // via VenueDetail::mount()'s Location::where('slug', $slug)->firstOrFail(),
+    // and every venues.detail URL is generated with an explicit 'slug' key —
+    // neither path uses implicit route-model-binding. Overriding the route key
+    // to 'slug' here breaks the Filament admin LocationResource: most locations
+    // carry a null slug (only verified/managed commercial venues get one), so
+    // the admin table cannot build edit-route URLs and throws a ViewException
+    // ("Missing parameter: record"). The default 'id' route key is always
+    // present and is what Filament needs. Do not re-add a 'slug' override.
 
     // ── Slug Generation ────────────────────────────────
 

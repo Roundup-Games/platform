@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Enums\VenueType;
 use App\Models\Game;
+use App\Models\Location;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\URL;
@@ -202,6 +204,32 @@ function gameTestCreateUserWithPermission(string $permission = 'create game', bo
     }
 
     return $user;
+}
+
+/**
+ * Create a verified *commercial* venue with an explicit slug + address.
+ *
+ * LocationFactory::verifiedVenue() picks a random VenueType (which can include
+ * Other), so the type is forced to a commercial type here. The slug is set
+ * explicitly because Location has no auto-slug-on-save hook (unlike User) —
+ * only the migration backfill / explicit assignment sets it.
+ *
+ * Defined here (not in a per-file test helper) so it is available in every
+ * Pest process, including --parallel workers. VenueDetailTest and
+ * VenueReviewsTest both call it; defining it in only one of those files broke
+ * the other under --parallel (cross-file global function lookup is per-process).
+ */
+function createVerifiedVenue(array $overrides = []): Location
+{
+    return Location::factory()->verifiedVenue()->create(array_merge([
+        'venue_type' => VenueType::Cafe,
+        'slug' => 'test-venue-'.uniqid(),
+        'name' => 'Test Venue '.uniqid(),
+        'address' => '123 Test Street',
+        'postal_code' => '10115',
+        'city' => 'Berlin',
+        'country' => 'DEU',
+    ], $overrides));
 }
 
 /**

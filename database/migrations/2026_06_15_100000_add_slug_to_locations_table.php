@@ -25,6 +25,12 @@ return new class extends Migration
         // LocationDisclosureService commercial-venue set (the single "what
         // counts as a public venue" authority); only they ever expose a public
         // venue page, so only they need a resolvable slug right now.
+        //
+        // The commercial-type list is INTENTIONALLY inlined here (not
+        // referenced via VenueType::COMMERCIAL_TYPES) so this migration
+        // snapshots the eligibility rule as of its run date — a future enum
+        // rename/addition must not retroactively change which rows a historic
+        // backfill touched. Do not "DRY this up" by referencing the const.
         $commercialTypes = array_map(
             fn (VenueType $type) => $type->value,
             [

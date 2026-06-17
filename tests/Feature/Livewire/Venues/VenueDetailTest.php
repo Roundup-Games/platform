@@ -9,30 +9,8 @@ use App\Models\User;
 
 use function Pest\Laravel\get;
 
-// ═══════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════
-
-/**
- * Create a verified *commercial* venue with an explicit slug + address.
- *
- * LocationFactory::verifiedVenue() picks a random VenueType (which can include
- * Other), so the type is forced to a commercial type here. The slug is set
- * explicitly because Location has no auto-slug-on-save hook (unlike User) —
- * only the migration backfill / explicit assignment sets it.
- */
-function createVerifiedVenue(array $overrides = []): Location
-{
-    return Location::factory()->verifiedVenue()->create(array_merge([
-        'venue_type' => VenueType::Cafe,
-        'slug' => 'test-venue-'.uniqid(),
-        'name' => 'Test Venue '.uniqid(),
-        'address' => '123 Test Street',
-        'postal_code' => '10115',
-        'city' => 'Berlin',
-        'country' => 'DEU',
-    ], $overrides));
-}
+// createVerifiedVenue() lives in tests/Pest.php so every Pest process
+// (including --parallel workers) has it without cross-file coupling.
 
 // ═══════════════════════════════════════════════════════════
 // 404 GATE — only verified commercial venues render (MEM717)
