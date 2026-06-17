@@ -28,9 +28,7 @@ use Livewire\Component;
  */
 class VenuePicker extends Component
 {
-    use HasGuestLocation {
-        HasGuestLocation::onGuestLocationUpdated as private syncGuestLocation;
-    }
+    use HasGuestLocation;
 
     // ── Configuration ──────────────────────────────────
 
@@ -249,10 +247,18 @@ class VenuePicker extends Component
 
     // ── Guest Location Hook ────────────────────────────
 
+    // Override the trait listener to store guest location and auto-trigger a
+    // venue search once the browser reports coordinates. Defined directly (no
+    // trait-method alias) so there is a single #[On('guest-location-updated')]
+    // registration — aliasing the trait method carried its #[On] attribute and
+    // registered a second listener pointing at a private alias, which threw
+    // BadMethodCallException. Mirrors the NearbySessions override pattern.
     #[On('guest-location-updated')]
     public function onGuestLocationUpdated(float $lat, float $lng, string $source = 'unknown'): void
     {
-        $this->syncGuestLocation($lat, $lng, $source);
+        $this->guestLat = $lat;
+        $this->guestLng = $lng;
+        $this->guestLocationSource = $source;
 
         // Auto-trigger venue search once location arrives
         if ($this->editing && $this->mode === 'venue' && ! $this->venueSearchPerformed) {

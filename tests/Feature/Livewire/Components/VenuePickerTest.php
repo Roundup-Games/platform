@@ -169,6 +169,39 @@ it('saves address even when geocoding returns no results', function () {
         ->assertDispatched('location-selected');
 });
 
+// ── Guest Location Event (regression) ──────────────────
+
+it('stores guest location when guest-location-updated is dispatched without throwing BadMethodCallException', function () {
+    // Regression for a trait-method alias that registered a second, private
+    // #[On('guest-location-updated')] listener named syncGuestLocation, which
+    // threw BadMethodCallException when the event fired. Dispatching the event
+    // must now store the coordinates via the single override listener.
+    Livewire::test(VenuePicker::class)
+        ->call('startEditing')
+        ->dispatch('guest-location-updated', lat: 52.52, lng: 13.41, source: 'localStorage')
+        ->assertSet('guestLat', 52.52)
+        ->assertSet('guestLng', 13.41)
+        ->assertSet('guestLocationSource', 'localStorage')
+        ->assertHasNoErrors();
+});
+
+it('auto-triggers a venue search when guest location arrives while editing', function () {
+    Location::factory()->create([
+        'name' => 'Nearby Cafe',
+        'city' => 'Berlin',
+        'is_verified' => true,
+        'venue_type' => VenueType::Cafe,
+        'latitude' => 52.52,
+        'longitude' => 13.41,
+    ]);
+
+    Livewire::test(VenuePicker::class)
+        ->call('startEditing')
+        ->dispatch('guest-location-updated', lat: 52.52, lng: 13.41, source: 'localStorage')
+        ->assertSet('venueSearchPerformed', true)
+        ->assertSee('Nearby Cafe');
+});
+
 // ── Cancel Editing ───────────────────────────────────────
 
 it('restores confirmed state on cancel', function () {
