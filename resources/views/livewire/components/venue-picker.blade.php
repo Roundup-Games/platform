@@ -78,7 +78,9 @@
                                             </span>
                                         @endif
                                         @if($venue['distance_km'] !== null)
-                                            <span class="text-xs text-on-surface-variant tabular-nums">{{ $venue['distance_km'] }}km</span>
+                                            <span class="text-xs text-on-surface-variant tabular-nums">
+                                                <x-distance-display :precise-km="$venue['distance_km']" precise icon="" />
+                                            </span>
                                         @endif
                                     </div>
                                 </div>
@@ -169,6 +171,30 @@
                 </button>
             </div>
         </div>
+
+        {{-- Disclosure-consequence preview (T08): shows the organizer what a
+             stranger viewer will see for this location, computed via the same
+             LocationDisclosureService that governs the real rendered value. --}}
+        @php $preview = $this->disclosurePreview; @endphp
+        @if($preview !== null)
+            <div class="mt-2 flex items-start gap-2 p-2.5 rounded-lg bg-tertiary-container/30 border border-tertiary/10" role="status">
+                <span class="material-symbols-outlined text-base text-on-surface-variant shrink-0 mt-0.5" aria-hidden="true">visibility</span>
+                <div class="min-w-0">
+                    <p class="text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">
+                        {{ __('location.content_preview_heading') }}
+                    </p>
+                    @if($preview['level'] === 'exact' && $preview['address'])
+                        <p class="text-sm text-on-surface break-words">
+                            {{ __('location.content_preview_exact', ['address' => $preview['address']]) }}
+                        </p>
+                    @else
+                        <p class="text-sm text-on-surface">
+                            {{ __('location.content_preview_area') }}
+                        </p>
+                    @endif
+                </div>
+            </div>
+        @endif
 
     @else
         {{-- No location set — prompt --}}

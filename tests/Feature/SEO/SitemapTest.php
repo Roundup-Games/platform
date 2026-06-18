@@ -34,7 +34,7 @@ describe('Sitemap Index', function () {
     it('lists all expected sub-sitemaps', function () {
         $content = get('/sitemap.xml')->content();
 
-        $expectedTypes = ['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles'];
+        $expectedTypes = ['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'];
 
         foreach ($expectedTypes as $type) {
             expect($content)->toContain("/sitemap-{$type}.xml");
@@ -46,7 +46,7 @@ describe('Sitemap Index', function () {
 
         // Each <sitemap> block should contain a <lastmod> element
         preg_match_all('/<sitemap>(.*?)<\/sitemap>/s', $content, $blocks);
-        expect($blocks[0])->toHaveCount(7);
+        expect($blocks[0])->toHaveCount(8);
 
         foreach ($blocks[0] as $block) {
             expect($block)->toContain('<lastmod>');
@@ -83,7 +83,7 @@ describe('Sub-Sitemap Routing', function () {
     });
 
     it('returns 200 with XML content for each valid type', function () {
-        $types = ['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles'];
+        $types = ['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'];
 
         foreach ($types as $type) {
             get("/sitemap-{$type}.xml")
@@ -499,5 +499,6 @@ describe('XML Well-Formedness', function () {
         ['/sitemap-campaigns.xml', 'urlset'],
         ['/sitemap-teams.xml', 'urlset'],
         ['/sitemap-profiles.xml', 'urlset'],
+        ['/sitemap-venues.xml', 'urlset'],
     ]);
 });

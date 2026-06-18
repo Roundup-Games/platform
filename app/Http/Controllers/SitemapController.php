@@ -9,6 +9,7 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\SeoCacheService;
@@ -59,6 +60,7 @@ class SitemapController extends Controller
         'campaigns' => '0.8',
         'teams' => '0.6',
         'profiles' => '0.5',
+        'venues' => '0.7',
     ];
 
     /**
@@ -72,6 +74,7 @@ class SitemapController extends Controller
         'campaigns' => 'weekly',
         'teams' => 'weekly',
         'profiles' => 'weekly',
+        'venues' => 'weekly',
     ];
 
     public function __construct(
@@ -178,6 +181,9 @@ class SitemapController extends Controller
                 ->where('is_disabled', false)
                 ->whereNull('anonymized_at')
                 ->orderByDesc('updated_at'),
+            'venues' => Location::whereNotNull('slug')
+                ->publicVenuePage()
+                ->orderByDesc('updated_at'),
             default => null,
         };
 
@@ -202,6 +208,7 @@ class SitemapController extends Controller
             'campaigns' => $this->getCampaignEntries(),
             'teams' => $this->getTeamEntries(),
             'profiles' => $this->getProfileEntries(),
+            'venues' => $this->getVenueEntries(),
             default => [],
         };
 
@@ -411,6 +418,41 @@ class SitemapController extends Controller
                     'lastmod' => $user->updated_at?->toDateString() ?? now()->toDateString(),
                     'changefreq' => self::TYPE_CHANGEFREQ['profiles'],
                     'priority' => self::TYPE_PRIORITIES['profiles'],
+                ];
+            }
+        }
+
+        return $entries;
+    }
+
+    // ── Venues ─────────────────────────────────────────
+
+    /**
+     * @return array<int, array{loc: string, lastmod: string, changefreq: string, priority: string}>
+     */
+    private function getVenueEntries(): array
+    {
+        $baseUrl = $this->baseUrl();
+        $entries = [];
+
+        // Eligibility is Location::scopePublicVenuePage() — the single named
+        // authority (mirrors LocationDisclosureService::isPublicVenuePage()).
+        // Routing the sitemap through the scope keeps the indexed surface from
+        // drifting out of sync with the venue 404 gate and <x-venue-link>.
+        $venues = Location::whereNotNull('slug')
+            ->publicVenuePage()
+            ->select('slug', 'updated_at')
+            ->orderByDesc('updated_at')
+            ->limit(self::MAX_ENTITIES_PER_SITEMAP)
+            ->get();
+
+        foreach ($venues as $venue) {
+            foreach ($this->locales() as $locale) {
+                $entries[] = [
+                    'loc' => "{$baseUrl}/{$locale}/venue/{$venue->slug}",
+                    'lastmod' => $venue->updated_at?->toDateString() ?? now()->toDateString(),
+                    'changefreq' => self::TYPE_CHANGEFREQ['venues'],
+                    'priority' => self::TYPE_PRIORITIES['venues'],
                 ];
             }
         }

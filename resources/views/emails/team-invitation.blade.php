@@ -5,8 +5,10 @@
 
 {{ __('emails.content_inviter_has_invited_you_to', ['inviter' => $inviter->name, 'team' => $team->name, 'brand' => config('company.display_name')]) }}
 
+{{-- M053/S1/T06: routed through <x-location-display> (the sole address-rendering
+     authority). Email context has no session; raw-city path needs no viewer. --}}
 @if($team->city || $team->country)
-**{{ __('common.content_based_in') }}** {{ collect([$team->city, $team->country])->filter()->join(', ') }}
+**{{ __('common.content_based_in') }}** <x-location-display :city="$team->city" :country="$team->country" without-icon />
 @endif
 
 @component('mail::button', ['url' => $acceptUrl])

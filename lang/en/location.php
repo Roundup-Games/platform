@@ -65,4 +65,9 @@ return [
 
     // Errors
     'error_proposal_submission_failed' => 'Failed to submit venue proposal. Please try again later.',
+
+    // ── Organizer disclosure-consequence preview (T08) ──────────────────────
+    'content_preview_exact' => 'Players will see the full address: :address',
+    'content_preview_area' => 'Players will see only "In your area" until they join.',
+    'content_preview_heading' => 'What players will see',
 ];

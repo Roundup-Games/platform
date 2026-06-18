@@ -3,11 +3,13 @@
 namespace Tests\Feature\Services;
 
 use App\Models\GMProfile;
+use App\Models\Location;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewAggregateService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ReviewAggregateServiceTest extends TestCase
@@ -20,6 +22,8 @@ class ReviewAggregateServiceTest extends TestCase
 
     private User $gmUser;
 
+    private Location $location;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -28,6 +32,11 @@ class ReviewAggregateServiceTest extends TestCase
         $this->gmUser = User::factory()->create();
         $this->gmProfile = GMProfile::factory()->create([
             'user_id' => $this->gmUser->id,
+            'average_rating' => null,
+            'review_count' => 0,
+        ]);
+
+        $this->location = Location::factory()->verifiedVenue()->create([
             'average_rating' => null,
             'review_count' => 0,
         ]);
@@ -88,6 +97,55 @@ class ReviewAggregateServiceTest extends TestCase
 
         $this->gmProfile->refresh();
         $this->assertEquals(4.67, (float) $this->gmProfile->average_rating);
+    }
+
+    // ── updateLocationAggregates (venue) ───────────────
+
+    public function test_venue_it_sets_null_rating_when_no_published_reviews(): void
+    {
+        $this->service->updateLocationAggregates($this->location);
+
+        $this->location->refresh();
+        $this->assertNull($this->location->average_rating);
+        $this->assertEquals(0, $this->location->review_count);
+    }
+
+    public function test_venue_it_computes_average_rating_and_count(): void
+    {
+        $this->createPublishedVenueReview(rating: 4);
+        $this->createPublishedVenueReview(rating: 5);
+
+        $this->service->updateLocationAggregates($this->location);
+
+        $this->location->refresh();
+        $this->assertEquals(4.50, (float) $this->location->average_rating);
+        $this->assertEquals(2, $this->location->review_count);
+    }
+
+    #[DataProvider('nonPublishedStatuses')]
+    public function test_venue_it_excludes_non_published_reviews(string $status): void
+    {
+        $this->createPublishedVenueReview(rating: 5);
+        $this->createVenueReview(rating: 1, status: $status);
+
+        $this->service->updateLocationAggregates($this->location);
+
+        $this->location->refresh();
+        $this->assertEquals(5.00, (float) $this->location->average_rating);
+        $this->assertEquals(1, $this->location->review_count);
+    }
+
+    public function test_venue_it_rounds_average_to_two_decimals(): void
+    {
+        // 4 + 5 + 5 = 4.666...
+        $this->createPublishedVenueReview(rating: 4);
+        $this->createPublishedVenueReview(rating: 5);
+        $this->createPublishedVenueReview(rating: 5);
+
+        $this->service->updateLocationAggregates($this->location);
+
+        $this->location->refresh();
+        $this->assertEquals(4.67, (float) $this->location->average_rating);
     }
 
     // ── topProficiencies ───────────────────────────────
@@ -193,6 +251,7 @@ class ReviewAggregateServiceTest extends TestCase
 
     // ── Observer Integration ───────────────────────────
 
+    #[Test]
     public function observer_updates_aggregates_on_review_created(): void
     {
         $this->createPublishedReview(rating: 4);
@@ -203,6 +262,7 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(2, $this->gmProfile->review_count);
     }
 
+    #[Test]
     public function observer_updates_aggregates_on_status_change(): void
     {
         $review = $this->createPublishedReview(rating: 5);
@@ -215,6 +275,7 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(0, $this->gmProfile->review_count);
     }
 
+    #[Test]
     public function observer_updates_aggregates_on_review_deleted(): void
     {
         $review = $this->createPublishedReview(rating: 4);
@@ -224,6 +285,44 @@ class ReviewAggregateServiceTest extends TestCase
         $this->gmProfile->refresh();
         $this->assertNull($this->gmProfile->average_rating);
         $this->assertEquals(0, $this->gmProfile->review_count);
+    }
+
+    // ── Venue Observer Integration ─────────────────────
+
+    #[Test]
+    public function observer_updates_venue_aggregates_on_review_created(): void
+    {
+        $this->createPublishedVenueReview(rating: 4);
+        $this->createPublishedVenueReview(rating: 5);
+
+        $this->location->refresh();
+        $this->assertEquals(4.50, (float) $this->location->average_rating);
+        $this->assertEquals(2, $this->location->review_count);
+    }
+
+    #[Test]
+    public function observer_updates_venue_aggregates_on_status_change(): void
+    {
+        $review = $this->createPublishedVenueReview(rating: 5);
+
+        // Hide the review
+        $review->update(['status' => 'hidden']);
+
+        $this->location->refresh();
+        $this->assertNull($this->location->average_rating);
+        $this->assertEquals(0, $this->location->review_count);
+    }
+
+    #[Test]
+    public function observer_updates_venue_aggregates_on_review_deleted(): void
+    {
+        $review = $this->createPublishedVenueReview(rating: 4);
+
+        $review->delete();
+
+        $this->location->refresh();
+        $this->assertNull($this->location->average_rating);
+        $this->assertEquals(0, $this->location->review_count);
     }
 
     // ── Helpers ────────────────────────────────────────
@@ -249,6 +348,25 @@ class ReviewAggregateServiceTest extends TestCase
             'rating' => $rating ?? fake()->numberBetween(1, 5),
             'status' => $status,
             'proficiency_tags' => $tags,
+        ]);
+    }
+
+    private function createPublishedVenueReview(?int $rating = null): Review
+    {
+        return $this->createVenueReview(
+            rating: $rating ?? fake()->numberBetween(1, 5),
+            status: 'published',
+        );
+    }
+
+    private function createVenueReview(
+        ?int $rating = null,
+        string $status = 'published',
+    ): Review {
+        return Review::factory()->venue()->create([
+            'reviewable_id' => $this->location->id,
+            'rating' => $rating ?? fake()->numberBetween(1, 5),
+            'status' => $status,
         ]);
     }
 }

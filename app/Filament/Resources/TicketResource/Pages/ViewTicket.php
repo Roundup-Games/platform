@@ -21,6 +21,7 @@ use App\Services\BggClient;
 use App\Services\BggSyncService;
 use App\Services\BggXmlParser;
 use App\Services\GameSystemRequestService;
+use App\Services\VenueClaimService;
 use App\Services\VenueProposalService;
 use Escalated\Filament\Resources\TicketResource\Pages\ViewTicket as BaseViewTicket;
 use Escalated\Laravel\Enums\ActivityType;
@@ -68,6 +69,17 @@ use Livewire\Attributes\On;
  * - "Remove Content" — closes ticket, removes/hides the reported entity
  * - "Suspend User" — closes ticket, suspends the reported user account
  * - "Escalate" — reassigns to Platform Admin, increases priority to Urgent
+ *
+ * Adds venue proposal actions for Events department venue_proposal tickets:
+ *
+ * - "Approve Venue" — creates/updates a verified Location, resolves ticket
+ * - "Reject Venue" — resolves ticket with a reason, no Location changes
+ *
+ * Adds venue claim actions for Events department venue_claim tickets:
+ *
+ * - "Approve Claim" — assigns management of an existing Location to the
+ *   claimant (sets managed_by), resolves ticket. Address is never changed.
+ * - "Reject Claim" — resolves ticket with a reason, no Location changes
  */
 class ViewTicket extends BaseViewTicket
 {
@@ -148,6 +160,7 @@ class ViewTicket extends BaseViewTicket
             'review_report' => $this->buildReviewReportSection($metadata),
             'game_system_request' => $this->buildGameSystemRequestSection($metadata),
             'venue_proposal' => $this->buildVenueProposalSection($metadata),
+            'venue_claim' => $this->buildVenueClaimSection($metadata),
             'account_recovery', 'data_export_request' => $this->buildAccountSupportSection($metadata),
             'billing_support' => $this->buildBillingSupportSection($metadata),
             default => $this->buildGenericMetadataSection($metadata),
@@ -562,6 +575,12 @@ class ViewTicket extends BaseViewTicket
             array_splice($actions, 0, 0, $venueProposalActions);
         }
 
+        // Insert venue claim actions for Events department venue_claim tickets
+        $venueClaimActions = $this->getVenueClaimActions();
+        if (! empty($venueClaimActions)) {
+            array_splice($actions, 0, 0, $venueClaimActions);
+        }
+
         // Insert data export action for data_export_request tickets
         $dataExportActions = $this->getDataExportActions();
         if (! empty($dataExportActions)) {
@@ -860,6 +879,14 @@ class ViewTicket extends BaseViewTicket
     }
 
     /**
+     * Check if the ticket is a venue claim in the Events department.
+     */
+    protected function isVenueClaim(Ticket $ticket): bool
+    {
+        return app(VenueClaimService::class)->isVenueClaimTicket($ticket);
+    }
+
+    /**
      * Get venue proposal actions. Only visible on Events department venue_proposal tickets
      * that are still open (not closed/resolved).
      *
@@ -913,6 +940,66 @@ class ViewTicket extends BaseViewTicket
                 ->visible(fn () => $ticket->isOpen())
                 ->action(function (array $data) use ($ticket) {
                     $this->performRejectVenueProposal($ticket, $data['rejection_reason']);
+                }),
+        ];
+    }
+
+    /**
+     * Get venue claim actions. Only visible on Events department venue_claim tickets
+     * that are still open (not closed/resolved).
+     *
+     * @return array<int, Action>
+     */
+    protected function getVenueClaimActions(): array
+    {
+        /** @var Ticket $ticket */
+        $ticket = $this->getRecord();
+
+        if (! $this->isVenueClaim($ticket)) {
+            return [];
+        }
+
+        return [
+            Action::make('approveVenueClaim')
+                ->label('Approve Claim')
+                ->icon(Heroicon::OutlinedCheckCircle)
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Approve Venue Claim')
+                ->modalDescription(function () use ($ticket) {
+                    $name = isset($ticket->metadata['location_name'])
+                        ? self::asString($ticket->metadata['location_name'])
+                        : ($ticket->subject ?? '');
+                    $actor = $ticket->metadata['actor'] ?? null;
+                    $claimant = is_array($actor) && isset($actor['name'])
+                        ? self::asString($actor['name'])
+                        : 'the claimant';
+
+                    return 'This will assign management of "'.$name.'" to '.$claimant.' and resolve the ticket. The location address is not changed.';
+                })
+                ->modalSubmitActionLabel('Approve')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function () use ($ticket) {
+                    $this->performApproveVenueClaim($ticket);
+                }),
+
+            Action::make('rejectVenueClaim')
+                ->label('Reject Claim')
+                ->icon(Heroicon::OutlinedXCircle)
+                ->color('danger')
+                ->modalHeading('Reject Venue Claim')
+                ->modalDescription('Please provide a reason for rejecting this venue claim.')
+                ->schema([
+                    Textarea::make('rejection_reason')
+                        ->label('Rejection reason')
+                        ->placeholder('e.g. Cannot verify the claimant\'s association with this venue, duplicate claim, etc.')
+                        ->required()
+                        ->maxLength(1000),
+                ])
+                ->modalSubmitActionLabel('Reject')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function (array $data) use ($ticket) {
+                    $this->performRejectVenueClaim($ticket, $data['rejection_reason']);
                 }),
         ];
     }
@@ -1033,6 +1120,76 @@ class ViewTicket extends BaseViewTicket
     }
 
     /**
+     * Build the metadata Infolist section for a venue claim ticket.
+     *
+     * Shows the venue name + city (name/city only — MEM717), the claimant
+     * (via the structured actor entry), the claimant's justification, optional
+     * proof (website), and a linked-location entry that flips to "now managed"
+     * once the claim is approved.
+     *
+     * @param  array<string, mixed>  $metadata
+     */
+    protected function buildVenueClaimSection(array $metadata): Section
+    {
+        $entries = [];
+
+        // Venue name (identity — name + city only, MEM717)
+        if (! empty($metadata['location_name'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_claim_venue_name')
+                ->label('Venue')
+                ->state($metadata['location_name']);
+        }
+
+        // City
+        if (! empty($metadata['location_city'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_claim_venue_city')
+                ->label('City')
+                ->state($metadata['location_city']);
+        }
+
+        // Justification (claimant notes)
+        $notes = $metadata['claimant_notes'] ?? $metadata['details'] ?? null;
+        if (! empty($notes)) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_claim_notes')
+                ->label('Justification')
+                ->state($notes)
+                ->columnSpanFull();
+        }
+
+        // Optional proof / website
+        if (! empty($metadata['website_url'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_claim_website')
+                ->label('Proof / website')
+                ->state($metadata['website_url'])
+                ->url(self::asString($metadata['website_url']), shouldOpenInNewTab: true)
+                ->color('primary')
+                ->columnSpanFull();
+        }
+
+        // Claimed venue link. Once approved the Location's managed_by is set.
+        if (! empty($metadata['location_id'])) {
+            $location = Location::find(self::asString($metadata['location_id']));
+            $managedBy = $location?->managed_by;
+            $entries[] = Infolists\Components\TextEntry::make('metadata_claim_linked_location')
+                ->label($managedBy !== null ? 'Claimed venue (now managed)' : 'Claimed venue')
+                ->state($location ? $location->name : 'ID: '.self::asString($metadata['location_id']))
+                ->url($location ? "/admin/locations/{$location->id}/edit" : null, shouldOpenInNewTab: true)
+                ->color($managedBy !== null ? 'success' : 'warning')
+                ->icon($managedBy !== null ? 'heroicon-o-check-circle' : 'heroicon-o-link');
+        }
+
+        // Structured schema fields (actor → claimant)
+        if (isset($metadata['schema'])) {
+            $entries = array_merge($entries, $this->buildStructuredEntries($metadata));
+        }
+
+        return Section::make('Venue Claim Details')
+            ->schema($entries)
+            ->columns(2)
+            ->icon('heroicon-o-map-pin');
+    }
+
+    /**
      * Approve a venue proposal: create/update Location with is_verified=true, resolve ticket.
      */
     protected function performApproveVenueProposal(Ticket $ticket): void
@@ -1134,6 +1291,103 @@ class ViewTicket extends BaseViewTicket
 
         } catch (\Throwable $e) {
             Log::error('Failed to reject venue proposal', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Rejection failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Approve a venue claim: assign management of the existing Location to the
+     * claimant and resolve the ticket.
+     *
+     * VenueClaimService::approveClaim owns the pessimistic-lock transaction,
+     * the open-ticket guard, the managed_by mutation, and the TicketService
+     * note + resolve (see T02). This caller stays thin on purpose: re-doing
+     * the lock, note, or resolve here would double-execute (e.g. resolving an
+     * already-resolved ticket). Honors MEM517 (no Ticket::assign).
+     */
+    protected function performApproveVenueClaim(Ticket $ticket): void
+    {
+        try {
+            $admin = auth()->user();
+            if (! $admin instanceof User) {
+                return;
+            }
+
+            $claimService = app(VenueClaimService::class);
+
+            // approveClaim owns lockForUpdate + isOpen guard + managed_by + note + resolve.
+            $location = $claimService->approveClaim($ticket);
+
+            Log::info('venue_claim.approved_by_admin', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'location_id' => $location->id,
+                'location_name' => $location->name,
+                'claimant_id' => $location->managed_by,
+                'admin_id' => $admin->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Venue claim approved')
+                ->body("The venue \"{$location->name}\" is now managed by the claimant.")
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to approve venue claim', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Approval failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Reject a venue claim: resolve ticket with rejection reason, no Location changes.
+     *
+     * VenueClaimService::rejectClaim owns the reply + note + resolve (T02).
+     */
+    protected function performRejectVenueClaim(Ticket $ticket, string $reason): void
+    {
+        try {
+            $admin = auth()->user();
+            if (! $admin instanceof User) {
+                return;
+            }
+
+            $claimService = app(VenueClaimService::class);
+
+            // rejectClaim owns reply + note + resolve. No Location mutation.
+            $claimService->rejectClaim($ticket, $reason);
+
+            Log::info('venue_claim.rejected_by_admin', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'reason' => $reason,
+                'admin_id' => $admin->id,
+            ]);
+
+            Notification::make()
+                ->warning()
+                ->title('Venue claim rejected')
+                ->body('The ticket has been resolved with the rejection reason.')
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to reject venue claim', [
                 'ticket_id' => $ticket->id,
                 'error' => $e->getMessage(),
             ]);

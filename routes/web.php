@@ -60,7 +60,9 @@ use App\Livewire\Teams\ManageRoster;
 use App\Livewire\Teams\ManageTeam;
 use App\Livewire\Teams\PendingInvites;
 use App\Livewire\Teams\TeamDetail;
+use App\Livewire\Venues\ClaimVenue;
 use App\Livewire\Venues\ProposeVenue;
+use App\Livewire\Venues\VenueDetail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -102,7 +104,7 @@ Route::get('locale/switch/{locale}', [LocaleController::class, 'switch'])
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 Route::get('/sitemap-{type}.xml', [SitemapController::class, 'show'])
-    ->where('type', 'static|game-systems|events|games|campaigns|teams|profiles');
+    ->where('type', 'static|game-systems|events|games|campaigns|teams|profiles|venues');
 
 // ── Legacy API Redirects (backward compatibility) ────
 // Old /api/* routes redirect to /api/v1/* equivalents.
@@ -282,6 +284,23 @@ Route::prefix('{locale}')
 
         Route::get('/campaigns', CampaignsPage::class)->name('campaigns.index');
         Route::get('/campaigns/{id}', PublicCampaignDetail::class)->name('campaigns.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+        // ── Venues ───────────────────────────────────
+
+        // M053/S02: public venue page. Only verified commercial venues render —
+        // VenueDetail::mount() aborts 404 for private/unverified/`other` locations
+        // via LocationDisclosureService::isPublicVenuePage() (the single authority).
+        Route::get('/venue/{slug}', VenueDetail::class)
+            ->name('venues.detail')
+            ->where('slug', '[a-zA-Z0-9\-]+');
+
+        // M053/S04/T04: claim-an-existing-venue form. Auth + profile.complete
+        // gated. ClaimVenue::mount() re-runs the same isPublicVenuePage() 404
+        // gate as VenueDetail so only public venue pages are claimable.
+        Route::get('/venue/{slug}/claim', ClaimVenue::class)
+            ->middleware(['auth', 'profile.complete'])
+            ->name('venues.claim')
+            ->where('slug', '[a-zA-Z0-9\-]+');
 
         // ── Billing (authenticated) ───────────────────
 

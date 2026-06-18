@@ -42,7 +42,9 @@ sed -i.bak -E 's/(public function (isFollowedBy|follow|unfollow)\()int (\$[a-zA-
 # is redundant" (Ticket.php:519), which crashed every scheduled escalated
 # command with exit code 255. This regex handles all known forms (old upstream
 # `Model|int`, new upstream `Model|int|string`, and any previously
-# double-patched `Model|string|int|string`) idempotently.
+# double-patched `Model|string|int|string`) idempotently. (Merged from main
+# 748abe22; equivalent to the prior per-branch regex but production-hardened
+# and explicit about the captured `$param`.)
 sed -i.bak -E 's/public function assign\(Model(\|string)?\|int(\|string)? (\$[a-zA-Z]+)/public function assign(Model|string|int \3/' \
     "$VENDOR_DIR/Models/Ticket.php"
 

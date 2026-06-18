@@ -161,5 +161,8 @@ Schedule::command('exports:prune --days=7')->dailyAt('04:30')->onOneServer();
 Schedule::command('data:audit')->dailyAt('05:00')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
 Schedule::command('data:repair')->dailyAt('05:15')->onOneServer();
 
+// Location stewardship — non-destructive drift sweep feeding the LocationResource admin queue
+Schedule::command('locations:drift-sweep')->dailyAt('05:30')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
+
 // Horizon metrics snapshot (powers the throughput/wait-time graphs)
 Schedule::command('horizon:snapshot')->everyFiveMinutes();

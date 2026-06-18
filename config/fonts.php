@@ -98,6 +98,9 @@ return [
 
         // Venue picker
         'store', 'storefront', 'pin_drop',
+
+        // Venue detail (M053/S02) — also referenced statically in venue-detail.blade.php
+        'history', 'trophy',
     ],
 
     /*

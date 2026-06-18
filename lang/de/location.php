@@ -65,4 +65,9 @@ return [
 
     // Errors
     'error_proposal_submission_failed' => 'Vorschlag konnte nicht gesendet werden. Bitte versuche es später erneut.',
+
+    // ── Organizer disclosure-consequence preview (T08) ──────────────────────
+    'content_preview_exact' => 'Spieler sehen die vollständige Adresse: :address',
+    'content_preview_area' => 'Spieler sehen bis zum Beitritt nur „In deinem Umkreis“.',
+    'content_preview_heading' => 'Was Spieler sehen',
 ];
