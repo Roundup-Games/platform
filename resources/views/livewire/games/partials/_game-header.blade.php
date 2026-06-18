@@ -70,12 +70,17 @@
                 </span>
             @endif
             @if($game->relationLoaded('linkedLocation') && $game->linkedLocation)
-                <x-location-display :entity="$game" :location="$game->linkedLocation" />
-                {{-- M053/S02/T03: venue-name → venue-page link. Renders nothing for
-                     private/unverified/`other` locations (no name leak), so no
-                     external wrapper/icon is needed. Light class: hero is
-                     bg-primary text-on-primary. --}}
-                <x-venue-link :location="$game->linkedLocation" class="hover:underline text-on-primary" />
+                {{-- Venue entry: the venue name (→ venue page) grouped with the
+                     disclosure-governed address under one icon, so they read as
+                     one place instead of two disjoint trailing items in the row.
+                     venue-link renders nothing for private/unverified/`other`
+                     locations (no name leak); the address still graduates alone.
+                     Hero is bg-primary text-on-primary. --}}
+                <span class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
+                    <x-venue-link :location="$game->linkedLocation" class="font-medium hover:underline text-on-primary" />
+                    <x-location-display :entity="$game" :location="$game->linkedLocation" without-icon class="text-on-primary/70" />
+                </span>
             @endif
             {{-- M053/S1/T02: address granularity now flows through the single
                  <x-location-display> component (LocationDisclosureService), the

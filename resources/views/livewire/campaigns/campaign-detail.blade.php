@@ -64,10 +64,16 @@
                     </span>
                 @endif
                 @if($campaign->relationLoaded('linkedLocation') && $campaign->linkedLocation)
-                    <x-location-display :entity="$campaign" :location="$campaign->linkedLocation" />
-                    {{-- M053/S02/T03: venue-name → venue-page link. Renders nothing for
-                         private/unverified/`other` locations (no name leak). --}}
-                    <x-venue-link :location="$campaign->linkedLocation" class="hover:underline text-on-primary" />
+                    {{-- Venue entry: the venue name (→ venue page) grouped with the
+                         disclosure-governed address under one icon, so they read as
+                         one place instead of two disjoint trailing items in the row.
+                         venue-link renders nothing for private/unverified/`other`
+                         locations (no name leak); the address still graduates alone. --}}
+                    <span class="flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
+                        <x-venue-link :location="$campaign->linkedLocation" class="font-medium hover:underline text-on-primary" />
+                        <x-location-display :entity="$campaign" :location="$campaign->linkedLocation" without-icon class="text-on-primary/70" />
+                    </span>
                 @endif
                 {{-- M053/S1/T02: address granularity via <x-location-display>
                      (LocationDisclosureService). Legacy `location` JSON
