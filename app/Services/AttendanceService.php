@@ -601,12 +601,11 @@ class AttendanceService
      * Mark attendance reports as corroborated when two or more independent
      * (non-self) reporters agree on the same status for a reported user.
      *
-     * Restores the corroboration semantics removed in the consensus rewrite.
-     * Without this every report stays is_corroborated=false forever, so the
-     * grief-resistance quarantine (which counts distinct games with
-     * uncorroborated reports) fires on legitimate reporters — e.g. a host who
-     * reports attendance for three games in 30 days gets quarantined even when
-     * other participants independently agree with every report.
+     * Restores the corroboration semantics that the consensus rewrite dropped.
+     * This no longer drives the grief-resistance quarantine (which is now
+     * scoped to EarlyConsensus games — see config/attendance.php), but it still
+     * sets is_corroborated correctly for the rare multi-reporter games, keeping
+     * the data model honest and powering the Filament "corroborated" column.
      *
      * Agreement is per (reported user, status): two reporters must pick the SAME
      * status for that user. Reporters disagreeing (one "attended", one
@@ -620,15 +619,8 @@ class AttendanceService
      */
     public function markCorroborated(Game $game): int
     {
-        return $this->markCorroboratedById($game->id);
-    }
+        $gameId = $game->id;
 
-    /**
-     * ID-based core for {@see markCorroborated()}. Used by the backfill command
-     * to avoid hydrating a Game model per row.
-     */
-    public function markCorroboratedById(string $gameId): int
-    {
         // Find (reported_id, status) groups with >= 2 distinct non-self reporters.
         // Count ALL reporters regardless of current corroboration state so a group
         // where one report is already corroborated still satisfies the threshold.
