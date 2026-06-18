@@ -21,11 +21,9 @@ return [
     'heading_active_campaigns' => 'Aktive Kampagnen',
     'heading_completed_campaigns' => 'Vergangene Kampagnen',
 
-    // Empty states
-    'content_no_upcoming_sessions' => 'Noch keine anstehenden Sitzungen an diesem Ort.',
-    'content_no_past_sessions' => 'Noch keine vergangenen Sitzungen.',
-    'content_no_active_campaigns' => 'Noch keine aktiven Kampagnen an diesem Ort.',
-    'content_no_completed_campaigns' => 'Noch keine vergangenen Kampagnen.',
+    // Leerzustand — einmalig angezeigt, wenn der Veranstaltungsort keine Aktivität hat.
+    // Einzelne „Keine X“-Hinweise werden ausgeblendet; nur dieser Fallback wird angezeigt.
+    'content_no_activity_yet' => 'Noch keine Sitzungen an diesem Ort eingetragen — schau bald wieder vorbei.',
 
     // Reviews (S03 hook)
     'reviews_heading' => 'Bewertungen',

@@ -180,15 +180,20 @@ describe('VenueDetail activity aggregation', function () {
         $response->assertDontSee('Hidden Campaign');
     });
 
-    it('renders empty states when there is no activity', function () {
+    it('hides empty activity sections and shows a single fallback', function () {
         $venue = createVerifiedVenue();
 
         $response = get(route('venues.detail', ['slug' => $venue->slug]));
         $response->assertOk();
-        $response->assertSee(__('venue.content_no_upcoming_sessions'));
-        $response->assertSee(__('venue.content_no_past_sessions'));
-        $response->assertSee(__('venue.content_no_active_campaigns'));
-        $response->assertSee(__('venue.content_no_completed_campaigns'));
+
+        // Per-section "No X" boxes are hidden, not rendered as a wall of empties.
+        $response->assertDontSee(__('venue.content_no_upcoming_sessions'));
+        $response->assertDontSee(__('venue.content_no_past_sessions'));
+        $response->assertDontSee(__('venue.content_no_active_campaigns'));
+        $response->assertDontSee(__('venue.content_no_completed_campaigns'));
+
+        // A single graceful fallback is shown instead.
+        $response->assertSee(__('venue.content_no_activity_yet'));
     });
 });
 

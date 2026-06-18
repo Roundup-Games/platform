@@ -21,11 +21,9 @@ return [
     'heading_active_campaigns' => 'Active Campaigns',
     'heading_completed_campaigns' => 'Past Campaigns',
 
-    // Empty states
-    'content_no_upcoming_sessions' => 'No upcoming sessions at this venue yet.',
-    'content_no_past_sessions' => 'No past sessions yet.',
-    'content_no_active_campaigns' => 'No active campaigns at this venue yet.',
-    'content_no_completed_campaigns' => 'No past campaigns yet.',
+    // Empty state — shown once when the venue has no activity at all.
+    // Per-section "No X" boxes are hidden; only this single fallback renders.
+    'content_no_activity_yet' => 'No sessions listed at this venue yet — check back soon.',
 
     // Reviews (S03 hook)
     'reviews_heading' => 'Reviews',

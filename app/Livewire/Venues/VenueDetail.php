@@ -56,6 +56,7 @@ class VenueDetail extends Component
         // Upcoming public sessions: scheduled and in the future.
         // scopePublic() filters visibility; scopeScheduled() filters status.
         $upcomingSessions = $this->location->games()
+            ->with('gameSystem')
             ->public()
             ->scheduled()
             ->where('date_time', '>', now())
@@ -66,6 +67,7 @@ class VenueDetail extends Component
         // Past public sessions: any non-canceled status that already happened
         // (completed sessions are the valuable history; canceled ones excluded).
         $pastSessions = $this->location->games()
+            ->with('gameSystem')
             ->public()
             ->where('status', '!=', 'canceled')
             ->where('date_time', '<=', now())
