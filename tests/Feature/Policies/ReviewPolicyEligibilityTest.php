@@ -2,11 +2,13 @@
 
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Enums\VenueType;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
+use App\Models\Location;
 use App\Models\Review;
 use App\Models\User;
 use App\Policies\ReviewPolicy;
@@ -141,6 +143,52 @@ describe('ReviewPolicy — eligibility methods', function () {
             ]);
 
             expect($this->policy->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();
+        });
+    });
+
+    describe('canReviewVenue', function () {
+        test('eligible approved participant of completed game at venue can review', function () {
+            $venue = Location::factory()->verifiedVenue()->create([
+                'venue_type' => VenueType::Cafe,
+                'slug' => fake()->unique()->slug(),
+            ]);
+
+            $game = Game::factory()->create([
+                'owner_id' => $this->gmUser->id,
+                'location_id' => $venue->id,
+                'date_time' => now()->subDay(),
+            ]);
+
+            GameParticipant::create([
+                'game_id' => $game->id,
+                'user_id' => $this->reviewer->id,
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
+            ]);
+
+            expect($this->policy->canReviewVenue($this->reviewer, $venue))->toBeTrue();
+        });
+
+        test('ineligible user cannot review venue', function () {
+            $venue = Location::factory()->verifiedVenue()->create([
+                'venue_type' => VenueType::Cafe,
+                'slug' => fake()->unique()->slug(),
+            ]);
+
+            expect($this->policy->canReviewVenue($this->otherUser, $venue))->toBeFalse();
+        });
+
+        test('admin bypass applies to canReviewVenue', function () {
+            $venue = Location::factory()->verifiedVenue()->create([
+                'venue_type' => VenueType::Cafe,
+                'slug' => fake()->unique()->slug(),
+            ]);
+
+            $this->actingAs($this->admin);
+            // Routed through the Gate so the policy before() global-admin bypass fires.
+            // ReviewPolicy is resolved by passing [Review::class, $venue] — the production
+            // invocation pattern from WriteReview — even though the reviewable is a Location.
+            expect(Gate::allows('canReviewVenue', [Review::class, $venue]))->toBeTrue();
         });
     });
 

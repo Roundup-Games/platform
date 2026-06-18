@@ -48,10 +48,12 @@
                                 </span>
                             </div>
 
+                            {{-- M053/S1/T06: routed through <x-location-display> (the sole
+                                 address-rendering authority) so no raw city leaks. Teams carry
+                                 denormalized fields (no Location owner), raw-city path. --}}
                             @if($team->city || $team->country)
-                                <p class="text-sm text-on-surface-variant flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-sm">location_on</span>
-                                    {{ collect([$team->city, $team->country])->filter()->join(', ') }}
+                                <p class="text-sm text-on-surface-variant">
+                                    <x-location-display :city="$team->city" :country="$team->country" icon-class="text-sm" />
                                 </p>
                             @endif
 

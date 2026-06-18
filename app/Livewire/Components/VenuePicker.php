@@ -3,8 +3,10 @@
 namespace App\Livewire\Components;
 
 use App\Dto\VenueSearchResult;
+use App\Enums\DisclosureLevel;
 use App\Models\Location;
 use App\Services\GeocodingService;
+use App\Services\LocationDisclosureService;
 use App\Services\VenueSearchService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
@@ -253,9 +255,18 @@ class VenuePicker extends Component
     // registration — aliasing the trait method carried its #[On] attribute and
     // registered a second listener pointing at a private alias, which threw
     // BadMethodCallException. Mirrors the NearbySessions override pattern.
+    //
+    // The rate-limit guard (tooManyGuestLocationUpdates) is applied here too —
+    // overriding the trait method shadows its body, so the M053/S1/T07
+    // coordinate throttle must be re-applied explicitly (the auto-merge of
+    // main's listener fix inherited main's body, which predated the limiter).
     #[On('guest-location-updated')]
     public function onGuestLocationUpdated(float $lat, float $lng, string $source = 'unknown'): void
     {
+        if ($this->tooManyGuestLocationUpdates($source)) {
+            return;
+        }
+
         $this->guestLat = $lat;
         $this->guestLng = $lng;
         $this->guestLocationSource = $source;
@@ -284,6 +295,35 @@ class VenuePicker extends Component
         }
 
         return Location::find($this->locationId);
+    }
+
+    /**
+     * Disclosure-consequence preview for the organizer (T08).
+     *
+     * Computes what a representative stranger viewer will see for the selected
+     * location via LocationDisclosureService::strangerPreviewLevel(), so the
+     * organizer understands the consequence of their choice before saving.
+     * Returns null when nothing is selected. Mirrors addressLevel()'s guest
+     * branch, so the preview can never over-disclose relative to the real
+     * rendered value.
+     *
+     * @return array{level: string, address: string|null}|null
+     */
+    #[Computed]
+    public function disclosurePreview(): ?array
+    {
+        $location = $this->selectedVenue();
+
+        if ($location === null) {
+            return null;
+        }
+
+        $level = app(LocationDisclosureService::class)->strangerPreviewLevel($location);
+
+        return [
+            'level' => $level->value,
+            'address' => $level === DisclosureLevel::Exact ? $location->fullAddress() : null,
+        ];
     }
 
     #[Computed]

@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Models\Location;
 use App\Models\Review;
 use App\Services\DashboardCacheService;
 use App\Services\ReviewAggregateService;
@@ -25,6 +26,13 @@ class ReviewObserver
                 $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
             }
         }
+
+        if ($review->reviewable_type === Location::class) {
+            $location = $review->reviewable;
+            if ($location instanceof Location) {
+                $this->aggregateService->updateLocationAggregates($location);
+            }
+        }
     }
 
     /**
@@ -35,11 +43,20 @@ class ReviewObserver
      */
     public function updated(Review $review): void
     {
-        if ($review->wasChanged('status') && $review->gm_profile_id) {
-            $gmProfile = $review->gmProfile;
-            if ($gmProfile) {
-                $this->aggregateService->updateAggregates($gmProfile);
-                $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
+        if ($review->wasChanged('status')) {
+            if ($review->gm_profile_id) {
+                $gmProfile = $review->gmProfile;
+                if ($gmProfile) {
+                    $this->aggregateService->updateAggregates($gmProfile);
+                    $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
+                }
+            }
+
+            if ($review->reviewable_type === Location::class) {
+                $location = $review->reviewable;
+                if ($location instanceof Location) {
+                    $this->aggregateService->updateLocationAggregates($location);
+                }
             }
         }
     }
@@ -54,6 +71,13 @@ class ReviewObserver
             if ($gmProfile) {
                 $this->aggregateService->updateAggregates($gmProfile);
                 $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
+            }
+        }
+
+        if ($review->reviewable_type === Location::class) {
+            $location = $review->reviewable;
+            if ($location instanceof Location) {
+                $this->aggregateService->updateLocationAggregates($location);
             }
         }
     }

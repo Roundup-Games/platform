@@ -22,11 +22,6 @@
         ? __('common.content_today') . ', ' . $dateTime->format('H:i')
         : $dateTime?->format('D, M j, H:i');
 
-    // Distance badge
-    $distanceBadge = $distanceKm < 1
-        ? round($distanceKm * 1000) . ' m'
-        : number_format($distanceKm, 1) . ' km';
-
     // Join URL
     $joinRoute = $isCampaign
         ? route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $entity])
@@ -36,14 +31,17 @@
 <article class="relative bg-surface-container-low rounded-2xl border border-outline-variant overflow-hidden hover:shadow-md transition-shadow"
          aria-label="{{ $entity->name }}">
 
-    {{-- Distance badge --}}
+    {{-- Distance badge (D060 disclosure-governed; CRITICAL-1 surface).
+         Guarded like the venue-name link below: only render when linkedLocation
+         is eager-loaded AND present, so cards rendered in a loop (NearbySessions)
+         never trigger a lazy N+1, and an entity with no location shows no empty pill. --}}
+    @if($entity->relationLoaded('linkedLocation') && $entity->linkedLocation)
     <div class="absolute top-3 right-3 z-10">
-        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium"
-              aria-label="{{ __('discovery.content_distance_away', ['distance' => $distanceBadge]) }}">
-            <span class="material-symbols-outlined text-xs mr-1" aria-hidden="true">straighten</span>
-            {{ $distanceBadge }}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium">
+            <x-distance-display :precise-km="$distanceKm" :location="$entity->linkedLocation" :entity="$entity" icon="straighten" />
         </span>
     </div>
+    @endif
 
     {{-- Card body --}}
     <div class="p-4 sm:p-5">
@@ -82,6 +80,17 @@
             <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
                 <span class="material-symbols-outlined text-sm" aria-hidden="true">autorenew</span>
                 {{ __('campaigns.content_ongoing_campaign') }}
+            </div>
+        @endif
+
+        {{-- Venue-name → venue-page link (M053/S02/T03 demo entry point).
+             Renders nothing for private/unverified/`other` locations — no name
+             chip, no leak — so strangers see only the disclosure-governed
+             distance/address, never a private home's name. --}}
+        @if($entity->relationLoaded('linkedLocation') && $entity->linkedLocation)
+            <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
+                <span class="material-symbols-outlined text-sm" aria-hidden="true">storefront</span>
+                <x-venue-link :location="$entity->linkedLocation" />
             </div>
         @endif
 

@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\GmProficiency;
 use App\Models\Game;
 use App\Models\GMProfile;
+use App\Models\Location;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -63,6 +64,23 @@ class ReviewFactory extends Factory
             'status' => 'reported',
             'reported_at' => now(),
             'reported_by' => User::factory(),
+        ]);
+    }
+
+    /**
+     * Attach the review to a verified venue (reviewable_type = Location).
+     *
+     * Venue reviews have no GM, so gm_profile_id and proficiency_tags are
+     * null. LocationFactory::verifiedVenue() may pick the 'other' VenueType;
+     * tests that need a specific commercial type override venue_type explicitly.
+     */
+    public function venue(): static
+    {
+        return $this->state(fn () => [
+            'reviewable_type' => Location::class,
+            'reviewable_id' => Location::factory()->verifiedVenue(),
+            'gm_profile_id' => null,
+            'proficiency_tags' => null,
         ]);
     }
 }

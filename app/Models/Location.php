@@ -10,12 +10,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use RalphJSmit\Laravel\SEO\SchemaCollection;
+use RalphJSmit\Laravel\SEO\Support\HasSEO;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
+use Spatie\SchemaOrg\LocalBusiness;
+use Spatie\SchemaOrg\PostalAddress;
 
 /**
  * @property string $id
  * @property string $name
+ * @property string|null $slug
  * @property string|null $description
  * @property string|null $address
  * @property string|null $city
@@ -31,8 +38,13 @@ use Illuminate\Support\Str;
  * @property VenueType|null $venue_type
  * @property array<string, mixed>|null $venue_metadata
  * @property string|null $website_url
- * @property int|null $managed_by
+ * @property string|null $managed_by
  * @property string|null $venue_notes
+ * @property float|null $average_rating
+ * @property int $review_count
+ * @property string $drift_status
+ * @property Carbon|null $drift_detected_at
+ * @property array<string, mixed>|null $drift_metadata
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -41,6 +53,8 @@ class Location extends Model
     /** @use HasFactory<LocationFactory> */
     use HasFactory;
 
+    use HasSEO;
+
     protected $keyType = 'string';
 
     public $incrementing = false;
@@ -48,6 +62,7 @@ class Location extends Model
     protected $fillable = [
         'id',
         'name',
+        'slug',
         'description',
         'address',
         'city',
@@ -65,6 +80,11 @@ class Location extends Model
         'website_url',
         'managed_by',
         'venue_metadata',
+        'average_rating',
+        'review_count',
+        'drift_status',
+        'drift_detected_at',
+        'drift_metadata',
     ];
 
     protected function casts(): array
@@ -76,6 +96,11 @@ class Location extends Model
             'is_verified' => 'boolean',
             'venue_type' => VenueType::class,
             'venue_metadata' => 'array',
+            'average_rating' => 'decimal:2',
+            'review_count' => 'integer',
+            'drift_status' => 'string',
+            'drift_detected_at' => 'datetime',
+            'drift_metadata' => 'array',
         ];
     }
 
@@ -143,6 +168,19 @@ class Location extends Model
     }
 
     /**
+     * Polymorphic venue reviews (reviewable_type = Location).
+     *
+     * Shares the polymorphic Review model with Game/Campaign reviews
+     * (MEM720/D083). Venue reviews set gm_profile_id = null.
+     *
+     * @return MorphMany<Review, $this>
+     */
+    public function reviews(): MorphMany
+    {
+        return $this->morphMany(Review::class, 'reviewable');
+    }
+
+    /**
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
@@ -161,6 +199,39 @@ class Location extends Model
     }
 
     // ── Scopes ─────────────────────────────────────────
+
+    /**
+     * Scope to locations eligible for a public venue page — the query form of
+     * {@see LocationDisclosureService::isPublicVenuePage()} (D079 / MEM717).
+     *
+     * Verified commercial venues OR admin-managed commercial venues. Private /
+     * unverified / `other` / null-type locations are excluded. The commercial-type
+     * set is the single source of truth on {@see VenueType::COMMERCIAL_TYPES};
+     * this scope and the disclosure service's in-memory check both read it, so
+     * the sitemap, the venue 404 gate, and <x-venue-link> can never drift.
+     *
+     * Callers that need a resolvable slug (sitemap, route) add ->whereNotNull('slug').
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopePublicVenuePage(Builder $query): Builder
+    {
+        $commercial = VenueType::commercialValues();
+
+        // Verified commercial venues OR admin-managed commercial venues.
+        // The two branches are OR'd at the top level; each inner closure is
+        // self-contained (the outer query is not referenced inside), so the
+        // AND/OR precedence this scope depends on is unambiguous.
+        return $query->where(fn ($outer) => $outer
+            ->where('is_verified', true)
+            ->whereIn('venue_type', $commercial)
+            ->orWhere(fn ($inner) => $inner
+                ->whereNotNull('managed_by')
+                ->whereIn('venue_type', $commercial)
+            )
+        );
+    }
 
     /**
      * Scope to locations within a bounding box.
@@ -197,6 +268,127 @@ class Location extends Model
         return (bool) $this->is_verified;
     }
 
+    // Note: getRouteKeyName() is intentionally NOT overridden to 'slug'.
+    // Public venue pages are slug-routed, but they resolve the slug explicitly
+    // via VenueDetail::mount()'s Location::where('slug', $slug)->firstOrFail(),
+    // and every venues.detail URL is generated with an explicit 'slug' key —
+    // neither path uses implicit route-model-binding. Overriding the route key
+    // to 'slug' here breaks the Filament admin LocationResource: most locations
+    // carry a null slug (only verified/managed commercial venues get one), so
+    // the admin table cannot build edit-route URLs and throws a ViewException
+    // ("Missing parameter: record"). The default 'id' route key is always
+    // present and is what Filament needs. Do not re-add a 'slug' override.
+
+    // ── Slug Generation ────────────────────────────────
+
+    /**
+     * Generate a URL-friendly slug from a name.
+     *
+     * Byte-identical in output to {@see User::generateSlug()} — the two
+     * implementations share the same transliteration map and step sequence so
+     * users and venues slug consistently. Future extraction into a shared
+     * trait is tracked as a follow-up; until then @see User::transliterate.
+     */
+    public static function generateSlug(string $name): string
+    {
+        // Transliterate to ASCII first (ü→ue, ö→oe, ä→ae, é→e, etc.)
+        $slug = static::transliterate($name);
+        // Remove anything that's not ASCII letters, numbers, spaces, or hyphens
+        $slug = (string) preg_replace('/[^a-zA-Z0-9\s-]/', '', $slug);
+        // Replace spaces with hyphens
+        $slug = (string) preg_replace('/\s+/', '-', trim($slug));
+        // Collapse consecutive hyphens
+        $slug = (string) preg_replace('/-+/', '-', $slug);
+        // Lowercase
+        $slug = mb_strtolower($slug);
+        // Trim leading/trailing hyphens
+        $slug = trim($slug, '-');
+
+        return $slug;
+    }
+
+    /**
+     * Transliterate Unicode characters to ASCII equivalents.
+     *
+     * Identical map + iconv fallback as {@see User::transliterate()} — kept in
+     * sync so slug output matches User byte-for-byte across platforms.
+     */
+    protected static function transliterate(string $text): string
+    {
+        $map = [
+            // German expansions (multi-char)
+            'ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss',
+            'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue',
+            // Nordic
+            'æ' => 'ae', 'ø' => 'oe', 'å' => 'aa',
+            'Æ' => 'Ae', 'Ø' => 'Oe', 'Å' => 'Aa',
+            // Latin accented vowels
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a',
+            'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+            'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o',
+            'ú' => 'u', 'ù' => 'u', 'û' => 'u',
+            'ý' => 'y', 'ÿ' => 'y',
+            'ñ' => 'n', 'ç' => 'c',
+            // Slavic / Central European
+            'ž' => 'z', 'š' => 's', 'č' => 'c', 'ř' => 'r',
+            'ď' => 'd', 'ť' => 't', 'ň' => 'n',
+            'ł' => 'l', 'ś' => 's', 'ź' => 'z',
+            'Ž' => 'Z', 'Š' => 'S', 'Č' => 'C', 'Ř' => 'R',
+            'Ď' => 'D', 'Ť' => 'T', 'Ň' => 'N',
+            'Ł' => 'L', 'Ś' => 'S', 'Ź' => 'Z',
+            // Uppercase accented vowels
+            'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+            'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A',
+            'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
+            'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O',
+            'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U',
+            'Ý' => 'Y', 'Ñ' => 'N', 'Ç' => 'C',
+        ];
+        $text = strtr($text, $map);
+
+        $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+
+        return $transliterated !== false ? $transliterated : $text;
+    }
+
+    /**
+     * Generate a unique slug for the given name, appending incremental digits on collision.
+     *
+     * Mirrors {@see User::generateUniqueSlug()}; the only divergence is the
+     * empty-base fallback, which is 'venue' here (vs 'user' for users).
+     */
+    public static function generateUniqueSlug(string $name, ?string $ignoreId = null): string
+    {
+        $baseSlug = static::generateSlug($name);
+
+        if ($baseSlug === '') {
+            $baseSlug = 'venue';
+        }
+
+        $slug = $baseSlug;
+        $counter = 1;
+
+        $query = static::where('slug', $slug);
+
+        if ($ignoreId !== null) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        while ($query->exists()) {
+            $counter++;
+            $slug = $baseSlug.'-'.$counter;
+
+            $query = static::where('slug', $slug);
+
+            if ($ignoreId !== null) {
+                $query->where('id', '!=', $ignoreId);
+            }
+        }
+
+        return $slug;
+    }
+
     // ── Helpers ────────────────────────────────────────
 
     /**
@@ -229,5 +421,83 @@ class Location extends Model
         ]);
 
         return implode(', ', $parts);
+    }
+
+    // ── SEO ────────────────────────────────────────────
+
+    /**
+     * Dynamic SEO for the public venue page (M053/S02).
+     *
+     * Safe to emit 'index, follow' unconditionally because getDynamicSEOData()
+     * is only rendered for venues that cleared the isPublicVenuePage() 404 gate
+     * in VenueDetail::mount() — private/unverified/`other` locations never
+     * reach a route that calls seo()->for($location). The LocalBusiness schema
+     * mirrors Team's Organization approach (extends Place+Organization so it
+     * carries both the address and the business identity).
+     */
+    public function getDynamicSEOData(): SEOData
+    {
+        $description = $this->description
+            ? Str::limit(strip_tags((string) $this->description), 160)
+            : trim("{$this->name}".($this->city ? " — {$this->city}" : '').($this->country ? ", {$this->country}" : ''));
+
+        $schema = SchemaCollection::initialize();
+
+        $business = (new LocalBusiness)
+            ->name($this->name)
+            ->url(route('venues.detail', [
+                'locale' => app()->getLocale(),
+                'slug' => $this->slug,
+            ]));
+
+        // The schema description is only meaningful when content exists — an
+        // empty value would produce a useless description node, and the
+        // LocalBusiness::description() type contract is non-nullable anyway.
+        if ($this->description) {
+            $business->description(Str::limit(strip_tags((string) $this->description), 500));
+        }
+
+        // Address: emit a PostalAddress ONLY for verified commercial venues.
+        // Verified venues resolve to the Exact address rung for every viewer, so
+        // the structured data matches what <x-location-display> renders. A
+        // managed-but-unverified commercial venue resolves to the Area rung for
+        // strangers ("In your area" — no address shown), so emitting a full
+        // PostalAddress here would make the indexed JSON-LD strictly more
+        // permissive than the HTML. The VenueDetail route gate already
+        // guarantees a commercial type, so is_verified alone is the
+        // discriminator (mirrors isVerifiedCommercialVenue).
+        if ($this->is_verified) {
+            $address = (new PostalAddress);
+            if ($this->address) {
+                $address->streetAddress($this->address);
+            }
+            if ($this->postal_code) {
+                $address->postalCode($this->postal_code);
+            }
+            if ($this->city) {
+                $address->addressLocality($this->city);
+            }
+            if ($this->country) {
+                $address->addressCountry($this->country);
+            }
+            $business->address($address);
+        }
+
+        $sameAs = [];
+        if ($this->website_url) {
+            $sameAs[] = $this->website_url;
+        }
+        if (! empty($sameAs)) {
+            $business->sameAs($sameAs);
+        }
+
+        $schema->push($business->toArray());
+
+        return new SEOData(
+            title: $this->name,
+            description: $description ?: null,
+            robots: 'index, follow',
+            schema: $schema,
+        );
     }
 }

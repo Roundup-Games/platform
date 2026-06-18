@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\VenueType;
 use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 describe('Game getDynamicSEOData', function () {
@@ -137,5 +139,61 @@ describe('Game getDynamicSEOData', function () {
         $seo = $game->getDynamicSEOData();
 
         expect($seo->schema)->not->toBeNull();
+    });
+
+    // ── M053 regression: JSON-LD location must honour the disclosure service ──
+    // JSON-LD is a single server-rendered artifact served to every viewer
+    // (including crawlers), so the Event location must reflect the stranger
+    // (most-restrictive) disclosure level. A public game at a private home
+    // must NOT leak the host's street address in structured data even though
+    // the HTML body correctly shows only "In your area".
+
+    it('emits a full PostalAddress in the Event location for a verified commercial venue', function () {
+        $venue = Location::factory()->verifiedVenue()->create([
+            'venue_type' => VenueType::Cafe,
+            'name' => 'Café Glück',
+            'address' => 'Friedrichstraße 100',
+            'city' => 'Berlin',
+            'country' => 'DEU',
+            'is_verified' => true,
+        ]);
+        $game = Game::factory()->create([
+            'visibility' => Visibility::Public,
+            'date_time' => now()->addDays(7),
+            'location_id' => $venue->id,
+        ]);
+
+        $event = collect($game->getDynamicSEOData()->schema->toArray())
+            ->first(fn ($item) => ($item['@type'] ?? null) === 'Event');
+
+        expect($event)->not->toBeNull();
+        expect($event)->toHaveKey('location');
+        expect($event['location']['@type'] ?? null)->toBe('Place');
+        expect($event['location']['address']['@type'] ?? null)->toBe('PostalAddress');
+        expect($event['location']['address']['streetAddress'] ?? null)->toBe('Friedrichstraße 100');
+        expect($event['location']['address']['addressLocality'] ?? null)->toBe('Berlin');
+    });
+
+    it('does NOT leak the street address in JSON-LD for a public game at a private home (M053 regression)', function () {
+        $home = Location::factory()->create([
+            'venue_type' => VenueType::Other,
+            'is_verified' => false,
+            'name' => 'Private Home',
+            'address' => 'Torstraße 5',
+            'city' => 'Berlin',
+            'country' => 'DEU',
+        ]);
+        $game = Game::factory()->create([
+            'visibility' => Visibility::Public,
+            'date_time' => now()->addDays(7),
+            'location_id' => $home->id,
+        ]);
+
+        $schemaJson = json_encode($game->getDynamicSEOData()->schema->toArray());
+
+        // No Place, no PostalAddress, no street, no locality — fail-closed.
+        expect($schemaJson)->not->toContain('PostalAddress');
+        expect($schemaJson)->not->toContain('Torstra');
+        expect($schemaJson)->not->toContain('streetAddress');
     });
 });

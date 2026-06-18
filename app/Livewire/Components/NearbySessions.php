@@ -70,10 +70,21 @@ class NearbySessions extends Component
     /**
      * When location is received, log conversion event for analytics.
      * Overrides the trait method to add logging while keeping the same #[On] listener.
+     *
+     * Throttled per session/IP via tooManyGuestLocationUpdates() (MEDIUM-4,
+     * M053/S1/T07) as defence-in-depth against coordinate brute-forcing. When
+     * throttled, the last accepted coordinates are silently retained (no
+     * visible error — an attacker gets no feedback) and no re-query or
+     * conversion log fires. The 5km distance grid-snap (T03) remains the
+     * primary trilateration defence; this limiter adds request-level braking.
      */
     #[On('guest-location-updated')]
     public function onGuestLocationUpdated(float $lat, float $lng, string $source = 'unknown'): void
     {
+        if ($this->tooManyGuestLocationUpdates($source)) {
+            return;
+        }
+
         $this->guestLat = $lat;
         $this->guestLng = $lng;
         $this->guestLocationSource = $source;

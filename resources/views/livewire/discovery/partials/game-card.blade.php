@@ -43,9 +43,8 @@
                 </span>
             @endif
             @if(isset($game->distance_km) && $game->distance_km !== null)
-                <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container">
-                    <span class="material-symbols-outlined text-xs" aria-hidden="true">location_on</span>
-                    {{ $game->distance_km < 1 ? round($game->distance_km * 1000) . ' m' : number_format($game->distance_km, 1) . ' km' }}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container">
+                    <x-distance-display :precise-km="$game->distance_km" :location="$game->linkedLocation" :entity="$game" />
                 </span>
             @endif
             @if($game->visibility->value === 'protected')

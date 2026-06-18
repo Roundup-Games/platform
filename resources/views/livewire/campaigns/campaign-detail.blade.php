@@ -64,20 +64,14 @@
                     </span>
                 @endif
                 @if($campaign->relationLoaded('linkedLocation') && $campaign->linkedLocation)
-                    <span class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                        {{ $isGuest ? $campaign->linkedLocation->city : $campaign->linkedLocation->fullAddress() }}
-                    </span>
-                @elseif($campaign->location && !empty($campaign->location['details']))
-                    <span class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                        @if($isGuest)
-                            {{ trim(explode(',', $campaign->location['details'])[0]) }}
-                        @else
-                            {{ $campaign->location['details'] }}
-                        @endif
-                    </span>
+                    <x-location-display :entity="$campaign" :location="$campaign->linkedLocation" />
+                    {{-- M053/S02/T03: venue-name → venue-page link. Renders nothing for
+                         private/unverified/`other` locations (no name leak). --}}
+                    <x-venue-link :location="$campaign->linkedLocation" class="hover:underline text-on-primary" />
                 @endif
+                {{-- M053/S1/T02: address granularity via <x-location-display>
+                     (LocationDisclosureService). Legacy `location` JSON
+                     address path is render-dead (HIGH-2). --}}
             </div>
         </div>
     </section>

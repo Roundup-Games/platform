@@ -70,24 +70,18 @@
                 </span>
             @endif
             @if($game->relationLoaded('linkedLocation') && $game->linkedLocation)
-                <span class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                    @if($isApprovedParticipant ?? false)
-                        {{ $game->linkedLocation->fullAddress() }}
-                    @else
-                        {{ $game->linkedLocation->city }}
-                    @endif
-                </span>
-            @elseif($game->location && !empty($game->location['details']))
-                <span class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                    @if($isApprovedParticipant ?? false)
-                        {{ $game->location['details'] }}
-                    @else
-                        {{ trim(explode(',', $game->location['details'])[0]) }}
-                    @endif
-                </span>
+                <x-location-display :entity="$game" :location="$game->linkedLocation" />
+                {{-- M053/S02/T03: venue-name → venue-page link. Renders nothing for
+                     private/unverified/`other` locations (no name leak), so no
+                     external wrapper/icon is needed. Light class: hero is
+                     bg-primary text-on-primary. --}}
+                <x-venue-link :location="$game->linkedLocation" class="hover:underline text-on-primary" />
             @endif
+            {{-- M053/S1/T02: address granularity now flows through the single
+                 <x-location-display> component (LocationDisclosureService), the
+                 only address-rendering surface. The binary approved-participant
+                 gate and the legacy `location` JSON fallback are both gone;
+                 the games `location` column stays render-dead (HIGH-2). --}}
         </div>
 
         {{-- Language / players / experience chips --}}
