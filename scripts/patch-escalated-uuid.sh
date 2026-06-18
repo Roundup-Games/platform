@@ -35,14 +35,17 @@ sed -i.bak -E 's/(public function scope(ForAgent|AssignedTo|ForUser)\(\$query, )
 # Models: instance methods — Ticket
 sed -i.bak -E 's/(public function (isFollowedBy|follow|unfollow)\()int (\$[a-zA-Z]+)/\1\3/g' \
     "$VENDOR_DIR/Models/Ticket.php"
-# assign(): normalize the union type to Model|string|int. This must be
-# idempotent and self-healing — older versions of this patch appended a
-# redundant "string" onto an upstream signature that had already grown it
-# (e.g. Model|string|int|string), which is a FATAL on PHP 8.5
-# ("Duplicate type string is redundant"). Matching the whole type list and
-# replacing it with the canonical union repairs stale vendor dirs as well
-# as fresh installs.
-sed -i.bak -E 's/public function assign\(Model\|[a-z|]+/public function assign(Model|string|int/' \
+# assign(): normalize to a single canonical, duplicate-free signature.
+# Upstream now ships `Model|int|string` natively. The older non-idempotent
+# `Model|int -> Model|string|int` substitution matched inside `Model|int|string`
+# and produced `Model|string|int|string` → PHP fatal "Duplicate type string
+# is redundant" (Ticket.php:519), which crashed every scheduled escalated
+# command with exit code 255. This regex handles all known forms (old upstream
+# `Model|int`, new upstream `Model|int|string`, and any previously
+# double-patched `Model|string|int|string`) idempotently. (Merged from main
+# 748abe22; equivalent to the prior per-branch regex but production-hardened
+# and explicit about the captured `$param`.)
+sed -i.bak -E 's/public function assign\(Model(\|string)?\|int(\|string)? (\$[a-zA-Z]+)/public function assign(Model|string|int \3/' \
     "$VENDOR_DIR/Models/Ticket.php"
 
 # Models: instance methods — Contact, AgentProfile

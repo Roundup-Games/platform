@@ -24,6 +24,7 @@ use Escalated\Laravel\Models\Ticket;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AttendanceService
 {
@@ -40,7 +41,8 @@ class AttendanceService
     {
         $v = config('attendance.quarantine_threshold', 3);
 
-        return is_int($v) ? $v : 3;
+        // 0 (or any non-positive value) disables the volume quarantine entirely.
+        return is_int($v) ? max($v, 0) : 3;
     }
 
     public static function quarantineLookbackDays(): int
@@ -119,6 +121,15 @@ class AttendanceService
      */
     public function submitReport(Game $game, User $reporter, array $reports): array
     {
+        // Rate limit the write path (per-user) as defense-in-depth against
+        // client-side spam, independent of grief resistance. Limits DB inserts
+        // + notification dispatch. Matches ParticipantService's limiter shape.
+        $rateLimitKey = 'attendance-submit:'.$reporter->id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
+            return ['success' => false, 'reason' => __('games.error_attendance_rate_limited')];
+        }
+        RateLimiter::hit($rateLimitKey, 60);
+
         // Game must be completed
         if ($game->status !== GameStatus::Completed) {
             return ['success' => false, 'reason' => 'Cannot report attendance for a game that is not completed'];
@@ -242,6 +253,12 @@ class AttendanceService
 
                 $created++;
             }
+
+            // Re-evaluate corroboration now that this batch is recorded. If this
+            // reporter is the second independent voice to agree on a status for
+            // someone, all agreeing reports flip to is_corroborated=true — which
+            // keeps them out of the grief-resistance uncorroborated-game count.
+            $this->markCorroborated($game);
         });
 
         Log::info('Attendance reports submitted', [
@@ -372,6 +389,12 @@ class AttendanceService
             if ($locked === null || $locked->attendance_resolved_at !== null) {
                 return; // Already resolved by another process
             }
+
+            // Record corroboration as part of resolution. This is the safety net
+            // for games that resolve via timeout sweeper or the legacy
+            // reportAttendance() path, where submitReport()'s inline
+            // markCorroborated() call may never have run. Idempotent.
+            $this->markCorroborated($game);
 
             foreach ($participants as $participant) {
                 // Skip participants who already have a pre-game or host-set status
@@ -574,6 +597,64 @@ class AttendanceService
         $this->reliabilityService->recomputeAfterAttendance($participant);
     }
 
+    /**
+     * Mark attendance reports as corroborated when two or more independent
+     * (non-self) reporters agree on the same status for a reported user.
+     *
+     * Restores the corroboration semantics that the consensus rewrite dropped.
+     * This no longer drives the grief-resistance quarantine (which is now
+     * scoped to EarlyConsensus games — see config/attendance.php), but it still
+     * sets is_corroborated correctly for the rare multi-reporter games, keeping
+     * the data model honest and powering the Filament "corroborated" column.
+     *
+     * Agreement is per (reported user, status): two reporters must pick the SAME
+     * status for that user. Reporters disagreeing (one "attended", one
+     * "no_show") do not corroborate either report — matching the original
+     * checkCorroboration() behaviour. Self-reports (reporter_id = reported_id,
+     * e.g. host late-cancel offences) never count toward corroboration.
+     *
+     * Idempotent: reports already corroborated are skipped, and re-running on a
+     * fully-corroborated game is a no-op. Returns the number of reports newly
+     * marked corroborated.
+     */
+    public function markCorroborated(Game $game): int
+    {
+        $gameId = $game->id;
+
+        // Find (reported_id, status) groups with >= 2 distinct non-self reporters.
+        // Count ALL reporters regardless of current corroboration state so a group
+        // where one report is already corroborated still satisfies the threshold.
+        $groups = AttendanceReport::where('game_id', $gameId)
+            ->whereColumn('reporter_id', '!=', 'reported_id')
+            ->select('reported_id', 'status')
+            ->selectRaw('COUNT(DISTINCT reporter_id) AS reporter_count')
+            ->groupBy('reported_id', 'status')
+            ->havingRaw('COUNT(DISTINCT reporter_id) >= 2')
+            ->get();
+
+        if ($groups->isEmpty()) {
+            return 0;
+        }
+
+        $corroboratedCount = 0;
+        foreach ($groups as $group) {
+            $corroboratedCount += (int) AttendanceReport::where('game_id', $gameId)
+                ->where('reported_id', $group->reported_id)
+                ->where('status', $group->status)
+                ->where('reporter_id', '!=', $group->reported_id)
+                ->where('is_corroborated', false)
+                ->update(['is_corroborated' => true]);
+        }
+
+        Log::info('Attendance reports corroborated', [
+            'game_id' => $gameId,
+            'corroborated_report_count' => $corroboratedCount,
+            'corroborated_groups' => $groups->count(),
+        ]);
+
+        return $corroboratedCount;
+    }
+
     // ── 3. Grief resistance (kept from prior implementation) ────
 
     /**
@@ -605,30 +686,39 @@ class AttendanceService
             ]);
         }
 
-        // 2. Check volume: distinct game sessions with uncorroborated reports in last 30 days
-        //    Counting per-game, not per-report, so a host reporting 5 players in one session
-        //    counts as 1 game — not 5 uncorroborated reports.
-        $uncorroboratedGameCount = AttendanceReport::where('reporter_id', $reporter->id)
-            ->where('is_corroborated', false)
-            ->where('created_at', '>=', now()->subDays(self::quarantineLookbackDays()))
-            ->distinct()
-            ->count('game_id');
+        // 2. Check volume: distinct game sessions with uncorroborated reports in last 30 days.
+        //    Only counts games that resolved by EarlyConsensus (every approved
+        //    participant reported). Absence of corroboration in a Timeout/Manual
+        //    game just means low engagement — not a grief signal — so those are
+        //    excluded. See config/attendance.php for the rationale and prod split.
+        $threshold = self::quarantineThreshold();
 
-        if ($uncorroboratedGameCount >= self::quarantineThreshold()) {
-            $quarantined = true;
+        if ($threshold > 0) {
+            $uncorroboratedGameCount = AttendanceReport::where('attendance_reports.reporter_id', $reporter->id)
+                ->where('attendance_reports.is_corroborated', false)
+                ->where('attendance_reports.created_at', '>=', now()->subDays(self::quarantineLookbackDays()))
+                ->join('games', 'games.id', '=', 'attendance_reports.game_id')
+                ->whereNotNull('games.attendance_resolved_at')
+                ->where('games.attendance_resolution_method', AttendanceResolutionMethod::EarlyConsensus->value)
+                ->distinct()
+                ->count('attendance_reports.game_id');
 
-            Log::warning('Reporter quarantined for excessive uncorroborated reports', [
-                'reporter_id' => $reporter->id,
-                'uncorroborated_game_count' => $uncorroboratedGameCount,
-                'threshold' => self::quarantineThreshold(),
-            ]);
+            if ($uncorroboratedGameCount >= $threshold) {
+                $quarantined = true;
 
-            return [
-                'allowed' => false,
-                'weight_multiplier' => 0.0,
-                'quarantined' => true,
-                'reason' => 'Quarantined: '.$uncorroboratedGameCount.' uncorroborated game sessions in '.self::quarantineLookbackDays().' days',
-            ];
+                Log::warning('Reporter quarantined for excessive uncorroborated reports', [
+                    'reporter_id' => $reporter->id,
+                    'uncorroborated_game_count' => $uncorroboratedGameCount,
+                    'threshold' => $threshold,
+                ]);
+
+                return [
+                    'allowed' => false,
+                    'weight_multiplier' => 0.0,
+                    'quarantined' => true,
+                    'reason' => 'Quarantined: '.$uncorroboratedGameCount.' uncorroborated early-consensus game sessions in '.self::quarantineLookbackDays().' days',
+                ];
+            }
         }
 
         // 3. Check timeliness: reduce weight if >72h since game
@@ -653,7 +743,10 @@ class AttendanceService
     // ── 4. Backward-compatible methods (kept) ───────────────────
 
     /**
-     * Legacy single-report method. Does NOT apply corroboration or consensus logic.
+     * Legacy single-report method. Does not drive consensus resolution, but
+     * DOES record corroboration (two independent reporters agreeing on a status)
+     * so reports filed via this path still count out of the grief-resistance
+     * quarantine the same way as submitReport().
      *
      * @deprecated Use submitReport() for consensus-based attendance reporting.
      *             This method is retained for backward compatibility only.
@@ -749,6 +842,9 @@ class AttendanceService
                 'quarantined' => $griefCheck['quarantined'],
             ]);
 
+            // If this report is the second independent voice for a status,
+            // corroborate all agreeing reports (same semantics as submitReport).
+            $this->markCorroborated($game);
         });
 
         Log::info('Attendance reported (legacy)', [
