@@ -561,6 +561,52 @@ describe('early resolution', function () {
 });
 
 // ══════════════════════════════════════════════════════════════════════════
+// Rate limiting on the submit path
+// ══════════════════════════════════════════════════════════════════════════
+
+describe('rate limiting', function () {
+    test('blocks a user after 10 attendance submissions within a minute', function () {
+        ['game' => $game, 'host' => $host, 'players' => $players] = createCompletedGameWithPlayers(3);
+        [$service, $mock] = getAttendanceServiceWithMock();
+
+        // The rate limiter increments on every submitReport call regardless of
+        // downstream validation. Fire 10 attempts to exhaust the bucket (these
+        // may fail on dedup/grief-resistance, but each still costs a hit).
+        for ($i = 0; $i < 10; $i++) {
+            $service->submitReport($game, $host, [
+                ['reported_id' => $players[0]->id, 'status' => 'attended'],
+            ]);
+        }
+
+        // 11th attempt from the same user is blocked by the limiter before any
+        // other validation runs.
+        $r = $service->submitReport($game, $host, [
+            ['reported_id' => $players[1]->id, 'status' => 'attended'],
+        ]);
+        expect($r['success'])->toBeFalse();
+        expect($r['reason'])->toBe(__('games.error_attendance_rate_limited'));
+    });
+
+    test('the limit is per-user — a different user is not affected', function () {
+        ['game' => $game, 'host' => $host, 'players' => $players] = createCompletedGameWithPlayers(3);
+        [$service, $mock] = getAttendanceServiceWithMock();
+
+        // Host exhausts their limiter
+        for ($i = 0; $i < 11; $i++) {
+            $service->submitReport($game, $host, [
+                ['reported_id' => $players[0]->id, 'status' => 'attended'],
+            ]);
+        }
+
+        // A different user submitting is still allowed
+        $r = $service->submitReport($game, $players[0], [
+            ['reported_id' => $host->id, 'status' => 'attended'],
+        ]);
+        expect($r['success'])->toBeTrue();
+    });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
 // Resolution method tracking
 // ══════════════════════════════════════════════════════════════════════════
 
