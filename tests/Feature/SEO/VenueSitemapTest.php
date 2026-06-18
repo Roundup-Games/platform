@@ -146,8 +146,13 @@ describe('Venues Sitemap — exclusion (the safety contract)', function () {
         $slugless = Location::factory()->verifiedVenue()->create([
             'is_verified' => true,
             'venue_type' => VenueType::Cafe,
-            'slug' => null,
         ]);
+
+        // The Location saving hook now auto-slugs eligible venues, so force the
+        // slug-less state at the DB level (bypassing the hook) to validate the
+        // sitemap's null-slug guard — a row without a slug must never emit a
+        // /venue/ URL, even if such a row only arises from data corruption.
+        Location::where('id', $slugless->id)->update(['slug' => null]);
 
         $content = get('/sitemap-venues.xml')->content();
 

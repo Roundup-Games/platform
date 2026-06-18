@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\VenueType;
 use App\Services\Geohash;
+use App\Services\LocationDisclosureService;
 use Database\Factories\LocationFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -121,6 +122,39 @@ class Location extends Model
                     (float) $location->longitude,
                     4
                 );
+            }
+
+            // Auto-generate a resolvable slug for every public-venue-page-
+            // eligible location — the forward-looking invariant that the one-
+            // time 2026_06_15 / 2026_06_16 backfills only established for rows
+            // that existed at deploy time. Without this, any venue verified or
+            // claimed AFTER those migrations shipped with slug = null and was
+            // silently invisible across the whole platform: <x-venue-link>
+            // rendered nothing, /venue/{slug} 404'd, and the venues sitemap
+            // omitted it. (The Yorckschlösschen path: venue created, later
+            // verified by an admin in Filament -> an UPDATE, not a create, so
+            // this hook MUST fire on save generally, not just on create.)
+            //
+            // Never overwrite an existing slug: public URLs, SEO, and the
+            // sitemap must stay stable on rename, and the backfills stay
+            // idempotent. Only fills when empty, so the rule is safe to run
+            // repeatedly. Eligibility is delegated to the single authority -
+            // LocationDisclosureService::isPublicVenuePage() - so "which
+            // locations get a slug" can never drift from "which get a public
+            // page / a clickable name / a sitemap entry".
+            if (! filled($location->slug)
+                && filled($location->name)
+                && app(LocationDisclosureService::class)->isPublicVenuePage($location)
+            ) {
+                // For a brand-new record, `saving` fires BEFORE the `creating`
+                // hook that sets the UUID, so the id may still be null here.
+                // generateUniqueSlug's $ignoreId only excludes self on UPDATE;
+                // a not-yet-persisted row cannot collide with itself, so a
+                // null ignoreId is correct and safe for the create path while
+                // a real id (present on every existing record) is used on update.
+                $ignoreId = $location->exists ? $location->id : null;
+
+                $location->slug = static::generateUniqueSlug($location->name, $ignoreId);
             }
         });
     }

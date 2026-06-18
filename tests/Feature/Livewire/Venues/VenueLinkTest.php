@@ -125,7 +125,13 @@ describe('VenueLink component', function () {
     });
 
     it('renders nothing when the slug is null (no reachable URL)', function () {
-        $venue = venueLinkCreateVenue(['slug' => null]);
+        // The Location saving hook now auto-slugs every eligible venue, so a
+        // null slug can no longer be produced through normal creation. Force
+        // the legacy / data-corruption null-slug state at the DB level
+        // (bypassing the hook) — the component must still defend against it.
+        $venue = venueLinkCreateVenue();
+        Location::where('id', $venue->id)->update(['slug' => null]);
+        $venue->refresh();
 
         $rendered = Blade::render('<x-venue-link :location="$location" />', ['location' => $venue]);
 

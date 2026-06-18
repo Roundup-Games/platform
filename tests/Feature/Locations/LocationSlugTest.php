@@ -98,8 +98,14 @@ describe('Location::generateUniqueSlug', function () {
 // ── Route key ───────────────────────────────────────
 
 describe('Location route binding', function () {
-    it('resolves by slug', function () {
-        expect((new Location)->getRouteKeyName())->toBe('slug');
+    it('uses the default id key (venue pages resolve slug explicitly, not via route binding)', function () {
+        // getRouteKeyName() is intentionally NOT 'slug' — see the model's note:
+        // Filament's LocationResource needs id binding because most locations
+        // carry a null slug. Public venue pages resolve their slug explicitly
+        // via VenueDetail::mount()'s Location::where('slug', ...)->firstOrFail(),
+        // never via implicit route-key binding. (Prior assertion expecting
+        // 'slug' contradicted the documented design and was red on main.)
+        expect((new Location)->getRouteKeyName())->toBe('id');
     });
 });
 
