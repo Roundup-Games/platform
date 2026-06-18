@@ -95,7 +95,7 @@ if (! function_exists('format_currency')) {
  *
  * Use this instead of Auth::user() in any context guaranteed
  * to be behind auth middleware. The return type is non-nullable
- * so PHPStan (level 8+) and IDEs can infer User instead of User|null.
+ * so PHPStan and IDEs can infer User instead of User|null.
  */
 function authenticatedUser(): User
 {

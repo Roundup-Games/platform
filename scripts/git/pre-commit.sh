@@ -136,7 +136,7 @@ fi
 has_app=$(echo "$staged_php" | grep -cE '^(app|config|database)/' || true)
 if [[ -x vendor/bin/phpstan ]]; then
     if [[ "$has_app" -gt 0 ]]; then
-        step "stan" "larastan (level 8, warn-only)"
+        step "stan" "larastan (warn-only)"
         if stan_out=$(vendor/bin/phpstan analyse --no-progress --memory-limit=512M 2>&1); then
             ok "stan" "larastan"
         else
