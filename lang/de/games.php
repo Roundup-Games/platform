@@ -435,6 +435,7 @@ return [
     'error_attendance_participant_not_found' => 'Teilnehmer nicht gefunden.',
     'error_attendance_excused_reason_required' => 'Eine Begründung ist erforderlich, wenn jemand als entschuldigt markiert wird.',
     'error_attendance_no_reports' => 'Keine gültigen Anwesenheitsberichte zum Senden.',
+    'error_attendance_rate_limited' => 'Zu viele Anwesenheitsberichte gesendet. Bitte versuchen Sie es in einer Minute erneut.',
     'error_attendance_not_resolved' => 'Anwesenheit wurde noch nicht aufgelöst.',
     'error_attendance_no_status' => 'Kein Anwesenheitsstatus zum Anfechten.',
     'error_dispute_reason_required' => 'Bitte gib einen Grund für deine Anfechtung an.',

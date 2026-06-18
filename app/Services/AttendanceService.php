@@ -24,6 +24,7 @@ use Escalated\Laravel\Models\Ticket;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AttendanceService
 {
@@ -40,7 +41,8 @@ class AttendanceService
     {
         $v = config('attendance.quarantine_threshold', 3);
 
-        return is_int($v) ? $v : 3;
+        // 0 (or any non-positive value) disables the volume quarantine entirely.
+        return is_int($v) ? max($v, 0) : 3;
     }
 
     public static function quarantineLookbackDays(): int
@@ -119,6 +121,15 @@ class AttendanceService
      */
     public function submitReport(Game $game, User $reporter, array $reports): array
     {
+        // Rate limit the write path (per-user) as defense-in-depth against
+        // client-side spam, independent of grief resistance. Limits DB inserts
+        // + notification dispatch. Matches ParticipantService's limiter shape.
+        $rateLimitKey = 'attendance-submit:'.$reporter->id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
+            return ['success' => false, 'reason' => __('games.error_attendance_rate_limited')];
+        }
+        RateLimiter::hit($rateLimitKey, 60);
+
         // Game must be completed
         if ($game->status !== GameStatus::Completed) {
             return ['success' => false, 'reason' => 'Cannot report attendance for a game that is not completed'];
@@ -683,30 +694,39 @@ class AttendanceService
             ]);
         }
 
-        // 2. Check volume: distinct game sessions with uncorroborated reports in last 30 days
-        //    Counting per-game, not per-report, so a host reporting 5 players in one session
-        //    counts as 1 game — not 5 uncorroborated reports.
-        $uncorroboratedGameCount = AttendanceReport::where('reporter_id', $reporter->id)
-            ->where('is_corroborated', false)
-            ->where('created_at', '>=', now()->subDays(self::quarantineLookbackDays()))
-            ->distinct()
-            ->count('game_id');
+        // 2. Check volume: distinct game sessions with uncorroborated reports in last 30 days.
+        //    Only counts games that resolved by EarlyConsensus (every approved
+        //    participant reported). Absence of corroboration in a Timeout/Manual
+        //    game just means low engagement — not a grief signal — so those are
+        //    excluded. See config/attendance.php for the rationale and prod split.
+        $threshold = self::quarantineThreshold();
 
-        if ($uncorroboratedGameCount >= self::quarantineThreshold()) {
-            $quarantined = true;
+        if ($threshold > 0) {
+            $uncorroboratedGameCount = AttendanceReport::where('attendance_reports.reporter_id', $reporter->id)
+                ->where('attendance_reports.is_corroborated', false)
+                ->where('attendance_reports.created_at', '>=', now()->subDays(self::quarantineLookbackDays()))
+                ->join('games', 'games.id', '=', 'attendance_reports.game_id')
+                ->whereNotNull('games.attendance_resolved_at')
+                ->where('games.attendance_resolution_method', AttendanceResolutionMethod::EarlyConsensus->value)
+                ->distinct()
+                ->count('attendance_reports.game_id');
 
-            Log::warning('Reporter quarantined for excessive uncorroborated reports', [
-                'reporter_id' => $reporter->id,
-                'uncorroborated_game_count' => $uncorroboratedGameCount,
-                'threshold' => self::quarantineThreshold(),
-            ]);
+            if ($uncorroboratedGameCount >= $threshold) {
+                $quarantined = true;
 
-            return [
-                'allowed' => false,
-                'weight_multiplier' => 0.0,
-                'quarantined' => true,
-                'reason' => 'Quarantined: '.$uncorroboratedGameCount.' uncorroborated game sessions in '.self::quarantineLookbackDays().' days',
-            ];
+                Log::warning('Reporter quarantined for excessive uncorroborated reports', [
+                    'reporter_id' => $reporter->id,
+                    'uncorroborated_game_count' => $uncorroboratedGameCount,
+                    'threshold' => $threshold,
+                ]);
+
+                return [
+                    'allowed' => false,
+                    'weight_multiplier' => 0.0,
+                    'quarantined' => true,
+                    'reason' => 'Quarantined: '.$uncorroboratedGameCount.' uncorroborated early-consensus game sessions in '.self::quarantineLookbackDays().' days',
+                ];
+            }
         }
 
         // 3. Check timeliness: reduce weight if >72h since game

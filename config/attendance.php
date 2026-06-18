@@ -31,7 +31,21 @@ return [
     | Quarantine Thresholds
     |--------------------------------------------------------------------------
     |
-    | Maximum uncorroborated reports in the lookback window before quarantine.
+    | Minimum number of distinct game sessions with UNCORROBORATED reports in
+    | the lookback window before a reporter is quarantined.
+    |
+    | Only reports filed against games that resolved by EarlyConsensus count.
+    | EarlyConsensus means every approved participant filed an attendance report,
+    | so a still-uncorroborated report there is a genuine outlier (your peers
+    | reported and none agreed with you). Reports against games that resolved by
+    | Timeout (the session auto-closed because not enough people bothered to
+    | report) or Manual are EXCLUDED — absence of corroboration in a
+    | low-engagement session says nothing about the reporter and must not be
+    | punished. Prod data: ~11,375 timeout vs ~1 early_consensus resolution,
+    | so this filter keeps the quarantine dormant until engagement grows.
+    |
+    | Set to 0 to DISABLE the volume quarantine entirely (quarantineThreshold()
+    | returns 0 and checkGriefResistance skips the volume check).
     |
     */
     'quarantine_threshold' => env('ATTENDANCE_QUARANTINE_THRESHOLD', 3),

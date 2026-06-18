@@ -434,6 +434,7 @@ return [
     'error_attendance_participant_not_found' => 'Participant not found.',
     'error_attendance_excused_reason_required' => 'A reason is required when marking someone as excused.',
     'error_attendance_no_reports' => 'No valid attendance reports to submit.',
+    'error_attendance_rate_limited' => 'Too many attendance submissions. Please try again in a minute.',
     'error_attendance_not_resolved' => 'Attendance has not been resolved yet.',
     'error_attendance_no_status' => 'No attendance status to dispute.',
     'error_dispute_reason_required' => 'Please provide a reason for your dispute.',

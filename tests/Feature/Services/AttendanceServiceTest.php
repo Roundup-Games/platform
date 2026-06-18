@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AttendanceResolutionMethod;
 use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
@@ -193,16 +194,26 @@ describe('checkGriefResistance', function () {
         expect($result['weight_multiplier'])->toBe(0.5);
     });
 
-    it('quarantines reporters with too many uncorroborated reports across distinct games', function () {
+    it('quarantines reporters with too many uncorroborated early-consensus sessions across distinct games', function () {
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
         $reporter = $participants[1];
 
-        // Create 3 uncorroborated reports across 3 distinct game sessions
+        // Create 3 uncorroborated reports across 3 distinct EarlyConsensus sessions.
+        // Only early-consensus games count toward quarantine — every participant
+        // reported, so an uncorroborated status there is a genuine outlier.
         for ($i = 0; $i < 3; $i++) {
+            $earlyGame = Game::factory()->create([
+                'owner_id' => User::factory()->create()->id,
+                'status' => 'completed',
+                'date_time' => now()->subDays(rand(1, 25)),
+                'attendance_resolved_at' => now()->subDay(),
+                'attendance_resolution_method' => AttendanceResolutionMethod::EarlyConsensus->value,
+            ]);
             AttendanceReport::factory()->create([
+                'game_id' => $earlyGame->id,
                 'reporter_id' => $reporter->id,
                 'is_corroborated' => false,
-                'created_at' => now()->subDays(rand(1, 25)),
+                'created_at' => $earlyGame->date_time,
             ]);
         }
 
@@ -210,6 +221,87 @@ describe('checkGriefResistance', function () {
 
         expect($result['allowed'])->toBeFalse();
         expect($result['quarantined'])->toBeTrue();
+    });
+
+    it('does NOT quarantine for uncorroborated reports in timeout-resolved sessions (low engagement is not griefing)', function () {
+        // Regression for the prod symptom: a host reporting attendance for sessions
+        // that auto-closed because not enough people bothered to report must not be
+        // punished. Absence of corroboration in a timeout game says nothing about
+        // the reporter. Prod split: ~11,375 timeout vs ~1 early_consensus.
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+        $reporter = $participants[1];
+
+        // 5 uncorroborated reports across 5 distinct TIMEOUT sessions — well past
+        // the threshold, but none count because none are early-consensus.
+        for ($i = 0; $i < 5; $i++) {
+            $timeoutGame = Game::factory()->create([
+                'owner_id' => User::factory()->create()->id,
+                'status' => 'completed',
+                'date_time' => now()->subDays(rand(1, 25)),
+                'attendance_resolved_at' => now()->subDay(),
+                'attendance_resolution_method' => AttendanceResolutionMethod::Timeout->value,
+            ]);
+            AttendanceReport::factory()->create([
+                'game_id' => $timeoutGame->id,
+                'reporter_id' => $reporter->id,
+                'is_corroborated' => false,
+                'created_at' => $timeoutGame->date_time,
+            ]);
+        }
+
+        $result = $this->service->checkGriefResistance($reporter, $game);
+
+        expect($result['allowed'])->toBeTrue();
+        expect($result['quarantined'])->toBeFalse();
+    });
+
+    it('does NOT quarantine for uncorroborated reports in unresolved sessions', function () {
+        // A game that hasn't resolved yet can't be judged for corroboration.
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+        $reporter = $participants[1];
+
+        for ($i = 0; $i < 5; $i++) {
+            AttendanceReport::factory()->create([
+                'reporter_id' => $reporter->id,
+                'is_corroborated' => false,
+                'created_at' => now()->subDays(rand(1, 25)),
+                // factory creates a bare Game with no attendance_resolved_at
+            ]);
+        }
+
+        $result = $this->service->checkGriefResistance($reporter, $game);
+
+        expect($result['allowed'])->toBeTrue();
+        expect($result['quarantined'])->toBeFalse();
+    });
+
+    it('does not quarantine when the threshold is disabled (0)', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+        $reporter = $participants[1];
+
+        // Enough early-consensus uncorroborated sessions to quarantine under any
+        // positive threshold, but the kill-switch (threshold = 0) disables it.
+        config(['attendance.quarantine_threshold' => 0]);
+        for ($i = 0; $i < 5; $i++) {
+            $earlyGame = Game::factory()->create([
+                'owner_id' => User::factory()->create()->id,
+                'status' => 'completed',
+                'date_time' => now()->subDays(rand(1, 25)),
+                'attendance_resolved_at' => now()->subDay(),
+                'attendance_resolution_method' => AttendanceResolutionMethod::EarlyConsensus->value,
+            ]);
+            AttendanceReport::factory()->create([
+                'game_id' => $earlyGame->id,
+                'reporter_id' => $reporter->id,
+                'is_corroborated' => false,
+                'created_at' => $earlyGame->date_time,
+            ]);
+        }
+
+        $result = $this->service->checkGriefResistance($reporter, $game);
+
+        expect($result['allowed'])->toBeTrue();
+        expect($result['quarantined'])->toBeFalse();
     });
 
     it('does not quarantine a reporter for multiple reports within a single game session', function () {
