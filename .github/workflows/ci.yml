@@ -88,6 +88,9 @@ jobs:
       - name: Run migrations
         env:
           DB_PASSWORD: postgres
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: array
         run: php artisan migrate --force
 
       - name: Run tests
