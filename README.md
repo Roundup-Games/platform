@@ -2,7 +2,7 @@
 
 Community gaming platform for the DACH region — find tabletop sessions, join campaigns, and discover players near you. Bilingual (English + German).
 
-Built with Laravel 13, Livewire 4, and PostgreSQL.
+Built with Laravel, Livewire, and PostgreSQL.
 
 ---
 
@@ -32,14 +32,14 @@ Roundup Games connects tabletop gaming communities. Players discover nearby sess
 app/
 ├── Console/Commands/       # Artisan commands (BGG sync, geocoding, scheduled sweeps)
 ├── Dto/                    # Data transfer objects (PushPayload, PwaEligibilityResult)
-├── Enums/                  # 22 backed string enums (EventStatus, Visibility, VibeFlag, etc.)
+├── Enums/                  # Backed string enums (EventStatus, Visibility, VibeFlag, etc.)
 ├── Exceptions/             # BggApiException, BggParseException
 ├── Filament/               # Admin panel resources, pages, relation managers, reports
 ├── Http/
 │   ├── Controllers/        # PageController, PaddleBillingController, SitemapController
 │   └── Middleware/         # SetLocale, EnsureProfileComplete
 ├── Jobs/                   # Queued jobs (UpdateUserDiscoveryCache, HandleExpiredConfirmation, etc.)
-├── Livewire/               # 58 full-page components + reusable widgets
+├── Livewire/               # Full-page components + reusable widgets
 │   ├── Billing/            # BillingPortal, MembershipPage
 │   ├── Campaigns/          # CampaignsPage (hub), CreateCampaign, CampaignDetail
 │   ├── Components/         # Reusable widgets (NearbySessions, SafetyToolPicker)
@@ -52,18 +52,18 @@ app/
 │   ├── Reviews/            # WriteReview, ReportReview
 │   └── Teams/              # BrowseTeams, TeamDetail, ManageTeam, ManageRoster, PendingInvites
 ├── Mail/                   # ContactFormSubmitted, localized mailables
-├── Models/                 # 39 Eloquent models
-├── Notifications/          # 33 notification classes + custom PushChannel
+├── Models/                 # Eloquent models
+├── Notifications/          # Notification classes + custom PushChannel
 ├── Observers/              # ActivityLogObserver, ReviewObserver
-├── Policies/               # 11 policies (User, Team, Game, Campaign, Event, Review, MembershipType, etc.)
+├── Policies/               # Policies (User, Team, Game, Campaign, Event, Review, MembershipType, etc.)
 ├── Relations/              # Custom StringKeyMorphMany for UUID morph relationships
-├── Services/               # 33 service classes (business logic layer)
+├── Services/               # Service classes (business logic layer)
 ├── Traits/                 # HasTranslations, ManagesParticipants, HasGuestLocation, EscapesLikeWildcards
 └── Translation/            # HasTranslations trait implementation
 
 resources/
 ├── views/
-│   ├── components/         # ~30 Blade components (x-gm-badge, x-user-link, x-registration-cta, etc.)
+│   ├── components/         # Blade components (x-gm-badge, x-user-link, x-registration-cta, etc.)
 │   ├── layouts/            # app.blade.php (authenticated), public-layout.blade.php (guest)
 │   ├── emails/             # Notification mail templates with shared layout
 │   └── livewire/           # Component Blade templates organized by feature
@@ -71,7 +71,7 @@ resources/
 └── css/                    # Tailwind CSS with warm amber design system
 
 lang/
-├── en/                     # 22 domain files (auth, events, teams, games, campaigns, etc.)
+├── en/                     # Domain files (auth, events, teams, games, campaigns, etc.)
 └── de/                     # Matching German translations
 
 database/
@@ -93,21 +93,21 @@ database/
 
 | Layer | Technology |
 |-------|-----------|
-| **Framework** | Laravel 13 (PHP 8.3+) |
-| **Frontend** | Livewire 4, Alpine.js, Blade templates |
-| **Styling** | Tailwind CSS 3 with ~35 Material Design color tokens |
+| **Framework** | Laravel (PHP 8.5+) |
+| **Frontend** | Livewire, Alpine.js, Blade templates |
+| **Styling** | Tailwind CSS with Material Design color tokens |
 | **Typography** | Noto Serif (headings), Inter (body), Material Symbols Outlined (icons) |
-| **Database** | PostgreSQL (96 migrations, 39 models, 22 enums) |
-| **Cache/Queue** | Redis (predis 3.4) |
+| **Database** | PostgreSQL (migrations, models, enums) |
+| **Cache/Queue** | Redis (predis) |
 | **Auth** | Laravel Breeze (Blade stack), Socialite (Google OAuth) |
 | **Billing** | Laravel Cashier (Paddle) — subscriptions, one-time charges, webhooks |
-| **Admin** | Filament v5 — 8 resources, 5 relation managers, reports, exports |
+| **Admin** | Filament — resources, relation managers, reports, exports |
 | **Media** | Spatie Media Library (avatars, BGG cover images) |
-| **Permissions** | Spatie Permission (4 roles, 32 permissions, team + event scoping) |
-| **Testing** | Pest 4 (213 test files, ~5,000+ tests) |
+| **Permissions** | Spatie Permission (roles, permissions, team + event scoping) |
+| **Testing** | Pest + PHPUnit |
 | **Email** | Resend |
 | **PWA** | Web Push (minishlink/web-push), service worker, install prompt |
-| **Infrastructure** | Docker, Vite 8 |
+| **Infrastructure** | Docker, Vite |
 
 ---
 
@@ -115,11 +115,11 @@ database/
 
 ### Prerequisites
 
-- PHP 8.3+
+- PHP 8.5+
 - PostgreSQL 15+
 - Redis 7+
 - Node.js 20+
-- Composer 2
+- Composer
 
 ### Installation
 
@@ -199,7 +199,7 @@ Run the critical-path suite before every commit:
 composer smoke
 ```
 
-168 tests covering: authentication, registration, OAuth, billing, games, campaigns, events, teams, notifications, discovery, safety tools, and visibility policies. If `composer smoke` is green, you're safe to commit — the full suite is CI's job.
+Tests covering: authentication, registration, OAuth, billing, games, campaigns, events, teams, notifications, discovery, safety tools, and visibility policies. If `composer smoke` is green, you're safe to commit — the full suite is CI's job.
 
 **Adding a smoke test:** Tag any Pest test with `->group('smoke')` and add a `// smoke:` comment explaining why it's on the critical path:
 
@@ -215,7 +215,7 @@ test('guest can view public game', function () {
 php artisan test
 ```
 
-~5,000+ tests across 213 files. Takes 10+ minutes. Some pre-existing failures exist in areas under active development.
+Takes 10+ minutes. Some pre-existing failures exist in areas under active development.
 
 ### Running Specific Tests
 
@@ -276,7 +276,7 @@ __('events.field_registration_fee')  // Form label
 __('common.action_cancel')           // Shared button text
 ```
 
-22 domain files per locale. Key naming convention: `action_` (buttons), `field_` (labels), `status_` (states), `flash_` (messages), `error_` (validation), `content_` (marketing). See `lang/CONTRIBUTING_TRANSLATIONS.md` for full rules.
+Key naming convention: `action_` (buttons), `field_` (labels), `status_` (states), `flash_` (messages), `error_` (validation), `content_` (marketing). See `lang/CONTRIBUTING_TRANSLATIONS.md` for full rules.
 
 ### Livewire Components
 
@@ -307,7 +307,7 @@ __('common.action_cancel')           // Shared button text
 
 ### Icon Font Subsetting
 
-Material Symbols Outlined is subset to only the ~170 icons used across templates, enums, and JS. This reduces the font from ~1.1 MB (full set) to ~160 KB.
+Material Symbols Outlined is subset to only the icons used across templates, enums, and JS. This reduces the font from ~1.1 MB (full set) to ~160 KB.
 
 ```bash
 # Rebuild the subset (run after adding new icons to templates)
