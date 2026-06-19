@@ -154,9 +154,11 @@
                             default => 'bg-secondary-container text-on-secondary-container',
                         };
                     @endphp
-                    <a href="{{ route('venues.detail', ['locale' => app()->getLocale(), 'slug' => $venue->slug]) }}"
-                       wire:navigate
-                       class="block bg-surface-container rounded-2xl border border-outline-variant/15 hover:border-primary/40 hover:shadow-lg transition-all duration-200 overflow-hidden group">
+                    {{-- Non-anchor card container: detail navigation uses the stretched-link
+                         pattern (the venue-name <a> carries an ::after overlay covering the
+                         whole card) so the website affordance can be a real, independently
+                         clickable anchor instead of an invalid nested <a> inside the card. --}}
+                    <article class="relative isolate bg-surface-container rounded-2xl border border-outline-variant/15 hover:border-primary/40 hover:shadow-lg transition-all duration-200 overflow-hidden group">
                         <div class="p-5">
                             {{-- Avatar + name + verified --}}
                             <div class="flex items-center gap-3 mb-3">
@@ -165,7 +167,12 @@
                                 </span>
                                 <div class="min-w-0 flex-1">
                                     <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors truncate flex items-center gap-1">
-                                        <span class="truncate">{{ $venue->name }}</span>
+                                        <a href="{{ route('venues.detail', ['locale' => app()->getLocale(), 'slug' => $venue->slug]) }}"
+                                           wire:navigate
+                                           class="truncate after:absolute after:inset-0 after:content-['']"
+                                           aria-label="{{ __('venue.action_view_venue', ['name' => $venue->name]) }}">
+                                            <span class="truncate">{{ $venue->name }}</span>
+                                        </a>
                                         @if($venue->is_verified)
                                             <span class="material-symbols-outlined text-base text-primary shrink-0" aria-hidden="true" title="{{ __('venue.label_directory_verified') }}">verified</span>
                                         @endif
@@ -236,13 +243,18 @@
                                 @endif
 
                                 @if($venue->website_url)
-                                    <span class="inline-flex items-center text-on-surface-variant" title="{{ __('venue.action_visit_website') }}">
+                                    <a href="{{ $venue->website_url }}"
+                                       target="_blank"
+                                       rel="noopener"
+                                       class="relative z-10 inline-flex items-center text-on-surface-variant hover:text-primary transition-colors"
+                                       title="{{ __('venue.action_visit_website') }}"
+                                       aria-label="{{ __('venue.action_visit_website') }}">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
-                                    </span>
+                                    </a>
                                 @endif
                             </div>
                         </div>
-                    </a>
+                    </article>
                 @endforeach
             </div>
 

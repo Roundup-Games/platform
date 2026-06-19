@@ -261,6 +261,13 @@ class VenueDirectory extends Component
             $lat = $this->guestLat;
             $lng = $this->guestLng;
             foreach ($results->getCollection() as $venue) {
+                // Skip venues without coordinates: casting null to float yields
+                // 0.0, which would compute a bogus distance to (0, 0). Leaving
+                // distance_km unset keeps the chip hidden (the blade guards on
+                // isset($venue->distance_km)) rather than showing a wrong value.
+                if ($venue->latitude === null || $venue->longitude === null) {
+                    continue;
+                }
                 $venue->distance_km = ProximityQuery::haversineDistance(
                     (float) $venue->latitude,
                     (float) $venue->longitude,
@@ -296,7 +303,16 @@ class VenueDirectory extends Component
             $query->where(function (Builder $q) use ($escaped, $like) {
                 $q->where('name', $like, "%{$escaped}%")
                     ->orWhere('city', $like, "%{$escaped}%")
-                    ->orWhere('address', $like, "%{$escaped}%");
+                    // Only match the street-level address on verified venues.
+                    // Managed-but-unverified venues also appear in this index;
+                    // their exact address is graduated-down by disclosure, so
+                    // searching it directly must not act as an existence oracle
+                    // for a hidden address. Name and city stay searchable for all
+                    // (name is the venue's public identity; city is coarse).
+                    ->orWhere(function (Builder $aq) use ($escaped, $like): void {
+                        $aq->where('is_verified', true)
+                            ->where('address', $like, "%{$escaped}%");
+                    });
             });
         }
 
@@ -361,7 +377,12 @@ class VenueDirectory extends Component
         /** @var literal-string $rawSql */
         $rawSql = "{$sql} AS distance_km";
 
-        $query->select('locations.*')
+        // addSelect (not select): withCount() above registered the
+        // upcoming_sessions_count subquery in the column projection. select()
+        // resets the columns array and would drop that count, so the activity
+        // signal would silently disappear on the nearest (default) sort.
+        // addSelect() appends locations.* alongside the count and the distance.
+        $query->addSelect('locations.*')
             ->selectRaw($rawSql, $bindings)
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')

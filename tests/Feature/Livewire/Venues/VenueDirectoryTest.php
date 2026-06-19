@@ -7,6 +7,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\LocationDisclosureService;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 use function Pest\Laravel\get;
@@ -97,6 +98,48 @@ describe('VenueDirectory filters', function () {
             ->set('search', 'Board Café')
             ->assertSee('Berlin Board Café')
             ->assertDontSee('Munich Dice Hall');
+    });
+
+    it('does not surface managed-unverified venues via exact-address search', function () {
+        // Managed-but-unverified venues are eligible for the directory, but their
+        // street-level address is graduated-down by the disclosure rules, so the
+        // address field must not be searchable for them — otherwise the search
+        // box becomes an existence oracle for a hidden address.
+        $manager = User::factory()->create();
+        Location::factory()->create([
+            'name' => 'Hidden Address Hall',
+            'slug' => 'hidden-addr-'.Str::random(8),
+            'is_verified' => false,
+            'managed_by' => $manager->id,
+            'venue_type' => VenueType::Flgs,
+            'address' => '47 Secret Grove Lane',
+            'city' => 'Leipzig',
+        ]);
+
+        // Sanity: it is listed when not searching.
+        Livewire::test(VenueDirectory::class)->assertSee('Hidden Address Hall');
+
+        // Searching its exact street address must not surface it.
+        Livewire::test(VenueDirectory::class)
+            ->set('search', '47 Secret Grove Lane')
+            ->assertDontSee('Hidden Address Hall');
+
+        // Searching by name still finds it (name is the venue's public identity).
+        Livewire::test(VenueDirectory::class)
+            ->set('search', 'Hidden Address Hall')
+            ->assertSee('Hidden Address Hall');
+
+        // A verified venue at the same address stays searchable (only the
+        // unverified address branch is restricted).
+        createVerifiedVenue([
+            'name' => 'Verified At Grove',
+            'address' => '47 Secret Grove Lane',
+            'city' => 'Dresden',
+        ]);
+        Livewire::test(VenueDirectory::class)
+            ->set('search', '47 Secret Grove Lane')
+            ->assertSee('Verified At Grove')
+            ->assertDontSee('Hidden Address Hall');
     });
 
     it('filters by venue type', function () {
@@ -263,6 +306,30 @@ describe('VenueDirectory card content', function () {
         ]);
 
         Livewire::test(VenueDirectory::class)
+            ->assertSee(trans_choice('venue.content_directory_upcoming_sessions', 1));
+    });
+
+    it('shows the activity signal on the nearest (default) sort with a location', function () {
+        // Regression guard: applyNearestSort() appends locations.* via addSelect()
+        // rather than select(), which would otherwise reset the column projection
+        // and silently drop the upcoming_sessions_count from withCount(). The
+        // nearest sort is the default once a guest shares a location, so this path
+        // must keep the activity signal intact.
+        $venue = createVerifiedVenue([
+            'name' => 'Signal Venue',
+            'latitude' => '52.5210', 'longitude' => '13.4060',
+        ]);
+        $system = GameSystem::factory()->create();
+        $owner = User::factory()->create(['profile_complete' => true]);
+        Game::factory()->create([
+            'location_id' => $venue->id, 'owner_id' => $owner->id, 'game_system_id' => $system->id,
+            'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDay(),
+        ]);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('guestLat', 52.52)
+            ->set('guestLng', 13.405)
+            ->set('sortBy', 'nearest')
             ->assertSee(trans_choice('venue.content_directory_upcoming_sessions', 1));
     });
 });
