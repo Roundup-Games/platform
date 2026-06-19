@@ -1,0 +1,101 @@
+/*
+ |--------------------------------------------------------------------------
+ | Filament admin panel — supplemental stylesheet
+ |--------------------------------------------------------------------------
+ | Loaded ALONGSIDE Filament's default theme (filament/app.css), NOT as a
+ | replacement. AdminPanelProvider registers it via FilamentAsset as a Vite
+ | CSS asset so a <link> to the built file is emitted in the panel <head>.
+ |
+ | Why this exists:
+ |   The escalated-dev/escalated-filament package ships Livewire components
+ |   (TicketConversation, SatisfactionRating, ...) whose Blade views use plain
+ |   Tailwind utilities (h-12, h-3.5, space-y-*, prose, ...). Those utilities
+ |   are NOT part of Filament's precompiled theme, so inside the panel the
+ |   icons had no size constraint and inflated to fill their containers (the
+ |   conversation empty-state bubble rendered at 541px instead of 48px).
+ |
+ |   This supplement imports only Tailwind's utilities layer + sources the
+ |   escalated vendor views (and the compiled-view cache + app views) so every
+ |   utility they use is generated. It deliberately does NOT import Filament's
+ |   theme or Tailwind preflight (both are already provided by filament/app.css)
+ |   to avoid resetting/duplicating the panel's base styles.
+ |
+ | Build-pipeline note: only @import 'tailwindcss/...' and local @source paths
+ | are used. The vendor @source directives are non-fatal in the Docker frontend
+ | stage (which has no vendor/) — Tailwind simply scans nothing for them there,
+ | while the host build picks them up. No @import of any vendor file.
+ */
+
+@import 'tailwindcss';
+
+/* Sources scanned for utility classes. The vendor/* paths are gitignored and
+   absent in the Docker frontend stage — Tailwind ignores missing @source
+   targets without failing the build. */
+@source '../../../vendor/escalated-dev/escalated-filament/resources/views/**/*.blade.php';
+@source '../../../vendor/escalated-dev/escalated-laravel/resources/views/**/*.blade.php';
+/* Only escalate vendor views need new utilities; Filament's own views are covered by its theme. */
+
+/*
+ | Docker build safety net (Tailwind v4.1 @source inline safelist).
+ | The vendor @source directives above are ignored in the Docker frontend
+ | stage because vendor/ is excluded from the build context (.dockerignore).
+ | This inline safelist force-generates every utility the escalated Livewire
+ | views use, so the compiled supplement is identical whether built locally
+ | (vendor scanned) or in Docker (vendor absent). Keep this in sync with the
+ | classes used in vendor/escalated-dev/escalated-filament/resources/views.
+ */
+@source inline("h-3 h-3.5 h-4 h-5 h-8 h-12 w-3 w-3.5 w-4 w-5 w-8 w-12 space-y-2 space-y-3 space-y-4 space-y-6 prose prose-sm dark:prose-invert max-w-none flex inline-flex items-center justify-between justify-center gap-1 gap-2 text-center text-sm text-xs text-white italic font-medium font-semibold rounded-lg rounded-full border border-gray-200 border-warning-300 bg-gray-50 bg-primary-100 bg-primary-600 bg-warning-50 bg-yellow-100 px-2 px-4 py-0.5 py-2 py-8 p-4 mb-2 mb-3 mt-1 ml-1 ml-2 mx-auto hover:bg-primary-500 hover:text-primary-500 text-gray-300 text-gray-400 text-gray-500 text-gray-600 text-gray-700 text-gray-900 text-primary-500 text-primary-700 text-warning-500 text-warning-700 text-warning-800 text-yellow-400 dark:bg-gray-900 dark:bg-primary-800 dark:bg-primary-900 dark:bg-warning-900/20 dark:bg-yellow-800 dark:border-gray-700 dark:border-warning-600 dark:text-gray-100 dark:text-gray-300 dark:text-gray-400 dark:text-gray-600 dark:text-primary-300 dark:text-warning-300 dark:text-warning-400 dark:text-warning-500 dark:text-yellow-300");
+
+/*
+ |--------------------------------------------------------------------------
+ | Ticket detail page — header layout
+ |--------------------------------------------------------------------------
+ | Filament renders .fi-header as a flex row (nowrap) with a text column
+ | (breadcrumbs + title) and an actions cluster. With 11 header actions
+ | (app venue actions + vendor actions) the nowrap row starves the text
+ | column to ~132px (title/breadcrumbs wrap into a tall narrow block) and
+ | overflows the viewport, clipping the rightmost buttons.
+ |
+ | Force the header to wrap: title + breadcrumbs get their own full-width
+ | line, and the action buttons wrap across rows instead of clipping.
+ */
+.fi-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    column-gap: 1rem;
+    row-gap: 0.75rem;
+}
+
+/* Breadcrumbs + page heading: take a full line each. */
+.fi-header > :first-child {
+    flex: 1 1 100%;
+    min-width: 0;
+}
+
+/* Action cluster: its own line, wrap buttons instead of clipping. */
+.fi-header-actions-ctn {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    row-gap: 0.5rem;
+}
+
+.fi-header-actions-ctn .fi-ac {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+/*
+ |--------------------------------------------------------------------------
+ | Ticket detail page — content scaling
+ |--------------------------------------------------------------------------
+ | Prevent section children from overflowing their column and cap the content
+ | width on very wide screens so reply text stays readable.
+ */
+.fi-page-content {
+    max-width: 1440px;
+}
+
+.fi-section {
+    min-width: 0;
+}

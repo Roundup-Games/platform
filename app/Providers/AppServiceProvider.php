@@ -58,6 +58,8 @@ use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Models\TicketStatus;
 use Escalated\Laravel\Models\Webhook;
+use Filament\Facades\Filament;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -68,6 +70,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Paddle\Cashier;
 use Minishlink\WebPush\WebPush;
@@ -158,6 +161,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Admin panel supplement stylesheet.
+        // Filament's precompiled theme lacks the plain Tailwind utilities (h-12,
+        // h-3.5, space-y-*, ...) used by the escalated-dev Livewire components, so
+        // icons inside TicketConversation/SatisfactionRating inflated to fill their
+        // containers. This supplement is built from resources/css/filament/admin.css
+        // (which @source's the escalated vendor views) and loaded ALONGSIDE the
+        // default Filament theme via a head render hook. It also carries the ticket
+        // detail header/content layout overrides.
+        Filament::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            fn (): string => '<link rel="stylesheet" href="'
+                .Vite::asset('resources/css/filament/admin.css')
+                .'">',
+        );
+
         // Spatie translatable fallback — any available locale if the requested one is missing
         Translatable::fallback(
             fallbackLocale: 'en',
