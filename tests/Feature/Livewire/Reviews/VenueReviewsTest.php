@@ -88,7 +88,7 @@ describe('VenueReviews — display', function () {
             ->assertOk()
             ->assertSee(number_format($venue->average_rating, 1))
             ->assertSee('Lovely atmosphere and great tables.')
-            ->assertSee(trans_choice('venue.reviews_count', $venue->review_count));
+            ->assertSee(trans_choice('venue.label_reviews_count', $venue->review_count));
     });
 
     it('excludes non-published reviews from the list', function () {

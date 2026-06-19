@@ -60,11 +60,32 @@ class ProximityQuery
     /**
      * Build the Haversine distance SQL expression.
      *
-     * Returns [sql, bindings] where sql contains parameter placeholders.
+     * Thin delegator over {@see haversineSelectExpression()} so the Haversine
+     * formula lives in exactly one place in this class.
      *
      * @return list{string, list<int|float>}
      */
     private function haversineSql(string $latCol, string $lngCol, float $centerLat, float $centerLng): array
+    {
+        return self::haversineSelectExpression($latCol, $lngCol, $centerLat, $centerLng);
+    }
+
+    /**
+     * The canonical Haversine distance SQL fragment for select-side distance.
+     *
+     * Returns [sql, bindings] where sql contains four parameter placeholders,
+     * suitable for `selectRaw("locations.*, {$sql} AS distance_km", $bindings)`.
+     *
+     * This is the single source for the Haversine expression across the
+     * codebase. Proximity queries (this class) and proximity-ordered public
+     * listings (e.g. the venue directory) resolve distance through here rather
+     * than each re-declaring the formula. VenueSearchService delegates here too.
+     *
+     * @param  string  $latCol  Qualified latitude column, e.g. 'locations.latitude'.
+     * @param  string  $lngCol  Qualified longitude column, e.g. 'locations.longitude'.
+     * @return list{string, list<int|float>}
+     */
+    public static function haversineSelectExpression(string $latCol, string $lngCol, float $centerLat, float $centerLng): array
     {
         $sql = "(? * 2 * ASIN(SQRT(
             POWER(SIN(RADIANS({$latCol} - ?) / 2), 2) +

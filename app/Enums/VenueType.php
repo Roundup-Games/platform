@@ -62,14 +62,6 @@ enum VenueType: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Cafe => 'Café',
-            self::Flgs => 'FLGS (Friendly Local Game Store)',
-            self::Library => 'Library',
-            self::CommunityCenter => 'Community Center',
-            self::Convention => 'Convention / Convention Center',
-            self::Bar => 'Bar / Pub',
-            self::Other => 'Other',
-        };
+        return __("venue.type_{$this->value}");
     }
 }

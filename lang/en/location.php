@@ -24,6 +24,8 @@ return [
     'error_could_not_detect_city' => 'Could not determine your city from your location. Please enter it manually.',
     'error_could_not_find_this_location_city' => 'Could not find this location. Please try a different city name.',
     'error_location_lookup_failed' => 'Location lookup failed. Please try again.',
+    'error_city_not_found' => 'Couldn\'t find that city. Please try another name.',
+    'error_geocoding_failed' => 'Location lookup failed. Please try again later.',
     'error_location_permission_denied' => 'Could not detect your location. Please allow browser location access or enter your city manually.',
     'error_please_confirm_your_location_to_continue' => 'Please confirm your location to continue.',
     'placeholder_street_address_neighborhood' => 'Street address, neighborhood',

@@ -43,6 +43,7 @@ use Spatie\SchemaOrg\PostalAddress;
  * @property string|null $venue_notes
  * @property float|null $average_rating
  * @property int $review_count
+ * @property float|null $distance_km Virtual Haversine distance from the viewer; set by proximity listings (directory, hubs)
  * @property string $drift_status
  * @property Carbon|null $drift_detected_at
  * @property array<string, mixed>|null $drift_metadata

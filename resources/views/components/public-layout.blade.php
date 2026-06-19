@@ -202,6 +202,7 @@
                         <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_platform') }}</span>
                         <a href="{{ route('discover') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('discovery.action_discover') }}</a>
                         <a href="{{ route('gm.directory') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('profile.nav_gm_directory') }}</a>
+                        <a href="{{ route('venues.directory') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('venue.nav_venue_directory') }}</a>
                         <a href="{{ $gameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('games.content_game_systems') }}</a>
                         <a href="{{ route('events.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('events.content_events') }}</a>
                     </div>

@@ -158,7 +158,7 @@ describe('game detail address line (the HIGH-2 source)', function () {
 
         assertNoLegacyLeakIn($html);
         expect($html)
-            ->toContain(__('people.disclosure_level_area'))
+            ->toContain(__('people.label_disclosure_level_area'))
             ->not->toContain('Metropolis')      // city withheld from strangers
             ->not->toContain('456 Public Ave'); // street withheld
     });
@@ -172,7 +172,7 @@ describe('game detail address line (the HIGH-2 source)', function () {
         $html = renderGameHeader($game); // guest
 
         assertNoLegacyLeakIn($html);
-        expect($html)->toContain(__('people.disclosure_level_area'));
+        expect($html)->toContain(__('people.label_disclosure_level_area'));
     });
 
     it('does not leak to a stranger when only legacy JSON is present (location_id null)', function () {

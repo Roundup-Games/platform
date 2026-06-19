@@ -18,8 +18,6 @@ use Illuminate\Support\Facades\DB;
  */
 class VenueSearchService
 {
-    private const EARTH_RADIUS_KM = 6371;
-
     /**
      * Search verified venues near a point, optionally filtered by text query.
      *
@@ -64,7 +62,7 @@ class VenueSearchService
         // Proximity ordering with Haversine (subquery pattern for PostgreSQL)
         $bounds = app(ProximityQuery::class)->boundingBox($lat, $lng, $radiusKm);
         /** @var literal-string $distSql */
-        [$distSql, $distBindings] = $this->haversineSql(
+        [$distSql, $distBindings] = ProximityQuery::haversineSelectExpression(
             'locations.latitude', 'locations.longitude', $lat, $lng,
         );
 
@@ -111,20 +109,6 @@ class VenueSearchService
         return Location::where('id', $id)
             ->where('is_verified', true)
             ->first();
-    }
-
-    /**
-     * @return list{string, list<int|float>}
-     */
-    private function haversineSql(string $latCol, string $lngCol, float $centerLat, float $centerLng): array
-    {
-        $sql = "(? * 2 * ASIN(SQRT(
-            POWER(SIN(RADIANS({$latCol} - ?) / 2), 2) +
-            COS(RADIANS(?)) * COS(RADIANS({$latCol})) *
-            POWER(SIN(RADIANS({$lngCol} - ?) / 2), 2)
-        )))";
-
-        return [$sql, [self::EARTH_RADIUS_KM, $centerLat, $centerLat, $centerLng]];
     }
 
     private function formatResult(Location $loc, ?float $distanceKm): VenueSearchResult

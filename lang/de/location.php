@@ -25,6 +25,8 @@ return [
     'error_could_not_detect_city' => 'Stadt konnte nicht anhand deines Standorts ermittelt werden. Bitte gib sie manuell ein.',
     'error_could_not_find_this_location_city' => 'Standort nicht gefunden. Bitte versuche einen anderen Stadtnamen.',
     'error_location_lookup_failed' => 'Standortsuche fehlgeschlagen. Bitte versuche es erneut.',
+    'error_city_not_found' => 'Diese Stadt wurde nicht gefunden. Bitte versuche einen anderen Namen.',
+    'error_geocoding_failed' => 'Standortsuche fehlgeschlagen. Bitte versuche es später erneut.',
     'error_location_permission_denied' => 'Standort konnte nicht ermittelt werden. Bitte erlaube den Standortzugriff in deinem Browser oder gib deine Stadt manuell ein.',
     'error_please_confirm_your_location_to_continue' => 'Bitte bestätige deinen Standort, um fortzufahren.',
     'placeholder_street_address_neighborhood' => 'Straße, Hausnummer, Stadtteil',

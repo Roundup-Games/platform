@@ -117,7 +117,7 @@ class LocationDisplay extends Component
             DisclosureLevel::City => $location?->city,
             // __() is typed string|array|null in Laravel; a found key returns a string,
             // so cast to satisfy the strict string|null return type.
-            DisclosureLevel::Area => (string) __('people.disclosure_level_area'),
+            DisclosureLevel::Area => (string) __('people.label_disclosure_level_area'),
             DisclosureLevel::None => null,
         };
     }

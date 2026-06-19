@@ -33,10 +33,10 @@ enum DisclosureLevel: string
     public function label(): string
     {
         return match ($this) {
-            self::None => __('people.disclosure_level_none'),
-            self::Area => __('people.disclosure_level_area'),
-            self::City => __('people.disclosure_level_city'),
-            self::Exact => __('people.disclosure_level_exact'),
+            self::None => __('people.label_disclosure_level_none'),
+            self::Area => __('people.label_disclosure_level_area'),
+            self::City => __('people.label_disclosure_level_city'),
+            self::Exact => __('people.label_disclosure_level_exact'),
         };
     }
 

@@ -235,7 +235,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">rate_review</span>
-                {{ __('venue.reviews_heading') }}
+                {{ __('venue.heading_reviews') }}
             </h2>
             <livewire:reviews.venue-reviews :location="$location" />
         </section>

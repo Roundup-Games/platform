@@ -1,0 +1,314 @@
+<?php
+
+use App\Enums\VenueType;
+use App\Livewire\Venues\VenueDirectory;
+use App\Models\Game;
+use App\Models\GameSystem;
+use App\Models\Location;
+use App\Models\User;
+use App\Services\LocationDisclosureService;
+use Livewire\Livewire;
+
+use function Pest\Laravel\get;
+
+// ═══════════════════════════════════════════════════════════
+// ROUTE + RENDER
+// ═══════════════════════════════════════════════════════════
+
+describe('VenueDirectory route + render', function () {
+    it('renders 200 and the directory heading', function () {
+        get(route('venues.directory'))
+            ->assertOk()
+            ->assertSee(__('venue.heading_directory'));
+    })->group('smoke');
+
+    it('emits the directory SEO title', function () {
+        $response = get(route('venues.directory'));
+        $response->assertOk();
+        assertPageTitle($response, __('venue.seo_directory_title'));
+    });
+
+    it('renders the footer link to itself from the public layout', function () {
+        // The footer link lives in the public layout, rendered on every public page.
+        $response = get(route('venues.directory'));
+        $response->assertOk();
+        $response->assertSee(route('venues.directory'));
+        $response->assertSee(__('venue.nav_venue_directory'));
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// ELIGIBILITY — only public-venue-page locations appear
+// ═══════════════════════════════════════════════════════════
+
+describe('VenueDirectory eligibility', function () {
+    it('lists a verified commercial venue', function () {
+        $venue = createVerifiedVenue(['name' => 'The Verified Cup']);
+
+        Livewire::test(VenueDirectory::class)
+            ->assertSee('The Verified Cup');
+    });
+
+    it('excludes unverified, Other-type, and private locations', function () {
+        $verified = createVerifiedVenue(['name' => 'Listed Venue OK']);
+        $unverified = Location::factory()->create(['name' => 'Unlisted Unverified', 'slug' => 'unv-'.uniqid()]);
+        $other = createVerifiedVenue(['name' => 'Unlisted Other Type', 'venue_type' => VenueType::Other]);
+        $privateVerified = Location::factory()->create([
+            'name' => 'Unlisted Private',
+            'slug' => 'priv-'.uniqid(),
+            'is_verified' => true,
+            'venue_type' => null,
+        ]);
+
+        $lw = Livewire::test(VenueDirectory::class);
+        $lw->assertSee('Listed Venue OK');
+        $lw->assertDontSee('Unlisted Unverified');
+        $lw->assertDontSee('Unlisted Other Type');
+        $lw->assertDontSee('Unlisted Private');
+    });
+
+    it('includes admin-managed (unverified) commercial venues', function () {
+        $manager = User::factory()->create();
+        $managed = Location::factory()->create([
+            'name' => 'Managed Board Hall',
+            'slug' => 'managed-'.uniqid(),
+            'is_verified' => false,
+            'managed_by' => $manager->id,
+            'venue_type' => VenueType::Flgs,
+        ]);
+
+        // Sanity: the disclosure authority agrees this is a public venue page.
+        expect(app(LocationDisclosureService::class)->isPublicVenuePage($managed))->toBeTrue();
+
+        Livewire::test(VenueDirectory::class)->assertSee('Managed Board Hall');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════════════════
+
+describe('VenueDirectory filters', function () {
+    it('filters by search term (name/city)', function () {
+        createVerifiedVenue(['name' => 'Berlin Board Café', 'city' => 'Berlin']);
+        createVerifiedVenue(['name' => 'Munich Dice Hall', 'city' => 'Munich']);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('search', 'Board Café')
+            ->assertSee('Berlin Board Café')
+            ->assertDontSee('Munich Dice Hall');
+    });
+
+    it('filters by venue type', function () {
+        createVerifiedVenue(['name' => 'Cafe Spot', 'venue_type' => VenueType::Cafe]);
+        createVerifiedVenue(['name' => 'Library Spot', 'venue_type' => VenueType::Library]);
+
+        Livewire::test(VenueDirectory::class)
+            ->call('toggleVenueType', VenueType::Library->value)
+            ->assertDontSee('Cafe Spot')
+            ->assertSee('Library Spot');
+    });
+
+    it('filters by minimum rating', function () {
+        createVerifiedVenue(['name' => 'Low Rated', 'average_rating' => 2.0, 'review_count' => 1]);
+        createVerifiedVenue(['name' => 'High Rated', 'average_rating' => 4.8, 'review_count' => 5]);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('min_rating', 4)
+            ->assertDontSee('Low Rated')
+            ->assertSee('High Rated');
+    });
+
+    it('filters by managed-only', function () {
+        $manager = User::factory()->create();
+        createVerifiedVenue(['name' => 'Unmanaged Venue', 'managed_by' => null]);
+        createVerifiedVenue(['name' => 'Managed Venue', 'managed_by' => $manager->id]);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('managed_only', true)
+            ->assertDontSee('Unmanaged Venue')
+            ->assertSee('Managed Venue');
+    });
+
+    it('filters by has-upcoming-sessions', function () {
+        $withSession = createVerifiedVenue(['name' => 'Active Venue Here']);
+        $without = createVerifiedVenue(['name' => 'Dormant Venue Here']);
+
+        $system = GameSystem::factory()->create();
+        $owner = User::factory()->create(['profile_complete' => true]);
+        Game::factory()->create([
+            'location_id' => $withSession->id,
+            'owner_id' => $owner->id,
+            'game_system_id' => $system->id,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(2),
+        ]);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('has_upcoming', true)
+            ->assertSee('Active Venue Here')
+            ->assertDontSee('Dormant Venue Here');
+    });
+
+    it('clears all filters', function () {
+        createVerifiedVenue(['name' => 'After Clear Cafe', 'venue_type' => VenueType::Cafe]);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('search', 'nomatch-xyz')
+            ->call('clearFilters')
+            ->assertSee('After Clear Cafe');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// SORT
+// ═══════════════════════════════════════════════════════════
+
+describe('VenueDirectory sort', function () {
+    it('sorts highest-rated first', function () {
+        createVerifiedVenue(['name' => 'Mid Rated', 'average_rating' => 3.0, 'review_count' => 2]);
+        createVerifiedVenue(['name' => 'Top Rated', 'average_rating' => 5.0, 'review_count' => 9]);
+        createVerifiedVenue(['name' => 'No Rating', 'average_rating' => null, 'review_count' => 0]);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('sortBy', 'rating')
+            ->assertSeeInOrder(['Top Rated', 'Mid Rated', 'No Rating']);
+    });
+
+    it('sorts most-active first (by upcoming session count)', function () {
+        $system = GameSystem::factory()->create();
+        $owner = User::factory()->create(['profile_complete' => true]);
+
+        $busy = createVerifiedVenue(['name' => 'Busy Hall']);
+        Game::factory()->count(3)->create([
+            'location_id' => $busy->id, 'owner_id' => $owner->id, 'game_system_id' => $system->id,
+            'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(2),
+        ]);
+
+        $quiet = createVerifiedVenue(['name' => 'Quiet Hall']);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('sortBy', 'active')
+            ->assertSeeInOrder(['Busy Hall', 'Quiet Hall']);
+    });
+
+    it('degrades "nearest" to most-active when no guest location is set', function () {
+        // Without coordinates, nearest is not computable; the component must not
+        // error and should still render the list (effective sort = active).
+        createVerifiedVenue(['name' => 'Fallback Renders']);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('sortBy', 'nearest')
+            ->assertOk()
+            ->assertSee('Fallback Renders');
+    });
+
+    it('sorts nearest-first when a guest location is set', function () {
+        // Two venues at different distances from the guest point (52.52, 13.405).
+        $near = createVerifiedVenue([
+            'name' => 'Near Venue',
+            'latitude' => '52.5210', 'longitude' => '13.4060',
+        ]);
+        $far = createVerifiedVenue([
+            'name' => 'Far Venue',
+            'latitude' => '52.6500', 'longitude' => '13.5500',
+        ]);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('guestLat', 52.52)
+            ->set('guestLng', 13.405)
+            ->set('sortBy', 'nearest')
+            ->assertSeeInOrder(['Near Venue', 'Far Venue']);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// CARD CONTENT
+// ═══════════════════════════════════════════════════════════
+
+describe('VenueDirectory card content', function () {
+    it('renders the localized venue-type chip and exact address for a verified venue', function () {
+        $venue = createVerifiedVenue([
+            'name' => 'Cafe Card Test',
+            'venue_type' => VenueType::Cafe,
+            'address' => '12 Mauerpark',
+            'postal_code' => '10437',
+            'city' => 'Berlin',
+        ]);
+
+        $lw = Livewire::test(VenueDirectory::class);
+        $lw->assertSee('Cafe Card Test');
+        // Type chip uses the localized VenueType::label() (venue.type_cafe).
+        $lw->assertSee(VenueType::Cafe->label());
+        // Address is disclosure-routed via <x-location-display> (Exact for verified commercial).
+        $lw->assertSee('12 Mauerpark');
+        $lw->assertSee('Berlin');
+    });
+
+    it('links each card to the venue detail page', function () {
+        $venue = createVerifiedVenue(['name' => 'Linked Venue']);
+
+        Livewire::test(VenueDirectory::class)
+            ->assertSee(route('venues.detail', ['locale' => app()->getLocale(), 'slug' => $venue->slug]));
+    });
+
+    it('shows the upcoming-sessions activity signal', function () {
+        $venue = createVerifiedVenue(['name' => 'Signal Venue']);
+        $system = GameSystem::factory()->create();
+        $owner = User::factory()->create(['profile_complete' => true]);
+        Game::factory()->create([
+            'location_id' => $venue->id, 'owner_id' => $owner->id, 'game_system_id' => $system->id,
+            'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDay(),
+        ]);
+
+        Livewire::test(VenueDirectory::class)
+            ->assertSee(trans_choice('venue.content_directory_upcoming_sessions', 1));
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// PAGINATION
+// ═══════════════════════════════════════════════════════════
+
+describe('VenueDirectory pagination', function () {
+    it('increases the visible count via load-more', function () {
+        createVerifiedVenue(); // ensure at least one exists
+
+        Livewire::test(VenueDirectory::class)
+            ->assertSet('displayCount', 12)
+            ->call('loadMore')
+            ->assertSet('displayCount', 24);
+    });
+
+    it('resets the page count when a filter changes', function () {
+        createVerifiedVenue(['name' => 'Reset Count Venue', 'venue_type' => VenueType::Cafe]);
+
+        Livewire::test(VenueDirectory::class)
+            ->call('loadMore')
+            ->assertSet('displayCount', 24)
+            ->set('search', 'Reset Count Venue') // updating hook resets displayCount
+            ->assertSet('displayCount', 12);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// EMPTY STATE
+// ═══════════════════════════════════════════════════════════
+
+describe('VenueDirectory empty state', function () {
+    it('shows the propose CTA for guests when no venues match', function () {
+        Livewire::test(VenueDirectory::class)
+            ->set('search', 'definitely-no-such-venue-xyz')
+            ->assertSee(__('venue.empty_directory_title'))
+            ->assertSee(__('venue.action_directory_cta_sign_up_propose'));
+    });
+
+    it('shows the propose CTA for authenticated users when no venues match', function () {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(VenueDirectory::class)
+            ->set('search', 'definitely-no-such-venue-xyz')
+            ->assertSee(__('venue.action_directory_cta_propose'));
+    });
+});

@@ -17,7 +17,7 @@
                         @endfor
                     </div>
                     <p class="text-xs text-on-surface-variant">
-                        {{ trans_choice('venue.reviews_count', $location->review_count) }}
+                        {{ trans_choice('venue.label_reviews_count', $location->review_count) }}
                     </p>
                 </div>
             </div>
