@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\VenueType;
 use App\Services\Geohash;
 use App\Services\LocationDisclosureService;
+use App\Services\ProximityQuery;
 use Database\Factories\LocationFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -43,6 +44,7 @@ use Spatie\SchemaOrg\PostalAddress;
  * @property string|null $venue_notes
  * @property float|null $average_rating
  * @property int $review_count
+ * @property float|null $distance_km Virtual Haversine distance from the viewer; set by proximity listings (directory, hubs)
  * @property string $drift_status
  * @property Carbon|null $drift_detected_at
  * @property array<string, mixed>|null $drift_metadata
@@ -430,18 +432,16 @@ class Location extends Model
      */
     public function distanceTo(float $lat, float $lng): float
     {
-        $earthRadius = 6371;
-
-        $dLat = deg2rad($lat - (float) $this->latitude);
-        $dLng = deg2rad($lng - (float) $this->longitude);
-
-        $a = sin($dLat / 2) * sin($dLat / 2)
-            + cos(deg2rad((float) $this->latitude)) * cos(deg2rad($lat))
-            * sin($dLng / 2) * sin($dLng / 2);
-
-        $c = 2 * asin(sqrt($a));
-
-        return round($earthRadius * $c, 2);
+        // Delegates to the single canonical Haversine implementation
+        // (ProximityQuery::haversineDistance) so the formula lives in one place;
+        // previously this method re-derived it with an identical computation
+        // (6371km radius, rounded to 2 dp).
+        return ProximityQuery::haversineDistance(
+            (float) $this->latitude,
+            (float) $this->longitude,
+            $lat,
+            $lng,
+        );
     }
 
     /**
@@ -518,8 +518,8 @@ class Location extends Model
         }
 
         $sameAs = [];
-        if ($this->website_url) {
-            $sameAs[] = $this->website_url;
+        if (($safeUrl = safe_url($this->website_url)) !== null) {
+            $sameAs[] = $safeUrl;
         }
         if (! empty($sameAs)) {
             $business->sameAs($sameAs);

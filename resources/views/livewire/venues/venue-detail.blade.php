@@ -45,8 +45,8 @@
 
             {{-- Primary CTA + attribution row --}}
             <div class="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
-                @if($location->website_url)
-                    <a href="{{ $location->website_url }}" target="_blank" rel="noopener"
+                @if($safeUrl = safe_url($location->website_url))
+                    <a href="{{ $safeUrl }}" target="_blank" rel="noopener"
                        class="btn-brand gap-1.5">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">open_in_new</span>
                         {{ __('venue.action_visit_website') }}
@@ -235,7 +235,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">rate_review</span>
-                {{ __('venue.reviews_heading') }}
+                {{ __('venue.heading_reviews') }}
             </h2>
             <livewire:reviews.venue-reviews :location="$location" />
         </section>

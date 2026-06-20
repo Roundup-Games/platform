@@ -420,6 +420,6 @@ return [
     'content_updating_results' => 'Ergebnisse werden aktualisiert…',
 
     // Einheiten
-    'unit_km' => 'km',
-    'unit_min' => 'Min.',
+    'label_unit_km' => 'km',
+    'label_unit_min' => 'Min.',
 ];

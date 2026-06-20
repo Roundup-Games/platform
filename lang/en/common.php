@@ -424,6 +424,6 @@ return [
     'content_updating_results' => 'Updating results…',
 
     // Units
-    'unit_km' => 'km',
-    'unit_min' => 'min',
+    'label_unit_km' => 'km',
+    'label_unit_min' => 'min',
 ];

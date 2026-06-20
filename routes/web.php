@@ -63,6 +63,7 @@ use App\Livewire\Teams\TeamDetail;
 use App\Livewire\Venues\ClaimVenue;
 use App\Livewire\Venues\ProposeVenue;
 use App\Livewire\Venues\VenueDetail;
+use App\Livewire\Venues\VenueDirectory;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -286,6 +287,13 @@ Route::prefix('{locale}')
         Route::get('/campaigns/{id}', PublicCampaignDetail::class)->name('campaigns.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ── Venues ───────────────────────────────────
+
+        // Public venue directory — the browse/index entry point for verified
+        // commercial venues (the piece M053 deliberately left unbuilt). Linked
+        // from the footer under the GM Directory. Sources exclusively from
+        // Location::publicVenuePage() so the "who gets a public page" rule can
+        // never drift from the venue-detail 404 gate and the sitemap.
+        Route::get('/venues', VenueDirectory::class)->name('venues.directory');
 
         // M053/S02: public venue page. Only verified commercial venues render —
         // VenueDetail::mount() aborts 404 for private/unverified/`other` locations

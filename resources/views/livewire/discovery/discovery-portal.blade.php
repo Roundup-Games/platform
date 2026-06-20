@@ -35,4 +35,23 @@
             @endif
         </a>
     </div>
+
+    {{-- Venue directory cross-link: a slim banner under the two track cards.
+         Local discovery runs through venues, so the directory is one hop from
+         the portal without crowding the 2-card grid above. --}}
+    <div class="max-w-4xl mx-auto px-4 pb-12">
+        <a href="{{ route('venues.directory', ['locale' => app()->getLocale()]) }}" wire:navigate
+           class="flex items-center justify-between gap-4 bg-surface-container-low border border-outline-variant/15 rounded-2xl p-5 hover:border-primary/40 hover:shadow-md transition-all group">
+            <div class="flex items-center gap-4 min-w-0">
+                <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary-container text-on-primary-container shrink-0">
+                    <span class="material-symbols-outlined text-2xl" aria-hidden="true">storefront</span>
+                </span>
+                <div class="min-w-0">
+                    <h2 class="text-base font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('venue.heading_directory_portal_card') }}</h2>
+                    <p class="text-sm text-on-surface-variant truncate">{{ __('venue.content_directory_portal_card') }}</p>
+                </div>
+            </div>
+            <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors shrink-0" aria-hidden="true">arrow_forward</span>
+        </a>
+    </div>
 </div>
