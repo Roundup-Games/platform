@@ -76,8 +76,31 @@ jobs:
           tools: composer:v2
           extensions: pdo_pgsql
 
-      - name: Install dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # Vite 8 requires Node ^20.19 || >=22.12; pin an LTS that satisfies it.
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install PHP dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          # Honor the committed composer.lock for reproducible, deterministic
+          # CI installs. 'highest' would resolve fresh on each run and can pull
+          # different versions than the lock pins.
+          dependency-versions: locked
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        # Generates public/build/manifest.json so Blade views rendering @vite()
+        # resolve during tests. public/build is gitignored, so without this step
+        # any view test throws ViteManifestNotFoundException. Icon subsetting is
+        # auto-skipped here (no Python toolchain in CI) — the committed font is
+        # used and the Vite manifest is still produced.
+        run: npm run build
 
       - name: Copy environment file
         run: cp .env.example .env

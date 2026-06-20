@@ -45,24 +45,31 @@ NC='\033[0m'
 echo "=== Material Symbols Subsetting ==="
 
 # ── Validate prerequisites ──────────────────────────────────────────────────
-if [[ ! -f "$SOURCE_FONT" ]]; then
-    echo -e "${RED}Error:${NC} Source font not found: $SOURCE_FONT"
-    echo "Download it from:"
-    echo "  curl -sL 'https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsOutlined%5BFILL%2CGRAD%2Copsz%2Cwght%5D.woff2' -o \"$SOURCE_FONT\""
-    exit 1
-fi
+if [[ ! -f "$SOURCE_FONT" || ! -f "$CODEPOINTS" || ! -f "$VENV/bin/python3" ]]; then
+    # Subsetting is a production asset optimization (prune unused glyphs). It
+    # needs a Python/fonttools venv plus the source font and codepoints mapping
+    # — none of which are committed (see .gitignore). When any are unavailable
+    # (CI, fresh checkout without the toolchain), skip subsetting and fall back
+    # to the committed font at resources/fonts/material-symbols-subset.woff2 so
+    # the wider build still emits a valid Vite manifest. Re-run with the
+    # toolchain present to re-subset after adding icons.
 
-if [[ ! -f "$CODEPOINTS" ]]; then
-    echo -e "${RED}Error:${NC} Codepoints mapping not found: $CODEPOINTS"
-    echo "Download it from:"
-    echo "  curl -sL 'https://raw.githubusercontent.com/google/material-design-icons/master/variablefont/MaterialSymbolsOutlined%5BFILL%2CGRAD%2Copsz%2Cwght%5D.codepoints' -o \"$CODEPOINTS\""
-    exit 1
-fi
+    # Guard the fallback: if the committed font is also missing, the Vite build
+    # will fail later with a confusing @font-face 404. Fail fast here instead.
+    if [[ ! -f "$OUTPUT_FONT" ]]; then
+        echo -e "${RED}Error:${NC} Cannot subset (toolchain unavailable) AND the committed"
+        echo "  fallback font is also missing: $OUTPUT_FONT"
+        echo "  Run subsetting locally with the toolchain present to generate it."
+        exit 1
+    fi
 
-if [[ ! -f "$VENV/bin/python3" ]]; then
-    echo -e "${RED}Error:${NC} Python venv not found. Set up the venv:"
-    echo "  python3 -m venv \"$VENV\" && source \"$VENV/bin/activate\" && pip install fonttools brotli"
-    exit 1
+    echo -e "${YELLOW}Warning:${NC} Icon subsetting skipped (toolchain not available)."
+    echo "  Using committed $OUTPUT_FONT."
+    echo "  To re-subset locally:"
+    echo "    python3 -m venv \"$VENV\" && source \"$VENV/bin/activate\" && pip install fonttools brotli"
+    echo "    curl -sL 'https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsOutlined%5BFILL%2CGRAD%2Copsz%2Cwght%5D.woff2' -o \"$SOURCE_FONT\""
+    echo "    curl -sL 'https://raw.githubusercontent.com/google/material-design-icons/master/variablefont/MaterialSymbolsOutlined%5BFILL%2CGRAD%2Copsz%2Cwght%5D.codepoints' -o \"$CODEPOINTS\""
+    exit 0
 fi
 
 mkdir -p "$OUTPUT_DIR"

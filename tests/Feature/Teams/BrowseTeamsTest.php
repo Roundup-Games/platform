@@ -22,7 +22,10 @@ describe('BrowseTeamsTest', function () {
             'is_active' => true,
         ]);
 
-        Livewire::test(BrowseTeams::class)
+        // Scope the list to this team via the component's `search` prop so
+        // rows leaked by other tests in the full-suite ordering cannot render
+        // into this assertion. The intent is unchanged.
+        Livewire::test(BrowseTeams::class, ['search' => 'Springfield United FC'])
             ->assertSee('Springfield United FC')
             // city + country are composed by the component as "Springfield, US"
             ->assertSee('Springfield, US');
@@ -36,10 +39,13 @@ describe('BrowseTeamsTest', function () {
             'is_active' => true,
         ]);
 
-        $html = Livewire::test(BrowseTeams::class)->html();
-
-        // The team card has no location_on icon — the component rendered nothing.
-        expect($html)->toContain('Nomad Squad FC');
-        expect($html)->not->toContain('location_on');
+        // Scope to this team only. Without this, teams with a city/country
+        // leaked from earlier tests render `location_on` into the page and
+        // cause a false failure — the very pollution this test does not aim
+        // to assert against. The intent — "a null-city team renders no
+        // location icon" — is preserved exactly.
+        Livewire::test(BrowseTeams::class, ['search' => 'Nomad Squad FC'])
+            ->assertSee('Nomad Squad FC')
+            ->assertDontSee('location_on');
     });
 });
