@@ -120,7 +120,7 @@ class VenueDirectory extends Component
         $this->displayCount = 12;
     }
 
-    public function updatedSortBy(): void
+    public function updatingSortBy(): void
     {
         $this->displayCount = 12;
     }
@@ -135,9 +135,10 @@ class VenueDirectory extends Component
 
     public function clearFilters(): void
     {
-        $this->reset(['search', 'venue_type', 'min_rating', 'managed_only', 'has_upcoming']);
-        $this->sortBy = 'nearest';
-        $this->displayCount = 12;
+        // reset() restores each property to its declared default (sortBy →
+        // 'nearest', displayCount → 12), keeping this in one place rather than
+        // hand-resetting two fields after the reset() call.
+        $this->reset(['search', 'venue_type', 'min_rating', 'managed_only', 'has_upcoming', 'sortBy', 'displayCount']);
     }
 
     public function loadMore(): void

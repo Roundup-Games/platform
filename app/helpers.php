@@ -141,3 +141,26 @@ function format_bytes(int $bytes): string
 
     return round($bytes, 2).' '.$units[$i];
 }
+
+/**
+ * Return a URL only when it is a safe http(s) href target; null otherwise.
+ *
+ * Input flows validate the `url` rule, but admin (Filament), factory, and
+ * legacy rows can bypass that validation. Render sites route any user-facing
+ * URL through here rather than trusting a raw column, so a stored
+ * `javascript:`/`data:` URI (or any non-http scheme) can never become a live
+ * XSS vector in an href attribute.
+ *
+ * Accepts null and returns null so it composes cleanly with nullable
+ * columns. In Blade, use an assign-in-condition so the helper runs once
+ * rather than twice (e.g. check `safe_url($model->website_url)` and bind
+ * the truthy result to a local for the href in the same expression).
+ */
+function safe_url(?string $url): ?string
+{
+    if ($url === null) {
+        return null;
+    }
+
+    return preg_match('#^https?://#i', $url) ? $url : null;
+}

@@ -6,9 +6,11 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\GeocodingService;
 use App\Services\LocationDisclosureService;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Mockery;
 
 use function Pest\Laravel\get;
 
@@ -377,5 +379,55 @@ describe('VenueDirectory empty state', function () {
         Livewire::test(VenueDirectory::class)
             ->set('search', 'definitely-no-such-venue-xyz')
             ->assertSee(__('venue.action_directory_cta_propose'));
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// MANUAL CITY SEARCH (geocoding fallback)
+// ═══════════════════════════════════════════════════════════
+
+describe('VenueDirectory manual city search', function () {
+    it('adopts the geocoded location on a successful city search', function () {
+        $geocoder = Mockery::mock(GeocodingService::class);
+        $geocoder->shouldReceive('geocode')->once()->with('Berlin')->andReturn([
+            'lat' => 52.5200,
+            'lng' => 13.4050,
+            'display_name' => 'Berlin, Germany',
+            'place_id' => 'berlin',
+            'raw' => [],
+        ]);
+        app()->instance(GeocodingService::class, $geocoder);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('cityQuery', 'Berlin')
+            ->call('searchCity')
+            ->assertSet('guestLat', 52.5200)
+            ->assertSet('guestLng', 13.4050)
+            ->assertSet('guestLocationSource', 'manual')
+            ->assertSet('cityQuery', null);
+    });
+
+    it('shows a city-not-found error when geocoding returns no result', function () {
+        $geocoder = Mockery::mock(GeocodingService::class);
+        $geocoder->shouldReceive('geocode')->once()->andReturn(null);
+        app()->instance(GeocodingService::class, $geocoder);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('cityQuery', 'Nowhereville')
+            ->call('searchCity')
+            ->assertHasErrors(['cityQuery'])
+            ->assertSee(__('location.error_city_not_found'));
+    });
+
+    it('shows a geocoding-failed error when the geocoder throws', function () {
+        $geocoder = Mockery::mock(GeocodingService::class);
+        $geocoder->shouldReceive('geocode')->once()->andThrow(new RuntimeException('upstream down'));
+        app()->instance(GeocodingService::class, $geocoder);
+
+        Livewire::test(VenueDirectory::class)
+            ->set('cityQuery', 'Berlin')
+            ->call('searchCity')
+            ->assertHasErrors(['cityQuery'])
+            ->assertSee(__('location.error_geocoding_failed'));
     });
 });

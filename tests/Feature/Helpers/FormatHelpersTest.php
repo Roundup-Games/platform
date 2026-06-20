@@ -111,3 +111,28 @@ describe('to_string_id — identifier coercion', function () {
         }
     });
 });
+
+describe('safe_url — href sanitization', function () {
+    it('returns http(s) URLs unchanged', function (string $url) {
+        expect(safe_url($url))->toBe($url);
+    })->with([
+        'http' => ['http://example.com'],
+        'https' => ['https://example.com/path?q=1'],
+        'https uppercase scheme' => ['HTTPS://example.com'],
+    ]);
+
+    it('returns null for dangerous and non-http schemes', function (string $url) {
+        expect(safe_url($url))->toBeNull();
+    })->with([
+        'javascript' => ['javascript:alert(1)'],
+        'mixed-case javascript' => ['JaVaScRiPt:alert(1)'],
+        'data' => ['data:text/html,<script>alert(1)</script>'],
+        'ftp' => ['ftp://example.com'],
+        'protocol-relative' => ['//example.com'],
+        'bare domain' => ['example.com'],
+    ]);
+
+    test('it returns null for a null input (nullable-column safe)', function () {
+        expect(safe_url(null))->toBeNull();
+    });
+});

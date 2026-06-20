@@ -146,11 +146,11 @@
                         // Type-tinted avatar so cards are visually distinguishable
                         // without per-type glyphs (some venue icons are absent from
                         // the self-hosted Material Symbols subset — see venue-detail).
-                        $avatarTint = match ($venue->venue_type?->value) {
-                            'cafe' => 'bg-amber-100 text-amber-700',
-                            'flgs' => 'bg-primary-container text-on-primary-container',
-                            'library' => 'bg-tertiary-container text-on-tertiary-container',
-                            'bar' => 'bg-rose-100 text-rose-700',
+                        $avatarTint = match ($venue->venue_type) {
+                            App\Enums\VenueType::Cafe => 'bg-amber-100 text-amber-700',
+                            App\Enums\VenueType::Flgs => 'bg-primary-container text-on-primary-container',
+                            App\Enums\VenueType::Library => 'bg-tertiary-container text-on-tertiary-container',
+                            App\Enums\VenueType::Bar => 'bg-rose-100 text-rose-700',
                             default => 'bg-secondary-container text-on-secondary-container',
                         };
                     @endphp
@@ -242,8 +242,8 @@
                                     </span>
                                 @endif
 
-                                @if($venue->website_url)
-                                    <a href="{{ $venue->website_url }}"
+                                @if($safeUrl = safe_url($venue->website_url))
+                                    <a href="{{ $safeUrl }}"
                                        target="_blank"
                                        rel="noopener"
                                        class="relative z-10 inline-flex items-center text-on-surface-variant hover:text-primary transition-colors"

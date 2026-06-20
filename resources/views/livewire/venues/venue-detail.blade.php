@@ -45,8 +45,8 @@
 
             {{-- Primary CTA + attribution row --}}
             <div class="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
-                @if($location->website_url)
-                    <a href="{{ $location->website_url }}" target="_blank" rel="noopener"
+                @if($safeUrl = safe_url($location->website_url))
+                    <a href="{{ $safeUrl }}" target="_blank" rel="noopener"
                        class="btn-brand gap-1.5">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">open_in_new</span>
                         {{ __('venue.action_visit_website') }}
