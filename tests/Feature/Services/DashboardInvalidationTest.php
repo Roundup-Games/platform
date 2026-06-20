@@ -46,10 +46,16 @@ class DashboardInvalidationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // Create a game the user owns with a pending application
+        // Create a game the user owns with a pending application. Pin date_time
+        // safely outside the 48h below_min_players window: the factory default
+        // (now()+1..30 days) can land within 48h, which makes the game also
+        // qualify for the higher-priority 'below_min_players' (critical) action
+        // item and non-deterministically displace 'pending_applications' (high)
+        // from $result[0].
         $game = Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
+            'date_time' => now()->addDays(10),
         ]);
         $applicant = User::factory()->create();
         GameParticipant::factory()->create([

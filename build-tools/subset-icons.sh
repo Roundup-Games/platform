@@ -53,8 +53,18 @@ if [[ ! -f "$SOURCE_FONT" || ! -f "$CODEPOINTS" || ! -f "$VENV/bin/python3" ]]; 
     # to the committed font at resources/fonts/material-symbols-subset.woff2 so
     # the wider build still emits a valid Vite manifest. Re-run with the
     # toolchain present to re-subset after adding icons.
+
+    # Guard the fallback: if the committed font is also missing, the Vite build
+    # will fail later with a confusing @font-face 404. Fail fast here instead.
+    if [[ ! -f "$OUTPUT_FONT" ]]; then
+        echo -e "${RED}Error:${NC} Cannot subset (toolchain unavailable) AND the committed"
+        echo "  fallback font is also missing: $OUTPUT_FONT"
+        echo "  Run subsetting locally with the toolchain present to generate it."
+        exit 1
+    fi
+
     echo -e "${YELLOW}Warning:${NC} Icon subsetting skipped (toolchain not available)."
-    echo "  Using committed resources/fonts/material-symbols-subset.woff2."
+    echo "  Using committed $OUTPUT_FONT."
     echo "  To re-subset locally:"
     echo "    python3 -m venv \"$VENV\" && source \"$VENV/bin/activate\" && pip install fonttools brotli"
     echo "    curl -sL 'https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsOutlined%5BFILL%2CGRAD%2Copsz%2Cwght%5D.woff2' -o \"$SOURCE_FONT\""

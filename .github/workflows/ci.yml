@@ -86,7 +86,10 @@ jobs:
       - name: Install PHP dependencies
         uses: ramsey/composer-install@v3
         with:
-          dependency-versions: highest
+          # Honor the committed composer.lock for reproducible, deterministic
+          # CI installs. 'highest' would resolve fresh on each run and can pull
+          # different versions than the lock pins.
+          dependency-versions: locked
 
       - name: Install JS dependencies
         run: npm ci
