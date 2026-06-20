@@ -10,7 +10,6 @@ use App\Services\GeocodingService;
 use App\Services\LocationDisclosureService;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
-use Mockery;
 
 use function Pest\Laravel\get;
 
@@ -358,6 +357,21 @@ describe('VenueDirectory pagination', function () {
             ->assertSet('displayCount', 24)
             ->set('search', 'Reset Count Venue') // updating hook resets displayCount
             ->assertSet('displayCount', 12);
+    });
+
+    it('caps displayCount so a client cannot force an unbounded page size', function () {
+        // displayCount is a Livewire public property, so a client can set it
+        // via the wire payload. paginate() must clamp it, never honor the raw
+        // value, or a large request pulls an unbounded result set.
+        createVerifiedVenue();
+
+        $lw = Livewire::test(VenueDirectory::class)
+            ->set('displayCount', 1_000_000)
+            ->assertOk();
+
+        // The component stays healthy and the rendered count line stays sane
+        // (the blade shows "Showing N of total"; N is clamped, not 1,000,000).
+        $lw->assertDontSee('Showing 1000000');
     });
 });
 

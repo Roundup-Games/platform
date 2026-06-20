@@ -80,6 +80,16 @@ class VenueDirectory extends Component
 
     public int $displayCount = 12;
 
+    /**
+     * Upper bound on displayCount, regardless of client-supplied value.
+     *
+     * displayCount is a Livewire public property, so a client can set it via
+     * the wire payload. Clamp before paginate() to bound query cost — a large
+     * value would otherwise pull an unbounded result set. 48 = 4× the 12/page
+     * "load more" increment, generous for normal browsing.
+     */
+    protected const MAX_DISPLAY_COUNT = 48;
+
     // ── Manual city search ──────────────────────────────
 
     public ?string $cityQuery = null;
@@ -143,7 +153,21 @@ class VenueDirectory extends Component
 
     public function loadMore(): void
     {
-        $this->displayCount += 12;
+        // Cap on increment: never let loadMore() itself push past the cap, so
+        // the button naturally stops growing the count at MAX_DISPLAY_COUNT.
+        $next = $this->displayCount + 12;
+        $this->displayCount = min($next, self::MAX_DISPLAY_COUNT);
+    }
+
+    /**
+     * displayCount clamped to MAX_DISPLAY_COUNT for safe use in paginate().
+     *
+     * Guards against a client setting displayCount to an arbitrary value via
+     * the wire payload; paginate() would otherwise honor it unbounded.
+     */
+    private function effectiveDisplayCount(): int
+    {
+        return max(1, min($this->displayCount, self::MAX_DISPLAY_COUNT));
     }
 
     public function hasActiveFilters(): bool
@@ -251,7 +275,7 @@ class VenueDirectory extends Component
             default => $query->orderBy('name'),
         };
 
-        $results = $query->paginate($this->displayCount);
+        $results = $query->paginate($this->effectiveDisplayCount());
 
         // Attach a per-card distance for the chip. Nearest sort already carries
         // distance_km from the SQL select; every other sort computes it in PHP
