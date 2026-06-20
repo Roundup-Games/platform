@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\VenueType;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -249,11 +250,18 @@ describe('Game Event Schema', function () {
     });
 
     it('renders location from linked location', function () {
+        // The Game Event schema emits a Place/PostalAddress ONLY for verified
+        // commercial venues — JSON-LD is served to every viewer (incl. crawlers),
+        // so Game::buildEventPlace() fail-closes to the stranger disclosure rung.
+        // A plain factory Location is not a verified commercial venue and so
+        // produces no Place; use one here to exercise the verified path.
         $location = Location::factory()->create([
             'name' => 'Game Store',
             'address' => '123 Board St',
             'city' => 'Berlin',
             'country' => 'DE',
+            'is_verified' => true,
+            'venue_type' => VenueType::Cafe,
         ]);
         $game = Game::factory()->create([
             'visibility' => 'public',
@@ -648,11 +656,15 @@ describe('JSON-LD Structural Validation', function () {
     });
 
     it('Game page emits valid Event JSON-LD with all required properties', function () {
+        // Verified commercial venue so Game::buildEventPlace() emits the Place/
+        // PostalAddress in the Event schema (stranger disclosure rung = Exact).
         $location = Location::factory()->create([
             'name' => 'Game Cafe',
             'address' => '456 Dice Ave',
             'city' => 'Vienna',
             'country' => 'AT',
+            'is_verified' => true,
+            'venue_type' => VenueType::Cafe,
         ]);
         $owner = User::factory()->create(['name' => 'Event Host']);
         $game = Game::factory()->create([
