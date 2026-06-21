@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\Participant;
 use App\Dto\EntityMeta;
 use App\Dto\InviteBatchResult;
 use App\Dto\ParticipantResult;
@@ -380,11 +381,11 @@ class ParticipantService
      * Approve a participant's application.
      */
     public function approveApplication(
-        GameParticipant|CampaignParticipant $participant,
+        Participant $participant,
         Game|Campaign $entity,
         User $approver,
     ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
+        $meta = $participant->getEntityMeta();
 
         // Check for a pending application rather than relying on participant role,
         // since public games create participants with role='player' even when
@@ -440,11 +441,11 @@ class ParticipantService
      * Reject a participant's application.
      */
     public function rejectApplication(
-        GameParticipant|CampaignParticipant $participant,
+        Participant $participant,
         Game|Campaign $entity,
         User $rejecter,
     ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
+        $meta = $participant->getEntityMeta();
 
         $pendingApplication = $entity->applications()
             ->where('user_id', $participant->user_id)
@@ -495,11 +496,11 @@ class ParticipantService
      * Remove a participant (sets status to rejected, sends notification).
      */
     public function removeParticipant(
-        GameParticipant|CampaignParticipant $participant,
+        Participant $participant,
         Game|Campaign $entity,
         User $remover,
     ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
+        $meta = $participant->getEntityMeta();
 
         if ($participant->role === ParticipantRole::Owner) {
             return ParticipantResult::fail('common.error_cannot_remove_the_entity_owner', [
@@ -558,16 +559,16 @@ class ParticipantService
      * Cancel a pending invitation.
      */
     public function cancelInvite(
-        GameParticipant|CampaignParticipant $participant,
-        Game|Campaign $entity,
+        Participant $participant,
         User $canceller,
     ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
+        $meta = $participant->getEntityMeta();
+        $entityId = $participant->getAttribute($meta->foreignKey);
 
         $participant->delete();
 
         Log::info($meta->type.' invite cancelled', [
-            $meta->foreignKey => $entity->id,
+            $meta->foreignKey => $entityId,
             'user_id' => $participant->user_id,
             'invitee_email_hash' => $participant->invitee_email
                 ? SuppressedInviteEmail::hashEmail($participant->invitee_email)
@@ -588,11 +589,11 @@ class ParticipantService
      * @param  User  $user  The accepting user (must match participant.user_id)
      */
     public function acceptInvitation(
-        GameParticipant|CampaignParticipant $participant,
+        Participant $participant,
         Game|Campaign $entity,
         User $user,
     ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
+        $meta = $participant->getEntityMeta();
 
         // Guard: entity must not be cancelled/canceled or completed
         $inactiveStatuses = ['canceled', 'cancelled', 'completed'];
@@ -659,11 +660,10 @@ class ParticipantService
      * @param  User  $user  The declining user (must match participant.user_id)
      */
     public function declineInvitation(
-        GameParticipant|CampaignParticipant $participant,
-        Game|Campaign $entity,
+        Participant $participant,
         User $user,
     ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
+        $meta = $participant->getEntityMeta();
 
         // Must be the invited user
         if ($participant->user_id !== $user->id) {
@@ -678,7 +678,7 @@ class ParticipantService
         $participant->update(['status' => ParticipantStatus::Rejected->value]);
 
         Log::info($meta->type.' invitation declined', [
-            $meta->foreignKey => $entity->id,
+            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
             'user_id' => $user->id,
         ]);
 
@@ -686,111 +686,11 @@ class ParticipantService
     }
 
     // ── Waitlist / Bench Management ────────────────────
-
-    /**
-     * Promote a waitlisted participant to approved.
-     */
-    public function promoteFromWaitlist(
-        GameParticipant|CampaignParticipant $participant,
-        Game|Campaign $entity,
-        User $promoter,
-    ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
-
-        if ($participant->status !== ParticipantStatus::Waitlisted) {
-            return ParticipantResult::fail('common.error_participant_not_waitlisted');
-        }
-
-        app(WaitlistService::class)->manuallyPromote($participant);
-
-        Log::info($meta->type.' waitlist participant promoted', [
-            $meta->foreignKey => $entity->id,
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'promoted_by' => $promoter->id,
-        ]);
-
-        return ParticipantResult::ok('common.flash_waitlist_promoted');
-    }
-
-    /**
-     * Remove a waitlisted participant (sets status to Rejected).
-     */
-    public function removeFromWaitlist(
-        GameParticipant|CampaignParticipant $participant,
-        Game|Campaign $entity,
-        User $remover,
-    ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
-
-        if ($participant->status !== ParticipantStatus::Waitlisted) {
-            return ParticipantResult::fail('common.error_participant_not_waitlisted');
-        }
-
-        $participant->update(['status' => ParticipantStatus::Rejected->value]);
-
-        Log::info($meta->type.' waitlist participant removed', [
-            $meta->foreignKey => $entity->id,
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'removed_by' => $remover->id,
-        ]);
-
-        return ParticipantResult::ok('common.flash_waitlist_removed');
-    }
-
-    /**
-     * Promote a benched participant to approved.
-     */
-    public function promoteFromBench(
-        GameParticipant|CampaignParticipant $participant,
-        Game|Campaign $entity,
-        User $promoter,
-    ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
-
-        if ($participant->status !== ParticipantStatus::Benched) {
-            return ParticipantResult::fail('common.error_participant_not_benched');
-        }
-
-        $entityType = $meta->isCampaign() ? 'campaign' : 'game';
-        app(BenchService::class)->promoteFromBench((string) $participant->id, $entityType, $promoter);
-
-        Log::info($meta->type.' bench participant promoted', [
-            $meta->foreignKey => $entity->id,
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'promoted_by' => $promoter->id,
-        ]);
-
-        return ParticipantResult::ok('common.flash_bench_promoted');
-    }
-
-    /**
-     * Remove a benched participant (sets status to Rejected).
-     */
-    public function removeFromBench(
-        GameParticipant|CampaignParticipant $participant,
-        Game|Campaign $entity,
-        User $remover,
-    ): ParticipantResult {
-        $meta = $this->entityMeta($entity);
-
-        if ($participant->status !== ParticipantStatus::Benched) {
-            return ParticipantResult::fail('common.error_participant_not_benched');
-        }
-
-        $participant->update(['status' => ParticipantStatus::Rejected->value]);
-
-        Log::info($meta->type.' bench participant removed', [
-            $meta->foreignKey => $entity->id,
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'removed_by' => $remover->id,
-        ]);
-
-        return ParticipantResult::ok('common.flash_bench_removed');
-    }
+    //
+    // Promote/remove transitions for waitlist and bench live behind the
+    // Participant-typed seams in WaitlistService and BenchService. Livewire
+    // adapters call those services directly; see ManagesParticipants,
+    // HandlesWaitlist, and HandlesBench traits.
 
     // ── Query helpers ──────────────────────────────────
 
@@ -1059,7 +959,7 @@ class ParticipantService
      * Move an accepted invitee to waitlist/bench when entity is full.
      */
     private function addAcceptedInviteeToOverflow(
-        GameParticipant|CampaignParticipant $participant,
+        Participant $participant,
         Game|Campaign $entity,
         EntityMeta $meta,
     ): void {

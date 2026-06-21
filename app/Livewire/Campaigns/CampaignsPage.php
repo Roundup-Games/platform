@@ -18,7 +18,7 @@ use App\Services\ActivityLogService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
-use App\Services\WaitlistService;
+use App\Services\Roster;
 use App\Traits\EditsVenueLocation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -297,7 +297,8 @@ class CampaignsPage extends Component
                 ->first();
             if ($nextSession) {
                 $hoursUntil = now()->diffInHours($nextSession->date_time, false);
-                $participant->update(['attendance_status' => $hoursUntil < 24
+                $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+                $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
                     ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
             }
         }
@@ -309,10 +310,8 @@ class CampaignsPage extends Component
             'user_id' => $user->id,
         ]);
 
-        // Promote from waitlist if applicable
-        if (! $campaign->isBenchMode()) {
-            app(WaitlistService::class)->promoteAllOnCancel($campaign);
-        }
+        // Promote from waitlist + warn host if below min_players
+        app(Roster::class)->onDeparture($campaign);
 
         session()->flash('success', __('campaigns.flash_you_left_the_campaign'));
     }
@@ -338,6 +337,11 @@ class CampaignsPage extends Component
             'previous_status' => $previousStatus->value,
             'new_status' => 'cancelled',
         ]);
+
+        // Reject every waitlisted and benched participant — the cancellation
+        // cascade, owned by Roster so waitlist+bench ordering lives in one
+        // place and the cancel flow cannot forget half of it.
+        app(Roster::class)->onCancellation($campaign);
 
         // Notify all approved participants (excluding owner) that the campaign was cancelled
         try {
@@ -450,7 +454,6 @@ class CampaignsPage extends Component
 
         $result = app(ParticipantService::class)->declineInvitation(
             $participant,
-            $campaign,
             authenticatedUser(),
         );
 

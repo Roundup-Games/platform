@@ -21,6 +21,7 @@ use App\Services\AttendanceService;
 use App\Services\DebriefingService;
 use App\Services\NotificationService;
 use App\Services\ReviewEligibilityService;
+use App\Services\Roster;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
 use App\Traits\HandlesBench;
@@ -98,31 +99,6 @@ class GameDetail extends Component
     public function getEntity(): Game
     {
         return $this->game;
-    }
-
-    public function getEntityIdColumn(): string
-    {
-        return 'game_id';
-    }
-
-    public function getParticipantModel(): string
-    {
-        return GameParticipant::class;
-    }
-
-    public function getEntityName(): string
-    {
-        return 'Game';
-    }
-
-    public function getEntityVar(): string
-    {
-        return 'game';
-    }
-
-    public function getBackRoute(): string
-    {
-        return route('games.show', $this->game->id);
     }
 
     // ── Attendance UI ──────────────────────────────────
@@ -396,7 +372,8 @@ class GameDetail extends Component
 
         if ($entity->date_time && $entity->date_time->isFuture()) {
             $hoursUntil = now()->diffInHours($entity->date_time, false);
-            $participant->update(['attendance_status' => $hoursUntil < 24
+            $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+            $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
                 ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
         }
 
@@ -420,11 +397,9 @@ class GameDetail extends Component
             ]);
         }
 
-        if (! $entity->isBenchMode()) {
-            app(WaitlistService::class)->promoteAllOnCancel($entity);
-        }
+        // Promote from waitlist + warn host if below min_players
+        app(Roster::class)->onDeparture($entity);
 
-        $this->checkBelowMinPlayersAndNotify();
         session()->flash('success', __('common.flash_participant_removed'));
     }
 
@@ -457,7 +432,8 @@ class GameDetail extends Component
         // Track attendance for reliability scoring
         if ($participant->status === ParticipantStatus::Approved && $this->game->date_time?->isFuture()) {
             $hoursUntil = now()->diffInHours($this->game->date_time, false);
-            $participant->update(['attendance_status' => $hoursUntil < 24
+            $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+            $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
                 ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
         }
 
@@ -469,12 +445,8 @@ class GameDetail extends Component
             'previous_status' => $participant->status?->value,
         ]);
 
-        // Promote from waitlist if applicable
-        if (! $this->game->isBenchMode()) {
-            app(WaitlistService::class)->promoteAllOnCancel($this->game);
-        }
-
-        $this->checkBelowMinPlayersAndNotify();
+        // Promote from waitlist + warn host if below min_players
+        app(Roster::class)->onDeparture($this->game);
 
         // Refresh computed properties
         unset($this->isParticipant, $this->isApprovedParticipant, $this->isGameFull);

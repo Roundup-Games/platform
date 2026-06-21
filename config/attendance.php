@@ -79,6 +79,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Player Late-Cancel Threshold
+    |--------------------------------------------------------------------------
+    |
+    | Hours before game/session time within which a player's self-cancellation
+    | is marked as LateCancel (counts against reliability) rather than
+    | CancelledEarly (neutral). Distinct from host_cancel_late_hours above,
+    | which governs the host cancellation offence — the two rules may diverge.
+    |
+    */
+    'player_late_cancel_hours' => env('ATTENDANCE_PLAYER_LATE_CANCEL_HOURS', 24),
+
+    /*
+    |--------------------------------------------------------------------------
     | Consensus Thresholds
     |--------------------------------------------------------------------------
     |

@@ -378,7 +378,7 @@ describe('ParticipantService', function () {
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
-            $result = $this->service->declineInvitation($participant, $game, $this->friend);
+            $result = $this->service->declineInvitation($participant, $this->friend);
 
             expect($result->success)->toBeTrue();
             expect($participant->fresh()->status)->toBe(ParticipantStatus::Rejected);
@@ -386,46 +386,6 @@ describe('ParticipantService', function () {
     });
 
     // ── waitlist / bench operations ────────────────────
-
-    describe('waitlist operations', function () {
-        it('refuses to promote non-waitlisted participant', function () {
-            $game = Game::factory()->create([
-                'owner_id' => $this->owner->id,
-                'game_system_id' => $this->system->id,
-            ]);
-            $participant = GameParticipant::create([
-                'game_id' => $game->id,
-                'user_id' => $this->friend->id,
-                'role' => ParticipantRole::Player->value,
-                'status' => ParticipantStatus::Approved->value,
-                'join_source' => JoinSource::Application,
-            ]);
-
-            $result = $this->service->promoteFromWaitlist($participant, $game, $this->owner);
-
-            expect($result->success)->toBeFalse();
-            expect($result->errorKey)->toBe('common.error_participant_not_waitlisted');
-        });
-
-        it('refuses to promote non-benched participant', function () {
-            $game = Game::factory()->create([
-                'owner_id' => $this->owner->id,
-                'game_system_id' => $this->system->id,
-            ]);
-            $participant = GameParticipant::create([
-                'game_id' => $game->id,
-                'user_id' => $this->friend->id,
-                'role' => ParticipantRole::Player->value,
-                'status' => ParticipantStatus::Approved->value,
-                'join_source' => JoinSource::Application,
-            ]);
-
-            $result = $this->service->promoteFromBench($participant, $game, $this->owner);
-
-            expect($result->success)->toBeFalse();
-            expect($result->errorKey)->toBe('common.error_participant_not_benched');
-        });
-    });
 
     // ── isAtCapacity ───────────────────────────────────
 

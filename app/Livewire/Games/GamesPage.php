@@ -20,7 +20,7 @@ use App\Services\DebriefingService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
-use App\Services\WaitlistService;
+use App\Services\Roster;
 use App\Traits\EditsVenueLocation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -303,7 +303,8 @@ class GamesPage extends Component
         // Track attendance for reliability scoring
         if ($participant->status === ParticipantStatus::Approved && $game->date_time?->isFuture()) {
             $hoursUntil = now()->diffInHours($game->date_time, false);
-            $participant->update(['attendance_status' => $hoursUntil < 24
+            $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+            $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
                 ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
         }
 
@@ -314,10 +315,8 @@ class GamesPage extends Component
             'user_id' => $user->id,
         ]);
 
-        // Promote from waitlist if applicable
-        if (! $game->isBenchMode()) {
-            app(WaitlistService::class)->promoteAllOnCancel($game);
-        }
+        // Promote from waitlist + warn host if below min_players
+        app(Roster::class)->onDeparture($game);
 
         session()->flash('success', __('games.flash_you_left_the_game'));
     }
@@ -352,6 +351,11 @@ class GamesPage extends Component
                 'error' => $e->getMessage(),
             ]);
         }
+
+        // Reject every waitlisted and benched participant — the cancellation
+        // cascade. Owned by Roster so the waitlist+bench ordering lives in
+        // one place and the cancel flow cannot forget half of it.
+        app(Roster::class)->onCancellation($game);
 
         // Notify all approved participants (excluding owner) that the game was cancelled
         try {
@@ -480,7 +484,6 @@ class GamesPage extends Component
 
         $result = app(ParticipantService::class)->declineInvitation(
             $participant,
-            $game,
             authenticatedUser(),
         );
 

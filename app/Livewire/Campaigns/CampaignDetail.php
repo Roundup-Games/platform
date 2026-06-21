@@ -13,6 +13,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Review;
 use App\Models\ShortLink;
 use App\Services\ReviewEligibilityService;
+use App\Services\Roster;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
 use App\Traits\HandlesBench;
@@ -70,31 +71,6 @@ class CampaignDetail extends Component
     public function getEntity(): Campaign
     {
         return $this->campaign;
-    }
-
-    public function getEntityIdColumn(): string
-    {
-        return 'campaign_id';
-    }
-
-    public function getParticipantModel(): string
-    {
-        return CampaignParticipant::class;
-    }
-
-    public function getEntityName(): string
-    {
-        return 'Campaign';
-    }
-
-    public function getEntityVar(): string
-    {
-        return 'campaign';
-    }
-
-    public function getBackRoute(): string
-    {
-        return route('campaigns.show', $this->campaign->id);
     }
 
     // ── Share Link Management ──────────────────────────
@@ -354,7 +330,8 @@ class CampaignDetail extends Component
                 ->first();
             if ($nextSession) {
                 $hoursUntil = now()->diffInHours($nextSession->date_time, false);
-                $participant->update(['attendance_status' => $hoursUntil < 24
+                $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+                $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
                     ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
             }
         }
@@ -367,10 +344,8 @@ class CampaignDetail extends Component
             'previous_status' => $participant->status?->value,
         ]);
 
-        // Promote from waitlist if applicable
-        if (! $this->campaign->isBenchMode()) {
-            app(WaitlistService::class)->promoteAllOnCancel($this->campaign);
-        }
+        // Promote from waitlist + warn host if below min_players
+        app(Roster::class)->onDeparture($this->campaign);
 
         // Refresh computed properties
         unset($this->isParticipant);

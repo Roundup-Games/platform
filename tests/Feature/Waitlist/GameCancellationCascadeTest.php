@@ -3,6 +3,7 @@
 use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GamesPage;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -10,7 +11,10 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\AttendanceService;
 use App\Services\BenchService;
+use App\Services\Roster;
 use App\Services\WaitlistService;
+
+use function Pest\Laravel\assertDatabaseHas;
 
 beforeEach(function () {
     $this->service = app(WaitlistService::class);
@@ -141,6 +145,66 @@ describe('game cancellation', function () {
             expect($p->attendance_status)->toBeNull();
         }
     });
+});
+
+// ═══════════════════════════════════════════════════════════
+// ROSTER CANCELLATION CASCADE
+//
+// Roster::onCancellation is the single seam production cancel flows now
+// call. Before B, GamesPage::cancelGame and CampaignsPage::cancelCampaign
+// never rejected waitlisted/benched participants — the cascade was tested
+// in isolation above but never wired in.
+// ═══════════════════════════════════════════════════════════
+
+describe('roster cancellation cascade', function () {
+    it('rejects waitlisted and benched participants in one call', function () {
+        $game = createGameForCancellation($this->owner, $this->gameSystem);
+
+        $waitlisted = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Waitlisted->value,
+            'waitlisted_at' => now(),
+        ]);
+        $benched = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Benched->value,
+        ]);
+
+        app(Roster::class)->onCancellation($game);
+
+        expect($waitlisted->fresh()->status)->toBe(ParticipantStatus::Rejected);
+        expect($benched->fresh()->status)->toBe(ParticipantStatus::Rejected);
+    });
+
+    it('fires the cascade when a host cancels via the Livewire flow', function () {
+        $game = createGameForCancellation($this->owner, $this->gameSystem);
+
+        $waitlisted = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Waitlisted->value,
+            'waitlisted_at' => now(),
+        ]);
+        $benched = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Benched->value,
+        ]);
+
+        Livewire\Livewire::actingAs($this->owner)
+            ->test(GamesPage::class)
+            ->call('cancelGame', $game->id);
+
+        assertDatabaseHas('games', ['id' => $game->id, 'status' => 'canceled']);
+        expect($waitlisted->fresh()->status)->toBe(ParticipantStatus::Rejected)
+            ->and($benched->fresh()->status)->toBe(ParticipantStatus::Rejected);
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════

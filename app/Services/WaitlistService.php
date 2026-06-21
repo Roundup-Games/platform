@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\Participant;
 use App\Dto\EntityMeta;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
@@ -340,9 +341,9 @@ class WaitlistService
      * Downstream capacity checks (invitation acceptance, discovery counts)
      * must tolerate approved_count > max_players when manual promotions exist.
      */
-    public function manuallyPromote(CampaignParticipant|GameParticipant $participant): void
+    public function manuallyPromote(Participant $participant): void
     {
-        $meta = $this->entityMeta($participant);
+        $meta = $participant->getEntityMeta();
 
         Log::info('waitlist.manually_promoted', [
             $meta->foreignKey => $participant->{$meta->foreignKey},
@@ -354,6 +355,30 @@ class WaitlistService
             'status' => ParticipantStatus::Approved->value,
             'confirmation_expires_at' => null,
             'waitlisted_at' => null,
+        ]);
+    }
+
+    /**
+     * Remove a waitlisted participant (sets status to Rejected).
+     *
+     * @throws \LogicException if participant is not waitlisted
+     */
+    public function removeFromWaitlist(Participant $participant, ?User $remover = null): void
+    {
+        $meta = $participant->getEntityMeta();
+
+        if ($participant->status !== ParticipantStatus::Waitlisted) {
+            throw new \LogicException('Participant is not on the waitlist.');
+        }
+
+        $participant->update(['status' => ParticipantStatus::Rejected->value]);
+
+        Log::info('waitlist.removed', [
+            'entity_type' => $meta->type,
+            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
+            'participant_id' => $participant->id,
+            'user_id' => $participant->user_id,
+            'removed_by' => $remover?->id ?? 'system',
         ]);
     }
 

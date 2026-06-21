@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\Participant;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
@@ -95,32 +96,27 @@ class BenchService
     /**
      * Promote a benched participant to approved status.
      *
-     * @param  string  $participantId  UUID of the participant to promote
-     * @param  string  $entityType  'campaign' or 'game'
-     * @param  User|null  $promoter  User performing the promotion (null for system/queue)
+     * The single seam for bench promotion: every host entry point
+     * (sidebar, manage-participants page) routes here. Precondition,
+     * capacity check, transition, and log live behind this interface.
      *
      * @throws \LogicException if participant is not benched or entity has no capacity
      */
-    public function promoteFromBench(string $participantId, string $entityType, ?User $promoter = null): void
+    public function promoteFromBench(Participant $participant, ?User $promoter = null): void
     {
+        $meta = $participant->getEntityMeta();
         $promoterId = $promoter->id ?? 'system';
 
-        DB::transaction(function () use ($participantId, $entityType, $promoterId) {
-            $isCampaign = $entityType === 'campaign';
+        DB::transaction(function () use ($participant, $meta, $promoterId) {
+            $locked = $meta->participantClass::lockForUpdate()->where('id', $participant->id)->firstOrFail();
 
-            $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
-            $foreignKey = $isCampaign ? 'campaign_id' : 'game_id';
-
-            $participant = $participantClass::lockForUpdate()->where('id', $participantId)->firstOrFail();
-
-            if ($participant->status !== ParticipantStatus::Benched) {
+            if ($locked->status !== ParticipantStatus::Benched) {
                 throw new \LogicException('Participant is not on the bench.');
             }
 
-            $entityClass = $isCampaign ? Campaign::class : Game::class;
             /** @var string $foreignId */
-            $foreignId = $participant->getAttribute($foreignKey);
-            $lockedEntity = $entityClass::lockForUpdate()->findOrFail($foreignId);
+            $foreignId = $locked->getAttribute($meta->foreignKey);
+            $lockedEntity = $meta->entityClass::lockForUpdate()->findOrFail($foreignId);
 
             $approvedCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved->value)
@@ -130,18 +126,42 @@ class BenchService
                 throw new \LogicException('Cannot promote: entity is full.');
             }
 
-            $participant->update([
+            $locked->update([
                 'status' => ParticipantStatus::Approved->value,
                 'benched_at' => null,
             ]);
 
             Log::info('bench.promoted', [
-                'entity_type' => $entityType,
-                $foreignKey => $lockedEntity->id,
-                'user_id' => $participant->user_id,
+                'entity_type' => $meta->type,
+                $meta->foreignKey => $lockedEntity->id,
+                'user_id' => $locked->user_id,
                 'promoted_by' => $promoterId,
             ]);
         });
+    }
+
+    /**
+     * Remove a benched participant (sets status to Rejected).
+     *
+     * @throws \LogicException if participant is not benched
+     */
+    public function removeFromBench(Participant $participant, ?User $remover = null): void
+    {
+        $meta = $participant->getEntityMeta();
+
+        if ($participant->status !== ParticipantStatus::Benched) {
+            throw new \LogicException('Participant is not on the bench.');
+        }
+
+        $participant->update(['status' => ParticipantStatus::Rejected->value]);
+
+        Log::info('bench.removed', [
+            'entity_type' => $meta->type,
+            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
+            'participant_id' => $participant->id,
+            'user_id' => $participant->user_id,
+            'removed_by' => $remover->id ?? 'system',
+        ]);
     }
 
     /**

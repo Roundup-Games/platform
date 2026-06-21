@@ -4,7 +4,9 @@ namespace App\Traits;
 
 use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
+use App\Services\BenchService;
 use App\Services\ParticipantService;
+use App\Services\WaitlistService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\On;
@@ -12,16 +14,19 @@ use Livewire\Attributes\On;
 /**
  * Thin Livewire adapter for participant management.
  *
- * Delegates all domain logic to ParticipantService and handles
- * Livewire-specific concerns (authorization, session flash, error bags).
+ * Delegates all domain logic to ParticipantService, WaitlistService,
+ * BenchService, and Roster, handling Livewire-specific concerns
+ * (authorization, session flash, error bags). The only entity-specific
+ * contract it imposes is getEntity(); type-derived metadata (foreign
+ * key, participant class, entity name) is resolved via EntityMeta.
  *
  * Requires the consuming Livewire component to implement:
- *   - getEntity():        The Game|Campaign model instance
- *   - getEntityIdColumn(): 'game_id' or 'campaign_id'
- *   - getParticipantModel(): GameParticipant or CampaignParticipant class
- *   - getEntityName():    'Game' or 'Campaign' (for log messages)
- *   - getEntityVar():     'game' or 'campaign' (for Blade variable name)
- *   - getBackRoute():     route name for the back link
+ *   - getEntity(): the Game|Campaign model instance
+ *
+ * The Blade partial (resources/views/livewire/partials/
+ * manage-participants.blade.php) reads getEntityVar/getBackRoute from
+ *
+ * @include(...) parameters — they are NOT defined here.
  */
 trait ManagesParticipants
 {
@@ -52,17 +57,14 @@ trait ManagesParticipants
 
     // ── Abstract contracts ─────────────────────────────
 
+    /**
+     * The Game|Campaign this component manages participants for.
+     *
+     * Only load-bearing contract: every trait method uses it for
+     * authorization and as the service call target. Type-derived
+     * metadata is resolved via EntityMeta::fromEntity().
+     */
     abstract public function getEntity();
-
-    abstract public function getEntityIdColumn(): string;
-
-    abstract public function getParticipantModel(): string;
-
-    abstract public function getEntityName(): string;
-
-    abstract public function getEntityVar(): string;
-
-    abstract public function getBackRoute(): string;
 
     // ── Service accessor ───────────────────────────────
 
@@ -234,7 +236,6 @@ trait ManagesParticipants
 
         $result = $this->participantService()->cancelInvite(
             $participant,
-            $entity,
             authenticatedUser(),
         );
 
@@ -278,7 +279,6 @@ trait ManagesParticipants
 
         $result = $this->participantService()->declineInvitation(
             $participant,
-            $entity,
             $authUser,
         );
 
@@ -322,22 +322,14 @@ trait ManagesParticipants
     {
         $this->authorize('update', $this->getEntity());
 
-        $entity = $this->getEntity();
-        $participant = $this->participantService()->findParticipant($entity, $participantId);
+        $participant = $this->participantService()->findParticipant($this->getEntity(), $participantId);
 
-        $result = $this->participantService()->promoteFromWaitlist(
-            $participant,
-            $entity,
-            authenticatedUser(),
-        );
-
-        if (! $result->success && $result->errorKey) {
-            session()->flash('error', __($result->errorKey));
-
-            return;
+        try {
+            app(WaitlistService::class)->manuallyPromote($participant);
+            session()->flash('success', __('common.flash_waitlist_promoted'));
+        } catch (\LogicException $e) {
+            session()->flash('error', __('common.error_participant_not_waitlisted'));
         }
-
-        session()->flash('success', __($result->messageKey));
     }
 
     /**
@@ -347,22 +339,14 @@ trait ManagesParticipants
     {
         $this->authorize('update', $this->getEntity());
 
-        $entity = $this->getEntity();
-        $participant = $this->participantService()->findParticipant($entity, $participantId);
+        $participant = $this->participantService()->findParticipant($this->getEntity(), $participantId);
 
-        $result = $this->participantService()->removeFromWaitlist(
-            $participant,
-            $entity,
-            authenticatedUser(),
-        );
-
-        if (! $result->success && $result->errorKey) {
-            session()->flash('error', __($result->errorKey));
-
-            return;
+        try {
+            app(WaitlistService::class)->removeFromWaitlist($participant, authenticatedUser());
+            session()->flash('success', __('common.flash_waitlist_removed'));
+        } catch (\LogicException $e) {
+            session()->flash('error', __('common.error_participant_not_waitlisted'));
         }
-
-        session()->flash('success', __($result->messageKey));
     }
 
     /**
@@ -372,22 +356,14 @@ trait ManagesParticipants
     {
         $this->authorize('update', $this->getEntity());
 
-        $entity = $this->getEntity();
-        $participant = $this->participantService()->findParticipant($entity, $participantId);
+        $participant = $this->participantService()->findParticipant($this->getEntity(), $participantId);
 
-        $result = $this->participantService()->promoteFromBench(
-            $participant,
-            $entity,
-            authenticatedUser(),
-        );
-
-        if (! $result->success && $result->errorKey) {
-            session()->flash('error', __($result->errorKey));
-
-            return;
+        try {
+            app(BenchService::class)->promoteFromBench($participant, authenticatedUser());
+            session()->flash('success', __('common.flash_bench_promoted'));
+        } catch (\LogicException $e) {
+            session()->flash('error', __('common.error_participant_not_benched'));
         }
-
-        session()->flash('success', __($result->messageKey));
     }
 
     /**
@@ -397,22 +373,14 @@ trait ManagesParticipants
     {
         $this->authorize('update', $this->getEntity());
 
-        $entity = $this->getEntity();
-        $participant = $this->participantService()->findParticipant($entity, $participantId);
+        $participant = $this->participantService()->findParticipant($this->getEntity(), $participantId);
 
-        $result = $this->participantService()->removeFromBench(
-            $participant,
-            $entity,
-            authenticatedUser(),
-        );
-
-        if (! $result->success && $result->errorKey) {
-            session()->flash('error', __($result->errorKey));
-
-            return;
+        try {
+            app(BenchService::class)->removeFromBench($participant, authenticatedUser());
+            session()->flash('success', __('common.flash_bench_removed'));
+        } catch (\LogicException $e) {
+            session()->flash('error', __('common.error_participant_not_benched'));
         }
-
-        session()->flash('success', __($result->messageKey));
     }
 
     // ── Helpers ────────────────────────────────────────

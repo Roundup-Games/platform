@@ -309,7 +309,7 @@ describe('Capacity and Counting Correctness', function () {
                 ->delete();
 
             // Now owner (1/2) — promote should work
-            $this->benchService->promoteFromBench((string) $benched->id, 'game');
+            $this->benchService->promoteFromBench($benched);
 
             expect($benched->fresh()->status)->toBe(ParticipantStatus::Approved);
             expect($this->service->getApprovedParticipantCount($game->fresh()))->toBe(2); // owner + promoted

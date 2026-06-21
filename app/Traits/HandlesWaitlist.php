@@ -2,16 +2,13 @@
 
 namespace App\Traits;
 
+use App\Dto\EntityMeta;
 use App\Enums\AttendanceStatus;
-use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
-use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Notifications\BelowMinPlayersWarning;
-use App\Services\NotificationService;
-use App\Services\ParticipantService;
+use App\Services\Roster;
 use App\Services\WaitlistService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -90,13 +87,7 @@ trait HandlesWaitlist
      */
     public function manualPromote(string $participantId): void
     {
-        $viewer = authenticatedUser();
-
-        if ((string) $this->getEntity()->owner_id !== (string) $viewer->id) {
-            session()->flash('error', __('common.error_not_authorized'));
-
-            return;
-        }
+        $this->authorize('update', $this->getEntity());
 
         $participant = $this->findParticipantOrFail($participantId);
 
@@ -129,7 +120,8 @@ trait HandlesWaitlist
         if ($entity instanceof Game && $entity->date_time && $entity->date_time->isFuture()) {
             $hoursUntilGame = now()->diffInHours($entity->date_time, false);
 
-            if ($hoursUntilGame < 24) {
+            $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+            if ($hoursUntilGame < $lateCancelHours) {
                 // Late cancellation: within 24h of game time
                 $participant->update([
                     'attendance_status' => AttendanceStatus::LateCancel,
@@ -157,19 +149,15 @@ trait HandlesWaitlist
         // Remove the participant
         $participant->update(['status' => ParticipantStatus::Rejected]);
 
-        $entityType = $entity instanceof Campaign ? 'campaign' : 'game';
-        $entityIdColumn = $this->getEntityIdColumn();
+        $meta = EntityMeta::fromEntity($entity);
 
-        Log::info(ucfirst($entityType).' participant self-cancelled', [
-            $entityIdColumn => $entity->id,
+        Log::info(ucfirst($meta->type).' participant self-cancelled', [
+            $meta->foreignKey => $entity->id,
             'user_id' => $viewer->id,
         ]);
 
-        // Promote from waitlist for all entity types
-        app(WaitlistService::class)->promoteAllOnCancel($entity);
-
-        // Check below-min-players
-        $this->checkBelowMinPlayersAndNotify();
+        // Promote from waitlist + warn host if below min_players
+        app(Roster::class)->onDeparture($entity);
 
         session()->flash('success', __('common.flash_participant_removed'));
     }
@@ -192,7 +180,7 @@ trait HandlesWaitlist
         }
 
         $entity = $this->getEntity();
-        $entityType = strtolower($this->getEntityName());
+        $meta = EntityMeta::fromEntity($entity);
 
         $didLeave = false;
         DB::transaction(function () use ($participant, &$didLeave) {
@@ -213,15 +201,15 @@ trait HandlesWaitlist
 
         if ($didLeave) {
             Log::info('waitlist.participant_left', [
-                'entity_type' => $entityType,
+                'entity_type' => $meta->type,
                 'entity_id' => $entity->id,
                 'user_id' => $viewer->id,
                 'participant_id' => $participant->id,
             ]);
 
-            // Promote from waitlist if there are open approved slots.
-            // This is a no-op when the entity is still at capacity (most common case).
-            app(WaitlistService::class)->promoteAllOnCancel($entity);
+            // Promote from waitlist + warn host if below min_players.
+            // No-op when the entity is still at capacity (most common case).
+            app(Roster::class)->onDeparture($entity);
 
             session()->flash('success', __('games.flash_left_waitlist'));
         }
@@ -234,52 +222,11 @@ trait HandlesWaitlist
      */
     protected function findParticipantOrFail(string $participantId): GameParticipant|CampaignParticipant
     {
-        $model = $this->getParticipantModel();
         $entity = $this->getEntity();
+        $meta = EntityMeta::fromEntity($entity);
 
-        return $model::where('id', $participantId)
-            ->where($this->getEntityIdColumn(), $entity->id)
+        return $meta->participantClass::where('id', $participantId)
+            ->where($meta->foreignKey, $entity->id)
             ->firstOrFail();
-    }
-
-    /**
-     * Check if roster is below min_players and notify the host.
-     */
-    private function checkBelowMinPlayersAndNotify(): void
-    {
-        $entity = $this->getEntity();
-
-        if (! $entity->min_players) {
-            return;
-        }
-
-        $approvedCount = app(ParticipantService::class)->getApprovedParticipantCount($entity);
-
-        if ($approvedCount < $entity->min_players) {
-            $entityIdColumn = $this->getEntityIdColumn();
-            $entityName = strtolower($this->getEntityName());
-
-            Log::warning("{$entityName}.below_min_players", [
-                $entityIdColumn => $entity->id,
-                'current_roster' => $approvedCount,
-                'min_players' => $entity->min_players,
-            ]);
-
-            $owner = $entity->owner;
-            if ($owner && $entity instanceof Game) {
-                try {
-                    app(NotificationService::class)->send(
-                        $owner,
-                        new BelowMinPlayersWarning($entity, $approvedCount, $entity->min_players),
-                        NotificationCategory::BelowMinPlayers
-                    );
-                } catch (\Throwable $e) {
-                    Log::error('notification.below_min_players_dispatch_failed', [
-                        $entityIdColumn => $entity->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-        }
     }
 }

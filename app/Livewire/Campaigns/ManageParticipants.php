@@ -5,7 +5,6 @@ namespace App\Livewire\Campaigns;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
-use App\Models\CampaignParticipant;
 use App\Traits\ManagesParticipants;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -30,31 +29,6 @@ class ManageParticipants extends Component
     public function getEntity(): Campaign
     {
         return $this->campaign;
-    }
-
-    public function getEntityIdColumn(): string
-    {
-        return 'campaign_id';
-    }
-
-    public function getParticipantModel(): string
-    {
-        return CampaignParticipant::class;
-    }
-
-    public function getEntityName(): string
-    {
-        return 'Campaign';
-    }
-
-    public function getEntityVar(): string
-    {
-        return 'campaign';
-    }
-
-    public function getBackRoute(): string
-    {
-        return route('campaigns.show', $this->campaign->id);
     }
 
     // ── Render ─────────────────────────────────────────

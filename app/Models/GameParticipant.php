@@ -2,17 +2,18 @@
 
 namespace App\Models;
 
+use App\Contracts\Participant as ParticipantContract;
 use App\Dto\EntityMeta;
 use App\Enums\AttendanceStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Models\Concerns\HasParticipantDefaults;
 use Database\Factories\GameParticipantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property JoinSource|null $join_source
@@ -26,10 +27,12 @@ use Illuminate\Support\Str;
  * @property Carbon|null $benched_at
  * @property Carbon|null $removed_at
  */
-class GameParticipant extends Pivot
+class GameParticipant extends Pivot implements ParticipantContract
 {
     /** @use HasFactory<GameParticipantFactory> */
     use HasFactory;
+
+    use HasParticipantDefaults;
 
     protected $table = 'game_participants';
 
@@ -55,17 +58,6 @@ class GameParticipant extends Pivot
     ];
 
     public $timestamps = false;
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $participant) {
-            if (empty($participant->id)) {
-                $participant->id = (string) Str::uuid();
-            }
-            $participant->created_at = $participant->created_at ?? now();
-        });
-
-    }
 
     /**
      * @return BelongsTo<Game, $this>
@@ -98,30 +90,22 @@ class GameParticipant extends Pivot
     }
 
     /**
-     * Get a human-readable label for the participant's join source.
-     *
-     * Returns the short link label if one exists, otherwise falls back
-     * to the JoinSource enum label.
-     */
-    public function getSourceLabelAttribute(): ?string
-    {
-        if ($this->short_link_id) {
-            $shortLink = $this->shortLink;
-            if ($shortLink) {
-                return $shortLink->label ?? $shortLink->code;
-            }
-        }
-
-        return $this->join_source?->label();
-    }
-
-    /**
      * Resolve entity metadata from a participant instance.
      *
      * Centralizes the repeated instanceof checks used in commands, jobs,
      * and services for logging, locking, and querying.
      */
     public static function entityMeta(): EntityMeta
+    {
+        return EntityMeta::forGame();
+    }
+
+    /**
+     * Participant contract — this row belongs to a Game.
+     *
+     * Pure type information; no database query.
+     */
+    public function getEntityMeta(): EntityMeta
     {
         return EntityMeta::forGame();
     }

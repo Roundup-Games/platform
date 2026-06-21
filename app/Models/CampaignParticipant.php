@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
+use App\Contracts\Participant as ParticipantContract;
 use App\Dto\EntityMeta;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Models\Concerns\HasParticipantDefaults;
 use Database\Factories\CampaignParticipantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property JoinSource|null $join_source
@@ -23,10 +24,12 @@ use Illuminate\Support\Str;
  * @property Carbon|null $benched_at
  * @property Carbon|null $removed_at
  */
-class CampaignParticipant extends Pivot
+class CampaignParticipant extends Pivot implements ParticipantContract
 {
     /** @use HasFactory<CampaignParticipantFactory> */
     use HasFactory;
+
+    use HasParticipantDefaults;
 
     protected $table = 'campaign_participants';
 
@@ -48,16 +51,6 @@ class CampaignParticipant extends Pivot
     ];
 
     public $timestamps = false;
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $participant) {
-            if (empty($participant->id)) {
-                $participant->id = (string) Str::uuid();
-            }
-            $participant->created_at = $participant->created_at ?? now();
-        });
-    }
 
     /**
      * @return BelongsTo<Campaign, $this>
@@ -84,30 +77,22 @@ class CampaignParticipant extends Pivot
     }
 
     /**
-     * Get a human-readable label for the participant's join source.
-     *
-     * Returns the short link label if one exists, otherwise falls back
-     * to the JoinSource enum label.
-     */
-    public function getSourceLabelAttribute(): ?string
-    {
-        if ($this->short_link_id) {
-            $shortLink = $this->shortLink;
-            if ($shortLink) {
-                return $shortLink->label ?? $shortLink->code;
-            }
-        }
-
-        return $this->join_source?->label();
-    }
-
-    /**
      * Resolve entity metadata from a participant instance.
      *
      * Centralizes the repeated instanceof checks used in commands, jobs,
      * and services for logging, locking, and querying.
      */
     public static function entityMeta(): EntityMeta
+    {
+        return EntityMeta::forCampaign();
+    }
+
+    /**
+     * Participant contract — this row belongs to a Campaign.
+     *
+     * Pure type information; no database query.
+     */
+    public function getEntityMeta(): EntityMeta
     {
         return EntityMeta::forCampaign();
     }

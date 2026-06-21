@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Dto\EntityMeta;
 use App\Enums\ParticipantStatus;
 use App\Services\BenchService;
 use Illuminate\Support\Facades\DB;
@@ -11,26 +12,16 @@ trait HandlesBench
 {
     public function promoteFromBench(string $participantId): void
     {
+        $this->authorize('update', $this->getEntity());
+
+        $participant = $this->findParticipantOrFail($participantId);
         $viewer = authenticatedUser();
 
-        if ((string) $this->getEntity()->owner_id !== (string) $viewer->id) {
-            session()->flash('error', __('common.error_not_authorized'));
-
-            return;
-        }
-
-        if (! $this->getEntity()->isBenchMode()) {
-            session()->flash('error', __('common.error_not_authorized'));
-
-            return;
-        }
-
         try {
-            $entityType = strtolower($this->getEntityName());
-            app(BenchService::class)->promoteFromBench($participantId, $entityType, $viewer);
+            app(BenchService::class)->promoteFromBench($participant, $viewer);
             session()->flash('success', __('games.flash_promote_from_bench_success'));
         } catch (\LogicException $e) {
-            session()->flash('error', $e->getMessage());
+            session()->flash('error', __('common.error_participant_not_benched'));
         }
     }
 
@@ -54,7 +45,7 @@ trait HandlesBench
         }
 
         $entity = $this->getEntity();
-        $entityType = strtolower($this->getEntityName());
+        $meta = EntityMeta::fromEntity($entity);
 
         $didLeave = false;
         DB::transaction(function () use ($participant, &$didLeave) {
@@ -75,7 +66,7 @@ trait HandlesBench
 
         if ($didLeave) {
             Log::info('bench.participant_left', [
-                'entity_type' => $entityType,
+                'entity_type' => $meta->type,
                 'entity_id' => $entity->id,
                 'user_id' => $viewer->id,
                 'participant_id' => $participant->id,

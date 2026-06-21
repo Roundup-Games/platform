@@ -2,6 +2,7 @@
 
 namespace App\Dto;
 
+use App\Contracts\Participant;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -63,10 +64,13 @@ class EntityMeta
 
     /**
      * Resolve from a participant model instance.
+     *
+     * Delegates to the Participant contract so the type branch lives behind
+     * the seam rather than being re-derived here.
      */
-    public static function fromParticipant(GameParticipant|CampaignParticipant $participant): self
+    public static function fromParticipant(Participant $participant): self
     {
-        return $participant instanceof CampaignParticipant ? self::forCampaign() : self::forGame();
+        return $participant->getEntityMeta();
     }
 
     /**

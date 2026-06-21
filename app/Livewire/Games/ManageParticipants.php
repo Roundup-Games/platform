@@ -5,7 +5,6 @@ namespace App\Livewire\Games;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Traits\ManagesParticipants;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -30,31 +29,6 @@ class ManageParticipants extends Component
     public function getEntity(): Game
     {
         return $this->game;
-    }
-
-    public function getEntityIdColumn(): string
-    {
-        return 'game_id';
-    }
-
-    public function getParticipantModel(): string
-    {
-        return GameParticipant::class;
-    }
-
-    public function getEntityName(): string
-    {
-        return 'Game';
-    }
-
-    public function getEntityVar(): string
-    {
-        return 'game';
-    }
-
-    public function getBackRoute(): string
-    {
-        return route('games.show', $this->game->id);
     }
 
     // ── Render ─────────────────────────────────────────
