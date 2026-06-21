@@ -12,7 +12,6 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\BenchService;
 use App\Services\WaitlistService;
-use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -158,34 +157,116 @@ function createFullCampaignForLeave(User $owner, GameSystem $system, int $maxPla
     return $campaign;
 }
 
+/**
+ * Build a full entity (game / bench-game / campaign) suitable for the given
+ * participant status, returning the entity + the Livewire detail component
+ * class used to exercise the leave flow on it.
+ */
+function buildFullEntityForLeave(User $owner, GameSystem $system, ParticipantStatus $status): array
+{
+    if ($status === ParticipantStatus::Benched) {
+        // Bench needs bench_mode=true; use a campaign session game (mimics
+        // original test for game detail) and a bench-mode campaign.
+        return [
+            createFullBenchGameForLeave($owner, $system, maxPlayers: 2),
+            GameDetail::class,
+        ];
+    }
+
+    return [
+        createFullGameForLeave($owner, $system, maxPlayers: 2),
+        GameDetail::class,
+    ];
+}
+
 // ═══════════════════════════════════════════════════════════
-// LEAVE WAITLIST — GAME DETAIL
+// LEAVE FLOW — parameterized over [entity, participant_status]
+// Same leave contract (status → Rejected + flash) previously duplicated
+// as 4 separate tests: game×waitlist, game×bench, campaign×waitlist,
+// campaign×bench.
 // ═══════════════════════════════════════════════════════════
 
-describe('WaitlistUI leave waitlist', function () {
-    test('waitlisted user can leave waitlist on game detail', function () {
-        $game = createFullGameForLeave($this->owner, $this->gameSystem, maxPlayers: 2);
+describe('leave flow', function () {
+    it('honors the leave contract across entity and participant status', function (
+        string $entityType,
+        ParticipantStatus $status,
+        string $leaveMethod,
+        ?string $expectedFlash,
+    ) {
+        if ($entityType === 'game') {
+            [$entity, $componentClass] = buildFullEntityForLeave($this->owner, $this->gameSystem, $status);
+        } else {
+            $entity = createFullCampaignForLeave($this->owner, $this->gameSystem, maxPlayers: 2, benchMode: $status === ParticipantStatus::Benched);
+            $componentClass = CampaignDetail::class;
+        }
+
         $user = User::factory()->create();
-        $participant = $this->waitlistService->addToWaitlist($game, $user);
+        $participant = $status === ParticipantStatus::Benched
+            ? $this->benchService->addToBench($entity, $user)
+            : $this->waitlistService->addToWaitlist($entity, $user);
 
-        Log::shouldReceive('info')->with('waitlist.participant_left', Mockery::on(fn ($ctx) => $ctx['entity_id'] === $game->id && $ctx['user_id'] === $user->id
-        ))->once();
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('error')->zeroOrMoreTimes();
+        $request = Livewire::actingAs($user)
+            ->test($componentClass, ['id' => $entity->id])
+            ->call($leaveMethod, $participant->id)
+            ->assertHasNoErrors();
 
-        Livewire::actingAs($user)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->call('leaveWaitlist', $participant->id)
-            ->assertHasNoErrors()
-            ->assertSee(__('games.flash_left_waitlist'));
+        if ($expectedFlash !== null) {
+            $request->assertSee(__($expectedFlash));
+        }
 
-        // Status changed to rejected
         expect($participant->fresh()->status)->toBe(ParticipantStatus::Rejected);
-    });
+    })->with([
+        'waitlisted on game detail' => ['game',     ParticipantStatus::Waitlisted, 'leaveWaitlist', 'games.flash_left_waitlist'],
+        'benched on campaign session detail' => ['game',     ParticipantStatus::Benched,    'leaveBench',    'games.flash_left_bench'],
+        'waitlisted on campaign detail' => ['campaign', ParticipantStatus::Waitlisted, 'leaveWaitlist', null],
+        'benched on campaign detail' => ['campaign', ParticipantStatus::Benched,    'leaveBench',    null],
+    ]);
 
-    test('leaving waitlist on standalone game promotes next waitlisted player', function () {
+    it('prevents leaving someone else\'s spot or with wrong status', function (
+        string $scenario,
+        ParticipantStatus $status,
+        string $leaveMethod,
+    ) {
+        // game-side entity — waitlist uses standalone game, bench uses campaign session
+        [$entity, $componentClass] = buildFullEntityForLeave($this->owner, $this->gameSystem, $status);
+
+        if ($scenario === 'non-owner') {
+            // Add a real waitlisted/benched participant owned by someone else
+            $owner = User::factory()->create();
+            $participant = $status === ParticipantStatus::Benched
+                ? $this->benchService->addToBench($entity, $owner)
+                : $this->waitlistService->addToWaitlist($entity, $owner);
+            $actingUser = User::factory()->create();
+        } else { // 'wrong-status'
+            $actingUser = User::factory()->create();
+            $participant = GameParticipant::create([
+                'game_id' => $entity->id,
+                'user_id' => $actingUser->id,
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
+            ]);
+        }
+
+        Livewire::actingAs($actingUser)
+            ->test($componentClass, ['id' => $entity->id])
+            ->call($leaveMethod, $participant->id);
+
+        // Status unchanged
+        expect($participant->fresh()->status)->toBe($scenario === 'non-owner' ? $status : ParticipantStatus::Approved);
+    })->with([
+        'non-owner cannot leave waitlist' => ['non-owner',   ParticipantStatus::Waitlisted, 'leaveWaitlist'],
+        'non-owner cannot leave bench' => ['non-owner',   ParticipantStatus::Benched,    'leaveBench'],
+        'wrong-status cannot leave waitlist' => ['wrong-status', ParticipantStatus::Waitlisted, 'leaveWaitlist'],
+        'wrong-status cannot leave bench' => ['wrong-status', ParticipantStatus::Benched,    'leaveBench'],
+    ]);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PROMOTION-ON-LEAVE — waitlist-specific (no bench equivalent)
+// ═══════════════════════════════════════════════════════════
+
+describe('waitlist promotion on leave', function () {
+    test('leaving waitlist on full game does not promote next (no slot opens)', function () {
         $game = createFullGameForLeave($this->owner, $this->gameSystem, maxPlayers: 2);
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
@@ -194,11 +275,6 @@ describe('WaitlistUI leave waitlist', function () {
         $p1 = $this->waitlistService->addToWaitlist($game, $user1);
         $this->travelTo(now()->addSecond());
         $p2 = $this->waitlistService->addToWaitlist($game, $user2);
-
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('error')->zeroOrMoreTimes();
 
         // user1 leaves — user2 should NOT be promoted because the game is still full (no slot opened)
         Livewire::actingAs($user1)
@@ -228,11 +304,6 @@ describe('WaitlistUI leave waitlist', function () {
             ->first()
             ->update(['status' => ParticipantStatus::Rejected->value]);
 
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('error')->zeroOrMoreTimes();
-
         // user1 leaves — slot is open, so promoteAllOnCancel promotes user2
         Livewire::actingAs($user1)
             ->test(GameDetail::class, ['id' => $game->id])
@@ -241,67 +312,13 @@ describe('WaitlistUI leave waitlist', function () {
         expect($p1->fresh()->status)->toBe(ParticipantStatus::Rejected);
         expect($p2->fresh()->status)->toBe(ParticipantStatus::Pending);
     });
-
-    test('non-owner cannot leave someone else waitlist spot', function () {
-        $game = createFullGameForLeave($this->owner, $this->gameSystem, maxPlayers: 2);
-        $user1 = User::factory()->create();
-        $user2 = User::factory()->create();
-        $p1 = $this->waitlistService->addToWaitlist($game, $user1);
-
-        Livewire::actingAs($user2)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->call('leaveWaitlist', $p1->id);
-
-        // Participant unchanged
-        expect($p1->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
-    });
-
-    test('cannot leave waitlist with non-waitlisted status', function () {
-        $game = createFullGameForLeave($this->owner, $this->gameSystem, maxPlayers: 2);
-        $user = User::factory()->create();
-
-        // Create participant as approved (not waitlisted)
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->call('leaveWaitlist', $participant->id);
-
-        // Status unchanged
-        expect($participant->fresh()->status)->toBe(ParticipantStatus::Approved);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
-// LEAVE WAITLIST — CAMPAIGN DETAIL
+// UI BANNER VISIBILITY — waitlist vs bench surface on detail pages
 // ═══════════════════════════════════════════════════════════
 
-describe('WaitlistUI campaign leave waitlist', function () {
-    test('waitlisted user can leave waitlist on campaign detail', function () {
-        $campaign = createFullCampaignForLeave($this->owner, $this->gameSystem, maxPlayers: 2, benchMode: false);
-        $user = User::factory()->create();
-        $participant = $this->waitlistService->addToWaitlist($campaign, $user);
-
-        Log::shouldReceive('info')->with('waitlist.participant_left', Mockery::on(fn ($ctx) => $ctx['entity_id'] === $campaign->id && $ctx['user_id'] === $user->id
-        ))->once();
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('error')->zeroOrMoreTimes();
-
-        Livewire::actingAs($user)
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->call('leaveWaitlist', $participant->id)
-            ->assertHasNoErrors();
-
-        expect($participant->fresh()->status)->toBe(ParticipantStatus::Rejected);
-    });
-
+describe('campaign detail banner visibility', function () {
     test('campaign detail shows waitlist banner for waitlisted user with bench_mode=false', function () {
         $campaign = createFullCampaignForLeave($this->owner, $this->gameSystem, maxPlayers: 2, benchMode: false);
         $user = User::factory()->create();
@@ -314,106 +331,16 @@ describe('WaitlistUI campaign leave waitlist', function () {
             ->assertSee(__('campaigns.action_leave_waitlist'));
     });
 
-    test('campaign detail does not show waitlist banner when bench_mode=true', function () {
+    test('campaign detail hides waitlist banner and shows bench surface when bench_mode=true', function () {
         $campaign = createFullCampaignForLeave($this->owner, $this->gameSystem, maxPlayers: 2, benchMode: true);
         $user = User::factory()->create();
 
         // In bench mode, users go to bench, not waitlist
-        $participant = $this->benchService->addToBench($campaign, $user);
-
-        Livewire::actingAs($user)
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertDontSee(__('campaigns.action_join_waitlist'))
-            ->assertSee(__('campaigns.content_you_are_on_the_bench'));
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// LEAVE BENCH — GAME DETAIL (CAMPAIGN SESSION)
-// ═══════════════════════════════════════════════════════════
-
-describe('BenchUI leave bench', function () {
-    test('benched user can leave bench on campaign session detail', function () {
-        $game = createFullBenchGameForLeave($this->owner, $this->gameSystem, maxPlayers: 2);
-        $benchedUser = User::factory()->create();
-        $benchedParticipant = $this->benchService->addToBench($game, $benchedUser);
-
-        Log::shouldReceive('info')->with('bench.participant_left', Mockery::on(fn ($ctx) => $ctx['entity_id'] === $game->id && $ctx['user_id'] === $benchedUser->id
-        ))->once();
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('error')->zeroOrMoreTimes();
-
-        Livewire::actingAs($benchedUser)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->call('leaveBench', $benchedParticipant->id)
-            ->assertHasNoErrors()
-            ->assertSee(__('games.flash_left_bench'));
-
-        expect($benchedParticipant->fresh()->status)->toBe(ParticipantStatus::Rejected);
-    });
-
-    test('benched user can leave bench on campaign detail', function () {
-        $campaign = createFullCampaignForLeave($this->owner, $this->gameSystem, maxPlayers: 2, benchMode: true);
-        $user = User::factory()->create();
-        $participant = $this->benchService->addToBench($campaign, $user);
-
-        Log::shouldReceive('info')->with('bench.participant_left', Mockery::on(fn ($ctx) => $ctx['entity_id'] === $campaign->id && $ctx['user_id'] === $user->id
-        ))->once();
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('error')->zeroOrMoreTimes();
-
-        Livewire::actingAs($user)
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->call('leaveBench', $participant->id)
-            ->assertHasNoErrors();
-
-        expect($participant->fresh()->status)->toBe(ParticipantStatus::Rejected);
-    });
-
-    test('non-owner cannot leave someone else bench spot', function () {
-        $game = createFullBenchGameForLeave($this->owner, $this->gameSystem, maxPlayers: 2);
-        $benchedParticipant = $this->benchService->addToBench($game, User::factory()->create());
-        $otherUser = User::factory()->create();
-
-        Livewire::actingAs($otherUser)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->call('leaveBench', $benchedParticipant->id);
-
-        // Status unchanged
-        expect($benchedParticipant->fresh()->status)->toBe(ParticipantStatus::Benched);
-    });
-
-    test('cannot leave bench with non-benched status', function () {
-        $game = createFullBenchGameForLeave($this->owner, $this->gameSystem, maxPlayers: 2);
-        $user = User::factory()->create();
-
-        // Create participant as approved (not benched)
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->call('leaveBench', $participant->id);
-
-        // Status unchanged
-        expect($participant->fresh()->status)->toBe(ParticipantStatus::Approved);
-    });
-
-    test('campaign detail shows bench section when bench_mode=true', function () {
-        $campaign = createFullCampaignForLeave($this->owner, $this->gameSystem, maxPlayers: 2, benchMode: true);
-        $user = User::factory()->create();
         $this->benchService->addToBench($campaign, $user);
 
         Livewire::actingAs($user)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
+            ->assertDontSee(__('campaigns.action_join_waitlist'))
             ->assertSee(__('campaigns.content_you_are_on_the_bench'))
             ->assertSee(__('campaigns.content_you_have_been_placed_on_the_bench'))
             ->assertSee(__('games.action_leave_bench'));

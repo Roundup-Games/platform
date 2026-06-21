@@ -10,12 +10,12 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\OwnerParticipantService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class OwnerParticipantServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private OwnerParticipantService $service;
 

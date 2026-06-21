@@ -4,7 +4,9 @@ use App\Services\LangFileParser;
 
 beforeEach(function () {
     $this->parser = new LangFileParser;
-    $this->testLocale = '_test_parser';
+    // Per-process unique locale dir so parallel workers don't race on the
+    // same shared directory.
+    $this->testLocale = '_test_parser_'.getmypid();
     $this->testDir = lang_path($this->testLocale);
 
     // Create a temp locale directory for edge-case tests

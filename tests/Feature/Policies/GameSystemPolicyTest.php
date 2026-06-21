@@ -37,49 +37,47 @@ describe('GameSystemPolicy', function () {
     });
 
     describe('viewAny', function () {
-        test('guest can view any game system', function () {
+        test('guests and authenticated users can viewAny', function (string $role) {
+            if ($role === 'authenticated') {
+                $this->actingAs($this->regularUser);
+            }
             expect(Gate::allows('viewAny', GameSystem::class))->toBeTrue();
-        });
-
-        test('authenticated user can view any game system', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('viewAny', GameSystem::class))->toBeTrue();
-        });
+        })->with([
+            'guest',
+            'authenticated',
+        ]);
     });
 
     describe('view', function () {
-        test('guest can view a game system', function () {
+        test('guests and authenticated users can view a game system', function (string $role) {
+            if ($role === 'authenticated') {
+                $this->actingAs($this->regularUser);
+            }
             expect(Gate::allows('view', $this->gameSystem))->toBeTrue();
-        });
-
-        test('authenticated user can view a game system', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('view', $this->gameSystem))->toBeTrue();
-        });
+        })->with([
+            'guest',
+            'authenticated',
+        ]);
     });
 
     describe('create', function () {
-        test('Games Admin can create a game system', function () {
-            $this->actingAs($this->gamesAdmin);
-            expect(Gate::allows('create', GameSystem::class))->toBeTrue();
-        });
-
-        test('regular user cannot create a game system', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('create', GameSystem::class))->toBeFalse();
-        });
+        test('create is gated by Games Admin role', function (string $role, bool $expected) {
+            $this->actingAs($role === 'games-admin' ? $this->gamesAdmin : $this->regularUser);
+            expect(Gate::allows('create', GameSystem::class))->toBe($expected);
+        })->with([
+            'Games Admin can create a game system' => ['games-admin', true],
+            'regular user cannot create a game system' => ['regular', false],
+        ]);
     });
 
     describe('update', function () {
-        test('Games Admin can update a game system', function () {
-            $this->actingAs($this->gamesAdmin);
-            expect(Gate::allows('update', $this->gameSystem))->toBeTrue();
-        });
-
-        test('regular user cannot update a game system', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('update', $this->gameSystem))->toBeFalse();
-        });
+        test('update is gated by Games Admin role', function (string $role, bool $expected) {
+            $this->actingAs($role === 'games-admin' ? $this->gamesAdmin : $this->regularUser);
+            expect(Gate::allows('update', $this->gameSystem))->toBe($expected);
+        })->with([
+            'Games Admin can update a game system' => ['games-admin', true],
+            'regular user cannot update a game system' => ['regular', false],
+        ]);
     });
 
     describe('delete', function () {
@@ -100,13 +98,14 @@ describe('GameSystemPolicy', function () {
     });
 
     describe('requestNew', function () {
-        test('authenticated user can request a new game system', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('requestNew', GameSystem::class))->toBeTrue();
-        });
-
-        test('guest cannot request a new game system', function () {
-            expect(Gate::allows('requestNew', GameSystem::class))->toBeFalse();
-        });
+        test('requestNew gates by authentication', function (string $role) {
+            if ($role === 'authenticated') {
+                $this->actingAs($this->regularUser);
+            }
+            expect(Gate::allows('requestNew', GameSystem::class))->toBe($role === 'authenticated');
+        })->with([
+            'authenticated',
+            'guest',
+        ]);
     });
 });

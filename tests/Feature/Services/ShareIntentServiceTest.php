@@ -94,53 +94,9 @@ describe('ShareIntentService', function () {
         });
     });
 
-    // ── processShareIntent — Game ──────────────────────
+    // ── processShareIntent — Game (entity-specific edge cases) ───────
 
     describe('processShareIntent — Game', function () {
-        it('redirects owner to show page without creating participant', function () {
-            $token = (string) Str::uuid();
-            $game = Game::factory()->create([
-                'owner_id' => $this->owner->id,
-                'game_system_id' => $this->system->id,
-                'share_token' => $token,
-                'status' => GameStatus::Scheduled,
-            ]);
-
-            $result = $this->service->processShareIntent([
-                'entity_type' => 'game',
-                'entity_id' => $game->id,
-                'share_token' => $token,
-            ], $this->owner);
-
-            expect($result->shouldRedirect)->toBeTrue();
-            expect($result->redirectRoute)->toBe('games.show');
-            expect(GameParticipant::where('game_id', $game->id)->count())->toBe(0);
-        });
-
-        it('creates participant with share_link join source', function () {
-            $token = (string) Str::uuid();
-            $game = Game::factory()->create([
-                'owner_id' => $this->owner->id,
-                'game_system_id' => $this->system->id,
-                'share_token' => $token,
-                'status' => GameStatus::Scheduled,
-            ]);
-
-            $result = $this->service->processShareIntent([
-                'entity_type' => 'game',
-                'entity_id' => $game->id,
-                'share_token' => $token,
-            ], $this->user);
-
-            expect($result->shouldRedirect)->toBeTrue();
-            $participant = GameParticipant::where('game_id', $game->id)
-                ->where('user_id', $this->user->id)
-                ->first();
-            expect($participant)->not->toBeNull();
-            expect($participant->join_source)->toBe(JoinSource::ShareLink);
-            expect($participant->role)->toBe(ParticipantRole::Player);
-        });
-
         it('rejects mismatched share token', function () {
             $token = (string) Str::uuid();
             $game = Game::factory()->create([
@@ -217,51 +173,82 @@ describe('ShareIntentService', function () {
         });
     });
 
-    // ── processShareIntent — Campaign ──────────────────
+    // ── processShareIntent — shared contract (game + campaign) ────────
 
-    describe('processShareIntent — Campaign', function () {
-        it('creates participant for valid campaign share token', function () {
+    describe('processShareIntent — shared (game + campaign)', function () {
+        it('redirects owner without creating participant', function (string $entityType) {
             $token = (string) Str::uuid();
-            $campaign = Campaign::factory()->create([
-                'owner_id' => $this->owner->id,
-                'game_system_id' => $this->system->id,
-                'share_token' => $token,
-                'status' => CampaignStatus::Active,
-            ]);
+
+            $entity = match ($entityType) {
+                'game' => Game::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'game_system_id' => $this->system->id,
+                    'share_token' => $token,
+                    'status' => GameStatus::Scheduled,
+                ]),
+                'campaign' => Campaign::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'game_system_id' => $this->system->id,
+                    'share_token' => $token,
+                    'status' => CampaignStatus::Active,
+                ]),
+            };
 
             $result = $this->service->processShareIntent([
-                'entity_type' => 'campaign',
-                'entity_id' => $campaign->id,
-                'share_token' => $token,
-            ], $this->user);
-
-            expect($result->shouldRedirect)->toBeTrue();
-            expect($result->redirectRoute)->toBe('campaigns.show');
-            $participant = CampaignParticipant::where('campaign_id', $campaign->id)
-                ->where('user_id', $this->user->id)
-                ->first();
-            expect($participant)->not->toBeNull();
-            expect($participant->join_source)->toBe(JoinSource::ShareLink);
-        });
-
-        it('redirects campaign owner without creating participant', function () {
-            $token = (string) Str::uuid();
-            $campaign = Campaign::factory()->create([
-                'owner_id' => $this->owner->id,
-                'game_system_id' => $this->system->id,
-                'share_token' => $token,
-                'status' => CampaignStatus::Active,
-            ]);
-
-            $result = $this->service->processShareIntent([
-                'entity_type' => 'campaign',
-                'entity_id' => $campaign->id,
+                'entity_type' => $entityType,
+                'entity_id' => $entity->id,
                 'share_token' => $token,
             ], $this->owner);
 
-            expect($result->shouldRedirect)->toBeTrue();
-            expect(CampaignParticipant::where('campaign_id', $campaign->id)->count())->toBe(0);
-        });
+            expect($result->shouldRedirect)->toBeTrue()
+                ->and($result->redirectRoute)->toBe($entityType === 'game' ? 'games.show' : 'campaigns.show');
+
+            $count = match ($entityType) {
+                'game' => GameParticipant::where('game_id', $entity->id)->count(),
+                'campaign' => CampaignParticipant::where('campaign_id', $entity->id)->count(),
+            };
+            expect($count)->toBe(0);
+        })->with(['game', 'campaign']);
+
+        it('creates participant with share_link join source for valid token', function (string $entityType) {
+            $token = (string) Str::uuid();
+
+            $entity = match ($entityType) {
+                'game' => Game::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'game_system_id' => $this->system->id,
+                    'share_token' => $token,
+                    'status' => GameStatus::Scheduled,
+                ]),
+                'campaign' => Campaign::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'game_system_id' => $this->system->id,
+                    'share_token' => $token,
+                    'status' => CampaignStatus::Active,
+                ]),
+            };
+
+            $result = $this->service->processShareIntent([
+                'entity_type' => $entityType,
+                'entity_id' => $entity->id,
+                'share_token' => $token,
+            ], $this->user);
+
+            expect($result->shouldRedirect)->toBeTrue()
+                ->and($result->redirectRoute)->toBe($entityType === 'game' ? 'games.show' : 'campaigns.show');
+
+            $participant = match ($entityType) {
+                'game' => GameParticipant::where('game_id', $entity->id)->where('user_id', $this->user->id)->first(),
+                'campaign' => CampaignParticipant::where('campaign_id', $entity->id)->where('user_id', $this->user->id)->first(),
+            };
+            expect($participant)->not->toBeNull()
+                ->and($participant->join_source)->toBe(JoinSource::ShareLink);
+
+            // Game participants get the Player role assigned by the service.
+            if ($entityType === 'game') {
+                expect($participant->role)->toBe(ParticipantRole::Player);
+            }
+        })->with(['game', 'campaign']);
     });
 
     // ── processShareIntent — edge cases ────────────────

@@ -192,19 +192,28 @@ describe('GameSystem TTRPG Support', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
+// CROSS-LINK TAXONOMY MODELS (shared fillable behavior)
+// ═══════════════════════════════════════════════════════════
+
+// Both GameSystemCategory and GameSystemMechanic expose a `description` fillable.
+// Previously duplicated inline in each describe block below.
+it('accepts description fillable on cross-link taxonomy models', function (string $modelClass) {
+    $model = $modelClass::create([
+        'name' => 'Test',
+        'description' => 'Shared fillable contract.',
+    ]);
+
+    expect($model->description)->toBe('Shared fillable contract.');
+})->with([
+    'GameSystemCategory' => [GameSystemCategory::class],
+    'GameSystemMechanic' => [GameSystemMechanic::class],
+]);
+
+// ═══════════════════════════════════════════════════════════
 // CATEGORY CROSS-LINKS
 // ═══════════════════════════════════════════════════════════
 
 describe('GameSystemCategory Cross-Links', function () {
-    it('accepts description fillable', function () {
-        $category = GameSystemCategory::create([
-            'name' => 'Strategy',
-            'description' => 'Games focused on strategic thinking and planning.',
-        ]);
-
-        expect($category->description)->toBe('Games focused on strategic thinking and planning.');
-    });
-
     it('links similar categories via pivot', function () {
         $cat1 = GameSystemCategory::create(['name' => 'Deck Building']);
         $cat2 = GameSystemCategory::create(['name' => 'Card Games']);
@@ -233,15 +242,6 @@ describe('GameSystemCategory Cross-Links', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('GameSystemMechanic Cross-Links', function () {
-    it('accepts description fillable', function () {
-        $mechanic = GameSystemMechanic::create([
-            'name' => 'Hex-and-Counter',
-            'description' => 'Classic wargaming mechanic using hex grids and counters.',
-        ]);
-
-        expect($mechanic->description)->toBe('Classic wargaming mechanic using hex grids and counters.');
-    });
-
     it('links similar mechanics via pivot', function () {
         $mech1 = GameSystemMechanic::create(['name' => 'Action Points']);
         $mech2 = GameSystemMechanic::create(['name' => 'Worker Placement']);

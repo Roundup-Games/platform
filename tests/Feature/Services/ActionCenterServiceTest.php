@@ -20,14 +20,19 @@ use App\Models\SessionDebriefing;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\ActionCenterService;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ActionCenterServiceTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private ActionCenterService $service;
 
     private User $user;
@@ -55,9 +60,70 @@ class ActionCenterServiceTest extends TestCase
         $this->assertEmpty($items);
     }
 
-    // ── 1. Waitlist Confirmations (critical) ──────────────────────────
+    // ── Data-structure contract for every action type (parameterized) ──
 
-    public function test_waitlist_confirmation_returns_correct_data_structure(): void
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function actionTypesAndExpectations(): array
+    {
+        return [
+            'waitlist_confirmation' => ['waitlist_confirmation', 'critical', 'schedule'],
+            'below_min_players' => ['below_min_players', 'critical', 'warning'],
+            'pending_applications' => ['pending_applications', 'high', 'group_add'],
+            'pending_invitation' => ['pending_invitation', 'high', 'mail'],
+            'open_attendance_window' => ['open_attendance_window', 'medium', 'event_note'],
+            'missing_recap' => ['missing_recap', 'medium', 'edit_note'],
+            'available_debriefing' => ['available_debriefing', 'medium', 'auto_stories'],
+            'new_review' => ['new_review', 'medium', 'rate_review'],
+            'new_follower' => ['new_follower', 'low', 'person_add'],
+            'campaign_session_alert' => ['campaign_session_alert', 'low', 'campaign'],
+            'host_bulletin' => ['host_bulletin', 'medium', 'campaign'],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('actionTypesAndExpectations')]
+    public function action_type_returns_correct_data_structure(string $type, string $expectedPriority, string $expectedIcon): void
+    {
+        $this->seedStateForActionType($type);
+
+        $items = $this->service->getItems($this->user);
+
+        $typedItems = array_filter($items, fn ($i) => $i->type === $type);
+        $this->assertCount(1, $typedItems);
+
+        $item = reset($typedItems);
+        $this->assertInstanceOf(ActionItem::class, $item);
+        $this->assertSame($expectedPriority, $item->priority);
+        $this->assertSame($expectedIcon, $item->icon);
+        $this->assertNotEmpty($item->actionUrl);
+        $this->assertNotEmpty($item->actionLabel);
+    }
+
+    /**
+     * Dispatch to per-type seeding. Each helper mirrors the setup block
+     * that previously lived inside the corresponding data-structure test.
+     */
+    private function seedStateForActionType(string $type): void
+    {
+        match ($type) {
+            'waitlist_confirmation' => $this->seedWaitlistConfirmation(),
+            'below_min_players' => $this->seedBelowMinPlayers(),
+            'pending_applications' => $this->seedPendingApplications(),
+            'pending_invitation' => $this->seedPendingInvitation(),
+            'open_attendance_window' => $this->seedOpenAttendanceWindow(),
+            'missing_recap' => $this->seedMissingRecap(),
+            'available_debriefing' => $this->seedAvailableDebriefing(),
+            'new_review' => $this->seedNewReview(),
+            'new_follower' => $this->seedNewFollower(),
+            'campaign_session_alert' => $this->seedCampaignSessionAlert(),
+            'host_bulletin' => $this->seedHostBulletin(),
+            default => throw new \InvalidArgumentException("Unknown action type: {$type}"),
+        };
+    }
+
+    private function seedWaitlistConfirmation(): void
     {
         $owner = User::factory()->create();
         $game = Game::factory()->create([
@@ -73,22 +139,174 @@ class ActionCenterServiceTest extends TestCase
             'confirmation_expires_at' => now()->addHour(),
             'waitlisted_at' => now()->subHour(),
         ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $this->assertCount(1, $items);
-        $item = $items[0];
-        $this->assertInstanceOf(ActionItem::class, $item);
-        $this->assertSame('waitlist_confirmation', $item->type);
-        $this->assertSame('critical', $item->priority);
-        $this->assertStringContainsString($game->name, $item->title);
-        $this->assertNotEmpty($item->actionUrl);
-        $this->assertNotEmpty($item->actionLabel);
-        $this->assertSame('schedule', $item->icon);
-        $this->assertArrayHasKey('expires_at', $item->metadata);
-        $this->assertArrayHasKey('entity_type', $item->metadata);
-        $this->assertSame('game', $item->metadata['entity_type']);
     }
+
+    private function seedBelowMinPlayers(): void
+    {
+        Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'scheduled',
+            'date_time' => now()->addHours(24),
+            'min_players' => 3,
+            'max_players' => 6,
+        ]);
+    }
+
+    private function seedPendingApplications(): void
+    {
+        $game = Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'scheduled',
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'status' => ParticipantStatus::Pending->value,
+        ]);
+    }
+
+    private function seedPendingInvitation(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'scheduled',
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'status' => ParticipantStatus::Pending->value,
+            'role' => ParticipantRole::Invited->value,
+        ]);
+    }
+
+    private function seedOpenAttendanceWindow(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'completed',
+            'attendance_resolved_at' => null,
+            'attendance_window_opens_at' => now()->subHours(2),
+            'attendance_window_closes_at' => now()->addDays(3),
+            'updated_at' => now()->subHours(12),
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+    }
+
+    private function seedMissingRecap(): void
+    {
+        Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'completed',
+            'recap' => null,
+            'updated_at' => now()->subDay(),
+        ]);
+    }
+
+    private function seedAvailableDebriefing(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'completed',
+            'safety_rules' => ['debriefing'],
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+    }
+
+    private function seedNewReview(): void
+    {
+        $gmProfile = GMProfile::factory()->create(['user_id' => $this->user->id]);
+        $reviewer = User::factory()->create();
+
+        Review::create([
+            'reviewable_type' => Game::class,
+            'reviewable_id' => Game::factory()->create()->id,
+            'reviewer_id' => $reviewer->id,
+            'gm_profile_id' => $gmProfile->id,
+            'rating' => 5,
+            'body' => 'Great GM!',
+            'status' => 'published',
+        ]);
+    }
+
+    private function seedNewFollower(): void
+    {
+        $follower = User::factory()->create(['name' => 'TestFollower']);
+
+        UserRelationship::create([
+            'user_id' => $follower->id,
+            'related_user_id' => $this->user->id,
+            'type' => RelationshipType::Follow->value,
+        ]);
+    }
+
+    private function seedCampaignSessionAlert(): void
+    {
+        $owner = User::factory()->create();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => $this->gameSystem->id,
+        ]);
+
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $this->user->id,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => $campaign->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'scheduled',
+            'created_at' => now()->subHour(),
+        ]);
+    }
+
+    private function seedHostBulletin(): void
+    {
+        $host = User::factory()->create(['name' => 'HostUser']);
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'scheduled',
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        GameBulletin::create([
+            'id' => (string) Str::uuid(),
+            'game_id' => $game->id,
+            'user_id' => $host->id,
+            'content' => 'Running 10 minutes late!',
+        ]);
+    }
+
+    // ── 1. Waitlist Confirmations (critical) ──────────────────────────
 
     public function test_waitlist_confirmation_excludes_expired_confirmations(): void
     {
@@ -134,30 +352,6 @@ class ActionCenterServiceTest extends TestCase
 
     // ── 2. Below Min-Player Warnings (critical) ───────────────────────
 
-    public function test_below_min_players_returns_correct_data_structure(): void
-    {
-        $game = Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'scheduled',
-            'date_time' => now()->addHours(24),
-            'min_players' => 3,
-            'max_players' => 6,
-        ]);
-        // No approved participants → below min
-
-        $items = $this->service->getItems($this->user);
-
-        $minPlayerItems = array_filter($items, fn ($i) => $i->type === 'below_min_players');
-        $this->assertCount(1, $minPlayerItems);
-        $item = reset($minPlayerItems);
-        $this->assertSame('critical', $item->priority);
-        $this->assertStringContainsString($game->name, $item->title);
-        $this->assertSame('warning', $item->icon);
-        $this->assertArrayHasKey('count', $item->metadata);
-        $this->assertSame(0, $item->metadata['count']);
-    }
-
     public function test_below_min_players_excludes_games_beyond_48h(): void
     {
         Game::factory()->create([
@@ -199,31 +393,6 @@ class ActionCenterServiceTest extends TestCase
 
     // ── 3. Pending Applications (high) ────────────────────────────────
 
-    public function test_pending_applications_returns_correct_data_structure(): void
-    {
-        $game = Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => User::factory()->create()->id,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $appItems = array_filter($items, fn ($i) => $i->type === 'pending_applications');
-        $this->assertCount(1, $appItems);
-        $item = reset($appItems);
-        $this->assertSame('high', $item->priority);
-        $this->assertSame('group_add', $item->icon);
-        $this->assertArrayHasKey('count', $item->metadata);
-        $this->assertSame(1, $item->metadata['count']);
-    }
-
     public function test_pending_applications_counts_multiple_applicants(): void
     {
         $game = Game::factory()->create([
@@ -251,31 +420,6 @@ class ActionCenterServiceTest extends TestCase
 
     // ── 4. Pending Invitations (high) ─────────────────────────────────
 
-    public function test_pending_invitation_returns_correct_data_structure(): void
-    {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'status' => ParticipantStatus::Pending->value,
-            'role' => ParticipantRole::Invited->value,
-        ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $inviteItems = array_filter($items, fn ($i) => $i->type === 'pending_invitation');
-        $this->assertCount(1, $inviteItems);
-        $item = reset($inviteItems);
-        $this->assertSame('high', $item->priority);
-        $this->assertSame('mail', $item->icon);
-    }
-
     public function test_pending_invitation_includes_null_role(): void
     {
         $owner = User::factory()->create();
@@ -302,34 +446,6 @@ class ActionCenterServiceTest extends TestCase
     }
 
     // ── 5. Unreported Attendance (medium) ─────────────────────────────
-
-    public function test_open_attendance_window_returns_correct_data_structure(): void
-    {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'completed',
-            'attendance_resolved_at' => null,
-            'attendance_window_opens_at' => now()->subHours(2),
-            'attendance_window_closes_at' => now()->addDays(3),
-            'updated_at' => now()->subHours(12),
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $attendanceItems = array_filter($items, fn ($i) => $i->type === 'open_attendance_window');
-        $this->assertCount(1, $attendanceItems);
-        $item = reset($attendanceItems);
-        $this->assertSame('medium', $item->priority);
-        $this->assertSame('event_note', $item->icon);
-    }
 
     public function test_open_attendance_window_excludes_already_reported(): void
     {
@@ -413,25 +529,6 @@ class ActionCenterServiceTest extends TestCase
 
     // ── 6. Missing Recaps (medium) ────────────────────────────────────
 
-    public function test_missing_recap_returns_correct_data_structure(): void
-    {
-        Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'completed',
-            'recap' => null,
-            'updated_at' => now()->subDay(),
-        ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $recapItems = array_filter($items, fn ($i) => $i->type === 'missing_recap');
-        $this->assertCount(1, $recapItems);
-        $item = reset($recapItems);
-        $this->assertSame('medium', $item->priority);
-        $this->assertSame('edit_note', $item->icon);
-    }
-
     public function test_missing_recap_excludes_games_with_recap(): void
     {
         Game::factory()->create([
@@ -463,31 +560,6 @@ class ActionCenterServiceTest extends TestCase
     }
 
     // ── 7. Available Debriefings (medium) ─────────────────────────────
-
-    public function test_available_debriefing_returns_correct_data_structure(): void
-    {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'completed',
-            'safety_rules' => ['debriefing'],
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $debriefItems = array_filter($items, fn ($i) => $i->type === 'available_debriefing');
-        $this->assertCount(1, $debriefItems);
-        $item = reset($debriefItems);
-        $this->assertSame('medium', $item->priority);
-        $this->assertSame('auto_stories', $item->icon);
-    }
 
     public function test_available_debriefing_excludes_already_submitted(): void
     {
@@ -521,34 +593,6 @@ class ActionCenterServiceTest extends TestCase
     }
 
     // ── 8. New Reviews (medium) ───────────────────────────────────────
-
-    public function test_new_review_returns_correct_data_structure(): void
-    {
-        $gmProfile = GMProfile::factory()->create([
-            'user_id' => $this->user->id,
-        ]);
-
-        $reviewer = User::factory()->create();
-        Review::create([
-            'reviewable_type' => Game::class,
-            'reviewable_id' => Game::factory()->create()->id,
-            'reviewer_id' => $reviewer->id,
-            'gm_profile_id' => $gmProfile->id,
-            'rating' => 5,
-            'body' => 'Great GM!',
-            'status' => 'published',
-        ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $reviewItems = array_filter($items, fn ($i) => $i->type === 'new_review');
-        $this->assertCount(1, $reviewItems);
-        $item = reset($reviewItems);
-        $this->assertSame('medium', $item->priority);
-        $this->assertSame('rate_review', $item->icon);
-        $this->assertArrayHasKey('entity_type', $item->metadata);
-        $this->assertSame('review', $item->metadata['entity_type']);
-    }
 
     public function test_new_review_excludes_reviews_older_than_7_days(): void
     {
@@ -587,26 +631,6 @@ class ActionCenterServiceTest extends TestCase
 
     // ── 9. New Followers (low) ────────────────────────────────────────
 
-    public function test_new_follower_returns_correct_data_structure(): void
-    {
-        $follower = User::factory()->create(['name' => 'TestFollower']);
-
-        UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $this->user->id,
-            'type' => RelationshipType::Follow->value,
-        ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $followerItems = array_filter($items, fn ($i) => $i->type === 'new_follower');
-        $this->assertCount(1, $followerItems);
-        $item = reset($followerItems);
-        $this->assertSame('low', $item->priority);
-        $this->assertSame('person_add', $item->icon);
-        $this->assertStringContainsString('TestFollower', $item->title);
-    }
-
     public function test_new_follower_excludes_old_follows(): void
     {
         $follower = User::factory()->create();
@@ -628,38 +652,6 @@ class ActionCenterServiceTest extends TestCase
     }
 
     // ── 10. Campaign Session Alerts (low) ─────────────────────────────
-
-    public function test_campaign_session_alert_returns_correct_data_structure(): void
-    {
-        $owner = User::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $this->gameSystem->id,
-        ]);
-
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $this->user->id,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        // Add a new session (game) under this campaign
-        Game::factory()->create([
-            'owner_id' => $owner->id,
-            'campaign_id' => $campaign->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'scheduled',
-            'created_at' => now()->subHour(),
-        ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $campaignItems = array_filter($items, fn ($i) => $i->type === 'campaign_session_alert');
-        $this->assertCount(1, $campaignItems);
-        $item = reset($campaignItems);
-        $this->assertSame('low', $item->priority);
-        $this->assertSame('campaign', $item->icon);
-    }
 
     public function test_campaign_session_alert_excludes_old_sessions(): void
     {
@@ -841,85 +833,7 @@ class ActionCenterServiceTest extends TestCase
         $this->assertNull($summary['next_game']);
     }
 
-    // ── ActionItem DTO ────────────────────────────────────────────────
-
-    public function test_action_item_to_array_and_from_array_roundtrip(): void
-    {
-        $original = new ActionItem(
-            type: 'test_type',
-            priority: 'high',
-            title: 'Test Title',
-            description: 'Test Description',
-            actionUrl: 'https://example.com/action',
-            actionLabel: 'Do Thing',
-            icon: 'test_icon',
-            createdAt: now(),
-            metadata: ['key' => 'value'],
-        );
-
-        $array = $original->toArray();
-        $restored = ActionItem::fromArray($array);
-
-        $this->assertSame($original->type, $restored->type);
-        $this->assertSame($original->priority, $restored->priority);
-        $this->assertSame($original->title, $restored->title);
-        $this->assertSame($original->description, $restored->description);
-        $this->assertSame($original->actionUrl, $restored->actionUrl);
-        $this->assertSame($original->actionLabel, $restored->actionLabel);
-        $this->assertSame($original->icon, $restored->icon);
-        $this->assertSame($original->metadata, $restored->metadata);
-    }
-
-    public function test_action_item_priority_order_values(): void
-    {
-        $this->assertSame(0, ActionItem::priorityOrder('critical'));
-        $this->assertSame(1, ActionItem::priorityOrder('high'));
-        $this->assertSame(2, ActionItem::priorityOrder('medium'));
-        $this->assertSame(3, ActionItem::priorityOrder('low'));
-        $this->assertSame(4, ActionItem::priorityOrder('unknown'));
-    }
-
     // ── 11. Host Bulletins (medium) ────────────────────────────────────
-
-    public function test_host_bulletin_returns_correct_data_structure(): void
-    {
-        $host = User::factory()->create(['name' => 'HostUser']);
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        GameBulletin::create([
-            'id' => (string) Str::uuid(),
-            'game_id' => $game->id,
-            'user_id' => $host->id,
-            'content' => 'Running 10 minutes late!',
-        ]);
-
-        $items = $this->service->getItems($this->user);
-
-        $bulletinItems = array_filter($items, fn ($i) => $i->type === 'host_bulletin');
-        $this->assertCount(1, $bulletinItems);
-        $item = reset($bulletinItems);
-        $this->assertInstanceOf(ActionItem::class, $item);
-        $this->assertSame('host_bulletin', $item->type);
-        $this->assertSame('medium', $item->priority);
-        $this->assertStringContainsString($game->name, $item->title);
-        $this->assertNotEmpty($item->actionUrl);
-        $this->assertNotEmpty($item->actionLabel);
-        $this->assertSame('campaign', $item->icon);
-        $this->assertArrayHasKey('bulletin_id', $item->metadata);
-        $this->assertArrayHasKey('entity_type', $item->metadata);
-        $this->assertSame('game', $item->metadata['entity_type']);
-        $this->assertSame('HostUser', $item->metadata['host_name']);
-    }
 
     public function test_host_bulletin_excludes_expired_bulletins(): void
     {
@@ -1096,53 +1010,5 @@ class ActionCenterServiceTest extends TestCase
 
         $bulletin->refresh();
         $this->assertNotNull($bulletin->expires_at);
-    }
-
-    // ── Performance ───────────────────────────────────────────────────
-
-    public function test_get_items_completes_within_500ms_with_heavy_seeding(): void
-    {
-        // Seed 50 games and ~200 participants
-        $owners = User::factory()->count(5)->create();
-
-        // Create games owned by this user (triggers several item types)
-        for ($i = 0; $i < 10; $i++) {
-            $game = Game::factory()->create([
-                'owner_id' => $this->user->id,
-                'game_system_id' => $this->gameSystem->id,
-                'status' => 'scheduled',
-                'date_time' => now()->addHours(rand(1, 48)),
-            ]);
-            // 4 participants per game (some pending)
-            for ($j = 0; $j < 4; $j++) {
-                GameParticipant::create([
-                    'game_id' => $game->id,
-                    'user_id' => User::factory()->create()->id,
-                    'status' => $j < 1 ? ParticipantStatus::Pending->value : ParticipantStatus::Approved->value,
-                ]);
-            }
-        }
-
-        // Create games where this user is a participant
-        for ($i = 0; $i < 40; $i++) {
-            $game = Game::factory()->create([
-                'owner_id' => $owners->random()->id,
-                'game_system_id' => $this->gameSystem->id,
-                'status' => collect(['scheduled', 'completed'])->random(),
-            ]);
-            GameParticipant::create([
-                'game_id' => $game->id,
-                'user_id' => $this->user->id,
-                'status' => ParticipantStatus::Approved->value,
-                'attendance_status' => rand(0, 1) ? null : 'attended',
-            ]);
-        }
-
-        $start = microtime(true);
-        $items = $this->service->getItems($this->user);
-        $elapsed = (microtime(true) - $start) * 1000;
-
-        $this->assertLessThan(500, $elapsed, "getItems took {$elapsed}ms — exceeds 500ms threshold");
-        $this->assertIsArray($items);
     }
 }

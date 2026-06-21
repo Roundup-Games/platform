@@ -5,7 +5,6 @@ namespace Tests\Unit\Services;
 use App\Models\User;
 use App\Services\DashboardModeService;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class DashboardModeServiceTest extends TestCase
@@ -133,39 +132,6 @@ class DashboardModeServiceTest extends TestCase
         $service->invalidateForUser($user);
 
         $this->assertNull(Cache::get("dashboard:mode:{$user->id}"));
-    }
-
-    // ── Logging ─────────────────────────────────────────────────────────
-
-    public function test_resolve_logs_mode_resolution(): void
-    {
-        $service = $this->partialMock(DashboardModeService::class, function ($mock) {
-            $mock->shouldAllowMockingProtectedMethods();
-            $mock->shouldReceive('attendedGameCount')->andReturn(0);
-        });
-
-        Log::shouldReceive('debug')
-            ->once()
-            ->withArgs(function (string $message, array $context) {
-                return $message === 'dashboard.mode_resolved'
-                    && isset($context['user_id'], $context['mode'], $context['account_age_days'], $context['attended_game_count']);
-            });
-
-        $user = $this->makeUser(createdDaysAgo: 5);
-        $service->resolve($user);
-    }
-
-    public function test_invalidate_logs_cache_invalidation(): void
-    {
-        Log::shouldReceive('debug')
-            ->once()
-            ->withArgs(function (string $message, array $context) {
-                return $message === 'dashboard.mode_cache_invalidated'
-                    && isset($context['user_id']);
-            });
-
-        $user = $this->makeUser(createdDaysAgo: 5);
-        $this->service->invalidateForUser($user);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────

@@ -3,13 +3,11 @@
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
-use App\Livewire\Games\ApplyToGame;
 use App\Livewire\Games\CreateGame;
 use App\Livewire\Games\GameDetail;
 use App\Livewire\Games\ManageParticipants;
 use App\Models\Campaign;
 use App\Models\Game;
-use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Location;
@@ -18,9 +16,12 @@ use App\Models\UserRelationship;
 use Illuminate\Support\Facades\Gate;
 
 use function Pest\Laravel\actingAs;
-use function Pest\Laravel\assertDatabaseHas;
-use function Pest\Laravel\assertDatabaseMissing;
 use function Pest\Laravel\get;
+
+// NOTE: Participant-flow tests (invite, apply, approve/reject, remove, cancel)
+// live canonically in ParticipantManagementTest.php. This file retains only
+// game-lifecycle tests (create / route / detail / campaign-context / weight)
+// plus the lone UI-state-reset assertion that has no PMT counterpart.
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -188,112 +189,11 @@ describe('Game Detail Route', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
-// GAME PARTICIPANT WORKFLOWS
+// GAME INVITE — UI STATE HYGIENE
+// (Core invite flow coverage lives in ParticipantManagementTest.php)
 // ═══════════════════════════════════════════════════════════
 
-describe('Game Manage Participants — Authorization', function () {
-    it('owner can access', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-
-        actingAs($owner)
-            ->get(route('games.manage-participants', $game->id))
-            ->assertOk()
-            ->assertSeeLivewire('games.manage-participants');
-    });
-
-    it('non-owner is forbidden', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $stranger = gameTestCreateOwner();
-
-        actingAs($stranger)
-            ->get(route('games.manage-participants', $game->id))
-            ->assertForbidden();
-    });
-});
-
-describe('Game Invite Participant', function () {
-    it('creates pending invited participant for a friend', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $friend = User::factory()->create();
-        UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => RelationshipType::Follow]);
-        UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => RelationshipType::Follow]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants')
-            ->assertHasNoErrors();
-
-        assertDatabaseHas('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $friend->id,
-            'role' => ParticipantRole::Invited->value,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-    });
-
-    it('rejects empty selection', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [])
-            ->call('inviteParticipants')
-            ->assertHasErrors(['selectedFriendIds']);
-    });
-
-    it('rejects self-invite silently', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$owner->id])
-            ->call('inviteParticipants');
-
-        $this->assertDatabaseMissing('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => ParticipantRole::Invited->value,
-        ]);
-    });
-
-    it('rejects duplicate invite silently', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $friend = User::factory()->create();
-        UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => RelationshipType::Follow]);
-        UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => RelationshipType::Follow]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $friend->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        $this->assertEquals(1, GameParticipant::where('game_id', $game->id)->where('user_id', $friend->id)->count());
-    });
-
-    it('skips non-friend silently', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $stranger = User::factory()->create();
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$stranger->id])
-            ->call('inviteParticipants');
-
-        $this->assertDatabaseMissing('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $stranger->id,
-            'role' => ParticipantRole::Invited->value,
-        ]);
-    });
-
+describe('Game Invite Participant — UI State', function () {
     it('resets selected friend IDs after success', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
         $friend = User::factory()->create();
@@ -305,261 +205,6 @@ describe('Game Invite Participant', function () {
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants')
             ->assertSet('selectedFriendIds', []);
-    });
-});
-
-describe('Game Application — ApplyToGame', function () {
-    it('auto-approves for public games', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner(['visibility' => 'public']);
-        $user = gameTestCreateOwner();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'Let me in!')
-            ->call('submitApplication')
-            ->assertRedirect(route('games.show', $game->id));
-
-        assertDatabaseHas('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        assertDatabaseHas('game_applications', [
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-    });
-
-    it('stays pending for protected games', function () {
-        $owner = User::factory()->create();
-        $game = gameTestCreateGame(['visibility' => 'protected', 'owner_id' => $owner->id]);
-        $user = gameTestCreateOwner();
-
-        // Make user a friend of the owner so they can view/apply
-        UserRelationship::follow($owner, $user);
-        UserRelationship::follow($user, $owner);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'Please consider me')
-            ->call('submitApplication');
-
-        assertDatabaseHas('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Applicant->value,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        assertDatabaseHas('game_applications', [
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-    });
-
-    it('blocks application to private game', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner(['visibility' => 'private']);
-        $user = gameTestCreateOwner();
-
-        actingAs($user)
-            ->get(route('games.apply', $game->id))
-            ->assertForbidden();
-    });
-
-    it('blocks owner applying to own game', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner(['visibility' => 'public']);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->call('submitApplication')
-            ->assertHasErrors(['message']);
-    });
-
-    it('blocks duplicate application', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner(['visibility' => 'public']);
-        $user = gameTestCreateOwner();
-
-        GameApplication::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Applicant->value,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->assertSee('already a participant');
-    });
-
-});
-
-describe('Game Approve/Reject Application', function () {
-    it('promotes applicant to player on approval', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $applicant = User::factory()->create();
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $applicant->id,
-            'role' => ParticipantRole::Applicant->value,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        GameApplication::create([
-            'game_id' => $game->id,
-            'user_id' => $applicant->id,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->call('approveApplication', $participant->id);
-
-        assertDatabaseHas('game_participants', [
-            'id' => $participant->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        assertDatabaseHas('game_applications', [
-            'game_id' => $game->id,
-            'user_id' => $applicant->id,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-    });
-
-    it('marks rejected on rejection', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $applicant = User::factory()->create();
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $applicant->id,
-            'role' => ParticipantRole::Applicant->value,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        GameApplication::create([
-            'game_id' => $game->id,
-            'user_id' => $applicant->id,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->call('rejectApplication', $participant->id);
-
-        // Records are deleted (so user can re-apply)
-        assertDatabaseMissing('game_participants', [
-            'id' => $participant->id,
-        ]);
-
-        assertDatabaseMissing('game_applications', [
-            'game_id' => $game->id,
-            'user_id' => $applicant->id,
-        ]);
-    });
-
-    it('does nothing when approving a non-applicant', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $player = User::factory()->create();
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->call('approveApplication', $participant->id);
-
-        // Status unchanged
-        assertDatabaseHas('game_participants', [
-            'id' => $participant->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-    });
-});
-
-describe('Game Remove/Cancel Participant', function () {
-    it('owner can remove a player', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $player = User::factory()->create();
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->call('removeParticipant', $participant->id);
-
-        // Record is soft-removed (status changed, not hard-deleted)
-        assertDatabaseMissing('game_participants', [
-            'id' => $participant->id,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-        assertDatabaseHas('game_participants', [
-            'id' => $participant->id,
-            'status' => ParticipantStatus::Removed->value,
-        ]);
-    });
-
-    it('cannot remove game owner', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-
-        $ownerParticipant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => ParticipantRole::Owner->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->call('removeParticipant', $ownerParticipant->id);
-
-        assertDatabaseHas('game_participants', [
-            'id' => $ownerParticipant->id,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-    });
-
-    it('owner can cancel pending invite', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $invited = User::factory()->create();
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $invited->id,
-            'role' => ParticipantRole::Invited->value,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(ManageParticipants::class, ['id' => $game->id])
-            ->call('cancelInvite', $participant->id);
-
-        // Record is deleted (so user can be re-invited)
-        assertDatabaseMissing('game_participants', [
-            'id' => $participant->id,
-        ]);
     });
 });
 

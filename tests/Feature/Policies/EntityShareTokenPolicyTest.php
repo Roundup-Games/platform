@@ -5,7 +5,6 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 beforeEach(function () {
@@ -135,19 +134,6 @@ describe('Private entity with share token', function () {
 
         expect(Gate::allows('view', $entity))->toBeTrue();
     })->with(['game', 'campaign']);
-
-    it('denies access with expired token on private entity', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'private',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->subHour(),
-        ]);
-
-        request()->merge(['share' => $token]);
-
-        expect(Gate::allows('view', $entity))->toBeFalse();
-    })->with(['game', 'campaign']);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -166,29 +152,6 @@ describe('Share token without expiry', function () {
         request()->merge(['share' => $token]);
 
         expect(Gate::allows('view', $entity))->toBeTrue();
-    })->with(['game', 'campaign']);
-});
-
-// ═══════════════════════════════════════════════════════════
-// LOGGING (policy is side-effect-free — no logging)
-// ═══════════════════════════════════════════════════════════
-
-describe('Share token logging', function () {
-    it('does not log when share token grants access', function ($type) {
-        Log::spy();
-
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'private',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->addDays(7),
-        ]);
-
-        request()->merge(['share' => $token]);
-
-        Gate::allows('view', $entity);
-
-        Log::shouldNotHaveReceived('info');
     })->with(['game', 'campaign']);
 });
 

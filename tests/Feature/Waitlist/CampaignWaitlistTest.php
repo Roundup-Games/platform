@@ -4,16 +4,12 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
-use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Services\BenchService;
 use App\Services\WaitlistService;
 
 beforeEach(function () {
     $this->service = app(WaitlistService::class);
-    $this->benchService = app(BenchService::class);
     $this->owner = User::factory()->create();
     $this->gameSystem = GameSystem::factory()->create();
 });
@@ -187,146 +183,8 @@ test('campaign waitlist uses far confirmation window (12h)', function () {
     expect($windowHours)->toBeLessThanOrEqual(13);
 });
 
-// ── Bench Mode Toggle Edge Cases ─────────────────────────
-
-test('standalone game with bench_mode=true uses bench', function () {
-    $game = Game::create([
-        'owner_id' => $this->owner->id,
-        'game_system_id' => $this->gameSystem->id,
-        'name' => ['en' => 'Bench Mode Game'],
-        'date_time' => now()->addDays(10),
-        'description' => ['en' => 'Test'],
-        'expected_duration' => 3,
-        'visibility' => 'public',
-        'status' => 'scheduled',
-        'language' => 'en',
-        'location' => ['details' => 'Online'],
-        'min_players' => 2,
-        'max_players' => 2,
-        'bench_mode' => true,
-    ]);
-
-    GameParticipant::create([
-        'game_id' => $game->id,
-        'user_id' => $this->owner->id,
-        'role' => ParticipantRole::Player->value,
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-    GameParticipant::create([
-        'game_id' => $game->id,
-        'user_id' => User::factory()->create()->id,
-        'role' => ParticipantRole::Player->value,
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-
-    $user = User::factory()->create();
-    $participant = $this->benchService->addToBench($game, $user);
-
-    expect($participant)->toBeInstanceOf(GameParticipant::class);
-    expect($participant->status)->toBe(ParticipantStatus::Benched);
-    expect($participant->benched_at)->not->toBeNull();
-});
-
-test('standalone game with bench_mode=true rejects waitlist', function () {
-    $game = Game::create([
-        'owner_id' => $this->owner->id,
-        'game_system_id' => $this->gameSystem->id,
-        'name' => ['en' => 'Bench Mode Game'],
-        'date_time' => now()->addDays(10),
-        'description' => ['en' => 'Test'],
-        'expected_duration' => 3,
-        'visibility' => 'public',
-        'status' => 'scheduled',
-        'language' => 'en',
-        'location' => ['details' => 'Online'],
-        'min_players' => 2,
-        'max_players' => 2,
-        'bench_mode' => true,
-    ]);
-
-    GameParticipant::create([
-        'game_id' => $game->id,
-        'user_id' => $this->owner->id,
-        'role' => ParticipantRole::Player->value,
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-    GameParticipant::create([
-        'game_id' => $game->id,
-        'user_id' => User::factory()->create()->id,
-        'role' => ParticipantRole::Player->value,
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-
-    $user = User::factory()->create();
-
-    expect(fn () => $this->service->addToWaitlist($game, $user))
-        ->toThrow(LogicException::class, 'bench mode is enabled');
-});
-
-test('campaign with bench_mode=false rejects bench', function () {
-    $campaign = Campaign::create([
-        'owner_id' => $this->owner->id,
-        'game_system_id' => $this->gameSystem->id,
-        'name' => ['en' => 'Waitlist Campaign'],
-        'description' => ['en' => 'Test'],
-        'visibility' => 'public',
-        'status' => 'active',
-        'language' => 'en',
-        'recurrence' => 'weekly',
-        'time_of_day' => '19:00',
-        'session_duration' => 3,
-        'min_players' => 2,
-        'max_players' => 2,
-        'bench_mode' => false,
-    ]);
-
-    CampaignParticipant::create([
-        'campaign_id' => $campaign->id,
-        'user_id' => $this->owner->id,
-        'role' => ParticipantRole::Owner->value,
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-    CampaignParticipant::create([
-        'campaign_id' => $campaign->id,
-        'user_id' => User::factory()->create()->id,
-        'role' => ParticipantRole::Player->value,
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-
-    $user = User::factory()->create();
-
-    // BenchService only blocks games, not campaigns — campaigns always go to bench.
-    // But the campaign with bench_mode=false should use waitlist, not bench.
-    // BenchService.addToBench doesn't check bench_mode for campaigns (campaigns can always bench).
-    // The routing decision happens at the component level, not the service level.
-    $participant = $this->benchService->addToBench($campaign, $user);
-    expect($participant)->toBeInstanceOf(CampaignParticipant::class);
-});
-
-test('bench mode toggle on game can be changed', function () {
-    $game = Game::create([
-        'owner_id' => $this->owner->id,
-        'game_system_id' => $this->gameSystem->id,
-        'name' => ['en' => 'Toggle Game'],
-        'date_time' => now()->addDays(10),
-        'description' => ['en' => 'Test'],
-        'expected_duration' => 3,
-        'visibility' => 'public',
-        'status' => 'scheduled',
-        'language' => 'en',
-        'location' => ['details' => 'Online'],
-        'min_players' => 2,
-        'max_players' => 4,
-        'bench_mode' => false,
-    ]);
-
-    expect($game->isBenchMode())->toBeFalse();
-
-    $game->update(['bench_mode' => true]);
-    expect($game->fresh()->isBenchMode())->toBeTrue();
-});
-
 // ── Campaign Waitlist FIFO ───────────────────────────────
+// NOTE: bench_mode toggle and routing coverage lives in BenchModeToggleTest.php.
 
 test('campaign waitlist maintains FIFO ordering', function () {
     $campaign = createFullWaitlistCampaign($this->owner, $this->gameSystem, maxPlayers: 2);

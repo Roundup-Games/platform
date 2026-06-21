@@ -77,12 +77,24 @@ describe('Living Stats', function () {
         $response->assertSee(trans_choice('campaigns.content_people_joined_sessions_this_week', 2));
         $response->assertSee(trans_choice('campaigns.content_active_campaigns', 2));
 
-        // Verify the numeric "0" appears in the rendered stats section by matching
-        // the pattern: number followed by the stat label text in the same section.
+        // Verify the numeric "0" appears near each stat label. Each stat
+        // renders as `<div>{{ $count }}</div><div>{{ trans_choice(...) }}</div>`
+        // so the number and its label are within ~100 chars. Bounding the gap
+        // (via {0,150}) avoids false matches from an unrelated "0" elsewhere
+        // on the page (footer year, analytics ID, etc). Uses trans_choice for
+        // locale independence.
         $content = $response->getContent();
-        expect(preg_match('/\b0\b.*?Sessions this week/s', $content))->toBe(1);
-        expect(preg_match('/\b0\b.*?People joined/s', $content))->toBe(1);
-        expect(preg_match('/\b0\b.*?Active campaigns/s', $content))->toBe(1);
+        $stats = [
+            trans_choice('campaigns.content_sessions_this_week', 2),
+            trans_choice('campaigns.content_people_joined_sessions_this_week', 2),
+            trans_choice('campaigns.content_active_campaigns', 2),
+        ];
+
+        foreach ($stats as $label) {
+            $escaped = preg_quote($label, '/');
+            expect(preg_match('/\b0\b[\s\S]{0,150}'.$escaped.'/', $content))->toBe(1,
+                "Expected stat '0 {$label}' to appear in the stats section");
+        }
     });
 
     it('counts sessions scheduled this week', function () {

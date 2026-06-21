@@ -92,31 +92,19 @@ describe('Admin-only resource visibility', function () {
     ];
 
     foreach ($adminOnlyModels as $label => $model) {
-        test("{$label} is visible to Platform Admin", function () use ($model) {
-            $user = User::factory()->create();
-            $user->assignRole('Platform Admin');
+        test("{$label} requires escalated-admin gate", function () use ($model) {
+            $admin = User::factory()->create();
+            $admin->assignRole('Platform Admin');
+            $nonAdmin = User::factory()->create();
+            $nonAdmin->assignRole('Service Admin');
 
-            expect(Gate::forUser($user)->allows('viewAny', $model))->toBeTrue();
-        });
-
-        test("{$label} is hidden from Service Admin", function () use ($model) {
-            $user = User::factory()->create();
-            $user->assignRole('Service Admin');
-
-            expect(Gate::forUser($user)->allows('viewAny', $model))->toBeFalse();
-        });
-
-        test("{$label} is hidden from Games Admin", function () use ($model) {
-            $user = User::factory()->create();
-            $user->assignRole('Games Admin');
-
-            expect(Gate::forUser($user)->allows('viewAny', $model))->toBeFalse();
-        });
-
-        test("{$label} is hidden from non-admin user", function () use ($model) {
-            $user = User::factory()->create();
-
-            expect(Gate::forUser($user)->allows('viewAny', $model))->toBeFalse();
+            // Platform Admin (escalated-admin) can view; Service Admin cannot.
+            // Per-role discrimination is exhaustively covered by the
+            // 'Visibility matrix' block below — this test only proves the
+            // model is wired to EscalatedAdminPolicy (not accidentally
+            // exposed via a missing policy or a permissive vendor default).
+            expect(Gate::forUser($admin)->allows('viewAny', $model))->toBeTrue()
+                ->and(Gate::forUser($nonAdmin)->allows('viewAny', $model))->toBeFalse();
         });
     }
 });

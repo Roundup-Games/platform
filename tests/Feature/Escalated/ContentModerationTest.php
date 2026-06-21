@@ -2,6 +2,7 @@
 
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
+use App\Filament\Resources\TicketResource\Pages\ViewTicket;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
@@ -12,7 +13,6 @@ use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
-use Escalated\Laravel\Services\TicketService;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 
 beforeEach(function () {
@@ -134,28 +134,47 @@ function createCampaignReportTicket(): array
     return compact('ticket', 'owner', 'reporter', 'campaign', 'department');
 }
 
+/**
+ * Invoke a protected perform* moderation method on the ViewTicket page via
+ * reflection. This tests the REAL moderation logic (the same code the Filament
+ * action runs) instead of stubbing it with TicketService calls.
+ *
+ * The caller is responsible for `$this->actingAs(...)` first — every perform*
+ * method reads `auth()->user()` and bails out if there is none.
+ *
+ * @param  string  $method  The perform* method name on ViewTicket.
+ * @param  mixed  ...$args  Positional args forwarded to the method.
+ */
+function invokeModerationAction(string $method, mixed ...$args): void
+{
+    $page = new ViewTicket;
+    $reflection = new ReflectionMethod($page, $method);
+    $reflection->setAccessible(true);
+    $reflection->invoke($page, ...$args);
+}
+
 // ── Dismiss Action Tests ────────────────────────────────────────────────
 
 it('dismiss action closes ticket with no action on reported user', function () {
     ['ticket' => $ticket, 'reportedUser' => $reportedUser] = createUserReportTicket();
 
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $this->agent, 'Content report dismissed by admin — no action taken.');
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    invokeModerationAction('performDismissContentReport', $ticket);
 
     $ticket->refresh();
     $reportedUser->refresh();
 
     expect($ticket->status)->toBe(TicketStatus::Closed);
+    // Dismiss must not mutate the reported user — no suspension, no warning.
     expect($reportedUser->is_disabled)->toBeFalse();
+    expect($reportedUser->disabled_at)->toBeNull();
 });
 
 it('dismiss action adds internal note to ticket', function () {
     ['ticket' => $ticket] = createUserReportTicket();
 
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $this->agent, 'Content report dismissed by admin — no action taken.');
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    invokeModerationAction('performDismissContentReport', $ticket);
 
     $ticket->refresh();
     $notes = $ticket->internalNotes;
@@ -172,19 +191,14 @@ it('warn user action sends ContentReportWarning notification to reported user', 
 
     ['ticket' => $ticket, 'reportedUser' => $reportedUser] = createUserReportTicket();
 
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $this->agent, 'Warning issued by admin.');
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    invokeModerationAction('performWarnUser', $ticket, 'user', $reportedUser->name, null);
 
-    // Send warning notification (simulating the action logic)
-    $reportedUser->notify(new ContentReportWarning(
-        'user',
-        $reportedUser->name,
-        'harassment',
-    ));
-
+    // Warning must land on the reported user with the entity type + report
+    // reason drawn from the moderation flow, not a hand-built notification.
     NotificationFacade::assertSentTo($reportedUser, ContentReportWarning::class, function ($notification) {
         return $notification->entityType === 'user'
+            && $notification->entityName !== ''
             && $notification->reason === 'harassment';
     });
 
@@ -195,10 +209,10 @@ it('warn user action sends ContentReportWarning notification to reported user', 
 it('warn user action does not disable the user account', function () {
     ['ticket' => $ticket, 'reportedUser' => $reportedUser] = createUserReportTicket();
 
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $this->agent, 'Warning issued by admin.');
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    invokeModerationAction('performWarnUser', $ticket, 'user', $reportedUser->name, null);
 
+    // A warning is advisory only — the account stays active.
     $reportedUser->refresh();
     expect($reportedUser->is_disabled)->toBeFalse();
     expect($reportedUser->disabled_at)->toBeNull();
@@ -207,15 +221,12 @@ it('warn user action does not disable the user account', function () {
 // ── Remove Content Action Tests ────────────────────────────────────────
 
 it('remove content action cancels reported game', function () {
-    ['ticket' => $ticket, 'game' => $game, 'gm' => $gm] = createGameReportTicket();
+    ['ticket' => $ticket, 'game' => $game] = createGameReportTicket();
 
-    $ticketService = app(TicketService::class);
-
-    // Cancel the game
-    $game->update(['status' => GameStatus::Canceled]);
-
-    $ticketService->addNote($ticket, $this->agent, 'Game removed by admin.');
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    // The real removeGame() dispatch flips status to Canceled — no manual
+    // $game->update() in the test.
+    invokeModerationAction('performRemoveContent', $ticket, 'game', $game->name);
 
     $ticket->refresh();
     $game->refresh();
@@ -225,15 +236,10 @@ it('remove content action cancels reported game', function () {
 });
 
 it('remove content action cancels reported campaign', function () {
-    ['ticket' => $ticket, 'campaign' => $campaign, 'owner' => $owner] = createCampaignReportTicket();
+    ['ticket' => $ticket, 'campaign' => $campaign] = createCampaignReportTicket();
 
-    $ticketService = app(TicketService::class);
-
-    // Cancel the campaign
-    $campaign->update(['status' => CampaignStatus::Cancelled]);
-
-    $ticketService->addNote($ticket, $this->agent, 'Campaign removed by admin.');
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    invokeModerationAction('performRemoveContent', $ticket, 'campaign', $campaign->name);
 
     $ticket->refresh();
     $campaign->refresh();
@@ -247,61 +253,16 @@ it('remove content action sends ContentRemoved notification to owner', function 
 
     ['ticket' => $ticket, 'game' => $game, 'gm' => $gm] = createGameReportTicket();
 
-    $ticketService = app(TicketService::class);
+    $this->actingAs($this->agent);
+    invokeModerationAction('performRemoveContent', $ticket, 'game', $game->name);
 
-    $game->update(['status' => GameStatus::Canceled]);
-
-    $ticketService->addNote($ticket, $this->agent, 'Game removed by admin.');
-    $ticketService->close($ticket, $this->agent);
-
-    // Send notification to the game owner
-    $gm->notify(new ContentRemoved(
-        'game',
-        $game->name,
-        'inappropriate-content',
-    ));
-
+    // resolveReportedUser('game') unwraps to the game's owner — the GM must
+    // be the one notified, proving the owner-resolution path works.
     NotificationFacade::assertSentTo($gm, ContentRemoved::class, function ($notification) use ($game) {
         return $notification->entityType === 'game'
-            && $notification->entityName === $game->name;
+            && $notification->entityName === $game->name
+            && $notification->reason === 'inappropriate-content';
     });
-});
-
-it('remove content action handles already canceled game gracefully', function () {
-    ['ticket' => $ticket, 'game' => $game] = createGameReportTicket();
-
-    // Pre-cancel the game
-    $game->update(['status' => GameStatus::Canceled]);
-
-    // Try to remove already-canceled game — should indicate not removed again
-    $game->refresh();
-    $alreadyCanceled = $game->status === GameStatus::Canceled;
-
-    expect($alreadyCanceled)->toBeTrue();
-
-    // Ticket should still close
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $this->agent, 'Removal attempted but entity already removed.');
-    $ticketService->close($ticket, $this->agent);
-
-    $ticket->refresh();
-    expect($ticket->status)->toBe(TicketStatus::Closed);
-});
-
-it('remove content action handles missing entity gracefully', function () {
-    ['ticket' => $ticket] = createGameReportTicket();
-
-    // Point to a non-existent entity
-    $metadata = $ticket->metadata;
-    $metadata['entity_id'] = 'nonexistent-id';
-    $ticket->updateQuietly(['metadata' => $metadata]);
-
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $this->agent, 'Removal attempted but entity not found.');
-    $ticketService->close($ticket, $this->agent);
-
-    $ticket->refresh();
-    expect($ticket->status)->toBe(TicketStatus::Closed);
 });
 
 // ── Suspend User Action Tests ──────────────────────────────────────────
@@ -309,16 +270,8 @@ it('remove content action handles missing entity gracefully', function () {
 it('suspend user action disables the reported user account', function () {
     ['ticket' => $ticket, 'reportedUser' => $reportedUser] = createUserReportTicket();
 
-    $ticketService = app(TicketService::class);
-
-    // Suspend the user
-    $reportedUser->update([
-        'is_disabled' => true,
-        'disabled_at' => now(),
-    ]);
-
-    $ticketService->addNote($ticket, $this->agent, "User account suspended ({$reportedUser->name}, ID: {$reportedUser->id}).");
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    invokeModerationAction('performSuspendUser', $ticket, 'user');
 
     $ticket->refresh();
     $reportedUser->refresh();
@@ -333,57 +286,31 @@ it('suspend user action sends AccountSuspended notification', function () {
 
     ['ticket' => $ticket, 'reportedUser' => $reportedUser] = createUserReportTicket();
 
-    // Suspend and notify
-    $reportedUser->update([
-        'is_disabled' => true,
-        'disabled_at' => now(),
-    ]);
-
-    $reportedUser->notify(new AccountSuspended('harassment'));
+    $this->actingAs($this->agent);
+    invokeModerationAction('performSuspendUser', $ticket, 'user');
 
     NotificationFacade::assertSentTo($reportedUser, AccountSuspended::class, function ($notification) {
         return $notification->reason === 'harassment';
     });
 });
 
-it('suspend user action works for game reports — suspends game owner', function () {
-    ['ticket' => $ticket, 'game' => $game, 'gm' => $gm] = createGameReportTicket();
+it('suspend user action works for game reports — resolves owner via resolveReportedUser', function () {
+    ['ticket' => $ticket, 'game' => $game, 'gm' => $gm, 'reporter' => $reporter] = createGameReportTicket();
 
-    $ticketService = app(TicketService::class);
-
-    // The reported user is the game owner
-    $gm->update([
-        'is_disabled' => true,
-        'disabled_at' => now(),
-    ]);
-
-    $ticketService->addNote($ticket, $this->agent, "User account suspended ({$gm->name}, ID: {$gm->id}).");
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    // For a game report, the moderation target is the GAME OWNER (GM), not
+    // the reporter. This is the resolveReportedUser('game') path the stubbed
+    // tests never exercised.
+    invokeModerationAction('performSuspendUser', $ticket, 'game');
 
     $gm->refresh();
+    $reporter->refresh();
     $ticket->refresh();
 
     expect($gm->is_disabled)->toBeTrue();
-    expect($ticket->status)->toBe(TicketStatus::Closed);
-});
-
-it('suspend user action works for campaign reports — suspends campaign owner', function () {
-    ['ticket' => $ticket, 'campaign' => $campaign, 'owner' => $owner] = createCampaignReportTicket();
-
-    $ticketService = app(TicketService::class);
-
-    $owner->update([
-        'is_disabled' => true,
-        'disabled_at' => now(),
-    ]);
-
-    $ticketService->addNote($ticket, $this->agent, "User account suspended ({$owner->name}, ID: {$owner->id}).");
-    $ticketService->close($ticket, $this->agent);
-
-    $owner->refresh();
-    $ticket->refresh();
-
-    expect($owner->is_disabled)->toBeTrue();
+    expect($gm->disabled_at)->not->toBeNull();
+    // The reporter must not be collateral damage.
+    expect($reporter->is_disabled)->toBeFalse();
     expect($ticket->status)->toBe(TicketStatus::Closed);
 });
 
@@ -392,29 +319,19 @@ it('suspend user action works for campaign reports — suspends campaign owner',
 it('escalate action increases priority to urgent and reassigns to Platform Admin', function () {
     ['ticket' => $ticket] = createUserReportTicket();
 
-    $ticketService = app(TicketService::class);
-
-    $ticketService->addNote($ticket, $this->agent, "Content report escalated by {$this->agent->name}.");
-    $ticketService->changePriority($ticket, TicketPriority::Urgent, $this->agent);
-
-    // Assign to Platform Admin
-    $ticket->updateQuietly(['assigned_to' => $this->platformAdmin->id]);
+    $this->actingAs($this->agent);
+    invokeModerationAction('performEscalateContentReport', $ticket);
 
     $ticket->refresh();
 
+    // Real behavior: priority → Urgent, reassigned to a Platform Admin that
+    // isn't the acting agent, internal escalation note added. The ticket is
+    // NOT closed by escalation (it stays open for the new assignee).
     expect($ticket->priority)->toBe(TicketPriority::Urgent);
     expect($ticket->assigned_to)->toBe($this->platformAdmin->id);
-});
+    expect($ticket->status)->toBe(TicketStatus::Open);
 
-it('escalate action adds escalation internal note', function () {
-    ['ticket' => $ticket] = createUserReportTicket();
-
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $this->agent, "Content report escalated by {$this->agent->name}.");
-
-    $ticket->refresh();
     $notes = $ticket->internalNotes;
-
     expect($notes)->toHaveCount(1);
     expect($notes->first()->body)->toContain('escalated');
     expect($notes->first()->body)->toContain($this->agent->name);
@@ -422,10 +339,13 @@ it('escalate action adds escalation internal note', function () {
 
 // ── Edge Case Tests ────────────────────────────────────────────────────
 
-it('non-content-report tickets are unaffected by content moderation logic', function () {
+it('dismiss action is ticket-type-agnostic — closes a non-content-report ticket too', function () {
+    // FINDING: the perform* methods do NOT check ticket_type. They rely on the
+    // Filament UI only surfacing the actions for content_report tickets. Direct
+    // invocation on a question ticket still closes it. This test documents that
+    // contract so a future ticket_type guard would be a deliberate change.
     $department = Department::where('name', 'Safety')->first();
 
-    // Create a regular (non-content-report) ticket
     $ticket = Ticket::create([
         'requester_type' => User::class,
         'requester_id' => $this->agent->id,
@@ -438,41 +358,46 @@ it('non-content-report tickets are unaffected by content moderation logic', func
         'metadata' => [],
     ]);
 
-    $ticketService = app(TicketService::class);
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    invokeModerationAction('performDismissContentReport', $ticket);
 
     $ticket->refresh();
     expect($ticket->status)->toBe(TicketStatus::Closed);
 });
 
-it('handles missing reported user gracefully during warn action', function () {
-    ['ticket' => $ticket, 'reportedUser' => $reportedUser] = createUserReportTicket();
-
-    // Delete the reported user
-    $reportedUser->delete();
-
-    // The ticket should still be processable
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $this->agent, 'Warning attempted but user not found.');
-    $ticketService->close($ticket, $this->agent);
-
-    $ticket->refresh();
-    expect($ticket->status)->toBe(TicketStatus::Closed);
-});
-
-it('handles missing game during remove content action', function () {
+it('handles missing entity gracefully during remove content', function () {
     ['ticket' => $ticket, 'game' => $game] = createGameReportTicket();
 
-    // Delete the game
+    // Delete the reported game; the stale entity_id stays in metadata.
     $game->delete();
 
-    // The ticket should still close
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $this->agent, 'Removal attempted but entity not found.');
-    $ticketService->close($ticket, $this->agent);
+    $this->actingAs($this->agent);
+    // removeGame() returns false for a missing entity, the ticket still closes
+    // with a "not found" note, and no exception escapes the transaction.
+    invokeModerationAction('performRemoveContent', $ticket, 'game', null);
 
     $ticket->refresh();
     expect($ticket->status)->toBe(TicketStatus::Closed);
+});
+
+it('handles missing reported user gracefully during warn', function () {
+    NotificationFacade::fake();
+
+    ['ticket' => $ticket, 'reportedUser' => $reportedUser] = createUserReportTicket();
+
+    // Delete the reported user so resolveReportedUser('user') returns null.
+    $reportedUser->delete();
+
+    $this->actingAs($this->agent);
+    invokeModerationAction('performWarnUser', $ticket, 'user', null, null);
+
+    $ticket->refresh();
+
+    // FINDING: the stubbed suite assumed the ticket still closes on a missing
+    // user. The real performWarnUser() hits the resolveReportedUser null-check
+    // and returns EARLY — the ticket stays Open and no warning is sent.
+    expect($ticket->status)->toBe(TicketStatus::Open);
+    NotificationFacade::assertNotSentTo($reportedUser, ContentReportWarning::class);
 });
 
 // ── Notification Content Tests ─────────────────────────────────────────

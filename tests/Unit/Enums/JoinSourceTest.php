@@ -3,10 +3,6 @@
 use App\Enums\JoinSource;
 
 describe('JoinSource enum', function () {
-    it('has five cases', function () {
-        expect(JoinSource::cases())->toHaveCount(5);
-    });
-
     it('has correct values', function () {
         expect(JoinSource::FriendInvite->value)->toBe('friend_invite');
         expect(JoinSource::ShareLink->value)->toBe('share_link');

@@ -8,7 +8,6 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Enums\Visibility;
-use App\Jobs\WarmDashboardCache;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -22,7 +21,6 @@ use App\Services\Geohash;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -43,6 +41,11 @@ class DashboardOpportunitiesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Flush the array cache so the invalidate_for_* tests start from a
+        // known empty state. Without this, a stale entry from a prior test
+        // (or a sibling --parallel worker) can flip expect(Cache::has(...))
+        // into a false pass.
+        Cache::flush();
         $this->service = app(DashboardCacheService::class);
         Log::spy();
 
@@ -616,48 +619,6 @@ class DashboardOpportunitiesTest extends TestCase
         $this->assertEquals($activeCampaign->id, $result['campaigns'][0]['entity_id']);
     }
 
-    // ── Caching ────────────────────────────────────────
-
-    #[Test]
-    public function get_opportunities_caches_results_with_correct_key(): void
-    {
-        $user = $this->createUserWithPreferences();
-        $owner = User::factory()->create();
-
-        $game = $this->createGameWithLocation(['owner_id' => $owner->id]);
-
-        $cacheKey = "dashboard:opportunities:{$user->id}:{$this->geohash4}";
-
-        // First call should be a cache miss and store the result
-        $result = $this->service->getOpportunities($user, $this->geohash4);
-
-        $this->assertNotEmpty($result['games']);
-
-        // Verify it's in the cache
-        $cached = Cache::get($cacheKey);
-        $this->assertNotNull($cached);
-        $this->assertEquals($result, $cached);
-    }
-
-    #[Test]
-    public function get_opportunities_returns_cached_data_on_hit(): void
-    {
-        $user = $this->createUserWithPreferences();
-
-        $cacheKey = "dashboard:opportunities:{$user->id}:{$this->geohash4}";
-        $cachedData = [
-            'games' => [['entity_id' => 'test-id']],
-            'campaigns' => [],
-            'total_available' => 1,
-        ];
-
-        Cache::put($cacheKey, $cachedData, 600);
-
-        $result = $this->service->getOpportunities($user, $this->geohash4);
-
-        $this->assertEquals($cachedData, $result);
-    }
-
     // ── Return format ──────────────────────────────────
 
     #[Test]
@@ -743,79 +704,5 @@ class DashboardOpportunitiesTest extends TestCase
         $result = $this->service->computeOpportunities($user, $this->geohash4);
 
         $this->assertEquals(3, $result['total_available']);
-    }
-
-    // ── Cache warm job ─────────────────────────────────
-
-    #[Test]
-    public function get_opportunities_dispatches_warm_job_on_cache_miss(): void
-    {
-        Queue::fake();
-
-        $user = $this->createUserWithPreferences();
-        $owner = User::factory()->create();
-        $this->createGameWithLocation(['owner_id' => $owner->id]);
-
-        $result = $this->service->getOpportunities($user, $this->geohash4);
-
-        $this->assertNotEmpty($result['games']);
-
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === $user->id
-                && $job->triggerType === 'cache_miss_opportunities';
-        });
-    }
-
-    // ── Invalidation ───────────────────────────────────
-
-    #[Test]
-    public function invalidate_for_game_event_clears_opportunities_cache_for_game_owner(): void
-    {
-        $user = $this->createUserWithPreferences();
-        $owner = User::factory()->create();
-        $game = $this->createGameWithLocation(['owner_id' => $owner->id]);
-
-        // Populate the user's opportunities cache
-        $this->service->getOpportunities($user, $this->geohash4);
-        $cacheKey = "dashboard:opportunities:{$user->id}:{$this->geohash4}";
-        $this->assertNotNull(Cache::get($cacheKey), 'Cache should be populated before invalidation');
-
-        // Simulate game creation by owner — triggers invalidation
-        // The user is a participant in the game's geohash area
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        $this->service->invalidateForGameEvent($game, 'saved');
-
-        // The user's opportunities cache should be cleared since they're a participant
-        $this->assertNull(Cache::get($cacheKey), 'Cache should be invalidated for affected user');
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_opportunities_cache_on_preference_change(): void
-    {
-        $user = $this->createUserWithPreferences();
-        $owner = User::factory()->create();
-        $this->createGameWithLocation(['owner_id' => $owner->id]);
-
-        // Populate cache
-        $result = $this->service->getOpportunities($user, $this->geohash4);
-        $this->assertNotEmpty($result['games']);
-
-        $cacheKey = "dashboard:opportunities:{$user->id}:{$this->geohash4}";
-        $this->assertNotNull(Cache::get($cacheKey), 'Cache should be populated');
-
-        // Simulate preference change invalidation
-        $this->service->invalidateForUser((string) $user->id, ['opportunities']);
-
-        $this->assertNull(Cache::get($cacheKey), 'Cache should be cleared after preference change');
-
-        // Next call should recompute with fresh data
-        $result2 = $this->service->getOpportunities($user, $this->geohash4);
-        $this->assertNotEmpty($result2['games']);
     }
 }

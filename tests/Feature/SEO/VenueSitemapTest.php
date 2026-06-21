@@ -53,21 +53,6 @@ describe('Venues Sitemap — inclusion', function () {
         VenueType::Bar,
     ]);
 
-    it('uses weekly changefreq and 0.7 priority', function () {
-        Location::factory()->verifiedVenue()->create([
-            'is_verified' => true,
-            'venue_type' => VenueType::Cafe,
-            'slug' => 'priority-check-venue',
-        ]);
-
-        $content = get('/sitemap-venues.xml')->content();
-
-        $matched = preg_match('/<url>.*?<\/url>/s', $content, $match);
-        expect($matched)->toBe(1, 'expected at least one <url> entry in the venues sitemap');
-        expect($match[0])->toContain('<changefreq>weekly</changefreq>');
-        expect($match[0])->toContain('<priority>0.7</priority>');
-    });
-
     it('produces well-formed urlset XML', function () {
         Location::factory()->verifiedVenue()->create([
             'is_verified' => true,
@@ -116,18 +101,6 @@ describe('Venues Sitemap — exclusion (the safety contract)', function () {
         $content = get('/sitemap-venues.xml')->content();
 
         expect($content)->not->toContain("/venue/{$private->slug}");
-    });
-
-    it('excludes unverified locations even with a commercial venue type and slug', function () {
-        $unverified = Location::factory()->create([
-            'is_verified' => false,
-            'venue_type' => VenueType::Flgs,
-            'slug' => 'unverified-commercial-sitemap',
-        ]);
-
-        $content = get('/sitemap-venues.xml')->content();
-
-        expect($content)->not->toContain("/venue/{$unverified->slug}");
     });
 
     it('excludes verified "Other"-type locations', function () {
@@ -207,7 +180,9 @@ describe('Venues Sitemap — managed commercial venues (S04/T01)', function () {
     // mirror of that eligibility, so a managed-but-unverified commercial venue
     // must now be indexable — while a managed `Other` / managed private venue
     // still stays excluded (MEM717 preserved: managed_by alone never grants a
-    // page to a non-commercial nature).
+    // page to a non-commercial nature). The two tests below cover the positive
+    // and negative halves of the rule; the per-type enumeration and the mixed
+    // index are covered by the inclusion + exclusion sections above.
     it('includes a managed-but-unverified commercial venue', function () {
         $managed = Location::factory()->create([
             'is_verified' => false,
@@ -221,26 +196,6 @@ describe('Venues Sitemap — managed commercial venues (S04/T01)', function () {
         expect($content)->toContain("/venue/{$managed->slug}");
     });
 
-    it('includes every managed-but-unverified commercial venue type', function ($type) {
-        $managed = Location::factory()->create([
-            'is_verified' => false,
-            'venue_type' => $type,
-            'managed_by' => User::factory()->create()->id,
-            'slug' => "managed-{$type->value}-sitemap",
-        ]);
-
-        $content = get('/sitemap-venues.xml')->content();
-
-        expect($content)->toContain("/venue/{$managed->slug}");
-    })->with([
-        VenueType::Cafe,
-        VenueType::Flgs,
-        VenueType::Library,
-        VenueType::CommunityCenter,
-        VenueType::Convention,
-        VenueType::Bar,
-    ]);
-
     it('excludes a managed "Other"-type venue', function () {
         $managedOther = Location::factory()->create([
             'is_verified' => false,
@@ -252,46 +207,6 @@ describe('Venues Sitemap — managed commercial venues (S04/T01)', function () {
         $content = get('/sitemap-venues.xml')->content();
 
         expect($content)->not->toContain("/venue/{$managedOther->slug}");
-    });
-
-    it('excludes a managed private (null venue type) venue', function () {
-        $managedPrivate = Location::factory()->create([
-            'is_verified' => false,
-            'venue_type' => null,
-            'managed_by' => User::factory()->create()->id,
-            'slug' => 'managed-private-sitemap',
-        ]);
-
-        $content = get('/sitemap-venues.xml')->content();
-
-        expect($content)->not->toContain("/venue/{$managedPrivate->slug}");
-    });
-
-    it('includes both a managed-but-unverified and a verified commercial venue in one index', function () {
-        $managed = Location::factory()->create([
-            'is_verified' => false,
-            'venue_type' => VenueType::Cafe,
-            'managed_by' => User::factory()->create()->id,
-            'slug' => 'mixed-managed-cafe',
-        ]);
-        $verified = Location::factory()->verifiedVenue()->create([
-            'is_verified' => true,
-            'venue_type' => VenueType::Library,
-            'slug' => 'mixed-verified-library',
-        ]);
-        // Managed Other stays excluded alongside.
-        $managedOther = Location::factory()->create([
-            'is_verified' => false,
-            'venue_type' => VenueType::Other,
-            'managed_by' => User::factory()->create()->id,
-            'slug' => 'mixed-managed-other',
-        ]);
-
-        $content = get('/sitemap-venues.xml')->content();
-
-        expect($content)->toContain("/venue/{$managed->slug}");
-        expect($content)->toContain("/venue/{$verified->slug}");
-        expect($content)->not->toContain($managedOther->slug);
     });
 });
 

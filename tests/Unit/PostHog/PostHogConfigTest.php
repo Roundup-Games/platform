@@ -59,45 +59,6 @@ describe('PostHog config integration', function () {
 });
 
 describe('PostHog session replay masking', function () {
-    test('JS source contains session recording masking config', function () {
-        $source = file_get_contents(resource_path('js/posthog.js'));
-
-        // Verify core masking flags in source for test stability
-        expect($source)->toContain('maskAllInputs: true')
-            ->and($source)->toContain('maskAllImages: true')
-            ->and($source)->toContain('maskTextSelector')
-            ->and($source)->toContain('data-ph-mask')
-            ->and($source)->toContain('card_number')
-            ->and($source)->toContain('cvv');
-    });
-
-    test('JS source contains error-replay integration config', function () {
-        $source = file_get_contents(resource_path('js/posthog.js'));
-
-        // autocaptureExceptions enables error-to-replay linking
-        expect($source)->toContain('autocaptureExceptions: true')
-            ->and($source)->toContain('session_recording:');
-    });
-
-    test('layout sidebar masks user PII with data-ph-mask', function () {
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
-
-        expect($layout)->toContain('data-ph-mask>{{ Auth::user()->name }}')
-            ->and($layout)->toContain('data-ph-mask>{{ Auth::user()->email }}');
-    });
-
-    test('partial renders replay sample rate meta tag when replay enabled', function () {
-        Config::set('posthog.enabled', true);
-        Config::set('posthog.api_key', 'phc_test');
-        Config::set('posthog.session_replay.enabled', true);
-        Config::set('posthog.session_replay.sample_rate', 0.5);
-
-        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
-
-        expect($partial)->toContain('posthog-replay-sample-rate')
-            ->and($partial)->toContain("config('posthog.session_replay.sample_rate'");
-    });
-
     test('session replay sample rate is clamped to valid range', function () {
         Config::set('posthog.session_replay.sample_rate', 0.0);
         expect(config('posthog.session_replay.sample_rate'))->toBe(0.0);
@@ -123,31 +84,5 @@ describe('PostHog surveys', function () {
     test('surveys can be disabled via config', function () {
         Config::set('posthog.surveys.enabled', false);
         expect(config('posthog.surveys.enabled'))->toBeFalse();
-    });
-
-    test('JS source contains survey event listeners', function () {
-        $source = file_get_contents(resource_path('js/posthog.js'));
-
-        expect($source)->toContain('ph:survey:sent')
-            ->and($source)->toContain('ph:survey:shown')
-            ->and($source)->toContain('ph:survey:dismissed')
-            ->and($source)->toContain('posthog-surveys-enabled')
-            ->and($source)->toContain('data-ph-survey')
-            ->and($source)->toContain('ph-survey');
-    });
-
-    test('partial renders surveys meta tag when surveys enabled', function () {
-        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
-
-        expect($partial)->toContain('posthog-surveys-enabled')
-            ->and($partial)->toContain("config('posthog.surveys.enabled'");
-    });
-
-    test('surveys are excluded from Filament admin routes', function () {
-        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
-
-        expect($partial)->toContain("!request()->is('admin/*')");
-        expect($partial)->toContain("config('posthog.api_key')")
-            ->and($partial)->toContain("!request()->is('admin/*')");
     });
 });

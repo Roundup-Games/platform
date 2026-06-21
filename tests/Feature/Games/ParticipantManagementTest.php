@@ -300,7 +300,7 @@ describe('Game Remove Participant', function () {
         Livewire\Livewire::actingAs($owner)
             ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $ownerParticipant->id)
-            ->assertSee('Cannot remove the game owner');
+            ->assertSee(__('common.error_cannot_remove_the_entity_owner', ['entity' => 'game']));
 
         // Owner should still be approved
         assertDatabaseHas('game_participants', [

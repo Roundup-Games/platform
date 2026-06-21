@@ -39,48 +39,64 @@ describe('ManageRoster Authorization', function () {
             ->assertRedirect(route('login'));
     });
 
-    it('allows captain to view roster', function () {
+    it('controls roster view access by actor role', function (string $role, bool $allowed) {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain(['name' => 'Roster Test']);
 
-        Livewire\Livewire::actingAs($captain)
-            ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->assertOk()
-            ->assertSee('Manage Roster')
-            ->assertSee('Roster Test');
-    })->group('smoke');
+        $actor = match ($role) {
+            'captain' => $captain,
+            'stranger' => User::factory()->create(['profile_complete' => true]),
+        };
 
-    it('denies non-member stranger access to roster', function () {
-        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        $stranger = User::factory()->create(['profile_complete' => true]);
+        $response = Livewire\Livewire::actingAs($actor)
+            ->test(ManageRoster::class, ['slug' => $team->slug]);
 
-        Livewire\Livewire::actingAs($stranger)
-            ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->assertForbidden();
-    });
+        if ($allowed) {
+            $response->assertOk()->assertSee('Manage Roster')->assertSee('Roster Test');
+        } else {
+            $response->assertForbidden();
+        }
+    })->with([
+        'captain allows' => ['captain', true],
+        'stranger denied' => ['stranger', false],
+    ])->group('smoke');
 
 });
 
 // ── ManageRoster: Invite ───────────────────────────────
 
 describe('ManageRoster Invite', function () {
-    it('invites a user by email', function () {
+    it('controls invite permissions by actor role', function (string $role, bool $allowed) {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        $target = User::factory()->create(['email' => 'player@example.com', 'profile_complete' => true]);
 
-        Livewire\Livewire::actingAs($captain)
+        $actor = match ($role) {
+            'captain' => $captain,
+            'coach', 'player' => rosterAddMember($team, $role)['user'],
+        };
+
+        $target = User::factory()->create(['email' => 'invitee@example.com', 'profile_complete' => true]);
+
+        $response = Livewire\Livewire::actingAs($actor)
             ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->set('inviteEmail', 'player@example.com')
+            ->set('inviteEmail', 'invitee@example.com')
             ->set('inviteRole', 'player')
             ->call('inviteMember');
 
-        assertDatabaseHas('team_members', [
-            'team_id' => $team->id,
-            'user_id' => $target->id,
-            'role' => 'player',
-            'status' => 'pending',
-            'invited_by' => $captain->id,
-        ]);
-    })->group('smoke');
+        if ($allowed) {
+            assertDatabaseHas('team_members', [
+                'team_id' => $team->id,
+                'user_id' => $target->id,
+                'role' => 'player',
+                'status' => 'pending',
+                'invited_by' => $actor->id,
+            ]);
+        } else {
+            $response->assertForbidden();
+        }
+    })->with([
+        'captain allows' => ['captain', true],
+        'coach allows' => ['coach', true],
+        'player denied' => ['player', false],
+    ])->group('smoke');
 
     it('rejects invite for non-existent email', function () {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
@@ -159,43 +175,14 @@ describe('ManageRoster Invite', function () {
         ]);
     });
 
-    it('allows coach to invite', function () {
-        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['user' => $coach] = rosterAddMember($team, 'coach');
-        $target = User::factory()->create(['email' => 'newplayer@example.com', 'profile_complete' => true]);
-
-        Livewire\Livewire::actingAs($coach)
-            ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->set('inviteEmail', 'newplayer@example.com')
-            ->set('inviteRole', 'player')
-            ->call('inviteMember');
-
-        assertDatabaseHas('team_members', [
-            'team_id' => $team->id,
-            'user_id' => $target->id,
-            'status' => 'pending',
-        ]);
-    });
-
-    it('player cannot invite', function () {
-        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['user' => $player] = rosterAddMember($team, 'player');
-        $target = User::factory()->create(['email' => 'target@example.com', 'profile_complete' => true]);
-
-        Livewire\Livewire::actingAs($player)
-            ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->set('inviteEmail', 'target@example.com')
-            ->call('inviteMember')
-            ->assertForbidden();
-    });
 });
 
 // ── ManageRoster: Role Management ──────────────────────
 
 describe('ManageRoster Role Management', function () {
-    it('promotes a player to coach', function () {
+    it('promotes members up the role ladder', function (string $startRole, string $expectedRole) {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
+        ['member' => $member] = rosterAddMember($team, $startRole);
 
         Livewire\Livewire::actingAs($captain)
             ->test(ManageRoster::class, ['slug' => $team->slug])
@@ -203,41 +190,17 @@ describe('ManageRoster Role Management', function () {
 
         assertDatabaseHas('team_members', [
             'id' => $member->id,
-            'role' => 'coach',
+            'role' => $expectedRole,
         ]);
-    });
+    })->with([
+        'player to coach' => ['player', 'coach'],
+        'substitute to player' => ['substitute', 'player'],
+        'coach to captain' => ['coach', 'captain'],
+    ]);
 
-    it('promotes substitute to player', function () {
+    it('demotes members down the role ladder', function (string $startRole, string $expectedRole) {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['member' => $member] = rosterAddMember($team, 'substitute');
-
-        Livewire\Livewire::actingAs($captain)
-            ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->call('promoteMember', $member->id);
-
-        assertDatabaseHas('team_members', [
-            'id' => $member->id,
-            'role' => 'player',
-        ]);
-    });
-
-    it('promotes coach to captain', function () {
-        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['member' => $member] = rosterAddMember($team, 'coach');
-
-        Livewire\Livewire::actingAs($captain)
-            ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->call('promoteMember', $member->id);
-
-        assertDatabaseHas('team_members', [
-            'id' => $member->id,
-            'role' => 'captain',
-        ]);
-    });
-
-    it('demotes a coach to player', function () {
-        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['user' => $coach, 'member' => $member] = rosterAddMember($team, 'coach');
+        ['member' => $member] = rosterAddMember($team, $startRole);
 
         Livewire\Livewire::actingAs($captain)
             ->test(ManageRoster::class, ['slug' => $team->slug])
@@ -245,23 +208,12 @@ describe('ManageRoster Role Management', function () {
 
         assertDatabaseHas('team_members', [
             'id' => $member->id,
-            'role' => 'player',
+            'role' => $expectedRole,
         ]);
-    });
-
-    it('demotes player to substitute', function () {
-        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['member' => $member] = rosterAddMember($team, 'player');
-
-        Livewire\Livewire::actingAs($captain)
-            ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->call('demoteMember', $member->id);
-
-        assertDatabaseHas('team_members', [
-            'id' => $member->id,
-            'role' => 'substitute',
-        ]);
-    });
+    })->with([
+        'coach to player' => ['coach', 'player'],
+        'player to substitute' => ['player', 'substitute'],
+    ]);
 
     it('cannot demote the last captain', function () {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
@@ -381,19 +333,31 @@ describe('ManageRoster Member Details', function () {
 // ── ManageRoster: Remove Member ────────────────────────
 
 describe('ManageRoster Remove', function () {
-    it('removes a player from the team', function () {
+    it('controls remove permissions by actor role', function (string $role, bool $allowed) {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
+        ['member' => $target] = rosterAddMember($team, 'player');
 
-        Livewire\Livewire::actingAs($captain)
+        $actor = match ($role) {
+            'captain' => $captain,
+            'player' => rosterAddMember($team, 'player')['user'],
+        };
+
+        $response = Livewire\Livewire::actingAs($actor)
             ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->call('removeMember', $member->id);
+            ->call('removeMember', $target->id);
 
-        assertDatabaseHas('team_members', [
-            'id' => $member->id,
-            'status' => 'removed',
-        ]);
-    });
+        if ($allowed) {
+            assertDatabaseHas('team_members', [
+                'id' => $target->id,
+                'status' => 'removed',
+            ]);
+        } else {
+            $response->assertForbidden();
+        }
+    })->with([
+        'captain allows' => ['captain', true],
+        'player denied' => ['player', false],
+    ]);
 
     it('cannot remove the last captain', function () {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
@@ -442,16 +406,6 @@ describe('ManageRoster Remove', function () {
         expect($member->left_at)->not->toBeNull();
     });
 
-    it('player cannot remove members', function () {
-        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
-        ['user' => $otherPlayer, 'member' => $otherMember] = rosterAddMember($team, 'player');
-
-        Livewire\Livewire::actingAs($player)
-            ->test(ManageRoster::class, ['slug' => $team->slug])
-            ->call('removeMember', $otherMember->id)
-            ->assertForbidden();
-    });
 });
 
 // ── ManageRoster: Cancel Invite ────────────────────────

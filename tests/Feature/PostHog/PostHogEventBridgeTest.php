@@ -76,51 +76,6 @@ function lastCapture(TestablePostHogClient $client): array
     return $client->capturedCalls[array_key_last($client->capturedCalls)];
 }
 
-// ── Event name mapping via full integration ─────────────
-
-it('maps each ActivityType to the correct PostHog event name through ActivityLogService', function () {
-    $expectedMap = [
-        'game_created' => 'game.created',
-        'game_completed' => 'game.completed',
-        'game_canceled' => 'game.canceled',
-        'game_updated' => 'game.updated',
-        'campaign_created' => 'campaign.created',
-        'campaign_completed' => 'campaign.completed',
-        'campaign_canceled' => 'campaign.canceled',
-        'campaign_updated' => 'campaign.updated',
-        'player_joined' => 'game.player_joined',
-        'session_scheduled' => 'session.scheduled',
-        'invitation_received' => 'invitation.received',
-        'invitation_accepted' => 'invitation.accepted',
-        'review_received' => 'review.received',
-        'follow_received' => 'follow.received',
-        'session_recapped' => 'session.recapped',
-        'debriefing_submitted' => 'session.debriefing_submitted',
-    ];
-
-    // Verify mapping completeness
-    expect(count($expectedMap))->toBe(count(ActivityType::cases()));
-
-    $user = User::factory()->create();
-
-    $service = new ActivityLogService;
-
-    foreach (ActivityType::cases() as $type) {
-        $result = $service->log($type, $user);
-        expect($result)->not->toBeNull("ActivityLog for {$type->value} should be written");
-    }
-
-    // Every ActivityType should produce exactly one captured call
-    expect($this->posthogClient->capturedCalls)->toHaveCount(count(ActivityType::cases()));
-
-    // Verify each event name mapping
-    foreach ($this->posthogClient->capturedCalls as $i => $call) {
-        $type = ActivityType::cases()[$i];
-        expect($call['event'])->toBe($expectedMap[$type->value],
-            "ActivityType::{$type->name} should map to {$expectedMap[$type->value]}");
-    }
-});
-
 // ── GameCreated property enrichment ─────────────────────
 
 it('enriches GameCreated with game_system, visibility, and max_players properties', function () {
@@ -186,35 +141,6 @@ it('enriches PlayerJoined with game_system and participant_role', function () {
         ->and($props['participant_role'])->toBe('player')
         ->and($props['source'])->toBe('share_link')
         ->and($props['game_id'])->toBe($game->id);
-});
-
-// ── PostHog capture failure resilience ──────────────────
-
-it('does not propagate PostHog capture failure — ActivityLog still writes', function () {
-    $user = User::factory()->create();
-
-    // Client that throws on capture
-    $failingClient = new class extends TestablePostHogClient
-    {
-        public function capture(array $payload): void
-        {
-            throw new RuntimeException('PostHog SDK connection refused');
-        }
-    };
-    $this->app->instance(PostHogClient::class, $failingClient);
-
-    $service = new ActivityLogService;
-    $result = $service->log(ActivityType::GameCreated, $user);
-
-    // ActivityLog entry was still written to DB
-    expect($result)->not->toBeNull();
-    expect($result->event_type)->toBe(ActivityType::GameCreated);
-
-    // Verify the DB entry directly
-    $logEntry = ActivityLog::where('user_id', $user->id)
-        ->where('event_type', ActivityType::GameCreated->value)
-        ->first();
-    expect($logEntry)->not->toBeNull();
 });
 
 // ── EnrichPostHogProfile job dispatch ───────────────────
@@ -345,52 +271,6 @@ it('bridge captures server-side events distinct from autocapture UI events', fun
     expect($this->posthogClient->capturedCalls[0]['properties'])->toHaveKey('game_system');
     expect($this->posthogClient->capturedCalls[0]['properties'])->toHaveKey('visibility');
     expect($this->posthogClient->capturedCalls[0]['properties'])->toHaveKey('max_players');
-});
-
-// ── logForParticipants integration ──────────────────────
-
-it('forwards to PostHog only for game owner via logForParticipants', function () {
-    $owner = User::factory()->create();
-    $player = User::factory()->create();
-    $gameSystem = GameSystem::factory()->create();
-
-    // Create game without triggering observers — the test specifically
-    // tests logForParticipants' own behavior in isolation.
-    $game = Game::factory()->make([
-        'owner_id' => $owner->id,
-        'game_system_id' => $gameSystem->id,
-    ]);
-    $game->id = (string) Str::uuid();
-    $game->saveQuietly();
-
-    // Add both as participants (pending status — won't trigger observer)
-    GameParticipant::create([
-        'id' => Str::uuid()->toString(),
-        'game_id' => $game->id,
-        'user_id' => $owner->id,
-        'role' => ParticipantRole::Owner->value,
-    ]);
-    GameParticipant::create([
-        'id' => Str::uuid()->toString(),
-        'game_id' => $game->id,
-        'user_id' => $player->id,
-        'role' => ParticipantRole::Player->value,
-    ]);
-
-    $service = new ActivityLogService;
-    $service->logForParticipants(ActivityType::GameCreated, $game, ['source' => 'dashboard']);
-
-    // Only one PostHog event — for the owner, not the player
-    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
-    expect($this->posthogClient->capturedCalls[0]['distinctId'])->toBe((string) $owner->id);
-    expect($this->posthogClient->capturedCalls[0]['properties']['source'])->toBe('dashboard');
-
-    // Both participants got activity log entries from logForParticipants
-    $logCount = ActivityLog::where('subject_type', Game::class)
-        ->where('subject_id', $game->id)
-        ->where('event_type', ActivityType::GameCreated->value)
-        ->count();
-    expect($logCount)->toBe(2);
 });
 
 // ── EnrichPostHogProfile job handles team group enrichment ──

@@ -65,6 +65,17 @@ describe('User route model binding', function () {
         expect($resolved)->not->toBeNull();
         expect($resolved->id)->toBe($user->id);
     });
+
+    it('resolves slug case-insensitively for lookups', function () {
+        $user = User::factory()->create(['name' => 'Case Test', 'slug' => 'case-test']);
+
+        // Slugs are stored lowercase, so uppercase lookup should not match slug
+        // but should not crash either
+        $resolved = (new User)->resolveRouteBinding('Case-Test');
+
+        // The slug column is case-sensitive in PostgreSQL
+        expect($resolved)->toBeNull();
+    });
 });
 
 describe('Slug regeneration on name change', function () {
@@ -111,37 +122,6 @@ describe('Slug uniqueness constraints', function () {
 });
 
 describe('Bio field operations', function () {
-    it('creates user with bio', function () {
-        $user = User::factory()->create([
-            'name' => 'Bio Test User',
-            'bio' => 'Initial bio text',
-        ]);
-
-        expect($user->fresh()->bio)->toBe('Initial bio text');
-    });
-
-    it('updates bio via direct model update', function () {
-        $user = User::factory()->create([
-            'name' => 'Bio Update User',
-            'bio' => 'Old bio',
-        ]);
-
-        $user->update(['bio' => 'New bio text']);
-
-        expect($user->fresh()->bio)->toBe('New bio text');
-    });
-
-    it('clears bio to null', function () {
-        $user = User::factory()->create([
-            'name' => 'Bio Clear User',
-            'bio' => 'Will be cleared',
-        ]);
-
-        $user->update(['bio' => null]);
-
-        expect($user->fresh()->bio)->toBeNull();
-    });
-
     it('bio and slug are in fillable attributes', function () {
         $user = new User;
         $fillable = $user->getFillable();

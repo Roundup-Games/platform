@@ -11,6 +11,7 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\DashboardScheduleService;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
@@ -18,6 +19,8 @@ use Tests\TestCase;
 
 class DashboardScheduleServiceTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private DashboardScheduleService $service;
 
     private User $user;

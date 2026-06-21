@@ -8,12 +8,28 @@ use PHPUnit\Framework\TestCase;
 
 class GeohashTest extends TestCase
 {
-    // 1. Known coordinate encoding — Berlin
-    public function test_berlin_encodes_to_known_prefix(): void
+    // 1, 4, 8, 13, 14, 15. Known coordinate encoding — collapsed from five
+    // separate city-pair tests into one dataset-driven test. Each row asserts
+    // the encoded hash starts with the expected prefix and has the expected length.
+    #[DataProvider('knownEncodingProvider')]
+    public function test_encodes_known_coordinates_to_expected_hash(float $lat, float $lng, int $precision, string $expectedPrefix): void
     {
-        $hash = Geohash::encode(52.52, 13.405);
-        $this->assertStringStartsWith('u33dc', $hash);
-        $this->assertSame(12, strlen($hash));
+        $hash = Geohash::encode($lat, $lng, $precision);
+
+        $this->assertSame($precision, strlen($hash));
+        $this->assertStringStartsWith($expectedPrefix, $hash);
+        $this->assertMatchesRegularExpression('/^[0-9b-hjkmnp-z]+$/', $hash);
+    }
+
+    public static function knownEncodingProvider(): array
+    {
+        return [
+            'Berlin (default precision)' => [52.52,   13.405,  12, 'u33dc'],
+            'Berlin central (5 chars)' => [52.5163, 13.3777, 5,  'u33db'],
+            'origin zero-zero (5 chars)' => [0.0,     0.0,     5,  's0000'],
+            'Sydney negative coords (5)' => [-33.8688, 151.2093, 5, 'r3gx2'],
+            'equator / prime meridian' => [0.0,     0.0,     12, 's0000'],
+        ];
     }
 
     // 2. tilePrefix precision
@@ -33,13 +49,7 @@ class GeohashTest extends TestCase
         $this->assertCount(1, array_unique($results));
     }
 
-    // 4 & 8. Edge: equator / prime meridian (0, 0)
-    public function test_equator_prime_meridian_encodes(): void
-    {
-        $hash = Geohash::encode(0.0, 0.0);
-        $this->assertSame(12, strlen($hash));
-        $this->assertMatchesRegularExpression('/^[0-9b-hjkmnp-z]+$/', $hash);
-    }
+    // 4 & 8. Edge: equator / prime meridian (0, 0) — covered by knownEncodingProvider
 
     // 5. Edge: north pole
     public function test_north_pole_encodes(): void
@@ -105,26 +115,7 @@ class GeohashTest extends TestCase
         $this->assertNotSame($a, $b);
     }
 
-    // 13. Known coordinate encoding — verified against multiple implementations
-    public function test_encodes_berlin_to_exact_hash(): void
-    {
-        $hash = Geohash::encode(52.5163, 13.3777, 5);
-        $this->assertEquals('u33db', $hash);
-    }
-
-    // 14. Zero-zero encoding
-    public function test_encodes_zero_zero(): void
-    {
-        $hash = Geohash::encode(0, 0, 5);
-        $this->assertEquals('s0000', $hash);
-    }
-
-    // 15. Negative coordinates — Sydney
-    public function test_encodes_negative_coordinates(): void
-    {
-        $hash = Geohash::encode(-33.8688, 151.2093, 5);
-        $this->assertEquals('r3gx2', $hash);
-    }
+    // 13–15. Berlin exact, zero-zero, negative coords — covered by knownEncodingProvider
 
     // 16. European city proximity — nearby points share longer prefixes
     #[DataProvider('europeanCityProvider')]

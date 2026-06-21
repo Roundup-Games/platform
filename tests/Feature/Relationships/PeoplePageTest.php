@@ -73,7 +73,7 @@ describe('PeoplePage following tab', function () {
 
         Livewire::actingAs($user)
             ->test(PeoplePage::class)
-            ->assertSee("You're not following anyone yet.");
+            ->assertSee(__('people.content_not_following_anyone_yet'));
     });
 
     it('lists followed users', function () {

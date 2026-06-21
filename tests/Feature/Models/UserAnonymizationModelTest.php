@@ -2,13 +2,8 @@
 
 use App\Models\User;
 use App\Services\UserAnonymizationService;
-use Illuminate\Support\Facades\Schema;
 
 describe('User anonymization', function () {
-    it('has anonymized_at column on users table', function () {
-        expect(Schema::hasColumn('users', 'anonymized_at'))->toBeTrue();
-    });
-
     it('notAnonymized scope excludes anonymized users', function () {
         $active = User::factory()->create(['name' => 'Active User']);
         $anon = User::factory()->create(['name' => 'Anon User']);

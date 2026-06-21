@@ -42,110 +42,118 @@ class ReviewAggregateServiceTest extends TestCase
         ]);
     }
 
-    // ── updateAggregates ───────────────────────────────
+    // ── updateAggregates (parameterized over entity type: GM profile / venue) ──
 
-    public function test_it_sets_null_rating_when_no_published_reviews(): void
-    {
-        $this->service->updateAggregates($this->gmProfile);
-
-        $this->gmProfile->refresh();
-        $this->assertNull($this->gmProfile->average_rating);
-        $this->assertEquals(0, $this->gmProfile->review_count);
-    }
-
-    public function test_it_computes_average_rating_and_count(): void
-    {
-        $this->createPublishedReview(rating: 4);
-        $this->createPublishedReview(rating: 5);
-
-        $this->service->updateAggregates($this->gmProfile);
-
-        $this->gmProfile->refresh();
-        $this->assertEquals(4.50, (float) $this->gmProfile->average_rating);
-        $this->assertEquals(2, $this->gmProfile->review_count);
-    }
-
-    #[DataProvider('nonPublishedStatuses')]
-    public function test_it_excludes_non_published_reviews(string $status): void
-    {
-        $this->createPublishedReview(rating: 5);
-        $this->createReview(rating: 1, status: $status);
-
-        $this->service->updateAggregates($this->gmProfile);
-
-        $this->gmProfile->refresh();
-        $this->assertEquals(5.00, (float) $this->gmProfile->average_rating);
-        $this->assertEquals(1, $this->gmProfile->review_count);
-    }
-
-    public static function nonPublishedStatuses(): array
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function entityTypes(): array
     {
         return [
-            'hidden' => ['hidden'],
-            'reported' => ['reported'],
+            'gm_profile' => ['gm_profile'],
+            'location' => ['location'],
         ];
     }
 
-    public function test_it_rounds_average_to_two_decimals(): void
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function entityTypesAndStatuses(): array
     {
-        // 4 + 5 = 4.666...
-        $this->createPublishedReview(rating: 4);
-        $this->createPublishedReview(rating: 5);
-        $this->createPublishedReview(rating: 5);
+        $cases = [];
+        foreach (['gm_profile', 'location'] as $entityType) {
+            foreach (['hidden', 'reported'] as $status) {
+                $cases["{$entityType} / {$status}"] = [$entityType, $status];
+            }
+        }
 
-        $this->service->updateAggregates($this->gmProfile);
-
-        $this->gmProfile->refresh();
-        $this->assertEquals(4.67, (float) $this->gmProfile->average_rating);
+        return $cases;
     }
 
-    // ── updateLocationAggregates (venue) ───────────────
-
-    public function test_venue_it_sets_null_rating_when_no_published_reviews(): void
+    private function updateAggregatesForEntity(string $entityType): void
     {
-        $this->service->updateLocationAggregates($this->location);
-
-        $this->location->refresh();
-        $this->assertNull($this->location->average_rating);
-        $this->assertEquals(0, $this->location->review_count);
+        match ($entityType) {
+            'gm_profile' => $this->service->updateAggregates($this->gmProfile),
+            'location' => $this->service->updateLocationAggregates($this->location),
+        };
     }
 
-    public function test_venue_it_computes_average_rating_and_count(): void
+    private function getEntity(string $entityType)
     {
-        $this->createPublishedVenueReview(rating: 4);
-        $this->createPublishedVenueReview(rating: 5);
-
-        $this->service->updateLocationAggregates($this->location);
-
-        $this->location->refresh();
-        $this->assertEquals(4.50, (float) $this->location->average_rating);
-        $this->assertEquals(2, $this->location->review_count);
+        return match ($entityType) {
+            'gm_profile' => $this->gmProfile,
+            'location' => $this->location,
+        };
     }
 
-    #[DataProvider('nonPublishedStatuses')]
-    public function test_venue_it_excludes_non_published_reviews(string $status): void
+    private function createPublishedReviewForEntity(string $entityType, ?int $rating = null): Review
     {
-        $this->createPublishedVenueReview(rating: 5);
-        $this->createVenueReview(rating: 1, status: $status);
-
-        $this->service->updateLocationAggregates($this->location);
-
-        $this->location->refresh();
-        $this->assertEquals(5.00, (float) $this->location->average_rating);
-        $this->assertEquals(1, $this->location->review_count);
+        return match ($entityType) {
+            'gm_profile' => $this->createPublishedReview(rating: $rating),
+            'location' => $this->createPublishedVenueReview(rating: $rating),
+        };
     }
 
-    public function test_venue_it_rounds_average_to_two_decimals(): void
+    private function createReviewForEntity(string $entityType, ?int $rating = null, string $status = 'published'): Review
     {
+        return match ($entityType) {
+            'gm_profile' => $this->createReview(rating: $rating, status: $status),
+            'location' => $this->createVenueReview(rating: $rating, status: $status),
+        };
+    }
+
+    #[DataProvider('entityTypes')]
+    public function test_it_sets_null_rating_when_no_published_reviews(string $entityType): void
+    {
+        $entity = $this->getEntity($entityType);
+        $this->updateAggregatesForEntity($entityType);
+
+        $entity->refresh();
+        $this->assertNull($entity->average_rating);
+        $this->assertEquals(0, $entity->review_count);
+    }
+
+    #[DataProvider('entityTypes')]
+    public function test_it_computes_average_rating_and_count(string $entityType): void
+    {
+        $entity = $this->getEntity($entityType);
+        $this->createPublishedReviewForEntity($entityType, rating: 4);
+        $this->createPublishedReviewForEntity($entityType, rating: 5);
+
+        $this->updateAggregatesForEntity($entityType);
+
+        $entity->refresh();
+        $this->assertEquals(4.50, (float) $entity->average_rating);
+        $this->assertEquals(2, $entity->review_count);
+    }
+
+    #[DataProvider('entityTypesAndStatuses')]
+    public function test_it_excludes_non_published_reviews(string $entityType, string $status): void
+    {
+        $entity = $this->getEntity($entityType);
+        $this->createPublishedReviewForEntity($entityType, rating: 5);
+        $this->createReviewForEntity($entityType, rating: 1, status: $status);
+
+        $this->updateAggregatesForEntity($entityType);
+
+        $entity->refresh();
+        $this->assertEquals(5.00, (float) $entity->average_rating);
+        $this->assertEquals(1, $entity->review_count);
+    }
+
+    #[DataProvider('entityTypes')]
+    public function test_it_rounds_average_to_two_decimals(string $entityType): void
+    {
+        $entity = $this->getEntity($entityType);
         // 4 + 5 + 5 = 4.666...
-        $this->createPublishedVenueReview(rating: 4);
-        $this->createPublishedVenueReview(rating: 5);
-        $this->createPublishedVenueReview(rating: 5);
+        $this->createPublishedReviewForEntity($entityType, rating: 4);
+        $this->createPublishedReviewForEntity($entityType, rating: 5);
+        $this->createPublishedReviewForEntity($entityType, rating: 5);
 
-        $this->service->updateLocationAggregates($this->location);
+        $this->updateAggregatesForEntity($entityType);
 
-        $this->location->refresh();
-        $this->assertEquals(4.67, (float) $this->location->average_rating);
+        $entity->refresh();
+        $this->assertEquals(4.67, (float) $entity->average_rating);
     }
 
     // ── topProficiencies ───────────────────────────────

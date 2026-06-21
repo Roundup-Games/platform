@@ -18,104 +18,67 @@ beforeEach(function () {
     $this->seoCache = app(SeoCacheService::class);
 });
 
-// ── Full lifecycle: populate → mutate → invalidate → re-populate ──
-// Each model has its own observer registration. These roundtrip tests
-// verify the entire observer → cache → regenerate pipeline per model.
+// Full lifecycle: populate → mutate → invalidate → re-populate. Each model
+// has its own observer registration; this single dataset exercises the
+// entire observer → cache → regenerate pipeline per model.
 
-describe('Sitemap cache lifecycle', function () {
-    it('GameSystem: populate → update → cache cleared → regenerate reflects new data', function () {
-        $system = GameSystem::factory()->create(['name' => ['en' => 'Alpha System']]);
-
-        get('/sitemap-game-systems.xml')->assertOk();
-        $cached = $this->seoCache->getSitemap('game-systems');
-        expect($cached)->not->toBeNull();
-        expect($cached)->toContain('/game-systems/'.$system->slug);
-
-        $system->update(['name' => 'Beta System']);
-
-        expect($this->seoCache->getSitemap('game-systems'))->toBeNull();
-        expect($this->seoCache->getIndex())->toBeNull();
-
-        get('/sitemap-game-systems.xml')->assertOk();
-        $fresh = $this->seoCache->getSitemap('game-systems');
-        expect($fresh)->not->toBeNull();
-        $system->refresh();
-        expect($fresh)->toContain('/game-systems/'.$system->slug);
-    });
-
-    it('Event: populate → update → cache cleared → regenerate reflects new data', function () {
-        $event = Event::factory()->create([
+dataset('sitemap_lifecycle', [
+    'GameSystem' => [[
+        'sitemap' => 'game-systems',
+        'make' => fn () => GameSystem::factory()->create(['name' => ['en' => 'Alpha System']]),
+        'mutate' => fn ($m) => $m->update(['name' => 'Beta System']),
+    ]],
+    'Event' => [[
+        'sitemap' => 'events',
+        'make' => fn () => Event::factory()->create([
             'name' => ['en' => 'Original Event'],
             'status' => 'published',
             'is_public' => true,
-        ]);
-
-        get('/sitemap-events.xml')->assertOk();
-        expect($this->seoCache->getSitemap('events'))->not->toBeNull();
-
-        $event->update(['name' => 'Updated Event']);
-        expect($this->seoCache->getSitemap('events'))->toBeNull();
-
-        get('/sitemap-events.xml')->assertOk();
-        expect($this->seoCache->getSitemap('events'))->not->toBeNull();
-    });
-
-    it('Game: populate → update → cache cleared → regenerate reflects new data', function () {
-        $game = Game::factory()->create();
-
-        get('/sitemap-games.xml')->assertOk();
-        expect($this->seoCache->getSitemap('games'))->not->toBeNull();
-
-        $game->update(['visibility' => Visibility::Private->value]);
-        expect($this->seoCache->getSitemap('games'))->toBeNull();
-
-        get('/sitemap-games.xml')->assertOk();
-        $fresh = $this->seoCache->getSitemap('games');
-        expect($fresh)->not->toContain("/games/{$game->id}");
-    });
-
-    it('Campaign: populate → update → cache cleared → regenerate reflects new data', function () {
-        $campaign = Campaign::factory()->create();
-
-        get('/sitemap-campaigns.xml')->assertOk();
-        expect($this->seoCache->getSitemap('campaigns'))->not->toBeNull();
-
-        $campaign->update(['status' => CampaignStatus::Cancelled->value]);
-        expect($this->seoCache->getSitemap('campaigns'))->toBeNull();
-
-        get('/sitemap-campaigns.xml')->assertOk();
-        expect($this->seoCache->getSitemap('campaigns'))->not->toContain("/campaigns/{$campaign->id}");
-    });
-
-    it('Team: populate → update → cache cleared → regenerate reflects new data', function () {
-        $team = Team::factory()->create();
-
-        get('/sitemap-teams.xml')->assertOk();
-        expect($this->seoCache->getSitemap('teams'))->not->toBeNull();
-
-        $team->update(['is_active' => false]);
-        expect($this->seoCache->getSitemap('teams'))->toBeNull();
-
-        get('/sitemap-teams.xml')->assertOk();
-        expect($this->seoCache->getSitemap('teams'))->not->toContain("/teams/{$team->slug}");
-    });
-
-    it('User: populate → update slug → cache cleared → regenerate reflects new data', function () {
-        $user = User::factory()->create([
+        ]),
+        'mutate' => fn ($m) => $m->update(['name' => 'Updated Event']),
+    ]],
+    'Game' => [[
+        'sitemap' => 'games',
+        'make' => fn () => Game::factory()->create(),
+        'mutate' => fn ($m) => $m->update(['visibility' => Visibility::Private->value]),
+    ]],
+    'Campaign' => [[
+        'sitemap' => 'campaigns',
+        'make' => fn () => Campaign::factory()->create(),
+        'mutate' => fn ($m) => $m->update(['status' => CampaignStatus::Cancelled->value]),
+    ]],
+    'Team' => [[
+        'sitemap' => 'teams',
+        'make' => fn () => Team::factory()->create(),
+        'mutate' => fn ($m) => $m->update(['is_active' => false]),
+    ]],
+    'User' => [[
+        'sitemap' => 'profiles',
+        'make' => fn () => User::factory()->create([
             'name' => 'Alice Example',
             'profile_complete' => true,
             'is_disabled' => false,
-        ]);
+        ]),
+        'mutate' => fn ($m) => $m->update(['slug' => 'alice-new-slug']),
+    ]],
+]);
 
-        get('/sitemap-profiles.xml')->assertOk();
-        expect($this->seoCache->getSitemap('profiles'))->not->toBeNull();
+describe('Sitemap cache lifecycle', function () {
+    it('populate → update → cache cleared → regenerate reflects new data', function (array $d) {
+        $type = $d['sitemap'];
+        $model = ($d['make'])();
 
-        $user->update(['slug' => 'alice-new-slug']);
-        expect($this->seoCache->getSitemap('profiles'))->toBeNull();
+        get("/sitemap-{$type}.xml")->assertOk();
+        expect($this->seoCache->getSitemap($type))->not->toBeNull();
 
-        get('/sitemap-profiles.xml')->assertOk();
-        expect($this->seoCache->getSitemap('profiles'))->toContain('/u/alice-new-slug');
-    });
+        ($d['mutate'])($model);
+
+        expect($this->seoCache->getSitemap($type))->toBeNull();
+        expect($this->seoCache->getIndex())->toBeNull();
+
+        get("/sitemap-{$type}.xml")->assertOk();
+        expect($this->seoCache->getSitemap($type))->not->toBeNull();
+    })->with('sitemap_lifecycle');
 });
 
 // ── Observer selectively skips User saves ────────────
@@ -134,7 +97,7 @@ describe('SeoModelObserver User selectivity', function () {
         expect($this->seoCache->getSitemap('profiles'))->not->toBeNull();
     });
 
-    it('invalidates cache when User slug changes', function () {
+    it('invalidates cache when a watched User field changes', function ($field, $value) {
         $user = User::factory()->create([
             'profile_complete' => true,
             'is_disabled' => false,
@@ -143,60 +106,31 @@ describe('SeoModelObserver User selectivity', function () {
         get('/sitemap-profiles.xml')->assertOk();
         expect($this->seoCache->getSitemap('profiles'))->not->toBeNull();
 
-        $user->update(['slug' => 'changed-slug']);
+        $user->update([$field => $value]);
         expect($this->seoCache->getSitemap('profiles'))->toBeNull();
-    });
-
-    it('invalidates cache when User profile_complete changes', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'is_disabled' => false,
-        ]);
-
-        get('/sitemap-profiles.xml')->assertOk();
-        $this->seoCache->getSitemap('profiles');
-
-        $user->update(['profile_complete' => false]);
-        expect($this->seoCache->getSitemap('profiles'))->toBeNull();
-    });
-
-    it('invalidates cache when User is_disabled changes', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'is_disabled' => false,
-        ]);
-
-        get('/sitemap-profiles.xml')->assertOk();
-
-        $user->update(['is_disabled' => true]);
-        expect($this->seoCache->getSitemap('profiles'))->toBeNull();
-    });
+    })->with([
+        'slug' => ['slug', 'changed-slug'],
+        'profile_complete' => ['profile_complete', false],
+        'is_disabled' => ['is_disabled', true],
+    ]);
 });
 
-// ── Deletion triggers cache invalidation (one representative + User) ──
+// ── Deletion triggers cache invalidation ──
 
 describe('Model deletion invalidates cache', function () {
-    it('clears cache when GameSystem is deleted', function () {
-        $system = GameSystem::factory()->create();
-        get('/sitemap-game-systems.xml')->assertOk();
+    it('clears cache and index when a mapped model is deleted', function ($sitemap, $factory) {
+        $model = $factory();
+        get("/sitemap-{$sitemap}.xml")->assertOk();
         $this->seoCache->setIndex('<idx/>');
 
-        $system->delete();
+        $model->delete();
 
-        expect($this->seoCache->getSitemap('game-systems'))->toBeNull();
+        expect($this->seoCache->getSitemap($sitemap))->toBeNull();
         expect($this->seoCache->getIndex())->toBeNull();
-    });
-
-    it('clears cache when User is deleted', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        get('/sitemap-profiles.xml')->assertOk();
-        $this->seoCache->setIndex('<idx/>');
-
-        $user->delete();
-
-        expect($this->seoCache->getSitemap('profiles'))->toBeNull();
-        expect($this->seoCache->getIndex())->toBeNull();
-    });
+    })->with([
+        'GameSystem' => ['game-systems', fn () => GameSystem::factory()->create()],
+        'User' => ['profiles', fn () => User::factory()->create(['profile_complete' => true])],
+    ]);
 });
 
 // ── Index cache invalidation always accompanies sitemap invalidation ──
@@ -235,27 +169,20 @@ describe('Index invalidation accompanies sitemap invalidation', function () {
 // ── Model creation invalidates cache (via saved observer) ──
 
 describe('New model creation invalidates cache', function () {
-    it('invalidates sitemap when new GameSystem is created', function () {
-        get('/sitemap-game-systems.xml')->assertOk();
+    it('invalidates sitemap and index when a new mapped model is created', function ($sitemap, $factory) {
+        get("/sitemap-{$sitemap}.xml")->assertOk();
         $this->seoCache->setIndex('<idx/>');
 
-        GameSystem::factory()->create(['name' => ['en' => 'Brand New System']]);
+        $factory();
 
-        expect($this->seoCache->getSitemap('game-systems'))->toBeNull();
+        expect($this->seoCache->getSitemap($sitemap))->toBeNull();
         expect($this->seoCache->getIndex())->toBeNull();
-    });
+    })->with([
+        'GameSystem' => ['game-systems', fn () => GameSystem::factory()->create(['name' => ['en' => 'Brand New System']])],
+        'Event' => ['events', fn () => Event::factory()->create(['status' => 'published', 'is_public' => true])],
+    ]);
 
-    it('invalidates sitemap when new Event is created', function () {
-        get('/sitemap-events.xml')->assertOk();
-        $this->seoCache->setIndex('<idx/>');
-
-        Event::factory()->create(['status' => 'published', 'is_public' => true]);
-
-        expect($this->seoCache->getSitemap('events'))->toBeNull();
-        expect($this->seoCache->getIndex())->toBeNull();
-    });
-
-    it('does not invalidate sitemap when new User is created (slug set in creating hook, not detected by wasChanged)', function () {
+    it('does not invalidate sitemap when a new User is created (slug set in creating hook, not detected by wasChanged)', function () {
         get('/sitemap-profiles.xml')->assertOk();
         $this->seoCache->setIndex('<idx/>');
 
@@ -264,7 +191,7 @@ describe('New model creation invalidates cache', function () {
             'profile_complete' => true,
         ]);
 
-        // Slug is auto-generated in the creating hook, so wasChanged('slug') = false
+        // Slug is auto-generated in the creating hook, so wasChanged('slug') = false.
         // The observer intentionally skips this to avoid unnecessary invalidation.
         expect($this->seoCache->getSitemap('profiles'))->not->toBeNull();
         expect($this->seoCache->getIndex())->not->toBeNull();

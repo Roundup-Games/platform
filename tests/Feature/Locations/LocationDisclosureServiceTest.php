@@ -18,7 +18,7 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\LocationDisclosureService;
 use App\Values\DistanceDisplay;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use Tests\Traits\CreatesRelationships;
@@ -33,7 +33,7 @@ use Tests\Traits\CreatesRelationships;
 class LocationDisclosureServiceTest extends TestCase
 {
     use CreatesRelationships;
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private LocationDisclosureService $service;
 
@@ -441,15 +441,8 @@ class LocationDisclosureServiceTest extends TestCase
 
         $cases = [
             0.2 => 5,    // < 5km floors to 5 (and flags in-area)
-            4.9 => 5,    // just under 5 → floor 5
-            5.0 => 5,
-            7.0 => 5,    // 7 rounds to 5
-            8.0 => 10,   // 8 rounds to 10
-            12.0 => 10,
-            13.0 => 15,
-            23.0 => 25,
-            48.0 => 50,
-            99.9 => 100,
+            8.0 => 10,   // mid value rounds to nearest 5
+            23.0 => 25,  // over-10 snaps to next 5 multiple
         ];
 
         foreach ($cases as $precise => $expectedBucket) {

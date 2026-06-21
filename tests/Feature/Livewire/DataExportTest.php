@@ -471,5 +471,8 @@ function writeTempZip(string $content): string
     $tempZip = tempnam(sys_get_temp_dir(), 'export_test_').'.zip';
     file_put_contents($tempZip, $content);
 
+    // Ensure cleanup even on hard test failure between write and explicit unlink
+    register_shutdown_function(fn () => @unlink($tempZip));
+
     return $tempZip;
 }

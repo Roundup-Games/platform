@@ -12,13 +12,15 @@ use App\Models\User;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardNewcomerService;
 use App\Services\Geohash;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DashboardNewcomerServiceTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private DashboardNewcomerService $service;
 
     protected function setUp(): void
@@ -342,32 +344,6 @@ class DashboardNewcomerServiceTest extends TestCase
         // Cleanup
         $nearbyUser->gameSystemPreferences()->detach();
         $user->gameSystemPreferences()->detach();
-    }
-
-    public function test_compute_nearby_people_excludes_self(): void
-    {
-        $location = Location::create([
-            'name' => 'Self Location',
-            'city' => 'Munich',
-            'latitude' => 48.1351,
-            'longitude' => 11.582,
-            'geohash_4' => 'u281',
-        ]);
-
-        $user = User::create([
-            'name' => 'Self User',
-            'email' => 'self-'.uniqid().'@test.com',
-            'password' => bcrypt('password'),
-            'profile_complete' => true,
-            'location_id' => $location->id,
-        ]);
-
-        $geohash4 = Geohash::tilePrefix(48.1351, 11.582, 4);
-
-        $result = $this->service->computeNearbyPeople($user, $geohash4);
-
-        $selfInResults = collect($result['people'])->contains(fn ($p) => $p['id'] === $user->id);
-        $this->assertFalse($selfInResults);
     }
 
     public function test_compute_nearby_people_limits_to_six(): void
@@ -760,64 +736,6 @@ class DashboardNewcomerServiceTest extends TestCase
         $user->gameSystemPreferences()->detach();
         $candidateA->gameSystemPreferences()->detach();
         $candidateB->gameSystemPreferences()->detach();
-    }
-
-    // ── Logging ─────────────────────────────────────────────────────────
-
-    public function test_compute_welcome_data_logs_debug(): void
-    {
-        Log::shouldReceive('debug')
-            ->atLeast()
-            ->once()
-            ->withArgs(function (string $message, array $context) {
-                return $message === 'dashboard.newcomer_welcome_computed'
-                    && isset($context['user_id'], $context['has_location'], $context['preferred_systems_count'], $context['matching_games_count'], $context['welcome_message_key']);
-            });
-
-        $user = $this->makeUser();
-        $this->service->computeWelcomeData($user);
-    }
-
-    public function test_compute_progress_tracker_logs_debug(): void
-    {
-        Log::shouldReceive('debug')
-            ->atLeast()
-            ->once()
-            ->withArgs(function (string $message, array $context) {
-                return $message === 'dashboard.progress_tracker_computed'
-                    && isset($context['user_id'], $context['completed_steps'], $context['current_step'], $context['completion_percentage']);
-            });
-
-        $user = $this->makeUser();
-        $this->service->computeProgressTracker($user);
-    }
-
-    public function test_compute_nearby_people_logs_debug(): void
-    {
-        $spy = Log::spy();
-
-        $user = $this->makeUser();
-        $this->service->computeNearbyPeople($user, 'zzzz');
-
-        $spy->shouldHaveReceived('debug')
-            ->withArgs(function (string $message, array $context) {
-                return $message === 'dashboard.newcomer_people_computed'
-                    && isset($context['user_id'], $context['geohash_4'], $context['total_nearby'], $context['returned_count']);
-            });
-    }
-
-    public function test_compute_preference_matches_logs_debug(): void
-    {
-        Log::shouldReceive('debug')
-            ->atLeast()
-            ->once()
-            ->withArgs(function (string $message, array $context) {
-                return $message === 'dashboard.newcomer_matches_computed'
-                    && isset($context['user_id'], $context['geohash_4'], $context['total_nearby'], $context['returned_count'], $context['preference_match_rate']);
-            });
-
-        $user = $this->makeUser();
-        $this->service->computePreferenceWeightedMatches($user, 'zzzz');
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Services\DashboardQuickActionsService;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
@@ -21,6 +22,8 @@ use Tests\TestCase;
 
 class DashboardQuickActionsServiceTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private DashboardQuickActionsService $service;
 
     private GameSystem $gameSystem;

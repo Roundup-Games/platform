@@ -38,11 +38,14 @@ describe('ForOrganizersPage - i18n', function () {
 
 describe('ForOrganizersPage - Accessibility', function () {
     it('has proper heading hierarchy', function () {
-        get(route('for-organizers'))
-            ->assertOk()
-            ->assertSee('<h1', false)
-            ->assertSee('<h2', false)
-            ->assertSee('<h3', false);
+        $content = get(route('for-organizers'))->assertOk()->content();
+
+        // Assert real heading tags exist (not '<h1xyz' or substrings inside
+        // attribute values). The character class [\s>] matches both '<h1>'
+        // and '<h1 class=...>' but rejects '<h1foo'.
+        expect($content)->toMatch('/<h1[\s>]/')
+            ->toMatch('/<h2[\s>]/')
+            ->toMatch('/<h3[\s>]/');
     });
 
     it('decorative icons have aria-hidden on rendered page', function () {

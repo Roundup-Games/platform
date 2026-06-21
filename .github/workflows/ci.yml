@@ -75,6 +75,15 @@ jobs:
           php-version: '8.5'
           tools: composer:v2
           extensions: pdo_pgsql
+          # OPcache + JIT in CLI gives a measurable boot/per-test speedup
+          # across ~4,700 tests. The JIT buffer is small because each pest
+          # worker is short-lived; the win is from opcache itself.
+          ini-values: |
+            opcache.enable=1
+            opcache.enable_cli=1
+            opcache.jit=tracing
+            opcache.jit_buffer_size=64M
+            zend.assertions=-1
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -90,6 +99,10 @@ jobs:
           # CI installs. 'highest' would resolve fresh on each run and can pull
           # different versions than the lock pins.
           dependency-versions: locked
+          # classmap-authoritative is safe because deps are locked: no
+          # resolution ambiguity, faster autoloading for the test boot that
+          # every pest worker pays.
+          composer-options: --classmap-authoritative
 
       - name: Install JS dependencies
         run: npm ci
@@ -119,4 +132,10 @@ jobs:
       - name: Run tests
         env:
           DB_PASSWORD: postgres
-        run: vendor/bin/pest --ci
+        # --parallel: pest 4.x ships parallel support in-core
+        # (vendor/pestphp/pest/src/Plugins/Parallel.php). tests/bootstrap.php
+        # is already wired for it (PARATEST/TEST_TOKEN, primary worker owns
+        # the Testcontainers Postgres, siblings reuse it via a cache file).
+        # GitHub Actions ubuntu-latest has 4 vCPU — --parallel picks that
+        # automatically; --ci keeps the concise PR-friendly output.
+        run: vendor/bin/pest --ci --parallel

@@ -251,15 +251,12 @@ describe('FriendSearch — Dropdown Positioning', function () {
 
         $html = $component->html();
 
-        // Find the dropdown element with listbox role
-        preg_match('/class="([^"]*top-full[^"]*)"[^>]*role="listbox"/s', $html, $dropdownClasses);
-        if (empty($dropdownClasses)) {
-            // Try alternate: role="listbox" followed by class containing top-full
-            preg_match('/role="listbox"[^>]*class="([^"]*)"/s', $html, $dropdownClasses);
-        }
-        // Fallback: just look for the dropdown div that has both max-h-80 and overflow-y-auto
-        preg_match('/max-h-80\s+overflow-y-auto/s', $html, $scrollableClasses);
-        expect($scrollableClasses)->not->toBeEmpty('Dropdown should have max-h-80 and overflow-y-auto classes');
+        // Assert both scroll-affordance classes are present on the dropdown.
+        // Check independently rather than as an ordered adjacent pair —
+        // tailwind-merge, Blade class concatenation, or class reordering
+        // would break a `max-h-80\s+overflow-y-auto` regex without changing
+        // the actual scroll behaviour under test.
+        expect($html)->toContain('max-h-80')->toContain('overflow-y-auto');
     });
 
     test('closeDropdown sets isOpen to false', function () {

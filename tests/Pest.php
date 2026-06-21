@@ -6,6 +6,7 @@ use App\Models\Game;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -50,6 +51,50 @@ foreach ($unitDirsNeedingTransactions as $dir) {
         ->use(DatabaseTransactions::class)
         ->beforeEach(function () {
             URL::defaults(['locale' => 'en']);
+        })
+        ->in($dir);
+}
+
+/*
+| Unit dirs that need a booted Laravel container (config, translator, Blade,
+| views) but do NOT touch the database. They get TestCase + locale defaults
+| but NO DatabaseTransactions, avoiding ~50ms of per-test BEGIN/ROLLBACK
+| overhead to Testcontainers for tests that never write a row.
+|
+| ⚠️ LEAK RISK: any test added here that writes to the DB will NOT be wrapped
+| in a transaction and will leak into every subsequent test in the suite —
+| the same failure mode as a PHPUnit-style class missing the trait (MEM755).
+| Only add verified pure-logic, DB-free tests to these directories.
+*/
+$unitDirsContainerOnly = [
+    'Unit/Helpers',
+    'Unit/PostHog',
+    'Unit/Notifications',
+];
+
+foreach ($unitDirsContainerOnly as $dir) {
+    pest()->extend(TestCase::class)
+        ->beforeEach(function () {
+            URL::defaults(['locale' => 'en']);
+            // Mechanical leak guard: these dirs opt out of DatabaseTransactions
+            // for speed. Enable the query log so the afterEach assertion can
+            // catch any future DB write that would silently leak across the
+            // suite (and across --parallel sibling workers).
+            DB::enableQueryLog();
+        })
+        ->afterEach(function () {
+            $writes = array_filter(
+                DB::getQueryLog(),
+                fn (array $q) => (bool) preg_match(
+                    '/^\s*(insert|update|delete|create|drop|alter|truncate|replace|merge|upsert)\b/i',
+                    $q['query'] ?? ''
+                )
+            );
+            DB::disableQueryLog();
+            expect($writes)->toBeEmpty(
+                'DB write leaked from a container-only Unit test (no DatabaseTransactions). '
+                .'Move this test into Unit/Services or Unit/SEO, or add DatabaseTransactions.'
+            );
         })
         ->in($dir);
 }

@@ -4,62 +4,16 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\ShortLink;
 use App\Models\User;
-use App\Services\ShortLinkService;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 
 beforeEach(function () {
+    // Cache::flush is required: the cache-invalidation tests below write to
+    // literal keys like 'short_link:CACHE1'. Without a flush, entries from a
+    // prior test (or a sibling --parallel worker) survive and turn the
+    // expect(Cache::has(...))->toBeFalse() assertions into false passes.
+    Cache::flush();
     $this->gameSystem = GameSystem::factory()->create();
     $this->game = Game::factory()->create(['game_system_id' => $this->gameSystem->id]);
-});
-
-// ── Code generation (via ShortLinkService) ────────────
-
-describe('ShortLinkService — code generation', function () {
-    it('auto-generates a 7-char alphanumeric code via service', function () {
-        $user = User::factory()->create();
-        $service = app(ShortLinkService::class);
-        $link = $service->createLink($this->game, $user);
-
-        expect($link->code)->toBeString();
-        expect(strlen($link->code))->toBe(7);
-        expect(preg_match('/^[a-zA-Z0-9]+$/', $link->code))->toBe(1);
-    });
-
-    it('generates different codes for different links', function () {
-        $user = User::factory()->create();
-        $service = app(ShortLinkService::class);
-        $link1 = $service->createLink($this->game, $user);
-        $link2 = $service->createLink($this->game, $user);
-
-        expect($link1->code)->not->toBe($link2->code);
-    });
-
-    it('throws after 10 collision attempts in service', function () {
-        // Fill all possible code slots with existing links
-        Str::createRandomStringsUsing(fn (int $length) => 'AAAAAAA');
-        ShortLink::factory()->create([
-            'linkable_id' => $this->game->id,
-            'code' => 'AAAAAAA',
-        ]);
-
-        try {
-            $user = User::factory()->create();
-            $service = app(ShortLinkService::class);
-            expect(fn () => $service->createLink($this->game, $user))
-                ->toThrow(RuntimeException::class);
-        } finally {
-            Str::createRandomStringsUsing(null);
-        }
-    });
-
-    it('accepts an explicit code via service params', function () {
-        $user = User::factory()->create();
-        $service = app(ShortLinkService::class);
-        $link = $service->createLink($this->game, $user, ['code' => 'CUSTOM1']);
-
-        expect($link->code)->toBe('CUSTOM1');
-    });
 });
 
 // ── Cache invalidation ─────────────────────────────────

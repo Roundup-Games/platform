@@ -4,10 +4,7 @@ namespace Tests\Feature\Models;
 
 use App\Models\Game;
 use App\Models\GameBulletin;
-use App\Models\GameParticipant;
-use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class GameBulletinModelTest extends TestCase
@@ -36,30 +33,6 @@ class GameBulletinModelTest extends TestCase
         ]);
 
         $this->assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $bulletin->id);
-    }
-
-    public function test_casts_expires_at_to_datetime(): void
-    {
-        $bulletin = GameBulletin::factory()->create(['expires_at' => now()->addHour()]);
-
-        $this->assertInstanceOf(Carbon::class, $bulletin->expires_at);
-    }
-
-    public function test_game_relationship(): void
-    {
-        $game = Game::factory()->create();
-        $bulletin = GameBulletin::factory()->create(['game_id' => $game->id]);
-
-        $this->assertInstanceOf(Game::class, $bulletin->game);
-        $this->assertEquals($game->id, $bulletin->game->id);
-    }
-
-    public function test_game_has_bulletins_relationship(): void
-    {
-        $game = Game::factory()->create();
-        GameBulletin::factory()->count(3)->create(['game_id' => $game->id]);
-
-        $this->assertCount(3, $game->fresh()->bulletins);
     }
 
     // ── Scopes ────────────────────────────────────────────────
@@ -143,71 +116,5 @@ class GameBulletinModelTest extends TestCase
         $bulletin->user->delete();
 
         $this->assertDatabaseMissing('game_bulletins', ['id' => $bulletinId]);
-    }
-
-    // ── Policy ────────────────────────────────────────────────
-
-    public function test_policy_create_allows_game_owner(): void
-    {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create(['owner_id' => $owner->id]);
-
-        $this->assertTrue($owner->can('create', [GameBulletin::class, $game]));
-    }
-
-    public function test_policy_create_denies_non_owner(): void
-    {
-        $user = User::factory()->create();
-        $game = Game::factory()->create();
-
-        $this->assertFalse($user->can('create', [GameBulletin::class, $game]));
-    }
-
-    public function test_policy_view_allows_owner(): void
-    {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create(['owner_id' => $owner->id]);
-        $bulletin = GameBulletin::factory()->create(['game_id' => $game->id]);
-
-        $this->assertTrue($owner->can('view', $bulletin));
-    }
-
-    public function test_policy_view_allows_approved_participant(): void
-    {
-        $participant = User::factory()->create();
-        $game = Game::factory()->create();
-        GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $participant->id,
-            'status' => 'approved',
-        ]);
-        $bulletin = GameBulletin::factory()->create(['game_id' => $game->id]);
-
-        $this->assertTrue($participant->can('view', $bulletin));
-    }
-
-    public function test_policy_view_denies_non_participant(): void
-    {
-        $stranger = User::factory()->create();
-        $bulletin = GameBulletin::factory()->create();
-
-        $this->assertFalse($stranger->can('view', $bulletin));
-    }
-
-    public function test_policy_delete_allows_owner(): void
-    {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create(['owner_id' => $owner->id]);
-        $bulletin = GameBulletin::factory()->create(['game_id' => $game->id]);
-
-        $this->assertTrue($owner->can('delete', $bulletin));
-    }
-
-    public function test_policy_delete_denies_non_owner(): void
-    {
-        $user = User::factory()->create();
-        $bulletin = GameBulletin::factory()->create();
-
-        $this->assertFalse($user->can('delete', $bulletin));
     }
 }

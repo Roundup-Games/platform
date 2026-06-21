@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\Cache;
 
 use function Pest\Laravel\get;
 
+// Sitemap index + sub-sitemap contracts. Per-type positive inclusion and
+// per-type exclusion are each consolidated into a single Pest dataset
+// (covers + excludes below); per-type changefreq/priority assertions were
+// dropped because they re-state static config values. The 'XML Well-Formedness'
+// dataset exercises every sitemap route through simplexml_load_string.
+
 // ── Sitemap Index (/sitemap.xml) ───────────────────────
 
 describe('Sitemap Index', function () {
@@ -23,8 +29,7 @@ describe('Sitemap Index', function () {
     });
 
     it('returns valid XML sitemap index', function () {
-        $response = get('/sitemap.xml');
-        $content = $response->content();
+        $content = get('/sitemap.xml')->content();
 
         expect($content)->toStartWith('<?xml version="1.0" encoding="UTF-8"?>');
         expect($content)->toContain('<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
@@ -34,9 +39,7 @@ describe('Sitemap Index', function () {
     it('lists all expected sub-sitemaps', function () {
         $content = get('/sitemap.xml')->content();
 
-        $expectedTypes = ['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'];
-
-        foreach ($expectedTypes as $type) {
+        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'] as $type) {
             expect($content)->toContain("/sitemap-{$type}.xml");
         }
     });
@@ -44,7 +47,6 @@ describe('Sitemap Index', function () {
     it('includes lastmod for each sub-sitemap', function () {
         $content = get('/sitemap.xml')->content();
 
-        // Each <sitemap> block should contain a <lastmod> element
         preg_match_all('/<sitemap>(.*?)<\/sitemap>/s', $content, $blocks);
         expect($blocks[0])->toHaveCount(8);
 
@@ -56,11 +58,9 @@ describe('Sitemap Index', function () {
     it('caches the index on second request', function () {
         Cache::flush();
 
-        // First request builds and caches
         get('/sitemap.xml')->assertOk();
         $firstContent = get('/sitemap.xml')->content();
 
-        // Second request should return cached (same content)
         $secondContent = get('/sitemap.xml')->content();
         expect($secondContent)->toBe($firstContent);
     });
@@ -70,7 +70,6 @@ describe('Sitemap Index', function () {
 
 describe('Sub-Sitemap Routing', function () {
     it('returns non-200 for invalid sitemap type', function () {
-        // abort(404) in controller; may surface as 302 due to catch-all route
         $response = get('/sitemap-invalid.xml');
         expect($response->status())->not->toBe(200);
         expect($response->content())->not->toContain('<urlset');
@@ -83,9 +82,7 @@ describe('Sub-Sitemap Routing', function () {
     });
 
     it('returns 200 with XML content for each valid type', function () {
-        $types = ['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'];
-
-        foreach ($types as $type) {
+        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'] as $type) {
             get("/sitemap-{$type}.xml")
                 ->assertOk()
                 ->assertHeader('Content-Type', 'application/xml');
@@ -130,20 +127,68 @@ describe('Static Pages Sitemap', function () {
     });
 });
 
-// ── Game Systems Sitemap ──────────────────────────────
+// ── Positive inclusion: each indexable entity appears with both locale URLs ──
 
-describe('Game Systems Sitemap', function () {
-    it('includes game systems with en and de locale URLs', function () {
-        $system = GameSystem::factory()->create(['name' => ['en' => 'Sitemap Test System']]);
+dataset('sitemap_indexed_entities', [
+    'GameSystem' => [[
+        'sitemap' => '/sitemap-game-systems.xml',
+        'make' => fn () => GameSystem::factory()->create(['name' => ['en' => 'Sitemap Test System']]),
+        'url' => fn ($m) => "/game-systems/{$m->slug}",
+    ]],
+    'Event' => [[
+        'sitemap' => '/sitemap-events.xml',
+        'make' => fn () => Event::factory()->create([
+            'status' => 'published',
+            'is_public' => true,
+            'slug' => 'published-event-sitemap',
+        ]),
+        'url' => fn ($m) => "/events/{$m->slug}",
+    ]],
+    'Game' => [[
+        'sitemap' => '/sitemap-games.xml',
+        'make' => fn () => Game::factory()->create([
+            'visibility' => Visibility::Public,
+            'status' => 'scheduled',
+        ]),
+        'url' => fn ($m) => "/games/{$m->id}",
+    ]],
+    'Campaign' => [[
+        'sitemap' => '/sitemap-campaigns.xml',
+        'make' => fn () => Campaign::factory()->create([
+            'visibility' => Visibility::Public,
+            'status' => CampaignStatus::Active->value,
+        ]),
+        'url' => fn ($m) => "/campaigns/{$m->id}",
+    ]],
+    'Team' => [[
+        'sitemap' => '/sitemap-teams.xml',
+        'make' => fn () => Team::factory()->create(['is_active' => true]),
+        'url' => fn ($m) => "/teams/{$m->slug}",
+    ]],
+    'Profile' => [[
+        'sitemap' => '/sitemap-profiles.xml',
+        'make' => fn () => User::factory()->create([
+            'profile_complete' => true,
+            'slug' => 'test-user-profile',
+            'is_disabled' => false,
+        ]),
+        'url' => fn ($m) => "/u/{$m->slug}",
+    ]],
+]);
+
+describe('Sub-sitemap positive inclusion', function () {
+    it('includes each indexable entity with both en and de locale URLs', function (array $d) {
+        $model = ($d['make'])();
         $baseUrl = config('app.url');
+        $url = ($d['url'])($model);
 
-        $content = get('/sitemap-game-systems.xml')->content();
+        $content = get($d['sitemap'])->content();
 
-        expect($content)->toContain("{$baseUrl}/en/game-systems/{$system->slug}");
-        expect($content)->toContain("{$baseUrl}/de/game-systems/{$system->slug}");
-    });
+        expect($content)->toContain("{$baseUrl}/en{$url}");
+        expect($content)->toContain("{$baseUrl}/de{$url}");
+    })->with('sitemap_indexed_entities');
 
-    it('includes all game systems in the sitemap', function () {
+    it('includes every game system record in the sitemap', function () {
         $systems = GameSystem::factory()->count(3)->create();
 
         $content = get('/sitemap-game-systems.xml')->content();
@@ -151,34 +196,6 @@ describe('Game Systems Sitemap', function () {
         foreach ($systems as $system) {
             expect($content)->toContain("/game-systems/{$system->slug}");
         }
-    });
-
-    it('uses weekly changefreq and 0.7 priority', function () {
-        GameSystem::factory()->create();
-
-        $content = get('/sitemap-game-systems.xml')->content();
-
-        preg_match('/<url>.*?<\/url>/s', $content, $match);
-        expect($match[0])->toContain('<changefreq>weekly</changefreq>');
-        expect($match[0])->toContain('<priority>0.7</priority>');
-    });
-});
-
-// ── Events Sitemap ────────────────────────────────────
-
-describe('Events Sitemap', function () {
-    it('includes public published events with both locale URLs', function () {
-        $event = Event::factory()->create([
-            'status' => 'published',
-            'is_public' => true,
-            'slug' => 'published-event-sitemap',
-        ]);
-        $baseUrl = config('app.url');
-
-        $content = get('/sitemap-events.xml')->content();
-
-        expect($content)->toContain("{$baseUrl}/en/events/{$event->slug}");
-        expect($content)->toContain("{$baseUrl}/de/events/{$event->slug}");
     });
 
     it('includes events with valid public statuses', function ($status) {
@@ -191,219 +208,88 @@ describe('Events Sitemap', function () {
 
         expect($content)->toContain("/events/{$event->slug}");
     })->with(['registration_open', 'registration_closed', 'in_progress']);
-
-    it('excludes events with terminal or non-public statuses', function ($status, $isPublic) {
-        $event = Event::factory()->create([
-            'status' => $status,
-            'is_public' => $isPublic,
-        ]);
-
-        $content = get('/sitemap-events.xml')->content();
-
-        expect($content)->not->toContain("/events/{$event->slug}");
-    })->with([
-        ['draft', true],
-        ['cancelled', true],
-        ['published', false],
-    ]);
-
-    it('uses daily changefreq and 0.9 priority', function () {
-        Event::factory()->create([
-            'status' => 'published',
-            'is_public' => true,
-        ]);
-
-        $content = get('/sitemap-events.xml')->content();
-
-        preg_match('/<url>.*?<\/url>/s', $content, $match);
-        expect($match[0])->toContain('<changefreq>daily</changefreq>');
-        expect($match[0])->toContain('<priority>0.9</priority>');
-    });
 });
 
-// ── Games Sitemap ─────────────────────────────────────
+// ── Negative inclusion: each non-indexable state is excluded ────────────────
 
-describe('Games Sitemap', function () {
-    it('includes public games with both locale URLs', function () {
-        $game = Game::factory()->create([
-            'visibility' => Visibility::Public,
-            'status' => 'scheduled',
-        ]);
-        $baseUrl = config('app.url');
-
-        $content = get('/sitemap-games.xml')->content();
-
-        expect($content)->toContain("{$baseUrl}/en/games/{$game->id}");
-        expect($content)->toContain("{$baseUrl}/de/games/{$game->id}");
-    });
-
-    it('excludes private games', function () {
-        $game = Game::factory()->create([
-            'visibility' => Visibility::Private,
-        ]);
-
-        $content = get('/sitemap-games.xml')->content();
-
-        expect($content)->not->toContain("/games/{$game->id}");
-    });
-
-    it('excludes protected games', function () {
-        $game = Game::factory()->create([
-            'visibility' => Visibility::Protected,
-        ]);
-
-        $content = get('/sitemap-games.xml')->content();
-
-        expect($content)->not->toContain("/games/{$game->id}");
-    });
-
-    it('excludes canceled games', function () {
-        $game = Game::factory()->create([
+dataset('sitemap_excluded_states', [
+    'Event draft' => [[
+        'sitemap' => '/sitemap-events.xml',
+        'make' => fn () => Event::factory()->create(['status' => 'draft', 'is_public' => true]),
+        'url' => fn ($m) => "/events/{$m->slug}",
+    ]],
+    'Event cancelled' => [[
+        'sitemap' => '/sitemap-events.xml',
+        'make' => fn () => Event::factory()->create(['status' => 'cancelled', 'is_public' => true]),
+        'url' => fn ($m) => "/events/{$m->slug}",
+    ]],
+    'Event non-public' => [[
+        'sitemap' => '/sitemap-events.xml',
+        'make' => fn () => Event::factory()->create(['status' => 'published', 'is_public' => false]),
+        'url' => fn ($m) => "/events/{$m->slug}",
+    ]],
+    'Game private' => [[
+        'sitemap' => '/sitemap-games.xml',
+        'make' => fn () => Game::factory()->create(['visibility' => Visibility::Private]),
+        'url' => fn ($m) => "/games/{$m->id}",
+    ]],
+    'Game protected' => [[
+        'sitemap' => '/sitemap-games.xml',
+        'make' => fn () => Game::factory()->create(['visibility' => Visibility::Protected]),
+        'url' => fn ($m) => "/games/{$m->id}",
+    ]],
+    'Game canceled' => [[
+        'sitemap' => '/sitemap-games.xml',
+        'make' => fn () => Game::factory()->create([
             'visibility' => Visibility::Public,
             'status' => GameStatus::Canceled->value,
-        ]);
-
-        $content = get('/sitemap-games.xml')->content();
-
-        expect($content)->not->toContain("/games/{$game->id}");
-    });
-
-    it('uses daily changefreq and 0.8 priority', function () {
-        Game::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        $content = get('/sitemap-games.xml')->content();
-
-        preg_match('/<url>.*?<\/url>/s', $content, $match);
-        expect($match[0])->toContain('<changefreq>daily</changefreq>');
-        expect($match[0])->toContain('<priority>0.8</priority>');
-    });
-});
-
-// ── Campaigns Sitemap ─────────────────────────────────
-
-describe('Campaigns Sitemap', function () {
-    it('includes public active campaigns with both locale URLs', function () {
-        $campaign = Campaign::factory()->create([
-            'visibility' => Visibility::Public,
-            'status' => CampaignStatus::Active->value,
-        ]);
-        $baseUrl = config('app.url');
-
-        $content = get('/sitemap-campaigns.xml')->content();
-
-        expect($content)->toContain("{$baseUrl}/en/campaigns/{$campaign->id}");
-        expect($content)->toContain("{$baseUrl}/de/campaigns/{$campaign->id}");
-    });
-
-    it('excludes private campaigns', function () {
-        $campaign = Campaign::factory()->create([
-            'visibility' => Visibility::Private,
-        ]);
-
-        $content = get('/sitemap-campaigns.xml')->content();
-
-        expect($content)->not->toContain("/campaigns/{$campaign->id}");
-    });
-
-    it('excludes protected campaigns', function () {
-        $campaign = Campaign::factory()->create([
-            'visibility' => Visibility::Protected,
-        ]);
-
-        $content = get('/sitemap-campaigns.xml')->content();
-
-        expect($content)->not->toContain("/campaigns/{$campaign->id}");
-    });
-
-    it('excludes cancelled campaigns', function () {
-        $campaign = Campaign::factory()->create([
+        ]),
+        'url' => fn ($m) => "/games/{$m->id}",
+    ]],
+    'Campaign private' => [[
+        'sitemap' => '/sitemap-campaigns.xml',
+        'make' => fn () => Campaign::factory()->create(['visibility' => Visibility::Private]),
+        'url' => fn ($m) => "/campaigns/{$m->id}",
+    ]],
+    'Campaign protected' => [[
+        'sitemap' => '/sitemap-campaigns.xml',
+        'make' => fn () => Campaign::factory()->create(['visibility' => Visibility::Protected]),
+        'url' => fn ($m) => "/campaigns/{$m->id}",
+    ]],
+    'Campaign cancelled' => [[
+        'sitemap' => '/sitemap-campaigns.xml',
+        'make' => fn () => Campaign::factory()->create([
             'visibility' => Visibility::Public,
             'status' => CampaignStatus::Cancelled->value,
-        ]);
+        ]),
+        'url' => fn ($m) => "/campaigns/{$m->id}",
+    ]],
+    'Team inactive' => [[
+        'sitemap' => '/sitemap-teams.xml',
+        'make' => fn () => Team::factory()->create(['is_active' => false]),
+        'url' => fn ($m) => "/teams/{$m->slug}",
+    ]],
+    'Profile incomplete' => [[
+        'sitemap' => '/sitemap-profiles.xml',
+        'make' => fn () => User::factory()->create(['profile_complete' => false, 'is_disabled' => false]),
+        'url' => fn ($m) => "/u/{$m->slug}",
+    ]],
+    'Profile disabled' => [[
+        'sitemap' => '/sitemap-profiles.xml',
+        'make' => fn () => User::factory()->create(['profile_complete' => true, 'is_disabled' => true]),
+        'url' => fn ($m) => "/u/{$m->slug}",
+    ]],
+]);
 
-        $content = get('/sitemap-campaigns.xml')->content();
+describe('Sub-sitemap exclusion', function () {
+    it('excludes each non-indexable entity state from its sitemap', function (array $d) {
+        $model = ($d['make'])();
+        $url = ($d['url'])($model);
 
-        expect($content)->not->toContain("/campaigns/{$campaign->id}");
-    });
+        $content = get($d['sitemap'])->content();
 
-    it('uses weekly changefreq and 0.8 priority', function () {
-        Campaign::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        $content = get('/sitemap-campaigns.xml')->content();
-
-        preg_match('/<url>.*?<\/url>/s', $content, $match);
-        expect($match[0])->toContain('<changefreq>weekly</changefreq>');
-        expect($match[0])->toContain('<priority>0.8</priority>');
-    });
-});
-
-// ── Teams Sitemap ─────────────────────────────────────
-
-describe('Teams Sitemap', function () {
-    it('includes active teams with both locale URLs', function () {
-        $team = Team::factory()->create([
-            'is_active' => true,
-        ]);
-        $baseUrl = config('app.url');
-
-        $content = get('/sitemap-teams.xml')->content();
-
-        expect($content)->toContain("{$baseUrl}/en/teams/{$team->slug}");
-        expect($content)->toContain("{$baseUrl}/de/teams/{$team->slug}");
-    });
-
-    it('excludes inactive teams', function () {
-        $team = Team::factory()->create([
-            'is_active' => false,
-        ]);
-
-        $content = get('/sitemap-teams.xml')->content();
-
-        expect($content)->not->toContain("/teams/{$team->slug}");
-    });
-
-    it('uses weekly changefreq and 0.6 priority', function () {
-        Team::factory()->create(['is_active' => true]);
-
-        $content = get('/sitemap-teams.xml')->content();
-
-        preg_match('/<url>.*?<\/url>/s', $content, $match);
-        expect($match[0])->toContain('<changefreq>weekly</changefreq>');
-        expect($match[0])->toContain('<priority>0.6</priority>');
-    });
-});
-
-// ── Profiles Sitemap ──────────────────────────────────
-
-describe('Profiles Sitemap', function () {
-    it('includes complete public profiles with both locale URLs', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'slug' => 'test-user-profile',
-            'is_disabled' => false,
-        ]);
-        $baseUrl = config('app.url');
-
-        $content = get('/sitemap-profiles.xml')->content();
-
-        expect($content)->toContain("{$baseUrl}/en/u/{$user->slug}");
-        expect($content)->toContain("{$baseUrl}/de/u/{$user->slug}");
-    });
-
-    it('excludes users with incomplete profiles', function () {
-        $user = User::factory()->create([
-            'profile_complete' => false,
-            'is_disabled' => false,
-        ]);
-
-        $content = get('/sitemap-profiles.xml')->content();
-
-        expect($content)->not->toContain("/u/{$user->slug}");
-    });
+        expect($content)->not->toContain($url);
+    })->with('sitemap_excluded_states');
 
     it('excludes users without a slug', function () {
         $user = User::factory()->create([
@@ -414,33 +300,7 @@ describe('Profiles Sitemap', function () {
 
         $content = get('/sitemap-profiles.xml')->content();
 
-        // slug is null, so no /u/ URL should reference this user's name
-        // Check that the user's name is not in a profile URL context
         expect($content)->not->toContain("/u/{$user->name}");
-    });
-
-    it('excludes disabled users', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'is_disabled' => true,
-        ]);
-
-        $content = get('/sitemap-profiles.xml')->content();
-
-        expect($content)->not->toContain("/u/{$user->slug}");
-    });
-
-    it('uses weekly changefreq and 0.5 priority', function () {
-        User::factory()->create([
-            'profile_complete' => true,
-            'is_disabled' => false,
-        ]);
-
-        $content = get('/sitemap-profiles.xml')->content();
-
-        preg_match('/<url>.*?<\/url>/s', $content, $match);
-        expect($match[0])->toContain('<changefreq>weekly</changefreq>');
-        expect($match[0])->toContain('<priority>0.5</priority>');
     });
 });
 
@@ -454,10 +314,8 @@ describe('Cache Invalidation', function () {
         $firstContent = get('/sitemap-game-systems.xml')->content();
         expect($firstContent)->toContain("/game-systems/{$system1->slug}");
 
-        // Invalidate cache
         Cache::forget('seo:sitemap:game-systems');
 
-        // Create a new system after invalidation
         $system2 = GameSystem::factory()->create(['name' => ['en' => 'After Invalidation']]);
 
         $secondContent = get('/sitemap-game-systems.xml')->content();
@@ -470,7 +328,6 @@ describe('Cache Invalidation', function () {
 
 describe('XML Well-Formedness', function () {
     it('all sitemap types produce well-formed XML with correct root element', function ($path, $expectedRoot) {
-        // Seed at least one record for entity sitemaps
         if (str_contains($path, 'game-systems')) {
             GameSystem::factory()->create();
         } elseif (str_contains($path, 'events')) {

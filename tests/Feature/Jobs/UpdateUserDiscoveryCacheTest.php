@@ -34,11 +34,15 @@ class UpdateUserDiscoveryCacheTest extends TestCase
             'profile_complete' => true,
         ]);
 
-        Log::shouldReceive('info')->atLeast(2);
-        Log::shouldReceive('debug')->atLeast(0);
+        // Use a spy (not strict shouldReceive) so an incidental Log::warning emitted
+        // under anomalous sibling-test DB state cannot fail this test. The intent here
+        // is to verify cache population + an info line, not to forbid other log levels.
+        Log::spy();
 
         $job = new UpdateUserDiscoveryCache($user->id, 'location_change');
         $job->handle(app(PeopleDiscoveryService::class));
+
+        Log::shouldHaveReceived('info')->atLeast(2);
 
         $view = NearbyDiscoveryView::where('user_id', $user->id)->first();
         $this->assertNotNull($view);

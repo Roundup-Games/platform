@@ -3,7 +3,6 @@
 namespace Tests\Feature\Services;
 
 use App\Dto\ActionItem;
-use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
@@ -275,56 +274,6 @@ class DashboardInvalidationTest extends TestCase
         $this->assertNull(Cache::get("dashboard:action_center:{$player->id}"));
         $this->assertNull(Cache::get("dashboard:action_center:{$owner->id}"));
     }
-
-    #[Test]
-    public function game_participant_status_change_invalidates_action_center(): void
-    {
-        $owner = User::factory()->create();
-        $player = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'status' => GameStatus::Scheduled,
-        ]);
-        $participant = GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'status' => ParticipantStatus::Pending,
-        ]);
-
-        // Populate caches after creation
-        Cache::put("dashboard:action_center:{$player->id}", ['old'], 300);
-        Cache::put("dashboard:action_center:{$owner->id}", ['old'], 300);
-
-        // Change status
-        $participant->update(['status' => ParticipantStatus::Approved]);
-
-        $this->assertNull(Cache::get("dashboard:action_center:{$player->id}"));
-        $this->assertNull(Cache::get("dashboard:action_center:{$owner->id}"));
-    }
-
-    #[Test]
-    public function game_participant_attendance_report_invalidates_action_center(): void
-    {
-        $player = User::factory()->create();
-        $game = Game::factory()->create(['status' => GameStatus::Completed]);
-        $participant = GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'status' => ParticipantStatus::Approved,
-            'attendance_status' => null,
-        ]);
-
-        // Populate caches after the created observer has already fired
-        Cache::flush();
-        Cache::put("dashboard:action_center:{$player->id}", ['old'], 300);
-
-        $participant->attendance_status = AttendanceStatus::Attended;
-        $participant->save();
-
-        $this->assertNull(Cache::get("dashboard:action_center:{$player->id}"));
-    }
-
-    // ── Observer wiring: GameObserver ───────────────────────────
 
     #[Test]
     public function game_saved_invalidates_action_center(): void

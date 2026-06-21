@@ -164,7 +164,7 @@ describe('GameDetail Session Zero Link', function () {
             ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('activeSessionZero')
             ->assertSee('Session Zero for This Game')
-            ->assertSee('View Session Zero');
+            ->assertSee(__('session_zero.action_view_session_zero'));
     });
 
     it('shows Session Zero link to game owner', function () {
@@ -296,7 +296,7 @@ describe('GameDetail Session Zero Link', function () {
         Livewire\Livewire::actingAs($player)
             ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('isSessionZeroConfirmed', true)
-            ->assertSee('You have confirmed reading this Session Zero');
+            ->assertSee(__('session_zero.confirmation_confirmed'));
     });
 
     it('does not show confirmed badge when user has not confirmed', function () {

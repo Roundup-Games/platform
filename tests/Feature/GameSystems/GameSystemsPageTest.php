@@ -311,9 +311,11 @@ describe('GameSystemsPage - i18n', function () {
 
 describe('GameSystemsPage - Accessibility', function () {
     it('has proper h1 heading', function () {
-        get(route('game-systems'))
-            ->assertOk()
-            ->assertSee('<h1', false);
+        $content = get(route('game-systems'))->assertOk()->content();
+
+        // Assert a real h1 tag exists (not '<h1xyz' or a substring inside
+        // an attribute value). [\s>] matches both '<h1>' and '<h1 class=...>'.
+        expect($content)->toMatch('/<h1[\s>]/');
     });
 
     it('search input has aria-label', function () {

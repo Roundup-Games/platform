@@ -24,6 +24,7 @@ function createGateTestUser(array $overrides = []): User
     ], $overrides));
     setPermissionsTeamId(1);
     $user->givePermissionTo('create game');
+    $user->givePermissionTo('create campaign');
     $user->unsetRelations();
     setPermissionsTeamId(1);
 
@@ -45,6 +46,7 @@ function createGateTestGM(array $overrides = []): User
     setPermissionsTeamId(1);
     $user->assignRole('Game Master');
     $user->givePermissionTo('create game');
+    $user->givePermissionTo('create campaign');
     $user->unsetRelations();
     setPermissionsTeamId(1);
 
@@ -52,192 +54,72 @@ function createGateTestGM(array $overrides = []): User
 }
 
 // ═══════════════════════════════════════════════════════════
-// GAME CREATION — BENCH_MODE GATE
+// CREATION GATE — GM-permission contract for bench_mode
+// Collapses 4 CreateGame + 4 CreateCampaign mirror tests into a single
+// parameterized matrix: {GM, Non-GM} × {game, campaign} × {true, false}.
+// Non-GM×true cells assert forced-false + security warning; all others
+// assert stored-as-requested.
 // ═══════════════════════════════════════════════════════════
 
-describe('CreateGame — bench_mode GM gate', function () {
-    it('non-GM user with bench_mode=false gets bench_mode=false in DB (default)', function () {
-        $user = createGateTestUser();
+it('honors the GM/non-GM × entity × bench-mode matrix on creation', function (
+    bool $isGM,
+    string $entityType,
+    bool $requested,
+    bool $expectedStored,
+    bool $expectsWarning,
+) {
+    $user = $isGM ? createGateTestGM() : createGateTestUser();
+    $name = sprintf('%s-%s-%s', $isGM ? 'gm' : 'nongm', $entityType, $requested ? 'bench' : 'nobench');
 
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', 'Non-GM Default')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 4)
-            ->set('bench_mode', false)
-            ->call('save')
-            ->assertRedirect();
-
-        $game = Game::where('owner_id', $user->id)->firstOrFail();
-        expect($game->getTranslation('name', 'en'))->toBe('Non-GM Default');
-        expect($game->bench_mode)->toBeFalse();
-    });
-
-    it('non-GM user attempting bench_mode=true gets silently forced to false', function () {
-        $user = createGateTestUser();
-
+    if ($expectsWarning) {
         Log::spy();
+    }
 
+    if ($entityType === 'game') {
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
-            ->call('selectType', 'ttrpg')
-            ->set('name', 'Tampered Game')
+            ->call('selectType', $requested ? 'ttrpg' : 'board_game')
+            ->set('name', $name)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 4)
-            ->set('bench_mode', true)
+            ->set('bench_mode', $requested)
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::where('owner_id', $user->id)->firstOrFail();
-        expect($game->getTranslation('name', 'en'))->toBe('Tampered Game');
-        expect($game->bench_mode)->toBeFalse();
+        $entity = Game::where('owner_id', $user->id)->firstOrFail();
+    } else {
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateCampaign::class)
+            ->set('name', $name)
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('max_players', 4)
+            ->set('bench_mode', $requested)
+            ->call('save')
+            ->assertRedirect();
 
-        // Verify the security warning was logged
+        $entity = Campaign::where('owner_id', $user->id)->firstOrFail();
+    }
+
+    expect($entity->getTranslation('name', 'en'))->toBe($name)
+        ->and($entity->bench_mode)->toBe($expectedStored);
+
+    if ($expectsWarning) {
         Log::shouldHaveReceived('warning')
-            ->with('Non-GM user attempted to enable bench_mode on game creation', Mockery::on(function ($ctx) use ($user) {
-                return isset($ctx['user_id']) && $ctx['user_id'] === $user->id;
+            ->with("Non-GM user attempted to enable bench_mode on {$entityType} creation", Mockery::on(function ($ctx) use ($user) {
+                return isset($ctx['user_id']) && $ctx['user_id'] === $user->id
+                    && isset($ctx['attempted_bench_mode']) && $ctx['attempted_bench_mode'] === true;
             }))
             ->once();
-    });
-
-    it('GM user can set bench_mode=true freely', function () {
-        $user = createGateTestGM();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'ttrpg')
-            ->set('name', 'GM Bench Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 4)
-            ->set('bench_mode', true)
-            ->call('save')
-            ->assertRedirect();
-
-        $game = Game::where('owner_id', $user->id)->firstOrFail();
-        expect($game->getTranslation('name', 'en'))->toBe('GM Bench Game');
-        expect($game->bench_mode)->toBeTrue();
-    });
-
-    it('GM user can set bench_mode=false', function () {
-        $user = createGateTestGM();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', 'GM No Bench')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 4)
-            ->set('bench_mode', false)
-            ->call('save')
-            ->assertRedirect();
-
-        $game = Game::where('owner_id', $user->id)->firstOrFail();
-        expect($game->getTranslation('name', 'en'))->toBe('GM No Bench');
-        expect($game->bench_mode)->toBeFalse();
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// CAMPAIGN CREATION — BENCH_MODE GATE
-// ═══════════════════════════════════════════════════════════
-
-describe('CreateCampaign — bench_mode GM gate', function () {
-    it('non-GM user with bench_mode=false gets bench_mode=false in DB', function () {
-        $user = createGateTestUser();
-        // Campaigns need 'create campaign' permission
-        setPermissionsTeamId(1);
-        $user->givePermissionTo('create campaign');
-        $user->unsetRelations();
-        setPermissionsTeamId(1);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateCampaign::class)
-            ->set('name', 'Non-GM Campaign')
-            ->set('recurrence', 'weekly')
-            ->set('time_of_day', '19:00')
-            ->set('max_players', 4)
-            ->set('bench_mode', false)
-            ->call('save')
-            ->assertRedirect();
-
-        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
-        expect($campaign->getTranslation('name', 'en'))->toBe('Non-GM Campaign');
-        expect($campaign->bench_mode)->toBeFalse();
-    });
-
-    it('non-GM user attempting bench_mode=true gets silently forced to false', function () {
-        $user = createGateTestUser();
-        setPermissionsTeamId(1);
-        $user->givePermissionTo('create campaign');
-        $user->unsetRelations();
-        setPermissionsTeamId(1);
-
-        Log::spy();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateCampaign::class)
-            ->set('name', 'Tampered Campaign')
-            ->set('recurrence', 'weekly')
-            ->set('time_of_day', '19:00')
-            ->set('max_players', 4)
-            ->set('bench_mode', true)
-            ->call('save')
-            ->assertRedirect();
-
-        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
-        expect($campaign->getTranslation('name', 'en'))->toBe('Tampered Campaign');
-        expect($campaign->bench_mode)->toBeFalse();
-
-        // Verify the security warning was logged
-        Log::shouldHaveReceived('warning')
-            ->with('Non-GM user attempted to enable bench_mode on campaign creation', Mockery::on(function ($ctx) use ($user) {
-                return isset($ctx['user_id']) && $ctx['user_id'] === $user->id;
-            }))
-            ->once();
-    });
-
-    it('GM user can set bench_mode=true freely', function () {
-        $user = createGateTestGM();
-        setPermissionsTeamId(1);
-        $user->givePermissionTo('create campaign');
-        $user->unsetRelations();
-        setPermissionsTeamId(1);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateCampaign::class)
-            ->set('name', 'GM Bench Campaign')
-            ->set('recurrence', 'weekly')
-            ->set('time_of_day', '19:00')
-            ->set('max_players', 4)
-            ->set('bench_mode', true)
-            ->call('save')
-            ->assertRedirect();
-
-        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
-        expect($campaign->getTranslation('name', 'en'))->toBe('GM Bench Campaign');
-        expect($campaign->bench_mode)->toBeTrue();
-    });
-
-    it('GM user can set bench_mode=false', function () {
-        $user = createGateTestGM();
-        setPermissionsTeamId(1);
-        $user->givePermissionTo('create campaign');
-        $user->unsetRelations();
-        setPermissionsTeamId(1);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateCampaign::class)
-            ->set('name', 'GM No Bench Campaign')
-            ->set('recurrence', 'weekly')
-            ->set('time_of_day', '19:00')
-            ->set('max_players', 4)
-            ->set('bench_mode', false)
-            ->call('save')
-            ->assertRedirect();
-
-        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
-        expect($campaign->getTranslation('name', 'en'))->toBe('GM No Bench Campaign');
-        expect($campaign->bench_mode)->toBeFalse();
-    });
-});
+    }
+})->with([
+    // [isGM, entityType, requested, expectedStored, expectsWarning]
+    'GM game bench_mode=true stored true' => [true,  'game',     true,  true,  false],
+    'GM game bench_mode=false stored false' => [true,  'game',     false, false, false],
+    'Non-GM game bench_mode=true forced false + warn' => [false, 'game',     true,  false, true],
+    'Non-GM game bench_mode=false stored false' => [false, 'game',     false, false, false],
+    'GM campaign bench_mode=true stored true' => [true,  'campaign', true,  true,  false],
+    'GM campaign bench_mode=false stored false' => [true,  'campaign', false, false, false],
+    'Non-GM campaign bench_mode=true forced false + warn' => [false, 'campaign', true,  false, true],
+    'Non-GM campaign bench_mode=false stored false' => [false, 'campaign', false, false, false],
+]);

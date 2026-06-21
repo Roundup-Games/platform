@@ -2,13 +2,16 @@
 
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Enums\VenueType;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
+use App\Models\Location;
 use App\Models\Review;
 use App\Models\User;
+use App\Policies\ReviewPolicy;
 use App\Services\ReviewEligibilityService;
 use Illuminate\Support\Facades\Gate;
 
@@ -18,6 +21,7 @@ beforeEach(function () {
     setPermissionsTeamId(1);
 
     $this->service = app(ReviewEligibilityService::class);
+    $this->policy = app(ReviewPolicy::class);
     $this->gmUser = User::factory()->create();
     $this->gmProfile = GMProfile::factory()->create(['user_id' => $this->gmUser->id]);
     $this->reviewer = User::factory()->create();
@@ -93,6 +97,71 @@ describe('ReviewPolicy', function () {
 
             expect(Gate::allows('report', $review))->toBeFalse();
         })->group('smoke');
+    });
+
+    // Migrated from ReviewPolicyEligibilityTest — venue + viewEligibility are the
+    // only ReviewPolicy methods not covered by the ReviewEligibilityService block below.
+    describe('canReviewVenue', function () {
+        test('eligible approved participant of completed game at venue can review', function () {
+            $venue = Location::factory()->verifiedVenue()->create([
+                'venue_type' => VenueType::Cafe,
+                'slug' => fake()->unique()->slug(),
+            ]);
+
+            $game = Game::factory()->create([
+                'owner_id' => $this->gmUser->id,
+                'location_id' => $venue->id,
+                'date_time' => now()->subDay(),
+            ]);
+
+            GameParticipant::create([
+                'game_id' => $game->id,
+                'user_id' => $this->reviewer->id,
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
+            ]);
+
+            expect($this->policy->canReviewVenue($this->reviewer, $venue))->toBeTrue();
+        });
+
+        test('ineligible user cannot review venue', function () {
+            $venue = Location::factory()->verifiedVenue()->create([
+                'venue_type' => VenueType::Cafe,
+                'slug' => fake()->unique()->slug(),
+            ]);
+
+            $other = User::factory()->create();
+            expect($this->policy->canReviewVenue($other, $venue))->toBeFalse();
+        });
+
+        test('admin bypass applies to canReviewVenue', function () {
+            $venue = Location::factory()->verifiedVenue()->create([
+                'venue_type' => VenueType::Cafe,
+                'slug' => fake()->unique()->slug(),
+            ]);
+
+            $this->actingAs($this->admin);
+            // Routed through the Gate so the policy before() global-admin bypass fires.
+            // ReviewPolicy is resolved by passing [Review::class, $venue] — the production
+            // invocation pattern from WriteReview — even though the reviewable is a Location.
+            expect(Gate::allows('canReviewVenue', [Review::class, $venue]))->toBeTrue();
+        });
+    });
+
+    describe('viewEligibility', function () {
+        test('authenticated user can view their own eligibility', function () {
+            $this->actingAs($this->reviewer);
+            expect(Gate::allows('viewEligibility', Review::class))->toBeTrue();
+        });
+
+        test('admin bypass applies to viewEligibility', function () {
+            $this->actingAs($this->admin);
+            expect(Gate::allows('viewEligibility', Review::class))->toBeTrue();
+        });
+
+        test('guest cannot view eligibility', function () {
+            expect(Gate::allows('viewEligibility', Review::class))->toBeFalse();
+        });
     });
 });
 

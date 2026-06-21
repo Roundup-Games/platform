@@ -44,19 +44,19 @@ describe('User Policy', function () {
     });
 
     describe('viewAny', function () {
-        test('user with view user permission can viewAny', function () {
-            setPermissionsTeamId(1);
-            $this->regularUser->givePermissionTo('view user');
-            $this->regularUser->unsetRelations();
+        test('viewAny is gated by view user permission', function (bool $grantPermission, bool $expected) {
+            if ($grantPermission) {
+                setPermissionsTeamId(1);
+                $this->regularUser->givePermissionTo('view user');
+                $this->regularUser->unsetRelations();
+            }
 
             $this->actingAs($this->regularUser);
-            expect(Gate::allows('viewAny', User::class))->toBeTrue();
-        });
-
-        test('user without permission cannot viewAny', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('viewAny', User::class))->toBeFalse();
-        });
+            expect(Gate::allows('viewAny', User::class))->toBe($expected);
+        })->with([
+            'user with view user permission can viewAny' => [true, true],
+            'user without permission cannot viewAny' => [false, false],
+        ]);
     });
 
     describe('view', function () {
@@ -108,18 +108,18 @@ describe('User Policy', function () {
     });
 
     describe('create', function () {
-        test('user with create user permission can create', function () {
-            setPermissionsTeamId(1);
-            $this->regularUser->givePermissionTo('create user');
-            $this->regularUser->unsetRelations();
+        test('create is gated by create user permission', function (bool $grantPermission, bool $expected) {
+            if ($grantPermission) {
+                setPermissionsTeamId(1);
+                $this->regularUser->givePermissionTo('create user');
+                $this->regularUser->unsetRelations();
+            }
 
             $this->actingAs($this->regularUser);
-            expect(Gate::allows('create', User::class))->toBeTrue();
-        });
-
-        test('user without permission cannot create user', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('create', User::class))->toBeFalse();
-        });
+            expect(Gate::allows('create', User::class))->toBe($expected);
+        })->with([
+            'user with create user permission can create' => [true, true],
+            'user without permission cannot create user' => [false, false],
+        ]);
     });
 });

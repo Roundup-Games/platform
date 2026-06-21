@@ -17,6 +17,18 @@ use App\Services\ReviewEligibilityService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
+/*
+ * Surviving slice of ReviewEligibilityServiceTest. The common eligibility
+ * scenarios (approved/pending/rejected/non-participant/future/already-reviewed
+ * for session + campaign; mixed/empty getEligibleReviews) are duplicated by
+ * tests/Feature/Policies/ReviewPolicyTest.php, which exercises the service
+ * directly inside its `describe('ReviewEligibilityService', ...)` block.
+ *
+ * What remains here are the venue-specific and owner-specific edge cases that
+ * the policy file does NOT yet cover. They should be migrated into the policy
+ * file's `describe('canReviewVenue', ...)` / `describe('canReviewSession')`
+ * blocks by the Policies/ cluster agent.
+ */
 class ReviewEligibilityServiceTest extends TestCase
 {
     use DatabaseTransactions;
@@ -29,208 +41,7 @@ class ReviewEligibilityServiceTest extends TestCase
         $this->service = app(ReviewEligibilityService::class);
     }
 
-    // ── canReviewSession ───────────────────────────────
-
-    /** Scenario 1: approved participant of past game, no existing review → true */
-    public function test_can_review_session_eligible(): void
-    {
-        $gm = User::factory()->create();
-        $user = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'date_time' => now()->subDay(),
-        ]);
-        GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        $this->assertTrue($this->service->canReviewSession($user, $game));
-    }
-
-    /** Scenario 2: user is not a participant → false */
-    public function test_can_review_session_not_participant(): void
-    {
-        $gm = User::factory()->create();
-        $user = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'date_time' => now()->subDay(),
-        ]);
-
-        $this->assertFalse($this->service->canReviewSession($user, $game));
-    }
-
-    /** Scenario 3: game date_time is in the future → false */
-    public function test_can_review_session_future_game(): void
-    {
-        $gm = User::factory()->create();
-        $user = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'date_time' => now()->addDay(),
-        ]);
-        GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        $this->assertFalse($this->service->canReviewSession($user, $game));
-    }
-
-    /** Scenario 4: user already has a review for this game → false */
-    public function test_can_review_session_already_reviewed(): void
-    {
-        $gm = User::factory()->create();
-        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
-        $user = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'date_time' => now()->subDay(),
-        ]);
-        GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'status' => ParticipantStatus::Approved,
-        ]);
-        Review::factory()->create([
-            'reviewable_type' => Game::class,
-            'reviewable_id' => $game->id,
-            'reviewer_id' => $user->id,
-            'gm_profile_id' => $gmProfile->id,
-        ]);
-
-        $this->assertFalse($this->service->canReviewSession($user, $game));
-    }
-
-    /** Scenario 5: user has pending (not approved) status → false */
-    public function test_can_review_session_pending_participant(): void
-    {
-        $gm = User::factory()->create();
-        $user = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'date_time' => now()->subDay(),
-        ]);
-        GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'status' => ParticipantStatus::Pending,
-        ]);
-
-        $this->assertFalse($this->service->canReviewSession($user, $game));
-    }
-
-    // ── canReviewCampaign ──────────────────────────────
-
-    /** Scenario 6: approved participant, campaign has completed session, no review → true */
-    public function test_can_review_campaign_eligible(): void
-    {
-        $gm = User::factory()->create();
-        $user = User::factory()->create();
-        $campaign = Campaign::factory()->create(['owner_id' => $gm->id]);
-        Game::factory()->create([
-            'owner_id' => $gm->id,
-            'campaign_id' => $campaign->id,
-            'date_time' => now()->subDay(),
-        ]);
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        $this->assertTrue($this->service->canReviewCampaign($user, $campaign));
-    }
-
-    /** Scenario 7: all campaign games are in the future → false */
-    public function test_can_review_campaign_no_completed_session(): void
-    {
-        $gm = User::factory()->create();
-        $user = User::factory()->create();
-        $campaign = Campaign::factory()->create(['owner_id' => $gm->id]);
-        Game::factory()->create([
-            'owner_id' => $gm->id,
-            'campaign_id' => $campaign->id,
-            'date_time' => now()->addDay(),
-        ]);
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        $this->assertFalse($this->service->canReviewCampaign($user, $campaign));
-    }
-
-    /** Scenario 8: user is not a campaign participant → false */
-    public function test_can_review_campaign_not_participant(): void
-    {
-        $gm = User::factory()->create();
-        $user = User::factory()->create();
-        $campaign = Campaign::factory()->create(['owner_id' => $gm->id]);
-        Game::factory()->create([
-            'owner_id' => $gm->id,
-            'campaign_id' => $campaign->id,
-            'date_time' => now()->subDay(),
-        ]);
-
-        $this->assertFalse($this->service->canReviewCampaign($user, $campaign));
-    }
-
-    /** Scenario 9: user already reviewed this campaign → false */
-    public function test_can_review_campaign_already_reviewed(): void
-    {
-        $gm = User::factory()->create();
-        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
-        $user = User::factory()->create();
-        $campaign = Campaign::factory()->create(['owner_id' => $gm->id]);
-        Game::factory()->create([
-            'owner_id' => $gm->id,
-            'campaign_id' => $campaign->id,
-            'date_time' => now()->subDay(),
-        ]);
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved,
-        ]);
-        Review::factory()->create([
-            'reviewable_type' => Campaign::class,
-            'reviewable_id' => $campaign->id,
-            'reviewer_id' => $user->id,
-            'gm_profile_id' => $gmProfile->id,
-        ]);
-
-        $this->assertFalse($this->service->canReviewCampaign($user, $campaign));
-    }
-
-    // ── canReviewVenue ─────────────────────────────────
-
-    /** Venue eligible: approved participant of a COMPLETED game at the venue → true */
-    public function test_can_review_venue_approved_completed_game_participant(): void
-    {
-        $gm = User::factory()->create();
-        $user = User::factory()->create();
-        $venue = $this->verifiedVenue();
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'location_id' => $venue->id,
-            'date_time' => now()->subDay(),
-        ]);
-        GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        $this->assertTrue($this->service->canReviewVenue($user, $venue));
-    }
+    // ── canReviewVenue — edge cases not in ReviewPolicyTest ───────────
 
     /** Venue eligible: approved campaign participant at the venue WITH a past session → true */
     public function test_can_review_venue_approved_campaign_participant_with_past_session(): void
@@ -274,15 +85,6 @@ class ReviewEligibilityServiceTest extends TestCase
             'user_id' => $user->id,
             'status' => ParticipantStatus::Approved,
         ]);
-
-        $this->assertFalse($this->service->canReviewVenue($user, $venue));
-    }
-
-    /** Venue ineligible: non-participant → false */
-    public function test_can_review_venue_non_participant(): void
-    {
-        $user = User::factory()->create();
-        $venue = $this->verifiedVenue();
 
         $this->assertFalse($this->service->canReviewVenue($user, $venue));
     }
@@ -331,7 +133,7 @@ class ReviewEligibilityServiceTest extends TestCase
         $this->assertFalse($this->service->canReviewVenue($user, $venue));
     }
 
-    /** Venue gate: UNVERIFIED commercial location → false (isPublicVenuePage authority) */
+    /** Venue gate: UNVERIFIED commercial location → false (isPublicVenuePage authority / MEM717) */
     public function test_can_review_venue_unverified_location_rejected_by_gate(): void
     {
         $gm = User::factory()->create();
@@ -379,9 +181,84 @@ class ReviewEligibilityServiceTest extends TestCase
         $this->assertFalse($this->service->canReviewVenue($user, $location));
     }
 
-    // ── getEligibleReviews ─────────────────────────────
+    // ── Owner-edge cases not in ReviewPolicyTest ──────────────────────
 
-    /** Scenario 10: 3 completed games (reviewed 1) + 2 campaigns (reviewed 0) → 2 game + 2 campaign entries */
+    /** Scenario: game owner who is also an approved participant can review */
+    public function test_can_review_session_owner_is_approved_participant(): void
+    {
+        $owner = User::factory()->create();
+        $gm = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $gm->id,
+            'date_time' => now()->subDay(),
+        ]);
+        // Owner plays in their own game as a participant
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'status' => ParticipantStatus::Approved,
+        ]);
+
+        $this->assertTrue($this->service->canReviewSession($owner, $game));
+    }
+
+    /** Scenario: game owner who is NOT a participant cannot review */
+    public function test_can_review_session_owner_not_participant(): void
+    {
+        $owner = User::factory()->create();
+        $gm = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $gm->id,
+            'date_time' => now()->subDay(),
+        ]);
+
+        $this->assertFalse($this->service->canReviewSession($owner, $game));
+    }
+
+    /** Scenario: campaign owner should NOT be able to review own campaign */
+    public function test_can_review_campaign_owner_cannot_review_own(): void
+    {
+        $owner = User::factory()->create();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'status' => 'active',
+        ]);
+        CampaignParticipant::factory()->create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $owner->id,
+            'status' => ParticipantStatus::Approved,
+        ]);
+
+        Game::factory()->create([
+            'campaign_id' => $campaign->id,
+            'owner_id' => $owner->id,
+            'date_time' => now()->subDay(),
+        ]);
+
+        $this->assertFalse($this->service->canReviewCampaign($owner, $campaign));
+    }
+
+    /** Scenario: game host/owner should NOT be able to review own game session */
+    public function test_can_review_session_host_cannot_review_own(): void
+    {
+        $host = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->subDay(),
+        ]);
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $host->id,
+            'status' => ParticipantStatus::Approved,
+            'role' => ParticipantRole::Owner,
+        ]);
+
+        $this->assertFalse($this->service->canReviewSession($host, $game));
+    }
+
+    // ── getEligibleReviews — detailed mixed case not in ReviewPolicyTest ──
+
+    /** 3 completed games (1 reviewed) + 2 campaigns → 2 game + 2 campaign entries */
     public function test_get_eligible_reviews_mixed(): void
     {
         $gm = User::factory()->create();
@@ -453,117 +330,6 @@ class ReviewEligibilityServiceTest extends TestCase
             $this->assertArrayHasKey('reviewable_id', $entry);
             $this->assertArrayHasKey('reviewable', $entry);
         }
-    }
-
-    /** Scenario 11: user has no participations → empty collection */
-    public function test_get_eligible_reviews_empty(): void
-    {
-        $user = User::factory()->create();
-
-        $eligible = $this->service->getEligibleReviews($user);
-
-        $this->assertCount(0, $eligible);
-        $this->assertTrue($eligible->isEmpty());
-    }
-
-    /** Scenario: game owner who is also an approved participant can review */
-    public function test_can_review_session_owner_is_approved_participant(): void
-    {
-        $owner = User::factory()->create();
-        $gm = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'date_time' => now()->subDay(),
-        ]);
-        // Owner plays in their own game as a participant
-        GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        $this->assertTrue($this->service->canReviewSession($owner, $game));
-    }
-
-    /** Scenario: game owner who is NOT a participant cannot review */
-    public function test_can_review_session_owner_not_participant(): void
-    {
-        $owner = User::factory()->create();
-        $gm = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'date_time' => now()->subDay(),
-        ]);
-        // Owner has no participant record (not created via CreatesGameInstances)
-        // Under explicit owner model, games should always have owner participant
-
-        $this->assertFalse($this->service->canReviewSession($owner, $game));
-    }
-
-    /** Scenario: non-owner approved campaign participant can review */
-    public function test_can_review_campaign_owner_is_approved_participant(): void
-    {
-        $campaignOwner = User::factory()->create();
-        $participant = User::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $campaignOwner->id,
-            'status' => 'active',
-        ]);
-        CampaignParticipant::factory()->create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $participant->id,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        // Campaign must have at least one completed session
-        Game::factory()->create([
-            'campaign_id' => $campaign->id,
-            'owner_id' => $campaignOwner->id,
-            'date_time' => now()->subDay(),
-        ]);
-
-        $this->assertTrue($this->service->canReviewCampaign($participant, $campaign));
-    }
-
-    /** Scenario: campaign owner should NOT be able to review own campaign */
-    public function test_can_review_campaign_owner_cannot_review_own(): void
-    {
-        $owner = User::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'status' => 'active',
-        ]);
-        CampaignParticipant::factory()->create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $owner->id,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        Game::factory()->create([
-            'campaign_id' => $campaign->id,
-            'owner_id' => $owner->id,
-            'date_time' => now()->subDay(),
-        ]);
-
-        $this->assertFalse($this->service->canReviewCampaign($owner, $campaign));
-    }
-
-    /** Scenario: game host/owner should NOT be able to review own game session */
-    public function test_can_review_session_host_cannot_review_own(): void
-    {
-        $host = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'date_time' => now()->subDay(),
-        ]);
-        GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $host->id,
-            'status' => ParticipantStatus::Approved,
-            'role' => ParticipantRole::Owner,
-        ]);
-
-        $this->assertFalse($this->service->canReviewSession($host, $game));
     }
 
     /**

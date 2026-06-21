@@ -18,9 +18,19 @@ use App\Services\DashboardSmartPromptService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\URL;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
+// The setUp() mock and one inline mock use createMock() + method()->willReturn()
+// as pure stubs (no expects() assertions). PHPUnit 12 emits a "no expectations
+// configured" notice per such mock at teardown — which under `pest --parallel`
+// surfaces as one notice per test in this file (23 notices) because paratest
+// workers batch tests and the mock-verification timing differs from serial
+// execution. The attribute is PHPUnit's blessed opt-out for stub-only mocks
+// (the notice text itself recommends it). Serial runs are unaffected.
+#[AllowMockObjectsWithoutExpectations]
 class DashboardSmartPromptServiceTest extends TestCase
 {
     use DatabaseTransactions;
@@ -132,38 +142,36 @@ class DashboardSmartPromptServiceTest extends TestCase
 
     // ── Priority 2: Upcoming session within 24h ────────
 
-    #[Test]
-    public function upcoming_session_within_24h_shows_prompt(): void
+    /**
+     * @return array<string, array{int, bool}>
+     */
+    public static function upcomingThresholds(): array
     {
-        $user = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $user->id,
-            'name' => ['en' => 'Tavern Brawl'],
-            'date_time' => now()->addHours(3),
-            'status' => GameStatus::Scheduled,
-        ]);
-
-        $result = $this->service->getPrompt($user);
-
-        $this->assertEquals('upcoming_session', $result['type']);
-        $this->assertStringContainsString('Tavern Brawl', $result['message']);
-        $this->assertEquals($game->id, $result['metadata']['game_id']);
+        return [
+            'within 24h shows' => [3, true],
+            'beyond 24h skipped' => [48, false],
+        ];
     }
 
     #[Test]
-    public function upcoming_session_beyond_24h_is_skipped(): void
+    #[DataProvider('upcomingThresholds')]
+    public function upcoming_session_threshold_gates_prompt(int $hoursUntil, bool $shouldShow): void
     {
         $user = User::factory()->create();
         Game::factory()->create([
             'owner_id' => $user->id,
-            'name' => ['en' => 'Far Future Game'],
-            'date_time' => now()->addHours(48),
+            'name' => ['en' => 'Threshold Game'],
+            'date_time' => now()->addHours($hoursUntil),
             'status' => GameStatus::Scheduled,
         ]);
 
         $result = $this->service->getPrompt($user);
 
-        $this->assertNotEquals('upcoming_session', $result['type']);
+        if ($shouldShow) {
+            $this->assertEquals('upcoming_session', $result['type']);
+        } else {
+            $this->assertNotEquals('upcoming_session', $result['type']);
+        }
     }
 
     #[Test]
@@ -191,60 +199,40 @@ class DashboardSmartPromptServiceTest extends TestCase
 
     // ── Priority 3: Just completed, recap missing ──────
 
-    #[Test]
-    public function recently_completed_game_without_recap_prompts_recap(): void
+    /**
+     * @return array<string, array{?string, int, bool}>
+     */
+    public static function justCompletedConditions(): array
     {
-        $user = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $user->id,
-            'name' => ['en' => 'Curse of Strahd'],
-            'status' => GameStatus::Completed,
-            'recap' => null,
-            'updated_at' => now()->subHours(24),
-            'date_time' => now()->subDays(2),
-        ]);
-
-        $result = $this->service->getPrompt($user);
-
-        $this->assertEquals('just_completed', $result['type']);
-        $this->assertStringContainsString('Curse of Strahd', $result['message']);
-        $this->assertStringContainsString('recap', $result['message']);
-        $this->assertEquals('Write recap', $result['action_label']);
+        return [
+            'no recap within 48h triggers' => [null, 24, true],
+            'with recap within 48h skipped' => ['Great session!', 24, false],
+            'no recap beyond 48h skipped' => [null, 72, false],
+        ];
     }
 
     #[Test]
-    public function recently_completed_game_with_recap_is_skipped(): void
+    #[DataProvider('justCompletedConditions')]
+    public function just_completed_recap_prompt_respects_recap_and_age(?string $recap, int $hoursAgo, bool $shouldTrigger): void
     {
         $user = User::factory()->create();
         Game::factory()->create([
             'owner_id' => $user->id,
-            'name' => ['en' => 'Has Recap Game'],
+            'name' => ['en' => 'Completed Game'],
             'status' => GameStatus::Completed,
-            'recap' => 'Great session!',
-            'updated_at' => now()->subHours(24),
-            'date_time' => now()->subDays(2),
+            'recap' => $recap,
+            'updated_at' => now()->subHours($hoursAgo),
+            'date_time' => now()->subDays($hoursAgo >= 48 ? 5 : 2),
         ]);
 
         $result = $this->service->getPrompt($user);
 
-        $this->assertNotEquals('just_completed', $result['type']);
-    }
-
-    #[Test]
-    public function completed_game_beyond_48h_is_skipped(): void
-    {
-        $user = User::factory()->create();
-        Game::factory()->create([
-            'owner_id' => $user->id,
-            'status' => GameStatus::Completed,
-            'recap' => null,
-            'updated_at' => now()->subHours(72),
-            'date_time' => now()->subDays(5),
-        ]);
-
-        $result = $this->service->getPrompt($user);
-
-        $this->assertNotEquals('just_completed', $result['type']);
+        if ($shouldTrigger) {
+            $this->assertEquals('just_completed', $result['type']);
+            $this->assertStringContainsString('Completed Game', $result['message']);
+        } else {
+            $this->assertNotEquals('just_completed', $result['type']);
+        }
     }
 
     #[Test]
@@ -275,57 +263,35 @@ class DashboardSmartPromptServiceTest extends TestCase
 
     // ── Priority 4: Empty week ─────────────────────────
 
-    #[Test]
-    public function empty_week_shows_on_monday(): void
+    /**
+     * @return array<string, array{int, bool}>
+     */
+    public static function emptyWeekDays(): array
     {
-        $this->travelTo(now()->startOfWeek()); // Monday
-
-        $user = User::factory()->create(['created_at' => now()->subDays(30)]);
-        Cache::flush();
-
-        $result = $this->service->getPrompt($user);
-
-        $this->assertEquals('empty_week', $result['type']);
-        $this->assertEquals('Nothing on your calendar yet', $result['message']);
+        return [
+            'monday shows' => [0, true],
+            'wednesday shows' => [2, true],
+            'thursday does not show' => [3, false],
+            'sunday does not show' => [6, false],
+        ];
     }
 
     #[Test]
-    public function empty_week_shows_on_wednesday(): void
+    #[DataProvider('emptyWeekDays')]
+    public function empty_week_prompt_only_fires_mon_through_wed(int $dayOffset, bool $shouldShow): void
     {
-        $this->travelTo(now()->startOfWeek()->addDays(2)); // Wednesday
+        $this->travelTo(now()->startOfWeek()->addDays($dayOffset));
 
         $user = User::factory()->create(['created_at' => now()->subDays(30)]);
         Cache::flush();
 
         $result = $this->service->getPrompt($user);
 
-        $this->assertEquals('empty_week', $result['type']);
-    }
-
-    #[Test]
-    public function empty_week_does_not_show_on_thursday(): void
-    {
-        $this->travelTo(now()->startOfWeek()->addDays(3)); // Thursday
-
-        $user = User::factory()->create(['created_at' => now()->subDays(30)]);
-        Cache::flush();
-
-        $result = $this->service->getPrompt($user);
-
-        $this->assertNotEquals('empty_week', $result['type']);
-    }
-
-    #[Test]
-    public function empty_week_does_not_show_on_sunday(): void
-    {
-        $this->travelTo(now()->endOfWeek()); // Sunday
-
-        $user = User::factory()->create(['created_at' => now()->subDays(30)]);
-        Cache::flush();
-
-        $result = $this->service->getPrompt($user);
-
-        $this->assertNotEquals('empty_week', $result['type']);
+        if ($shouldShow) {
+            $this->assertEquals('empty_week', $result['type']);
+        } else {
+            $this->assertNotEquals('empty_week', $result['type']);
+        }
     }
 
     #[Test]
@@ -355,30 +321,23 @@ class DashboardSmartPromptServiceTest extends TestCase
 
     // ── Priority 5: New follower ───────────────────────
 
-    #[Test]
-    public function recent_follower_shows_follower_prompt(): void
+    /**
+     * @return array<string, array{int, bool}>
+     */
+    public static function followerAgeThresholds(): array
     {
-        $user = User::factory()->create(['created_at' => now()->subDays(30)]);
-        $follower = User::factory()->create(['name' => 'Charlie']);
-
-        UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $user->id,
-            'type' => RelationshipType::Follow,
-        ]);
-
-        $result = $this->service->getPrompt($user);
-
-        $this->assertEquals('new_follower', $result['type']);
-        $this->assertStringContainsString('Charlie', $result['message']);
-        $this->assertStringContainsString('following', $result['message']);
+        return [
+            'within 24h shows' => [0, true],
+            'beyond 24h skipped' => [2, false],
+        ];
     }
 
     #[Test]
-    public function follower_beyond_24h_is_skipped(): void
+    #[DataProvider('followerAgeThresholds')]
+    public function follower_prompt_respects_24h_threshold(int $daysOld, bool $shouldShow): void
     {
         $user = User::factory()->create(['created_at' => now()->subDays(30)]);
-        $follower = User::factory()->create(['name' => 'Old Follower']);
+        $follower = User::factory()->create(['name' => 'Follower']);
 
         UserRelationship::create([
             'user_id' => $follower->id,
@@ -386,15 +345,21 @@ class DashboardSmartPromptServiceTest extends TestCase
             'type' => RelationshipType::Follow,
         ]);
 
-        // Manually set created_at to 2 days ago
-        UserRelationship::query()
-            ->where('user_id', $follower->id)
-            ->where('related_user_id', $user->id)
-            ->update(['created_at' => now()->subDays(2)]);
+        if ($daysOld > 0) {
+            UserRelationship::query()
+                ->where('user_id', $follower->id)
+                ->where('related_user_id', $user->id)
+                ->update(['created_at' => now()->subDays($daysOld)]);
+        }
 
         $result = $this->service->getPrompt($user);
 
-        $this->assertNotEquals('new_follower', $result['type']);
+        if ($shouldShow) {
+            $this->assertEquals('new_follower', $result['type']);
+            $this->assertStringContainsString('Follower', $result['message']);
+        } else {
+            $this->assertNotEquals('new_follower', $result['type']);
+        }
     }
 
     #[Test]

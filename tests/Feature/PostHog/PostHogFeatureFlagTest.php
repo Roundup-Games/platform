@@ -5,6 +5,7 @@ namespace Tests\Feature\PostHog;
 use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogFeatureFlag;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Blade;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
@@ -20,6 +21,8 @@ use Tests\TestCase;
  */
 class PostHogFeatureFlagTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private TestablePostHogClient $posthogClient;
 
     private ?PostHogFeatureFlag $realService = null;

@@ -5,7 +5,6 @@ namespace Tests\Unit\Services;
 use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
-use App\Jobs\WarmDashboardCache;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -607,58 +606,6 @@ class DashboardWeekDataTest extends TestCase
         foreach ($expectedKeys as $key) {
             $this->assertArrayHasKey($key, $gameData, "Missing key: {$key}");
         }
-    }
-
-    // ── Cache integration ──────────────────────────────────────
-
-    #[Test]
-    public function get_week_data_dispatches_warm_job_on_cache_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getWeekData($user);
-
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_week';
-        });
-    }
-
-    #[Test]
-    public function get_week_data_stores_computed_data_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->getWeekData($user);
-
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $cacheKey = "dashboard:week:{$user->id}:{$weekKey}";
-        $cached = Cache::get($cacheKey);
-
-        $this->assertNotNull($cached);
-        $this->assertEquals($result, $cached);
-    }
-
-    #[Test]
-    public function get_week_data_returns_cached_data_without_recomputation(): void
-    {
-        $user = User::factory()->create();
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $cacheKey = "dashboard:week:{$user->id}:{$weekKey}";
-
-        // Pre-populate cache with known data
-        $cachedData = [
-            'days' => [['date' => '2025-01-01', 'day_name' => 'Wed', 'is_today' => false, 'games' => [['id' => 999, 'name' => 'Cached Game']]]],
-            'summary' => ['total' => 1, 'past' => 0, 'upcoming' => 1, 'hosting' => 1, 'playing' => 0],
-        ];
-        Cache::put($cacheKey, $cachedData, 300);
-
-        $result = $this->service->getWeekData($user);
-
-        // Should return the cached data, not recompute
-        $this->assertEquals($cachedData, $result);
-        // No warm job dispatched on cache hit
-        Queue::assertNotPushed(WarmDashboardCache::class);
     }
 
     #[Test]

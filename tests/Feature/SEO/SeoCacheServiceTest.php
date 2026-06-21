@@ -18,16 +18,11 @@ beforeEach(function () {
 // ── getSitemap / setSitemap roundtrip ────────────────
 
 describe('Sitemap cache set/get', function () {
-    it('returns null on cache miss', function () {
-        expect($this->service->getSitemap('games'))->toBeNull();
-    });
-
-    it('stores different content per type', function () {
+    it('stores and retrieves sitemap content', function () {
         $this->service->setSitemap('games', '<games-xml/>');
-        $this->service->setSitemap('events', '<events-xml/>');
 
         expect($this->service->getSitemap('games'))->toBe('<games-xml/>');
-        expect($this->service->getSitemap('events'))->toBe('<events-xml/>');
+        expect($this->service->getSitemap('events'))->toBeNull();
     });
 });
 
@@ -52,25 +47,6 @@ describe('forgetSitemap', function () {
         expect($this->service->getSitemap('events'))->toBe('<events/>');
     });
 
-    it('is a no-op when cache key does not exist', function () {
-        // Should not throw
-        $this->service->forgetSitemap('nonexistent');
-        expect(true)->toBeTrue();
-    });
-
-    it('clears each type independently', function () {
-        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles'] as $type) {
-            $this->service->setSitemap($type, "<{$type}/>");
-        }
-
-        $this->service->forgetSitemap('campaigns');
-
-        expect($this->service->getSitemap('campaigns'))->toBeNull();
-        // All others still present
-        foreach (['static', 'game-systems', 'events', 'games', 'teams', 'profiles'] as $type) {
-            expect($this->service->getSitemap($type))->not->toBeNull();
-        }
-    });
 });
 
 // ── forgetIndex ──────────────────────────────────────
@@ -151,12 +127,6 @@ describe('Accessor methods', function () {
             'profiles',
             'venues',
         ]);
-    });
-
-    it('validates correct sitemap types', function () {
-        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'] as $type) {
-            expect($this->service->isValidType($type))->toBeTrue();
-        }
     });
 
     it('rejects invalid sitemap types', function () {

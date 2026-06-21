@@ -2,81 +2,13 @@
 
 use App\Enums\Visibility;
 use App\Models\Campaign;
-use App\Models\Event;
 use App\Models\Game;
-use App\Models\GameSystem;
-use App\Models\Team;
-use App\Models\User;
 
 use function Pest\Laravel\get;
 
-// ── Entity Smoke Tests: one per entity to verify route+SEO wiring ────
-// Full getDynamicSEOData() coverage is in *SeoTest.php files.
-// These smoke tests ensure the HTTP route renders meta tags correctly.
-
-describe('Entity SEO smoke tests', function () {
-    it('renders meta tags for game system detail page', function () {
-        $system = GameSystem::factory()->create(['name' => ['en' => 'Smoke System']]);
-
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Smoke System');
-        $response->assertSee('twitter:card', false);
-    });
-
-    it('renders meta tags for event detail page', function () {
-        $event = Event::factory()->create([
-            'name' => 'Smoke Event',
-            'is_public' => true,
-            'status' => 'published',
-        ]);
-
-        $response = get(route('events.detail', $event->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Smoke Event');
-    });
-
-    it('renders meta tags for game detail page', function () {
-        $game = Game::factory()->create([
-            'name' => ['en' => 'Smoke Game'],
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('games.detail', $game->id));
-        $response->assertOk();
-        assertPageTitle($response, 'Smoke Game');
-    });
-
-    it('renders meta tags for campaign detail page', function () {
-        $campaign = Campaign::factory()->create([
-            'name' => ['en' => 'Smoke Campaign'],
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('campaigns.detail', $campaign->id));
-        $response->assertOk();
-        assertPageTitle($response, 'Smoke Campaign');
-    });
-
-    it('renders meta tags for team detail page', function () {
-        $team = Team::factory()->create(['is_active' => true]);
-
-        $response = get(route('teams.detail', $team->slug));
-        $response->assertOk();
-        $response->assertSee('twitter:card', false)->assertSee('rel="canonical"', false);
-    });
-
-    it('renders meta tags for public profile page', function () {
-        $user = User::factory()->create([
-            'name' => 'Smoke User',
-            'profile_complete' => true,
-        ]);
-
-        $response = get(route('profile.public', $user));
-        $response->assertOk();
-        assertPageTitle($response, 'Smoke User');
-    });
-});
+// Entity-level meta tag coverage lives in EntitySeoTest (model-level) and
+// StructuredDataTest (HTTP-level). This file covers static-page meta tags
+// and edge cases (HTML stripping, special characters).
 
 // ── Static Pages: Full Meta Tag Rendering ──────────────
 

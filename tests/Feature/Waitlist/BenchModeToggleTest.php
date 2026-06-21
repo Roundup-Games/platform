@@ -4,7 +4,6 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\AddSessionToCampaign;
 use App\Livewire\Campaigns\ApplyToCampaign;
-use App\Livewire\Campaigns\CreateCampaign;
 use App\Livewire\Games\ApplyToGame;
 use App\Livewire\Games\CreateGame;
 use App\Models\Campaign;
@@ -16,9 +15,6 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Database\Factories\CampaignApplicationFactory;
-use Database\Factories\CampaignParticipantFactory;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
@@ -31,10 +27,16 @@ beforeEach(function () {
     $this->gameSystem = GameSystem::factory()->create();
 });
 
-test('game isBenchMode reads from bench_mode column - default false', function () {
-    $game = Game::create([
-        'owner_id' => $this->owner->id,
-        'game_system_id' => $this->gameSystem->id,
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+
+/** Minimal Game for isBenchMode accessor tests — omitting bench_mode exercises the column default. */
+function createBenchTestGame(User $owner, GameSystem $system, ?bool $benchMode = null): Game
+{
+    $attrs = [
+        'owner_id' => $owner->id,
+        'game_system_id' => $system->id,
         'name' => ['en' => 'Test Game'],
         'date_time' => now()->addDays(10),
         'description' => ['en' => 'Test'],
@@ -45,35 +47,20 @@ test('game isBenchMode reads from bench_mode column - default false', function (
         'location' => ['details' => 'Online'],
         'min_players' => 2,
         'max_players' => 4,
-    ]);
+    ];
+    if ($benchMode !== null) {
+        $attrs['bench_mode'] = $benchMode;
+    }
 
-    expect($game->isBenchMode())->toBeFalse();
-});
+    return Game::create($attrs);
+}
 
-test('game isBenchMode returns true when bench_mode is true', function () {
-    $game = Game::create([
-        'owner_id' => $this->owner->id,
-        'game_system_id' => $this->gameSystem->id,
-        'name' => ['en' => 'Test Game'],
-        'date_time' => now()->addDays(10),
-        'description' => ['en' => 'Test'],
-        'expected_duration' => 3,
-        'visibility' => 'public',
-        'status' => 'scheduled',
-        'language' => 'en',
-        'location' => ['details' => 'Online'],
-        'min_players' => 2,
-        'max_players' => 4,
-        'bench_mode' => true,
-    ]);
-
-    expect($game->isBenchMode())->toBeTrue();
-});
-
-test('campaign isBenchMode reads from bench_mode column - default false', function () {
-    $campaign = Campaign::create([
-        'owner_id' => $this->owner->id,
-        'game_system_id' => $this->gameSystem->id,
+/** Minimal Campaign for isBenchMode accessor tests. */
+function createBenchTestCampaign(User $owner, GameSystem $system, ?bool $benchMode = null): Campaign
+{
+    $attrs = [
+        'owner_id' => $owner->id,
+        'game_system_id' => $system->id,
         'name' => ['en' => 'Test Campaign'],
         'description' => ['en' => 'Test'],
         'visibility' => 'public',
@@ -84,66 +71,13 @@ test('campaign isBenchMode reads from bench_mode column - default false', functi
         'session_duration' => 3,
         'min_players' => 2,
         'max_players' => 4,
-    ]);
+    ];
+    if ($benchMode !== null) {
+        $attrs['bench_mode'] = $benchMode;
+    }
 
-    expect($campaign->isBenchMode())->toBeFalse();
-});
-
-test('campaign isBenchMode returns false when bench_mode is false', function () {
-    $campaign = Campaign::create([
-        'owner_id' => $this->owner->id,
-        'game_system_id' => $this->gameSystem->id,
-        'name' => ['en' => 'Test Campaign'],
-        'description' => ['en' => 'Test'],
-        'visibility' => 'public',
-        'status' => 'active',
-        'language' => 'en',
-        'recurrence' => 'weekly',
-        'time_of_day' => '19:00',
-        'session_duration' => 3,
-        'min_players' => 2,
-        'max_players' => 4,
-        'bench_mode' => false,
-    ]);
-
-    expect($campaign->isBenchMode())->toBeFalse();
-});
-
-test('CampaignParticipantFactory produces valid records', function () {
-    $participant = CampaignParticipantFactory::new()->create();
-
-    expect($participant)->toBeInstanceOf(CampaignParticipant::class);
-    expect($participant->id)->not->toBeNull();
-    expect($participant->campaign_id)->not->toBeNull();
-    expect($participant->user_id)->not->toBeNull();
-    expect($participant->status)->toBe(ParticipantStatus::Approved);
-});
-
-test('CampaignApplication status is always pending on creation', function () {
-    $application = CampaignApplication::create([
-        'campaign_id' => Campaign::factory()->create()->id,
-        'user_id' => User::factory()->create()->id,
-        'status' => ParticipantStatus::Pending->value,
-        'message' => 'I want to join',
-    ]);
-
-    expect($application->status)->toBe('pending');
-});
-
-test('CampaignApplicationFactory produces correct defaults', function () {
-    $application = CampaignApplicationFactory::new()->create();
-
-    expect($application)->toBeInstanceOf(CampaignApplication::class);
-    expect($application->id)->not->toBeNull();
-    expect($application->campaign_id)->not->toBeNull();
-    expect($application->user_id)->not->toBeNull();
-    expect($application->status)->toBe('pending');
-    expect($application->message)->toBeNull();
-});
-
-// ═══════════════════════════════════════════════════════════
-// HELPERS FOR ROUTING TESTS
-// ═══════════════════════════════════════════════════════════
+    return Campaign::create($attrs);
+}
 
 function benchRouteCreateFullCampaign(User $owner, GameSystem $system, bool $benchMode = true, int $maxPlayers = 2): Campaign
 {
@@ -220,6 +154,142 @@ function benchRouteCreateFullGame(User $owner, GameSystem $system, bool $benchMo
     return $game;
 }
 
+// ── Shared assertion helpers for routing + negative cases ─────────────────
+// ApplyToCampaign (CampaignParticipant/CampaignApplication, FK 'campaign_id')
+// and ApplyToGame (GameParticipant/GameApplication, FK 'game_id') exercise
+// identical four-scenario overflow shapes (bench / waitlist / auto-approve /
+// protected-pending) and identical three negative shapes (own / 403 /
+// duplicate). Only the Livewire component, participant class, application
+// class, and FK differ — assertions are extracted and parameterised.
+
+/**
+ * Run submitApplication via the given Livewire component and assert the
+ * resulting participant status, timestamps (and Applicant role for the
+ * pending/protected case) plus the matching application review status.
+ */
+function applyAndAssertOverflowRouting(
+    string $componentClass,
+    Campaign|Game $entity,
+    User $applicant,
+    string $participantClass,
+    string $applicationClass,
+    string $foreignKey,
+    ParticipantStatus $expectedStatus,
+    string $message = 'Let me join',
+): void {
+    Livewire::actingAs($applicant)
+        ->test($componentClass, ['id' => $entity->id])
+        ->set('message', $message)
+        ->call('submitApplication')
+        ->assertHasNoErrors();
+
+    $participant = $participantClass::where($foreignKey, $entity->id)
+        ->where('user_id', $applicant->id)
+        ->first();
+
+    expect($participant)->not->toBeNull()
+        ->and($participant->status)->toBe($expectedStatus);
+
+    if ($expectedStatus === ParticipantStatus::Benched) {
+        expect($participant->benched_at)->not->toBeNull()
+            ->and($participant->waitlisted_at)->toBeNull();
+    } elseif ($expectedStatus === ParticipantStatus::Waitlisted) {
+        expect($participant->waitlisted_at)->not->toBeNull()
+            ->and($participant->benched_at)->toBeNull();
+    } elseif ($expectedStatus === ParticipantStatus::Approved) {
+        expect($participant->benched_at)->toBeNull()
+            ->and($participant->waitlisted_at)->toBeNull();
+    } elseif ($expectedStatus === ParticipantStatus::Pending) {
+        // Protected entities: applicant stays pending with Applicant role
+        expect($participant->role)->toBe(ParticipantRole::Applicant)
+            ->and($participant->benched_at)->toBeNull()
+            ->and($participant->waitlisted_at)->toBeNull();
+    }
+
+    // Application review state tracks the participant state for public entities
+    // (auto-approve → 'approved') and stays 'pending' for protected entities.
+    $expectedAppStatus = in_array($expectedStatus, [
+        ParticipantStatus::Benched,
+        ParticipantStatus::Waitlisted,
+        ParticipantStatus::Approved,
+    ], true) ? 'approved' : 'pending';
+
+    $application = $applicationClass::where($foreignKey, $entity->id)
+        ->where('user_id', $applicant->id)
+        ->first();
+    expect($application)->not->toBeNull()
+        ->and($application->status)->toBe($expectedAppStatus);
+}
+
+/** Owner cannot apply to their own entity: validation error, no application, no applicant participant. */
+function assertRejectsApplicationToOwnEntity(
+    string $componentClass,
+    Campaign|Game $entity,
+    User $owner,
+    string $applicationClass,
+    string $participantClass,
+    string $foreignKey,
+): void {
+    Livewire::actingAs($owner)
+        ->test($componentClass, ['id' => $entity->id])
+        ->set('message', 'I own this')
+        ->call('submitApplication')
+        ->assertHasErrors('message');
+
+    expect($applicationClass::where($foreignKey, $entity->id)->exists())->toBeFalse();
+    expect($participantClass::where($foreignKey, $entity->id)
+        ->where('user_id', $owner->id)
+        ->where('role', 'applicant')
+        ->exists())->toBeFalse();
+}
+
+/** Private entity aborts the Livewire mount with 403. */
+function assertPrivateEntityAborts403(string $componentClass, Campaign|Game $entity, User $user): void
+{
+    Livewire::actingAs($user)
+        ->test($componentClass, ['id' => $entity->id])
+        ->assertStatus(403);
+}
+
+/** Second application attempt is detected at mount; exactly one application + one participant exist. */
+function assertBlocksDuplicateApplication(
+    string $componentClass,
+    Campaign|Game $entity,
+    User $applicant,
+    string $applicationClass,
+    string $participantClass,
+    string $foreignKey,
+): void {
+    // First application succeeds
+    Livewire::actingAs($applicant)
+        ->test($componentClass, ['id' => $entity->id])
+        ->set('message', 'First')
+        ->call('submitApplication')
+        ->assertHasNoErrors();
+
+    // Second mount detects existing application
+    Livewire::actingAs($applicant)
+        ->test($componentClass, ['id' => $entity->id]);
+
+    expect($applicationClass::where($foreignKey, $entity->id)->count())->toBe(1)
+        ->and($participantClass::where($foreignKey, $entity->id)
+            ->where('user_id', $applicant->id)
+            ->count())->toBe(1);
+}
+
+// ═══════════════════════════════════════════════════════════
+// isBenchMode ACCESSOR (Game + Campaign)
+// ═══════════════════════════════════════════════════════════
+
+it('isBenchMode reads the bench_mode column on game and campaign models', function (callable $create, bool $expected) {
+    expect($create($this->owner, $this->gameSystem)->isBenchMode())->toBe($expected);
+})->with([
+    'game default false' => [createBenchTestGame(...),                              false],
+    'game true when bench_mode is true' => [fn ($o, $s) => createBenchTestGame($o, $s, true),      true],
+    'campaign default false' => [createBenchTestCampaign(...),                          false],
+    'campaign false when bench_mode is false' => [fn ($o, $s) => createBenchTestCampaign($o, $s, false), false],
+]);
+
 // ═══════════════════════════════════════════════════════════
 // CAMPAIGN OVERFLOW ROUTING
 // ═══════════════════════════════════════════════════════════
@@ -229,53 +299,22 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         $campaign = benchRouteCreateFullCampaign($this->owner, $this->gameSystem, benchMode: true, maxPlayers: 2);
         $applicant = User::factory()->create();
 
-        Livewire::actingAs($applicant)
-            ->test(ApplyToCampaign::class, ['id' => $campaign->id])
-            ->set('message', 'Let me join')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        $participant = CampaignParticipant::where('campaign_id', $campaign->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-
-        expect($participant)->not->toBeNull()
-            ->and($participant->status)->toBe(ParticipantStatus::Benched)
-            ->and($participant->benched_at)->not->toBeNull()
-            ->and($participant->waitlisted_at)->toBeNull();
-
-        // CampaignApplication.status tracks application review state
-        $application = CampaignApplication::where('campaign_id', $campaign->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-        expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('approved'); // Public campaign auto-approves
+        applyAndAssertOverflowRouting(
+            ApplyToCampaign::class, $campaign, $applicant,
+            CampaignParticipant::class, CampaignApplication::class, 'campaign_id',
+            ParticipantStatus::Benched,
+        );
     });
 
     it('routes to waitlist when campaign is full and bench_mode=false', function () {
         $campaign = benchRouteCreateFullCampaign($this->owner, $this->gameSystem, benchMode: false, maxPlayers: 2);
         $applicant = User::factory()->create();
 
-        Livewire::actingAs($applicant)
-            ->test(ApplyToCampaign::class, ['id' => $campaign->id])
-            ->set('message', 'Let me join')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        $participant = CampaignParticipant::where('campaign_id', $campaign->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-
-        expect($participant)->not->toBeNull()
-            ->and($participant->status)->toBe(ParticipantStatus::Waitlisted)
-            ->and($participant->waitlisted_at)->not->toBeNull()
-            ->and($participant->benched_at)->toBeNull();
-
-        $application = CampaignApplication::where('campaign_id', $campaign->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-        expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('approved'); // Public campaign auto-approves
+        applyAndAssertOverflowRouting(
+            ApplyToCampaign::class, $campaign, $applicant,
+            CampaignParticipant::class, CampaignApplication::class, 'campaign_id',
+            ParticipantStatus::Waitlisted,
+        );
     });
 
     it('auto-approves when campaign is not full', function () {
@@ -304,27 +343,11 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
 
         $applicant = User::factory()->create();
 
-        Livewire::actingAs($applicant)
-            ->test(ApplyToCampaign::class, ['id' => $campaign->id])
-            ->set('message', 'Let me join')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        $participant = CampaignParticipant::where('campaign_id', $campaign->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-
-        expect($participant)->not->toBeNull()
-            ->and($participant->status)->toBe(ParticipantStatus::Approved)
-            ->and($participant->benched_at)->toBeNull()
-            ->and($participant->waitlisted_at)->toBeNull();
-
-        // CampaignApplication.status matches auto-approved state
-        $application = CampaignApplication::where('campaign_id', $campaign->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-        expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('approved');
+        applyAndAssertOverflowRouting(
+            ApplyToCampaign::class, $campaign, $applicant,
+            CampaignParticipant::class, CampaignApplication::class, 'campaign_id',
+            ParticipantStatus::Approved,
+        );
     });
 
     it('keeps applicant pending for protected campaign', function () {
@@ -363,28 +386,12 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         UserRelationship::follow($applicant, $this->owner);
         UserRelationship::follow($this->owner, $applicant);
 
-        Livewire::actingAs($applicant)
-            ->test(ApplyToCampaign::class, ['id' => $campaign->id])
-            ->set('message', 'Please let me in')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        $participant = CampaignParticipant::where('campaign_id', $campaign->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-
-        // Protected campaigns stay pending regardless of capacity or bench_mode
-        expect($participant)->not->toBeNull()
-            ->and($participant->status)->toBe(ParticipantStatus::Pending)
-            ->and($participant->role)->toBe(ParticipantRole::Applicant)
-            ->and($participant->benched_at)->toBeNull()
-            ->and($participant->waitlisted_at)->toBeNull();
-
-        $application = CampaignApplication::where('campaign_id', $campaign->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-        expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('pending');
+        applyAndAssertOverflowRouting(
+            ApplyToCampaign::class, $campaign, $applicant,
+            CampaignParticipant::class, CampaignApplication::class, 'campaign_id',
+            ParticipantStatus::Pending,
+            message: 'Please let me in',
+        );
     });
 });
 
@@ -397,53 +404,22 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         $game = benchRouteCreateFullGame($this->owner, $this->gameSystem, benchMode: false, maxPlayers: 2);
         $applicant = User::factory()->create();
 
-        Livewire::actingAs($applicant)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'Let me join')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-
-        expect($participant)->not->toBeNull()
-            ->and($participant->status)->toBe(ParticipantStatus::Waitlisted)
-            ->and($participant->waitlisted_at)->not->toBeNull()
-            ->and($participant->benched_at)->toBeNull();
-
-        // GameApplication.status matches auto-approved state
-        $application = GameApplication::where('game_id', $game->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-        expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('approved');
+        applyAndAssertOverflowRouting(
+            ApplyToGame::class, $game, $applicant,
+            GameParticipant::class, GameApplication::class, 'game_id',
+            ParticipantStatus::Waitlisted,
+        );
     });
 
     it('routes to bench when game is full and bench_mode=true', function () {
         $game = benchRouteCreateFullGame($this->owner, $this->gameSystem, benchMode: true, maxPlayers: 2);
         $applicant = User::factory()->create();
 
-        Livewire::actingAs($applicant)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'Let me join')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-
-        expect($participant)->not->toBeNull()
-            ->and($participant->status)->toBe(ParticipantStatus::Benched)
-            ->and($participant->benched_at)->not->toBeNull()
-            ->and($participant->waitlisted_at)->toBeNull();
-
-        $application = GameApplication::where('game_id', $game->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-        expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('approved');
+        applyAndAssertOverflowRouting(
+            ApplyToGame::class, $game, $applicant,
+            GameParticipant::class, GameApplication::class, 'game_id',
+            ParticipantStatus::Benched,
+        );
     });
 
     it('auto-approves when game is not full', function () {
@@ -472,27 +448,11 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
 
         $applicant = User::factory()->create();
 
-        Livewire::actingAs($applicant)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'Let me join')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-
-        expect($participant)->not->toBeNull()
-            ->and($participant->status)->toBe(ParticipantStatus::Approved)
-            ->and($participant->benched_at)->toBeNull()
-            ->and($participant->waitlisted_at)->toBeNull();
-
-        // Application.status matches auto-approved state
-        $application = GameApplication::where('game_id', $game->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-        expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('approved');
+        applyAndAssertOverflowRouting(
+            ApplyToGame::class, $game, $applicant,
+            GameParticipant::class, GameApplication::class, 'game_id',
+            ParticipantStatus::Approved,
+        );
     });
 
     it('keeps applicant pending for protected game', function () {
@@ -531,28 +491,12 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         UserRelationship::follow($applicant, $this->owner);
         UserRelationship::follow($this->owner, $applicant);
 
-        Livewire::actingAs($applicant)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'Please let me in')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-
-        // Protected games stay pending regardless of capacity or bench_mode
-        expect($participant)->not->toBeNull()
-            ->and($participant->status)->toBe(ParticipantStatus::Pending)
-            ->and($participant->role)->toBe(ParticipantRole::Applicant)
-            ->and($participant->benched_at)->toBeNull()
-            ->and($participant->waitlisted_at)->toBeNull();
-
-        $application = GameApplication::where('game_id', $game->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-        expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('pending');
+        applyAndAssertOverflowRouting(
+            ApplyToGame::class, $game, $applicant,
+            GameParticipant::class, GameApplication::class, 'game_id',
+            ParticipantStatus::Pending,
+            message: 'Please let me in',
+        );
     });
 });
 
@@ -703,14 +647,10 @@ describe('ApplyToCampaign negative cases', function () {
             'max_players' => 5,
         ]);
 
-        Livewire::actingAs($this->owner)
-            ->test(ApplyToCampaign::class, ['id' => $campaign->id])
-            ->set('message', 'I own this')
-            ->call('submitApplication')
-            ->assertHasErrors('message');
-
-        expect(CampaignApplication::where('campaign_id', $campaign->id)->exists())->toBeFalse();
-        expect(CampaignParticipant::where('campaign_id', $campaign->id)->where('user_id', $this->owner->id)->where('role', 'applicant')->exists())->toBeFalse();
+        assertRejectsApplicationToOwnEntity(
+            ApplyToCampaign::class, $campaign, $this->owner,
+            CampaignApplication::class, CampaignParticipant::class, 'campaign_id',
+        );
     });
 
     it('aborts 403 for private campaign', function () {
@@ -731,9 +671,7 @@ describe('ApplyToCampaign negative cases', function () {
 
         $user = User::factory()->create();
 
-        Livewire::actingAs($user)
-            ->test(ApplyToCampaign::class, ['id' => $campaign->id])
-            ->assertStatus(403);
+        assertPrivateEntityAborts403(ApplyToCampaign::class, $campaign, $user);
     });
 
     it('blocks duplicate campaign application', function () {
@@ -754,20 +692,10 @@ describe('ApplyToCampaign negative cases', function () {
 
         $applicant = User::factory()->create();
 
-        // First application succeeds
-        Livewire::actingAs($applicant)
-            ->test(ApplyToCampaign::class, ['id' => $campaign->id])
-            ->set('message', 'First')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        // Second application at mount detects existing application
-        Livewire::actingAs($applicant)
-            ->test(ApplyToCampaign::class, ['id' => $campaign->id]);
-
-        // Only one application and one participant should exist
-        expect(CampaignApplication::where('campaign_id', $campaign->id)->count())->toBe(1)
-            ->and(CampaignParticipant::where('campaign_id', $campaign->id)->where('user_id', $applicant->id)->count())->toBe(1);
+        assertBlocksDuplicateApplication(
+            ApplyToCampaign::class, $campaign, $applicant,
+            CampaignApplication::class, CampaignParticipant::class, 'campaign_id',
+        );
     });
 });
 
@@ -788,14 +716,10 @@ describe('ApplyToGame negative cases', function () {
             'max_players' => 5,
         ]);
 
-        Livewire::actingAs($this->owner)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'I own this')
-            ->call('submitApplication')
-            ->assertHasErrors('message');
-
-        expect(GameApplication::where('game_id', $game->id)->exists())->toBeFalse();
-        expect(GameParticipant::where('game_id', $game->id)->where('user_id', $this->owner->id)->where('role', 'applicant')->exists())->toBeFalse();
+        assertRejectsApplicationToOwnEntity(
+            ApplyToGame::class, $game, $this->owner,
+            GameApplication::class, GameParticipant::class, 'game_id',
+        );
     });
 
     it('aborts 403 for private game', function () {
@@ -816,9 +740,7 @@ describe('ApplyToGame negative cases', function () {
 
         $user = User::factory()->create();
 
-        Livewire::actingAs($user)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->assertStatus(403);
+        assertPrivateEntityAborts403(ApplyToGame::class, $game, $user);
     });
 
     it('blocks duplicate game application', function () {
@@ -839,20 +761,10 @@ describe('ApplyToGame negative cases', function () {
 
         $applicant = User::factory()->create();
 
-        // First application succeeds
-        Livewire::actingAs($applicant)
-            ->test(ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'First')
-            ->call('submitApplication')
-            ->assertHasNoErrors();
-
-        // Second application at mount detects existing application
-        Livewire::actingAs($applicant)
-            ->test(ApplyToGame::class, ['id' => $game->id]);
-
-        // Only one application and one participant should exist
-        expect(GameApplication::where('game_id', $game->id)->count())->toBe(1)
-            ->and(GameParticipant::where('game_id', $game->id)->where('user_id', $applicant->id)->count())->toBe(1);
+        assertBlocksDuplicateApplication(
+            ApplyToGame::class, $game, $applicant,
+            GameApplication::class, GameParticipant::class, 'game_id',
+        );
     });
 });
 
@@ -945,22 +857,6 @@ describe('CampaignApplication status reflects review state', function () {
  * Toggle matrix helpers — reuse the same permission/GM setup patterns
  * from BenchModeCreationGateTest for consistency.
  */
-function toggleMatrixCreateNonGMUser(): User
-{
-    seedPermissions();
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'can_create_public_entries' => false,
-    ]);
-    setPermissionsTeamId(1);
-    $user->givePermissionTo('create game');
-    $user->givePermissionTo('create campaign');
-    $user->unsetRelations();
-    setPermissionsTeamId(1);
-
-    return $user;
-}
-
 function toggleMatrixCreateGMUser(): User
 {
     seedPermissions();
@@ -988,144 +884,7 @@ describe('Bench mode toggle matrix', function () {
         $this->gameSystem = GameSystem::factory()->create();
     });
 
-    // ── 1. GM creates standalone game with bench_mode=true → stored as true ─────
-    it('GM creates standalone game with bench_mode=true stored as true', function () {
-        $gm = toggleMatrixCreateGMUser();
-
-        Livewire::actingAs($gm)
-            ->test(CreateGame::class)
-            ->call('selectType', 'ttrpg')
-            ->set('name', 'GM Bench Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 4)
-            ->set('bench_mode', true)
-            ->call('save')
-            ->assertRedirect();
-
-        expect(Game::where('name->en', 'GM Bench Game')->first()->bench_mode)->toBeTrue();
-    });
-
-    // ── 2. GM creates standalone game with bench_mode=false → stored as false ──
-    it('GM creates standalone game with bench_mode=false stored as false', function () {
-        $gm = toggleMatrixCreateGMUser();
-
-        Livewire::actingAs($gm)
-            ->test(CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', 'GM No Bench Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 4)
-            ->set('bench_mode', false)
-            ->call('save')
-            ->assertRedirect();
-
-        expect(Game::where('name->en', 'GM No Bench Game')->first()->bench_mode)->toBeFalse();
-    });
-
-    // ── 3. Non-GM creates game with bench_mode=true → forced to false, warning ─
-    it('Non-GM creates game with bench_mode=true forced to false with warning', function () {
-        $user = toggleMatrixCreateNonGMUser();
-
-        Log::spy();
-
-        Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'ttrpg')
-            ->set('name', 'Tampered Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 4)
-            ->set('bench_mode', true)
-            ->call('save')
-            ->assertRedirect();
-
-        expect(Game::where('name->en', 'Tampered Game')->first()->bench_mode)->toBeFalse();
-
-        Log::shouldHaveReceived('warning')
-            ->with('Non-GM user attempted to enable bench_mode on game creation', Mockery::on(function ($ctx) use ($user) {
-                return isset($ctx['user_id']) && $ctx['user_id'] === $user->id
-                    && isset($ctx['attempted_bench_mode']) && $ctx['attempted_bench_mode'] === true;
-            }))
-            ->once();
-    });
-
-    // ── 4. Non-GM creates game with bench_mode=false → stored as false ─────────
-    it('Non-GM creates game with bench_mode=false stored as false', function () {
-        $user = toggleMatrixCreateNonGMUser();
-
-        Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', 'Non-GM Default Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 4)
-            ->set('bench_mode', false)
-            ->call('save')
-            ->assertRedirect();
-
-        expect(Game::where('name->en', 'Non-GM Default Game')->first()->bench_mode)->toBeFalse();
-    });
-
-    // ── 5. GM creates campaign with bench_mode=true → stored as true (default) ─
-    it('GM creates campaign with bench_mode=true stored as true', function () {
-        $gm = toggleMatrixCreateGMUser();
-
-        Livewire::actingAs($gm)
-            ->test(CreateCampaign::class)
-            ->set('name', 'GM Bench Campaign')
-            ->set('recurrence', 'weekly')
-            ->set('time_of_day', '19:00')
-            ->set('max_players', 4)
-            ->set('bench_mode', true)
-            ->call('save')
-            ->assertRedirect();
-
-        expect(Campaign::where('name->en', 'GM Bench Campaign')->first()->bench_mode)->toBeTrue();
-    });
-
-    // ── 6. GM creates campaign with bench_mode=false → stored as false ─────────
-    it('GM creates campaign with bench_mode=false stored as false', function () {
-        $gm = toggleMatrixCreateGMUser();
-
-        Livewire::actingAs($gm)
-            ->test(CreateCampaign::class)
-            ->set('name', 'GM No Bench Campaign')
-            ->set('recurrence', 'weekly')
-            ->set('time_of_day', '19:00')
-            ->set('max_players', 4)
-            ->set('bench_mode', false)
-            ->call('save')
-            ->assertRedirect();
-
-        expect(Campaign::where('name->en', 'GM No Bench Campaign')->first()->bench_mode)->toBeFalse();
-    });
-
-    // ── 7. Non-GM creates campaign with bench_mode=true → forced to false ──────
-    it('Non-GM creates campaign with bench_mode=true forced to false', function () {
-        $user = toggleMatrixCreateNonGMUser();
-
-        Log::spy();
-
-        Livewire::actingAs($user)
-            ->test(CreateCampaign::class)
-            ->set('name', 'Tampered Campaign')
-            ->set('recurrence', 'weekly')
-            ->set('time_of_day', '19:00')
-            ->set('max_players', 4)
-            ->set('bench_mode', true)
-            ->call('save')
-            ->assertRedirect();
-
-        expect(Campaign::where('name->en', 'Tampered Campaign')->first()->bench_mode)->toBeFalse();
-
-        Log::shouldHaveReceived('warning')
-            ->with('Non-GM user attempted to enable bench_mode on campaign creation', Mockery::on(function ($ctx) use ($user) {
-                return isset($ctx['user_id']) && $ctx['user_id'] === $user->id
-                    && isset($ctx['attempted_bench_mode']) && $ctx['attempted_bench_mode'] === true;
-            }))
-            ->once();
-    });
-
-    // ── 8. Campaign session inherits campaign bench_mode=true ──────────────────
+    // ── Campaign session inherits campaign bench_mode=true ──────────────────
     it('campaign session inherits campaign bench_mode=true', function () {
         $gm = toggleMatrixCreateGMUser();
 
@@ -1159,7 +918,7 @@ describe('Bench mode toggle matrix', function () {
             ->and($session->isBenchMode())->toBeTrue();
     });
 
-    // ── 9. Campaign session overrides campaign bench_mode=false ────────────────
+    // ── Campaign session overrides campaign bench_mode=false ────────────────
     it('campaign session inherits campaign bench_mode=false', function () {
         $gm = toggleMatrixCreateGMUser();
 
@@ -1193,7 +952,7 @@ describe('Bench mode toggle matrix', function () {
             ->and($session->isBenchMode())->toBeFalse();
     });
 
-    // ── 10. Edit form does not allow changing bench_mode after creation ────────
+    // ── Edit form does not allow changing bench_mode after creation ────────
     it('bench_mode cannot be changed after creation — no edit route exposes it', function () {
         $gm = toggleMatrixCreateGMUser();
 

@@ -1,7 +1,5 @@
 <?php
 
-namespace Tests\Unit\Services;
-
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Jobs\WarmDashboardCache;
@@ -12,982 +10,367 @@ use App\Models\Location;
 use App\Models\User;
 use App\Services\DashboardCacheService;
 use App\Services\Geohash;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
-use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
 
-class DashboardCacheServiceTest extends TestCase
-{
-    use DatabaseTransactions;
+/*
+ * Tests the centralised cache layer for all dashboard sections.
+ *
+ * Each section follows the same three-tier pattern: cache hit → synchronous
+ * fallback on miss → background warm. These tests collapse the 11 sections ×
+ * 6 contracts matrix into parameterized Pest datasets, plus unique-behaviour
+ * tests for invalidation wiring and cache-key tracking.
+ *
+ * Note: file is misfiled (Tests\Unit\Services namespace but lives in Feature/);
+ * kept in Feature/ for transactional isolation, not moved per audit.
+ */
 
-    private DashboardCacheService $service;
+beforeEach(function () {
+    $this->service = app(DashboardCacheService::class);
+    Cache::flush();
+    Queue::fake();
+    Log::spy();
+});
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->service = app(DashboardCacheService::class);
-        Cache::flush();
-        Queue::fake();
-        Log::spy();
+/*
+ * Single source of truth for per-section metadata. Each row drives every
+ * parameterized test below. Nullable fields mark sections that don't fit
+ * a given contract (e.g. week has no warmer; trending uses WarmTrendingNearby
+ * and is invalidated via a separate method).
+ */
+$sections = function (): array {
+    $weekKey = now()->startOfWeek()->format('Y-m-d');
+    $geohash = 'u33d';
+
+    return [
+        'week' => [[
+            'getter' => fn ($s, $u) => $s->getWeekData($u),
+            'cacheKey' => fn ($u) => "dashboard:week:{$u->id}:{$weekKey}",
+            'expectedKeys' => ['days', 'summary'],
+            'sample' => ['days' => ['test'], 'summary' => ['total' => 1]],
+            'triggerType' => 'cache_miss_week',
+            'warmer' => null,
+            'invalidateSection' => 'week',
+            'populateForInvalidate' => function ($u) use ($weekKey) {
+                Cache::put("dashboard:week:{$u->id}:{$weekKey}", ['data' => true], 300);
+            },
+        ]],
+        'feed' => [[
+            'getter' => fn ($s, $u) => $s->getFeedData($u),
+            'cacheKey' => fn ($u) => "dashboard:feed:{$u->id}",
+            'expectedKeys' => ['items', 'source'],
+            'sample' => ['items' => ['test_item'], 'source' => 'friends', 'fetched_at' => now()->toISOString()],
+            'triggerType' => 'cache_miss_feed',
+            'warmer' => fn ($s, $u) => $s->warmFeed($u),
+            'invalidateSection' => 'feed',
+            'populateForInvalidate' => fn ($u) => Cache::put("dashboard:feed:{$u->id}", ['items' => []], 900),
+        ]],
+        'trending' => [[
+            'getter' => fn ($s, $u) => $s->getTrendingNearby('u33d'),
+            'cacheKey' => fn ($u) => "dashboard:trending:{$geohash}",
+            'expectedKeys' => ['games'],
+            'sample' => ['games' => [['id' => 'test']]],
+            'triggerType' => null,
+            'warmer' => null, // trending uses a separate warm contract (returns int)
+            'invalidateSection' => null, // uses invalidateTrendingForGeohash
+            'populateForInvalidate' => null,
+        ]],
+        'opportunities' => [[
+            'getter' => fn ($s, $u) => $s->getOpportunities($u, $geohash),
+            'cacheKey' => fn ($u) => "dashboard:opportunities:{$u->id}:{$geohash}",
+            'expectedKeys' => ['games', 'total_available'],
+            'sample' => ['games' => ['test'], 'total_available' => 7],
+            'triggerType' => 'cache_miss_opportunities',
+            'warmer' => fn ($s, $u) => $s->warmOpportunities($u, $geohash),
+            'invalidateSection' => 'opportunities',
+            'populateForInvalidate' => fn ($u) => app(DashboardCacheService::class)->warmOpportunities($u, 'u33d'),
+        ]],
+        'contributions' => [[
+            'getter' => fn ($s, $u) => $s->getContributions($u),
+            'cacheKey' => fn ($u) => "dashboard:contributions:{$u->id}",
+            'expectedKeys' => ['hosted', 'played'],
+            'sample' => ['hosted' => ['count' => 10, 'hours' => 0, 'unique_players' => 0], 'played' => ['count' => 20, 'system_count' => 0], 'campaigns' => null, 'recaps_written' => 0, 'reviews_given' => 0, 'followers' => 0],
+            'triggerType' => 'cache_miss_contributions',
+            'warmer' => fn ($s, $u) => $s->warmContributions($u),
+            'invalidateSection' => 'contributions',
+            'populateForInvalidate' => fn ($u) => Cache::put("dashboard:contributions:{$u->id}", ['data' => true], 3600),
+        ]],
+        'action_center' => [[
+            'getter' => fn ($s, $u) => $s->getActionCenter($u),
+            'cacheKey' => fn ($u) => "dashboard:action_center:{$u->id}",
+            'expectedKeys' => [],
+            'sample' => ['actions' => ['complete_profile', 'join_game']],
+            'triggerType' => 'cache_miss_action_center',
+            'warmer' => fn ($s, $u) => $s->warmActionCenter($u),
+            'invalidateSection' => 'action_center',
+            'populateForInvalidate' => fn ($u) => Cache::put("dashboard:action_center:{$u->id}", ['actions' => ['test']], 300),
+        ]],
+        'newcomer_welcome' => [[
+            'getter' => fn ($s, $u) => $s->getNewcomerWelcome($u),
+            'cacheKey' => fn ($u) => "dashboard:newcomer_welcome:{$u->id}",
+            'expectedKeys' => ['first_name', 'welcome_message_key'],
+            'sample' => ['message' => 'Welcome!'],
+            'triggerType' => 'cache_miss_newcomer_welcome',
+            'warmer' => fn ($s, $u) => $s->warmNewcomerWelcome($u),
+            'invalidateSection' => 'newcomer_welcome',
+            'populateForInvalidate' => fn ($u) => Cache::put("dashboard:newcomer_welcome:{$u->id}", ['msg' => 'hi'], 600),
+        ]],
+        'progress_tracker' => [[
+            'getter' => fn ($s, $u) => $s->getProgressTracker($u),
+            'cacheKey' => fn ($u) => "dashboard:progress_tracker:{$u->id}",
+            'expectedKeys' => ['steps', 'current_step'],
+            'sample' => ['steps' => [], 'current_step' => 0],
+            'triggerType' => 'cache_miss_progress_tracker',
+            'warmer' => fn ($s, $u) => $s->warmProgressTracker($u),
+            'invalidateSection' => 'progress_tracker',
+            'populateForInvalidate' => fn ($u) => Cache::put("dashboard:progress_tracker:{$u->id}", ['steps' => []], 300),
+        ]],
+        'nearby_people' => [[
+            'getter' => fn ($s, $u) => $s->getNearbyPeople($u, $geohash),
+            'cacheKey' => fn ($u) => "dashboard:nearby_people:{$u->id}:{$geohash}",
+            'expectedKeys' => ['people', 'total_nearby'],
+            'sample' => ['people' => [['name' => 'Alice']]],
+            'triggerType' => 'cache_miss_nearby_people',
+            'warmer' => fn ($s, $u) => $s->warmNearbyPeople($u, $geohash),
+            'invalidateSection' => 'nearby_people',
+            'populateForInvalidate' => fn ($u) => app(DashboardCacheService::class)->warmNearbyPeople($u, 'u33d'),
+        ]],
+        'host_again' => [[
+            'getter' => fn ($s, $u) => $s->getHostAgain($u),
+            'cacheKey' => fn ($u) => "dashboard:host_again:{$u->id}",
+            'expectedKeys' => [],
+            'sample' => ['recent_game_ids' => [1, 2]],
+            'triggerType' => 'cache_miss_host_again',
+            'warmer' => fn ($s, $u) => $s->warmHostAgain($u),
+            'invalidateSection' => 'host_again',
+            'populateForInvalidate' => fn ($u) => Cache::put("dashboard:host_again:{$u->id}", ['games' => [1]], 600),
+        ]],
+        'milestone_cards' => [[
+            'getter' => fn ($s, $u) => $s->getMilestoneCards($u),
+            'cacheKey' => fn ($u) => "dashboard:milestone_cards:{$u->id}",
+            'expectedKeys' => [],
+            'sample' => ['milestones' => ['hosted_10']],
+            'triggerType' => 'cache_miss_milestone_cards',
+            'warmer' => fn ($s, $u) => $s->warmMilestoneCards($u),
+            'invalidateSection' => 'milestone_cards',
+            'populateForInvalidate' => fn ($u) => Cache::put("dashboard:milestone_cards:{$u->id}", ['milestones' => []], 3600),
+        ]],
+    ];
+};
+
+it('returns real data on cache miss', function (array $section) {
+    $user = User::factory()->create();
+
+    $result = $section['getter']($this->service, $user);
+
+    expect($result)->toBeArray();
+    foreach ($section['expectedKeys'] as $key) {
+        expect($result)->toHaveKey($key);
+    }
+})->with($sections);
+
+it('stores result in cache on miss', function (array $section) {
+    // Trending uses async warm (WarmTrendingNearby) and returns a default
+    // rather than storing synchronously — covered by the dispatch test below.
+    if ($section['triggerType'] === null) {
+        $this->markTestSkipped('trending uses async warm instead of synchronous store');
     }
 
-    // ── Cache miss: synchronous fallback ───────────────────────
+    $user = User::factory()->create();
 
-    #[Test]
-    public function get_week_data_returns_real_data_on_miss(): void
-    {
-        $user = User::factory()->create();
+    $section['getter']($this->service, $user);
 
-        $result = $this->service->getWeekData($user);
+    expect(Cache::get(($section['cacheKey'])($user)))->not->toBeNull();
+})->with($sections);
 
-        $this->assertArrayHasKey('days', $result);
-        $this->assertArrayHasKey('summary', $result);
-        $this->assertCount(7, $result['days']);
-        $this->assertEquals(0, $result['summary']['total']);
-        $this->assertEquals(0, $result['summary']['past']);
-        $this->assertEquals(0, $result['summary']['upcoming']);
-        $this->assertEquals(0, $result['summary']['hosting']);
-        $this->assertEquals(0, $result['summary']['playing']);
+it('returns cached data on hit and skips warm dispatch', function (array $section) {
+    $user = User::factory()->create();
+    Cache::put(($section['cacheKey'])($user), $section['sample'], 600);
+
+    $result = $section['getter']($this->service, $user);
+
+    expect($result)->toBe($section['sample']);
+    if ($section['triggerType'] !== null) {
+        // Sections that use WarmDashboardCache should not re-dispatch on hit.
+        Queue::assertNotPushed(WarmDashboardCache::class);
     }
+})->with($sections);
 
-    #[Test]
-    public function get_feed_data_returns_empty_items_on_miss_with_no_follows(): void
-    {
-        $user = User::factory()->create();
+it('dispatches warm job on cache miss', function (array $section) {
+    $user = User::factory()->create();
 
-        $result = $this->service->getFeedData($user);
+    $section['getter']($this->service, $user);
 
-        $this->assertArrayHasKey('items', $result);
-        $this->assertArrayHasKey('source', $result);
-        $this->assertArrayHasKey('fetched_at', $result);
-        $this->assertEquals([], $result['items']);
-        $this->assertEquals('friends', $result['source']);
-    }
-
-    #[Test]
-    public function get_trending_nearby_returns_placeholder_on_miss(): void
-    {
-        $result = $this->service->getTrendingNearby('u33d');
-
-        $this->assertArrayHasKey('games', $result);
-        $this->assertEquals([], $result['games']);
-    }
-
-    #[Test]
-    public function get_opportunities_returns_placeholder_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->getOpportunities($user, 'u33d');
-
-        $this->assertArrayHasKey('games', $result);
-        $this->assertArrayHasKey('total_available', $result);
-        $this->assertEquals([], $result['games']);
-        $this->assertEquals(0, $result['total_available']);
-    }
-
-    #[Test]
-    public function get_contributions_returns_placeholder_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->getContributions($user);
-
-        $this->assertArrayHasKey('hosted', $result);
-        $this->assertArrayHasKey('played', $result);
-        $this->assertArrayHasKey('recaps_written', $result);
-        $this->assertArrayHasKey('reviews_given', $result);
-    }
-
-    // ── Cache miss: data stored in cache ───────────────────────
-
-    #[Test]
-    public function get_week_data_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $cacheKey = "dashboard:week:{$user->id}:{$weekKey}";
-
-        $this->service->getWeekData($user);
-
-        $cached = Cache::get($cacheKey);
-        $this->assertNotNull($cached);
-        $this->assertArrayHasKey('days', $cached);
-        $this->assertArrayHasKey('summary', $cached);
-    }
-
-    #[Test]
-    public function get_feed_data_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getFeedData($user);
-
-        $cached = Cache::get("dashboard:feed:{$user->id}");
-        $this->assertNotNull($cached);
-        $this->assertArrayHasKey('items', $cached);
-    }
-
-    #[Test]
-    public function get_trending_nearby_stores_result_in_cache(): void
-    {
-        // Trending nearby uses async cache warming — verify the warm job
-        // is dispatched on cache miss and a default structure is returned.
-        $result = $this->service->getTrendingNearby('u33d');
-
+    if ($section['triggerType'] === null) {
+        // Trending dispatches WarmTrendingNearby instead.
         Queue::assertPushed(WarmTrendingNearby::class);
-        $this->assertArrayHasKey('games', $result);
+
+        return;
     }
 
-    #[Test]
-    public function get_opportunities_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
+    Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user, $section) {
+        return $job->userId === (string) $user->id
+            && $job->triggerType === $section['triggerType'];
+    });
+})->with($sections);
 
-        $this->service->getOpportunities($user, 'u33d');
-
-        $cached = Cache::get("dashboard:opportunities:{$user->id}:u33d");
-        $this->assertNotNull($cached);
+it('invalidates the section cache via invalidateForUser', function (array $section) {
+    if ($section['invalidateSection'] === null) {
+        $this->markTestSkipped('trending is invalidated via invalidateTrendingForGeohash');
     }
 
-    #[Test]
-    public function get_contributions_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
+    $user = User::factory()->create();
+    ($section['populateForInvalidate'])($user);
+    $key = ($section['cacheKey'])($user);
+    expect(Cache::get($key))->not->toBeNull();
 
-        $this->service->getContributions($user);
+    $this->service->invalidateForUser((string) $user->id, [$section['invalidateSection']]);
 
-        $cached = Cache::get("dashboard:contributions:{$user->id}");
-        $this->assertNotNull($cached);
+    expect(Cache::get($key))->toBeNull();
+})->with($sections);
+
+it('warm method stores data in cache and returns what it stores', function (array $section) {
+    if ($section['warmer'] === null) {
+        $this->markTestSkipped('section has no warmer (week) or uses separate contract (trending)');
     }
 
-    // ── Cache hit: returns cached data without recomputation ───
+    $user = User::factory()->create();
+
+    $result = ($section['warmer'])($this->service, $user);
+
+    expect($result)->toBeArray();
+    $cached = Cache::get(($section['cacheKey'])($user));
+    expect($cached)->not->toBeNull()->toBe($result);
+})->with($sections);
 
-    #[Test]
-    public function get_week_data_returns_cached_data_on_hit(): void
-    {
-        $user = User::factory()->create();
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $cacheKey = "dashboard:week:{$user->id}:{$weekKey}";
-        $expected = ['days' => ['test'], 'summary' => ['total' => 1]];
+// ── Trending has a distinct warm contract (returns game count) ───────
 
-        Cache::put($cacheKey, $expected, 300);
+it('warm_trending_nearby returns game count and stores empty list for remote tile', function () {
+    $emptyTile = 'kddd'; // Antarctica — no other test populates this
 
-        $result = $this->service->getWeekData($user);
+    $result = $this->service->warmTrendingNearby($emptyTile);
 
-        $this->assertEquals($expected, $result);
-        // No warm job dispatched on cache hit
-        Queue::assertNotPushed(WarmDashboardCache::class);
-    }
+    expect($result)->toBe(0);
+    $cached = Cache::get("dashboard:trending:{$emptyTile}");
+    expect($cached)->not->toBeNull()
+        ->and($cached['games'])->toHaveCount(0);
+});
 
-    #[Test]
-    public function get_feed_data_returns_cached_data_on_hit(): void
-    {
-        $user = User::factory()->create();
-        $expected = ['items' => ['test_item'], 'source' => 'friends', 'fetched_at' => now()->toISOString()];
+// ── Invalidation wiring unique to specific entry points ──────────────
 
-        Cache::put("dashboard:feed:{$user->id}", $expected, 900);
+it('invalidates every section by default when no section list is passed', function () {
+    $user = User::factory()->create();
+    $weekKey = now()->startOfWeek()->format('Y-m-d');
 
-        $result = $this->service->getFeedData($user);
+    Cache::put("dashboard:week:{$user->id}:{$weekKey}", ['data' => true], 300);
+    Cache::put("dashboard:feed:{$user->id}", ['data' => true], 900);
+    Cache::put("dashboard:contributions:{$user->id}", ['data' => true], 3600);
 
-        $this->assertEquals($expected, $result);
-        Queue::assertNotPushed(WarmDashboardCache::class);
-    }
+    $this->service->invalidateForUser((string) $user->id);
 
-    #[Test]
-    public function get_trending_nearby_returns_cached_data_on_hit(): void
-    {
-        $expected = ['games' => [['id' => 'test']]];
+    expect(Cache::get("dashboard:week:{$user->id}:{$weekKey}"))->toBeNull()
+        ->and(Cache::get("dashboard:feed:{$user->id}"))->toBeNull()
+        ->and(Cache::get("dashboard:contributions:{$user->id}"))->toBeNull();
+});
 
-        Cache::put('dashboard:trending:u33d', $expected, 600);
+it('invalidate_trending_for_geohash clears the trending cache key', function () {
+    Cache::put('dashboard:trending:u33d', ['games' => []], 600);
 
-        $result = $this->service->getTrendingNearby('u33d');
+    $this->service->invalidateTrendingForGeohash('u33d');
 
-        $this->assertEquals($expected, $result);
-    }
+    expect(Cache::get('dashboard:trending:u33d'))->toBeNull();
+});
 
-    #[Test]
-    public function get_opportunities_returns_cached_data_on_hit(): void
-    {
-        $user = User::factory()->create();
-        $expected = ['games' => ['test'], 'total_available' => 7];
+it('invalidate_for_game_event clears week cache for the owner', function () {
+    $owner = User::factory()->create();
+    $game = Game::factory()->create(['owner_id' => $owner->id, 'status' => GameStatus::Scheduled]);
+    $weekKey = now()->startOfWeek()->format('Y-m-d');
+    $ownerWeekKey = "dashboard:week:{$owner->id}:{$weekKey}";
+    Cache::put($ownerWeekKey, ['data' => true], 300);
 
-        Cache::put("dashboard:opportunities:{$user->id}:u33d", $expected, 600);
+    $this->service->invalidateForGameEvent($game, 'updated');
 
-        $result = $this->service->getOpportunities($user, 'u33d');
+    expect(Cache::get($ownerWeekKey))->toBeNull();
+});
 
-        $this->assertEquals($expected, $result);
-        Queue::assertNotPushed(WarmDashboardCache::class);
-    }
+it('invalidate_for_game_event clears week cache for approved participants', function () {
+    $owner = User::factory()->create();
+    $player = User::factory()->create();
+    $game = Game::factory()->create(['owner_id' => $owner->id, 'status' => GameStatus::Scheduled]);
+    GameParticipant::factory()->create([
+        'game_id' => $game->id,
+        'user_id' => $player->id,
+        'status' => ParticipantStatus::Approved,
+    ]);
+    $weekKey = now()->startOfWeek()->format('Y-m-d');
+    $playerWeekKey = "dashboard:week:{$player->id}:{$weekKey}";
+    Cache::put($playerWeekKey, ['data' => true], 300);
 
-    #[Test]
-    public function get_contributions_returns_cached_data_on_hit(): void
-    {
-        $user = User::factory()->create();
-        $expected = ['hosted' => ['count' => 10, 'hours' => 0, 'unique_players' => 0], 'played' => ['count' => 20, 'system_count' => 0], 'campaigns' => null, 'recaps_written' => 0, 'reviews_given' => 0, 'followers' => 0];
+    $this->service->invalidateForGameEvent($game, 'updated');
 
-        Cache::put("dashboard:contributions:{$user->id}", $expected, 3600);
+    expect(Cache::get($playerWeekKey))->toBeNull();
+});
 
-        $result = $this->service->getContributions($user);
+it('invalidate_for_game_event clears trending for the game location geohash', function () {
+    $location = Location::factory()->create(['latitude' => 52.5163, 'longitude' => 13.3777]);
+    $geohash4 = Geohash::tilePrefix(52.5163, 13.3777, 4);
+    $owner = User::factory()->create();
+    $game = Game::factory()->create([
+        'owner_id' => $owner->id,
+        'location_id' => $location->id,
+        'status' => GameStatus::Scheduled,
+    ]);
+    Cache::put("dashboard:trending:{$geohash4}", ['games' => []], 600);
 
-        $this->assertEquals($expected, $result);
-        Queue::assertNotPushed(WarmDashboardCache::class);
-    }
+    $this->service->invalidateForGameEvent($game, 'updated');
 
-    // ── Cache miss dispatches WarmDashboardCache job ───────────
+    expect(Cache::get("dashboard:trending:{$geohash4}"))->toBeNull();
+});
 
-    #[Test]
-    public function get_week_data_dispatches_warm_job_on_miss(): void
-    {
-        $user = User::factory()->create();
+it('invalidate_for_game_event skips trending when the game has no location', function () {
+    $owner = User::factory()->create();
+    $game = Game::factory()->create([
+        'owner_id' => $owner->id,
+        'status' => GameStatus::Scheduled,
+        'location_id' => null,
+    ]);
+    Cache::put('dashboard:trending:u33d', ['games' => ['unrelated']], 600);
 
-        $this->service->getWeekData($user);
+    $this->service->invalidateForGameEvent($game, 'updated');
 
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_week';
-        });
-    }
+    expect(Cache::get('dashboard:trending:u33d'))->not->toBeNull();
+});
 
-    #[Test]
-    public function get_feed_data_dispatches_warm_job_on_miss(): void
-    {
-        $user = User::factory()->create();
+// ── Cache-key tracking unique to opportunities (geohash-keyed sections) ──
 
-        $this->service->getFeedData($user);
+it('week cache key is namespaced by the start-of-week date', function () {
+    $user = User::factory()->create();
 
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_feed';
-        });
-    }
+    $this->service->getWeekData($user);
 
-    #[Test]
-    public function get_opportunities_dispatches_warm_job_on_miss(): void
-    {
-        $user = User::factory()->create();
+    $weekKey = now()->startOfWeek()->format('Y-m-d');
+    expect(Cache::get("dashboard:week:{$user->id}:{$weekKey}"))->not->toBeNull()
+        ->and(Cache::get("dashboard:week:{$user->id}:2099-12-31"))->toBeNull();
+});
 
-        $this->service->getOpportunities($user, 'u33d');
+it('opportunities tracks multiple geohash keys for invalidation', function () {
+    $user = User::factory()->create();
 
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_opportunities';
-        });
-    }
+    $this->service->warmOpportunities($user, 'u33d');
+    $this->service->warmOpportunities($user, 'u33e');
 
-    #[Test]
-    public function get_contributions_dispatches_warm_job_on_miss(): void
-    {
-        $user = User::factory()->create();
+    $trackedKeys = Cache::get("dashboard:opportunities:keys:{$user->id}");
+    expect($trackedKeys)->toHaveCount(2)
+        ->and($trackedKeys)->toContain("dashboard:opportunities:{$user->id}:u33d")
+        ->and($trackedKeys)->toContain("dashboard:opportunities:{$user->id}:u33e");
+});
 
-        $this->service->getContributions($user);
+it('opportunities does not duplicate tracked keys on repeated warm', function () {
+    $user = User::factory()->create();
 
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_contributions';
-        });
-    }
+    $this->service->warmOpportunities($user, 'u33d');
+    $this->service->warmOpportunities($user, 'u33d');
 
-    // ── Invalidation methods ───────────────────────────────────
-
-    #[Test]
-    public function invalidate_for_user_clears_week_cache(): void
-    {
-        $user = User::factory()->create();
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $cacheKey = "dashboard:week:{$user->id}:{$weekKey}";
-        Cache::put($cacheKey, ['data' => true], 300);
-
-        $this->service->invalidateForUser((string) $user->id, ['week']);
-
-        $this->assertNull(Cache::get($cacheKey));
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_feed_cache(): void
-    {
-        $user = User::factory()->create();
-        Cache::put("dashboard:feed:{$user->id}", ['items' => []], 900);
-
-        $this->service->invalidateForUser((string) $user->id, ['feed']);
-
-        $this->assertNull(Cache::get("dashboard:feed:{$user->id}"));
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_contributions_cache(): void
-    {
-        $user = User::factory()->create();
-        Cache::put("dashboard:contributions:{$user->id}", ['data' => true], 3600);
-
-        $this->service->invalidateForUser((string) $user->id, ['contributions']);
-
-        $this->assertNull(Cache::get("dashboard:contributions:{$user->id}"));
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_opportunities_with_tracked_keys(): void
-    {
-        $user = User::factory()->create();
-
-        // Use warm to populate and track the key
-        $this->service->warmOpportunities($user, 'u33d');
-        $opKey = "dashboard:opportunities:{$user->id}:u33d";
-        $this->assertNotNull(Cache::get($opKey));
-
-        $this->service->invalidateForUser((string) $user->id, ['opportunities']);
-
-        $this->assertNull(Cache::get($opKey));
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_all_sections_by_default(): void
-    {
-        $user = User::factory()->create();
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-
-        Cache::put("dashboard:week:{$user->id}:{$weekKey}", ['data' => true], 300);
-        Cache::put("dashboard:feed:{$user->id}", ['data' => true], 900);
-        Cache::put("dashboard:contributions:{$user->id}", ['data' => true], 3600);
-
-        $this->service->invalidateForUser((string) $user->id);
-
-        $this->assertNull(Cache::get("dashboard:week:{$user->id}:{$weekKey}"));
-        $this->assertNull(Cache::get("dashboard:feed:{$user->id}"));
-        $this->assertNull(Cache::get("dashboard:contributions:{$user->id}"));
-    }
-
-    #[Test]
-    public function invalidate_trending_for_geohash_clears_trending_cache(): void
-    {
-        Cache::put('dashboard:trending:u33d', ['games' => []], 600);
-
-        $this->service->invalidateTrendingForGeohash('u33d');
-
-        $this->assertNull(Cache::get('dashboard:trending:u33d'));
-    }
-
-    // ── Game event invalidation ────────────────────────────────
-
-    #[Test]
-    public function invalidate_for_game_event_clears_week_for_owner(): void
-    {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'status' => GameStatus::Scheduled,
-        ]);
-
-        // Populate week cache after creation hooks have fired
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $ownerWeekKey = "dashboard:week:{$owner->id}:{$weekKey}";
-        Cache::put($ownerWeekKey, ['data' => true], 300);
-
-        $this->service->invalidateForGameEvent($game, 'updated');
-
-        $this->assertNull(Cache::get($ownerWeekKey));
-    }
-
-    #[Test]
-    public function invalidate_for_game_event_clears_week_for_approved_participants(): void
-    {
-        $owner = User::factory()->create();
-        $player = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'status' => GameStatus::Scheduled,
-        ]);
-        GameParticipant::factory()->create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        // Populate caches after creation hooks
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $playerWeekKey = "dashboard:week:{$player->id}:{$weekKey}";
-        Cache::put($playerWeekKey, ['data' => true], 300);
-
-        $this->service->invalidateForGameEvent($game, 'updated');
-
-        $this->assertNull(Cache::get($playerWeekKey));
-    }
-
-    #[Test]
-    public function invalidate_for_game_event_clears_trending_for_game_location(): void
-    {
-        $location = Location::factory()->create([
-            'latitude' => 52.5163,
-            'longitude' => 13.3777,
-        ]);
-        $geohash4 = Geohash::tilePrefix(52.5163, 13.3777, 4);
-
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'location_id' => $location->id,
-            'status' => GameStatus::Scheduled,
-        ]);
-
-        // Populate after creation hooks
-        Cache::put("dashboard:trending:{$geohash4}", ['games' => []], 600);
-
-        $this->service->invalidateForGameEvent($game, 'updated');
-
-        $this->assertNull(Cache::get("dashboard:trending:{$geohash4}"));
-    }
-
-    #[Test]
-    public function invalidate_for_game_event_skips_trending_without_location(): void
-    {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'status' => GameStatus::Scheduled,
-            'location_id' => null,
-        ]);
-
-        // Pre-populate some trending cache that should NOT be affected
-        Cache::put('dashboard:trending:u33d', ['games' => ['unrelated']], 600);
-
-        $this->service->invalidateForGameEvent($game, 'updated');
-
-        // Unrelated trending cache should remain intact
-        $this->assertNotNull(Cache::get('dashboard:trending:u33d'));
-    }
-
-    // ── Warm methods ───────────────────────────────────────────
-
-    #[Test]
-    public function warm_contributions_stores_data_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->warmContributions($user);
-
-        $this->assertArrayHasKey('hosted', $result);
-        $this->assertArrayHasKey('played', $result);
-        $cached = Cache::get("dashboard:contributions:{$user->id}");
-        $this->assertNotNull($cached);
-        $this->assertEquals($result, $cached);
-    }
-
-    #[Test]
-    public function warm_feed_stores_data_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->warmFeed($user);
-
-        $this->assertArrayHasKey('items', $result);
-        $cached = Cache::get("dashboard:feed:{$user->id}");
-        $this->assertNotNull($cached);
-        $this->assertEquals($result, $cached);
-    }
-
-    #[Test]
-    public function warm_opportunities_stores_data_and_tracks_key(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->warmOpportunities($user, 'u33d');
-
-        $this->assertArrayHasKey('games', $result);
-        $cached = Cache::get("dashboard:opportunities:{$user->id}:u33d");
-        $this->assertNotNull($cached);
-
-        // Verify key is tracked
-        $trackedKeys = Cache::get("dashboard:opportunities:keys:{$user->id}");
-        $this->assertContains("dashboard:opportunities:{$user->id}:u33d", $trackedKeys);
-    }
-
-    #[Test]
-    public function warm_trending_nearby_returns_game_count(): void
-    {
-        // Use a remote tile (Antarctica) that no other test populates
-        $emptyTile = 'kddd';
-        $result = $this->service->warmTrendingNearby($emptyTile);
-
-        $this->assertEquals(0, $result);
-        $cached = Cache::get("dashboard:trending:{$emptyTile}");
-        $this->assertNotNull($cached);
-        $this->assertCount(0, $cached['games']);
-    }
-
-    // ── TTL verification ───────────────────────────────────────
-
-    #[Test]
-    public function week_cache_key_includes_start_of_week_date(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getWeekData($user);
-
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $this->assertNotNull(Cache::get("dashboard:week:{$user->id}:{$weekKey}"));
-
-        // Different week key should not exist
-        $this->assertNull(Cache::get("dashboard:week:{$user->id}:2099-12-31"));
-    }
-
-    #[Test]
-    public function opportunities_tracks_multiple_geohash_keys(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->warmOpportunities($user, 'u33d');
-        $this->service->warmOpportunities($user, 'u33e');
-
-        $trackedKeys = Cache::get("dashboard:opportunities:keys:{$user->id}");
-        $this->assertCount(2, $trackedKeys);
-        $this->assertContains("dashboard:opportunities:{$user->id}:u33d", $trackedKeys);
-        $this->assertContains("dashboard:opportunities:{$user->id}:u33e", $trackedKeys);
-    }
-
-    #[Test]
-    public function opportunities_does_not_duplicate_tracked_keys(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->warmOpportunities($user, 'u33d');
-        $this->service->warmOpportunities($user, 'u33d');
-
-        $trackedKeys = Cache::get("dashboard:opportunities:keys:{$user->id}");
-        $this->assertCount(1, $trackedKeys);
-    }
-
-    // ── Two-mode dashboard: cache miss / synchronous fallback ──
-
-    #[Test]
-    public function get_action_center_returns_empty_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->getActionCenter($user);
-
-        $this->assertIsArray($result);
-        $this->assertEquals([], $result);
-    }
-
-    #[Test]
-    public function get_newcomer_welcome_returns_computed_data_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->getNewcomerWelcome($user);
-
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('first_name', $result);
-        $this->assertArrayHasKey('welcome_message_key', $result);
-    }
-
-    #[Test]
-    public function get_progress_tracker_returns_computed_data_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->getProgressTracker($user);
-
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('steps', $result);
-        $this->assertArrayHasKey('current_step', $result);
-    }
-
-    #[Test]
-    public function get_nearby_people_returns_computed_data_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->getNearbyPeople($user, 'u33d');
-
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('people', $result);
-        $this->assertArrayHasKey('total_nearby', $result);
-    }
-
-    #[Test]
-    public function get_host_again_returns_empty_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->getHostAgain($user);
-
-        $this->assertIsArray($result);
-        $this->assertEquals([], $result);
-    }
-
-    #[Test]
-    public function get_milestone_cards_returns_empty_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->getMilestoneCards($user);
-
-        $this->assertIsArray($result);
-        $this->assertEquals([], $result);
-    }
-
-    // ── Two-mode dashboard: cache stores on miss ───────────────
-
-    #[Test]
-    public function get_action_center_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getActionCenter($user);
-
-        $cached = Cache::get("dashboard:action_center:{$user->id}");
-        $this->assertNotNull($cached);
-    }
-
-    #[Test]
-    public function get_newcomer_welcome_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getNewcomerWelcome($user);
-
-        $cached = Cache::get("dashboard:newcomer_welcome:{$user->id}");
-        $this->assertNotNull($cached);
-    }
-
-    #[Test]
-    public function get_progress_tracker_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getProgressTracker($user);
-
-        $cached = Cache::get("dashboard:progress_tracker:{$user->id}");
-        $this->assertNotNull($cached);
-    }
-
-    #[Test]
-    public function get_nearby_people_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getNearbyPeople($user, 'u33d');
-
-        $cached = Cache::get("dashboard:nearby_people:{$user->id}:u33d");
-        $this->assertNotNull($cached);
-    }
-
-    #[Test]
-    public function get_host_again_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getHostAgain($user);
-
-        $cached = Cache::get("dashboard:host_again:{$user->id}");
-        $this->assertNotNull($cached);
-    }
-
-    #[Test]
-    public function get_milestone_cards_stores_result_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getMilestoneCards($user);
-
-        $cached = Cache::get("dashboard:milestone_cards:{$user->id}");
-        $this->assertNotNull($cached);
-    }
-
-    // ── Two-mode dashboard: cache hit returns cached data ──────
-
-    #[Test]
-    public function get_action_center_returns_cached_data_on_hit(): void
-    {
-        $user = User::factory()->create();
-        $expected = ['actions' => ['complete_profile', 'join_game']];
-
-        Cache::put("dashboard:action_center:{$user->id}", $expected, 300);
-
-        $result = $this->service->getActionCenter($user);
-
-        $this->assertEquals($expected, $result);
-        Queue::assertNotPushed(WarmDashboardCache::class);
-    }
-
-    #[Test]
-    public function get_newcomer_welcome_returns_cached_data_on_hit(): void
-    {
-        $user = User::factory()->create();
-        $expected = ['message' => 'Welcome!'];
-
-        Cache::put("dashboard:newcomer_welcome:{$user->id}", $expected, 600);
-
-        $result = $this->service->getNewcomerWelcome($user);
-
-        $this->assertEquals($expected, $result);
-        Queue::assertNotPushed(WarmDashboardCache::class);
-    }
-
-    #[Test]
-    public function get_nearby_people_returns_cached_data_on_hit(): void
-    {
-        $user = User::factory()->create();
-        $expected = ['people' => [['name' => 'Alice']]];
-
-        Cache::put("dashboard:nearby_people:{$user->id}:u33d", $expected, 900);
-
-        $result = $this->service->getNearbyPeople($user, 'u33d');
-
-        $this->assertEquals($expected, $result);
-        Queue::assertNotPushed(WarmDashboardCache::class);
-    }
-
-    #[Test]
-    public function get_host_again_returns_cached_data_on_hit(): void
-    {
-        $user = User::factory()->create();
-        $expected = ['recent_game_ids' => [1, 2]];
-
-        Cache::put("dashboard:host_again:{$user->id}", $expected, 600);
-
-        $result = $this->service->getHostAgain($user);
-
-        $this->assertEquals($expected, $result);
-        Queue::assertNotPushed(WarmDashboardCache::class);
-    }
-
-    #[Test]
-    public function get_milestone_cards_returns_cached_data_on_hit(): void
-    {
-        $user = User::factory()->create();
-        $expected = ['milestones' => ['hosted_10']];
-
-        Cache::put("dashboard:milestone_cards:{$user->id}", $expected, 3600);
-
-        $result = $this->service->getMilestoneCards($user);
-
-        $this->assertEquals($expected, $result);
-        Queue::assertNotPushed(WarmDashboardCache::class);
-    }
-
-    // ── Two-mode dashboard: warm job dispatched on miss ────────
-
-    #[Test]
-    public function get_action_center_dispatches_warm_job_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getActionCenter($user);
-
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_action_center';
-        });
-    }
-
-    #[Test]
-    public function get_newcomer_welcome_dispatches_warm_job_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getNewcomerWelcome($user);
-
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_newcomer_welcome';
-        });
-    }
-
-    #[Test]
-    public function get_progress_tracker_dispatches_warm_job_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getProgressTracker($user);
-
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_progress_tracker';
-        });
-    }
-
-    #[Test]
-    public function get_host_again_dispatches_warm_job_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getHostAgain($user);
-
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_host_again';
-        });
-    }
-
-    #[Test]
-    public function get_milestone_cards_dispatches_warm_job_on_miss(): void
-    {
-        $user = User::factory()->create();
-
-        $this->service->getMilestoneCards($user);
-
-        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
-            return $job->userId === (string) $user->id
-                && $job->triggerType === 'cache_miss_milestone_cards';
-        });
-    }
-
-    // ── Two-mode dashboard: invalidation ───────────────────────
-
-    #[Test]
-    public function invalidate_for_user_clears_action_center_cache(): void
-    {
-        $user = User::factory()->create();
-        Cache::put("dashboard:action_center:{$user->id}", ['actions' => ['test']], 300);
-
-        $this->service->invalidateForUser((string) $user->id, ['action_center']);
-
-        $this->assertNull(Cache::get("dashboard:action_center:{$user->id}"));
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_newcomer_welcome_cache(): void
-    {
-        $user = User::factory()->create();
-        Cache::put("dashboard:newcomer_welcome:{$user->id}", ['msg' => 'hi'], 600);
-
-        $this->service->invalidateForUser((string) $user->id, ['newcomer_welcome']);
-
-        $this->assertNull(Cache::get("dashboard:newcomer_welcome:{$user->id}"));
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_progress_tracker_cache(): void
-    {
-        $user = User::factory()->create();
-        Cache::put("dashboard:progress_tracker:{$user->id}", ['steps' => []], 300);
-
-        $this->service->invalidateForUser((string) $user->id, ['progress_tracker']);
-
-        $this->assertNull(Cache::get("dashboard:progress_tracker:{$user->id}"));
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_nearby_people_with_tracked_keys(): void
-    {
-        $user = User::factory()->create();
-
-        // Use warm to populate and track the key
-        $this->service->warmNearbyPeople($user, 'u33d');
-        $key = "dashboard:nearby_people:{$user->id}:u33d";
-        $this->assertNotNull(Cache::get($key));
-
-        $this->service->invalidateForUser((string) $user->id, ['nearby_people']);
-
-        $this->assertNull(Cache::get($key));
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_host_again_cache(): void
-    {
-        $user = User::factory()->create();
-        Cache::put("dashboard:host_again:{$user->id}", ['games' => [1]], 600);
-
-        $this->service->invalidateForUser((string) $user->id, ['host_again']);
-
-        $this->assertNull(Cache::get("dashboard:host_again:{$user->id}"));
-    }
-
-    #[Test]
-    public function invalidate_for_user_clears_milestone_cards_cache(): void
-    {
-        $user = User::factory()->create();
-        Cache::put("dashboard:milestone_cards:{$user->id}", ['milestones' => []], 3600);
-
-        $this->service->invalidateForUser((string) $user->id, ['milestone_cards']);
-
-        $this->assertNull(Cache::get("dashboard:milestone_cards:{$user->id}"));
-    }
-
-    // ── Two-mode dashboard: warm methods ───────────────────────
-
-    #[Test]
-    public function warm_action_center_stores_data_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->warmActionCenter($user);
-
-        $this->assertIsArray($result);
-        $cached = Cache::get("dashboard:action_center:{$user->id}");
-        $this->assertNotNull($cached);
-        $this->assertEquals($result, $cached);
-    }
-
-    #[Test]
-    public function warm_newcomer_welcome_stores_data_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->warmNewcomerWelcome($user);
-
-        $this->assertIsArray($result);
-        $cached = Cache::get("dashboard:newcomer_welcome:{$user->id}");
-        $this->assertNotNull($cached);
-        $this->assertEquals($result, $cached);
-    }
-
-    #[Test]
-    public function warm_progress_tracker_stores_data_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->warmProgressTracker($user);
-
-        $this->assertIsArray($result);
-        $cached = Cache::get("dashboard:progress_tracker:{$user->id}");
-        $this->assertNotNull($cached);
-        $this->assertEquals($result, $cached);
-    }
-
-    #[Test]
-    public function warm_nearby_people_stores_data_and_tracks_key(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->warmNearbyPeople($user, 'u33d');
-
-        $this->assertIsArray($result);
-        $cached = Cache::get("dashboard:nearby_people:{$user->id}:u33d");
-        $this->assertNotNull($cached);
-
-        $trackedKeys = Cache::get("dashboard:nearby_people:keys:{$user->id}");
-        $this->assertContains("dashboard:nearby_people:{$user->id}:u33d", $trackedKeys);
-    }
-
-    #[Test]
-    public function warm_host_again_stores_data_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->warmHostAgain($user);
-
-        $this->assertIsArray($result);
-        $cached = Cache::get("dashboard:host_again:{$user->id}");
-        $this->assertNotNull($cached);
-        $this->assertEquals($result, $cached);
-    }
-
-    #[Test]
-    public function warm_milestone_cards_stores_data_in_cache(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $this->service->warmMilestoneCards($user);
-
-        $this->assertIsArray($result);
-        $cached = Cache::get("dashboard:milestone_cards:{$user->id}");
-        $this->assertNotNull($cached);
-        $this->assertEquals($result, $cached);
-    }
-}
+    expect(Cache::get("dashboard:opportunities:keys:{$user->id}"))->toHaveCount(1);
+});

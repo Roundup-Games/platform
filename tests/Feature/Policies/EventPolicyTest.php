@@ -75,20 +75,20 @@ describe('Event Policy', function () {
     });
 
     describe('create', function () {
-        test('user with create event permission can create', function () {
-            setPermissionsTeamId(1);
-            $this->regularUser->givePermissionTo('create event');
-            $this->regularUser->unsetRelations();
-            setPermissionsTeamId(1);
+        test('create permission gates event creation', function (bool $grantPermission, bool $expected) {
+            if ($grantPermission) {
+                setPermissionsTeamId(1);
+                $this->regularUser->givePermissionTo('create event');
+                $this->regularUser->unsetRelations();
+                setPermissionsTeamId(1);
+            }
 
             $this->actingAs($this->regularUser);
-            expect(Gate::allows('create', Event::class))->toBeTrue();
-        });
-
-        test('user without permission cannot create event', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('create', Event::class))->toBeFalse();
-        });
+            expect(Gate::allows('create', Event::class))->toBe($expected);
+        })->with([
+            'user with create event permission can create' => [true, true],
+            'user without permission cannot create event' => [false, false],
+        ]);
     });
 
     describe('update', function () {

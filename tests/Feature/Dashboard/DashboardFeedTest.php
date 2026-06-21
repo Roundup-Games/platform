@@ -16,6 +16,12 @@ use App\Services\Geohash;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
+    // Cache::flush is required: this file writes to a shared geohash key
+    // ('dashboard:trending:{geohash4}' for Berlin = 'u33d') that other tests
+    // also use (DashboardCacheServiceTest, WarmTrendingNearbyTest). Without
+    // the flush, stale cache entries survive across tests — and under
+    // --parallel, across sibling workers sharing the same Postgres.
+    Cache::flush();
     $this->user = User::factory()->create(['created_at' => now()->subDays(60)]);
     $this->actingAs($this->user);
     URL::defaults(['locale' => 'en']);

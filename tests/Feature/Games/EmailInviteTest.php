@@ -144,24 +144,9 @@ test('invite by email rejects invalid email', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
-// 6. INVITE BY EMAIL REJECTS SELF-INVITE
+// 6. INVITE BY EMAIL REJECTS DUPLICATE
 // ═══════════════════════════════════════════════════════════
-
-test('invite by email rejects self-invite', function () {
-    Mail::fake();
-
-    Livewire\Livewire::actingAs($this->owner)
-        ->test(GameManageParticipants::class, ['id' => $this->game->id])
-        ->set('inviteEmail', $this->owner->email)
-        ->call('inviteByEmail')
-        ->assertHasErrors('inviteEmail');
-
-    Mail::assertNothingQueued();
-});
-
-// ═══════════════════════════════════════════════════════════
-// 7. INVITE BY EMAIL REJECTS DUPLICATE
-// ═══════════════════════════════════════════════════════════
+// (Self-invite rejection is covered canonically in ParticipantManagementTest.)
 
 test('invite by email rejects duplicate', function () {
     Mail::fake();

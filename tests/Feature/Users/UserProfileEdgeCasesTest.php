@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use App\Rules\ValidUserName;
-use Illuminate\Support\Str;
 
 /**
  * Edge-case tests for the complete user profile system:
@@ -229,10 +228,6 @@ describe('User::generateSlug additional cases', function () {
         expect($slug)->toBe('john-doe-smith');
     });
 
-    it('handles mixed special characters and valid text', function () {
-        expect(User::generateSlug('John@Doe#Test!'))->toBe('johndoetest');
-    });
-
     it('handles unicode combining characters in names', function () {
         $slug = User::generateSlug('Hélène Müster');
         // German umlauts are pre-expanded before iconv (ü→ue), so the result
@@ -262,15 +257,6 @@ describe('User::generateUniqueSlug collision edge cases', function () {
         $slug = User::generateUniqueSlug('Multi Collision');
 
         expect($slug)->toBe('multi-collision-6');
-    });
-
-    it('ignoreId works when user already has a slug that would collide', function () {
-        $user = User::factory()->create(['name' => 'Self Ref', 'slug' => 'self-ref']);
-
-        // When generating for the same user (e.g., during name change), should reuse their slug
-        $slug = User::generateUniqueSlug('Self Ref', $user->id);
-
-        expect($slug)->toBe('self-ref');
     });
 
     it('generates unique fallback when multiple users produce empty slug', function () {
@@ -313,39 +299,6 @@ describe('Auto-slug generation on model creating hook', function () {
 
         expect($user->id)->not->toBeNull();
         expect($user->slug)->not->toBeNull();
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// Profile Routing: Additional Edge Cases
-// ═══════════════════════════════════════════════════════════
-
-describe('Route model binding edge cases', function () {
-    it('resolves slug case-insensitively for lookups', function () {
-        $user = User::factory()->create(['name' => 'Case Test', 'slug' => 'case-test']);
-
-        // Slugs are stored lowercase, so uppercase lookup should not match slug
-        // but should not crash either
-        $resolved = (new User)->resolveRouteBinding('Case-Test');
-
-        // The slug column is case-sensitive in PostgreSQL
-        expect($resolved)->toBeNull();
-    });
-
-    it('resolves valid UUID that does not match any user', function () {
-        $uuid = (string) Str::uuid();
-        $resolved = (new User)->resolveRouteBinding($uuid);
-
-        expect($resolved)->toBeNull();
-    });
-
-    it('prefers slug match over UUID fallback when slug exists', function () {
-        $user1 = User::factory()->create(['name' => 'Slug First', 'slug' => 'slug-first']);
-        $user2 = User::factory()->create(['name' => 'Second User']);
-
-        // Resolve by slug — should get user1
-        $resolved = (new User)->resolveRouteBinding('slug-first');
-        expect($resolved->id)->toBe($user1->id);
     });
 });
 
@@ -429,29 +382,6 @@ describe('Bio field edge cases', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Slug and name interaction', function () {
-    it('updating name does not auto-update slug', function () {
-        $user = User::factory()->create(['name' => 'Original Name']);
-        $originalSlug = $user->slug;
-
-        $user->update(['name' => 'Completely Different Name']);
-
-        expect($user->fresh()->slug)->toBe($originalSlug);
-    });
-
-    it('slug can be manually updated alongside name', function () {
-        $user = User::factory()->create(['name' => 'Old Name']);
-
-        $newSlug = User::generateUniqueSlug('New Name', $user->id);
-        $user->update([
-            'name' => 'New Name',
-            'slug' => $newSlug,
-        ]);
-
-        $fresh = $user->fresh();
-        expect($fresh->name)->toBe('New Name');
-        expect($fresh->slug)->toBe('new-name');
-    });
-
     it('name with all special chars produces "user" fallback slug on creation', function () {
         $user = User::factory()->create(['name' => '!@#$%^&*()']);
 

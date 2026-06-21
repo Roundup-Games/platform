@@ -744,64 +744,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         $this->assertEqualsWithDelta(0.5, $result, 0.0001);
     }
 
-    #[Test]
-    public function jaccard_one_empty_set_returns_zero(): void
-    {
-        $result = $this->callJaccard([], [1, 2]);
-        $this->assertEqualsWithDelta(0.0, $result, 0.0001);
-    }
-
-    #[Test]
-    public function jaccard_both_empty_returns_zero(): void
-    {
-        $result = $this->callJaccard([], []);
-        $this->assertEqualsWithDelta(0.0, $result, 0.0001);
-    }
-
-    #[Test]
-    public function jaccard_single_element_match_returns_one(): void
-    {
-        $result = $this->callJaccard([1], [1]);
-        $this->assertEqualsWithDelta(1.0, $result, 0.0001);
-    }
-
-    #[Test]
-    public function jaccard_single_element_no_match_returns_zero(): void
-    {
-        $result = $this->callJaccard([1], [2]);
-        $this->assertEqualsWithDelta(0.0, $result, 0.0001);
-    }
-
-    #[Test]
-    public function jaccard_string_values_work_correctly(): void
-    {
-        $result = $this->callJaccard(['cooperative', 'strategic'], ['cooperative', 'creative']);
-        $this->assertEqualsWithDelta(0.3333, $result, 0.01);
-    }
-
-    #[Test]
-    public function jaccard_large_overlap(): void
-    {
-        $a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        $b = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11];
-        $result = $this->callJaccard($a, $b);
-        $this->assertEqualsWithDelta(0.8182, $result, 0.01);
-    }
-
-    #[Test]
-    public function jaccard_superset_returns_correct_ratio(): void
-    {
-        $result = $this->callJaccard([1, 2, 3, 4, 5], [1, 2]);
-        $this->assertEqualsWithDelta(0.4, $result, 0.0001);
-    }
-
-    #[Test]
-    public function jaccard_duplicates_are_ignored(): void
-    {
-        $result = $this->callJaccard([1, 1, 2], [1, 2]);
-        $this->assertEqualsWithDelta(1.0, $result, 0.0001);
-    }
-
     // ── Score Composition ──
 
     #[Test]

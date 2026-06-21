@@ -7,6 +7,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\LocationMergeService;
+use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->service = app(LocationMergeService::class);
@@ -84,6 +85,21 @@ describe('source deletion', function () {
 
         expect(Location::find($this->source->id))->toBeNull();
         expect(Location::find($this->target->id))->not->toBeNull();
+    });
+});
+
+describe('logging', function () {
+    test('merge logs the completed action with source, target and counts', function () {
+        Log::spy();
+
+        $this->service->merge($this->source, $this->target);
+
+        Log::shouldHaveReceived('info')
+            ->with('Location merge completed', Mockery::on(function ($context) {
+                return $context['source_id'] === $this->source->id
+                    && $context['target_id'] === $this->target->id
+                    && isset($context['counts']);
+            }));
     });
 });
 

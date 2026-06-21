@@ -11,7 +11,127 @@ use Illuminate\Support\Facades\Cache;
 
 use function Pest\Laravel\get;
 
-// ── GameSystem Override Precedence ───────────────────
+// Per-entity admin override behaviour. Each SEO-enabled entity exposes the
+// same two contracts: (1) admin-set SEO fields override dynamic data, and
+// (2) clearing the override restores the dynamic value. Both contracts are
+// driven here by Pest datasets over the entity types. GameSystem-specific
+// field overrides (description / image / robots / canonical / partial) and
+// cache-invalidation behaviour are kept as separate it(...) blocks since
+// they cover genuinely different ground.
+
+// Each dataset row is wrapped in an outer array so the descriptor binds to a
+// single `$d` closure parameter.
+dataset('seo_entity_title_override', [
+    'GameSystem' => [[
+        'make' => fn () => GameSystem::factory()->create(['name' => ['en' => 'Dynamic Title System']]),
+        'route' => fn ($m) => route('game-systems.show', $m->slug),
+        'expected' => 'Admin Override Title',
+    ]],
+    'Event' => [[
+        'make' => fn () => Event::factory()->create([
+            'name' => ['en' => 'Dynamic Event Title'],
+            'status' => 'registration_open',
+            'is_public' => true,
+        ]),
+        'route' => fn ($m) => route('events.detail', $m->slug),
+        'expected' => 'Admin Event Override Title',
+    ]],
+    'Campaign' => [[
+        'make' => fn () => Campaign::factory()->create([
+            'name' => ['en' => 'Dynamic Campaign Title'],
+            'visibility' => 'public',
+            'status' => 'active',
+        ]),
+        'route' => fn ($m) => route('campaigns.detail', $m->id),
+        'expected' => 'Admin Campaign Title',
+    ]],
+    'Team' => [[
+        'make' => fn () => Team::factory()->create(['name' => 'Dynamic Team Name', 'is_active' => true]),
+        'route' => fn ($m) => route('teams.detail', $m->slug),
+        'expected' => 'Admin Team Override',
+    ]],
+    'User' => [[
+        'make' => fn () => User::factory()->create([
+            'name' => 'Dynamic User Name',
+            'profile_complete' => true,
+            'is_disabled' => false,
+        ]),
+        'route' => fn ($m) => route('profile.public', $m->slug),
+        'expected' => 'Admin Profile Title',
+    ]],
+]);
+
+dataset('seo_entity_restore_on_clear', [
+    'GameSystem' => [[
+        'make' => fn () => GameSystem::factory()->create(['name' => ['en' => 'Restore Dynamic Title']]),
+        'route' => fn ($m) => route('game-systems.show', $m->slug),
+        'expected' => 'Restore Dynamic Title',
+    ]],
+    'Event' => [[
+        'make' => fn () => Event::factory()->create([
+            'name' => ['en' => 'Event Dynamic Title'],
+            'status' => 'registration_open',
+            'is_public' => true,
+        ]),
+        'route' => fn ($m) => route('events.detail', $m->slug),
+        'expected' => 'Event Dynamic Title',
+    ]],
+    'Game' => [[
+        'make' => fn () => Game::factory()->create([
+            'name' => ['en' => 'Game Restore Title'],
+            'description' => ['en' => 'Original game dynamic description.'],
+            'visibility' => 'public',
+        ]),
+        'route' => fn ($m) => route('games.detail', $m->id),
+        'expected' => 'Game Restore Title',
+    ]],
+    'Campaign' => [[
+        'make' => fn () => Campaign::factory()->create([
+            'name' => ['en' => 'Campaign Dynamic Title'],
+            'visibility' => 'public',
+            'status' => 'active',
+        ]),
+        'route' => fn ($m) => route('campaigns.detail', $m->id),
+        'expected' => 'Campaign Dynamic Title',
+    ]],
+    'Team' => [[
+        'make' => fn () => Team::factory()->create(['name' => 'Team Dynamic Title', 'is_active' => true]),
+        'route' => fn ($m) => route('teams.detail', $m->slug),
+        'expected' => 'Team Dynamic Title',
+    ]],
+    'User' => [[
+        'make' => fn () => User::factory()->create([
+            'name' => 'User Dynamic Name',
+            'profile_complete' => true,
+            'is_disabled' => false,
+        ]),
+        'route' => fn ($m) => route('profile.public', $m->slug),
+        'expected' => 'User Dynamic Name',
+    ]],
+]);
+
+describe('Admin Override Precedence (parameterized)', function () {
+    it('overrides title via admin SEO override across entity types', function (array $d) {
+        $model = ($d['make'])();
+        $model->seo->update(['title' => $d['expected']]);
+
+        $response = get(($d['route'])($model));
+        $response->assertOk();
+        assertPageTitle($response, $d['expected']);
+    })->with('seo_entity_title_override');
+
+    it('restores dynamic title when override is cleared across entity types', function (array $d) {
+        $model = ($d['make'])();
+        $model->seo->update(['title' => 'Override Title']);
+        $model->seo->update(['title' => null]);
+
+        $response = get(($d['route'])($model));
+        $response->assertOk();
+        assertPageTitle($response, $d['expected']);
+    })->with('seo_entity_restore_on_clear');
+});
+
+// ── GameSystem-specific field overrides (each field asserts its own contract) ──
 
 describe('GameSystem Admin Override Precedence', function () {
     it('shows dynamic SEO data when no override exists', function () {
@@ -26,15 +146,6 @@ describe('GameSystem Admin Override Precedence', function () {
 
         $content = get(route('game-systems.show', $system->slug))->content();
         expect(extractMetaDescription($content))->toContain('Dynamic description for this game system.');
-    });
-
-    it('overrides title via admin SEO override', function () {
-        $system = GameSystem::factory()->create(['name' => ['en' => 'Dynamic Title System']]);
-        $system->seo->update(['title' => 'Admin Override Title']);
-
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Admin Override Title');
     });
 
     it('overrides description via admin SEO override', function () {
@@ -76,25 +187,6 @@ describe('GameSystem Admin Override Precedence', function () {
             ->assertSee('https://example.com/custom-canonical', false);
     });
 
-    it('restores dynamic data when override is cleared', function () {
-        $system = GameSystem::factory()->create([
-            'name' => ['en' => 'Restore Dynamic Title'],
-            'description' => ['en' => 'Original dynamic description.'],
-        ]);
-
-        $system->seo->update([
-            'title' => 'Admin Override',
-            'description' => 'Admin description.',
-        ]);
-
-        $system->seo->update(['title' => null, 'description' => null]);
-
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Restore Dynamic Title');
-        expect(extractMetaDescription($response->content()))->toContain('Original dynamic description.');
-    });
-
     it('allows partial overrides with mixed fields', function () {
         $system = GameSystem::factory()->create([
             'name' => ['en' => 'Partial Override System'],
@@ -110,39 +202,7 @@ describe('GameSystem Admin Override Precedence', function () {
     });
 });
 
-// ── Event Override Precedence ─────────────────────────
-
-describe('Event Admin Override Precedence', function () {
-    it('overrides event title via admin SEO override', function () {
-        $event = Event::factory()->create([
-            'name' => ['en' => 'Dynamic Event Title'],
-            'status' => 'registration_open',
-            'is_public' => true,
-        ]);
-        $event->seo->update(['title' => 'Admin Event Override Title']);
-
-        $response = get(route('events.detail', $event->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Admin Event Override Title');
-    });
-
-    it('restores dynamic event data when override is cleared', function () {
-        $event = Event::factory()->create([
-            'name' => ['en' => 'Event Dynamic Title'],
-            'status' => 'registration_open',
-            'is_public' => true,
-        ]);
-
-        $event->seo->update(['title' => 'Override Title']);
-        $event->seo->update(['title' => null]);
-
-        $response = get(route('events.detail', $event->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Event Dynamic Title');
-    });
-});
-
-// ── Game Override Precedence ──────────────────────────
+// ── Game description override (Game has no title-override test, only description) ──
 
 describe('Game Admin Override Precedence', function () {
     it('overrides game description via admin SEO override', function () {
@@ -155,109 +215,6 @@ describe('Game Admin Override Precedence', function () {
 
         $description = extractMetaDescription(get(route('games.detail', $game->id))->content());
         expect($description)->toContain('Admin game description override.');
-    });
-
-    it('restores dynamic game data when override is cleared', function () {
-        $game = Game::factory()->create([
-            'name' => ['en' => 'Game Restore Title'],
-            'description' => ['en' => 'Original game dynamic description.'],
-            'visibility' => 'public',
-        ]);
-
-        $game->seo->update(['title' => 'Game Override', 'description' => 'Override description.']);
-        $game->seo->update(['title' => null, 'description' => null]);
-
-        $response = get(route('games.detail', $game->id));
-        $response->assertOk();
-        assertPageTitle($response, 'Game Restore Title');
-    });
-});
-
-// ── Campaign Override Precedence ──────────────────────
-
-describe('Campaign Admin Override Precedence', function () {
-    it('overrides campaign title via admin SEO override', function () {
-        $campaign = Campaign::factory()->create([
-            'name' => ['en' => 'Dynamic Campaign Title'],
-            'visibility' => 'public',
-            'status' => 'active',
-        ]);
-        $campaign->seo->update(['title' => 'Admin Campaign Title']);
-
-        $response = get(route('campaigns.detail', $campaign->id));
-        $response->assertOk();
-        assertPageTitle($response, 'Admin Campaign Title');
-    });
-
-    it('restores dynamic campaign data when override is cleared', function () {
-        $campaign = Campaign::factory()->create([
-            'name' => ['en' => 'Campaign Dynamic Title'],
-            'visibility' => 'public',
-            'status' => 'active',
-        ]);
-
-        $campaign->seo->update(['title' => 'Override Title']);
-        $campaign->seo->update(['title' => null]);
-
-        $response = get(route('campaigns.detail', $campaign->id));
-        $response->assertOk();
-        assertPageTitle($response, 'Campaign Dynamic Title');
-    });
-});
-
-// ── Team Override Precedence ──────────────────────────
-
-describe('Team Admin Override Precedence', function () {
-    it('overrides team title via admin SEO override', function () {
-        $team = Team::factory()->create(['name' => 'Dynamic Team Name', 'is_active' => true]);
-        $team->seo->update(['title' => 'Admin Team Override']);
-
-        $response = get(route('teams.detail', $team->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Admin Team Override');
-    });
-
-    it('restores dynamic team data when override is cleared', function () {
-        $team = Team::factory()->create(['name' => 'Team Dynamic Title', 'is_active' => true]);
-
-        $team->seo->update(['title' => 'Override Title']);
-        $team->seo->update(['title' => null]);
-
-        $response = get(route('teams.detail', $team->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Team Dynamic Title');
-    });
-});
-
-// ── User Profile Override Precedence ──────────────────
-
-describe('User Profile Admin Override Precedence', function () {
-    it('overrides user profile title via admin SEO override', function () {
-        $user = User::factory()->create([
-            'name' => 'Dynamic User Name',
-            'profile_complete' => true,
-            'is_disabled' => false,
-        ]);
-        $user->seo->update(['title' => 'Admin Profile Title']);
-
-        $response = get(route('profile.public', $user->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Admin Profile Title');
-    });
-
-    it('restores dynamic profile data when override is cleared', function () {
-        $user = User::factory()->create([
-            'name' => 'User Dynamic Name',
-            'profile_complete' => true,
-            'is_disabled' => false,
-        ]);
-
-        $user->seo->update(['title' => 'Override Title']);
-        $user->seo->update(['title' => null]);
-
-        $response = get(route('profile.public', $user->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'User Dynamic Name');
     });
 });
 
@@ -309,12 +266,9 @@ describe('Cache Invalidation on Admin Override', function () {
 
         get('/sitemap-game-systems.xml')->assertOk();
     });
-
-    // Per-model cache clearing is unit-tested in SeoCacheServiceTest::forgetByModel.
-    // The GameSystem test above serves as the integration smoke test.
 });
 
-// ── SEO Model Direct Override Tests ──────────────────
+// ── SEO Model prepareForUsage Precedence ──────────────
 
 describe('SEO Model prepareForUsage Precedence', function () {
     it('SEO model override beats getDynamicSEOData for all fields', function () {
@@ -370,39 +324,5 @@ describe('SEO Model prepareForUsage Precedence', function () {
         expect($seoData->title)->toBe('Only Title Override');
         expect($seoData->description)->toContain('Dynamic description stays.');
         expect($seoData->robots)->toBe('noindex, nofollow');
-    });
-});
-
-// ── Override Persistence Across Refresh ───────────────
-
-describe('Override Persistence', function () {
-    it('persists override after model refresh', function () {
-        $system = GameSystem::factory()->create(['name' => ['en' => 'Persist System']]);
-        $system->seo->update(['title' => 'Persisted Title']);
-
-        $freshSystem = GameSystem::with('seo')->find($system->id);
-        $seoData = $freshSystem->seo->prepareForUsage();
-
-        expect($seoData->title)->toBe('Persisted Title');
-    });
-
-    it('restores dynamic data after deleting override row fields', function () {
-        $system = GameSystem::factory()->create([
-            'name' => ['en' => 'Delete Override System'],
-            'description' => ['en' => 'Dynamic comes back.'],
-        ]);
-
-        $system->seo->update([
-            'title' => 'To Be Deleted',
-            'description' => 'To be deleted desc.',
-        ]);
-
-        $system->seo->update(['title' => null, 'description' => null]);
-
-        $freshSystem = GameSystem::with('seo')->find($system->id);
-        $seoData = $freshSystem->seo->prepareForUsage();
-
-        expect($seoData->title)->toBe('Delete Override System');
-        expect($seoData->description)->toContain('Dynamic comes back.');
     });
 });

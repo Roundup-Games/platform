@@ -239,36 +239,93 @@ describe('canJoinViaShareLink', function () {
     });
 });
 
-// ── joinViaShareLink for Games ─────────────────────────────
+// ── joinViaShareLink — shared contract (game + campaign) ─────
 
-describe('GameDetail joinViaShareLink', function () {
-    it('creates approved participant with share_link join source', function () {
+describe('joinViaShareLink — shared (game + campaign)', function () {
+    it('creates approved participant with share_link join source', function (string $entityType) {
         $token = (string) Str::uuid();
-        $game = Game::factory()->create([
-            'owner_id' => $this->owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'share_token' => $token,
-            'visibility' => 'protected',
-            'max_players' => 10,
-        ]);
+
+        [$entity, $componentClass, $flashKey] = match ($entityType) {
+            'game' => [
+                Game::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'game_system_id' => $this->gameSystem->id,
+                    'share_token' => $token,
+                    'visibility' => 'protected',
+                    'max_players' => 10,
+                ]),
+                GameDetail::class,
+                'games.flash_joined_via_share_link',
+            ],
+            'campaign' => [
+                Campaign::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'share_token' => $token,
+                    'visibility' => 'protected',
+                    'max_players' => 10,
+                ]),
+                CampaignDetail::class,
+                'campaigns.flash_joined_via_share_link',
+            ],
+        };
 
         Livewire::actingAs($this->player)
             ->withQueryParams(['share' => $token])
-            ->test(GameDetail::class, ['id' => $game->id])
+            ->test($componentClass, ['id' => $entity->id])
             ->call('joinViaShareLink')
             ->assertHasNoErrors()
-            ->assertSee(__('games.flash_joined_via_share_link'));
+            ->assertSee(__($flashKey));
 
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $this->player->id)
-            ->first();
+        $participant = match ($entityType) {
+            'game' => GameParticipant::where('game_id', $entity->id)->where('user_id', $this->player->id)->first(),
+            'campaign' => CampaignParticipant::where('campaign_id', $entity->id)->where('user_id', $this->player->id)->first(),
+        };
 
-        expect($participant)->not->toBeNull();
-        expect($participant->status)->toBe(ParticipantStatus::Approved);
-        expect($participant->role)->toBe(ParticipantRole::Player);
-        expect($participant->join_source)->toBe(JoinSource::ShareLink);
-    });
+        expect($participant)->not->toBeNull()
+            ->and($participant->status)->toBe(ParticipantStatus::Approved)
+            ->and($participant->role)->toBe(ParticipantRole::Player)
+            ->and($participant->join_source)->toBe(JoinSource::ShareLink);
+    })->with(['game', 'campaign']);
 
+    it('prevents owner from joining their own entity via share link', function (string $entityType) {
+        $token = (string) Str::uuid();
+
+        [$entity, $componentClass] = match ($entityType) {
+            'game' => [
+                Game::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'game_system_id' => $this->gameSystem->id,
+                    'share_token' => $token,
+                    'visibility' => 'public',
+                ]),
+                GameDetail::class,
+            ],
+            'campaign' => [
+                Campaign::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'share_token' => $token,
+                    'visibility' => 'public',
+                ]),
+                CampaignDetail::class,
+            ],
+        };
+
+        Livewire::actingAs($this->owner)
+            ->withQueryParams(['share' => $token])
+            ->test($componentClass, ['id' => $entity->id])
+            ->call('joinViaShareLink');
+
+        $count = match ($entityType) {
+            'game' => GameParticipant::where('game_id', $entity->id)->count(),
+            'campaign' => CampaignParticipant::where('campaign_id', $entity->id)->count(),
+        };
+        expect($count)->toBe(0);
+    })->with(['game', 'campaign']);
+});
+
+// ── joinViaShareLink for Games ─────────────────────────────
+
+describe('GameDetail joinViaShareLink', function () {
     it('waitlists when game is full (standalone game)', function () {
         $token = (string) Str::uuid();
         $game = Game::factory()->create([
@@ -344,23 +401,6 @@ describe('GameDetail joinViaShareLink', function () {
         expect($participant->benched_at)->not->toBeNull();
     });
 
-    it('prevents owner from joining their own game via share link', function () {
-        $token = (string) Str::uuid();
-        $game = Game::factory()->create([
-            'owner_id' => $this->owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'share_token' => $token,
-            'visibility' => 'public',
-        ]);
-
-        Livewire::actingAs($this->owner)
-            ->withQueryParams(['share' => $token])
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->call('joinViaShareLink');
-
-        expect(GameParticipant::where('game_id', $game->id)->count())->toBe(0);
-    });
-
     it('clears share_intent cookie on successful join', function () {
         $token = (string) Str::uuid();
         $game = Game::factory()->create([
@@ -384,35 +424,9 @@ describe('GameDetail joinViaShareLink', function () {
     });
 });
 
-// ── joinViaShareLink for Campaigns ─────────────────────────
+// ── joinViaShareLink for Campaigns (entity-specific edge cases) ────
 
 describe('CampaignDetail joinViaShareLink', function () {
-    it('creates approved participant with share_link join source', function () {
-        $token = (string) Str::uuid();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $this->owner->id,
-            'share_token' => $token,
-            'visibility' => 'protected',
-            'max_players' => 10,
-        ]);
-
-        Livewire::actingAs($this->player)
-            ->withQueryParams(['share' => $token])
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->call('joinViaShareLink')
-            ->assertHasNoErrors()
-            ->assertSee(__('campaigns.flash_joined_via_share_link'));
-
-        $participant = CampaignParticipant::where('campaign_id', $campaign->id)
-            ->where('user_id', $this->player->id)
-            ->first();
-
-        expect($participant)->not->toBeNull();
-        expect($participant->status)->toBe(ParticipantStatus::Approved);
-        expect($participant->role)->toBe(ParticipantRole::Player);
-        expect($participant->join_source)->toBe(JoinSource::ShareLink);
-    });
-
     it('benches when campaign is full', function () {
         $token = (string) Str::uuid();
         $campaign = Campaign::factory()->create([
@@ -445,22 +459,6 @@ describe('CampaignDetail joinViaShareLink', function () {
         expect($participant->status)->toBe(ParticipantStatus::Benched);
         expect($participant->join_source)->toBe(JoinSource::ShareLink);
         expect($participant->benched_at)->not->toBeNull();
-    });
-
-    it('prevents owner from joining their own campaign via share link', function () {
-        $token = (string) Str::uuid();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $this->owner->id,
-            'share_token' => $token,
-            'visibility' => 'public',
-        ]);
-
-        Livewire::actingAs($this->owner)
-            ->withQueryParams(['share' => $token])
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->call('joinViaShareLink');
-
-        expect(CampaignParticipant::where('campaign_id', $campaign->id)->count())->toBe(0);
     });
 
     it('prevents existing participant from rejoining', function () {

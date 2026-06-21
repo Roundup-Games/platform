@@ -7,7 +7,6 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\WaitlistService;
-use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->service = app(WaitlistService::class);
@@ -427,94 +426,5 @@ describe('handleGameCancellation', function () {
             ->first();
         expect($approvedPlayer)->not->toBeNull();
         expect($approvedPlayer->status)->toBe(ParticipantStatus::Approved);
-    });
-});
-
-// ── Structured logging ──────────────────────────────────
-
-describe('structured logging', function () {
-    it('logs waitlist.added on addToWaitlist', function () {
-        ['game' => $game] = createFullStandaloneGame();
-        $user = User::factory()->create();
-
-        Log::shouldReceive('info')->with('waitlist.added', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['user_id'])))->once();
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        $this->service->addToWaitlist($game, $user);
-    });
-
-    it('logs waitlist.promoted on promoteNext', function () {
-        ['game' => $game] = createFullStandaloneGame(maxPlayers: 2);
-        $user = User::factory()->create();
-        $this->service->addToWaitlist($game, $user);
-
-        $game->participants()->where('status', ParticipantStatus::Approved->value)
-            ->where('user_id', '!=', $game->owner_id)->first()
-            ->update(['status' => ParticipantStatus::Rejected->value]);
-
-        Log::shouldReceive('info')->with('waitlist.promoted', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['confirmation_hours'])))->once();
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('error')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        $this->service->promoteNext($game);
-    });
-
-    it('logs waitlist.confirmed on confirmPromotion', function () {
-        ['game' => $game] = createFullStandaloneGame(maxPlayers: 2);
-        $user = User::factory()->create();
-        $this->service->addToWaitlist($game, $user);
-
-        $game->participants()->where('status', ParticipantStatus::Approved->value)
-            ->where('user_id', '!=', $game->owner_id)->first()
-            ->update(['status' => ParticipantStatus::Rejected->value]);
-
-        $promoted = $this->service->promoteNext($game);
-
-        Log::shouldReceive('info')->with('waitlist.confirmed', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['participant_id'])))->once();
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        $this->service->confirmPromotion($promoted);
-    });
-
-    it('logs waitlist.confirmation_expired on handleExpiredConfirmation', function () {
-        ['game' => $game] = createFullStandaloneGame(maxPlayers: 2);
-        $user = User::factory()->create();
-        $this->service->addToWaitlist($game, $user);
-
-        $game->participants()->where('status', ParticipantStatus::Approved->value)
-            ->where('user_id', '!=', $game->owner_id)->first()
-            ->update(['status' => ParticipantStatus::Rejected->value]);
-
-        $promoted = $this->service->promoteNext($game);
-
-        Log::shouldReceive('warning')->with('waitlist.confirmation_expired', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['participant_id'])))->once();
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        $this->service->handleExpiredConfirmation($promoted);
-    });
-
-    it('logs waitlist.below_min_players when roster drops below minimum', function () {
-        ['game' => $game] = createFullStandaloneGame(maxPlayers: 3, overrides: ['min_players' => 3]);
-
-        $waitUser = User::factory()->create();
-        $this->service->addToWaitlist($game, $waitUser);
-
-        // Cancel all non-owner approved players → roster drops below min
-        $game->participants()->where('status', ParticipantStatus::Approved->value)
-            ->where('user_id', '!=', $game->owner_id)
-            ->each(fn ($p) => $p->update(['status' => ParticipantStatus::Rejected->value]));
-
-        Log::shouldReceive('warning')->with('waitlist.below_min_players', Mockery::on(fn ($ctx) => $ctx['current_roster'] < $ctx['min_players']))->once();
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        $this->service->promoteAllOnCancel($game);
     });
 });

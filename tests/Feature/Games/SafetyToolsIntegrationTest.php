@@ -152,7 +152,7 @@ describe('Game detail page — safety tools display', function () {
 
         Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertOk()
-            ->assertSee('Lines & Veils Details')
+            ->assertSee(__('safety.content_lines_veils_details'))
             ->assertSee('No spiders, no graphic torture');
     });
 
@@ -209,7 +209,7 @@ describe('Game detail page — safety tools display', function () {
 
         Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertOk()
-            ->assertSee('Learn more about safety tools');
+            ->assertSee(__('safety.content_learn_more_about_safety_tools'));
     });
 });
 
@@ -419,8 +419,8 @@ describe('/safety-tools static page', function () {
     it('shows the page title and description', function () {
         get(route('safety-tools'))
             ->assertOk()
-            ->assertSee('Safety Tools for Tabletop Gaming')
-            ->assertSee('Everyone deserves to feel safe and comfortable at the table');
+            ->assertSee(__('safety.field_safety_tools_for_tabletop_gaming'))
+            ->assertSee(__('safety.content_everyone_deserves_to_feel_safe'));
     });
 
     it('shows full descriptions for all tools (not short descriptions)', function () {

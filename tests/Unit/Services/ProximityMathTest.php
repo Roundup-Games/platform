@@ -3,9 +3,17 @@
 namespace Tests\Unit\Services;
 
 use App\Services\ProximityQuery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-class ProximityQueryTest extends TestCase
+/**
+ * Pure haversine math tests for ProximityQuery.
+ *
+ * Renamed from ProximityQueryTest to disambiguate from
+ * tests/Feature/Services/ProximityQueryTest, which exercises the
+ * DB-query side of the same service.
+ */
+class ProximityMathTest extends TestCase
 {
     private ProximityQuery $query;
 
@@ -17,32 +25,28 @@ class ProximityQueryTest extends TestCase
 
     // ── Haversine distance: known city pairs (within 1% tolerance) ──────
 
-    public function test_berlin_to_munich(): void
+    /**
+     * Collapsed from five per-city-pair tests into a single dataset-driven
+     * test. Each row is a known city pair with its expected great-circle
+     * distance (verified against multiple references).
+     */
+    public static function knownCityPairProvider(): array
     {
-        $distance = ProximityQuery::haversineDistance(52.52, 13.405, 48.135, 11.582);
-
-        $this->assertEqualsWithDelta(504, $distance, 5.04, 'Berlin→Munich should be ~504 km');
+        return [
+            'Berlin → Munich' => [52.52,  13.405, 48.135, 11.582, 504,  5.04],
+            'London → Paris' => [51.507, -0.128, 48.856, 2.352,  344,  3.44],
+            'New York → Los Angeles' => [40.713, -74.006, 34.052, -118.244, 3944, 39.44],
+            'Tokyo → Sydney' => [35.676, 139.650, -33.868, 151.209, 7826, 78.26],
+            'São Paulo → Buenos Aires' => [-23.55, -46.63, -34.60, -58.38, 1660, 16.6],
+        ];
     }
 
-    public function test_london_to_paris(): void
+    #[DataProvider('knownCityPairProvider')]
+    public function test_haversine_distance_for_known_city_pairs(float $lat1, float $lng1, float $lat2, float $lng2, float $expectedKm, float $toleranceKm): void
     {
-        $distance = ProximityQuery::haversineDistance(51.507, -0.128, 48.856, 2.352);
+        $distance = ProximityQuery::haversineDistance($lat1, $lng1, $lat2, $lng2);
 
-        $this->assertEqualsWithDelta(344, $distance, 3.44, 'London→Paris should be ~344 km');
-    }
-
-    public function test_new_york_to_los_angeles(): void
-    {
-        $distance = ProximityQuery::haversineDistance(40.713, -74.006, 34.052, -118.244);
-
-        $this->assertEqualsWithDelta(3944, $distance, 39.44, 'NYC→LA should be ~3944 km');
-    }
-
-    public function test_tokyo_to_sydney(): void
-    {
-        $distance = ProximityQuery::haversineDistance(35.676, 139.650, -33.868, 151.209);
-
-        $this->assertEqualsWithDelta(7826, $distance, 78.26, 'Tokyo→Sydney should be ~7826 km');
+        $this->assertEqualsWithDelta($expectedKm, $distance, $toleranceKm);
     }
 
     // ── Same point distance ─────────────────────────────────────────────
@@ -62,15 +66,6 @@ class ProximityQueryTest extends TestCase
         $distance = ProximityQuery::haversineDistance(0, 0, 0, 180);
 
         $this->assertEqualsWithDelta(20015, $distance, 200.15, 'Antipodal points should be ~20,015 km');
-    }
-
-    // ── Negative coordinates (southern hemisphere) ──────────────────────
-
-    public function test_sao_paulo_to_buenos_aires(): void
-    {
-        $distance = ProximityQuery::haversineDistance(-23.55, -46.63, -34.60, -58.38);
-
-        $this->assertEqualsWithDelta(1660, $distance, 16.6, 'São Paulo→Buenos Aires should be ~1660 km');
     }
 
     // ── Bounding box: contains origin point ─────────────────────────────
