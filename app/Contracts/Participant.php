@@ -5,9 +5,13 @@ namespace App\Contracts;
 use App\Dto\EntityMeta;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Models\Campaign;
 use App\Models\CampaignParticipant;
+use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * A participant row belonging to a Game or Campaign.
@@ -95,4 +99,37 @@ interface Participant
      * The participant's role, or null when not yet persisted.
      */
     public function getRole(): ?ParticipantRole;
+
+    /**
+     * The parent Game or Campaign this participant row belongs to.
+     *
+     * Loads the relationship lazily if not already eager-loaded (callers that
+     * need a fresh row should eager-load first or use the entity class directly).
+     * The foreign-key column is non-nullable and constrained, so this returns
+     * a model in practice — the nullable union guards against relationship
+     * resolution returning null under exceptional circumstances.
+     */
+    public function getEntity(): Game|Campaign|null;
+
+    /**
+     * The participating User model, or null for an email-only invitee.
+     *
+     * Loads the relationship lazily if not already eager-loaded.
+     */
+    public function getUser(): ?User;
+
+    /**
+     * Deadline by which a promoted waitlister must confirm their spot.
+     *
+     * Set when WaitlistService::promoteNext moves a participant to
+     * Pending(awaiting-confirmation); cleared on confirm / decline / expire.
+     */
+    public function getConfirmationExpiresAt(): ?Carbon;
+
+    /**
+     * Timestamp the participant joined the waitlist queue.
+     *
+     * Drives FIFO ordering in WaitlistService::getWaitlistPosition.
+     */
+    public function getWaitlistedAt(): ?Carbon;
 }
