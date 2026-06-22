@@ -61,7 +61,7 @@ test('established user sees established mode', function () {
     $this->actingAs($user);
 
     $component = Livewire::test(Dashboard::class);
-    expect($component->viewData('dashboardMode'))->toBe('established');
+    expect($component->viewData('dashboard')->mode)->toBe('established');
 });
 
 // ── Schedule timeline ──────────────────────────────────
@@ -111,7 +111,7 @@ test('schedule timeline shows grouped upcoming games', function () {
 
     $component = Livewire::test(Dashboard::class);
 
-    $scheduleGroups = $component->viewData('scheduleGroups');
+    $scheduleGroups = $component->viewData('dashboard')->established->scheduleGroups;
     expect($scheduleGroups['today'])->toHaveCount(1);
     expect($scheduleGroups['this_week'])->toHaveCount(1);
     expect($scheduleGroups['coming_up'])->toHaveCount(1);
@@ -148,7 +148,7 @@ test('host-again bridge appears when no upcoming games and links to clone url', 
 
     $component = Livewire::test(Dashboard::class);
 
-    $bridge = $component->viewData('hostAgainBridge');
+    $bridge = $component->viewData('dashboard')->established->hostAgainBridge;
     expect($bridge)->not->toBeNull();
     expect($bridge['game']['id'])->toBe($completedGame->id);
     expect($bridge['clone_url'])->toContain('clone='.$completedGame->id);
@@ -185,7 +185,7 @@ test('nearby games show with correct relevance tags', function () {
 
     $component = Livewire::test(Dashboard::class);
 
-    $nearby = $component->viewData('nearbyNoteworthy');
+    $nearby = $component->viewData('dashboard')->established->nearbyNoteworthy;
     expect($nearby)->not->toBeEmpty();
     expect($nearby[0]['relevance_tags'])->toContain('matches_your_taste');
 });
@@ -208,7 +208,7 @@ test('community pulse absent when user has fewer than 3 follows', function () {
     }
 
     $component = Livewire::test(Dashboard::class);
-    expect($component->viewData('shouldShowCommunityPulse'))->toBeFalse();
+    expect($component->viewData('dashboard')->established->shouldShowCommunityPulse)->toBeFalse();
 });
 
 // ── Your Story / Milestone cards ───────────────────────
@@ -220,7 +220,7 @@ test('your story absent when user has fewer than 3 attended games', function () 
     // The helper creates 1 completed participation, which is not enough for any milestone
     $component = Livewire::test(Dashboard::class);
 
-    $milestoneCards = $component->viewData('milestoneCards');
+    $milestoneCards = $component->viewData('dashboard')->established->milestoneCards;
     expect($milestoneCards)->toBeEmpty();
 });
 
@@ -255,7 +255,7 @@ test('your story shows earned milestone cards when user qualifies', function () 
 
     $component = Livewire::test(Dashboard::class);
 
-    $milestoneCards = $component->viewData('milestoneCards');
+    $milestoneCards = $component->viewData('dashboard')->established->milestoneCards;
     expect($milestoneCards)->not->toBeEmpty();
 
     $keys = array_column($milestoneCards, 'key');
@@ -270,7 +270,7 @@ test('quick actions show role-appropriate buttons for player', function () {
 
     $component = Livewire::test(Dashboard::class);
 
-    $quickActions = $component->viewData('establishedQuickActions');
+    $quickActions = $component->viewData('dashboard')->established->establishedQuickActions;
     expect($quickActions)->not->toBeEmpty();
 
     // Plain player: primary should be discover games
@@ -294,7 +294,7 @@ test('quick actions show gm workspace for gm with upcoming games', function () {
 
     $component = Livewire::test(Dashboard::class);
 
-    $quickActions = $component->viewData('establishedQuickActions');
+    $quickActions = $component->viewData('dashboard')->established->establishedQuickActions;
     expect($quickActions[0]['label'])->toBe('profile.dashboard_quick_gm_workspace');
     expect($quickActions[0]['style'])->toBe('primary');
 });
@@ -308,18 +308,18 @@ test('sections without data pass empty arrays not null', function () {
     $component = Livewire::test(Dashboard::class);
 
     // Schedule groups should be arrays
-    $scheduleGroups = $component->viewData('scheduleGroups');
+    $scheduleGroups = $component->viewData('dashboard')->established->scheduleGroups;
     expect($scheduleGroups)->toBeArray();
     expect($scheduleGroups['today'])->toBeArray();
     expect($scheduleGroups['this_week'])->toBeArray();
     expect($scheduleGroups['coming_up'])->toBeArray();
 
     // Nearby noteworthy should be array
-    expect($component->viewData('nearbyNoteworthy'))->toBeArray();
+    expect($component->viewData('dashboard')->established->nearbyNoteworthy)->toBeArray();
 
     // Milestone cards should be array
-    expect($component->viewData('milestoneCards'))->toBeArray();
+    expect($component->viewData('dashboard')->established->milestoneCards)->toBeArray();
 
     // Quick actions should be array
-    expect($component->viewData('establishedQuickActions'))->toBeArray();
+    expect($component->viewData('dashboard')->established->establishedQuickActions)->toBeArray();
 });

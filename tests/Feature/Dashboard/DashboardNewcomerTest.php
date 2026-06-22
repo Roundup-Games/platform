@@ -28,14 +28,12 @@ describe('Newcomer dashboard rendering', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('newcomer');
 
-        // Verify newcomer data keys are present in view
-        $component->assertViewHas('newcomerWelcome');
-        $component->assertViewHas('preferenceMatches');
-        $component->assertViewHas('progressTracker');
-        $component->assertViewHas('nearbyPeople');
+        // Verify the typed view-model carries the newcomer wing
+        $component->assertViewHas('dashboard');
+        expect($component->viewData('dashboard')->newcomer)->not->toBeNull();
     });
 
     test('dashboard does not render newcomer data for established user', function () {
@@ -44,11 +42,11 @@ describe('Newcomer dashboard rendering', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('established');
 
-        $welcome = $component->viewData('newcomerWelcome');
-        expect($welcome)->toBe([]);
+        // Established users get no newcomer wing (no stub data)
+        expect($component->viewData('dashboard')->newcomer)->toBeNull();
     });
 });
 
@@ -72,7 +70,7 @@ describe('Welcome card personalization', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $welcome = $component->viewData('newcomerWelcome');
+        $welcome = $component->viewData('dashboard')->newcomer->newcomerWelcome;
         expect($welcome['first_name'])->toBe('Anna');
         expect($welcome['city'])->toBe('Hamburg');
         expect($welcome['has_location'])->toBeTrue();
@@ -86,7 +84,7 @@ describe('Welcome card personalization', function () {
         $this->actingAs($user);
         $component = Livewire::test(Dashboard::class);
 
-        $welcome = $component->viewData('newcomerWelcome');
+        $welcome = $component->viewData('dashboard')->newcomer->newcomerWelcome;
         expect($welcome['preferred_systems'])->toContain('D&D 5e');
 
         $user->gameSystemPreferences()->detach();
@@ -129,7 +127,7 @@ describe('Welcome card personalization', function () {
         $this->actingAs($user);
         $component = Livewire::test(Dashboard::class);
 
-        $welcome = $component->viewData('newcomerWelcome');
+        $welcome = $component->viewData('dashboard')->newcomer->newcomerWelcome;
         expect($welcome['matching_games_count'])->toBeGreaterThanOrEqual(1);
 
         $user->gameSystemPreferences()->detach();
@@ -141,7 +139,7 @@ describe('Welcome card personalization', function () {
         $this->actingAs($user);
 
         $component = Livewire::test(Dashboard::class);
-        $welcome = $component->viewData('newcomerWelcome');
+        $welcome = $component->viewData('dashboard')->newcomer->newcomerWelcome;
         expect($welcome['welcome_message_key'])->toBe('welcome_basic');
     });
 
@@ -150,7 +148,7 @@ describe('Welcome card personalization', function () {
         $this->actingAs($user);
 
         $component = Livewire::test(Dashboard::class);
-        $welcome = $component->viewData('newcomerWelcome');
+        $welcome = $component->viewData('dashboard')->newcomer->newcomerWelcome;
         expect($welcome['has_location'])->toBeFalse();
     });
 });
@@ -194,7 +192,7 @@ describe('Preference matches with relevance badges', function () {
         $this->actingAs($user);
         $component = Livewire::test(Dashboard::class);
 
-        $matches = $component->viewData('preferenceMatches');
+        $matches = $component->viewData('dashboard')->newcomer->preferenceMatches;
         expect($matches)->toHaveKeys(['games', 'total_nearby', 'preference_match_rate']);
 
         expect($matches['games'])->not->toBeEmpty('Seeded game should appear in preference matches');
@@ -262,7 +260,7 @@ describe('Preference matches with relevance badges', function () {
         $this->actingAs($user);
         $component = Livewire::test(Dashboard::class);
 
-        $matches = $component->viewData('preferenceMatches');
+        $matches = $component->viewData('dashboard')->newcomer->preferenceMatches;
 
         $preferredEntry = collect($matches['games'])->first(fn ($g) => $g['id'] === $preferredGame->id);
         $otherEntry = collect($matches['games'])->first(fn ($g) => $g['id'] === $otherGame->id);
@@ -282,7 +280,7 @@ describe('Preference matches with relevance badges', function () {
         $this->actingAs($user);
 
         $component = Livewire::test(Dashboard::class);
-        $matches = $component->viewData('preferenceMatches');
+        $matches = $component->viewData('dashboard')->newcomer->preferenceMatches;
 
         expect($matches['games'])->toBe([]);
         expect($matches['total_nearby'])->toBe(0);
@@ -297,7 +295,7 @@ describe('Progress tracker steps', function () {
         $this->actingAs($user);
 
         $component = Livewire::test(Dashboard::class);
-        $tracker = $component->viewData('progressTracker');
+        $tracker = $component->viewData('dashboard')->newcomer->progressTracker;
 
         expect($tracker)->toHaveKeys(['steps', 'current_step', 'completion_percentage']);
         expect($tracker['steps'])->toHaveCount(4);
@@ -311,7 +309,7 @@ describe('Progress tracker steps', function () {
         $this->actingAs($user);
 
         $component = Livewire::test(Dashboard::class);
-        $tracker = $component->viewData('progressTracker');
+        $tracker = $component->viewData('dashboard')->newcomer->progressTracker;
 
         expect($tracker['steps'][0]['is_complete'])->toBeTrue();
         expect($tracker['completion_percentage'])->toBeGreaterThanOrEqual(25);
@@ -350,7 +348,7 @@ describe('Progress tracker steps', function () {
 
         $this->actingAs($user);
         $component = Livewire::test(Dashboard::class);
-        $tracker = $component->viewData('progressTracker');
+        $tracker = $component->viewData('dashboard')->newcomer->progressTracker;
 
         // Step 3 (Find Game) should be complete
         expect($tracker['steps'][2]['is_complete'])->toBeTrue();
@@ -366,7 +364,7 @@ describe('Progress tracker steps', function () {
         $this->actingAs($user);
 
         $component = Livewire::test(Dashboard::class);
-        $tracker = $component->viewData('progressTracker');
+        $tracker = $component->viewData('dashboard')->newcomer->progressTracker;
 
         expect($tracker['completion_percentage'])->toBe(0);
         expect($tracker['current_step'])->toBe(1);
@@ -381,7 +379,7 @@ describe('Nearby people rendering', function () {
         $this->actingAs($user);
 
         $component = Livewire::test(Dashboard::class);
-        $people = $component->viewData('nearbyPeople');
+        $people = $component->viewData('dashboard')->newcomer->nearbyPeople;
 
         expect($people['people'])->toBe([]);
         expect($people['total_nearby'])->toBe(0);
@@ -412,7 +410,7 @@ describe('Nearby people rendering', function () {
         $this->actingAs($user);
         $component = Livewire::test(Dashboard::class);
 
-        $people = $component->viewData('nearbyPeople');
+        $people = $component->viewData('dashboard')->newcomer->nearbyPeople;
 
         expect($people['people'])->not->toBeEmpty('Seeded nearby user should appear in results');
         $found = collect($people['people'])->first(fn ($p) => $p['id'] === $nearbyUser->id);
@@ -441,7 +439,7 @@ describe('Nearby people rendering', function () {
         $this->actingAs($user);
         $component = Livewire::test(Dashboard::class);
 
-        $people = $component->viewData('nearbyPeople');
+        $people = $component->viewData('dashboard')->newcomer->nearbyPeople;
         $selfInResults = collect($people['people'])->contains(fn ($p) => $p['id'] === $user->id);
         expect($selfInResults)->toBeFalse();
     });
@@ -456,8 +454,8 @@ describe('Empty section rendering', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $matches = $component->viewData('preferenceMatches');
-        $people = $component->viewData('nearbyPeople');
+        $matches = $component->viewData('dashboard')->newcomer->preferenceMatches;
+        $people = $component->viewData('dashboard')->newcomer->nearbyPeople;
 
         expect($matches['games'])->toBe([]);
         expect($matches['total_nearby'])->toBe(0);
@@ -474,7 +472,7 @@ describe('Empty section rendering', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $welcome = $component->viewData('newcomerWelcome');
+        $welcome = $component->viewData('dashboard')->newcomer->newcomerWelcome;
         expect($welcome)->not->toBe([]);
         expect($welcome)->toHaveKeys(['first_name', 'city', 'preferred_systems', 'has_location', 'welcome_message_key']);
         expect($welcome['first_name'])->toBe('Fresh');
@@ -487,7 +485,7 @@ describe('Empty section rendering', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $tracker = $component->viewData('progressTracker');
+        $tracker = $component->viewData('dashboard')->newcomer->progressTracker;
         expect($tracker)->not->toBe([]);
         expect($tracker)->toHaveKeys(['steps', 'current_step', 'completion_percentage']);
         expect($tracker['steps'])->toHaveCount(4);

@@ -64,7 +64,7 @@ describe('Community Feed — friends activity', function () {
 
         // Verify feed data is computed correctly via viewData
         $component = Livewire::test(Dashboard::class);
-        $feed = $component->viewData('communityFeed');
+        $feed = $component->viewData('dashboard')->established->communityFeed->friends;
 
         // Feed should contain the friend's activity
         expect($feed)->not->toBeNull();
@@ -117,7 +117,7 @@ describe('Community Feed — friends activity', function () {
         ]);
 
         $component = Livewire::test(Dashboard::class);
-        $feed = $component->viewData('communityFeed');
+        $feed = $component->viewData('dashboard')->established->communityFeed->friends;
 
         // Should contain Anna's campaign activity
         $hasAnnaActivity = $feed->contains(fn ($item) => $item->userName === 'Anna');
@@ -140,7 +140,7 @@ describe('Community Feed — friends activity', function () {
         ]);
 
         $component = Livewire::test(Dashboard::class);
-        $feed = $component->viewData('communityFeed');
+        $feed = $component->viewData('dashboard')->established->communityFeed->friends;
 
         expect($feed->count())->toBeLessThanOrEqual(10);
     });
@@ -173,7 +173,7 @@ describe('Community Feed — friends activity', function () {
         ]);
 
         $component = Livewire::test(Dashboard::class);
-        $feed = $component->viewData('communityFeed');
+        $feed = $component->viewData('dashboard')->established->communityFeed->friends;
 
         // Same game can appear multiple times for different activity types (created, player_joined)
         $gameEntries = $feed->filter(fn ($item) => $item->entityId === $game->id);
@@ -202,7 +202,7 @@ describe('Community Feed — friends activity', function () {
         $component = Livewire::test(Dashboard::class);
 
         // shouldShowCommunityPulse should be true with 3+ follows and feed data
-        expect($component->viewData('shouldShowCommunityPulse'))->toBeTrue();
+        expect($component->viewData('dashboard')->established->shouldShowCommunityPulse)->toBeTrue();
         // The Community Pulse heading should be visible in the rendered output
         $component->assertSee(__('profile.dashboard_pulse_heading'));
     });
@@ -213,7 +213,7 @@ describe('Community Feed — empty state', function () {
         // User follows nobody — shouldShowCommunityPulse should be false
         $component = Livewire::test(Dashboard::class);
 
-        expect($component->viewData('shouldShowCommunityPulse'))->toBeFalse();
+        expect($component->viewData('dashboard')->established->shouldShowCommunityPulse)->toBeFalse();
         // Community pulse heading should NOT be rendered
         $component->assertDontSee(__('profile.dashboard_pulse_heading'));
     });
@@ -278,7 +278,7 @@ describe('Community Feed — trending subsection', function () {
         $component = Livewire::test(Dashboard::class);
 
         // Trending section should be shown (friends < 5, trending not empty)
-        expect($component->viewData('hasTrendingSection'))->toBeTrue();
+        expect($component->viewData('dashboard')->established->communityFeed->showTrending)->toBeTrue();
     });
 
     test('trending section hidden when friends feed has 5 or more items', function () {
@@ -298,7 +298,7 @@ describe('Community Feed — trending subsection', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        expect($component->viewData('hasTrendingSection'))->toBeFalse();
+        expect($component->viewData('dashboard')->established->communityFeed->showTrending)->toBeFalse();
     });
 
     test('trending section hidden when user has no location', function () {
@@ -320,7 +320,7 @@ describe('Community Feed — trending subsection', function () {
         $component = Livewire::test(Dashboard::class);
 
         // show_trending is false because trending items are empty (no location)
-        expect($component->viewData('hasTrendingSection'))->toBeFalse();
+        expect($component->viewData('dashboard')->established->communityFeed->showTrending)->toBeFalse();
     });
 
     test('trending items show fire icon for visual distinction', function () {
@@ -368,9 +368,9 @@ describe('Community Feed — trending subsection', function () {
             ],
         ], 600);
 
-        // The trending data should be available via viewData('trendingItems')
+        // The trending data is available on the community feed wing of the view-model
         $component = Livewire::test(Dashboard::class);
-        $trendingItems = $component->viewData('trendingItems');
+        $trendingItems = $component->viewData('dashboard')->established->communityFeed->trending;
         // Trending items should be populated (fire icon is rendered in the template via the trending section)
         expect($trendingItems)->not->toBeEmpty();
     });
@@ -400,7 +400,7 @@ describe('Community Feed — action verbs', function () {
         ]);
 
         $component = Livewire::test(Dashboard::class);
-        $feed = $component->viewData('communityFeed');
+        $feed = $component->viewData('dashboard')->established->communityFeed->friends;
 
         // Feed should contain Joiner's activity
         $hasJoinerActivity = $feed->contains(fn ($item) => $item->userName === 'Joiner');
@@ -422,7 +422,7 @@ describe('Community Feed — action verbs', function () {
         ]);
 
         $component = Livewire::test(Dashboard::class);
-        $feed = $component->viewData('communityFeed');
+        $feed = $component->viewData('dashboard')->established->communityFeed->friends;
 
         // Feed should contain Finisher's activity
         $hasFinisherActivity = $feed->contains(fn ($item) => $item->userName === 'Finisher');

@@ -27,7 +27,7 @@ describe('Dashboard mode resolution', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('newcomer');
     });
 
@@ -37,7 +37,7 @@ describe('Dashboard mode resolution', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('established');
     });
 
@@ -57,7 +57,7 @@ describe('Dashboard mode resolution', function () {
         $this->actingAs($user);
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('established');
     });
 
@@ -79,7 +79,7 @@ describe('Dashboard mode resolution', function () {
         $this->actingAs($user);
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('established');
     });
 
@@ -89,7 +89,7 @@ describe('Dashboard mode resolution', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('established');
     });
 
@@ -99,7 +99,7 @@ describe('Dashboard mode resolution', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('newcomer');
     });
 });
@@ -124,13 +124,13 @@ describe('Dashboard mode caching', function () {
 
         // First render
         $first = Livewire::test(Dashboard::class);
-        expect($first->viewData('dashboardMode'))->toBe('newcomer');
+        expect($first->viewData('dashboard')->mode)->toBe('newcomer');
 
         // Pre-seed cache with 'established' to verify cache is read
         Cache::put("dashboard:mode:{$user->id}", 'established', 300);
 
         $second = Livewire::test(Dashboard::class);
-        expect($second->viewData('dashboardMode'))->toBe('established');
+        expect($second->viewData('dashboard')->mode)->toBe('established');
     });
 
     test('mode invalidation causes re-resolution on next render', function () {
@@ -139,7 +139,7 @@ describe('Dashboard mode caching', function () {
 
         // First render — newcomer
         $first = Livewire::test(Dashboard::class);
-        expect($first->viewData('dashboardMode'))->toBe('newcomer');
+        expect($first->viewData('dashboard')->mode)->toBe('newcomer');
 
         // Invalidate the mode cache
         app(DashboardModeService::class)->invalidateForUser($user);
@@ -158,7 +158,7 @@ describe('Dashboard mode caching', function () {
 
         // Re-render should resolve as established
         $second = Livewire::test(Dashboard::class);
-        expect($second->viewData('dashboardMode'))->toBe('established');
+        expect($second->viewData('dashboard')->mode)->toBe('established');
     });
 });
 
@@ -171,8 +171,8 @@ describe('Dashboard component wiring', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $component->assertViewHas('dashboardMode');
-        $mode = $component->viewData('dashboardMode');
+        $component->assertViewHas('dashboard');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBeString();
         expect($mode)->toBeIn(['newcomer', 'established']);
     });
@@ -185,7 +185,7 @@ describe('Dashboard component wiring', function () {
         $serviceMode = app(DashboardModeService::class)->resolve($user);
 
         $component = Livewire::test(Dashboard::class);
-        $componentMode = $component->viewData('dashboardMode');
+        $componentMode = $component->viewData('dashboard')->mode;
 
         expect($componentMode)->toBe($serviceMode);
     });
