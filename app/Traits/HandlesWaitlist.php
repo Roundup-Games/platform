@@ -3,11 +3,11 @@
 namespace App\Traits;
 
 use App\Dto\EntityMeta;
-use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantStatus;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Services\ParticipantLifecycle;
 use App\Services\Roster;
 use App\Services\WaitlistService;
 use Illuminate\Support\Facades\DB;
@@ -116,45 +116,9 @@ trait HandlesWaitlist
             return;
         }
 
-        // Attendance status based on cancellation timing (games only — campaigns have no date_time)
-        if ($entity instanceof Game && $entity->date_time && $entity->date_time->isFuture()) {
-            $hoursUntilGame = now()->diffInHours($entity->date_time, false);
-
-            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
-            if ($hoursUntilGame < $lateCancelHours) {
-                // Late cancellation: within 24h of game time
-                $participant->update([
-                    'attendance_status' => AttendanceStatus::LateCancel,
-                ]);
-
-                Log::info('Game participant late cancellation', [
-                    'game_id' => $entity->id,
-                    'user_id' => $viewer->id,
-                    'hours_until_game' => $hoursUntilGame,
-                ]);
-            } else {
-                // Early cancellation: >24h before game time — neutral
-                $participant->update([
-                    'attendance_status' => AttendanceStatus::CancelledEarly,
-                ]);
-
-                Log::info('Game participant early cancellation', [
-                    'game_id' => $entity->id,
-                    'user_id' => $viewer->id,
-                    'hours_until_game' => $hoursUntilGame,
-                ]);
-            }
-        }
-
-        // Remove the participant
-        $participant->update(['status' => ParticipantStatus::Rejected]);
+        app(ParticipantLifecycle::class)->depart($participant, $viewer);
 
         $meta = EntityMeta::fromEntity($entity);
-
-        Log::info(ucfirst($meta->type).' participant self-cancelled', [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $viewer->id,
-        ]);
 
         // Promote from waitlist + warn host if below min_players
         app(Roster::class)->onDeparture($entity);

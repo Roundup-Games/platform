@@ -20,6 +20,7 @@ use App\Notifications\ParticipantRemoved;
 use App\Services\AttendanceService;
 use App\Services\DebriefingService;
 use App\Services\NotificationService;
+use App\Services\ParticipantLifecycle;
 use App\Services\ReviewEligibilityService;
 use App\Services\Roster;
 use App\Services\ShortLinkService;
@@ -370,19 +371,8 @@ class GameDetail extends Component
             return;
         }
 
-        if ($entity->date_time && $entity->date_time->isFuture()) {
-            $hoursUntil = now()->diffInHours($entity->date_time, false);
-            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
-            $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
-                ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
-        }
-
         $removedUser = $participant->user;
-        $participant->update(['status' => ParticipantStatus::Rejected]);
-
-        Log::info('Game participant removed', [
-            'game_id' => $entity->id, 'user_id' => $participant->user_id, 'removed_by' => Auth::id(),
-        ]);
+        app(ParticipantLifecycle::class)->depart($participant, Auth::user());
 
         try {
             if ($removedUser) {
@@ -429,21 +419,7 @@ class GameDetail extends Component
             return;
         }
 
-        // Track attendance for reliability scoring
-        if ($participant->status === ParticipantStatus::Approved && $this->game->date_time?->isFuture()) {
-            $hoursUntil = now()->diffInHours($this->game->date_time, false);
-            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
-            $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
-                ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
-        }
-
-        $participant->update(['status' => ParticipantStatus::Rejected]);
-
-        Log::info('Player left game', [
-            'game_id' => $this->game->id,
-            'user_id' => $user->id,
-            'previous_status' => $participant->status?->value,
-        ]);
+        app(ParticipantLifecycle::class)->depart($participant, $user);
 
         // Promote from waitlist + warn host if below min_players
         app(Roster::class)->onDeparture($this->game);
