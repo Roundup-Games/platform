@@ -120,7 +120,7 @@ trait HandlesWaitlist
         if ($entity instanceof Game && $entity->date_time && $entity->date_time->isFuture()) {
             $hoursUntilGame = now()->diffInHours($entity->date_time, false);
 
-            $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
             if ($hoursUntilGame < $lateCancelHours) {
                 // Late cancellation: within 24h of game time
                 $participant->update([

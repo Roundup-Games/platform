@@ -303,7 +303,7 @@ class GamesPage extends Component
         // Track attendance for reliability scoring
         if ($participant->status === ParticipantStatus::Approved && $game->date_time?->isFuture()) {
             $hoursUntil = now()->diffInHours($game->date_time, false);
-            $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
             $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
                 ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
         }

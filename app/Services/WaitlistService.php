@@ -378,7 +378,7 @@ class WaitlistService
             $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
             'participant_id' => $participant->id,
             'user_id' => $participant->user_id,
-            'removed_by' => $remover?->id ?? 'system',
+            'removed_by' => $remover !== null ? $remover->id : 'system',
         ]);
     }
 

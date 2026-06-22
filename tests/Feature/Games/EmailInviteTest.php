@@ -4,6 +4,7 @@ use App\Enums\GameStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
 use App\Livewire\Games\ManageParticipants as GameManageParticipants;
 use App\Mail\EntityInvitationEmail;
 use App\Models\Game;
@@ -324,9 +325,11 @@ test('accept invitation rejects when game is cancelled', function () {
         ->first();
     $participant->update(['user_id' => $invitee->id]);
 
-    // Try to accept — guard should block this because the game is cancelled
+    // Try to accept — guard should block this because the game is cancelled.
+    // The invitee mounts GameDetail (the public game page) — NOT GameManageParticipants
+    // (the admin panel), which requires authorize('update') the invitee doesn't hold.
     Livewire\Livewire::actingAs($invitee)
-        ->test(GameManageParticipants::class, ['id' => $freshGame->id])
+        ->test(GameDetail::class, ['id' => $freshGame->id])
         ->call('acceptInvitation', $participant->id);
 
     // Guard uses session flash, so no Livewire errors — check status directly
@@ -362,9 +365,11 @@ test('accept invitation adds to waitlist when standalone game is full', function
         ->first();
     $participant->update(['user_id' => $invitee->id]);
 
-    // Accept — game is full so should go to waitlist, not approved
+    // Accept — game is full so should go to waitlist, not approved.
+    // The invitee mounts GameDetail (the public game page) — NOT GameManageParticipants
+    // (the admin panel), which requires authorize('update') the invitee doesn't hold.
     Livewire\Livewire::actingAs($invitee)
-        ->test(GameManageParticipants::class, ['id' => $fullGame->id])
+        ->test(GameDetail::class, ['id' => $fullGame->id])
         ->call('acceptInvitation', $participant->id);
 
     expect($participant->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
