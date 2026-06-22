@@ -14,13 +14,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Service for the newcomer dashboard mode.
+ * Computer for newcomer-mode Dashboard sections.
  *
- * Provides personalised welcome data, preference-weighted nearby game matches,
- * an onboarding progress tracker, and nearby compatible people preview.
- *
- * Each public method delegates caching to DashboardCacheService, which handles
- * the three-tier pattern (cache read → synchronous fallback → background warm).
+ * Provides the compute methods behind the newcomer_welcome, progress_tracker,
+ * nearby_people, and newcomer_matches Dashboard sections. These are pure
+ * SQL→array computers — the cache lifecycle (read/write/invalidate/warm) is
+ * owned entirely by {@see DashboardCacheService}, which calls these methods
+ * via its section registry. This service holds NO cache dependency.
  */
 class DashboardNewcomerService
 {
@@ -28,66 +28,6 @@ class DashboardNewcomerService
 
     /** @var array<string, array<int, mixed>> Memoized exclusion lists per user to avoid redundant queries */
     private array $excludedGameIdsCache = [];
-
-    public function __construct(
-        private readonly DashboardCacheService $cache,
-    ) {}
-
-    // ── Public API ─────────────────────────────────────
-
-    /**
-     * Get welcome data for a newcomer user.
-     *
-     * Returns personalised information for the welcome card: name, city,
-     * preferred game systems, count of nearby games matching preferences,
-     * and a computed welcome message key.
-     *
-     * @return array<string, mixed>
-     */
-    public function getWelcomeData(User $user): array
-    {
-        return $this->cache->getNewcomerWelcome($user);
-    }
-
-    /**
-     * Get preference-weighted nearby game matches for a newcomer.
-     *
-     * Queries nearby scheduled games (next 14 days, within geohash tile,
-     * not already participating). Scores by preference match, proximity,
-     * and spots available. Returns top 6 games with relevance tags.
-     *
-     * @return array<string, mixed>
-     */
-    public function getPreferenceWeightedMatches(User $user, string $geohash4): array
-    {
-        return $this->cache->getNewcomerMatches($user, $geohash4);
-    }
-
-    /**
-     * Get the newcomer onboarding progress tracker.
-     *
-     * Returns a 4-step progress tracker: Profile, Preferences, Find Game,
-     * Attend Session. Each step has a completion status and route.
-     *
-     * @return array<string, mixed>
-     */
-    public function getProgressTracker(User $user): array
-    {
-        return $this->cache->getProgressTracker($user);
-    }
-
-    /**
-     * Get nearby compatible people for a newcomer.
-     *
-     * Queries users in the same geohash tile with public profiles,
-     * sorted by taste compatibility (shared game systems).
-     *
-     * @return array<string, mixed>
-     */
-    public function getNearbyPeople(User $user, string $geohash4): array
-    {
-        return $this->cache->getNearbyPeople($user, $geohash4);
-    }
 
     // ── Compute methods (called by DashboardCacheService) ──
 

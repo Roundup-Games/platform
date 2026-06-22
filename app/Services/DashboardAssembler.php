@@ -89,21 +89,21 @@ class DashboardAssembler
      */
     private function buildNewcomer(User $user, array $smartPrompt): NewcomerDashboard
     {
-        $newcomerService = app(DashboardNewcomerService::class);
+        $cacheService = app(DashboardCacheService::class);
 
-        $welcome = $newcomerService->getWelcomeData($user);
+        $welcome = $cacheService->getNewcomerWelcome($user);
 
         /** @var array{steps: array<int, array{step: string, label: string, completed: bool, total: int}>, current_step: int, completion_percentage: int} $progressTracker */
-        $progressTracker = $newcomerService->getProgressTracker($user);
+        $progressTracker = $cacheService->getProgressTracker($user);
 
         $geohash4 = $user->geohash4();
 
         $preferenceMatches = $geohash4
-            ? $newcomerService->getPreferenceWeightedMatches($user, $geohash4)
+            ? $cacheService->getNewcomerMatches($user, $geohash4)
             : ['games' => [], 'total_nearby' => 0, 'preference_match_rate' => 0.0];
 
         $nearbyPeople = $geohash4
-            ? $newcomerService->getNearbyPeople($user, $geohash4)
+            ? $cacheService->getNearbyPeople($user, $geohash4)
             : ['people' => [], 'total_nearby' => 0];
 
         Log::debug('dashboard.newcomer_data_loaded', [
