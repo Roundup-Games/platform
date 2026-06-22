@@ -9,6 +9,7 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -26,6 +27,11 @@ use Illuminate\Support\Facades\Log;
  * audit stamps, structured log). Orchestrator concerns that vary by departure
  * context — notifications (host-remove only), Roster::onDeparture cascades,
  * session flashes — stay with the callers.
+ *
+ * Owns three transition families:
+ *  - depart(): any status → Rejected (self-leave + host-remove-inline)
+ *  - promoteFromBench(): Benched → Approved (host-controlled, capacity-guarded)
+ *  - removeFromBench(): Benched → Rejected (delegates to depart() for audit)
  *
  * Not in scope here: the host-remove path through ParticipantService::
  * removeParticipant, which uses the Removed status (not Rejected) to preserve
@@ -117,5 +123,74 @@ class ParticipantLifecycle
         return $hoursUntil < $lateCancelHours
             ? AttendanceStatus::LateCancel
             : AttendanceStatus::CancelledEarly;
+    }
+
+    /**
+     * Promote a benched participant to Approved status.
+     *
+     * The single seam for bench promotion: every host entry point (sidebar,
+     * manage-participants page) routes here. Precondition (must be Benched),
+     * capacity check (entity must have room), transition, and log live behind
+     * this interface. Moved from BenchService — Bench is a host-controlled
+     * concept with no FIFO/confirmation depth, so its transitions collapse
+     * cleanly into the lifecycle service.
+     *
+     * @throws \LogicException if participant is not benched or entity has no capacity
+     */
+    public function promoteFromBench(Participant $participant, ?User $promoter = null): void
+    {
+        $meta = $participant->getEntityMeta();
+        $promoterId = $promoter !== null ? $promoter->id : 'system';
+
+        DB::transaction(function () use ($participant, $meta, $promoterId) {
+            $locked = $meta->participantClass::lockForUpdate()->where('id', $participant->getId())->firstOrFail();
+
+            if ($locked->status !== ParticipantStatus::Benched) {
+                throw new \LogicException('Participant is not on the bench.');
+            }
+
+            /** @var string $foreignId */
+            $foreignId = $locked->getAttribute($meta->foreignKey);
+            $lockedEntity = $meta->entityClass::lockForUpdate()->findOrFail($foreignId);
+
+            $approvedCount = $lockedEntity->participants()
+                ->where('status', ParticipantStatus::Approved->value)
+                ->count();
+
+            if ($approvedCount >= $lockedEntity->max_players) {
+                throw new \LogicException('Cannot promote: entity is full.');
+            }
+
+            $locked->update([
+                'status' => ParticipantStatus::Approved->value,
+                'benched_at' => null,
+            ]);
+
+            Log::info('bench.promoted', [
+                'entity_type' => $meta->type,
+                $meta->foreignKey => $lockedEntity->id,
+                'user_id' => $locked->user_id,
+                'promoted_by' => $promoterId,
+            ]);
+        });
+    }
+
+    /**
+     * Remove a benched participant (sets status to Rejected).
+     *
+     * Delegates to depart() for the actual transition + audit trail. Previously
+     * removeFromBench set status=Rejected without recording removed_by/removed_at;
+     * routing through depart() closes that audit gap the same way hop 2 closed
+     * it for the self-leave paths.
+     *
+     * @throws \LogicException if participant is not benched
+     */
+    public function removeFromBench(Participant $participant, ?User $remover = null): void
+    {
+        if ($participant->getStatus() !== ParticipantStatus::Benched) {
+            throw new \LogicException('Participant is not on the bench.');
+        }
+
+        $this->depart($participant, $remover);
     }
 }

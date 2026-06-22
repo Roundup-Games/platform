@@ -4,7 +4,7 @@ namespace App\Traits;
 
 use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
-use App\Services\BenchService;
+use App\Services\ParticipantLifecycle;
 use App\Services\ParticipantService;
 use App\Services\WaitlistService;
 use Illuminate\Database\Eloquent\Collection;
@@ -358,7 +358,7 @@ trait ManagesParticipants
         $participant = $this->participantService()->findParticipant($this->getEntity(), $participantId);
 
         try {
-            app(BenchService::class)->promoteFromBench($participant, authenticatedUser());
+            app(ParticipantLifecycle::class)->promoteFromBench($participant, authenticatedUser());
             session()->flash('success', __('common.flash_bench_promoted'));
         } catch (\LogicException $e) {
             session()->flash('error', __('common.error_participant_not_benched'));
@@ -375,7 +375,7 @@ trait ManagesParticipants
         $participant = $this->participantService()->findParticipant($this->getEntity(), $participantId);
 
         try {
-            app(BenchService::class)->removeFromBench($participant, authenticatedUser());
+            app(ParticipantLifecycle::class)->removeFromBench($participant, authenticatedUser());
             session()->flash('success', __('common.flash_bench_removed'));
         } catch (\LogicException $e) {
             session()->flash('error', __('common.error_participant_not_benched'));
