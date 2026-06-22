@@ -20,6 +20,7 @@ use App\Notifications\ParticipantRemoved;
 use App\Services\AttendanceService;
 use App\Services\DebriefingService;
 use App\Services\NotificationService;
+use App\Services\OverflowRouter;
 use App\Services\ParticipantLifecycle;
 use App\Services\ReviewEligibilityService;
 use App\Services\Roster;
@@ -558,25 +559,14 @@ class GameDetail extends Component
                     $baseData['short_link_id'] = $shortLinkId;
                 }
 
-                if ($isFull && $game->isBenchMode()) {
-                    $baseData['status'] = ParticipantStatus::Benched->value;
-                    $baseData['benched_at'] = now();
+                if ($isFull) {
+                    $overflow = app(OverflowRouter::class)->resolve($game);
+                    $baseData['status'] = $overflow->statusValue();
+                    $baseData[$overflow->timestampColumn] = now();
 
                     GameParticipant::create($baseData);
 
-                    Log::info('Player benched via share link (bench mode, full)', [
-                        'game_id' => $game->id,
-                        'user_id' => $viewer->id,
-                        'join_source' => $joinSource->value,
-                        'short_link_id' => $shortLinkId,
-                    ]);
-                } elseif ($isFull) {
-                    $baseData['status'] = ParticipantStatus::Waitlisted->value;
-                    $baseData['waitlisted_at'] = now();
-
-                    GameParticipant::create($baseData);
-
-                    Log::info('Player waitlisted via share link (game full)', [
+                    Log::info('Player '.$overflow->statusValue().' via share link (game full)', [
                         'game_id' => $game->id,
                         'user_id' => $viewer->id,
                         'join_source' => $joinSource->value,

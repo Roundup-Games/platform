@@ -184,9 +184,9 @@ class ParticipantService
         }
 
         if ($this->isAtCapacity($entity)) {
-            $this->addEmailInviteeToOverflow($entity, $meta, $normalizedEmail, $inviter, $existingUser->id);
+            app(OverflowRouter::class)->placeEmailInvitee($entity, $meta, $normalizedEmail, $inviter, $existingUser->id);
 
-            return $this->overflowFlashResult($entity);
+            return app(OverflowRouter::class)->flashResult($entity);
         }
 
         $meta->participantClass::create([
@@ -238,9 +238,9 @@ class ParticipantService
         }
 
         if ($this->isAtCapacity($entity)) {
-            $this->addEmailInviteeToOverflow($entity, $meta, $normalizedEmail, $inviter);
+            app(OverflowRouter::class)->placeEmailInvitee($entity, $meta, $normalizedEmail, $inviter);
 
-            return $this->overflowFlashResult($entity);
+            return app(OverflowRouter::class)->flashResult($entity);
         }
 
         if ($isSuppressed) {
@@ -636,11 +636,11 @@ class ParticipantService
         });
 
         if ($overflowed) {
-            $this->addAcceptedInviteeToOverflow($participant, $entity, $meta);
+            app(OverflowRouter::class)->placeAcceptedInvitee($participant, $entity, $meta);
             $this->notifyOwnerOfAcceptedInvitation($entity, $user, $meta);
             $this->markInvitationNotificationRead($entity, $user, $meta);
 
-            return $this->overflowFlashResult($entity);
+            return app(OverflowRouter::class)->flashResult($entity);
         }
 
         Log::info($meta->type.' invitation accepted', [
@@ -855,138 +855,5 @@ class ParticipantService
                 'error' => $e->getMessage(),
             ]);
         }
-    }
-
-    /**
-     * Determine the overflow status for a full entity.
-     *
-     * @return array{status: string, timestamp_column: string}
-     */
-    private function resolveOverflowStatus(Game|Campaign $entity): array
-    {
-        if (! $entity->isBenchMode()) {
-            return [
-                'status' => ParticipantStatus::Waitlisted->value,
-                'timestamp_column' => 'waitlisted_at',
-            ];
-        }
-
-        return [
-            'status' => ParticipantStatus::Benched->value,
-            'timestamp_column' => 'benched_at',
-        ];
-    }
-
-    /**
-     * Add an email invitee to the waitlist or bench when the entity is full.
-     */
-    private function addEmailInviteeToOverflow(
-        Game|Campaign $entity,
-        EntityMeta $meta,
-        string $normalizedEmail,
-        User $inviter,
-        ?string $existingUserId = null,
-    ): void {
-        $overflow = $this->resolveOverflowStatus($entity);
-
-        $data = [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $existingUserId,
-            'invitee_email' => $existingUserId ? null : $normalizedEmail,
-            'role' => ParticipantRole::Invited->value,
-            'status' => $overflow['status'],
-            'join_source' => JoinSource::EmailInvite,
-            $overflow['timestamp_column'] => now(),
-        ];
-
-        $meta->participantClass::create($data);
-
-        $logContext = [
-            'entity_type' => $meta->type,
-            $meta->foreignKey => $entity->id,
-            'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
-            'invited_by' => $inviter->id,
-            'overflow_status' => $overflow['status'],
-        ];
-        if ($existingUserId) {
-            $logContext['invited_user_id'] = $existingUserId;
-        }
-        Log::info($meta->type.' email invite added to '.$overflow['status'], $logContext);
-
-        // Send notification/email so the person knows they've been invited
-        if ($existingUserId) {
-            $existingUser = User::find($existingUserId);
-            if ($existingUser) {
-                $this->sendInvitationNotification($entity, $existingUser, $inviter);
-            }
-        } else {
-            try {
-                if (SuppressedInviteEmail::isSuppressed($normalizedEmail)) {
-                    Log::info('invite.email.suppressed_overflow', [
-                        'entity_type' => $meta->type,
-                        $meta->foreignKey => $entity->id,
-                        'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
-                        'invited_by' => $inviter->id,
-                    ]);
-                } else {
-                    $mailable = new EntityInvitationEmail(
-                        entityType: strtolower($meta->type),
-                        entityName: $entity->name,
-                        entityDateTime: $entity->date_time ?? null,
-                        entityLocation: $entity->linkedLocation->address ?? null,
-                        inviterName: $inviter->name,
-                        inviteeEmail: $normalizedEmail,
-                        signupUrl: route('register', ['locale' => app()->getLocale()]),
-                        optoutUrl: route('invite.optout.show', [
-                            'locale' => app()->getLocale(),
-                            'emailHash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
-                        ]),
-                    );
-                    Mail::to($normalizedEmail)->queue($mailable);
-                }
-            } catch (\Throwable $e) {
-                Log::error('email.invite_delivery_failed', [
-                    'entity_type' => $meta->type,
-                    $meta->foreignKey => $entity->id,
-                    'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-    }
-
-    /**
-     * Move an accepted invitee to waitlist/bench when entity is full.
-     */
-    private function addAcceptedInviteeToOverflow(
-        Participant $participant,
-        Game|Campaign $entity,
-        EntityMeta $meta,
-    ): void {
-        $overflow = $this->resolveOverflowStatus($entity);
-
-        $participant->update([
-            'status' => $overflow['status'],
-            $overflow['timestamp_column'] => now(),
-        ]);
-
-        Log::info($meta->type.' invitation accepted but entity full — moved to '.$overflow['status'], [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $participant->getUserId(),
-            'overflow_status' => $overflow['status'],
-        ]);
-    }
-
-    /**
-     * Get the appropriate flash message key for overflow (waitlist or bench).
-     */
-    private function overflowFlashResult(Game|Campaign $entity): ParticipantResult
-    {
-        $overflow = $this->resolveOverflowStatus($entity);
-        $messageKey = $overflow['status'] === ParticipantStatus::Waitlisted->value
-            ? 'people.flash_email_invite_waitlisted'
-            : 'people.flash_email_invite_benched';
-
-        return ParticipantResult::ok($messageKey);
     }
 }
