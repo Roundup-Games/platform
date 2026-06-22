@@ -2,6 +2,8 @@
 
 namespace App\Models\Concerns;
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Str;
 
 /**
@@ -44,5 +46,48 @@ trait HasParticipantDefaults
         }
 
         return $this->join_source?->label();
+    }
+
+    /**
+     * Typed accessors for the shared participant columns.
+     *
+     * Exposed on the App\Contracts\Participant interface so lifecycle services
+     * read typed values instead of dynamic Eloquent properties (which PHPStan
+     * cannot resolve on the interface type). Implemented once here and shared
+     * by both pivot models. Larastan resolves these properties from the
+     * composing models' migrations/casts, so direct access carries the true
+     * column type — no mixed-cast noise.
+     */
+    public function getId(): string
+    {
+        return (string) $this->id;
+    }
+
+    public function getUserId(): ?string
+    {
+        $userId = $this->user_id;
+
+        return is_string($userId) ? $userId : null;
+    }
+
+    public function getInviteeEmail(): ?string
+    {
+        $email = $this->invitee_email;
+
+        return is_string($email) ? $email : null;
+    }
+
+    public function getStatus(): ?ParticipantStatus
+    {
+        $status = $this->status;
+
+        return $status instanceof ParticipantStatus ? $status : null;
+    }
+
+    public function getRole(): ?ParticipantRole
+    {
+        $role = $this->role;
+
+        return $role instanceof ParticipantRole ? $role : null;
     }
 }

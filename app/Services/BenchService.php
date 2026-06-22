@@ -108,7 +108,7 @@ class BenchService
         $promoterId = $promoter->id ?? 'system';
 
         DB::transaction(function () use ($participant, $meta, $promoterId) {
-            $locked = $meta->participantClass::lockForUpdate()->where('id', $participant->id)->firstOrFail();
+            $locked = $meta->participantClass::lockForUpdate()->where('id', $participant->getId())->firstOrFail();
 
             if ($locked->status !== ParticipantStatus::Benched) {
                 throw new \LogicException('Participant is not on the bench.');
@@ -149,7 +149,7 @@ class BenchService
     {
         $meta = $participant->getEntityMeta();
 
-        if ($participant->status !== ParticipantStatus::Benched) {
+        if ($participant->getStatus() !== ParticipantStatus::Benched) {
             throw new \LogicException('Participant is not on the bench.');
         }
 
@@ -158,8 +158,8 @@ class BenchService
         Log::info('bench.removed', [
             'entity_type' => $meta->type,
             $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
+            'participant_id' => $participant->getId(),
+            'user_id' => $participant->getUserId(),
             'removed_by' => $remover->id ?? 'system',
         ]);
     }

@@ -347,8 +347,8 @@ class WaitlistService
 
         Log::info('waitlist.manually_promoted', [
             $meta->foreignKey => $participant->{$meta->foreignKey},
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
+            'participant_id' => $participant->getId(),
+            'user_id' => $participant->getUserId(),
         ]);
 
         $participant->update([
@@ -367,7 +367,7 @@ class WaitlistService
     {
         $meta = $participant->getEntityMeta();
 
-        if ($participant->status !== ParticipantStatus::Waitlisted) {
+        if ($participant->getStatus() !== ParticipantStatus::Waitlisted) {
             throw new \LogicException('Participant is not on the waitlist.');
         }
 
@@ -376,8 +376,8 @@ class WaitlistService
         Log::info('waitlist.removed', [
             'entity_type' => $meta->type,
             $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
+            'participant_id' => $participant->getId(),
+            'user_id' => $participant->getUserId(),
             'removed_by' => $remover !== null ? $remover->id : 'system',
         ]);
     }

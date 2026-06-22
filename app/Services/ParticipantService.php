@@ -391,7 +391,7 @@ class ParticipantService
         // since public games create participants with role='player' even when
         // the application record is still pending (e.g. pre-fix data).
         $pendingApplication = $entity->applications()
-            ->where('user_id', $participant->user_id)
+            ->where('user_id', $participant->getUserId())
             ->where('status', 'pending')
             ->exists();
 
@@ -406,18 +406,18 @@ class ParticipantService
         ]);
 
         $entity->applications()
-            ->where('user_id', $participant->user_id)
+            ->where('user_id', $participant->getUserId())
             ->update(['status' => ParticipantStatus::Approved->value]);
 
         Log::info($meta->type.' application approved', [
             $meta->foreignKey => $entity->id,
-            'user_id' => $participant->user_id,
+            'user_id' => $participant->getUserId(),
             'approved_by' => $approver->id,
         ]);
 
         // Notify applicant
         try {
-            $applicant = User::find((string) $participant->user_id);
+            $applicant = User::find($participant->getUserId());
             if ($applicant) {
                 app(NotificationService::class)->send(
                     $applicant,
@@ -429,7 +429,7 @@ class ParticipantService
             Log::error('notification.application_approved_dispatch_failed', [
                 'entity_type' => $meta->type,
                 $meta->foreignKey => $entity->id,
-                'applicant_id' => $participant->user_id,
+                'applicant_id' => $participant->getUserId(),
                 'error' => $e->getMessage(),
             ]);
         }
@@ -448,7 +448,7 @@ class ParticipantService
         $meta = $participant->getEntityMeta();
 
         $pendingApplication = $entity->applications()
-            ->where('user_id', $participant->user_id)
+            ->where('user_id', $participant->getUserId())
             ->where('status', 'pending')
             ->exists();
 
@@ -456,7 +456,7 @@ class ParticipantService
             return ParticipantResult::fail('common.error_participant_not_applicant');
         }
 
-        $rejectedUserId = $participant->user_id;
+        $rejectedUserId = $participant->getUserId();
 
         // Delete both records so the user can re-apply later if they want
         $participant->delete();
@@ -470,7 +470,7 @@ class ParticipantService
 
         // Notify applicant
         try {
-            $applicant = User::find((string) $rejectedUserId);
+            $applicant = User::find($rejectedUserId);
             if ($applicant) {
                 app(NotificationService::class)->send(
                     $applicant,
@@ -502,14 +502,14 @@ class ParticipantService
     ): ParticipantResult {
         $meta = $participant->getEntityMeta();
 
-        if ($participant->role === ParticipantRole::Owner) {
+        if ($participant->getRole() === ParticipantRole::Owner) {
             return ParticipantResult::fail('common.error_cannot_remove_the_entity_owner', [
                 'entity' => strtolower($meta->type),
             ]);
         }
 
-        $removedUser = User::find((string) $participant->user_id);
-        $removedUserId = (string) $participant->user_id;
+        $removedUser = User::find($participant->getUserId());
+        $removedUserId = $participant->getUserId();
 
         // Soft-remove: set status to 'removed' instead of hard-deleting.
         // This preserves roster history so we can detect hosts who kick everyone
@@ -569,9 +569,9 @@ class ParticipantService
 
         Log::info($meta->type.' invite cancelled', [
             $meta->foreignKey => $entityId,
-            'user_id' => $participant->user_id,
-            'invitee_email_hash' => $participant->invitee_email
-                ? SuppressedInviteEmail::hashEmail($participant->invitee_email)
+            'user_id' => $participant->getUserId(),
+            'invitee_email_hash' => $participant->getInviteeEmail()
+                ? SuppressedInviteEmail::hashEmail($participant->getInviteeEmail())
                 : null,
             'cancelled_by' => $canceller->id,
         ]);
@@ -602,12 +602,12 @@ class ParticipantService
         }
 
         // Must be the invited user
-        if ($participant->user_id !== $user->id) {
+        if ($participant->getUserId() !== $user->id) {
             return ParticipantResult::fail('people.error_not_your_invitation');
         }
 
         // Must have invited role and pending status
-        if ($participant->role !== ParticipantRole::Invited || $participant->status !== ParticipantStatus::Pending) {
+        if ($participant->getRole() !== ParticipantRole::Invited || $participant->getStatus() !== ParticipantStatus::Pending) {
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
         }
 
@@ -666,12 +666,12 @@ class ParticipantService
         $meta = $participant->getEntityMeta();
 
         // Must be the invited user
-        if ($participant->user_id !== $user->id) {
+        if ($participant->getUserId() !== $user->id) {
             return ParticipantResult::fail('people.error_not_your_invitation');
         }
 
         // Must have invited role and pending status
-        if ($participant->role !== ParticipantRole::Invited || $participant->status !== ParticipantStatus::Pending) {
+        if ($participant->getRole() !== ParticipantRole::Invited || $participant->getStatus() !== ParticipantStatus::Pending) {
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
         }
 
@@ -972,7 +972,7 @@ class ParticipantService
 
         Log::info($meta->type.' invitation accepted but entity full — moved to '.$overflow['status'], [
             $meta->foreignKey => $entity->id,
-            'user_id' => $participant->user_id,
+            'user_id' => $participant->getUserId(),
             'overflow_status' => $overflow['status'],
         ]);
     }

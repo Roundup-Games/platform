@@ -3,6 +3,8 @@
 namespace App\Contracts;
 
 use App\Dto\EntityMeta;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use Illuminate\Database\Eloquent\Model;
@@ -62,4 +64,35 @@ interface Participant
      * @return mixed
      */
     public function getAttribute(string $key);
+
+    /**
+     * The participant's UUID primary key.
+     *
+     * Always non-null for persisted participants; lifecycle services only ever
+     * receive persisted rows.
+     */
+    public function getId(): string;
+
+    /**
+     * The participating user's UUID, or null for an email-only invitee.
+     *
+     * Email-only participants (invitee_email set, no user) carry null here —
+     * callers that resolve a User model must null-check before User::find().
+     */
+    public function getUserId(): ?string;
+
+    /**
+     * The invitee email for an email-only participant, or null for user-based.
+     */
+    public function getInviteeEmail(): ?string;
+
+    /**
+     * The participant's lifecycle status, or null when not yet persisted.
+     */
+    public function getStatus(): ?ParticipantStatus;
+
+    /**
+     * The participant's role, or null when not yet persisted.
+     */
+    public function getRole(): ?ParticipantRole;
 }
