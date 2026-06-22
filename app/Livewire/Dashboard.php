@@ -20,9 +20,11 @@ class Dashboard extends Component
      */
     public function render(): View
     {
+        $dashboard = app(DashboardAssembler::class)->assemble(authenticatedUser());
+
         return view(
             'livewire.dashboard',
-            app(DashboardAssembler::class)->assemble(authenticatedUser())->toViewProps(),
+            ['dashboard' => $dashboard] + $dashboard->toViewProps(),
         );
     }
 }
