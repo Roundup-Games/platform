@@ -1,30 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Cannot cast mixed to int\.$#'
-			identifier: cast.int
-			count: 2
-			path: app/Livewire/Campaigns/CampaignDetail.php
-
-		-
-			message: '#^Cannot cast mixed to int\.$#'
-			identifier: cast.int
-			count: 1
-			path: app/Livewire/Campaigns/CampaignsPage.php
-
-		-
-			message: '#^Cannot cast mixed to int\.$#'
-			identifier: cast.int
-			count: 3
-			path: app/Livewire/Games/GameDetail.php
-
-		-
-			message: '#^Cannot cast mixed to int\.$#'
-			identifier: cast.int
-			count: 1
-			path: app/Livewire/Games/GamesPage.php
-
-		-
 			message: '#^Access to an undefined property App\\Contracts\\Participant\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 2
@@ -67,18 +43,6 @@ parameters:
 			path: app/Services/ParticipantService.php
 
 		-
-			message: '#^Parameter \#1 \$notifiable of method App\\Services\\NotificationService\:\:send\(\) expects App\\Models\\User, App\\Models\\User\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\User\> given\.$#'
-			identifier: argument.type
-			count: 3
-			path: app/Services/ParticipantService.php
-
-		-
-			message: '#^Parameter \#1 \$removedUser of class App\\Notifications\\ParticipantRemoved constructor expects App\\Models\\User, App\\Models\\User\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\User\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/ParticipantService.php
-
-		-
 			message: '#^Access to an undefined property App\\Contracts\\Participant\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 2
@@ -95,15 +59,3 @@ parameters:
 			identifier: property.notFound
 			count: 2
 			path: app/Services/WaitlistService.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/WaitlistService.php
-
-		-
-			message: '#^PHPDoc tag @include has invalid value \(\(\.\.\.\) parameters — they are NOT defined here\.\)\: Unexpected token "\.\.\.", expected type at offset 666 on line 16$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: app/Traits/ManagesParticipants.php

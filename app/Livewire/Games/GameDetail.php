@@ -372,7 +372,7 @@ class GameDetail extends Component
 
         if ($entity->date_time && $entity->date_time->isFuture()) {
             $hoursUntil = now()->diffInHours($entity->date_time, false);
-            $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
             $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
                 ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
         }
@@ -432,7 +432,7 @@ class GameDetail extends Component
         // Track attendance for reliability scoring
         if ($participant->status === ParticipantStatus::Approved && $this->game->date_time?->isFuture()) {
             $hoursUntil = now()->diffInHours($this->game->date_time, false);
-            $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
             $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
                 ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
         }

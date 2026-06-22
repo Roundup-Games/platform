@@ -164,3 +164,21 @@ function safe_url(?string $url): ?string
 
     return preg_match('#^https?://#i', $url) ? $url : null;
 }
+
+/**
+ * Read an integer config value safely.
+ *
+ * `config()` returns mixed; PHPStan (level 9) rejects `(int) mixed`. This
+ * helper narrows the value: if it's numeric (int, float, or a numeric string)
+ * it casts to int; otherwise it returns the default. The default is returned
+ * unchanged when the key is absent or the stored value is non-numeric
+ * (e.g. null or a stray string), so callers always get a usable integer.
+ */
+if (! function_exists('config_int')) {
+    function config_int(string $key, int $default): int
+    {
+        $value = config($key, $default);
+
+        return is_numeric($value) ? (int) $value : $default;
+    }
+}

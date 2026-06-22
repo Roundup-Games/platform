@@ -417,7 +417,7 @@ class ParticipantService
 
         // Notify applicant
         try {
-            $applicant = User::find($participant->user_id);
+            $applicant = User::find((string) $participant->user_id);
             if ($applicant) {
                 app(NotificationService::class)->send(
                     $applicant,
@@ -470,7 +470,7 @@ class ParticipantService
 
         // Notify applicant
         try {
-            $applicant = User::find($rejectedUserId);
+            $applicant = User::find((string) $rejectedUserId);
             if ($applicant) {
                 app(NotificationService::class)->send(
                     $applicant,
@@ -508,8 +508,8 @@ class ParticipantService
             ]);
         }
 
-        $removedUser = User::find($participant->user_id);
-        $removedUserId = $participant->user_id;
+        $removedUser = User::find((string) $participant->user_id);
+        $removedUserId = (string) $participant->user_id;
 
         // Soft-remove: set status to 'removed' instead of hard-deleting.
         // This preserves roster history so we can detect hosts who kick everyone
@@ -820,7 +820,7 @@ class ParticipantService
     private function notifyOwnerOfAcceptedInvitation(Game|Campaign $entity, User $acceptingUser, EntityMeta $meta): void
     {
         try {
-            $owner = User::find($entity->owner_id);
+            $owner = User::find((string) $entity->owner_id);
             if ($owner && $owner->id !== $acceptingUser->id) {
                 app(NotificationService::class)->send(
                     $owner,

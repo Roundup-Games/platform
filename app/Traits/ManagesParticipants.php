@@ -25,8 +25,7 @@ use Livewire\Attributes\On;
  *
  * The Blade partial (resources/views/livewire/partials/
  * manage-participants.blade.php) reads getEntityVar/getBackRoute from
- *
- * @include(...) parameters — they are NOT defined here.
+ * its own @include() parameters — they are NOT defined here.
  */
 trait ManagesParticipants
 {

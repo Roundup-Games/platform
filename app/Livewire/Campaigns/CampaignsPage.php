@@ -297,7 +297,7 @@ class CampaignsPage extends Component
                 ->first();
             if ($nextSession) {
                 $hoursUntil = now()->diffInHours($nextSession->date_time, false);
-                $lateCancelHours = (int) config('attendance.player_late_cancel_hours', 24);
+                $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
                 $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
                     ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
             }
