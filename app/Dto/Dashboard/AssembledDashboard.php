@@ -39,11 +39,15 @@ final class AssembledDashboard
 
     /**
      * Legacy bridge: project the typed view-model into the flat view-variable dictionary
-     * the `livewire.dashboard` Blade expects, byte-identical to the pre-refactor render().
+     * the `livewire.dashboard` Blade wrapper expects.
      *
-     * The inactive mode's keys are emitted with their legacy stub values so the Blade
-     * partials see no undefined variables. Phase 3 removes this method once the Blade
-     * branches on `mode` and reads typed props.
+     * The inactive mode's keys are emitted with stub values because the test suite
+     * asserts on the full view-data contract regardless of mode (e.g.
+     * `DashboardNewcomerTest::'dashboard does not render newcomer data for established user'`
+     * reads `viewData('newcomerWelcome')` on an established-mode user and expects `[]`).
+     * The Blade wrapper branches on `dashboardMode` and only passes each partial its own
+     * vars, so the stubs are inert at render time — but they remain part of the view
+     * contract until the test suite is updated alongside a Blade modernization.
      *
      * @return array<string, mixed>
      */
@@ -56,8 +60,6 @@ final class AssembledDashboard
             'unreadNotificationsCount' => $this->shared->unreadNotificationsCount,
             'contributions' => $this->shared->contributions,
             'weekData' => $this->shared->weekData,
-            'gamesThisWeek' => $this->shared->gamesThisWeek,
-            'gamesThisWeekCount' => $this->shared->gamesThisWeekCount,
         ];
 
         if ($this->isNewcomer() && $this->newcomer instanceof NewcomerDashboard) {
@@ -69,7 +71,8 @@ final class AssembledDashboard
                 'progressTracker' => $this->newcomer->progressTracker,
                 'nearbyPeople' => $this->newcomer->nearbyPeople,
 
-                // Established stubs (emitted so the Blade has no undefined vars).
+                // Established stubs (inert at render — Blade branches on mode — but
+                // asserted by the test suite for the inactive mode).
                 'communityFeed' => collect(),
                 'trendingItems' => collect(),
                 'hasTrendingSection' => false,
@@ -90,7 +93,7 @@ final class AssembledDashboard
         $e = $this->established();
 
         return $props + [
-            // Newcomer stubs.
+            // Newcomer stubs (inert at render — asserted by the test suite for the inactive mode).
             'quickActions' => [],
             'newcomerWelcome' => [],
             'preferenceMatches' => [],

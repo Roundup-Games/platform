@@ -60,8 +60,6 @@ class DashboardAssembler
             smartPrompt: $smartPrompt,
             contributions: $contributions,
             weekData: $weekData,
-            gamesThisWeek: collect(),
-            gamesThisWeekCount: 0,
         );
 
         if ($mode === 'newcomer') {
