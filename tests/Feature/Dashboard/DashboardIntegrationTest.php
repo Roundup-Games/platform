@@ -29,6 +29,29 @@ beforeEach(function () {
     URL::defaults(['locale' => 'en']);
 });
 
+// Helper: create an established user (approved participant of a completed game they didn't own).
+function makeEstablishedParticipant(): User
+{
+    $user = User::factory()->create(['profile_complete' => true]);
+    $host = User::factory()->create(['profile_complete' => true]);
+    $system = GameSystem::factory()->create();
+
+    $game = Game::factory()->create([
+        'owner_id' => $host->id,
+        'game_system_id' => $system->id,
+        'status' => GameStatus::Completed->value,
+        'date_time' => now()->subDays(10),
+    ]);
+
+    GameParticipant::factory()->create([
+        'game_id' => $game->id,
+        'user_id' => $user->id,
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    return $user;
+}
+
 // ── Dashboard renders with all sections ─────────────────────────
 
 describe('Dashboard rendering', function () {
@@ -45,18 +68,18 @@ describe('Dashboard rendering', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        // Verify all 6 sections are rendered as view data
-        $component->assertViewHas('smartPrompt');
-        $component->assertViewHas('weekData');
-        $component->assertViewHas('communityFeed');
-        $component->assertViewHas('opportunities');
-        $component->assertViewHas('contributions');
-        $component->assertViewHas('quickActions');
+        // Verify the typed view-model carries all wired sections
+        $component->assertViewHas('dashboard');
+        $dashboard = $component->viewData('dashboard');
+        expect($dashboard->shared->smartPrompt)->toBeArray()
+            ->and($dashboard->shared->weekData)->toBeArray()
+            ->and($dashboard->shared->contributions)->toBeArray()
+            // Exactly one wing is active for the resolved mode.
+            ->and($dashboard->newcomer)->not->toBeNull()
+            ->and($dashboard->established)->toBeNull();
 
-        // Verify dashboardMode is always passed
-        $component->assertViewHas('dashboardMode');
-        $mode = $component->viewData('dashboardMode');
-        expect($mode)->toBeIn(['newcomer', 'established']);
+        // Verify dashboardMode is always resolvable
+        expect($dashboard->mode)->toBeIn(['newcomer', 'established']);
     });
 });
 
@@ -67,7 +90,7 @@ describe('Dashboard mode', function () {
         // Fresh user — created just now, zero attended games
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('newcomer');
     });
 
@@ -85,7 +108,7 @@ describe('Dashboard mode', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('established');
     });
 
@@ -97,7 +120,7 @@ describe('Dashboard mode', function () {
 
         $component = Livewire::test(Dashboard::class);
 
-        $mode = $component->viewData('dashboardMode');
+        $mode = $component->viewData('dashboard')->mode;
         expect($mode)->toBe('established');
     });
 });
@@ -112,13 +135,13 @@ describe('Cache lifecycle', function () {
         $component = Livewire::test(Dashboard::class);
 
         // Week data should be computed synchronously
-        $weekData = $component->viewData('weekData');
+        $weekData = $component->viewData('dashboard')->shared->weekData;
         expect($weekData)->not->toBeNull();
         expect($weekData)->toHaveKey('days');
         expect($weekData)->toHaveKey('summary');
 
         // Contributions should be computed synchronously
-        $contributions = $component->viewData('contributions');
+        $contributions = $component->viewData('dashboard')->shared->contributions;
         expect($contributions)->toHaveKey('hosted');
         expect($contributions)->toHaveKey('played');
 
@@ -147,7 +170,7 @@ describe('Cache lifecycle', function () {
         DB::disableQueryLog();
 
         // Week data should still be present
-        $weekData = $component->viewData('weekData');
+        $weekData = $component->viewData('dashboard')->shared->weekData;
         expect($weekData)->toHaveKey('days');
 
         // Verify cache hit occurred (fewer queries than cold visit)
@@ -218,7 +241,7 @@ describe('Smart Prompt', function () {
         ]);
 
         $component = Livewire::test(Dashboard::class);
-        $smartPrompt = $component->viewData('smartPrompt');
+        $smartPrompt = $component->viewData('dashboard')->shared->smartPrompt;
 
         expect($smartPrompt['type'])->toBe('pending_invitations');
     });
@@ -231,7 +254,7 @@ describe('Smart Prompt', function () {
         ]);
 
         $component = Livewire::test(Dashboard::class);
-        $smartPrompt = $component->viewData('smartPrompt');
+        $smartPrompt = $component->viewData('dashboard')->shared->smartPrompt;
 
         expect($smartPrompt['type'])->toBe('upcoming_session');
     });
@@ -247,42 +270,42 @@ describe('Empty states', function () {
         // Should render without errors
         $component->assertStatus(200);
 
-        $smartPrompt = $component->viewData('smartPrompt');
+        $smartPrompt = $component->viewData('dashboard')->shared->smartPrompt;
         expect($smartPrompt)->not->toBeNull();
         // New user should get either fallback_active or fallback_new
         expect($smartPrompt['type'])->toBeIn(['fallback_active', 'fallback_new']);
 
         // Week data should have 7 days with no games
-        $weekData = $component->viewData('weekData');
+        $weekData = $component->viewData('dashboard')->shared->weekData;
         expect($weekData['summary']['total'])->toBe(0);
 
-        // No community feed items
-        $feed = $component->viewData('communityFeed');
-        expect($feed)->toHaveCount(0);
+        // Brand-new user resolves to newcomer: established wing is null (no stub data).
+        $dashboard = $component->viewData('dashboard');
+        expect($dashboard->newcomer)->not->toBeNull()
+            ->and($dashboard->established)->toBeNull();
     });
 
     test('all sections have graceful empty states when data is missing', function () {
+        // Established user with no location and no follows — established sections
+        // render but are empty (opportunities/feed/trending have nothing to show).
+        $this->actingAs(makeEstablishedParticipant());
         $component = Livewire::test(Dashboard::class);
 
         // Opportunities should be empty array (no location)
-        $opportunities = $component->viewData('opportunities');
+        $opportunities = $component->viewData('dashboard')->established->opportunities;
         expect($opportunities)->toHaveKey('games');
         expect($opportunities)->toHaveKey('total_available');
 
-        // Contributions should have zero counts
-        $contributions = $component->viewData('contributions');
-        expect($contributions['hosted']['count'])->toBe(0);
-        expect($contributions['played']['count'])->toBe(0);
-        expect($contributions['campaigns'])->toBeNull();
-        expect($contributions['recaps_written'])->toBe(0);
-        expect($contributions['reviews_given'])->toBe(0);
+        // Contributions structure is present (the user attended one game to become established)
+        $contributions = $component->viewData('dashboard')->shared->contributions;
+        expect($contributions)->toHaveKeys(['hosted', 'played', 'recaps_written', 'reviews_given']);
 
         // Quick actions should always have at least one action
-        $quickActions = $component->viewData('quickActions');
+        $quickActions = $component->viewData('dashboard')->established->establishedQuickActions;
         expect($quickActions)->not->toBeEmpty();
 
         // No trending when no location
-        $hasTrending = $component->viewData('hasTrendingSection');
+        $hasTrending = $component->viewData('dashboard')->established->communityFeed->showTrending;
         expect($hasTrending)->toBeFalse();
     });
 });
@@ -291,17 +314,19 @@ describe('Empty states', function () {
 
 describe('Recaps cache', function () {
     test('recaps are served from cache on warm hit', function () {
+        $user = makeEstablishedParticipant();
+        $this->actingAs($user);
         $cacheService = app(DashboardCacheService::class);
 
         // Pre-warm the recaps cache
-        $cacheService->warmRecaps($this->user);
+        $cacheService->warmRecaps($user);
 
-        $cacheKey = "dashboard:recaps:{$this->user->id}";
+        $cacheKey = "dashboard:recaps:{$user->id}";
         expect(Cache::get($cacheKey))->not->toBeNull();
 
         // Dashboard render should read from cache
         $component = Livewire::test(Dashboard::class);
-        $newRecaps = $component->viewData('newRecaps');
+        $newRecaps = $component->viewData('dashboard')->established->newRecaps;
 
         // Cache key must still be populated (not cleared by render)
         expect(Cache::get($cacheKey))->not->toBeNull();

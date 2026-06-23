@@ -73,6 +73,7 @@ class DashboardDiscoveryService
         $cached = app(DashboardCacheService::class)->getMilestoneCards($user);
 
         if (! empty($cached)) {
+            /** @var array<int, array<string, mixed>> $cached */
             return array_values($cached);
         }
 
