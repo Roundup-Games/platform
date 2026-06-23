@@ -122,7 +122,14 @@ class BenchService
         }
 
         foreach ($benched as $participant) {
-            $participant->update(['status' => ParticipantStatus::Rejected->value]);
+            // Stamp the audit fields for uniformity with ParticipantLifecycle::depart().
+            // removed_by is null — entity cancellation is system-initiated; these benched
+            // participants were never Approved so reliability scoring is correctly N/A.
+            $participant->update([
+                'status' => ParticipantStatus::Rejected->value,
+                'removed_at' => now(),
+                'removed_by' => null,
+            ]);
         }
 
         $entityType = $entity instanceof Campaign ? 'campaign' : 'game';

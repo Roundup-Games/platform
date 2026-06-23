@@ -457,7 +457,16 @@ class WaitlistService
             ->get();
 
         foreach ($affected as $participant) {
-            $participant->update(['status' => ParticipantStatus::Rejected->value]);
+            // Stamp the audit fields for uniformity with ParticipantLifecycle::depart().
+            // removed_by is null — entity cancellation is system-initiated with no
+            // per-participant actor (the host is scored via recordHostCancellationOffence).
+            // attendance_status is intentionally omitted: these were never Approved, so
+            // reliability scoring is correctly N/A (depart() returns null for non-Approved).
+            $participant->update([
+                'status' => ParticipantStatus::Rejected->value,
+                'removed_at' => now(),
+                'removed_by' => null,
+            ]);
         }
 
         Log::info('waitlist.entity_cancelled', [

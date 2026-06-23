@@ -89,8 +89,11 @@ describe('game cancellation', function () {
 
         $this->service->handleGameCancellation($game);
 
-        expect($wp1->fresh()->status)->toBe(ParticipantStatus::Rejected);
-        expect($wp2->fresh()->status)->toBe(ParticipantStatus::Rejected);
+        expect($wp1->fresh()->status)->toBe(ParticipantStatus::Rejected)
+            ->and($wp1->fresh()->removed_at)->not()->toBeNull()
+            ->and($wp1->fresh()->removed_by)->toBeNull();
+        expect($wp2->fresh()->status)->toBe(ParticipantStatus::Rejected)
+            ->and($wp2->fresh()->removed_at)->not()->toBeNull();
     })->group('smoke');
 
     it('resolves all benched participants when game is cancelled', function () {
@@ -114,8 +117,11 @@ describe('game cancellation', function () {
         // Benched participants are resolved by BenchService, not WaitlistService
         app(BenchService::class)->handleEntityCancellation($game);
 
-        expect($bp1->fresh()->status)->toBe(ParticipantStatus::Rejected);
-        expect($bp2->fresh()->status)->toBe(ParticipantStatus::Rejected);
+        expect($bp1->fresh()->status)->toBe(ParticipantStatus::Rejected)
+            ->and($bp1->fresh()->removed_at)->not()->toBeNull()
+            ->and($bp1->fresh()->removed_by)->toBeNull();
+        expect($bp2->fresh()->status)->toBe(ParticipantStatus::Rejected)
+            ->and($bp2->fresh()->removed_at)->not()->toBeNull();
     });
 
     it('preserves approved participants with no attendance signals on game cancellation', function () {
