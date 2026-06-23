@@ -6,6 +6,7 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 use function Pest\Laravel\get;
 
@@ -32,7 +33,7 @@ describe('VenueDetail 404 gate', function () {
     it('404s for an unverified location', function () {
         // Factory default: is_verified is not set (null/false), venue_type null
         $location = Location::factory()->create([
-            'slug' => 'unverified-'.uniqid(),
+            'slug' => 'unverified-'.Str::random(8),
         ]);
 
         get(route('venues.detail', ['slug' => $location->slug]))
@@ -41,7 +42,7 @@ describe('VenueDetail 404 gate', function () {
 
     it('404s for a private (verified=false) location', function () {
         $location = Location::factory()->create([
-            'slug' => 'private-'.uniqid(),
+            'slug' => 'private-'.Str::random(8),
             'is_verified' => false,
             'venue_type' => VenueType::Cafe,
         ]);
@@ -52,7 +53,7 @@ describe('VenueDetail 404 gate', function () {
 
     it('404s for a verified-but-Other venue type', function () {
         $location = Location::factory()->verifiedVenue()->create([
-            'slug' => 'other-venue-'.uniqid(),
+            'slug' => 'other-venue-'.Str::random(8),
             'venue_type' => VenueType::Other,
         ]);
 

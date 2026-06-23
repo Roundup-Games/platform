@@ -53,11 +53,11 @@ describe('VenueDirectory eligibility', function () {
 
     it('excludes unverified, Other-type, and private locations', function () {
         $verified = createVerifiedVenue(['name' => 'Listed Venue OK']);
-        $unverified = Location::factory()->create(['name' => 'Unlisted Unverified', 'slug' => 'unv-'.uniqid()]);
+        $unverified = Location::factory()->create(['name' => 'Unlisted Unverified', 'slug' => 'unv-'.Str::random(8)]);
         $other = createVerifiedVenue(['name' => 'Unlisted Other Type', 'venue_type' => VenueType::Other]);
         $privateVerified = Location::factory()->create([
             'name' => 'Unlisted Private',
-            'slug' => 'priv-'.uniqid(),
+            'slug' => 'priv-'.Str::random(8),
             'is_verified' => true,
             'venue_type' => null,
         ]);
@@ -73,7 +73,7 @@ describe('VenueDirectory eligibility', function () {
         $manager = User::factory()->create();
         $managed = Location::factory()->create([
             'name' => 'Managed Board Hall',
-            'slug' => 'managed-'.uniqid(),
+            'slug' => 'managed-'.Str::random(8),
             'is_verified' => false,
             'managed_by' => $manager->id,
             'venue_type' => VenueType::Flgs,

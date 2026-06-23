@@ -77,7 +77,7 @@ describe('Welcome card personalization', function () {
     });
 
     test('welcome card shows preferred systems', function () {
-        $system = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e-welcome-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e-welcome-'.Str::random(8)]);
         $user = User::factory()->create(['created_at' => now()->subDays(2)]);
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
@@ -98,7 +98,7 @@ describe('Welcome card personalization', function () {
             'longitude' => 13.405,
         ]);
 
-        $system = GameSystem::create(['name' => 'Welcome System', 'slug' => 'welcome-sys-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'Welcome System', 'slug' => 'welcome-sys-'.Str::random(8)]);
         $user = User::factory()->create([
             'created_at' => now()->subDays(2),
             'location_id' => $location->id,
@@ -164,7 +164,7 @@ describe('Preference matches with relevance badges', function () {
             'longitude' => 9.5,
         ]);
 
-        $system = GameSystem::create(['name' => 'Badge System', 'slug' => 'badge-sys-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'Badge System', 'slug' => 'badge-sys-'.Str::random(8)]);
         $user = User::factory()->create([
             'created_at' => now()->subDays(2),
             'location_id' => $location->id,
@@ -214,8 +214,8 @@ describe('Preference matches with relevance badges', function () {
             'longitude' => 8.5,
         ]);
 
-        $preferredSystem = GameSystem::create(['name' => 'Taste System', 'slug' => 'taste-sys-'.uniqid()]);
-        $otherSystem = GameSystem::create(['name' => 'Other Taste System', 'slug' => 'other-taste-sys-'.uniqid()]);
+        $preferredSystem = GameSystem::create(['name' => 'Taste System', 'slug' => 'taste-sys-'.Str::random(8)]);
+        $otherSystem = GameSystem::create(['name' => 'Other Taste System', 'slug' => 'other-taste-sys-'.Str::random(8)]);
 
         $user = User::factory()->create([
             'created_at' => now()->subDays(2),
@@ -321,7 +321,7 @@ describe('Progress tracker steps', function () {
             'profile_complete' => true,
         ]);
 
-        $system = GameSystem::create(['name' => 'Progress System', 'slug' => 'progress-sys-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'Progress System', 'slug' => 'progress-sys-'.Str::random(8)]);
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         $owner = User::factory()->create();
@@ -393,7 +393,7 @@ describe('Nearby people rendering', function () {
             'longitude' => 13.0,
         ]);
 
-        $system = GameSystem::create(['name' => 'People System', 'slug' => 'people-sys-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'People System', 'slug' => 'people-sys-'.Str::random(8)]);
 
         $user = User::factory()->create([
             'created_at' => now()->subDays(3),

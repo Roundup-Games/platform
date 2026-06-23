@@ -23,6 +23,7 @@ use Escalated\Laravel\Services\EscalationService;
 use Escalated\Laravel\Services\TicketService;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 // Escalated review-report pipeline: game reviews (reviewable_type=Game) and
@@ -311,8 +312,8 @@ function createVenueReviewSetup(): array
 {
     $venue = Location::factory()->verifiedVenue()->create([
         'venue_type' => VenueType::Cafe,
-        'slug' => 'test-venue-'.uniqid(),
-        'name' => 'Test Venue '.uniqid(),
+        'slug' => 'test-venue-'.Str::random(8),
+        'name' => 'Test Venue '.Str::random(8),
         'address' => '123 Test Street',
         'postal_code' => '10115',
         'city' => 'Berlin',

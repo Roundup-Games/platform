@@ -1096,7 +1096,10 @@ class DashboardCacheService
             ->map(fn (mixed $id): string => to_string_id($id))
             ->all();
 
-        $ownedCampaignIds = Campaign::where('owner_id', $user->id)->pluck('id')->map(fn (mixed $id): string => to_string_id($id))->all();
+        $ownedCampaignIds = Campaign::where('owner_id', $user->id)
+            ->pluck('id')
+            ->map(fn (mixed $id): string => to_string_id($id))
+            ->all();
         /** @var string[] $excludeCampaignIds */
         $excludeCampaignIds = array_unique(array_merge($participatingCampaignIds, $ownedCampaignIds));
 

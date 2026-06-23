@@ -2,6 +2,7 @@
 
 use App\Enums\VenueType;
 use App\Models\Location;
+use Illuminate\Support\Str;
 
 /*
  * Command test for `locations:backfill-slugs` — the one-shot remediation for
@@ -103,7 +104,7 @@ describe('locations:backfill-slugs command', function () {
             'name' => 'Already Set',
             'venue_type' => VenueType::Cafe,
             'is_verified' => true,
-            'slug' => 'preset-slug-'.uniqid(),
+            'slug' => 'preset-slug-'.Str::random(8),
         ]);
 
         $slugBefore = $venue->fresh()->slug;

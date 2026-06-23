@@ -5,6 +5,7 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 /*
  * M053 / S02 / T03 — Venue-name link affordance.
@@ -35,8 +36,8 @@ function venueLinkCreateVenue(array $overrides = []): Location
 {
     return Location::factory()->verifiedVenue()->create(array_merge([
         'venue_type' => VenueType::Cafe,
-        'slug' => 'link-venue-'.uniqid(),
-        'name' => 'Linkable Venue '.uniqid(),
+        'slug' => 'link-venue-'.Str::random(8),
+        'name' => 'Linkable Venue '.Str::random(8),
         'address' => '12 Venue Rd',
         'postal_code' => '10115',
         'city' => 'Berlin',
@@ -51,8 +52,8 @@ function venueLinkCreateVenue(array $overrides = []): Location
 function venueLinkCreatePrivateLocation(array $overrides = []): Location
 {
     return Location::factory()->create(array_merge([
-        'name' => 'Someones Home '.uniqid(),
-        'slug' => 'home-'.uniqid(),
+        'name' => 'Someones Home '.Str::random(8),
+        'slug' => 'home-'.Str::random(8),
         'address' => '7 Hidden Lane',
         'city' => 'Berlin',
         'country' => 'DEU',
@@ -107,7 +108,7 @@ describe('VenueLink component', function () {
     it('renders nothing for a verified-but-Other venue type (excluded by the authority)', function () {
         $location = Location::factory()->verifiedVenue()->create([
             'venue_type' => VenueType::Other,
-            'slug' => 'other-'.uniqid(),
+            'slug' => 'other-'.Str::random(8),
             'name' => 'Misc Venue',
         ]);
 

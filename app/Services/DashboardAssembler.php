@@ -91,7 +91,7 @@ class DashboardAssembler
 
         $welcome = $cacheService->getNewcomerWelcome($user);
 
-        /** @var array{steps: array<int, array{step: string, label: string, completed: bool, total: int}>, current_step: int, completion_percentage: int} $progressTracker */
+        /** @var array{steps: array<int, array{name: string, route: string, is_complete: bool}>, current_step: int, completion_percentage: int} $progressTracker */
         $progressTracker = $cacheService->getProgressTracker($user);
 
         $geohash4 = $user->geohash4();

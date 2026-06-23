@@ -3,6 +3,7 @@
 use App\Enums\VenueType;
 use App\Models\Location;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 /*
  * Regression guard for the slug=null invisibility bug on public venue pages.
@@ -30,7 +31,7 @@ use App\Models\User;
 function autoSlugCreateLocation(array $overrides = []): Location
 {
     return Location::factory()->create(array_merge([
-        'name' => 'Yorckschlösschen '.uniqid(),
+        'name' => 'Yorckschlösschen '.Str::random(8),
         'venue_type' => VenueType::Bar,
         'is_verified' => true,
         'address' => 'Yorckstr. 15',

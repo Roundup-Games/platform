@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 
@@ -118,6 +119,30 @@ function authenticatedUser(): User
 function to_string_id(mixed $value): string
 {
     return is_string($value) || is_int($value) ? (string) $value : '';
+}
+
+/**
+ * Narrow a collection of mixed id values to a string[] array.
+ *
+ * The collection shape produced by Eloquent `->pluck()` is a `Collection<int, mixed>`
+ * under PHPStan, even when every element is a UUID string in practice. This helper
+ * applies `to_string_id()` per element, drops empties, reindexes, and returns a
+ * typed `array<int, string>` so downstream `whereIn`/array operations are
+ * PHPStan-clean without per-call-site string[] phpdoc annotations.
+ *
+ * Replaces the duplicated `->filter(fn ($id) => is_string($id))->values()->toArray()`
+ * chain that appeared in ActionCenterService, DashboardNewcomerService, and
+ * SocialGraphService.
+ *
+ * @param  Collection<int, mixed>  $values
+ * @return array<int, string>
+ */
+function to_string_id_array(Collection $values): array
+{
+    return $values->map(fn (mixed $id): string => to_string_id($id))
+        ->filter(fn (string $id) => $id !== '')
+        ->values()
+        ->all();
 }
 
 /**

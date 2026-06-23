@@ -6,6 +6,16 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Least-privilege token scope. The workflow is read-only on the repo
+# (no releases, PR comments, deploys, or packages); the only write surface
+# is the actions cache (setup-node npm cache + ramsey/composer-install).
+# Applying at the top level so every job inherits it and CodeQL's
+# "workflow does not contain permissions" alerts on jobs lint/stan/test
+# are satisfied by a single declaration.
+permissions:
+  contents: read
+  actions: write
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

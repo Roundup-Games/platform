@@ -430,8 +430,7 @@ class ActionCenterService
             ->orderByDesc('created_at')
             ->get();
 
-        $userSystemIds = $user->gameSystemPreferences()->pluck('game_system_id')
-            ->filter(fn (mixed $id) => is_string($id))->values()->toArray();
+        $userSystemIds = to_string_id_array($user->gameSystemPreferences()->pluck('game_system_id'));
         /** @var array<string> $userSystemIds */
 
         // Bulk-load follower preferences to avoid N+1

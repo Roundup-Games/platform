@@ -330,8 +330,7 @@ class DashboardNewcomerService
         $bounds = Geohash::prefixBounds($geohash4);
 
         // Viewer's preferred game system IDs
-        $viewerSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')
-            ->filter(fn (mixed $id) => is_string($id))->values()->toArray();
+        $viewerSystemIds = to_string_id_array($user->gameSystemPreferences()->pluck('game_systems.id'));
         /** @var array<string> $viewerSystemIds */
 
         // Query nearby users with public profiles
@@ -364,8 +363,7 @@ class DashboardNewcomerService
         }
 
         // Bulk-load game system preferences for all candidates
-        $candidateIds = $nearbyUsers->pluck('id')
-            ->filter(fn (mixed $id) => is_string($id))->values()->toArray();
+        $candidateIds = to_string_id_array($nearbyUsers->pluck('id'));
         /** @var array<string> $candidateIds */
         $candidateSystemPrefs = $this->bulkLoadGameSystemPreferences($candidateIds);
 

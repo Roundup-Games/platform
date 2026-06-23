@@ -215,7 +215,7 @@ class DashboardNewcomerServiceTest extends TestCase
         // Create a second user to be the participant
         $otherUser = User::create([
             'name' => 'Other User',
-            'email' => 'other-'.uniqid().'@test.com',
+            'email' => 'other-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
         ]);
 
@@ -237,12 +237,12 @@ class DashboardNewcomerServiceTest extends TestCase
     {
         $owner = User::create([
             'name' => 'Game Owner',
-            'email' => 'owner-'.uniqid().'@test.com',
+            'email' => 'owner-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
         ]);
 
         $player = $this->makeUser(profileComplete: true);
-        $system = GameSystem::create(['name' => 'System X', 'slug' => 'sys-x-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'System X', 'slug' => 'sys-x-'.Str::random(8)]);
         $player->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         $game = Game::create([
@@ -315,13 +315,13 @@ class DashboardNewcomerServiceTest extends TestCase
 
         $nearbyUser = User::create([
             'name' => 'Nearby User',
-            'email' => 'nearby-'.uniqid().'@test.com',
+            'email' => 'nearby-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
             'profile_complete' => true,
             'location_id' => $location->id,
         ]);
 
-        $system = GameSystem::create(['name' => 'Nearby System', 'slug' => 'nearby-sys-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'Nearby System', 'slug' => 'nearby-sys-'.Str::random(8)]);
         $nearbyUser->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         $user = $this->makeUser();
@@ -360,7 +360,7 @@ class DashboardNewcomerServiceTest extends TestCase
         for ($i = 0; $i < 8; $i++) {
             User::create([
                 'name' => "Crowded User $i",
-                'email' => "crowded-{$i}-".uniqid().'@test.com',
+                'email' => "crowded-{$i}-".Str::random(8).'@test.com',
                 'password' => bcrypt('password'),
                 'profile_complete' => true,
                 'location_id' => $location->id,
@@ -399,11 +399,11 @@ class DashboardNewcomerServiceTest extends TestCase
             'geohash_4' => 'u1zz',
         ]);
 
-        $system = GameSystem::create(['name' => 'Match System', 'slug' => 'match-sys-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'Match System', 'slug' => 'match-sys-'.Str::random(8)]);
 
         $owner = User::create([
             'name' => 'Match Owner',
-            'email' => 'match-owner-'.uniqid().'@test.com',
+            'email' => 'match-owner-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
         ]);
 
@@ -452,12 +452,12 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 10.0,
         ]);
 
-        $preferredSystem = GameSystem::create(['name' => 'Preferred RPG', 'slug' => 'pref-rpg-'.uniqid()]);
-        $otherSystem = GameSystem::create(['name' => 'Other RPG', 'slug' => 'other-rpg-'.uniqid()]);
+        $preferredSystem = GameSystem::create(['name' => 'Preferred RPG', 'slug' => 'pref-rpg-'.Str::random(8)]);
+        $otherSystem = GameSystem::create(['name' => 'Other RPG', 'slug' => 'other-rpg-'.Str::random(8)]);
 
         $owner = User::create([
             'name' => 'Score Owner',
-            'email' => 'score-owner-'.uniqid().'@test.com',
+            'email' => 'score-owner-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
         ]);
 
@@ -526,10 +526,10 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 10.0,
         ]);
 
-        $system = GameSystem::create(['name' => 'Pop System', 'slug' => 'pop-sys-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'Pop System', 'slug' => 'pop-sys-'.Str::random(8)]);
         $owner = User::create([
             'name' => 'Pop Owner',
-            'email' => 'pop-owner-'.uniqid().'@test.com',
+            'email' => 'pop-owner-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
         ]);
 
@@ -553,7 +553,7 @@ class DashboardNewcomerServiceTest extends TestCase
         for ($i = 0; $i < 3; $i++) {
             $participant = User::create([
                 'name' => "Participant $i",
-                'email' => "pop-part-{$i}-".uniqid().'@test.com',
+                'email' => "pop-part-{$i}-".Str::random(8).'@test.com',
                 'password' => bcrypt('password'),
             ]);
             GameParticipant::create([
@@ -583,10 +583,10 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 10.0,
         ]);
 
-        $system = GameSystem::create(['name' => 'Fill System', 'slug' => 'fill-sys-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'Fill System', 'slug' => 'fill-sys-'.Str::random(8)]);
         $owner = User::create([
             'name' => 'Fill Owner',
-            'email' => 'fill-owner-'.uniqid().'@test.com',
+            'email' => 'fill-owner-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
         ]);
 
@@ -610,7 +610,7 @@ class DashboardNewcomerServiceTest extends TestCase
         for ($i = 0; $i < 3; $i++) {
             $participant = User::create([
                 'name' => "Fill Part $i",
-                'email' => "fill-part-{$i}-".uniqid().'@test.com',
+                'email' => "fill-part-{$i}-".Str::random(8).'@test.com',
                 'password' => bcrypt('password'),
             ]);
             GameParticipant::create([
@@ -640,10 +640,10 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 10.0,
         ]);
 
-        $system = GameSystem::create(['name' => 'Soon System', 'slug' => 'soon-sys-'.uniqid()]);
+        $system = GameSystem::create(['name' => 'Soon System', 'slug' => 'soon-sys-'.Str::random(8)]);
         $owner = User::create([
             'name' => 'Soon Owner',
-            'email' => 'soon-owner-'.uniqid().'@test.com',
+            'email' => 'soon-owner-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
         ]);
 
@@ -684,9 +684,9 @@ class DashboardNewcomerServiceTest extends TestCase
             'longitude' => 13.0,
         ]);
 
-        $system1 = GameSystem::create(['name' => 'Compat Sys 1', 'slug' => 'compat-sys1-'.uniqid()]);
-        $system2 = GameSystem::create(['name' => 'Compat Sys 2', 'slug' => 'compat-sys2-'.uniqid()]);
-        $system3 = GameSystem::create(['name' => 'Compat Sys 3', 'slug' => 'compat-sys3-'.uniqid()]);
+        $system1 = GameSystem::create(['name' => 'Compat Sys 1', 'slug' => 'compat-sys1-'.Str::random(8)]);
+        $system2 = GameSystem::create(['name' => 'Compat Sys 2', 'slug' => 'compat-sys2-'.Str::random(8)]);
+        $system3 = GameSystem::create(['name' => 'Compat Sys 3', 'slug' => 'compat-sys3-'.Str::random(8)]);
 
         // Viewer likes system1, system2, system3
         $user = $this->makeUser();
@@ -699,7 +699,7 @@ class DashboardNewcomerServiceTest extends TestCase
         // Candidate A: shares 3 systems (most compatible)
         $candidateA = User::create([
             'name' => 'Three Shared',
-            'email' => 'compat-a-'.uniqid().'@test.com',
+            'email' => 'compat-a-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
             'profile_complete' => true,
             'location_id' => $location->id,
@@ -713,7 +713,7 @@ class DashboardNewcomerServiceTest extends TestCase
         // Candidate B: shares 1 system
         $candidateB = User::create([
             'name' => 'One Shared',
-            'email' => 'compat-b-'.uniqid().'@test.com',
+            'email' => 'compat-b-'.Str::random(8).'@test.com',
             'password' => bcrypt('password'),
             'profile_complete' => true,
             'location_id' => $location->id,
@@ -744,7 +744,7 @@ class DashboardNewcomerServiceTest extends TestCase
     {
         $user = User::create([
             'name' => $name,
-            'email' => uniqid().'@test.com',
+            'email' => Str::random(8).'@test.com',
             'password' => bcrypt('password'),
             'profile_complete' => $profileComplete,
         ]);

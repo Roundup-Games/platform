@@ -8,6 +8,7 @@ use App\Services\VenueClaimService;
 use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 // ═══════════════════════════════════════════════════════════
@@ -26,8 +27,8 @@ function createClaimableVenue(array $overrides = []): Location
 {
     return Location::factory()->verifiedVenue()->create(array_merge([
         'venue_type' => VenueType::Cafe,
-        'slug' => 'claimable-venue-'.uniqid(),
-        'name' => 'Claimable Venue '.uniqid(),
+        'slug' => 'claimable-venue-'.Str::random(8),
+        'name' => 'Claimable Venue '.Str::random(8),
         'address' => '123 Test Street',
         'postal_code' => '10115',
         'city' => 'Berlin',
@@ -87,7 +88,7 @@ describe('ClaimVenue route gating', function () {
 
     it('404s for a non-public location (mount re-runs the isPublicVenuePage gate)', function () {
         $private = Location::factory()->create([
-            'slug' => 'private-'.uniqid(),
+            'slug' => 'private-'.Str::random(8),
             'is_verified' => false,
         ]);
 

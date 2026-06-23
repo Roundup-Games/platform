@@ -142,8 +142,7 @@ class SocialGraphService
     {
         $ids = [(string) $user->id];
 
-        $friendIds = $this->getMutualFollows($user)->pluck('id')
-            ->filter(fn (mixed $id) => is_string($id))->values()->toArray();
+        $friendIds = to_string_id_array($this->getMutualFollows($user)->pluck('id'));
         /** @var array<int, string> $friendIds */
         $ids = array_merge($ids, $friendIds);
 
