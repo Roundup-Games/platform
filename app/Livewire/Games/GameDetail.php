@@ -510,8 +510,10 @@ class GameDetail extends Component
             ? JoinSource::ShortLink
             : JoinSource::ShareLink;
 
+        $overflowFlash = null;
+
         try {
-            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId) {
+            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId, &$overflowFlash) {
                 $game = Game::lockForUpdate()->find($this->game->id);
 
                 if ($game === null) {
@@ -555,6 +557,8 @@ class GameDetail extends Component
 
                     GameParticipant::create($baseData);
 
+                    $overflowFlash = app(OverflowRouter::class)->flashResult($game);
+
                     Log::info('Player '.$overflow->statusValue().' via share link (game full)', [
                         'game_id' => $game->id,
                         'user_id' => $viewer->id,
@@ -583,7 +587,12 @@ class GameDetail extends Component
             $this->game->load('participants.user');
             unset($this->isParticipant, $this->isGameFull, $this->canApply, $this->canJoinWaitlist);
 
-            session()->flash('success', __('games.flash_joined_via_share_link'));
+            session()->flash(
+                'success',
+                $overflowFlash !== null
+                    ? __($overflowFlash->messageKey, $overflowFlash->messageParams)
+                    : __('games.flash_joined_via_share_link')
+            );
         } catch (\Throwable $e) {
             Log::error('Failed to join via share link', [
                 'game_id' => $this->game->id,

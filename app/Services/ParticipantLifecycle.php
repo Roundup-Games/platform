@@ -467,11 +467,18 @@ class ParticipantLifecycle
         // re-validating the invitation state inside the lock — a concurrent accept
         // (double-click, retry) can process the same invitation before this
         // transaction acquires its locks.
-        $outcome = DB::transaction(function () use ($entity, $participant, $meta, $user) {
+        $outcome = DB::transaction(function () use ($entity, $participant, $meta, $user, $inactiveStatuses) {
             $lockedEntity = $entity->newModelQuery()
                 ->where('id', $entity->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            // Re-check entity availability inside the lock — a concurrent
+            // cancellation/completion can land between the pre-transaction guard
+            // and lock acquisition.
+            if ($lockedEntity->status && in_array($lockedEntity->status->value, $inactiveStatuses, true)) {
+                return 'inactive';
+            }
 
             $lockedParticipant = $meta->participantClass::lockForUpdate()
                 ->where('id', $participant->getId())
@@ -503,6 +510,10 @@ class ParticipantLifecycle
 
             return 'approved';
         });
+
+        if ($outcome === 'inactive') {
+            return ParticipantResult::fail('people.error_entity_no_longer_available');
+        }
 
         if ($outcome === 'invalid') {
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
@@ -547,12 +558,11 @@ class ParticipantLifecycle
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
         }
 
-        $participant->update(['status' => ParticipantStatus::Rejected->value]);
-
-        Log::info($meta->type.' invitation declined', [
-            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
-            'user_id' => $user->id,
-        ]);
+        // Route through depart() for audit stamps (removed_by/removed_at) —
+        // same unified transition path as self-leave, bench-remove, and
+        // waitlist-remove. depart() scores attendance only for Approved rows,
+        // so this is a clean Rejected for a Pending(Invited) participant.
+        $this->depart($participant, $user);
 
         return ParticipantResult::ok('common.flash_invite_declined');
     }
