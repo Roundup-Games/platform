@@ -25,7 +25,7 @@ jobs:
     name: Code Style (Pint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -43,7 +43,7 @@ jobs:
     name: Static Analysis (Larastan)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -77,7 +77,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -96,10 +96,13 @@ jobs:
             zend.assertions=-1
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          # Vite 8 requires Node ^20.19 || >=22.12; pin an LTS that satisfies it.
-          node-version: '22'
+          # Node 24 is the current active LTS (until ~April 2028). Vite 8
+          # requires ^20.19 || >=22.12, which 24 satisfies. Pinned across
+          # CI, Dockerfile, .nvmrc, and package.json engines so every build
+          # environment produces byte-equivalent assets.
+          node-version: '24'
           cache: 'npm'
 
       - name: Install PHP dependencies

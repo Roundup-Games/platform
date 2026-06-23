@@ -1,5 +1,8 @@
 # Stage 1: Build frontend assets
-FROM node:22-alpine AS frontend
+# Node 24 — current active LTS, pinned in lockstep with CI (.github/workflows/ci.yml),
+# .nvmrc, and package.json engines so every build environment produces
+# byte-equivalent assets.
+FROM node:24-alpine AS frontend
 
 WORKDIR /app
 
