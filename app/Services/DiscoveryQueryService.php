@@ -121,7 +121,7 @@ class DiscoveryQueryService
             ->where($this->buildVisibilityClause($user))
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->with(['owner', 'gameSystem', 'campaign'])
+            ->with(['owner', 'gameSystem', 'campaign', 'linkedLocation'])
             ->withCount(['participants as participants_count' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)]);
 
         $query = $this->withOverflowCounts($query);
@@ -437,57 +437,107 @@ class DiscoveryQueryService
      */
     public function applyProximityFilter(Collection $merged, float $lat, float $lng, float $radius): array
     {
-        $usingFallback = false;
-
-        $gameDistances = $this->getProximityDistances('game', $lat, $lng, $radius);
-        $campaignDistances = $this->getProximityCampaignDistances($lat, $lng, $radius);
-
-        $filtered = $merged->filter(function ($item) use ($gameDistances, $campaignDistances) {
-            if ($item->discoverable_type === 'game') {
-                return isset($gameDistances[$item->id]);
-            }
-
-            return isset($campaignDistances[$item->id]);
-        })->map(function ($item) use ($gameDistances, $campaignDistances) {
-            if ($item->discoverable_type === 'game') {
-                $val = $gameDistances[$item->id] ?? null;
-            } else {
-                $val = $campaignDistances[$item->id] ?? null;
-            }
-            $item->distance_km = is_numeric($val) ? (float) $val : null;
-
-            return $item;
-        });
-
-        // Fallback to wider radius when primary returns empty
-        if ($filtered->isEmpty()) {
-            $usingFallback = true;
-
-            $gameDistances = $this->getProximityDistances('game', $lat, $lng, self::FALLBACK_RADIUS);
-            $campaignDistances = $this->getProximityCampaignDistances($lat, $lng, self::FALLBACK_RADIUS);
-
-            $filtered = $merged->filter(function ($item) use ($gameDistances, $campaignDistances) {
-                if ($item->discoverable_type === 'game') {
-                    return isset($gameDistances[$item->id]);
-                }
-
-                return isset($campaignDistances[$item->id]);
-            })->map(function ($item) use ($gameDistances, $campaignDistances) {
-                if ($item->discoverable_type === 'game') {
-                    $val = $gameDistances[$item->id] ?? null;
-                } else {
-                    $val = $campaignDistances[$item->id] ?? null;
-                }
-                $item->distance_km = is_numeric($val) ? (float) $val : null;
-
-                return $item;
-            });
-        }
+        [$filtered, $usingFallback] = $this->filterByProximity($merged, $lat, $lng, $radius);
 
         return [
             'collection' => $filtered->sortBy('distance_km')->values(),
             'usingFallback' => $usingFallback,
         ];
+    }
+
+    /**
+     * Filter merged items by proximity, falling back to a wider radius.
+     *
+     * Games: distances computed in-memory from the hydrated collection (already
+     * bbox-filtered by buildGamesQuery) via Haversine — no redundant DB scan.
+     * Campaigns: distances via ProximityQuery (sessions at multiple locations).
+     *
+     * The fallback re-filters the SAME collection at FALLBACK_RADIUS. This works
+     * because the bbox (which fetched the collection) is a superset of the
+     * Haversine circle — games in the box corners (between circle and box edge)
+     * pass the wider Haversine radius even though they failed the tighter one.
+     *
+     * @param  Collection<int, Game|Campaign>  $merged
+     * @return array{0: Collection<int, Game|Campaign>, 1: bool}
+     */
+    private function filterByProximity(Collection $merged, float $lat, float $lng, float $radius): array
+    {
+        $filtered = $this->filterAndAttachDistances(
+            $merged,
+            $this->computeGameDistances($merged, $lat, $lng, $radius),
+            $this->getProximityCampaignDistances($lat, $lng, $radius),
+        );
+
+        if ($filtered->isNotEmpty()) {
+            return [$filtered, false];
+        }
+
+        // Fallback to wider radius.
+        return [
+            $this->filterAndAttachDistances(
+                $merged,
+                $this->computeGameDistances($merged, $lat, $lng, self::FALLBACK_RADIUS),
+                $this->getProximityCampaignDistances($lat, $lng, self::FALLBACK_RADIUS),
+            ),
+            true,
+        ];
+    }
+
+    /**
+     * Compute a [gameId => distance_km] map from the hydrated collection.
+     *
+     * Games in the merged collection already carry linkedLocation (eager-loaded
+     * by buildGamesQuery), so Haversine distances are computed without a DB scan.
+     *
+     * @param  Collection<int, Game|Campaign>  $merged
+     * @return array<string, float>
+     */
+    private function computeGameDistances(Collection $merged, float $lat, float $lng, float $radius): array
+    {
+        $distances = [];
+        foreach ($merged as $item) {
+            if ($item->discoverable_type !== 'game') {
+                continue;
+            }
+            $location = $item->linkedLocation;
+            if (! $location || $location->latitude === null || $location->longitude === null) {
+                continue;
+            }
+            $distance = ProximityQuery::haversineDistance($lat, $lng, (float) $location->latitude, (float) $location->longitude);
+            if ($distance <= $radius) {
+                $distances[(string) $item->id] = $distance;
+            }
+        }
+
+        return $distances;
+    }
+
+    /**
+     * Filter the merged collection by distance maps and attach distance_km.
+     *
+     * @param  Collection<int, Game|Campaign>  $merged
+     * @param  array<string, mixed>  $gameDistances
+     * @param  array<string, mixed>  $campaignDistances
+     * @return Collection<int, Game|Campaign>
+     */
+    private function filterAndAttachDistances(Collection $merged, array $gameDistances, array $campaignDistances): Collection
+    {
+        return $merged->filter(function ($item) use ($gameDistances, $campaignDistances) {
+            if ($item->discoverable_type === 'game') {
+                return isset($gameDistances[(string) $item->id]);
+            }
+
+            return isset($campaignDistances[(string) $item->id]);
+        })->map(function ($item) use ($gameDistances, $campaignDistances) {
+            if ($item->discoverable_type === 'game') {
+                $val = $gameDistances[(string) $item->id] ?? null;
+            } else {
+                $val = $campaignDistances[(string) $item->id] ?? null;
+            }
+            $item->distance_km = is_numeric($val) ? (float) $val : null;
+
+            return $item;
+        });
     }
 
     // ── Recommendations ────────────────────────────────

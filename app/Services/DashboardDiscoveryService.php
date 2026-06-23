@@ -15,7 +15,6 @@ use App\Models\User;
 use App\Services\Concerns\DashboardFormatting;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Builds the "Nearby and Noteworthy", "Your Story" (milestone cards),
@@ -110,8 +109,6 @@ class DashboardDiscoveryService
      */
     private function computeNearbyNoteworthy(User $user, string $geohash4): array
     {
-        $bounds = Geohash::prefixBounds($geohash4);
-
         // Games the user already owns or participates in
         $ownedGameIds = Game::where('owner_id', $user->id)->pluck('id');
         $participatingGameIds = GameParticipant::where('user_id', $user->id)
@@ -132,39 +129,11 @@ class DashboardDiscoveryService
             ->values()
             ->toArray();
 
-        // Owner is an explicit participant record (status=Approved) since
-        // commit ea675d67, so COUNT(*) already includes the owner seat.
-        $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*)')
-            ->whereColumn('game_participants.game_id', 'games.id')
-            ->where('game_participants.status', ParticipantStatus::Approved->value);
-
         /** @var Collection<int, Game> $games */
-        $games = Game::query()
-            ->select('games.*')
-            ->selectSub($participantCountSubquery, 'participant_count')
-            ->join('locations', 'games.location_id', '=', 'locations.id')
-            ->whereNotNull('locations.latitude')
-            ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
-            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
-            ->where('games.status', GameStatus::Scheduled->value)
-            ->where('games.date_time', '>=', now())
-            ->where('games.date_time', '<=', now()->addDays(14))
+        $games = Game::nearbyOpen($geohash4)
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
-            ->where(function ($q) {
-                // Only games with available spots (or unlimited capacity).
-                // Filtering at SQL level avoids fetching rows only to discard them.
-                $q->whereNull('games.max_players')
-                    ->orWhereRaw(
-                        '(SELECT COUNT(*) FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
-                        [ParticipantStatus::Approved->value],
-                    );
-            })
             ->with(['gameSystem', 'linkedLocation'])
-            // Cap at 20 candidates — we only take the top 6 by relevance after scoring.
-            // Without this limit, dense metro areas could load hundreds of games.
             ->limit(20)
             ->get();
 

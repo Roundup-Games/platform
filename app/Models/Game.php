@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Enums\DisclosureLevel;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
+use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
 use App\Relations\StringKeyMorphMany;
+use App\Services\Geohash;
 use App\Services\LocationDisclosureService;
 use App\Services\ShortLinkService;
 use App\Services\SocialGraphService;
@@ -18,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
@@ -398,6 +401,48 @@ class Game extends Model
     public function scopeUpcoming(Builder $query): Builder
     {
         return $query->where('date_time', '>', now())->orderBy('date_time');
+    }
+
+    /**
+     * Scope to nearby scheduled games with open spots in a geohash tile.
+     *
+     * The shared scaffold behind the dashboard "nearby noteworthy" and "newcomer
+     * matches" computers: locations join + geohash bbox + scheduled status +
+     * 14-day window + available-spots SQL filter + participant_count subquery.
+     * Callers compose their own exclude-sets, visibility, eager-loads, limit,
+     * and scoring on top.
+     *
+     * @param  Builder<static>  $query
+     * @param  string  $geohash4  The geohash tile prefix (4 chars)
+     * @return Builder<static>
+     */
+    public function scopeNearbyOpen(Builder $query, string $geohash4): Builder
+    {
+        $bounds = Geohash::prefixBounds($geohash4);
+
+        $participantCountSubquery = DB::table('game_participants')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('game_participants.game_id', 'games.id')
+            ->where('game_participants.status', ParticipantStatus::Approved->value);
+
+        return $query
+            ->select('games.*')
+            ->selectSub($participantCountSubquery, 'participant_count')
+            ->join('locations', 'games.location_id', '=', 'locations.id')
+            ->whereNotNull('locations.latitude')
+            ->whereNotNull('locations.longitude')
+            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
+            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
+            ->where('games.status', GameStatus::Scheduled->value)
+            ->where('games.date_time', '>=', now())
+            ->where('games.date_time', '<=', now()->addDays(14))
+            ->where(function ($q) {
+                $q->whereNull('games.max_players')
+                    ->orWhereRaw(
+                        '(SELECT COUNT(*) FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
+                        [ParticipantStatus::Approved->value],
+                    );
+            });
     }
 
     // ── Bench ──────────────────────────────────────────

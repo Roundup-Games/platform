@@ -607,7 +607,7 @@ class DashboardNewcomerServiceTest extends TestCase
             'visibility' => 'public',
         ]);
 
-        for ($i = 0; $i < 3; $i++) {
+        for ($i = 0; $i < 4; $i++) {
             $participant = User::create([
                 'name' => "Fill Part $i",
                 'email' => "fill-part-{$i}-".Str::random(8).'@test.com',
@@ -628,7 +628,7 @@ class DashboardNewcomerServiceTest extends TestCase
         $gameResult = collect($result['games'])->first(fn ($g) => $g['id'] === $game->id);
         $this->assertNotNull($gameResult);
         $this->assertTrue($gameResult['relevance_tags']['filling_fast'],
-            'Game with ≤2 spots remaining should have filling_fast tag');
+            'Game at ≥70% capacity should have filling_fast tag');
     }
 
     public function test_preference_matches_assigns_starting_soon_tag(): void

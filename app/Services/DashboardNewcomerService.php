@@ -10,7 +10,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\Concerns\DashboardFormatting;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -97,40 +97,14 @@ class DashboardNewcomerService
     public function computePreferenceWeightedMatches(User $user, string $geohash4): array
     {
         $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')->toArray();
-        $bounds = Geohash::prefixBounds($geohash4);
 
         // Exclude games the user already participates in or owns
         $excludeGameIds = $this->getExcludedGameIds($user);
 
-        // Participant count subquery.
-        // Owner is an explicit participant, so COUNT(*) is sufficient.
-        $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*)')
-            ->whereColumn('game_participants.game_id', 'games.id')
-            ->where('game_participants.status', ParticipantStatus::Approved->value);
-
-        $games = Game::query()
-            ->select('games.*')
-            ->selectSub($participantCountSubquery, 'participant_count')
-            ->join('locations', 'games.location_id', '=', 'locations.id')
-            ->whereNotNull('locations.latitude')
-            ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
-            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
-            ->where('games.status', GameStatus::Scheduled->value)
-            ->where('games.date_time', '>=', now())
-            ->where('games.date_time', '<=', now()->addDays(14))
+        /** @var Collection<int, Game> $games */
+        $games = Game::nearbyOpen($geohash4)
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
-            ->where(function ($q) {
-                // Only games with available spots (or unlimited capacity).
-                // Filtering at SQL level avoids fetching full games only to discard them.
-                $q->whereNull('games.max_players')
-                    ->orWhereRaw(
-                        '(SELECT COUNT(*) FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
-                        [ParticipantStatus::Approved->value],
-                    );
-            })
             ->with(['gameSystem', 'owner', 'linkedLocation'])
             ->limit(30)
             ->get();
@@ -171,7 +145,7 @@ class DashboardNewcomerService
             $relevanceTags = [
                 'matches_your_taste' => in_array($game->game_system_id, $preferredSystemIds),
                 'popular_nearby' => $participantCount >= 3,
-                'filling_fast' => $spotsAvailable <= 2,
+                'filling_fast' => $game->max_players !== null && $participantCount >= ($game->max_players * 0.7),
                 'starting_soon' => $game->date_time !== null && now()->diffInDays($game->date_time, false) <= 3,
             ];
 
