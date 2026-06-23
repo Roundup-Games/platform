@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Campaigns;
 
-use App\Enums\AttendanceStatus;
 use App\Enums\CampaignStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
@@ -12,6 +11,7 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Review;
 use App\Models\ShortLink;
+use App\Services\ParticipantLifecycle;
 use App\Services\ReviewEligibilityService;
 use App\Services\Roster;
 use App\Services\ShortLinkService;
@@ -322,27 +322,7 @@ class CampaignDetail extends Component
             return;
         }
 
-        // Track attendance for reliability scoring
-        if ($participant->status === ParticipantStatus::Approved) {
-            $nextSession = $this->campaign->sessions()
-                ->where('date_time', '>', now())
-                ->orderBy('date_time')
-                ->first();
-            if ($nextSession) {
-                $hoursUntil = now()->diffInHours($nextSession->date_time, false);
-                $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
-                $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
-                    ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
-            }
-        }
-
-        $participant->update(['status' => ParticipantStatus::Rejected]);
-
-        Log::info('Player left campaign', [
-            'campaign_id' => $this->campaign->id,
-            'user_id' => $user->id,
-            'previous_status' => $participant->status?->value,
-        ]);
+        app(ParticipantLifecycle::class)->depart($participant, $user);
 
         // Promote from waitlist + warn host if below min_players
         app(Roster::class)->onDeparture($this->campaign);

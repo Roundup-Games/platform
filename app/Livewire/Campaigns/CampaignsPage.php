@@ -3,7 +3,6 @@
 namespace App\Livewire\Campaigns;
 
 use App\Enums\ActivityType;
-use App\Enums\AttendanceStatus;
 use App\Enums\CampaignStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
@@ -17,7 +16,7 @@ use App\Notifications\EntityUpdated;
 use App\Services\ActivityLogService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
-use App\Services\ParticipantService;
+use App\Services\ParticipantLifecycle;
 use App\Services\Roster;
 use App\Traits\EditsVenueLocation;
 use Illuminate\Contracts\View\View;
@@ -289,26 +288,7 @@ class CampaignsPage extends Component
             return;
         }
 
-        // Track attendance for reliability scoring against next upcoming session
-        if ($participant->status === ParticipantStatus::Approved) {
-            $nextSession = $campaign->sessions()
-                ->where('date_time', '>', now())
-                ->orderBy('date_time')
-                ->first();
-            if ($nextSession) {
-                $hoursUntil = now()->diffInHours($nextSession->date_time, false);
-                $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
-                $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
-                    ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
-            }
-        }
-
-        $participant->update(['status' => ParticipantStatus::Rejected]);
-
-        Log::info('Player left campaign', [
-            'campaign_id' => $campaign->id,
-            'user_id' => $user->id,
-        ]);
+        app(ParticipantLifecycle::class)->depart($participant, $user);
 
         // Promote from waitlist + warn host if below min_players
         app(Roster::class)->onDeparture($campaign);
@@ -430,7 +410,7 @@ class CampaignsPage extends Component
             return;
         }
 
-        $result = app(ParticipantService::class)->acceptInvitation(
+        $result = app(ParticipantLifecycle::class)->acceptInvitation(
             $participant,
             $campaign,
             authenticatedUser(),
@@ -452,7 +432,7 @@ class CampaignsPage extends Component
             return;
         }
 
-        $result = app(ParticipantService::class)->declineInvitation(
+        $result = app(ParticipantLifecycle::class)->declineInvitation(
             $participant,
             authenticatedUser(),
         );

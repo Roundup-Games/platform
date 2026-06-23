@@ -316,6 +316,61 @@ describe('manuallyPromote', function () {
     });
 });
 
+// ── removeFromWaitlist ─────────────────────────────────
+
+describe('removeFromWaitlist', function () {
+    it('stamps removed_by and removed_at onto the row (closes the audit gap)', function () {
+        ['game' => $game, 'owner' => $owner] = createFullStandaloneGame();
+        $user = User::factory()->create();
+        $participant = $this->service->addToWaitlist($game, $user);
+
+        $this->service->removeFromWaitlist($participant->fresh(), $owner);
+
+        $row = $participant->fresh();
+        expect($row->status)->toBe(ParticipantStatus::Rejected)
+            ->and($row->removed_by)->toBe($owner->id)
+            ->and($row->removed_at)->not()->toBeNull();
+    });
+
+    it('nulls removed_by when no remover is supplied (system-initiated)', function () {
+        ['game' => $game] = createFullStandaloneGame();
+        $user = User::factory()->create();
+        $participant = $this->service->addToWaitlist($game, $user);
+
+        $this->service->removeFromWaitlist($participant->fresh());
+
+        $row = $participant->fresh();
+        expect($row->status)->toBe(ParticipantStatus::Rejected)
+            ->and($row->removed_by)->toBeNull()
+            ->and($row->removed_at)->not()->toBeNull();
+    });
+
+    it('throws when participant is not waitlisted', function () {
+        ['game' => $game] = createFullStandaloneGame();
+        $user = User::factory()->create();
+        $participant = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $user->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        $this->service->removeFromWaitlist($participant);
+    })->throws(LogicException::class, 'Participant is not on the waitlist.');
+
+    it('does not set attendance_status for waitlisted departures (no reliability scoring)', function () {
+        ['game' => $game] = createFullStandaloneGame();
+        $user = User::factory()->create();
+        $participant = $this->service->addToWaitlist($game, $user);
+
+        $this->service->removeFromWaitlist($participant->fresh());
+
+        // Waitlisted departures were never going to attend — scoring them
+        // is meaningless. depart() only scores Approved departures.
+        expect($participant->fresh()->attendance_status)->toBeNull();
+    });
+});
+
 // ── getWaitlistPosition ──────────────────────────────────
 
 // ── promoteAllOnCancel ───────────────────────────────────

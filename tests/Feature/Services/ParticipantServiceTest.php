@@ -14,6 +14,7 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Services\ParticipantLifecycle;
 use App\Services\ParticipantService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 
@@ -23,6 +24,7 @@ describe('ParticipantService', function () {
 
     beforeEach(function () {
         $this->service = new ParticipantService;
+        $this->lifecycle = new ParticipantLifecycle;
         $this->owner = User::factory()->create();
         $this->friend = User::factory()->create();
         $this->stranger = User::factory()->create();
@@ -214,7 +216,7 @@ describe('ParticipantService', function () {
                 'status' => ParticipantStatus::Pending->value,
             ]);
 
-            $result = $this->service->approveApplication($participant, $game, $this->owner);
+            $result = $this->lifecycle->approveApplication($participant, $game, $this->owner);
 
             expect($result->success)->toBeTrue();
             expect($participant->fresh()->role)->toBe(ParticipantRole::Player);
@@ -234,7 +236,7 @@ describe('ParticipantService', function () {
                 'join_source' => JoinSource::Application,
             ]);
 
-            $result = $this->service->approveApplication($participant, $game, $this->owner);
+            $result = $this->lifecycle->approveApplication($participant, $game, $this->owner);
 
             expect($result->success)->toBeFalse();
             expect($result->errorKey)->toBe('common.error_participant_not_applicant');
@@ -257,7 +259,7 @@ describe('ParticipantService', function () {
                 'join_source' => JoinSource::Application,
             ]);
 
-            $result = $this->service->removeParticipant($participant, $game, $this->owner);
+            $result = $this->lifecycle->removeParticipant($participant, $game, $this->owner);
 
             expect($result->success)->toBeTrue();
             // Participant record is soft-removed (status='removed') for audit trail,
@@ -281,7 +283,7 @@ describe('ParticipantService', function () {
                 'join_source' => JoinSource::Application,
             ]);
 
-            $result = $this->service->removeParticipant($participant, $game, $this->owner);
+            $result = $this->lifecycle->removeParticipant($participant, $game, $this->owner);
 
             expect($result->success)->toBeFalse();
             expect($result->errorKey)->toBe('common.error_cannot_remove_the_entity_owner');
@@ -305,7 +307,7 @@ describe('ParticipantService', function () {
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
-            $result = $this->service->acceptInvitation($participant, $game, $this->friend);
+            $result = $this->lifecycle->acceptInvitation($participant, $game, $this->friend);
 
             expect($result->success)->toBeTrue();
             expect($participant->fresh()->role)->toBe(ParticipantRole::Player);
@@ -325,7 +327,7 @@ describe('ParticipantService', function () {
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
-            $result = $this->service->acceptInvitation($participant, $game, $this->stranger);
+            $result = $this->lifecycle->acceptInvitation($participant, $game, $this->stranger);
 
             expect($result->success)->toBeFalse();
             expect($result->errorKey)->toBe('people.error_not_your_invitation');
@@ -354,7 +356,7 @@ describe('ParticipantService', function () {
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
-            $result = $this->service->acceptInvitation($participant, $game, $this->friend);
+            $result = $this->lifecycle->acceptInvitation($participant, $game, $this->friend);
 
             expect($result->success)->toBeTrue();
             // Should be waitlisted (standalone game, not bench mode)
@@ -378,7 +380,7 @@ describe('ParticipantService', function () {
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
-            $result = $this->service->declineInvitation($participant, $this->friend);
+            $result = $this->lifecycle->declineInvitation($participant, $this->friend);
 
             expect($result->success)->toBeTrue();
             expect($participant->fresh()->status)->toBe(ParticipantStatus::Rejected);

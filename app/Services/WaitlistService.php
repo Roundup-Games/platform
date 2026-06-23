@@ -172,16 +172,17 @@ class WaitlistService
      *
      * @throws \LogicException if the confirmation window has expired
      */
-    public function confirmPromotion(CampaignParticipant|GameParticipant $participant): void
+    public function confirmPromotion(Participant $participant): void
     {
-        $meta = $this->entityMeta($participant);
+        $meta = $participant->getEntityMeta();
+        $expiresAt = $participant->getConfirmationExpiresAt();
 
-        if ($participant->confirmation_expires_at !== null && now()->isAfter($participant->confirmation_expires_at)) {
+        if ($expiresAt !== null && now()->isAfter($expiresAt)) {
             Log::warning('waitlist.confirm_expired', [
-                $meta->foreignKey => $participant->{$meta->foreignKey},
-                'participant_id' => $participant->id,
-                'user_id' => $participant->user_id,
-                'expired_at' => $participant->confirmation_expires_at->toIso8601String(),
+                $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
+                'participant_id' => $participant->getId(),
+                'user_id' => $participant->getUserId(),
+                'expired_at' => $expiresAt->toIso8601String(),
             ]);
 
             throw new \LogicException('Confirmation window has expired.');
@@ -193,9 +194,9 @@ class WaitlistService
         ]);
 
         Log::info('waitlist.confirmed', [
-            $meta->foreignKey => $participant->{$meta->foreignKey},
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
+            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
+            'participant_id' => $participant->getId(),
+            'user_id' => $participant->getUserId(),
         ]);
     }
 
@@ -203,14 +204,14 @@ class WaitlistService
      * Decline a promotion — the participant rejects the spot.
      * Automatically promotes the next waitlisted player.
      */
-    public function declinePromotion(CampaignParticipant|GameParticipant $participant): void
+    public function declinePromotion(Participant $participant): void
     {
-        $meta = $this->entityMeta($participant);
+        $meta = $participant->getEntityMeta();
 
         Log::info('waitlist.declined', [
-            $meta->foreignKey => $participant->{$meta->foreignKey},
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
+            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
+            'participant_id' => $participant->getId(),
+            'user_id' => $participant->getUserId(),
         ]);
 
         $participant->update([
@@ -218,11 +219,7 @@ class WaitlistService
             'confirmation_expires_at' => null,
         ]);
 
-        // Load the entity relationship if not already eager-loaded
-        $participant->loadMissing($meta->isCampaign() ? 'campaign' : 'game');
-        $entity = $participant instanceof CampaignParticipant
-            ? $participant->campaign
-            : $participant->game;
+        $entity = $participant->getEntity();
 
         if ($entity === null) {
             return;
@@ -346,9 +343,9 @@ class WaitlistService
         $meta = $participant->getEntityMeta();
 
         Log::info('waitlist.manually_promoted', [
-            $meta->foreignKey => $participant->{$meta->foreignKey},
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
+            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
+            'participant_id' => $participant->getId(),
+            'user_id' => $participant->getUserId(),
         ]);
 
         $participant->update([
@@ -361,49 +358,46 @@ class WaitlistService
     /**
      * Remove a waitlisted participant (sets status to Rejected).
      *
+     * Delegates to ParticipantLifecycle::depart() for the actual transition +
+     * audit trail. Previously this set status=Rejected without stamping
+     * removed_by / removed_at onto the row — the same audit gap hop 2 closed
+     * for the self-leave paths and hop 4 closed for the bench paths. Routing
+     * through depart() makes the audit trail uniform across every departure
+     * surface (host-remove, self-leave, bench-remove, waitlist-remove).
+     *
      * @throws \LogicException if participant is not waitlisted
      */
     public function removeFromWaitlist(Participant $participant, ?User $remover = null): void
     {
-        $meta = $participant->getEntityMeta();
-
-        if ($participant->status !== ParticipantStatus::Waitlisted) {
+        if ($participant->getStatus() !== ParticipantStatus::Waitlisted) {
             throw new \LogicException('Participant is not on the waitlist.');
         }
 
-        $participant->update(['status' => ParticipantStatus::Rejected->value]);
-
-        Log::info('waitlist.removed', [
-            'entity_type' => $meta->type,
-            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'removed_by' => $remover !== null ? $remover->id : 'system',
-        ]);
+        app(ParticipantLifecycle::class)->depart($participant, $remover);
     }
 
     /**
      * Get the 1-based position of a waitlisted participant in the queue.
      * Uses (waitlisted_at, id) ordering to break ties when timestamps collide.
      */
-    public function getWaitlistPosition(CampaignParticipant|GameParticipant $participant): int
+    public function getWaitlistPosition(Participant $participant): int
     {
-        $meta = $this->entityMeta($participant);
-        $entity = $participant instanceof CampaignParticipant
-            ? $participant->campaign
-            : $participant->game;
+        $entity = $participant->getEntity();
 
         if ($entity === null) {
             return 0;
         }
 
+        $waitlistedAt = $participant->getWaitlistedAt();
+        $participantId = $participant->getId();
+
         return $entity->participants()
             ->where('status', ParticipantStatus::Waitlisted->value)
-            ->where(function ($q) use ($participant) {
-                $q->where('waitlisted_at', '<', $participant->waitlisted_at)
-                    ->orWhere(function ($q2) use ($participant) {
-                        $q2->where('waitlisted_at', '=', $participant->waitlisted_at)
-                            ->where('id', '<', $participant->id);
+            ->where(function ($q) use ($waitlistedAt, $participantId) {
+                $q->where('waitlisted_at', '<', $waitlistedAt)
+                    ->orWhere(function ($q2) use ($waitlistedAt, $participantId) {
+                        $q2->where('waitlisted_at', '=', $waitlistedAt)
+                            ->where('id', '<', $participantId);
                     });
             })
             ->count() + 1;
@@ -597,11 +591,11 @@ class WaitlistService
     /**
      * Dispatch the WaitlistPromoted notification through NotificationService.
      */
-    private function notifyPromotion(CampaignParticipant|GameParticipant $participant, Campaign|Game $entity, Carbon $expiresAt): void
+    private function notifyPromotion(Participant $participant, Campaign|Game $entity, Carbon $expiresAt): void
     {
         try {
             $notificationService = app(NotificationService::class);
-            $user = $participant->user;
+            $user = $participant->getUser();
             if ($user === null) {
                 return;
             }
@@ -615,8 +609,8 @@ class WaitlistService
         } catch (\Throwable $e) {
             Log::error('waitlist.notification_failed', [
                 'entity_id' => $entity->id,
-                'participant_id' => $participant->id,
-                'user_id' => $participant->user_id,
+                'participant_id' => $participant->getId(),
+                'user_id' => $participant->getUserId(),
                 'error' => $e->getMessage(),
             ]);
         }

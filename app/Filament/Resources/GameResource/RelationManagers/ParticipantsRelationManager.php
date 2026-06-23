@@ -6,16 +6,11 @@ use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Filament\Concerns\OverridesAttendance;
+use App\Filament\Concerns\RoutesParticipantTransitions;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -24,35 +19,34 @@ use Filament\Tables\Table;
 class ParticipantsRelationManager extends RelationManager
 {
     use OverridesAttendance;
+    use RoutesParticipantTransitions;
 
     protected static string $relationship = 'participants';
 
     protected static ?string $title = 'Participants';
 
-    public function form(Schema $schema): Schema
+    /**
+     * The relation manager is read-only at the Filament layer: built-in
+     * Create / Edit / Delete / Bulk-Delete are denied authorization, and
+     * reorder is disabled. Every participant mutation flows through the row
+     * transition actions (RoutesParticipantTransitions), which route through
+     * ParticipantLifecycle so admin writes carry the same audit trail,
+     * notifications, capacity checks, and roster cascades as host- or
+     * user-initiated transitions.
+     *
+     * The prior EditAction / DeleteAction wrote status and role directly to
+     * the model — the GameParticipantObserver only invalidates dashboard
+     * cache on Eloquent writes, it does not re-run those side-effects — so a
+     * direct admin write produced an audit-incomplete, notification-silent,
+     * roster-inconsistent row.
+     *
+     * Custom Action instances (transition actions + Override Attendance) are
+     * not gated by isReadOnly(); only the built-in Create/Edit/Delete family
+     * and reorder are. See Filament\Resources\RelationManagers\RelationManager.
+     */
+    public function isReadOnly(): bool
     {
-        return $schema
-            ->components([
-                Select::make('user_id')
-                    ->label('User')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->required(),
-                Select::make('role')
-                    ->options(collect(ParticipantRole::cases())->mapWithKeys(
-                        fn (ParticipantRole $role) => [$role->value => $role->label()]
-                    ))
-                    ->required()
-                    ->default(ParticipantRole::Player->value),
-                Select::make('status')
-                    ->options([
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                        'pending' => 'Pending',
-                    ])
-                    ->required()
-                    ->default('pending'),
-            ]);
+        return true;
     }
 
     public function table(Table $table): Table
@@ -136,13 +130,15 @@ class ParticipantsRelationManager extends RelationManager
                     ->modalDescription('This will change the participant\'s attendance status and recalculate their reliability score. The change is logged with your admin identity. Use with care.')
                     ->form(fn () => $this->attendanceOverrideFormFields())
                     ->action(fn ($record, array $data) => $this->executeAttendanceOverride($record, $data)),
-                EditAction::make(),
-                DeleteAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                ...$this->participantTransitionActions($this->ownerRecordAsEntity()),
             ]);
+    }
+
+    private function ownerRecordAsEntity(): Game
+    {
+        /** @var Game $owner */
+        $owner = $this->ownerRecord;
+
+        return $owner;
     }
 }

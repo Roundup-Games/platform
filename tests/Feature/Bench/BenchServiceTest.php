@@ -9,9 +9,11 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\BenchService;
+use App\Services\ParticipantLifecycle;
 
 beforeEach(function () {
     $this->service = app(BenchService::class);
+    $this->lifecycle = app(ParticipantLifecycle::class);
     $this->owner = User::factory()->create();
     $this->gameSystem = GameSystem::factory()->create();
 });
@@ -213,7 +215,7 @@ test('promote from bench success on campaign', function () {
         ->first()
         ->update(['status' => ParticipantStatus::Rejected->value]);
 
-    $this->service->promoteFromBench($participant);
+    $this->lifecycle->promoteFromBench($participant);
 
     $participant->refresh();
     expect($participant->status)->toBe(ParticipantStatus::Approved);
@@ -234,7 +236,7 @@ test('promote from bench success on campaign session', function () {
         ->first()
         ->update(['status' => ParticipantStatus::Rejected->value]);
 
-    $this->service->promoteFromBench($participant);
+    $this->lifecycle->promoteFromBench($participant);
 
     $participant->refresh();
     expect($participant->status)->toBe(ParticipantStatus::Approved);
@@ -248,7 +250,7 @@ test('promote from bench fails when no capacity', function () {
     $participant = $this->service->addToBench($campaign, $benched);
 
     // No slot opened — still full
-    $this->service->promoteFromBench($participant);
+    $this->lifecycle->promoteFromBench($participant);
 })->throws(LogicException::class, 'Cannot promote: entity is full.');
 
 test('promote from bench fails when participant is not benched', function () {
@@ -260,7 +262,7 @@ test('promote from bench fails when participant is not benched', function () {
         ->where('status', ParticipantStatus::Approved->value)
         ->first();
 
-    $this->service->promoteFromBench($approvedParticipant);
+    $this->lifecycle->promoteFromBench($approvedParticipant);
 })->throws(LogicException::class, 'Participant is not on the bench.');
 
 // ── getBenchList ─────────────────────────────────────────

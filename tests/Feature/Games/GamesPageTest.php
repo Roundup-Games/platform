@@ -381,10 +381,11 @@ describe('GamesPage — Accept Invitation Action', function () {
             ->test(GamesPage::class)
             ->call('acceptInvitation', $participant->id);
 
-        // Game is full — participant should be waitlisted
+        // Game is full — participant should be waitlisted, with role converted
+        // from Invited to Player (the accept-overflow path converts role).
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => ParticipantRole::Invited->value,
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
         ]);
     });

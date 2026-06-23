@@ -5,7 +5,6 @@ namespace App\Livewire\Games;
 use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
-use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
@@ -16,10 +15,10 @@ use App\Models\Review;
 use App\Models\SessionDebriefing;
 use App\Models\SessionZeroConfirmation;
 use App\Models\ShortLink;
-use App\Notifications\ParticipantRemoved;
 use App\Services\AttendanceService;
 use App\Services\DebriefingService;
-use App\Services\NotificationService;
+use App\Services\OverflowRouter;
+use App\Services\ParticipantLifecycle;
 use App\Services\ReviewEligibilityService;
 use App\Services\Roster;
 use App\Services\ShortLinkService;
@@ -361,46 +360,27 @@ class GameDetail extends Component
 
     public function removeParticipant(string $participantId): void
     {
+        $this->authorize('update', $this->game);
+
         $participant = $this->findParticipantOrFail($participantId);
         $entity = $this->game;
 
-        if ($participant->role === ParticipantRole::Owner) {
-            session()->flash('error', __('common.error_cannot_remove_the_entity_owner', ['entity' => 'game']));
+        $result = app(ParticipantLifecycle::class)->removeParticipant(
+            $participant,
+            $entity,
+            authenticatedUser(),
+        );
+
+        if (! $result->success && $result->errorKey) {
+            session()->flash('error', __($result->errorKey, $result->errorParams));
 
             return;
-        }
-
-        if ($entity->date_time && $entity->date_time->isFuture()) {
-            $hoursUntil = now()->diffInHours($entity->date_time, false);
-            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
-            $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
-                ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
-        }
-
-        $removedUser = $participant->user;
-        $participant->update(['status' => ParticipantStatus::Rejected]);
-
-        Log::info('Game participant removed', [
-            'game_id' => $entity->id, 'user_id' => $participant->user_id, 'removed_by' => Auth::id(),
-        ]);
-
-        try {
-            if ($removedUser) {
-                app(NotificationService::class)->send(
-                    $removedUser, new ParticipantRemoved($removedUser, $entity, 'game'),
-                    NotificationCategory::ParticipantRemoved
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.participant_removed_dispatch_failed', [
-                'game_id' => $entity->id, 'removed_user_id' => $participant->user_id, 'error' => $e->getMessage(),
-            ]);
         }
 
         // Promote from waitlist + warn host if below min_players
         app(Roster::class)->onDeparture($entity);
 
-        session()->flash('success', __('common.flash_participant_removed'));
+        session()->flash('success', __($result->messageKey, $result->messageParams));
     }
 
     // ── Self-service leave ─────────────────────────────
@@ -429,21 +409,7 @@ class GameDetail extends Component
             return;
         }
 
-        // Track attendance for reliability scoring
-        if ($participant->status === ParticipantStatus::Approved && $this->game->date_time?->isFuture()) {
-            $hoursUntil = now()->diffInHours($this->game->date_time, false);
-            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
-            $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
-                ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
-        }
-
-        $participant->update(['status' => ParticipantStatus::Rejected]);
-
-        Log::info('Player left game', [
-            'game_id' => $this->game->id,
-            'user_id' => $user->id,
-            'previous_status' => $participant->status?->value,
-        ]);
+        app(ParticipantLifecycle::class)->depart($participant, $user);
 
         // Promote from waitlist + warn host if below min_players
         app(Roster::class)->onDeparture($this->game);
@@ -544,8 +510,10 @@ class GameDetail extends Component
             ? JoinSource::ShortLink
             : JoinSource::ShareLink;
 
+        $overflowFlash = null;
+
         try {
-            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId) {
+            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId, &$overflowFlash) {
                 $game = Game::lockForUpdate()->find($this->game->id);
 
                 if ($game === null) {
@@ -582,25 +550,16 @@ class GameDetail extends Component
                     $baseData['short_link_id'] = $shortLinkId;
                 }
 
-                if ($isFull && $game->isBenchMode()) {
-                    $baseData['status'] = ParticipantStatus::Benched->value;
-                    $baseData['benched_at'] = now();
+                if ($isFull) {
+                    $overflow = app(OverflowRouter::class)->resolve($game);
+                    $baseData['status'] = $overflow->statusValue();
+                    $baseData[$overflow->timestampColumn] = now();
 
                     GameParticipant::create($baseData);
 
-                    Log::info('Player benched via share link (bench mode, full)', [
-                        'game_id' => $game->id,
-                        'user_id' => $viewer->id,
-                        'join_source' => $joinSource->value,
-                        'short_link_id' => $shortLinkId,
-                    ]);
-                } elseif ($isFull) {
-                    $baseData['status'] = ParticipantStatus::Waitlisted->value;
-                    $baseData['waitlisted_at'] = now();
+                    $overflowFlash = app(OverflowRouter::class)->flashResult($game);
 
-                    GameParticipant::create($baseData);
-
-                    Log::info('Player waitlisted via share link (game full)', [
+                    Log::info('Player '.$overflow->statusValue().' via share link (game full)', [
                         'game_id' => $game->id,
                         'user_id' => $viewer->id,
                         'join_source' => $joinSource->value,
@@ -628,7 +587,12 @@ class GameDetail extends Component
             $this->game->load('participants.user');
             unset($this->isParticipant, $this->isGameFull, $this->canApply, $this->canJoinWaitlist);
 
-            session()->flash('success', __('games.flash_joined_via_share_link'));
+            session()->flash(
+                'success',
+                $overflowFlash !== null
+                    ? __($overflowFlash->messageKey, $overflowFlash->messageParams)
+                    : __('games.flash_joined_via_share_link')
+            );
         } catch (\Throwable $e) {
             Log::error('Failed to join via share link', [
                 'game_id' => $this->game->id,

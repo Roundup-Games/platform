@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Contracts\Participant;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
@@ -91,77 +90,6 @@ class BenchService
 
             return $participant;
         });
-    }
-
-    /**
-     * Promote a benched participant to approved status.
-     *
-     * The single seam for bench promotion: every host entry point
-     * (sidebar, manage-participants page) routes here. Precondition,
-     * capacity check, transition, and log live behind this interface.
-     *
-     * @throws \LogicException if participant is not benched or entity has no capacity
-     */
-    public function promoteFromBench(Participant $participant, ?User $promoter = null): void
-    {
-        $meta = $participant->getEntityMeta();
-        $promoterId = $promoter->id ?? 'system';
-
-        DB::transaction(function () use ($participant, $meta, $promoterId) {
-            $locked = $meta->participantClass::lockForUpdate()->where('id', $participant->id)->firstOrFail();
-
-            if ($locked->status !== ParticipantStatus::Benched) {
-                throw new \LogicException('Participant is not on the bench.');
-            }
-
-            /** @var string $foreignId */
-            $foreignId = $locked->getAttribute($meta->foreignKey);
-            $lockedEntity = $meta->entityClass::lockForUpdate()->findOrFail($foreignId);
-
-            $approvedCount = $lockedEntity->participants()
-                ->where('status', ParticipantStatus::Approved->value)
-                ->count();
-
-            if ($approvedCount >= $lockedEntity->max_players) {
-                throw new \LogicException('Cannot promote: entity is full.');
-            }
-
-            $locked->update([
-                'status' => ParticipantStatus::Approved->value,
-                'benched_at' => null,
-            ]);
-
-            Log::info('bench.promoted', [
-                'entity_type' => $meta->type,
-                $meta->foreignKey => $lockedEntity->id,
-                'user_id' => $locked->user_id,
-                'promoted_by' => $promoterId,
-            ]);
-        });
-    }
-
-    /**
-     * Remove a benched participant (sets status to Rejected).
-     *
-     * @throws \LogicException if participant is not benched
-     */
-    public function removeFromBench(Participant $participant, ?User $remover = null): void
-    {
-        $meta = $participant->getEntityMeta();
-
-        if ($participant->status !== ParticipantStatus::Benched) {
-            throw new \LogicException('Participant is not on the bench.');
-        }
-
-        $participant->update(['status' => ParticipantStatus::Rejected->value]);
-
-        Log::info('bench.removed', [
-            'entity_type' => $meta->type,
-            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'removed_by' => $remover->id ?? 'system',
-        ]);
     }
 
     /**

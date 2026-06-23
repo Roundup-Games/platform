@@ -4,7 +4,7 @@ namespace App\Traits;
 
 use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
-use App\Services\BenchService;
+use App\Services\ParticipantLifecycle;
 use App\Services\ParticipantService;
 use App\Services\WaitlistService;
 use Illuminate\Database\Eloquent\Collection;
@@ -171,9 +171,11 @@ trait ManagesParticipants
     public function approveApplication(string $participantId): void
     {
         $entity = $this->getEntity();
+        $this->authorize('update', $entity);
+
         $participant = $this->participantService()->findParticipant($entity, $participantId);
 
-        $result = $this->participantService()->approveApplication(
+        $result = app(ParticipantLifecycle::class)->approveApplication(
             $participant,
             $entity,
             authenticatedUser(),
@@ -189,9 +191,11 @@ trait ManagesParticipants
     public function rejectApplication(string $participantId): void
     {
         $entity = $this->getEntity();
+        $this->authorize('update', $entity);
+
         $participant = $this->participantService()->findParticipant($entity, $participantId);
 
-        $result = $this->participantService()->rejectApplication(
+        $result = app(ParticipantLifecycle::class)->rejectApplication(
             $participant,
             $entity,
             authenticatedUser(),
@@ -209,9 +213,11 @@ trait ManagesParticipants
     public function removeParticipant(string $participantId): void
     {
         $entity = $this->getEntity();
+        $this->authorize('update', $entity);
+
         $participant = $this->participantService()->findParticipant($entity, $participantId);
 
-        $result = $this->participantService()->removeParticipant(
+        $result = app(ParticipantLifecycle::class)->removeParticipant(
             $participant,
             $entity,
             authenticatedUser(),
@@ -231,9 +237,11 @@ trait ManagesParticipants
     public function cancelInvite(string $participantId): void
     {
         $entity = $this->getEntity();
+        $this->authorize('update', $entity);
+
         $participant = $this->participantService()->findPendingInvite($entity, $participantId);
 
-        $result = $this->participantService()->cancelInvite(
+        $result = app(ParticipantLifecycle::class)->cancelInvite(
             $participant,
             authenticatedUser(),
         );
@@ -252,7 +260,7 @@ trait ManagesParticipants
         $participant = $this->participantService()->findParticipant($entity, $participantId);
         $authUser = authenticatedUser();
 
-        $result = $this->participantService()->acceptInvitation(
+        $result = app(ParticipantLifecycle::class)->acceptInvitation(
             $participant,
             $entity,
             $authUser,
@@ -276,7 +284,7 @@ trait ManagesParticipants
         $participant = $this->participantService()->findParticipant($entity, $participantId);
         $authUser = authenticatedUser();
 
-        $result = $this->participantService()->declineInvitation(
+        $result = app(ParticipantLifecycle::class)->declineInvitation(
             $participant,
             $authUser,
         );
@@ -358,10 +366,10 @@ trait ManagesParticipants
         $participant = $this->participantService()->findParticipant($this->getEntity(), $participantId);
 
         try {
-            app(BenchService::class)->promoteFromBench($participant, authenticatedUser());
+            app(ParticipantLifecycle::class)->promoteFromBench($participant, authenticatedUser());
             session()->flash('success', __('common.flash_bench_promoted'));
         } catch (\LogicException $e) {
-            session()->flash('error', __('common.error_participant_not_benched'));
+            session()->flash('error', $e->getMessage());
         }
     }
 
@@ -375,7 +383,7 @@ trait ManagesParticipants
         $participant = $this->participantService()->findParticipant($this->getEntity(), $participantId);
 
         try {
-            app(BenchService::class)->removeFromBench($participant, authenticatedUser());
+            app(ParticipantLifecycle::class)->removeFromBench($participant, authenticatedUser());
             session()->flash('success', __('common.flash_bench_removed'));
         } catch (\LogicException $e) {
             session()->flash('error', __('common.error_participant_not_benched'));

@@ -2,11 +2,7 @@
 
 namespace App\Traits;
 
-use App\Dto\EntityMeta;
-use App\Enums\ParticipantStatus;
-use App\Services\BenchService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use App\Services\ParticipantLifecycle;
 
 trait HandlesBench
 {
@@ -18,10 +14,10 @@ trait HandlesBench
         $viewer = authenticatedUser();
 
         try {
-            app(BenchService::class)->promoteFromBench($participant, $viewer);
+            app(ParticipantLifecycle::class)->promoteFromBench($participant, $viewer);
             session()->flash('success', __('games.flash_promote_from_bench_success'));
         } catch (\LogicException $e) {
-            session()->flash('error', __('common.error_participant_not_benched'));
+            session()->flash('error', $e->getMessage());
         }
     }
 
@@ -44,35 +40,11 @@ trait HandlesBench
             return;
         }
 
-        $entity = $this->getEntity();
-        $meta = EntityMeta::fromEntity($entity);
-
-        $didLeave = false;
-        DB::transaction(function () use ($participant, &$didLeave) {
-            // Lock the participant row to prevent concurrent status changes
-            // (e.g., host promoting while this leave action runs)
-            $locked = $participant->newQuery()
-                ->where('id', $participant->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($locked->status !== ParticipantStatus::Benched) {
-                return;
-            }
-
-            $locked->update(['status' => ParticipantStatus::Rejected]);
-            $didLeave = true;
-        });
-
-        if ($didLeave) {
-            Log::info('bench.participant_left', [
-                'entity_type' => $meta->type,
-                'entity_id' => $entity->id,
-                'user_id' => $viewer->id,
-                'participant_id' => $participant->id,
-            ]);
-
+        try {
+            app(ParticipantLifecycle::class)->removeFromBench($participant, $viewer);
             session()->flash('success', __('games.flash_left_bench'));
+        } catch (\LogicException $e) {
+            session()->flash('error', __('common.error_participant_not_benched'));
         }
     }
 }

@@ -17,15 +17,10 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\SuppressedInviteEmail;
 use App\Models\User;
-use App\Notifications\ApplicationApproved;
-use App\Notifications\ApplicationRejected;
 use App\Notifications\EntityInvitation;
-use App\Notifications\ParticipantJoined;
-use App\Notifications\ParticipantRemoved;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -184,9 +179,9 @@ class ParticipantService
         }
 
         if ($this->isAtCapacity($entity)) {
-            $this->addEmailInviteeToOverflow($entity, $meta, $normalizedEmail, $inviter, $existingUser->id);
+            app(OverflowRouter::class)->placeEmailInvitee($entity, $meta, $normalizedEmail, $inviter, $existingUser->id);
 
-            return $this->overflowFlashResult($entity);
+            return app(OverflowRouter::class)->flashResult($entity);
         }
 
         $meta->participantClass::create([
@@ -220,9 +215,15 @@ class ParticipantService
     ): ParticipantResult {
         $isSuppressed = SuppressedInviteEmail::isSuppressed($normalizedEmail);
 
-        // Duplicate check: pending invite already sent to this email
+        // Duplicate check: existing invite to this email (Pending, Waitlisted,
+        // or Benched — overflow invites carry the latter two statuses).
         $duplicateQuery = $meta->participantClass::where($meta->foreignKey, $entity->id)
-            ->where('status', ParticipantStatus::Pending);
+            ->where('role', ParticipantRole::Invited->value)
+            ->whereIn('status', [
+                ParticipantStatus::Pending->value,
+                ParticipantStatus::Waitlisted->value,
+                ParticipantStatus::Benched->value,
+            ]);
 
         if ($isSuppressed) {
             $duplicateQuery->where(function ($q) use ($normalizedEmail) {
@@ -238,9 +239,9 @@ class ParticipantService
         }
 
         if ($this->isAtCapacity($entity)) {
-            $this->addEmailInviteeToOverflow($entity, $meta, $normalizedEmail, $inviter);
+            app(OverflowRouter::class)->placeEmailInvitee($entity, $meta, $normalizedEmail, $inviter);
 
-            return $this->overflowFlashResult($entity);
+            return app(OverflowRouter::class)->flashResult($entity);
         }
 
         if ($isSuppressed) {
@@ -375,323 +376,6 @@ class ParticipantService
         }
     }
 
-    // ── Application Management ─────────────────────────
-
-    /**
-     * Approve a participant's application.
-     */
-    public function approveApplication(
-        Participant $participant,
-        Game|Campaign $entity,
-        User $approver,
-    ): ParticipantResult {
-        $meta = $participant->getEntityMeta();
-
-        // Check for a pending application rather than relying on participant role,
-        // since public games create participants with role='player' even when
-        // the application record is still pending (e.g. pre-fix data).
-        $pendingApplication = $entity->applications()
-            ->where('user_id', $participant->user_id)
-            ->where('status', 'pending')
-            ->exists();
-
-        if (! $pendingApplication) {
-            return ParticipantResult::fail('common.error_participant_not_applicant');
-        }
-
-        $participant->update([
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-            'join_source' => JoinSource::Application,
-        ]);
-
-        $entity->applications()
-            ->where('user_id', $participant->user_id)
-            ->update(['status' => ParticipantStatus::Approved->value]);
-
-        Log::info($meta->type.' application approved', [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $participant->user_id,
-            'approved_by' => $approver->id,
-        ]);
-
-        // Notify applicant
-        try {
-            $applicant = User::find((string) $participant->user_id);
-            if ($applicant) {
-                app(NotificationService::class)->send(
-                    $applicant,
-                    new ApplicationApproved($entity, strtolower($meta->type), $approver),
-                    NotificationCategory::ApplicationApproved
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.application_approved_dispatch_failed', [
-                'entity_type' => $meta->type,
-                $meta->foreignKey => $entity->id,
-                'applicant_id' => $participant->user_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return ParticipantResult::ok('common.flash_application_approved');
-    }
-
-    /**
-     * Reject a participant's application.
-     */
-    public function rejectApplication(
-        Participant $participant,
-        Game|Campaign $entity,
-        User $rejecter,
-    ): ParticipantResult {
-        $meta = $participant->getEntityMeta();
-
-        $pendingApplication = $entity->applications()
-            ->where('user_id', $participant->user_id)
-            ->where('status', 'pending')
-            ->exists();
-
-        if (! $pendingApplication) {
-            return ParticipantResult::fail('common.error_participant_not_applicant');
-        }
-
-        $rejectedUserId = $participant->user_id;
-
-        // Delete both records so the user can re-apply later if they want
-        $participant->delete();
-        $entity->applications()->where('user_id', $rejectedUserId)->delete();
-
-        Log::info($meta->type.' application rejected', [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $rejectedUserId,
-            'rejected_by' => $rejecter->id,
-        ]);
-
-        // Notify applicant
-        try {
-            $applicant = User::find((string) $rejectedUserId);
-            if ($applicant) {
-                app(NotificationService::class)->send(
-                    $applicant,
-                    new ApplicationRejected($entity, strtolower($meta->type), $rejecter),
-                    NotificationCategory::ApplicationRejected
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.application_rejected_dispatch_failed', [
-                'entity_type' => $meta->type,
-                $meta->foreignKey => $entity->id,
-                'applicant_id' => $rejectedUserId,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return ParticipantResult::ok('common.flash_application_rejected');
-    }
-
-    // ── Remove Participant ─────────────────────────────
-
-    /**
-     * Remove a participant (sets status to rejected, sends notification).
-     */
-    public function removeParticipant(
-        Participant $participant,
-        Game|Campaign $entity,
-        User $remover,
-    ): ParticipantResult {
-        $meta = $participant->getEntityMeta();
-
-        if ($participant->role === ParticipantRole::Owner) {
-            return ParticipantResult::fail('common.error_cannot_remove_the_entity_owner', [
-                'entity' => strtolower($meta->type),
-            ]);
-        }
-
-        $removedUser = User::find((string) $participant->user_id);
-        $removedUserId = (string) $participant->user_id;
-
-        // Soft-remove: set status to 'removed' instead of hard-deleting.
-        // This preserves roster history so we can detect hosts who kick everyone
-        // then cancel to dodge penalties (peak-roster counting in AttendanceService).
-        // The unique constraint on (game_id/campaign_id, user_id) blocks the
-        // removed user from re-applying — the participant record persists.
-        // Application record is cleaned up below for hygiene only.
-        $participant->update([
-            'status' => ParticipantStatus::Removed->value,
-            'removed_by' => $remover->id,
-            'removed_at' => now(),
-        ]);
-
-        // Clean up application record
-        $entity->applications()->where('user_id', $removedUserId)->delete();
-
-        Log::info($meta->type.' participant removed', [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $removedUserId,
-            'removed_by' => $remover->id,
-        ]);
-
-        // Notify removed user
-        try {
-            if ($removedUser) {
-                app(NotificationService::class)->send(
-                    $removedUser,
-                    new ParticipantRemoved($removedUser, $entity, strtolower($meta->type)),
-                    NotificationCategory::ParticipantRemoved
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.participant_removed_dispatch_failed', [
-                'entity_type' => $meta->type,
-                $meta->foreignKey => $entity->id,
-                'removed_user_id' => $removedUserId,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return ParticipantResult::ok('common.flash_participant_removed');
-    }
-
-    // ── Cancel Invite ──────────────────────────────────
-
-    /**
-     * Cancel a pending invitation.
-     */
-    public function cancelInvite(
-        Participant $participant,
-        User $canceller,
-    ): ParticipantResult {
-        $meta = $participant->getEntityMeta();
-        $entityId = $participant->getAttribute($meta->foreignKey);
-
-        $participant->delete();
-
-        Log::info($meta->type.' invite cancelled', [
-            $meta->foreignKey => $entityId,
-            'user_id' => $participant->user_id,
-            'invitee_email_hash' => $participant->invitee_email
-                ? SuppressedInviteEmail::hashEmail($participant->invitee_email)
-                : null,
-            'cancelled_by' => $canceller->id,
-        ]);
-
-        return ParticipantResult::ok('common.flash_invite_cancelled');
-    }
-
-    // ── Accept / Decline Invitation ────────────────────
-
-    /**
-     * Accept a pending invitation for the given user.
-     *
-     * Handles capacity overflow by moving to waitlist/bench.
-     *
-     * @param  User  $user  The accepting user (must match participant.user_id)
-     */
-    public function acceptInvitation(
-        Participant $participant,
-        Game|Campaign $entity,
-        User $user,
-    ): ParticipantResult {
-        $meta = $participant->getEntityMeta();
-
-        // Guard: entity must not be cancelled/canceled or completed
-        $inactiveStatuses = ['canceled', 'cancelled', 'completed'];
-        if ($entity->status && in_array($entity->status->value, $inactiveStatuses)) {
-            return ParticipantResult::fail('people.error_entity_no_longer_available');
-        }
-
-        // Must be the invited user
-        if ($participant->user_id !== $user->id) {
-            return ParticipantResult::fail('people.error_not_your_invitation');
-        }
-
-        // Must have invited role and pending status
-        if ($participant->role !== ParticipantRole::Invited || $participant->status !== ParticipantStatus::Pending) {
-            return ParticipantResult::fail('people.error_invitation_no_longer_valid');
-        }
-
-        // Check capacity atomically (owner counts as a player)
-        $overflowed = DB::transaction(function () use ($entity, $participant) {
-            $lockedEntity = $entity->newModelQuery()
-                ->where('id', $entity->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            // Owner is an explicit participant, so count includes them naturally
-            $currentCount = $lockedEntity->participants()
-                ->where('status', ParticipantStatus::Approved)
-                ->count();
-
-            if ($lockedEntity->max_players && $currentCount >= $lockedEntity->max_players) {
-                return true;
-            }
-
-            $participant->update([
-                'role' => ParticipantRole::Player->value,
-                'status' => ParticipantStatus::Approved->value,
-            ]);
-
-            return false;
-        });
-
-        if ($overflowed) {
-            $this->addAcceptedInviteeToOverflow($participant, $entity, $meta);
-            $this->notifyOwnerOfAcceptedInvitation($entity, $user, $meta);
-            $this->markInvitationNotificationRead($entity, $user, $meta);
-
-            return $this->overflowFlashResult($entity);
-        }
-
-        Log::info($meta->type.' invitation accepted', [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $user->id,
-        ]);
-
-        $this->notifyOwnerOfAcceptedInvitation($entity, $user, $meta);
-        $this->markInvitationNotificationRead($entity, $user, $meta);
-
-        return ParticipantResult::ok('people.flash_invitation_accepted');
-    }
-
-    /**
-     * Decline a pending invitation for the given user.
-     *
-     * @param  User  $user  The declining user (must match participant.user_id)
-     */
-    public function declineInvitation(
-        Participant $participant,
-        User $user,
-    ): ParticipantResult {
-        $meta = $participant->getEntityMeta();
-
-        // Must be the invited user
-        if ($participant->user_id !== $user->id) {
-            return ParticipantResult::fail('people.error_not_your_invitation');
-        }
-
-        // Must have invited role and pending status
-        if ($participant->role !== ParticipantRole::Invited || $participant->status !== ParticipantStatus::Pending) {
-            return ParticipantResult::fail('people.error_invitation_no_longer_valid');
-        }
-
-        $participant->update(['status' => ParticipantStatus::Rejected->value]);
-
-        Log::info($meta->type.' invitation declined', [
-            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
-            'user_id' => $user->id,
-        ]);
-
-        return ParticipantResult::ok('common.flash_invite_declined');
-    }
-
-    // ── Waitlist / Bench Management ────────────────────
-    //
-    // Promote/remove transitions for waitlist and bench live behind the
-    // Participant-typed seams in WaitlistService and BenchService. Livewire
-    // adapters call those services directly; see ManagesParticipants,
-    // HandlesWaitlist, and HandlesBench traits.
-
     // ── Query helpers ──────────────────────────────────
 
     /**
@@ -809,184 +493,5 @@ class ParticipantService
                 'error' => $e->getMessage(),
             ]);
         }
-    }
-
-    /**
-     * Notify the entity owner that a participant accepted their invitation.
-     *
-     * Called for both direct-accept and overflow (waitlist/bench) paths
-     * so the owner always knows about the response.
-     */
-    private function notifyOwnerOfAcceptedInvitation(Game|Campaign $entity, User $acceptingUser, EntityMeta $meta): void
-    {
-        try {
-            $owner = User::find((string) $entity->owner_id);
-            if ($owner && $owner->id !== $acceptingUser->id) {
-                app(NotificationService::class)->send(
-                    $owner,
-                    new ParticipantJoined($acceptingUser, $entity, strtolower($meta->type)),
-                    NotificationCategory::ParticipantJoined
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.participant_joined_dispatch_failed', [
-                'entity_type' => $meta->type,
-                $meta->foreignKey => $entity->id,
-                'participant_id' => $acceptingUser->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * Mark the related invitation notification as read.
-     */
-    private function markInvitationNotificationRead(Game|Campaign $entity, User $user, EntityMeta $meta): void
-    {
-        try {
-            $invitationType = EntityInvitation::class;
-            $dataKey = $meta->isCampaign() ? 'campaign_id' : 'game_id';
-            app(NotificationService::class)->markReadByType($user, $invitationType, $entity->id, $dataKey);
-        } catch (\Throwable $e) {
-            Log::error('notification.mark_read_on_accept_failed', [
-                'entity_type' => $meta->type,
-                $meta->foreignKey => $entity->id,
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * Determine the overflow status for a full entity.
-     *
-     * @return array{status: string, timestamp_column: string}
-     */
-    private function resolveOverflowStatus(Game|Campaign $entity): array
-    {
-        if (! $entity->isBenchMode()) {
-            return [
-                'status' => ParticipantStatus::Waitlisted->value,
-                'timestamp_column' => 'waitlisted_at',
-            ];
-        }
-
-        return [
-            'status' => ParticipantStatus::Benched->value,
-            'timestamp_column' => 'benched_at',
-        ];
-    }
-
-    /**
-     * Add an email invitee to the waitlist or bench when the entity is full.
-     */
-    private function addEmailInviteeToOverflow(
-        Game|Campaign $entity,
-        EntityMeta $meta,
-        string $normalizedEmail,
-        User $inviter,
-        ?string $existingUserId = null,
-    ): void {
-        $overflow = $this->resolveOverflowStatus($entity);
-
-        $data = [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $existingUserId,
-            'invitee_email' => $existingUserId ? null : $normalizedEmail,
-            'role' => ParticipantRole::Invited->value,
-            'status' => $overflow['status'],
-            'join_source' => JoinSource::EmailInvite,
-            $overflow['timestamp_column'] => now(),
-        ];
-
-        $meta->participantClass::create($data);
-
-        $logContext = [
-            'entity_type' => $meta->type,
-            $meta->foreignKey => $entity->id,
-            'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
-            'invited_by' => $inviter->id,
-            'overflow_status' => $overflow['status'],
-        ];
-        if ($existingUserId) {
-            $logContext['invited_user_id'] = $existingUserId;
-        }
-        Log::info($meta->type.' email invite added to '.$overflow['status'], $logContext);
-
-        // Send notification/email so the person knows they've been invited
-        if ($existingUserId) {
-            $existingUser = User::find($existingUserId);
-            if ($existingUser) {
-                $this->sendInvitationNotification($entity, $existingUser, $inviter);
-            }
-        } else {
-            try {
-                if (SuppressedInviteEmail::isSuppressed($normalizedEmail)) {
-                    Log::info('invite.email.suppressed_overflow', [
-                        'entity_type' => $meta->type,
-                        $meta->foreignKey => $entity->id,
-                        'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
-                        'invited_by' => $inviter->id,
-                    ]);
-                } else {
-                    $mailable = new EntityInvitationEmail(
-                        entityType: strtolower($meta->type),
-                        entityName: $entity->name,
-                        entityDateTime: $entity->date_time ?? null,
-                        entityLocation: $entity->linkedLocation->address ?? null,
-                        inviterName: $inviter->name,
-                        inviteeEmail: $normalizedEmail,
-                        signupUrl: route('register', ['locale' => app()->getLocale()]),
-                        optoutUrl: route('invite.optout.show', [
-                            'locale' => app()->getLocale(),
-                            'emailHash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
-                        ]),
-                    );
-                    Mail::to($normalizedEmail)->queue($mailable);
-                }
-            } catch (\Throwable $e) {
-                Log::error('email.invite_delivery_failed', [
-                    'entity_type' => $meta->type,
-                    $meta->foreignKey => $entity->id,
-                    'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-    }
-
-    /**
-     * Move an accepted invitee to waitlist/bench when entity is full.
-     */
-    private function addAcceptedInviteeToOverflow(
-        Participant $participant,
-        Game|Campaign $entity,
-        EntityMeta $meta,
-    ): void {
-        $overflow = $this->resolveOverflowStatus($entity);
-
-        $participant->update([
-            'status' => $overflow['status'],
-            $overflow['timestamp_column'] => now(),
-        ]);
-
-        Log::info($meta->type.' invitation accepted but entity full — moved to '.$overflow['status'], [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $participant->user_id,
-            'overflow_status' => $overflow['status'],
-        ]);
-    }
-
-    /**
-     * Get the appropriate flash message key for overflow (waitlist or bench).
-     */
-    private function overflowFlashResult(Game|Campaign $entity): ParticipantResult
-    {
-        $overflow = $this->resolveOverflowStatus($entity);
-        $messageKey = $overflow['status'] === ParticipantStatus::Waitlisted->value
-            ? 'people.flash_email_invite_waitlisted'
-            : 'people.flash_email_invite_benched';
-
-        return ParticipantResult::ok($messageKey);
     }
 }

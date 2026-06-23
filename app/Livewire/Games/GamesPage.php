@@ -3,7 +3,6 @@
 namespace App\Livewire\Games;
 
 use App\Enums\ActivityType;
-use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
@@ -19,7 +18,7 @@ use App\Services\AttendanceService;
 use App\Services\DebriefingService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
-use App\Services\ParticipantService;
+use App\Services\ParticipantLifecycle;
 use App\Services\Roster;
 use App\Traits\EditsVenueLocation;
 use Illuminate\Contracts\View\View;
@@ -300,20 +299,7 @@ class GamesPage extends Component
             return;
         }
 
-        // Track attendance for reliability scoring
-        if ($participant->status === ParticipantStatus::Approved && $game->date_time?->isFuture()) {
-            $hoursUntil = now()->diffInHours($game->date_time, false);
-            $lateCancelHours = config_int('attendance.player_late_cancel_hours', 24);
-            $participant->update(['attendance_status' => $hoursUntil < $lateCancelHours
-                ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
-        }
-
-        $participant->update(['status' => ParticipantStatus::Rejected]);
-
-        Log::info('Player left game', [
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-        ]);
+        app(ParticipantLifecycle::class)->depart($participant, $user);
 
         // Promote from waitlist + warn host if below min_players
         app(Roster::class)->onDeparture($game);
@@ -460,7 +446,7 @@ class GamesPage extends Component
             return;
         }
 
-        $result = app(ParticipantService::class)->acceptInvitation(
+        $result = app(ParticipantLifecycle::class)->acceptInvitation(
             $participant,
             $game,
             authenticatedUser(),
@@ -482,7 +468,7 @@ class GamesPage extends Component
             return;
         }
 
-        $result = app(ParticipantService::class)->declineInvitation(
+        $result = app(ParticipantLifecycle::class)->declineInvitation(
             $participant,
             authenticatedUser(),
         );

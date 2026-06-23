@@ -337,8 +337,8 @@ describe('removeParticipant (host-initiated)', function () {
             ->test(GameDetail::class, ['id' => $game->id])
             ->call('removeParticipant', $target->id);
 
-        // Target should be rejected
-        expect($target->fresh()->status)->toBe(ParticipantStatus::Rejected);
+        // Target should be removed (Removed status preserves roster history)
+        expect($target->fresh()->status)->toBe(ParticipantStatus::Removed);
 
         // Waitlisted player should now be promoted
         expect($waitlisted->fresh()->status)->toBe(ParticipantStatus::Pending);

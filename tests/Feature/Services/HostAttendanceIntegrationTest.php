@@ -12,7 +12,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\AttendanceService;
 use App\Services\BenchService;
-use App\Services\ParticipantService;
+use App\Services\ParticipantLifecycle;
 use App\Services\ReliabilityScoreService;
 use App\Services\WaitlistService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -526,9 +526,9 @@ class HostAttendanceIntegrationTest extends TestCase
         $p2 = $this->createPlayerParticipant($game, $player2);
 
         // Host removes both players (status -> removed, not hard-deleted)
-        app(ParticipantService::class)
+        app(ParticipantLifecycle::class)
             ->removeParticipant($p1, $game, $host);
-        app(ParticipantService::class)
+        app(ParticipantLifecycle::class)
             ->removeParticipant($p2, $game, $host);
 
         // Now no 'approved' non-owner participants remain, but 'removed' records exist
