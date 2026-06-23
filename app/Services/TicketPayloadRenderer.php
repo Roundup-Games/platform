@@ -24,10 +24,26 @@ use Illuminate\Database\Eloquent\Model;
  */
 class TicketPayloadRenderer
 {
-    /** Safely escape a mixed value for HTML output. */
-    private function esc(mixed $value): string
+    /**
+     * Build the shared base payload: structured schema keys + actor.
+     *
+     * The single source of truth for the schema envelope. Every builder
+     * composes on top of this so the actor/schema/action/entities/reason
+     * structure is defined once, not 8 times.
+     *
+     * @param  array<int, array<string, mixed>>  $entities
+     * @return array<string, mixed>
+     */
+    private static function basePayload(string $schema, User $user, string $action, array $entities, string $reason, ?string $details = null): array
     {
-        return e(is_string($value) || is_int($value) || is_float($value) ? (string) $value : '');
+        return [
+            'schema' => $schema,
+            'actor' => ['type' => 'user', 'id' => $user->id, 'name' => $user->name],
+            'action' => $action,
+            'entities' => $entities,
+            'reason' => $reason,
+            'details' => $details,
+        ];
     }
 
     /** Resolve an entity type + ID to a URL, or null if unknown. */
@@ -100,22 +116,23 @@ class TicketPayloadRenderer
         ?string $details = null,
         ?string $entityOwnerName = null,
     ): array {
-        $payload = [
-            'schema' => 'content_report/v1',
-            'actor' => ['type' => 'user', 'id' => $reporter->id, 'name' => $reporter->name],
-            'action' => 'report',
-            'entities' => [
+        $payload = self::basePayload(
+            schema: 'content_report/v1',
+            user: $reporter,
+            action: 'report',
+            entities: [
                 ['type' => $entityType, 'id' => $entityId, 'name' => $entityName],
             ],
-            'reason' => $reason,
-            'details' => $details,
-            // Flat keys for backward compat with admin ViewTicket + duplicate detection
-            'entity_type' => $entityType,
-            'entity_id' => $entityId,
-            'entity_name' => $entityName,
-            'report_reason' => $reason,
-            'reporter_id' => $reporter->id,
-        ];
+            reason: $reason,
+            details: $details,
+        );
+
+        // Flat keys for backward compat with admin ViewTicket + duplicate detection
+        $payload['entity_type'] = $entityType;
+        $payload['entity_id'] = $entityId;
+        $payload['entity_name'] = $entityName;
+        $payload['report_reason'] = $reason;
+        $payload['reporter_id'] = $reporter->id;
 
         if ($entityOwnerName) {
             $payload['context'] = ['entity_owner' => $entityOwnerName];
@@ -137,22 +154,25 @@ class TicketPayloadRenderer
         string $reason,
         ?string $details = null,
     ): array {
-        return [
-            'schema' => 'review_report/v1',
-            'actor' => ['type' => 'user', 'id' => $reporter->id, 'name' => $reporter->name],
-            'action' => 'report',
-            'entities' => [
+        $payload = self::basePayload(
+            schema: 'review_report/v1',
+            user: $reporter,
+            action: 'report',
+            entities: [
                 ['type' => 'review', 'id' => $reviewId, 'name' => __('Review by :name', ['name' => $reviewAuthorName])],
             ],
-            'reported_user' => ['type' => 'user', 'id' => $reviewAuthorId, 'name' => $reviewAuthorName],
-            'reason' => $reason,
-            'details' => $details,
-            // Flat keys for backward compat with admin ViewTicket
-            'review_id' => $reviewId,
-            'review_author_id' => $reviewAuthorId,
-            'reporter_id' => $reporter->id,
-            'report_reason' => $reason,
-        ];
+            reason: $reason,
+            details: $details,
+        );
+        $payload['reported_user'] = ['type' => 'user', 'id' => $reviewAuthorId, 'name' => $reviewAuthorName];
+
+        // Flat keys for backward compat with admin ViewTicket
+        $payload['review_id'] = $reviewId;
+        $payload['review_author_id'] = $reviewAuthorId;
+        $payload['reporter_id'] = $reporter->id;
+        $payload['report_reason'] = $reason;
+
+        return $payload;
     }
 
     /**
@@ -165,17 +185,20 @@ class TicketPayloadRenderer
         string $issueType,
         ?string $details = null,
     ): array {
-        return [
-            'schema' => 'account_support/v1',
-            'actor' => ['type' => 'user', 'id' => $user->id, 'name' => $user->name],
-            'action' => 'support',
-            'entities' => [],
-            'reason' => $issueType,
-            'details' => $details,
-            // Flat keys for backward compat
-            'user_id' => $user->id,
-            'issue_type' => $issueType,
-        ];
+        $payload = self::basePayload(
+            schema: 'account_support/v1',
+            user: $user,
+            action: 'support',
+            entities: [],
+            reason: $issueType,
+            details: $details,
+        );
+
+        // Flat keys for backward compat
+        $payload['user_id'] = $user->id;
+        $payload['issue_type'] = $issueType;
+
+        return $payload;
     }
 
     /**
@@ -190,17 +213,18 @@ class TicketPayloadRenderer
         ?string $details = null,
         ?array $subscriptionContext = null,
     ): array {
-        $payload = [
-            'schema' => 'billing_support/v1',
-            'actor' => ['type' => 'user', 'id' => $user->id, 'name' => $user->name],
-            'action' => 'support',
-            'entities' => [],
-            'reason' => $issueType,
-            'details' => $details,
-            // Flat keys for backward compat
-            'user_id' => $user->id,
-            'issue_type' => $issueType,
-        ];
+        $payload = self::basePayload(
+            schema: 'billing_support/v1',
+            user: $user,
+            action: 'support',
+            entities: [],
+            reason: $issueType,
+            details: $details,
+        );
+
+        // Flat keys for backward compat
+        $payload['user_id'] = $user->id;
+        $payload['issue_type'] = $issueType;
 
         if ($subscriptionContext) {
             $payload['context'] = $subscriptionContext;
@@ -224,14 +248,14 @@ class TicketPayloadRenderer
      */
     public static function dataExportPayload(User $user): array
     {
-        return [
-            'schema' => 'data_export/v1',
-            'actor' => ['type' => 'user', 'id' => $user->id, 'name' => $user->name],
-            'action' => 'export',
-            'entities' => [],
-            'reason' => 'data_request',
-            'details' => __('User requested a full data export via settings.'),
-        ];
+        return self::basePayload(
+            schema: 'data_export/v1',
+            user: $user,
+            action: 'export',
+            entities: [],
+            reason: 'data_request',
+            details: __('User requested a full data export via settings.'),
+        );
     }
 
     /**
@@ -244,15 +268,17 @@ class TicketPayloadRenderer
         User $user,
         array $webhookMetadata,
     ): array {
-        return [
-            'schema' => 'payment_failure/v1',
-            'actor' => ['type' => 'user', 'id' => $user->id, 'name' => $user->name],
-            'action' => 'payment_failure',
-            'entities' => [],
-            'reason' => 'payment_issue',
-            'details' => 'Auto-created from Paddle webhook payment failure event.',
-            'context' => $webhookMetadata,
-        ];
+        $payload = self::basePayload(
+            schema: 'payment_failure/v1',
+            user: $user,
+            action: 'payment_failure',
+            entities: [],
+            reason: 'payment_issue',
+            details: 'Auto-created from Paddle webhook payment failure event.',
+        );
+        $payload['context'] = $webhookMetadata;
+
+        return $payload;
     }
 
     /**
@@ -269,22 +295,23 @@ class TicketPayloadRenderer
         ?string $type = null,
         ?string $notes = null,
     ): array {
-        $payload = [
-            'schema' => 'game_system_request/v1',
-            'actor' => ['type' => 'user', 'id' => $user->id, 'name' => $user->name],
-            'action' => 'request',
-            'entities' => [],
-            'reason' => 'game_system_request',
-            'details' => $notes,
-            // Flat keys for backward compat
-            'game_system_request' => true,
-            'game_system_name' => $name,
-            'bgg_url' => $bggUrl,
-            'publisher' => $publisher,
-            'designer' => $designer,
-            'game_system_type' => $type,
-            'game_system_id' => null,
-        ];
+        $payload = self::basePayload(
+            schema: 'game_system_request/v1',
+            user: $user,
+            action: 'request',
+            entities: [],
+            reason: 'game_system_request',
+            details: $notes,
+        );
+
+        // Flat keys for backward compat
+        $payload['game_system_request'] = true;
+        $payload['game_system_name'] = $name;
+        $payload['bgg_url'] = $bggUrl;
+        $payload['publisher'] = $publisher;
+        $payload['designer'] = $designer;
+        $payload['game_system_type'] = $type;
+        $payload['game_system_id'] = null;
 
         return $payload;
     }
@@ -312,416 +339,15 @@ class TicketPayloadRenderer
             return null;
         }
 
-        $ticketType = $ticket->ticket_type;
-
-        // Dispatch to type-specific renderer
-        return match ($ticketType) {
-            'game_system_request' => $this->renderGameSystemRequest($ticket, $metadata),
-            'content_report' => $this->renderContentReport($ticket, $metadata),
-            'review_report' => $this->renderReviewReport($ticket, $metadata),
-            'billing_support' => $this->renderBillingSupport($ticket, $metadata),
-            'account_recovery', 'data_export_request' => $this->renderAccountSupport($ticket, $metadata),
-            default => $this->renderGeneric($ticket, $metadata),
-        };
-    }
-
-    /**
-     * Render a game system request ticket for the customer view.
-     *
-     * @param  array<string, mixed>  $metadata
-     */
-    private function renderGameSystemRequest(Ticket $ticket, array $metadata): string
-    {
-        $name = $metadata['game_system_name'] ?? $ticket->subject;
-        $type = is_string($metadata['game_system_type'] ?? null) ? $metadata['game_system_type'] : null;
-        $bggUrl = $metadata['bgg_url'] ?? null;
-        $publisher = $metadata['publisher'] ?? null;
-        $designer = $metadata['designer'] ?? null;
-        $notes = $metadata['details'] ?? $ticket->description;
-        $linkedSystemId = $metadata['game_system_id'] ?? null;
-
-        $parts = [];
-
-        // Status indicator
-        if ($linkedSystemId) {
-            $parts[] = '<div class="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">'
-                .'<span class="material-symbols-outlined text-green-600 dark:text-green-400 text-lg">check_circle</span>'
-                .'<span class="text-sm font-medium text-green-700 dark:text-green-300">'.__('Game system has been added and is now available.').'</span>'
-                .'</div>';
-        }
-
-        // Request details card
-        $parts[] = '<div class="rounded-lg border border-outline-variant overflow-hidden">';
-        $parts[] = '<div class="px-4 py-3 bg-surface-container-low border-b border-outline-variant">'
-            .'<span class="text-sm font-semibold text-on-surface">'.__('Request Details').'</span>'
-            .'</div>';
-        $parts[] = '<div class="px-4 py-3 space-y-3">';
-
-        // Game system name
-        $parts[] = $this->renderField(__('Game System'), $name, bold: true);
-
-        // Type badge
-        if ($type) {
-            $typeLabel = match ($type) {
-                'boardgame' => __('Board Game'),
-                'ttrpg' => __('Tabletop RPG'),
-                default => ucfirst($type),
-            };
-            $typeBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">'.$this->esc($typeLabel).'</span>';
-            $parts[] = '<div class="flex items-start gap-3"><span class="text-sm text-on-surface-variant min-w-24">'.__('Type').'</span>'.$typeBadge.'</div>';
-        }
-
-        // BGG URL
-        if ($bggUrl) {
-            $parts[] = '<div class="flex items-start gap-3">'
-                .'<span class="text-sm text-on-surface-variant min-w-24">'.__('BGG URL').'</span>'
-                .'<a href="'.$this->esc($bggUrl).'" target="_blank" rel="noopener" class="text-sm text-primary hover:underline break-all">'
-                .$this->esc($bggUrl)
-                .' <span class="material-symbols-outlined text-xs align-middle">open_in_new</span></a>'
-                .'</div>';
-        }
-
-        // Publisher
-        if ($publisher) {
-            $parts[] = $this->renderField(__('Publisher'), $publisher);
-        }
-
-        // Designer
-        if ($designer) {
-            $parts[] = $this->renderField(__('Designer'), $designer);
-        }
-
-        // Notes
-        if ($notes) {
-            $parts[] = '<div class="flex items-start gap-3 pt-2 border-t border-outline-variant">'
-                .'<span class="text-sm text-on-surface-variant min-w-24">'.__('Notes').'</span>'
-                .'<p class="text-sm text-on-surface whitespace-pre-wrap">'.$this->esc($notes).'</p>'
-                .'</div>';
-        }
-
-        $parts[] = '</div></div>';
-
-        return implode("\n", $parts);
-    }
-
-    /**
-     * Render a content report ticket for the customer view.
-     *
-     * @param  array<string, mixed>  $metadata
-     */
-    private function renderContentReport(Ticket $ticket, array $metadata): string
-    {
-        $parts = [];
-
-        // Reason
-        if (isset($metadata['reason'])) {
-            $parts[] = '<div class="flex items-start gap-3 mb-3">'
-                .'<span class="text-sm text-on-surface-variant min-w-24">'.__('Reason').'</span>'
-                .'<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">'
-                .$this->reasonLabel($metadata['reason'])
-                .'</span></div>';
-        }
-
-        // Reported entity
-        if (! empty($metadata['entities']) && is_array($metadata['entities'])) {
-            $entity = $metadata['entities'][0] ?? null;
-            if (is_array($entity)) {
-                $typeLabel = $this->entityTypeLabel($entity['type'] ?? 'unknown');
-                $link = $this->renderEntityLink($entity);
-                $parts[] = '<div class="flex items-start gap-3 mb-3">'
-                    .'<span class="text-sm text-on-surface-variant min-w-24">'.$this->esc($typeLabel).'</span>'
-                    .'<span class="text-sm">'.$link.'</span>'
-                    .'</div>';
-            }
-        }
-
-        // Context
-        if (isset($metadata['context']) && is_array($metadata['context']) && ! empty($metadata['context'])) {
-            $parts[] = $this->renderContext($metadata['context']);
-        }
-
-        // Details
-        if (! empty($metadata['details'])) {
-            $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
-                .'<span class="text-sm font-medium text-on-surface-variant">'.__('Details').'</span>'
-                .'<p class="mt-1 text-sm text-on-surface">'.$this->esc($metadata['details']).'</p>'
-                .'</div>';
-        }
-
-        return implode("\n", $parts);
-    }
-
-    /**
-     * Render a review report ticket for the customer view.
-     *
-     * @param  array<string, mixed>  $metadata
-     */
-    private function renderReviewReport(Ticket $ticket, array $metadata): string
-    {
-        $parts = [];
-
-        // Reason
-        if (isset($metadata['reason'])) {
-            $parts[] = '<div class="flex items-start gap-3 mb-3">'
-                .'<span class="text-sm text-on-surface-variant min-w-24">'.__('Reason').'</span>'
-                .'<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">'
-                .$this->reasonLabel($metadata['reason'])
-                .'</span></div>';
-        }
-
-        // Review info
-        if (isset($metadata['reported_user'])) {
-            $parts[] = '<div class="flex items-start gap-3 mb-3">'
-                .'<span class="text-sm text-on-surface-variant min-w-24">'.__('Review author').'</span>'
-                .'<span class="text-sm">'.$this->renderEntityLink($metadata['reported_user']).'</span>'
-                .'</div>';
-        }
-
-        // Details
-        if (! empty($metadata['details'])) {
-            $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
-                .'<span class="text-sm font-medium text-on-surface-variant">'.__('Details').'</span>'
-                .'<p class="mt-1 text-sm text-on-surface">'.$this->esc($metadata['details']).'</p>'
-                .'</div>';
-        }
-
-        return implode("\n", $parts);
-    }
-
-    /**
-     * Render a billing support ticket for the customer view.
-     *
-     * @param  array<string, mixed>  $metadata
-     */
-    private function renderBillingSupport(Ticket $ticket, array $metadata): string
-    {
-        $parts = [];
-
-        // Issue type
-        if (isset($metadata['reason'])) {
-            $parts[] = '<div class="flex items-start gap-3 mb-3">'
-                .'<span class="text-sm text-on-surface-variant min-w-24">'.__('Issue type').'</span>'
-                .'<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">'
-                .$this->reasonLabel($metadata['reason'])
-                .'</span></div>';
-        }
-
-        // Subscription context
-        if (isset($metadata['context']) && is_array($metadata['context']) && ! empty($metadata['context'])) {
-            $parts[] = '<div class="rounded-lg border border-outline-variant overflow-hidden mb-3">';
-            $parts[] = '<div class="px-4 py-2 bg-surface-container-low border-b border-outline-variant">'
-                .'<span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">'.__('Subscription Info').'</span>'
-                .'</div>';
-            $parts[] = '<div class="px-4 py-3">';
-            $parts[] = $this->renderContext($metadata['context']);
-            $parts[] = '</div></div>';
-        }
-
-        // Details
-        if (! empty($metadata['details'])) {
-            $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
-                .'<span class="text-sm font-medium text-on-surface-variant">'.__('Details').'</span>'
-                .'<p class="mt-1 text-sm text-on-surface">'.$this->esc($metadata['details']).'</p>'
-                .'</div>';
-        }
-
-        return implode("\n", $parts);
-    }
-
-    /**
-     * Render an account support ticket for the customer view.
-     *
-     * @param  array<string, mixed>  $metadata
-     */
-    private function renderAccountSupport(Ticket $ticket, array $metadata): string
-    {
-        $parts = [];
-
-        // Issue type
-        if (isset($metadata['reason'])) {
-            $parts[] = '<div class="flex items-start gap-3 mb-3">'
-                .'<span class="text-sm text-on-surface-variant min-w-24">'.__('Issue type').'</span>'
-                .'<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">'
-                .$this->reasonLabel($metadata['reason'])
-                .'</span></div>';
-        }
-
-        // Details
-        if (! empty($metadata['details'])) {
-            $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
-                .'<span class="text-sm font-medium text-on-surface-variant">'.__('Details').'</span>'
-                .'<p class="mt-1 text-sm text-on-surface">'.$this->esc($metadata['details']).'</p>'
-                .'</div>';
-        }
-
-        return implode("\n", $parts);
-    }
-
-    /**
-     * Generic renderer for unknown ticket types.
-     *
-     * @param  array<string, mixed>  $metadata
-     */
-    private function renderGeneric(Ticket $ticket, array $metadata): string
-    {
-        $skip = ['schema', 'actor', 'action', 'entities', 'reported_user', 'context'];
-        $parts = [];
-
-        // Actor
-        if (isset($metadata['actor'])) {
-            $parts[] = $this->renderActor($metadata['actor']);
-        }
-
-        // Reason
-        if (isset($metadata['reason'])) {
-            $parts[] = '<div class="mb-2"><span class="font-medium text-on-surface-variant">'.__('Reason').':</span> '
-                .'<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">'
-                .$this->reasonLabel($metadata['reason'])
-                .'</span></div>';
-        }
-
-        // Entities
-        if (! empty($metadata['entities'])) {
-            $parts[] = $this->renderEntities($metadata['entities']);
-        }
-
-        // Context
-        if (isset($metadata['context']) && is_array($metadata['context']) && ! empty($metadata['context'])) {
-            $parts[] = $this->renderContext($metadata['context']);
-        }
-
-        // Details
-        if (! empty($metadata['details'])) {
-            $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
-                .'<span class="text-sm font-medium text-on-surface-variant">'.__('Details').'</span>'
-                .'<p class="mt-1 text-sm text-on-surface">'.$this->esc($metadata['details']).'</p>'
-                .'</div>';
-        }
-
-        return implode("\n", $parts);
+        // Delegate to the Blade component — HTML rendering belongs in templates,
+        // not PHP string concatenation. Designers edit Blade, not PHP.
+        return view('components.escalated.ticket-payload', [
+            'ticket' => $ticket,
+            'metadata' => $metadata,
+        ])->render();
     }
 
     /** Render a label: value field pair. */
-    private function renderField(string $label, mixed $value, bool $bold = false): string
-    {
-        $value = is_string($value) || is_int($value) || is_float($value) ? (string) $value : '';
-        $class = $bold ? 'text-sm font-medium text-on-surface' : 'text-sm text-on-surface';
-
-        return '<div class="flex items-start gap-3">'
-            .'<span class="text-sm text-on-surface-variant min-w-24">'.$this->esc($label).'</span>'
-            .'<span class="'.$class.'">'.$this->esc($value).'</span>'
-            .'</div>';
-    }
-
-    /**
-     * Render the actor line with a profile link.
-     */
-    private function renderActor(mixed $actor): string
-    {
-        if (! is_array($actor)) {
-            return '';
-        }
-        $name = $this->esc($actor['name'] ?? __('Unknown'));
-
-        if (isset($actor['id']) && $actor['type'] === 'user') {
-            $url = $this->resolveEntityUrl('user', $actor['id']);
-            if ($url) {
-                $name = '<a href="'.$this->esc($url).'" class="text-primary hover:underline font-medium">'.$name.'</a>';
-            }
-        }
-
-        return '<div class="mb-2"><span class="font-medium text-on-surface-variant">'.__('Reported by').':</span> '.$name.'</div>';
-    }
-
-    /**
-     * Render the entities list with links.
-     */
-    private function renderEntities(mixed $entities): string
-    {
-        if (! is_array($entities)) {
-            return '';
-        }
-        if (empty($entities)) {
-            return '';
-        }
-
-        $lines = ['<div class="mb-2">', '<span class="font-medium text-on-surface-variant">'.__('Affected entities').':</span>', '<ul class="mt-1 space-y-1">'];
-
-        foreach ($entities as $entity) {
-            if (! is_array($entity)) {
-                continue;
-            }
-            $type = is_string($entity['type'] ?? null) ? $entity['type'] : 'unknown';
-            $typeLabel = $this->entityTypeLabel($type);
-            $link = $this->renderEntityLink($entity);
-
-            $lines[] = '<li class="flex items-center gap-2 text-sm">'
-                .'<span class="text-on-surface-variant">'.$this->esc($typeLabel).':</span> '
-                .$link
-                .'</li>';
-        }
-
-        $lines[] = '</ul></div>';
-
-        return implode("\n", $lines);
-    }
-
-    /**
-     * Render a single entity as a link or plain text.
-     */
-    private function renderEntityLink(mixed $entity): string
-    {
-        if (! is_array($entity)) {
-            return '';
-        }
-        $name = $this->esc($entity['name'] ?? $entity['id'] ?? __('Unknown'));
-        $type = $entity['type'] ?? 'unknown';
-        $id = $entity['id'] ?? null;
-
-        if ($id && $url = $this->resolveEntityUrl($type, $id)) {
-            return '<a href="'.$this->esc($url).'" class="text-primary hover:underline font-medium">'.$name.'</a>'
-                .' <span class="text-on-surface-variant text-xs font-mono">'.$this->esc($id).'</span>';
-        }
-
-        return $name;
-    }
-
-    /**
-     * Render context data as definition list.
-     */
-    private function renderContext(mixed $context): string
-    {
-        if (! is_array($context)) {
-            return '';
-        }
-        $lines = ['<div class="mb-2 text-sm">', '<span class="font-medium text-on-surface-variant">'.__('Context').':</span>', '<dl class="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">'];
-
-        foreach ($context as $key => $value) {
-            if (is_array($value)) {
-                $value = json_encode($value);
-            }
-
-            $label = match ($key) {
-                'entity_owner' => __('Entity owner'),
-                'has_subscription' => __('Has subscription'),
-                'subscription_status' => __('Subscription status'),
-                'paddle_subscription_id' => __('Subscription ID'),
-                'paddle_customer_id' => __('Customer ID'),
-                'plan' => __('Plan'),
-                default => ucfirst(str_replace('_', ' ', $key)),
-            };
-
-            $displayValue = is_bool($value) ? ($value ? __('Yes') : __('No')) : $this->esc($value);
-
-            $lines[] = '<dt class="text-on-surface-variant">'.$this->esc($label).'</dt>';
-            $lines[] = '<dd class="text-on-surface">'.$displayValue.'</dd>';
-        }
-
-        $lines[] = '</dl></div>';
-
-        return implode("\n", $lines);
-    }
-
     /**
      * Normalize legacy ticket metadata (flat keys) into the structured schema
      * on-the-fly for rendering. Does not persist changes.
