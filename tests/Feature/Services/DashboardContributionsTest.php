@@ -14,6 +14,7 @@ use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
+use App\Services\DashboardEstablishedService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -26,10 +27,13 @@ class DashboardContributionsTest extends TestCase
 
     private DashboardCacheService $service;
 
+    private DashboardEstablishedService $computer;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->service = app(DashboardCacheService::class);
+        $this->computer = app(DashboardEstablishedService::class);
         Log::spy();
     }
 
@@ -52,7 +56,7 @@ class DashboardContributionsTest extends TestCase
             'status' => GameStatus::Scheduled,
         ]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(3, $result['hosted']['count']);
     }
@@ -73,7 +77,7 @@ class DashboardContributionsTest extends TestCase
             'expected_duration' => 3.0,
         ]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(5.5, $result['hosted']['hours']);
     }
@@ -104,7 +108,7 @@ class DashboardContributionsTest extends TestCase
         GameParticipant::factory()->create(['game_id' => $game2->id, 'user_id' => $player2->id, 'status' => ParticipantStatus::Approved]);
         GameParticipant::factory()->create(['game_id' => $game2->id, 'user_id' => $player3->id, 'status' => ParticipantStatus::Approved]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(3, $result['hosted']['unique_players']);
     }
@@ -129,7 +133,7 @@ class DashboardContributionsTest extends TestCase
         GameParticipant::factory()->create(['game_id' => $game1->id, 'user_id' => $user->id, 'status' => ParticipantStatus::Approved]);
         GameParticipant::factory()->create(['game_id' => $game2->id, 'user_id' => $user->id, 'status' => ParticipantStatus::Approved]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(2, $result['played']['count']);
     }
@@ -145,7 +149,7 @@ class DashboardContributionsTest extends TestCase
         ]);
         GameParticipant::factory()->create(['game_id' => $game->id, 'user_id' => $user->id, 'status' => ParticipantStatus::Approved]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(0, $result['played']['count']);
     }
@@ -168,7 +172,7 @@ class DashboardContributionsTest extends TestCase
         GameParticipant::factory()->create(['game_id' => $game2->id, 'user_id' => $user->id, 'status' => ParticipantStatus::Approved]);
         GameParticipant::factory()->create(['game_id' => $game3->id, 'user_id' => $user->id, 'status' => ParticipantStatus::Approved]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(2, $result['played']['system_count']);
     }
@@ -205,7 +209,7 @@ class DashboardContributionsTest extends TestCase
             'status' => GameStatus::Completed,
         ]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertNotNull($result['campaigns']);
         $this->assertEquals('Long Campaign', $result['campaigns']['name']);
@@ -218,7 +222,7 @@ class DashboardContributionsTest extends TestCase
         $user = User::factory()->create();
 
         // No campaigns at all
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertNull($result['campaigns']);
     }
@@ -241,7 +245,7 @@ class DashboardContributionsTest extends TestCase
             'status' => GameStatus::Scheduled,
         ]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertNull($result['campaigns']);
     }
@@ -265,7 +269,7 @@ class DashboardContributionsTest extends TestCase
             'recap' => null,
         ]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(2, $result['recaps_written']);
     }
@@ -281,7 +285,7 @@ class DashboardContributionsTest extends TestCase
             'reviewer_id' => $user->id,
         ]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(3, $result['reviews_given']);
     }
@@ -313,7 +317,7 @@ class DashboardContributionsTest extends TestCase
             'type' => RelationshipType::Follow,
         ]);
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(3, $result['followers']);
     }
@@ -325,7 +329,7 @@ class DashboardContributionsTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $result = $this->service->computeContributions($user);
+        $result = $this->computer->computeContributions($user);
 
         $this->assertEquals(0, $result['hosted']['count']);
         $this->assertEquals(0.0, $result['hosted']['hours']);

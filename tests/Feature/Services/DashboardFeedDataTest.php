@@ -13,6 +13,7 @@ use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
+use App\Services\DashboardEstablishedService;
 use App\Services\Geohash;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
@@ -33,10 +34,13 @@ class DashboardFeedDataTest extends TestCase
 
     private DashboardCacheService $service;
 
+    private DashboardEstablishedService $computer;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->service = app(DashboardCacheService::class);
+        $this->computer = app(DashboardEstablishedService::class);
         Cache::flush();
         Queue::fake();
         Log::spy();
@@ -49,7 +53,7 @@ class DashboardFeedDataTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $result = $this->service->computeFeedData($user);
+        $result = $this->computer->computeFeedData($user);
 
         $this->assertEquals([], $result['items']);
         $this->assertEquals('friends', $result['source']);
@@ -73,7 +77,7 @@ class DashboardFeedDataTest extends TestCase
             'status' => GameStatus::Scheduled,
         ]);
 
-        $result = $this->service->computeFeedData($viewer);
+        $result = $this->computer->computeFeedData($viewer);
 
         $this->assertCount(1, $result['items']);
         $this->assertEquals('game_created', $result['items'][0]['type']);
@@ -104,7 +108,7 @@ class DashboardFeedDataTest extends TestCase
             'created_at' => now(),
         ]);
 
-        $result = $this->service->computeFeedData($viewer);
+        $result = $this->computer->computeFeedData($viewer);
 
         $types = collect($result['items'])->pluck('type')->toArray();
         $this->assertContains('game_created', $types);
@@ -132,7 +136,7 @@ class DashboardFeedDataTest extends TestCase
             ]);
         }
 
-        $result = $this->service->computeFeedData($viewer);
+        $result = $this->computer->computeFeedData($viewer);
 
         $this->assertCount(10, $result['items']);
     }
@@ -163,7 +167,7 @@ class DashboardFeedDataTest extends TestCase
             'created_at' => now(),
         ]);
 
-        $result = $this->service->computeFeedData($viewer);
+        $result = $this->computer->computeFeedData($viewer);
 
         $this->assertCount(2, $result['items']);
         $this->assertEquals('Newer Game', $result['items'][0]['entityName']);
@@ -181,7 +185,7 @@ class DashboardFeedDataTest extends TestCase
             'status' => GameStatus::Scheduled,
         ]);
 
-        $result = $this->service->computeFeedData($viewer);
+        $result = $this->computer->computeFeedData($viewer);
 
         $this->assertEquals([], $result['items']);
     }
@@ -205,7 +209,7 @@ class DashboardFeedDataTest extends TestCase
             'status' => GameStatus::Scheduled,
         ]);
 
-        $result = $this->service->computeFeedData($viewer);
+        $result = $this->computer->computeFeedData($viewer);
 
         // Each item should be a plain array, not an object
         $item = $result['items'][0];

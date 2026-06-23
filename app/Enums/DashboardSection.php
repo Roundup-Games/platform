@@ -145,6 +145,55 @@ enum DashboardSection: string
     }
 
     /**
+     * The degraded value returned when a section's compute throws.
+     *
+     * Each fallback is the view-safe empty shape for its section — the same
+     * structure the computer returns when there is nothing to show — so a
+     * single failing section renders empty instead of propagating the
+     * exception and blanking the whole Dashboard. Consumed by the failure
+     * isolation in {@see DashboardCacheService::computeSection()}.
+     *
+     * The fallback is cached at the section's normal TTL by the caller; normal
+     * invalidation observers clear it so a transient failure self-heals on the
+     * next domain event that touches the section.
+     *
+     * @return array<string|int, mixed>
+     */
+    public function fallback(): array
+    {
+        // List-shaped sections at the bottom all degrade to an empty list.
+        return match ($this) {
+            self::Week => [
+                'days' => [],
+                'summary' => ['total' => 0, 'past' => 0, 'upcoming' => 0, 'hosting' => 0, 'playing' => 0],
+            ],
+            self::Feed => ['items' => []],
+            self::Opportunities => ['games' => [], 'campaigns' => [], 'total_available' => 0],
+            self::Contributions => [
+                'hosted' => ['count' => 0, 'hours' => 0.0, 'unique_players' => 0],
+                'played' => ['count' => 0, 'system_count' => 0],
+                'campaigns' => null,
+                'recaps_written' => 0,
+                'reviews_given' => 0,
+                'followers' => 0,
+            ],
+            self::NewcomerWelcome => [
+                'first_name' => '',
+                'city' => null,
+                'preferred_systems' => [],
+                'matching_games_count' => 0,
+                'has_location' => false,
+                'welcome_message_key' => 'welcome_basic',
+            ],
+            self::ProgressTracker => ['steps' => [], 'current_step' => 0, 'completion_percentage' => 0],
+            self::NearbyPeople => ['people' => [], 'total_nearby' => 0],
+            self::NewcomerMatches => ['games' => [], 'total_nearby' => 0, 'preference_match_rate' => 0.0],
+            // List-shaped sections degrade to an empty list.
+            self::Recaps, self::ActionCenter, self::HostAgain, self::MilestoneCards => [],
+        };
+    }
+
+    /**
      * All sections applicable to a given mode, honouring geohash availability.
      *
      * Used by the warm job to iterate mode-applicable sections.

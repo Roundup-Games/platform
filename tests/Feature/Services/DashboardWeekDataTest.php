@@ -10,7 +10,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Services\DashboardCacheService;
+use App\Services\DashboardEstablishedService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -22,12 +22,12 @@ class DashboardWeekDataTest extends TestCase
 {
     use DatabaseTransactions;
 
-    private DashboardCacheService $service;
+    private DashboardEstablishedService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = app(DashboardCacheService::class);
+        $this->service = app(DashboardEstablishedService::class);
         Cache::flush();
         Queue::fake();
         Log::spy();

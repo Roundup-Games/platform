@@ -16,7 +16,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Services\DashboardCacheService;
+use App\Services\DashboardEstablishedService;
 use App\Services\Geohash;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
@@ -28,7 +28,7 @@ class DashboardOpportunitiesTest extends TestCase
 {
     use DatabaseTransactions;
 
-    private DashboardCacheService $service;
+    private DashboardEstablishedService $service;
 
     private GameSystem $gameSystem;
 
@@ -46,7 +46,7 @@ class DashboardOpportunitiesTest extends TestCase
         // (or a sibling --parallel worker) can flip expect(Cache::has(...))
         // into a false pass.
         Cache::flush();
-        $this->service = app(DashboardCacheService::class);
+        $this->service = app(DashboardEstablishedService::class);
         Log::spy();
 
         // Create game systems
