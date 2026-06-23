@@ -5,7 +5,6 @@ namespace App\Livewire\Games;
 use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
-use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
@@ -16,10 +15,8 @@ use App\Models\Review;
 use App\Models\SessionDebriefing;
 use App\Models\SessionZeroConfirmation;
 use App\Models\ShortLink;
-use App\Notifications\ParticipantRemoved;
 use App\Services\AttendanceService;
 use App\Services\DebriefingService;
-use App\Services\NotificationService;
 use App\Services\OverflowRouter;
 use App\Services\ParticipantLifecycle;
 use App\Services\ReviewEligibilityService;
@@ -363,35 +360,27 @@ class GameDetail extends Component
 
     public function removeParticipant(string $participantId): void
     {
+        $this->authorize('update', $this->game);
+
         $participant = $this->findParticipantOrFail($participantId);
         $entity = $this->game;
 
-        if ($participant->role === ParticipantRole::Owner) {
-            session()->flash('error', __('common.error_cannot_remove_the_entity_owner', ['entity' => 'game']));
+        $result = app(ParticipantLifecycle::class)->removeParticipant(
+            $participant,
+            $entity,
+            authenticatedUser(),
+        );
+
+        if (! $result->success && $result->errorKey) {
+            session()->flash('error', __($result->errorKey, $result->errorParams));
 
             return;
-        }
-
-        $removedUser = $participant->user;
-        app(ParticipantLifecycle::class)->depart($participant, Auth::user());
-
-        try {
-            if ($removedUser) {
-                app(NotificationService::class)->send(
-                    $removedUser, new ParticipantRemoved($removedUser, $entity, 'game'),
-                    NotificationCategory::ParticipantRemoved
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.participant_removed_dispatch_failed', [
-                'game_id' => $entity->id, 'removed_user_id' => $participant->user_id, 'error' => $e->getMessage(),
-            ]);
         }
 
         // Promote from waitlist + warn host if below min_players
         app(Roster::class)->onDeparture($entity);
 
-        session()->flash('success', __('common.flash_participant_removed'));
+        session()->flash('success', __($result->messageKey, $result->messageParams));
     }
 
     // ── Self-service leave ─────────────────────────────

@@ -17,7 +17,7 @@ trait HandlesBench
             app(ParticipantLifecycle::class)->promoteFromBench($participant, $viewer);
             session()->flash('success', __('games.flash_promote_from_bench_success'));
         } catch (\LogicException $e) {
-            session()->flash('error', __('common.error_participant_not_benched'));
+            session()->flash('error', $e->getMessage());
         }
     }
 

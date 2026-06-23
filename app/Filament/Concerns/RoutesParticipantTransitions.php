@@ -10,6 +10,7 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\ParticipantLifecycle;
+use App\Services\Roster;
 use App\Services\WaitlistService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -209,6 +210,7 @@ trait RoutesParticipantTransitions
                 $record,
                 fn (Participant $p, User $admin) => app(ParticipantLifecycle::class)
                     ->removeParticipant($p, $owner, $admin),
+                fn () => app(Roster::class)->onDeparture($owner),
             ));
     }
 
@@ -251,8 +253,11 @@ trait RoutesParticipantTransitions
      * Run a ParticipantResult-returning transition and notify on the outcome.
      *
      * @param  callable(Participant, User): ParticipantResult  $transition
+     * @param  callable(): void|null  $onSuccess  Optional cascade to run after a
+     *                                            successful transition (e.g.
+     *                                            Roster::onDeparture for removals).
      */
-    private function dispatchResult(mixed $record, callable $transition): void
+    private function dispatchResult(mixed $record, callable $transition, ?callable $onSuccess = null): void
     {
         $admin = $this->adminUser();
         if (! $record instanceof Participant || ! $admin instanceof User) {
@@ -261,6 +266,10 @@ trait RoutesParticipantTransitions
 
         $result = $transition($record, $admin);
         $this->notifyResult($result);
+
+        if ($result->success && $onSuccess !== null) {
+            $onSuccess();
+        }
     }
 
     /**

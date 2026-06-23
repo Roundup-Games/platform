@@ -55,19 +55,18 @@ class ParticipantsRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('role')
                     ->badge()
-                    ->color(fn ($state): string => match ((string) $state) {
-                        ParticipantRole::Owner->value => 'warning',
-                        ParticipantRole::Player->value => 'success',
-                        ParticipantRole::Invited->value => 'info',
-                        ParticipantRole::Applicant->value => 'gray',
-                        default => 'gray',
+                    ->color(fn (ParticipantRole $state): string => match ($state) {
+                        ParticipantRole::Owner => 'warning',
+                        ParticipantRole::Player => 'success',
+                        ParticipantRole::Invited => 'info',
+                        ParticipantRole::Applicant => 'gray',
                     }),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn ($state): string => match ((string) $state) {
-                        ParticipantStatus::Approved->value => 'success',
-                        ParticipantStatus::Rejected->value => 'danger',
-                        ParticipantStatus::Pending->value => 'warning',
+                    ->color(fn (ParticipantStatus $state): string => match ($state) {
+                        ParticipantStatus::Approved => 'success',
+                        ParticipantStatus::Rejected => 'danger',
+                        ParticipantStatus::Pending => 'warning',
                         default => 'gray',
                     }),
             ])

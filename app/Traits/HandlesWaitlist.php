@@ -116,6 +116,15 @@ trait HandlesWaitlist
             return;
         }
 
+        // Guard against re-stamping a terminal-state participant (Rejected /
+        // Removed). depart() would overwrite removed_at / removed_by on each
+        // call, corrupting the audit trail.
+        if ($participant->status !== ParticipantStatus::Approved) {
+            session()->flash('error', __('games.content_invitation_no_longer_valid'));
+
+            return;
+        }
+
         app(ParticipantLifecycle::class)->depart($participant, $viewer);
 
         $meta = EntityMeta::fromEntity($entity);

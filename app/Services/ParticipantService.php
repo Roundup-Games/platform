@@ -215,9 +215,15 @@ class ParticipantService
     ): ParticipantResult {
         $isSuppressed = SuppressedInviteEmail::isSuppressed($normalizedEmail);
 
-        // Duplicate check: pending invite already sent to this email
+        // Duplicate check: existing invite to this email (Pending, Waitlisted,
+        // or Benched — overflow invites carry the latter two statuses).
         $duplicateQuery = $meta->participantClass::where($meta->foreignKey, $entity->id)
-            ->where('status', ParticipantStatus::Pending);
+            ->where('role', ParticipantRole::Invited->value)
+            ->whereIn('status', [
+                ParticipantStatus::Pending->value,
+                ParticipantStatus::Waitlisted->value,
+                ParticipantStatus::Benched->value,
+            ]);
 
         if ($isSuppressed) {
             $duplicateQuery->where(function ($q) use ($normalizedEmail) {

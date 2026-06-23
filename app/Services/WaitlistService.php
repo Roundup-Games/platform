@@ -343,7 +343,7 @@ class WaitlistService
         $meta = $participant->getEntityMeta();
 
         Log::info('waitlist.manually_promoted', [
-            $meta->foreignKey => $participant->{$meta->foreignKey},
+            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
             'participant_id' => $participant->getId(),
             'user_id' => $participant->getUserId(),
         ]);

@@ -171,6 +171,8 @@ trait ManagesParticipants
     public function approveApplication(string $participantId): void
     {
         $entity = $this->getEntity();
+        $this->authorize('update', $entity);
+
         $participant = $this->participantService()->findParticipant($entity, $participantId);
 
         $result = app(ParticipantLifecycle::class)->approveApplication(
@@ -189,6 +191,8 @@ trait ManagesParticipants
     public function rejectApplication(string $participantId): void
     {
         $entity = $this->getEntity();
+        $this->authorize('update', $entity);
+
         $participant = $this->participantService()->findParticipant($entity, $participantId);
 
         $result = app(ParticipantLifecycle::class)->rejectApplication(
@@ -209,6 +213,8 @@ trait ManagesParticipants
     public function removeParticipant(string $participantId): void
     {
         $entity = $this->getEntity();
+        $this->authorize('update', $entity);
+
         $participant = $this->participantService()->findParticipant($entity, $participantId);
 
         $result = app(ParticipantLifecycle::class)->removeParticipant(
@@ -231,6 +237,8 @@ trait ManagesParticipants
     public function cancelInvite(string $participantId): void
     {
         $entity = $this->getEntity();
+        $this->authorize('update', $entity);
+
         $participant = $this->participantService()->findPendingInvite($entity, $participantId);
 
         $result = app(ParticipantLifecycle::class)->cancelInvite(
@@ -361,7 +369,7 @@ trait ManagesParticipants
             app(ParticipantLifecycle::class)->promoteFromBench($participant, authenticatedUser());
             session()->flash('success', __('common.flash_bench_promoted'));
         } catch (\LogicException $e) {
-            session()->flash('error', __('common.error_participant_not_benched'));
+            session()->flash('error', $e->getMessage());
         }
     }
 

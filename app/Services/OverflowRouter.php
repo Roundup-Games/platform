@@ -83,10 +83,21 @@ class OverflowRouter
     ): void {
         $overflow = $this->resolve($entity);
 
+        // Hash the stored email for suppressed addresses, matching the
+        // normal-capacity path (inviteSuppressedEmail). The overflow path
+        // previously stored plaintext — a privacy gap when the entity is full.
+        $inviteeEmail = null;
+        if (! $existingUserId) {
+            $isSuppressed = SuppressedInviteEmail::isSuppressed($normalizedEmail);
+            $inviteeEmail = $isSuppressed
+                ? 'suppressed-'.SuppressedInviteEmail::hashEmail($normalizedEmail)
+                : $normalizedEmail;
+        }
+
         $data = [
             $meta->foreignKey => $entity->id,
             'user_id' => $existingUserId,
-            'invitee_email' => $existingUserId ? null : $normalizedEmail,
+            'invitee_email' => $inviteeEmail,
             'role' => ParticipantRole::Invited->value,
             'status' => $overflow->statusValue(),
             'join_source' => JoinSource::EmailInvite,
@@ -110,12 +121,23 @@ class OverflowRouter
         if ($existingUserId) {
             $existingUser = User::find($existingUserId);
             if ($existingUser) {
-                $notificationClass = new EntityInvitation($entity, $inviter);
-                $category = $meta->isCampaign()
-                    ? NotificationCategory::CampaignInvitation
-                    : NotificationCategory::GameInvitation;
+                // Wrap in try-catch so a notification dispatch failure does not
+                // break the invite flow after the row has been persisted.
+                try {
+                    $notificationClass = new EntityInvitation($entity, $inviter);
+                    $category = $meta->isCampaign()
+                        ? NotificationCategory::CampaignInvitation
+                        : NotificationCategory::GameInvitation;
 
-                app(NotificationService::class)->send($existingUser, $notificationClass, $category);
+                    app(NotificationService::class)->send($existingUser, $notificationClass, $category);
+                } catch (\Throwable $e) {
+                    Log::error('notification.entity_invitation_dispatch_failed', [
+                        'entity_type' => $meta->type,
+                        $meta->foreignKey => $entity->id,
+                        'invited_user_id' => $existingUserId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         } else {
             $this->sendExternalInvitationEmail($entity, $meta, $normalizedEmail, $inviter);
@@ -137,6 +159,7 @@ class OverflowRouter
         $overflow = $this->resolve($entity);
 
         $participant->update([
+            'role' => ParticipantRole::Player->value,
             'status' => $overflow->statusValue(),
             $overflow->timestampColumn => now(),
         ]);

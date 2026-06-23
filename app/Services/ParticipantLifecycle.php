@@ -24,30 +24,28 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Single owner of the Approved → Rejected participant departure transition.
+ * Single owner of participant lifecycle transitions.
  *
- * Closes the audit gap documented in the participant-lifecycle validation: the
- * inline departure mutations in the Livewire detail/list pages and the
- * HandlesWaitlist self-cancel path set status = Rejected but did NOT record
- * removed_by / removed_at, and each reimplemented the late-cancel attendance
- * rule independently (six sites, two date-resolution strategies, inconsistent
- * Approved-status guards). Routing those departures through this method makes
- * the audit trail complete and the reliability-score side-effect uniform.
+ * Originally extracted to close the audit gap documented in the participant-
+ * lifecycle validation: inline departure mutations set status = Rejected but
+ * did NOT record removed_by / removed_at. Now owns every host/user/admin-
+ * initiated state transition across the participant lifecycle.
  *
  * Scope: the state transition plus its direct side-effects (attendance_status,
- * audit stamps, structured log). Orchestrator concerns that vary by departure
- * context — notifications (host-remove only), Roster::onDeparture cascades,
- * session flashes — stay with the callers.
+ * audit stamps, application cleanup, notifications, structured log). Caller
+ * orchestration that varies by context — Roster::onDeparture cascades,
+ * session flashes — stays with the callers.
  *
- * Owns three transition families:
- *  - depart(): any status → Rejected (self-leave + host-remove-inline)
+ * Owns the participant lifecycle transition families:
+ *  - depart(): any → Rejected (self-leave + inline host-remove)
  *  - promoteFromBench(): Benched → Approved (host-controlled, capacity-guarded)
  *  - removeFromBench(): Benched → Rejected (delegates to depart() for audit)
- *
- * Not in scope here: the host-remove path through ParticipantService::
- * removeParticipant, which uses the Removed status (not Rejected) to preserve
- * roster history for peak-roster counting. That path already records its own
- * audit trail.
+ *  - approveApplication(): Pending(Applicant) → Approved
+ *  - rejectApplication(): Pending(Applicant) → ∅ (hard delete)
+ *  - removeParticipant(): any non-owner → Removed (host soft-remove for audit)
+ *  - cancelInvite(): Pending(Invited) → ∅ (host cancels pending invite)
+ *  - acceptInvitation(): Pending(Invited) → Approved (or overflow)
+ *  - declineInvitation(): Pending(Invited) → Rejected
  */
 class ParticipantLifecycle
 {
@@ -168,7 +166,7 @@ class ParticipantLifecycle
                 ->where('status', ParticipantStatus::Approved->value)
                 ->count();
 
-            if ($approvedCount >= $lockedEntity->max_players) {
+            if ($lockedEntity->max_players !== null && $approvedCount >= $lockedEntity->max_players) {
                 throw new \LogicException('Cannot promote: entity is full.');
             }
 
@@ -194,15 +192,27 @@ class ParticipantLifecycle
      * routing through depart() closes that audit gap the same way hop 2 closed
      * it for the self-leave paths.
      *
+     * The guard + departure run inside a locked transaction to prevent a
+     * concurrent promoteFromBench from flipping the participant to Approved
+     * between the status check and the depart() write.
+     *
      * @throws \LogicException if participant is not benched
      */
     public function removeFromBench(Participant $participant, ?User $remover = null): void
     {
-        if ($participant->getStatus() !== ParticipantStatus::Benched) {
-            throw new \LogicException('Participant is not on the bench.');
-        }
+        $meta = $participant->getEntityMeta();
 
-        $this->depart($participant, $remover);
+        DB::transaction(function () use ($participant, $remover, $meta) {
+            $locked = $meta->participantClass::lockForUpdate()
+                ->where('id', $participant->getId())
+                ->firstOrFail();
+
+            if ($locked->status !== ParticipantStatus::Benched) {
+                throw new \LogicException('Participant is not on the bench.');
+            }
+
+            $this->depart($locked, $remover);
+        });
     }
 
     // ── Application / invitation transitions ────────────
@@ -351,11 +361,24 @@ class ParticipantLifecycle
         $removedUser = User::find($participant->getUserId());
         $removedUserId = $participant->getUserId();
 
-        $participant->update([
+        // Score attendance for Approved departures — same rule as depart():
+        // removing an Approved player opens a slot and may affect their
+        // reliability score (LateCancel if near the start time, CancelledEarly
+        // otherwise). Non-Approved rows (Pending/Benched/Waitlisted) carry no
+        // reliability weight.
+        $attendanceStatus = $this->resolveDepartureAttendanceStatus($participant, $entity);
+
+        $update = [
             'status' => ParticipantStatus::Removed->value,
             'removed_by' => $remover->id,
             'removed_at' => now(),
-        ]);
+        ];
+
+        if ($attendanceStatus !== null) {
+            $update['attendance_status'] = $attendanceStatus->value;
+        }
+
+        $participant->update($update);
 
         // Clean up application record (hygiene only — participant persists)
         $entity->applications()->where('user_id', $removedUserId)->delete();
@@ -440,31 +463,52 @@ class ParticipantLifecycle
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
         }
 
-        // Check capacity atomically (owner counts as a player)
-        $overflowed = DB::transaction(function () use ($entity, $participant) {
+        // Check capacity atomically. Lock both the entity and the participant row,
+        // re-validating the invitation state inside the lock — a concurrent accept
+        // (double-click, retry) can process the same invitation before this
+        // transaction acquires its locks.
+        $outcome = DB::transaction(function () use ($entity, $participant, $meta, $user) {
             $lockedEntity = $entity->newModelQuery()
                 ->where('id', $entity->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            $lockedParticipant = $meta->participantClass::lockForUpdate()
+                ->where('id', $participant->getId())
+                ->firstOrFail();
+
+            // Re-validate inside the lock: a concurrent accept may have already
+            // approved this participant.
+            if ($lockedParticipant->getAttribute('user_id') !== $user->id
+                || $lockedParticipant->role !== ParticipantRole::Invited
+                || $lockedParticipant->status !== ParticipantStatus::Pending
+            ) {
+                return 'invalid';
+            }
 
             $currentCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved)
                 ->count();
 
             if ($lockedEntity->max_players && $currentCount >= $lockedEntity->max_players) {
-                return true;
+                app(OverflowRouter::class)->placeAcceptedInvitee($lockedParticipant, $lockedEntity, $meta);
+
+                return 'overflow';
             }
 
-            $participant->update([
+            $lockedParticipant->update([
                 'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Approved->value,
             ]);
 
-            return false;
+            return 'approved';
         });
 
-        if ($overflowed) {
-            app(OverflowRouter::class)->placeAcceptedInvitee($participant, $entity, $meta);
+        if ($outcome === 'invalid') {
+            return ParticipantResult::fail('people.error_invitation_no_longer_valid');
+        }
+
+        if ($outcome === 'overflow') {
             $this->notifyOwnerOfAcceptedInvitation($entity, $user, $meta);
             $this->markInvitationNotificationRead($entity, $user, $meta);
 
