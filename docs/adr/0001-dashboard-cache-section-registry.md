@@ -27,6 +27,6 @@ Migration is phased and behaviour-preserving:
 
 ## Consequences
 
-- Cache keys may change once during Phase 2 (a one-time flush on deploy is acceptable); no external consumers exist (verified — `DemoTeardownCommand` already has a stale key-format bug proving this).
+- Cache keys may change once during Phase 2 (a one-time flush on deploy is acceptable); no external consumers exist (verified — `DemoTeardownCommand` already has a stale key-format bug proving this: it clears `dashboard:{userId}:{section}` while the canonical format is `dashboard:{section}:{userId}`, so its teardown silently no-ops on dashboard keys, and no one has reported a problem).
 - The view-model couples the assembler to the view contract — the correct coupling, made explicit (the DTO *is* the view's data contract). `toViewProps()` makes this a Phase-1 no-op for Blade and a Phase-3 deletion target.
 - Per-section failure isolation becomes possible in Phase 2 (a throwing section degrades to its empty default instead of blanking the Dashboard) — a reliability gain, not a refactor side-effect.

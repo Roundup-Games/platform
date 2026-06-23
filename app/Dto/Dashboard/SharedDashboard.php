@@ -5,7 +5,7 @@ namespace App\Dto\Dashboard;
 /**
  * Dashboard sections and derived data rendered in BOTH newcomer and established modes.
  *
- * @see AssembledDashboard::toViewProps()
+ * @see AssembledDashboard
  */
 final readonly class SharedDashboard
 {

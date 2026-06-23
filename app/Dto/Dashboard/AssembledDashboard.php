@@ -8,15 +8,13 @@ use App\Services\DashboardAssembler;
  * The full Dashboard for one viewer, ready to render.
  *
  * Built exclusively by the Dashboard assembler. Exactly one of `$newcomer` / `$established`
- * is non-null, determined by `$shared->mode`. The inactive wing is null — no stub props —
- * which is what lets Phase 3 branch the Blade on `mode` and delete the stub symmetry.
+ * is non-null, determined by `$shared->mode`. The inactive wing is null — no stub props.
  *
- * Phase 1 keeps the Blade untouched via {@see toViewProps()}, which projects the typed
- * view-model back into the flat 26-key dictionary `livewire.dashboard` consumes today,
- * emitting the legacy stub values for the inactive mode's keys. `toViewProps()` is deleted
- * in Phase 3 once the Blade reads typed props off the view-model directly.
+ * The Blade receives this typed view-model as `$dashboard`, branches on `mode`, and
+ * unpacks the active wing's properties into the flat variables each partial consumes.
  *
  * @see DashboardAssembler
+ * @see docs/adr/0001-dashboard-cache-section-registry.md
  */
 final class AssembledDashboard
 {
