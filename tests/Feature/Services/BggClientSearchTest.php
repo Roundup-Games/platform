@@ -1,7 +1,6 @@
 <?php
 
 use App\Exceptions\BggApiException;
-use App\Exceptions\BggParseException;
 use App\Services\BggClient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -45,12 +44,10 @@ it('searches BGG and returns parsed XML', function () {
 
     $result = $this->client->search('Catan');
 
-    expect($result)->toBeInstanceOf(SimpleXMLElement::class);
-    expect((string) $result['total'])->toBe('3');
-    expect($result->item)->toHaveCount(3);
-    expect((string) $result->item[0]['id'])->toBe('13');
-    expect((string) $result->item[0]->name['value'])->toBe('Catan');
-    expect((string) $result->item[0]->yearpublished['value'])->toBe('1995');
+    expect($result)->toBeString();
+    expect($result)->toContain('<items');
+    expect($result)->toContain('total="3"');
+    expect($result)->toContain('Catan');
 });
 
 it('encodes the query parameter in the URL', function () {
@@ -96,8 +93,8 @@ it('retries on 202 cache miss', function () {
 
     $result = $this->client->search('Catan');
 
-    expect($result)->toBeInstanceOf(SimpleXMLElement::class);
-    expect((string) $result['total'])->toBe('3');
+    expect($result)->toBeString();
+    expect($result)->toContain('total="3"');
     Http::assertSentCount(2);
 });
 
@@ -133,7 +130,7 @@ it('throws BggApiException on timeout', function () {
     $this->client->search('Catan');
 })->throws(BggApiException::class);
 
-it('throws BggParseException on invalid XML response', function () {
+it('returns raw body even for invalid XML (parsing is the parser concern)', function () {
     Http::fake([
         'boardgamegeek.com/xmlapi2/search*' => Http::response(
             'not valid xml',
@@ -142,8 +139,10 @@ it('throws BggParseException on invalid XML response', function () {
         ),
     ]);
 
-    $this->client->search('Catan');
-})->throws(BggParseException::class);
+    $result = $this->client->search('Catan');
+
+    expect($result)->toBe('not valid xml');
+});
 
 it('returns empty items when no results found', function () {
     $emptyResponse = <<<'XML'
@@ -161,9 +160,10 @@ XML;
 
     $result = $this->client->search('NonExistentGame12345');
 
-    expect($result)->toBeInstanceOf(SimpleXMLElement::class);
-    expect((string) $result['total'])->toBe('0');
-    expect($result->item)->toBeEmpty();
+    expect($result)->toBeString();
+    expect($result)->toContain('total="0"');
+    expect($result)->not->toContain('<item ');
+    expect($result)->not->toContain('<item>');
 });
 
 it('sends auth token when configured', function () {

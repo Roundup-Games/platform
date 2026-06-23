@@ -17,9 +17,7 @@ use App\Models\User;
 use App\Notifications\AccountSuspended;
 use App\Notifications\ContentRemoved;
 use App\Notifications\ContentReportWarning;
-use App\Services\BggClient;
 use App\Services\BggSyncService;
-use App\Services\BggXmlParser;
 use App\Services\GameSystemRequestService;
 use App\Services\VenueClaimService;
 use App\Services\VenueProposalService;
@@ -2345,12 +2343,7 @@ class ViewTicket extends BaseViewTicket
         $this->bggPreviewData = null;
 
         try {
-            $xml = app(BggClient::class)->search($query);
-            $xmlString = $xml->asXML();
-            if ($xmlString === false) {
-                throw new \RuntimeException('Failed to serialize BGG search response.');
-            }
-            $results = app(BggXmlParser::class)->parseSearchResults($xmlString);
+            $results = app(BggSyncService::class)->search($query);
 
             $this->bggSearchResults = $results;
 
@@ -2387,14 +2380,7 @@ class ViewTicket extends BaseViewTicket
     protected function fetchBggPreview(int $bggId): void
     {
         try {
-            $xml = app(BggClient::class)->fetchThing([$bggId]);
-            $xmlString = $xml->asXML();
-            if ($xmlString === false) {
-                throw new \RuntimeException('Failed to serialize BGG thing response.');
-            }
-            $items = app(BggXmlParser::class)->parseItems($xmlString);
-
-            $this->bggPreviewData = $items[0] ?? null;
+            $this->bggPreviewData = app(BggSyncService::class)->previewGameSystem($bggId);
         } catch (\Throwable $e) {
             Log::warning('Failed to fetch BGG preview data', [
                 'bgg_id' => $bggId,

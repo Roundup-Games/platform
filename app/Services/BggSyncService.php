@@ -75,9 +75,7 @@ class BggSyncService
                     'ids' => $batch,
                 ]);
 
-                $xml = $this->client->fetchThing($batch);
-                $xmlString = $xml->asXML();
-                assert($xmlString !== false, 'Failed to serialize BGG XML response');
+                $xmlString = $this->client->fetchThing($batch);
                 $items = $this->parser->parseItems($xmlString);
 
                 foreach ($items as $parsed) {
@@ -217,6 +215,34 @@ class BggSyncService
     }
 
     /**
+     * Search BGG for board games matching a query.
+     *
+     * Returns lightweight results (id, name, year, type) without statistics.
+     * Exposed for the admin ticket UI so it doesn't wire client→parser directly.
+     *
+     * @return array<int, array{bgg_id: int, name: string, year_released: int|null, bgg_type: string}>
+     */
+    public function search(string $query): array
+    {
+        return $this->parser->parseSearchResults($this->client->search($query));
+    }
+
+    /**
+     * Fetch a preview of a single BGG thing without upserting it.
+     *
+     * Returns the full parsed item data for display, or null if not found.
+     * Exposed for the admin ticket UI's preview-before-sync flow.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function previewGameSystem(int $bggId): ?array
+    {
+        $items = $this->parser->parseItems($this->client->fetchThing([$bggId]));
+
+        return $items[0] ?? null;
+    }
+
+    /**
      * Resolve a unique slug for the game system.
      *
      * BGG has duplicate names across different bgg_ids (e.g., multiple
@@ -251,9 +277,7 @@ class BggSyncService
                 'base_game_bgg_id' => $bggId,
             ]);
 
-            $xml = $this->client->fetchThing([$bggId]);
-            $xmlString = $xml->asXML();
-            assert($xmlString !== false, 'Failed to serialize BGG XML response');
+            $xmlString = $this->client->fetchThing([$bggId]);
             $items = $this->parser->parseItems($xmlString);
 
             if (empty($items)) {

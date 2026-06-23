@@ -6,7 +6,6 @@ use App\Exceptions\BggApiException;
 use App\Exceptions\BggParseException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use SimpleXMLElement;
 
 class BggClient
 {
@@ -43,68 +42,16 @@ class BggClient
      * Handles BGG's 202 cache-miss responses with automatic retry.
      *
      * @param  array<int, int>  $ids  One or more BGG thing IDs
-     * @return SimpleXMLElement The parsed XML response
+     * @return string The raw XML response body
      *
      * @throws BggApiException on non-recoverable HTTP errors
      */
-    public function fetchThing(array $ids): SimpleXMLElement
+    public function fetchThing(array $ids): string
     {
         $idList = implode(',', $ids);
         $url = "{$this->baseUrl}/thing?id={$idList}&stats=1&type=boardgame,boardgameexpansion";
 
-        $attempt = 0;
-        $lastSleepUntil = null;
-
-        while (true) {
-            $attempt++;
-
-            // Respect rate limiting between requests
-            if ($lastSleepUntil !== null) {
-                $wait = $lastSleepUntil - microtime(true);
-                if ($wait > 0) {
-                    usleep((int) ($wait * 1_000_000));
-                }
-            }
-
-            try {
-                $request = Http::timeout(30);
-
-                if ($this->token) {
-                    $request = $request->withToken($this->token);
-                }
-
-                $response = $request->get($url);
-            } catch (ConnectionException $e) {
-                throw BggApiException::timeout($url);
-            }
-
-            $lastSleepUntil = microtime(true) + $this->rateLimitSeconds;
-
-            if ($response->status() === 202) {
-                // BGG cache miss — retry after delay
-                if ($attempt >= $this->maxRetries) {
-                    throw BggApiException::requestFailed(202, $url);
-                }
-
-                sleep($this->retrySleepSeconds);
-
-                continue;
-            }
-
-            if ($response->status() === 401 || $response->status() === 403) {
-                throw BggApiException::notAuthenticated();
-            }
-
-            if ($response->failed()) {
-                throw BggApiException::requestFailed($response->status(), $url);
-            }
-
-            try {
-                return new SimpleXMLElement($response->body());
-            } catch (\Throwable $e) {
-                throw BggParseException::fromXmlError($e);
-            }
-        }
+        return $this->request($url);
     }
 
     /**
@@ -115,14 +62,31 @@ class BggClient
      * with automatic retry using the same pattern as fetchThing().
      *
      * @param  string  $query  The search query (e.g. "Catan")
-     * @return SimpleXMLElement The parsed XML response containing <items> with <item> children
+     * @return string The raw XML response body
      *
      * @throws BggApiException on non-recoverable HTTP errors
      */
-    public function search(string $query): SimpleXMLElement
+    public function search(string $query): string
     {
-        $url = "{$this->baseUrl}/search?query=".urlencode($query).'&type=boardgame,boardgameexpansion';
+        $url = $this->baseUrl.'/search?query='.urlencode($query).'&type=boardgame,boardgameexpansion';
 
+        return $this->request($url);
+    }
+
+    /**
+     * Execute a BGG XML API2 request with rate limiting, retry, and auth.
+     *
+     * The single owner of the HTTP lifecycle: rate-limit wait, 202 cache-miss
+     * retry loop, auth-token injection, timeout handling, and error mapping.
+     * Returns the raw response body as a string -- XML parsing is the
+     * parser concern, not the client. Replaces the byte-for-byte duplicate loop
+     * previously inlined in both fetchThing() and search().
+     *
+     * @throws BggApiException on non-recoverable HTTP errors
+     * @throws BggParseException on malformed XML
+     */
+    private function request(string $url): string
+    {
         $attempt = 0;
         $lastSleepUntil = null;
 
@@ -138,14 +102,14 @@ class BggClient
             }
 
             try {
-                $request = Http::timeout(30);
+                $httpRequest = Http::timeout(30);
 
                 if ($this->token) {
-                    $request = $request->withToken($this->token);
+                    $httpRequest = $httpRequest->withToken($this->token);
                 }
 
-                $response = $request->get($url);
-            } catch (ConnectionException $e) {
+                $response = $httpRequest->get($url);
+            } catch (ConnectionException) {
                 throw BggApiException::timeout($url);
             }
 
@@ -170,11 +134,7 @@ class BggClient
                 throw BggApiException::requestFailed($response->status(), $url);
             }
 
-            try {
-                return new SimpleXMLElement($response->body());
-            } catch (\Throwable $e) {
-                throw BggParseException::fromXmlError($e);
-            }
+            return $response->body();
         }
     }
 }
