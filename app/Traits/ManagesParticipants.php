@@ -173,7 +173,7 @@ trait ManagesParticipants
         $entity = $this->getEntity();
         $participant = $this->participantService()->findParticipant($entity, $participantId);
 
-        $result = $this->participantService()->approveApplication(
+        $result = app(ParticipantLifecycle::class)->approveApplication(
             $participant,
             $entity,
             authenticatedUser(),
@@ -191,7 +191,7 @@ trait ManagesParticipants
         $entity = $this->getEntity();
         $participant = $this->participantService()->findParticipant($entity, $participantId);
 
-        $result = $this->participantService()->rejectApplication(
+        $result = app(ParticipantLifecycle::class)->rejectApplication(
             $participant,
             $entity,
             authenticatedUser(),
@@ -211,7 +211,7 @@ trait ManagesParticipants
         $entity = $this->getEntity();
         $participant = $this->participantService()->findParticipant($entity, $participantId);
 
-        $result = $this->participantService()->removeParticipant(
+        $result = app(ParticipantLifecycle::class)->removeParticipant(
             $participant,
             $entity,
             authenticatedUser(),
@@ -233,7 +233,7 @@ trait ManagesParticipants
         $entity = $this->getEntity();
         $participant = $this->participantService()->findPendingInvite($entity, $participantId);
 
-        $result = $this->participantService()->cancelInvite(
+        $result = app(ParticipantLifecycle::class)->cancelInvite(
             $participant,
             authenticatedUser(),
         );
@@ -252,7 +252,7 @@ trait ManagesParticipants
         $participant = $this->participantService()->findParticipant($entity, $participantId);
         $authUser = authenticatedUser();
 
-        $result = $this->participantService()->acceptInvitation(
+        $result = app(ParticipantLifecycle::class)->acceptInvitation(
             $participant,
             $entity,
             $authUser,
@@ -276,7 +276,7 @@ trait ManagesParticipants
         $participant = $this->participantService()->findParticipant($entity, $participantId);
         $authUser = authenticatedUser();
 
-        $result = $this->participantService()->declineInvitation(
+        $result = app(ParticipantLifecycle::class)->declineInvitation(
             $participant,
             $authUser,
         );

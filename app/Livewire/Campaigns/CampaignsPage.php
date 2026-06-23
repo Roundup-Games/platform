@@ -17,7 +17,6 @@ use App\Services\ActivityLogService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use App\Services\ParticipantLifecycle;
-use App\Services\ParticipantService;
 use App\Services\Roster;
 use App\Traits\EditsVenueLocation;
 use Illuminate\Contracts\View\View;
@@ -411,7 +410,7 @@ class CampaignsPage extends Component
             return;
         }
 
-        $result = app(ParticipantService::class)->acceptInvitation(
+        $result = app(ParticipantLifecycle::class)->acceptInvitation(
             $participant,
             $campaign,
             authenticatedUser(),
@@ -433,7 +432,7 @@ class CampaignsPage extends Component
             return;
         }
 
-        $result = app(ParticipantService::class)->declineInvitation(
+        $result = app(ParticipantLifecycle::class)->declineInvitation(
             $participant,
             authenticatedUser(),
         );

@@ -168,7 +168,7 @@ describe('Capacity and Counting Correctness', function () {
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
-            $result = $this->service->acceptInvitation($participant, $game, $extraPlayer);
+            $result = $this->lifecycle->acceptInvitation($participant, $game, $extraPlayer);
 
             expect($result->success)->toBeTrue();
             expect($participant->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
@@ -201,7 +201,7 @@ describe('Capacity and Counting Correctness', function () {
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
-            $result = $this->service->acceptInvitation($participant, $game, $lastPlayer);
+            $result = $this->lifecycle->acceptInvitation($participant, $game, $lastPlayer);
 
             expect($result->success)->toBeTrue();
             expect($participant->fresh()->status->value)->toBe('approved');
@@ -521,7 +521,7 @@ describe('Capacity and Counting Correctness', function () {
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
-            $result = $this->service->acceptInvitation($participant, $game, $invited);
+            $result = $this->lifecycle->acceptInvitation($participant, $game, $invited);
 
             // Should be overflowed — game is at capacity with owner alone
             expect($result->success)->toBeTrue();
