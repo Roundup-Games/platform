@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Exceptions\BggApiException;
-use App\Exceptions\BggParseException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
@@ -83,7 +82,6 @@ class BggClient
      * previously inlined in both fetchThing() and search().
      *
      * @throws BggApiException on non-recoverable HTTP errors
-     * @throws BggParseException on malformed XML
      */
     private function request(string $url): string
     {
