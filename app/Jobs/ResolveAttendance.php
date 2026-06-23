@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\AttendanceResolutionMethod;
 use App\Models\Game;
-use App\Services\AttendanceService;
+use App\Services\AttendanceResolutionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Log;
  *   2. Single-game mode ($game provided): resolves a specific game with the
  *      given method (e.g., EarlyConsensus dispatched from submitReport).
  *
- * Delegates to AttendanceService::resolveGameAttendance() which applies the
+ * Delegates to AttendanceResolutionService::resolveGameAttendance() which applies the
  * consensus engine and marks the game as resolved. The idempotent guard there
  * prevents double-resolution.
  */
@@ -61,7 +61,7 @@ class ResolveAttendance implements ShouldQueue
         $this->method = $method;
     }
 
-    public function handle(AttendanceService $attendanceService): void
+    public function handle(AttendanceResolutionService $resolutionService): void
     {
         // Single-game mode: resolve a specific game
         if ($this->game !== null) {
@@ -70,7 +70,7 @@ class ResolveAttendance implements ShouldQueue
                 'method' => $this->method->value ?? 'timeout',
             ]);
 
-            $attendanceService->resolveGameAttendance(
+            $resolutionService->resolveGameAttendance(
                 $this->game,
                 $this->method ?? AttendanceResolutionMethod::Timeout,
             );
@@ -91,11 +91,11 @@ class ResolveAttendance implements ShouldQueue
         Game::where('attendance_window_closes_at', '<=', now())
             ->whereNull('attendance_resolved_at')
             ->withCount('participants')
-            ->chunkById(100, function ($games) use ($attendanceService, &$gameCount, &$totalParticipants) {
+            ->chunkById(100, function ($games) use ($resolutionService, &$gameCount, &$totalParticipants) {
                 foreach ($games as $game) {
                     $participantCount = $game->participants_count;
 
-                    $attendanceService->resolveGameAttendance(
+                    $resolutionService->resolveGameAttendance(
                         $game,
                         AttendanceResolutionMethod::Timeout,
                     );

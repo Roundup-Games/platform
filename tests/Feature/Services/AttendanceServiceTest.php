@@ -9,12 +9,14 @@ use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Services\AttendanceResolutionService;
 use App\Services\AttendanceService;
 use App\Services\ReliabilityScoreService;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     $this->service = app(AttendanceService::class);
+    $this->resolutionService = app(AttendanceResolutionService::class);
 });
 
 // ── Helpers ──────────────────────────────────────────────
@@ -374,7 +376,7 @@ describe('markCorroborated', function () {
             'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
         ]);
 
-        $count = $this->service->markCorroborated($game);
+        $count = $this->resolutionService->markCorroborated($game);
 
         expect($count)->toBe(2);
         expect(AttendanceReport::where('game_id', $game->id)->where('reported_id', $reported->id)->count())
@@ -397,7 +399,7 @@ describe('markCorroborated', function () {
             'status' => 'no_show', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
         ]);
 
-        $count = $this->service->markCorroborated($game);
+        $count = $this->resolutionService->markCorroborated($game);
 
         expect($count)->toBe(0);
         expect(AttendanceReport::where('game_id', $game->id)->where('reported_id', $reported->id)->where('is_corroborated', true)->count())
@@ -418,7 +420,7 @@ describe('markCorroborated', function () {
             'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
         ]);
 
-        $count = $this->service->markCorroborated($game);
+        $count = $this->resolutionService->markCorroborated($game);
 
         expect($count)->toBe(0);
         expect(AttendanceReport::where('game_id', $game->id)->where('reported_id', $reported->id)->where('is_corroborated', true)->count())
@@ -438,8 +440,8 @@ describe('markCorroborated', function () {
             'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
         ]);
 
-        expect($this->service->markCorroborated($game))->toBe(2);
-        expect($this->service->markCorroborated($game))->toBe(0);
+        expect($this->resolutionService->markCorroborated($game))->toBe(2);
+        expect($this->resolutionService->markCorroborated($game))->toBe(0);
     });
 
     it('re-satisfies the threshold even if one report is already corroborated', function () {
@@ -459,7 +461,7 @@ describe('markCorroborated', function () {
             'status' => 'attended', 'weight_applied' => 1.0, 'is_corroborated' => false, 'quarantined' => false,
         ]);
 
-        $count = $this->service->markCorroborated($game);
+        $count = $this->resolutionService->markCorroborated($game);
 
         expect($count)->toBe(1); // only the still-false one flips
         expect(AttendanceReport::where('game_id', $game->id)->where('reported_id', $reported->id)->where('is_corroborated', true)->count())

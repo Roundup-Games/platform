@@ -9,6 +9,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\AttendanceResolutionService;
 use App\Services\AttendanceService;
 use App\Services\ReliabilityScoreService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -80,11 +81,25 @@ function fileReport(Game $game, User $reporter, User $reported, string $status, 
 
 /**
  * Get the attendance_service instance with a mocked ReliabilityScoreService.
- * Returns [AttendanceService, MockInterface].
+ * Returns [AttendanceResolutionService, MockInterface].
  *
  * The mock absorbs recomputeAfterAttendance calls so tests don't cascade.
  */
 function getAttendanceServiceWithMock(): array
+{
+    $mock = mock(ReliabilityScoreService::class, function (MockInterface $m) {
+        $m->shouldReceive('recomputeAfterAttendance')->zeroOrMoreTimes();
+    });
+
+    return [new AttendanceResolutionService($mock), $mock];
+}
+
+/**
+ * Returns [AttendanceService, MockInterface] — the intake service for tests
+ * that exercise submitReport (which delegates to AttendanceResolutionService
+ * via app() for markCorroborated and the early-consensus job dispatch).
+ */
+function getAttendanceIntakeServiceWithMock(): array
 {
     $mock = mock(ReliabilityScoreService::class, function (MockInterface $m) {
         $m->shouldReceive('recomputeAfterAttendance')->zeroOrMoreTimes();
@@ -567,7 +582,7 @@ describe('early resolution', function () {
 describe('rate limiting', function () {
     test('blocks a user after 10 attendance submissions within a minute', function () {
         ['game' => $game, 'host' => $host, 'players' => $players] = createCompletedGameWithPlayers(3);
-        [$service, $mock] = getAttendanceServiceWithMock();
+        [$service, $mock] = getAttendanceIntakeServiceWithMock();
 
         // The rate limiter increments on every submitReport call regardless of
         // downstream validation. Fire 10 attempts to exhaust the bucket (these
@@ -589,7 +604,7 @@ describe('rate limiting', function () {
 
     test('the limit is per-user — a different user is not affected', function () {
         ['game' => $game, 'host' => $host, 'players' => $players] = createCompletedGameWithPlayers(3);
-        [$service, $mock] = getAttendanceServiceWithMock();
+        [$service, $mock] = getAttendanceIntakeServiceWithMock();
 
         // Host exhausts their limiter
         for ($i = 0; $i < 11; $i++) {
@@ -712,7 +727,7 @@ describe('corroboration during resolution', function () {
         // stayed is_corroborated=false. With corroboration restored, the host's
         // reports get corroborated by a second independent reporter and drop out
         // of the uncorroborated-game count.
-        [$service, $mock] = getAttendanceServiceWithMock();
+        [$service, $mock] = getAttendanceIntakeServiceWithMock();
 
         // Host under test
         $host = User::factory()->create(['profile_complete' => true]);

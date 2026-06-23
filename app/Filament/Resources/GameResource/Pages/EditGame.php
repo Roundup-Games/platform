@@ -6,7 +6,7 @@ use App\Enums\AttendanceResolutionMethod;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameResource;
 use App\Models\Game;
-use App\Services\AttendanceService;
+use App\Services\AttendanceResolutionService;
 use App\Services\SeoCacheService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -43,8 +43,8 @@ class EditGame extends EditRecord
                 ->action(function () {
                     /** @var Game $record */
                     $record = $this->getRecord();
-                    /** @var AttendanceService $service */
-                    $service = app(AttendanceService::class);
+                    /** @var AttendanceResolutionService $service */
+                    $service = app(AttendanceResolutionService::class);
                     $service->resolveGameAttendance(
                         $record,
                         AttendanceResolutionMethod::Manual,
