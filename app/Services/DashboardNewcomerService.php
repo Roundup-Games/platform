@@ -89,7 +89,7 @@ class DashboardNewcomerService
      * Each game gets relevance_tags for UI badges:
      *   - matches_your_taste: game uses a preferred system
      *   - popular_nearby: participant count ≥ 3
-     *   - filling_fast: ≤ 2 spots remaining
+     *   - filling_fast: participant_count >= max_players * 0.7
      *   - starting_soon: within 3 days
      *
      * @return array<string, mixed>
@@ -145,7 +145,9 @@ class DashboardNewcomerService
             $relevanceTags = [
                 'matches_your_taste' => in_array($game->game_system_id, $preferredSystemIds),
                 'popular_nearby' => $participantCount >= 3,
-                'filling_fast' => $game->max_players !== null && $participantCount >= ($game->max_players * 0.7),
+                // Truthy guard matches the HasCapacity convention (null OR 0 = unlimited)
+                // and the sibling DashboardDiscoveryService — an unlimited game can't fill.
+                'filling_fast' => $game->max_players && $participantCount >= ($game->max_players * 0.7),
                 'starting_soon' => $game->date_time !== null && now()->diffInDays($game->date_time, false) <= 3,
             ];
 
