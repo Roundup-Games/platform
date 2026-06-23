@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CampaignStatus;
 use App\Enums\Visibility;
+use App\Models\Concerns\HasCapacity;
 use App\Relations\StringKeyMorphMany;
 use App\Services\ShortLinkService;
 use App\Services\SocialGraphService;
@@ -40,6 +41,8 @@ use Spatie\Translatable\HasTranslations;
  */
 class Campaign extends Model
 {
+    use HasCapacity;
+
     /** @use HasFactory<CampaignFactory> */
     use HasFactory;
 

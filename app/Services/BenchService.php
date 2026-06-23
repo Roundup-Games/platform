@@ -47,11 +47,7 @@ class BenchService
             $entityClass = $isCampaign ? Campaign::class : Game::class;
             $lockedEntity = $entityClass::lockForUpdate()->findOrFail($entity->id);
 
-            $approvedCount = $lockedEntity->participants()
-                ->where('status', ParticipantStatus::Approved->value)
-                ->count();
-
-            if ($approvedCount < $lockedEntity->max_players) {
+            if (! $lockedEntity->isAtCapacity()) {
                 throw new \LogicException('Cannot add to bench: entity is not full.');
             }
 

@@ -162,11 +162,7 @@ class ParticipantLifecycle
             $foreignId = $locked->getAttribute($meta->foreignKey);
             $lockedEntity = $meta->entityClass::lockForUpdate()->findOrFail($foreignId);
 
-            $approvedCount = $lockedEntity->participants()
-                ->where('status', ParticipantStatus::Approved->value)
-                ->count();
-
-            if ($lockedEntity->max_players !== null && $approvedCount >= $lockedEntity->max_players) {
+            if ($lockedEntity->isAtCapacity()) {
                 throw new \LogicException('Cannot promote: entity is full.');
             }
 
@@ -493,11 +489,7 @@ class ParticipantLifecycle
                 return 'invalid';
             }
 
-            $currentCount = $lockedEntity->participants()
-                ->where('status', ParticipantStatus::Approved)
-                ->count();
-
-            if ($lockedEntity->max_players && $currentCount >= $lockedEntity->max_players) {
+            if ($lockedEntity->isAtCapacity()) {
                 app(OverflowRouter::class)->placeAcceptedInvitee($lockedParticipant, $lockedEntity, $meta);
 
                 return 'overflow';

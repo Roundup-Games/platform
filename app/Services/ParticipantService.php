@@ -444,29 +444,25 @@ class ParticipantService
      * Count of approved participants INCLUDING the owner.
      *
      * The owner is an explicit participant record with status=Approved,
-     * so they are counted naturally by this query. Use this for capacity
-     * calculations where the owner occupies a seat.
+     * so they are counted naturally. Delegates to the canonical implementation
+     * on the entity ({@see HasCapacity::approvedParticipantCount()}).
      */
     public function getApprovedParticipantCount(Game|Campaign $entity): int
     {
-        return $entity->participants()
-            ->where('status', ParticipantStatus::Approved)
-            ->count();
+        return $entity->approvedParticipantCount();
     }
 
     /**
      * Check if the entity has reached max_players capacity.
      *
-     * Accounts for the owner as a player. Returns false when max_players
-     * is not set (unlimited capacity).
+     * Delegates to the canonical implementation on the entity
+     * ({@see HasCapacity::isAtCapacity()}) so every "is it full?" decision —
+     * read path, write path, and tests — resolves through one predicate.
+     * Returns false when max_players is null or 0 (unlimited capacity).
      */
     public function isAtCapacity(Game|Campaign $entity): bool
     {
-        if (! $entity->max_players) {
-            return false;
-        }
-
-        return $this->getApprovedParticipantCount($entity) >= $entity->max_players;
+        return $entity->isAtCapacity();
     }
 
     // ── Private helpers ────────────────────────────────

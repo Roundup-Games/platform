@@ -6,6 +6,7 @@ use App\Enums\DisclosureLevel;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\Visibility;
+use App\Models\Concerns\HasCapacity;
 use App\Relations\StringKeyMorphMany;
 use App\Services\LocationDisclosureService;
 use App\Services\ShortLinkService;
@@ -54,6 +55,8 @@ use Spatie\Translatable\HasTranslations;
  */
 class Game extends Model
 {
+    use HasCapacity;
+
     /** @use HasFactory<GameFactory> */
     use HasFactory;
 
