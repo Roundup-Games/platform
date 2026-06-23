@@ -358,25 +358,22 @@ class WaitlistService
     /**
      * Remove a waitlisted participant (sets status to Rejected).
      *
+     * Delegates to ParticipantLifecycle::depart() for the actual transition +
+     * audit trail. Previously this set status=Rejected without stamping
+     * removed_by / removed_at onto the row — the same audit gap hop 2 closed
+     * for the self-leave paths and hop 4 closed for the bench paths. Routing
+     * through depart() makes the audit trail uniform across every departure
+     * surface (host-remove, self-leave, bench-remove, waitlist-remove).
+     *
      * @throws \LogicException if participant is not waitlisted
      */
     public function removeFromWaitlist(Participant $participant, ?User $remover = null): void
     {
-        $meta = $participant->getEntityMeta();
-
         if ($participant->getStatus() !== ParticipantStatus::Waitlisted) {
             throw new \LogicException('Participant is not on the waitlist.');
         }
 
-        $participant->update(['status' => ParticipantStatus::Rejected->value]);
-
-        Log::info('waitlist.removed', [
-            'entity_type' => $meta->type,
-            $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
-            'participant_id' => $participant->getId(),
-            'user_id' => $participant->getUserId(),
-            'removed_by' => $remover !== null ? $remover->id : 'system',
-        ]);
+        app(ParticipantLifecycle::class)->depart($participant, $remover);
     }
 
     /**
