@@ -337,11 +337,15 @@ class ReportContent extends Component
             return null; // Users don't have an "owner"
         }
 
-        // Games and campaigns have an owner relationship
+        // Games and campaigns have an owner relationship. Use the loaded relation
+        // directly — name is an Eloquent DB column (in $attributes), NOT a real
+        // property, so the prior property_exists($owner, 'name') guard was always
+        // false and fell through to the owner_id fallback, costing a wasted query
+        // (and a second User::find) per content report.
         if (method_exists($entity, 'owner')) {
             $owner = $entity->getAttribute('owner');
-            if (is_object($owner) && property_exists($owner, 'name')) {
-                return is_string($owner->name) ? $owner->name : '';
+            if ($owner instanceof User) {
+                return $owner->name;
             }
         }
 

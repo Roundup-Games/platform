@@ -393,3 +393,28 @@ it('rate limiter does not affect different users', function () {
 
     expect(Ticket::where('ticket_type', 'content_report')->count())->toBe(2);
 });
+
+// ── Entity-owner resolution ─────────────────────────
+
+it('records the game owner name in the safety ticket metadata', function () {
+    seedSafetyDepartment();
+    seedReportTags();
+
+    ['game' => $game, 'owner' => $owner] = createReportableGame();
+    $reporter = User::factory()->create(['profile_complete' => true]);
+
+    // resolveEntityOwner() previously guarded the loaded owner relation with
+    // property_exists($owner, 'name') — always false for Eloquent models — so the
+    // branch was dead and it fell back to User::find($owner_id) (a wasted second
+    // query). This guards that the owner name is resolved from the loaded relation
+    // and surfaced in the ticket context.
+    Livewire::actingAs($reporter)
+        ->test(ReportContent::class, ['entityType' => 'game', 'entityId' => $game->id])
+        ->call('openModal')
+        ->set('reason', 'spam')
+        ->call('submitReport')
+        ->assertSet('successMessage', __('reports.flash_report_submitted'));
+
+    $ticket = Ticket::where('ticket_type', 'content_report')->first();
+    expect($ticket->metadata['context']['entity_owner'])->toBe($owner->name);
+});

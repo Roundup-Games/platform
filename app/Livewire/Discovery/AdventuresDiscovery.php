@@ -225,15 +225,15 @@ class AdventuresDiscovery extends Component
         // Campaigns boosted (sorted first), then games by date
         $perPage = $this->displayCount;
 
-        $campaigns = $campaignsQuery->get()->each(fn ($item) => [
-            $item->discoverable_type = 'campaign',
-            $item->discoverable_sort_key = PHP_INT_MAX - (int) ($item->created_at->timestamp ?? 0),
-        ]);
+        $campaigns = $campaignsQuery->get()->each(function ($item) {
+            $item->discoverable_type = 'campaign';
+            $item->discoverable_sort_key = PHP_INT_MAX - (int) ($item->created_at->timestamp ?? 0);
+        });
 
-        $games = $gamesQuery->get()->each(fn ($item) => [
-            $item->discoverable_type = 'game',
-            $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0),
-        ]);
+        $games = $gamesQuery->get()->each(function ($item) {
+            $item->discoverable_type = 'game';
+            $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0);
+        });
 
         $merged = collect()->merge($campaigns)->merge($games);
 

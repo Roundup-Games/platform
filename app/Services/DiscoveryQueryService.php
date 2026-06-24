@@ -218,12 +218,16 @@ class DiscoveryQueryService
             ['limit' => 200, 'status_filter' => false],
         );
 
-        $nearbyCampaignIds = $this->campaignSessionGames($nearbyResults)
-            ->pluck('entity.campaign_id')
-            ->filter(fn (mixed $v) => is_string($v))
-            ->unique()
-            ->values()
-            ->toArray();
+        // Campaign ID set via the shared nearest-session primitive. Only the keys
+        // are needed (to constrain the WHERE IN), but routing through
+        // nearestSessionByCampaign keeps one source of truth for campaign-session
+        // detection across the discovery paths. Keys are string campaign IDs by
+        // construction (the primitive filters getAttribute('campaign_id') through
+        // is_string).
+        $nearbyCampaignIds = $this->proximity
+            ->nearestSessionByCampaign($nearbyResults)
+            ->keys()
+            ->all();
 
         $query->whereIn('id', $nearbyCampaignIds);
     }
@@ -260,6 +264,10 @@ class DiscoveryQueryService
     /**
      * Get a distance map [campaign_id => distance_km] for campaigns via their scheduled sessions' locations.
      *
+     * Delegates the "group by campaign, keep nearest session" pipeline to
+     * {@see ProximityQuery::nearestSessionByCampaign()} — the single tested source
+     * of truth shared with NearbySessions.
+     *
      * @return array<string, mixed>
      */
     public function getProximityCampaignDistances(float $lat, float $lng, float $radiusKm): array
@@ -272,65 +280,10 @@ class DiscoveryQueryService
             ['limit' => 200, 'status_filter' => false],
         );
 
-        return $this->campaignSessionGames($gameResults)
-            ->groupBy('entity.campaign_id')
-            ->map(function (mixed $group) {
-                if (! $group instanceof Collection) { // @phpstan-ignore instanceof.alwaysTrue
-                    return null;
-                }
-                // sortBy() takes a single-argument KEY EXTRACTOR, not a two-argument
-                // comparator: the prior ($a, $b) form left $b unbound, so the <=>
-                // evaluated to 0 for every item and the stable sort preserved insertion
-                // order — campaign distance reflected an arbitrary session, not the
-                // nearest one. campaignSessionGames() guarantees every element is a
-                // ProximityResult, so the extractor is typed accordingly.
-                $first = $group->sortBy(fn (ProximityResult $a) => $a->distanceKm)->first();
-                if (! $first instanceof ProximityResult) {
-                    return null;
-                }
-
-                return $first->distanceKm;
-            })
-            ->filter()
+        return $this->proximity
+            ->nearestSessionByCampaign($gameResults)
+            ->map(fn (ProximityResult $r) => $r->distanceKm)
             ->toArray();
-    }
-
-    /**
-     * Filter ProximityQuery game results down to campaign-session games.
-     *
-     * Every result's entity is a hydrated Game. A campaign-session game carries a
-     * non-null campaign_id; a standalone game does not. The correct test combines
-     * an instanceof Game guard (which lets static analysis resolve the campaign_id
-     * column) with a plain null check — Eloquent exposes columns through
-     * $attributes / the __get() magic accessor, NOT as real PHP properties, so the
-     * previous property_exists() check returned false for every hydrated model and
-     * silently dropped ALL campaigns from proximity-filtered discovery (both the
-     * campaigns query and the merged games+campaigns path returned zero campaigns
-     * whenever a location+radius was active). Centralised here so the two
-     * campaign-proximity consumers cannot drift apart again.
-     *
-     * @param  Collection<int, mixed>  $results
-     * @return Collection<int, ProximityResult<Model>>
-     */
-    private function campaignSessionGames(Collection $results): Collection
-    {
-        // Collection::filter() returns Collection<int, mixed> (it cannot narrow TValue
-        // via the predicate), so the declared ProximityResult return needs an explicit
-        // ignore on the return statement below.
-        return $results->filter(function (mixed $r) { // @phpstan-ignore return.type
-            if (! $r instanceof ProximityResult) {
-                return false;
-            }
-
-            // instanceof Game lets larastan resolve the campaign_id column (the base
-            // Model type does not declare it) and is runtime-correct: only Games
-            // carry campaign sessions.
-            if (! $r->entity instanceof Game) {
-                return false;
-            }
-
-            return $r->entity->campaign_id !== null;
-        });
     }
 
     // ── Paginated results ──────────────────────────────

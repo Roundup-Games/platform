@@ -300,37 +300,25 @@ class NearbySessions extends Component
             ['limit' => 50, 'status_filter' => true, 'visibility' => [Visibility::Public->value]],
         );
 
-        // Group by campaign_id to deduplicate
-        $campaignIds = $gameResults
-            ->filter(function (mixed $r) {
-                if (! $r instanceof ProximityResult) {
-                    return false;
-                }
+        // Each campaign's nearest session (deduplicated). Delegated to
+        // ProximityQuery::nearestSessionByCampaign() — the single tested source of
+        // truth shared with DiscoveryQueryService. The former inline copy misused
+        // sortBy() as a 2-arg comparator and picked an arbitrary — not nearest —
+        // session, surfacing a wrong distance per campaign.
+        $nearestByCampaign = $proximity->nearestSessionByCampaign($gameResults);
 
-                return $r->entity->getAttribute('campaign_id') !== null;
-            })
-            ->groupBy('entity.campaign_id')
-            ->map(function (mixed $group) {
-                if (! $group instanceof Collection) { // @phpstan-ignore instanceof.alwaysTrue
-                    return null;
-                }
-                $first = $group->sortBy(fn (mixed $a, mixed $b) => ($a instanceof ProximityResult && $b instanceof ProximityResult) ? $a->distanceKm <=> $b->distanceKm : 0)->first(); // @phpstan-ignore instanceof.alwaysFalse, booleanAnd.alwaysFalse
-
-                return $first instanceof ProximityResult ? $first : null;
-            });
-
-        if ($campaignIds->count() === 0) {
+        if ($nearestByCampaign->isEmpty()) {
             return collect();
         }
 
         // Load campaigns and map with distance
-        $campaigns = Campaign::whereIn('id', $campaignIds->keys())
+        $campaigns = Campaign::whereIn('id', $nearestByCampaign->keys())
             ->where('visibility', 'public')
             ->where('status', '!=', 'completed')
             ->get();
 
-        return $campaigns->map(function ($campaign) use ($campaignIds) {
-            $gameResult = $campaignIds->get($campaign->id);
+        return $campaigns->map(function ($campaign) use ($nearestByCampaign) {
+            $gameResult = $nearestByCampaign->get($campaign->id);
             $loc = $gameResult instanceof ProximityResult ? $gameResult->location : null;
             $dist = $gameResult instanceof ProximityResult ? $gameResult->distanceKm : 0;
 

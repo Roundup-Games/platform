@@ -284,6 +284,57 @@ class ProximityQuery
      * @param  float  $lng  Center longitude
      * @param  float  $radiusKm  Radius in kilometers
      */
+    /**
+     * Group nearby game results by campaign, keeping each campaign's NEAREST session.
+     *
+     * A campaign spreads its sessions across Game rows that may sit at several
+     * locations; discovery and the nearby-sessions widget both want the closest
+     * session per campaign. Centralised here — the owner of {@see ProximityResult}
+     * — so the two former inline copies (DiscoveryQueryService and NearbySessions)
+     * cannot drift apart again. Both copies misused sortBy() with a two-argument
+     * comparator (Laravel's sortBy takes a single-argument key extractor): the
+     * second arg was unbound, the comparator evaluated to 0 for every item, and a
+     * stable sort preserved insertion order — so each campaign resolved to an
+     * ARBITRARY session instead of the nearest, surfacing a wrong distance to
+     * users (and, in DiscoveryQueryService, the property_exists() sibling silently
+     * dropped every campaign).
+     *
+     * Campaign-session detection uses getAttribute() (Eloquent columns live in
+     * $attributes, not as real properties); standalone games (null campaign_id)
+     * are excluded.
+     *
+     * @param  Collection<int, mixed>  $gameResults  ProximityResult<Game> items from {@see nearby()}
+     * @return Collection<string, ProximityResult<Game>> Each campaign_id mapped to its nearest session
+     */
+    public function nearestSessionByCampaign(Collection $gameResults): Collection
+    {
+        // Collection::filter() cannot narrow TValue through the predicate, so the
+        // narrowed type is asserted once for the loop below.
+        /** @var Collection<int, ProximityResult<Game>> $campaignSessions */
+        $campaignSessions = $gameResults->filter(fn (mixed $r): bool => $r instanceof ProximityResult
+            && $r->entity instanceof Game
+            && $r->entity->getAttribute('campaign_id') !== null);
+
+        // Keep each campaign's nearest (lowest-distance) session. A plain loop is
+        // both PHPStan-clean (avoids the mixed-narrowing friction of the
+        // groupBy/sortBy chain) and O(n) — no per-group sort — for what is a
+        // minimum-distance reduction.
+        /** @var array<string, ProximityResult<Game>> $nearest */
+        $nearest = [];
+        foreach ($campaignSessions as $result) {
+            $campaignId = $result->entity->getAttribute('campaign_id');
+            if (! is_string($campaignId)) {
+                continue;
+            }
+            $current = $nearest[$campaignId] ?? null;
+            if ($current === null || $result->distanceKm < $current->distanceKm) {
+                $nearest[$campaignId] = $result;
+            }
+        }
+
+        return new Collection($nearest);
+    }
+
     public function boundingBox(float $lat, float $lng, float $radiusKm): BBox
     {
         $angularRadius = $radiusKm / self::EARTH_RADIUS_KM;
