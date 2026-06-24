@@ -11,6 +11,7 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\AttendanceResolutionService;
 use App\Services\AttendanceService;
+use App\Services\NotificationService;
 use App\Services\ReliabilityScoreService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Mockery\MockInterface;
@@ -528,6 +529,37 @@ describe('idempotency', function () {
         expect($resolvedAt1->toIso8601String())->toBe($resolvedAt2->toIso8601String());
         expect($status1)->toBe($status2);
         expect($status1)->toBe(AttendanceStatus::NoShow);
+    });
+
+    test('resolveGameAttendance called twice → AttendanceResolved notifications fire only once', function () {
+        ['game' => $game, 'host' => $host, 'players' => $players] = createCompletedGameWithPlayers(4);
+        $target = $players[0];
+
+        fileReport($game, $players[1], $target, 'no_show');
+        fileReport($game, $host, $target, 'no_show');
+
+        // Count NotificationService::send calls. Before the fix the notification
+        // fan-out ran unconditionally after the transaction, so a second (bailing)
+        // call re-sent an AttendanceResolved notification to every participant.
+        $sendCount = 0;
+        $this->app->instance(
+            NotificationService::class,
+            mock(NotificationService::class, function (MockInterface $m) use (&$sendCount) {
+                $m->shouldReceive('send')->andReturnUsing(function () use (&$sendCount) {
+                    $sendCount++;
+
+                    return null;
+                });
+            }),
+        );
+
+        [$service] = getAttendanceServiceWithMock();
+        $service->resolveGameAttendance($game);
+        // Second call bails inside the transaction (already resolved) — must not re-notify.
+        $service->resolveGameAttendance($game->fresh());
+
+        // 4 approved participants each notified exactly once on the first call.
+        expect($sendCount)->toBe(4);
     });
 });
 

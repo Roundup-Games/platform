@@ -5,6 +5,7 @@ use App\Enums\GameStatus;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\DashboardCacheService;
+use App\Services\DashboardDiscoveryService;
 use App\Services\DashboardEstablishedService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
@@ -41,6 +42,21 @@ function failingComputer(string $throwOn): DashboardEstablishedService
     };
 }
 
+// A DiscoveryService that blows up computing milestone cards. Used to prove the
+// MilestoneCards section (the one section computed by DashboardDiscoveryService,
+// reached via its getMilestoneCards consumer) degrades instead of re-throwing
+// through the assembler. DashboardDiscoveryService has no constructor.
+function failingDiscoveryComputer(): DashboardDiscoveryService
+{
+    return new class extends DashboardDiscoveryService
+    {
+        public function computeMilestoneCardsPublic(User $user): array
+        {
+            throw new RuntimeException('milestone boom');
+        }
+    };
+}
+
 describe('dashboard section failure isolation', function () {
     beforeEach(function () {
         Cache::flush();
@@ -71,7 +87,7 @@ describe('dashboard section failure isolation', function () {
         $log->shouldHaveReceived('warning', function (string $message, array $context): bool {
             return $message === 'dashboard.section_compute_failed'
                 && ($context['section'] ?? null) === 'week'
-                && ($context['exception'] ?? null) === RuntimeException::class
+                && ($context['exception_class'] ?? null) === RuntimeException::class
                 && ($context['error'] ?? null) === 'week boom';
         });
 
@@ -89,7 +105,7 @@ describe('dashboard section failure isolation', function () {
         $log = Log::spy();
         $service = app(DashboardCacheService::class);
 
-        // The lock path absorbs the throw inside computeSection, so the caller
+        // The lock path absorbs the throw inside computeAndStore, so the caller
         // never sees it; the section renders empty instead of erroring.
         $actionCenter = $service->getActionCenter($user);
         expect($actionCenter)->toBe([]);
@@ -119,6 +135,39 @@ describe('dashboard section failure isolation', function () {
             } else {
                 expect($fallback)->not->toBe([]);
             }
+        }
+    });
+
+    it('degrades a throwing MilestoneCards section via its consumer without re-throwing', function () {
+        $user = User::factory()->create();
+
+        // MilestoneCards is computed by DashboardDiscoveryService and reached
+        // through its getMilestoneCards() consumer, which the assembler calls
+        // unguarded. Previously that consumer recomputed outside the isolation
+        // wrapper on an empty cache read, re-throwing and blanking the dashboard.
+        $this->app->bind(DashboardDiscoveryService::class, fn () => failingDiscoveryComputer());
+
+        $log = Log::spy();
+        $service = app(DashboardDiscoveryService::class);
+
+        // The consumer returns the degraded empty list — no exception escapes.
+        $cards = $service->getMilestoneCards($user);
+        expect($cards)->toBe([]);
+
+        $log->shouldHaveReceived('warning', function (string $message, array $context): bool {
+            return $message === 'dashboard.section_compute_failed'
+                && ($context['section'] ?? null) === 'milestone_cards'
+                && ($context['exception_class'] ?? null) === RuntimeException::class;
+        });
+    });
+
+    it('caches degraded values at a short TTL so transient failures self-heal fast', function () {
+        foreach (DashboardSection::cases() as $section) {
+            // Degraded TTL must be shorter than the normal TTL, otherwise a brief
+            // blip serves an empty section for the full section TTL.
+            expect($section->degradedTtl())
+                ->toBeLessThan($section->ttl())
+                ->and($section->degradedTtl())->toBeLessThanOrEqual(120);
         }
     });
 });

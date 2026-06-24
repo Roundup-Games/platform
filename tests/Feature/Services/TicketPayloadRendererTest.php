@@ -168,6 +168,36 @@ class TicketPayloadRendererTest extends TestCase
         $this->assertStringContainsString('Board Game', $html);
     }
 
+    public function test_render_game_system_request_links_safe_bgg_url(): void
+    {
+        $ticket = $this->createTicket('game_system_request', TicketPayloadRenderer::gameSystemRequestPayload(
+            $this->user, 'Wingspan', 'https://boardgamegeek.com/boardgame/296912/wingspan', null, null, 'boardgame', null,
+        ));
+
+        $html = $this->renderer->renderStructured($ticket);
+
+        $this->assertNotNull($html);
+        $this->assertStringContainsString('href="https://boardgamegeek.com/boardgame/296912/wingspan"', $html);
+    }
+
+    public function test_render_game_system_request_never_links_unsafe_bgg_url_scheme(): void
+    {
+        // Laravel's `url` rule (filter_var) accepts the javascript:// scheme, so it can
+        // reach the metadata. It must never be emitted as a clickable href — that would
+        // be stored XSS executing in the admin session when clicked.
+        $ticket = $this->createTicket('game_system_request', TicketPayloadRenderer::gameSystemRequestPayload(
+            $this->user, 'Evil', 'javascript://x/%0aalert(document.cookie)', null, null, 'boardgame', null,
+        ));
+
+        $html = $this->renderer->renderStructured($ticket);
+
+        $this->assertNotNull($html);
+        $this->assertStringNotContainsString('href="javascript:', $html);
+        $this->assertStringNotContainsString("href='javascript:", $html);
+        // The value is still shown (auto-escaped as text), not executed.
+        $this->assertStringContainsString('javascript://x/', $html);
+    }
+
     public function test_render_billing_support_shows_subscription_context(): void
     {
         $ticket = $this->createTicket('billing_support', TicketPayloadRenderer::billingSupportPayload(

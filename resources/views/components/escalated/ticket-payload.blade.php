@@ -27,6 +27,10 @@
         $name = $metadata['game_system_name'] ?? $ticket->subject;
         $type = is_string($metadata['game_system_type'] ?? null) ? $metadata['game_system_type'] : null;
         $bggUrl = $metadata['bgg_url'] ?? null;
+        // Only http(s) URLs may ever become a link href. filter_var (Laravel's `url`
+        // rule) accepts the javascript:// scheme, which would be a stored-XSS vector
+        // when an admin clicks it. Non-safe / non-string values render as text.
+        $bggUrlSafe = is_string($bggUrl) && \Illuminate\Support\Str::startsWith($bggUrl, ['http://', 'https://']);
         $publisher = $metadata['publisher'] ?? null;
         $designer = $metadata['designer'] ?? null;
         $notes = $metadata['details'] ?? $ticket->description;
@@ -63,7 +67,13 @@
             @if ($bggUrl)
                 <div class="flex items-start gap-3">
                     <span class="text-sm text-on-surface-variant min-w-24">{{ __('BGG URL') }}</span>
-                    <a href="{{ $bggUrl }}" target="_blank" rel="noopener" class="text-sm text-primary hover:underline break-all">{{ $bggUrl }} <span class="material-symbols-outlined text-xs align-middle">open_in_new</span></a>
+                    @if ($bggUrlSafe)
+                        <a href="{{ $bggUrl }}" target="_blank" rel="noopener noreferrer" class="text-sm text-primary hover:underline break-all">{{ $bggUrl }} <span class="material-symbols-outlined text-xs align-middle">open_in_new</span></a>
+                    @else
+                        {{-- Non-http(s) URLs (e.g. javascript:) are never emitted as an href to
+                            prevent stored XSS. The value is still shown, auto-escaped, as text. --}}
+                        <span class="text-sm text-on-surface-variant break-all">{{ $bggUrl }}</span>
+                    @endif
                 </div>
             @endif
             @if ($publisher)

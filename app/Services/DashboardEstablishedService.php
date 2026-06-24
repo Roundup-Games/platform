@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\DB;
  * holds NO cache dependency and NO per-request mutable state.
  *
  * Mirrors {@see DashboardNewcomerService}: both are the sibling computers
- * dispatched by {@see DashboardCacheService::computeSection()} via the
+ * dispatched by {@see DashboardCacheService::dispatchCompute()} via the
  * container, keeping the cache module single-responsibility.
  */
 class DashboardEstablishedService

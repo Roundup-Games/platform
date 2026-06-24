@@ -69,17 +69,17 @@ class DashboardDiscoveryService
      */
     public function getMilestoneCards(User $user): array
     {
-        $cached = app(DashboardCacheService::class)->getMilestoneCards($user);
+        $cards = app(DashboardCacheService::class)->getMilestoneCards($user);
 
-        if (! empty($cached)) {
-            /** @var array<int, array<string, mixed>> $cached */
-            return array_values($cached);
-        }
+        // Trust the cache layer: it computes + caches on miss and is failure-isolated
+        // (a throwing compute degrades to the section's empty fallback rather than
+        // blanking the whole Dashboard). The previous recompute-on-empty here
+        // defeated that isolation — it ran the raw computer outside the try/catch on
+        // every empty cache read, re-throwing and propagating through the assembler.
+        // The milestone cache is invalidated on game events, so freshness is preserved.
 
-        $cards = $this->computeMilestoneCards($user);
-
-        // The cache layer will warm on the read; return directly.
-        return $cards;
+        /** @var array<int, array<string, mixed>> $cards */
+        return array_values($cards);
     }
 
     /**

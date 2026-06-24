@@ -528,4 +528,59 @@ describe('Capacity and Counting Correctness', function () {
             expect($participant->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
         });
     });
+
+    // ── 6. Unlimited capacity convention (max_players = 0 means unlimited) ──
+    //
+    // The capacity refactor unified the predicate on HasCapacity::isAtCapacity() using
+    // the truthy convention: max_players of null OR 0 means unlimited (never at
+    // capacity). The prior inline checks split on `max_players !== null`, which
+    // treated max_players=0 as "0 slots / full" and wrongly blocked a promote-from-bench.
+    // These tests pin the truthy convention on the write paths so a future re-inline
+    // of the old `!== null` shape regresses loudly.
+    describe('unlimited capacity convention (max_players = 0 means unlimited)', function () {
+        it('isAtCapacity is never true for a max_players=0 game', function () {
+            $game = createGameWithOwner($this->system, 0);
+
+            // Owner already counts as 1 approved; an unlimited game is never full.
+            expect($game->isAtCapacity())->toBeFalse();
+        });
+
+        it('allows promoteFromBench on a max_players=0 game', function () {
+            $game = createGameWithOwner($this->system, 0);
+
+            // Bench the participant directly: addToBench() requires the entity to be
+            // full (which an unlimited game never is), but a Benched row can exist from
+            // a prior state. The promote path must honour "unlimited" and allow it.
+            $benchedUser = User::factory()->create();
+            $benched = GameParticipant::create([
+                'game_id' => $game->id,
+                'user_id' => $benchedUser->id,
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Benched->value,
+                'benched_at' => now(),
+            ]);
+
+            $this->lifecycle->promoteFromBench($benched);
+
+            expect($benched->fresh()->status)->toBe(ParticipantStatus::Approved);
+        });
+
+        it('approves (does not overflow) acceptInvitation on a max_players=0 game', function () {
+            $game = createGameWithOwner($this->system, 0);
+
+            $invited = User::factory()->create();
+            $participant = GameParticipant::create([
+                'game_id' => $game->id,
+                'user_id' => $invited->id,
+                'role' => ParticipantRole::Invited->value,
+                'status' => ParticipantStatus::Pending->value,
+                'join_source' => JoinSource::FriendInvite,
+            ]);
+
+            $result = $this->lifecycle->acceptInvitation($participant, $game, $invited);
+
+            expect($result->success)->toBeTrue()
+                ->and($participant->fresh()->status)->toBe(ParticipantStatus::Approved);
+        });
+    });
 });

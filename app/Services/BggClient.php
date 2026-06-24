@@ -30,7 +30,9 @@ class BggClient
         $this->baseUrl = $baseUrl ?? (is_string($url = config('services.bgg.base_url')) ? $url : '');
         $this->token = $token ?? (is_string($t = config('services.bgg.token')) ? $t : null);
         $rlConfig = config('services.bgg.rate_limit_seconds', 2);
-        $this->rateLimitSeconds = $rateLimitSeconds ?? (is_int($rlConfig) ? $rlConfig : 2);
+        // env() returns strings, so is_int() always failed and the config knob was dead —
+        // operators could not tune the BGG throttle. Coerce to int (non-numeric falls back to 2).
+        $this->rateLimitSeconds = $rateLimitSeconds ?? (is_numeric($rlConfig) ? (int) $rlConfig : 2);
         $this->maxRetries = $maxRetries;
         $this->retrySleepSeconds = $retrySleepSeconds;
     }

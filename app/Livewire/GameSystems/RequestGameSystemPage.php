@@ -49,7 +49,10 @@ class RequestGameSystemPage extends Component
         return [
             'name' => 'required|string|max:255',
             'type' => 'required|string|in:boardgame,ttrpg,other',
-            'bgg_url' => 'nullable|string|url|max:500',
+            // `url` uses filter_var, which accepts the javascript:// scheme — a stored-XSS
+            // vector where the URL is later rendered into an admin-facing href. Pin the
+            // scheme to http(s) at the input boundary (render-side guard is defense-in-depth).
+            'bgg_url' => ['nullable', 'string', 'url', 'max:500', 'regex:#^https?://#i'],
             'publisher' => 'nullable|string|max:255',
             'designer' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:2000',

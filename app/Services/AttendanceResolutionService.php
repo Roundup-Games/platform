@@ -99,7 +99,15 @@ class AttendanceResolutionService
         $participationThreshold = static::participationThreshold();
         $noShowMajority = static::noShowMajority();
 
-        DB::transaction(function () use ($game, $participants, $totalParticipants, $resolutionMethod, $allReports, $participationThreshold, $noShowMajority) {
+        // Whether THIS call actually performed the resolution. The transaction may
+        // bail when a concurrent caller (early-consensus job vs timeout sweeper, or
+        // a retried job whose first attempt already resolved) won the lockForUpdate
+        // race. The notification fan-out below must only fire when this caller did
+        // the work — otherwise a bailing caller re-sends an AttendanceResolved
+        // notification to every participant (duplicate user-visible notifications).
+        $resolved = false;
+
+        DB::transaction(function () use ($game, $participants, $totalParticipants, $resolutionMethod, $allReports, $participationThreshold, $noShowMajority, &$resolved) {
             // Lock the game row to prevent concurrent resolution (e.g., early-consensus
             // job and timeout sweeper racing for the same game).
             /** @var Game|null $locked */
@@ -258,12 +266,21 @@ class AttendanceResolutionService
                 'attendance_resolution_method' => $resolutionMethod->value,
             ])->save();
 
+            $resolved = true;
+
             Log::info('Game attendance resolved', [
                 'game_id' => $game->id,
                 'resolution_method' => $resolutionMethod->value,
                 'participants_resolved' => $participants->count(),
             ]);
         });
+
+        // Only fan out when THIS call performed the resolution. A concurrent winner
+        // (or a retried job) bailed inside the transaction and must not re-send
+        // AttendanceResolved notifications that the winning caller already sent.
+        if (! $resolved) {
+            return;
+        }
 
         // IMPORTANT: Refresh participants from DB after the transaction.
         // The in-memory $participants collection still holds pre-transaction values

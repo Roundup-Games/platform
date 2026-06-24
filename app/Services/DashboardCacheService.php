@@ -116,10 +116,9 @@ class DashboardCacheService
             ? $this->computeWithLock(
                 $section->lockKey($userId),
                 $cacheKey,
-                $section->ttl(),
-                fn () => $this->computeSection($section, $user, $geohash4),
+                fn () => $this->computeAndStore($section, $user, $geohash4, $cacheKey),
             )
-            : tap($this->computeSection($section, $user, $geohash4), fn ($d) => Cache::put($cacheKey, $d, $section->ttl()));
+            : $this->computeAndStore($section, $user, $geohash4, $cacheKey);
 
         $this->trackSectionKey($section, $userId, $cacheKey);
 
@@ -143,8 +142,7 @@ class DashboardCacheService
         $cacheKey = $section->readKey($userId, $geohash4);
 
         /** @var array<string, mixed> $data */
-        $data = $this->computeSection($section, $user, $geohash4);
-        Cache::put($cacheKey, $data, $section->ttl());
+        $data = $this->computeAndStore($section, $user, $geohash4, $cacheKey);
 
         $this->trackSectionKey($section, $userId, $cacheKey);
 
@@ -163,42 +161,73 @@ class DashboardCacheService
      * one-directional: the cache module calls siblings for compute; siblings
      * never call back.
      *
-     * Failure-isolated: if a section's computer throws, the section degrades to
-     * its {@see DashboardSection::fallback()} empty shape and the failure is
-     * logged, so one failing section renders empty instead of blanking the
-     * Dashboard. The degraded value is cached at the section's normal TTL by
-     * the caller and self-heals on the next invalidation.
+     * @return array<int|string, mixed>
+     *
+     * @throws \Throwable When the section's computer fails (handled by {@see computeAndStore}).
+     */
+    private function dispatchCompute(DashboardSection $section, User $user, ?string $geohash4): array
+    {
+        return match ($section) {
+            DashboardSection::Week => app(DashboardEstablishedService::class)->computeWeekData($user),
+            DashboardSection::Feed => app(DashboardEstablishedService::class)->computeFeedData($user),
+            DashboardSection::Opportunities => app(DashboardEstablishedService::class)->computeOpportunities($user, (string) $geohash4),
+            DashboardSection::Contributions => app(DashboardEstablishedService::class)->computeContributions($user),
+            DashboardSection::Recaps => app(DashboardEstablishedService::class)->computeRecaps($user),
+            DashboardSection::ActionCenter => app(DashboardEstablishedService::class)->computeActionCenter($user),
+            DashboardSection::NewcomerWelcome => app(DashboardNewcomerService::class)->computeWelcomeData($user),
+            DashboardSection::ProgressTracker => app(DashboardNewcomerService::class)->computeProgressTracker($user),
+            DashboardSection::NearbyPeople => app(DashboardNewcomerService::class)->computeNearbyPeople($user, (string) $geohash4),
+            DashboardSection::NewcomerMatches => app(DashboardNewcomerService::class)->computePreferenceWeightedMatches($user, (string) $geohash4),
+            DashboardSection::HostAgain => app(DashboardEstablishedService::class)->computeHostAgain($user),
+            DashboardSection::MilestoneCards => app(DashboardDiscoveryService::class)->computeMilestoneCardsPublic($user),
+        };
+    }
+
+    /**
+     * Compute a section's data and cache it, selecting the TTL by outcome.
+     *
+     * A healthy compute is cached at the section's normal {@see DashboardSection::ttl()}.
+     * A degraded compute (the computer threw) degrades to the section's
+     * {@see DashboardSection::fallback()} view-safe empty shape, is cached at the
+     * short {@see DashboardSection::degradedTtl()} so a transient failure self-heals
+     * within a minute, and is logged for observability. This is the single place
+     * that owns failure isolation: one throwing section renders empty instead of
+     * propagating and blanking the whole Dashboard.
      *
      * @return array<int|string, mixed>
      */
-    private function computeSection(DashboardSection $section, User $user, ?string $geohash4): array
+    private function computeAndStore(DashboardSection $section, User $user, ?string $geohash4, string $cacheKey): array
     {
         try {
-            return match ($section) {
-                DashboardSection::Week => app(DashboardEstablishedService::class)->computeWeekData($user),
-                DashboardSection::Feed => app(DashboardEstablishedService::class)->computeFeedData($user),
-                DashboardSection::Opportunities => app(DashboardEstablishedService::class)->computeOpportunities($user, (string) $geohash4),
-                DashboardSection::Contributions => app(DashboardEstablishedService::class)->computeContributions($user),
-                DashboardSection::Recaps => app(DashboardEstablishedService::class)->computeRecaps($user),
-                DashboardSection::ActionCenter => app(DashboardEstablishedService::class)->computeActionCenter($user),
-                DashboardSection::NewcomerWelcome => app(DashboardNewcomerService::class)->computeWelcomeData($user),
-                DashboardSection::ProgressTracker => app(DashboardNewcomerService::class)->computeProgressTracker($user),
-                DashboardSection::NearbyPeople => app(DashboardNewcomerService::class)->computeNearbyPeople($user, (string) $geohash4),
-                DashboardSection::NewcomerMatches => app(DashboardNewcomerService::class)->computePreferenceWeightedMatches($user, (string) $geohash4),
-                DashboardSection::HostAgain => app(DashboardEstablishedService::class)->computeHostAgain($user),
-                DashboardSection::MilestoneCards => app(DashboardDiscoveryService::class)->computeMilestoneCardsPublic($user),
-            };
-        } catch (\Throwable $e) {
-            Log::warning('dashboard.section_compute_failed', [
-                'section' => $section->value,
-                'user_id' => $user->id,
-                ...($geohash4 !== null ? ['geohash_4' => $geohash4] : []),
-                'exception' => $e::class,
-                'error' => $e->getMessage(),
-            ]);
+            $data = $this->dispatchCompute($section, $user, $geohash4);
+            Cache::put($cacheKey, $data, $section->ttl());
 
-            return $section->fallback();
+            return $data;
+        } catch (\Throwable $e) {
+            $this->logSectionFailure($section, $user, $geohash4, $e);
+
+            $fallback = $section->fallback();
+            Cache::put($cacheKey, $fallback, $section->degradedTtl());
+
+            return $fallback;
         }
+    }
+
+    /**
+     * Log a section-compute failure with full context and stack trace.
+     */
+    private function logSectionFailure(DashboardSection $section, User $user, ?string $geohash4, \Throwable $e): void
+    {
+        Log::warning('dashboard.section_compute_failed', [
+            'section' => $section->value,
+            'user_id' => $user->id,
+            ...($geohash4 !== null ? ['geohash_4' => $geohash4] : []),
+            'error' => $e->getMessage(),
+            'exception_class' => $e::class,
+            // The throwable itself: Laravel's formatter renders the stack trace,
+            // which is essential for locating the throwing line across a large computer.
+            'exception' => $e,
+        ]);
     }
 
     /**
@@ -805,11 +834,10 @@ class DashboardCacheService
      *
      * @param  string  $lockKey  Lock identifier (e.g., "dashboard:compute:newcomer_matches:{uid}")
      * @param  string  $cacheKey  The cache key to read/write
-     * @param  int  $ttl  Cache TTL in seconds
-     * @param  callable  $compute  Factory that returns the computed data
+     * @param  callable  $computeAndStore  Store-aware compute: owns both the compute and the Cache::put at the correct TTL
      * @return array<string, mixed>
      */
-    private function computeWithLock(string $lockKey, string $cacheKey, int $ttl, callable $compute): array
+    private function computeWithLock(string $lockKey, string $cacheKey, callable $computeAndStore): array
     {
         $lock = Cache::lock($lockKey, 10);
 
@@ -821,10 +849,9 @@ class DashboardCacheService
                     return $cached;
                 }
 
-                $data = $compute();
-                Cache::put($cacheKey, $data, $ttl);
-
-                return $data;
+                // The closure owns the compute + Cache::put so it can select the
+                // correct TTL (healthy vs degraded) and apply failure isolation.
+                return $computeAndStore();
             }
 
             // Could not acquire lock — fall through to synchronous compute without lock.
@@ -837,10 +864,7 @@ class DashboardCacheService
             }
         }
 
-        $data = $compute();
-        Cache::put($cacheKey, $data, $ttl);
-
-        return $data;
+        return $computeAndStore();
     }
 
     /**

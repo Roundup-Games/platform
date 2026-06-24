@@ -63,6 +63,20 @@ enum DashboardSection: string
     }
 
     /**
+     * TTL for a section's degraded value (when its compute threw and it fell back
+     * to {@see fallback()}).
+     *
+     * Shorter than the normal {@see ttl()} so a transient failure (e.g. a brief DB
+     * blip or replica-lag spike) self-heals within a minute, instead of serving an
+     * empty section for the full TTL waiting for a domain event to invalidate it.
+     * Healthy values are still cached at the normal TTL.
+     */
+    public function degradedTtl(): int
+    {
+        return 60;
+    }
+
+    /**
      * Whether the section uses stampede protection (computeWithLock) on cache miss.
      */
     public function usesLock(): bool
@@ -151,11 +165,11 @@ enum DashboardSection: string
      * structure the computer returns when there is nothing to show — so a
      * single failing section renders empty instead of propagating the
      * exception and blanking the whole Dashboard. Consumed by the failure
-     * isolation in {@see DashboardCacheService::computeSection()}.
+     * isolation in {@see DashboardCacheService::computeAndStore()}.
      *
-     * The fallback is cached at the section's normal TTL by the caller; normal
-     * invalidation observers clear it so a transient failure self-heals on the
-     * next domain event that touches the section.
+     * The fallback is cached at the short {@see degradedTtl()} (not the normal
+     * TTL) so a transient failure self-heals within a minute; normal invalidation
+     * observers also clear it on the next domain event that touches the section.
      *
      * @return array<string|int, mixed>
      */
