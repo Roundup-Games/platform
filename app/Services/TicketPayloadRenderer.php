@@ -347,7 +347,6 @@ class TicketPayloadRenderer
         ])->render();
     }
 
-    /** Render a label: value field pair. */
     /**
      * Normalize legacy ticket metadata (flat keys) into the structured schema
      * on-the-fly for rendering. Does not persist changes.

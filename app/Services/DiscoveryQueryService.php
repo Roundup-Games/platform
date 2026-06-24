@@ -154,7 +154,7 @@ class DiscoveryQueryService
     public function buildCampaignsQuery(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence): Builder
     {
         $query = Campaign::query()
-            ->where($this->buildVisibilityClause($user, 'campaigns'))
+            ->where($this->buildVisibilityClause($user))
             ->where('status', 'active')
             ->with(['owner', 'gameSystem'])
             ->with(['sessions' => fn ($q) => $q->where('status', 'scheduled')->where('date_time', '>', now())->orderBy('date_time')->limit(1)])
@@ -218,15 +218,7 @@ class DiscoveryQueryService
             ['limit' => 200, 'status_filter' => false],
         );
 
-        $nearbyCampaignIds = $nearbyResults
-            ->filter(function (mixed $r) {
-                if (! $r instanceof ProximityResult) {
-                    return false;
-                }
-                $entity = $r->entity;
-
-                return property_exists($entity, 'campaign_id') && $entity->campaign_id !== null;
-            })
+        $nearbyCampaignIds = $this->campaignSessionGames($nearbyResults)
             ->pluck('entity.campaign_id')
             ->filter(fn (mixed $v) => is_string($v))
             ->unique()
@@ -280,21 +272,19 @@ class DiscoveryQueryService
             ['limit' => 200, 'status_filter' => false],
         );
 
-        return $gameResults
-            ->filter(function (mixed $r) {
-                if (! $r instanceof ProximityResult) {
-                    return false;
-                }
-                $entity = $r->entity;
-
-                return property_exists($entity, 'campaign_id') && $entity->campaign_id !== null;
-            })
+        return $this->campaignSessionGames($gameResults)
             ->groupBy('entity.campaign_id')
             ->map(function (mixed $group) {
                 if (! $group instanceof Collection) { // @phpstan-ignore instanceof.alwaysTrue
                     return null;
                 }
-                $first = $group->sortBy(fn (mixed $a, mixed $b) => ($a instanceof ProximityResult && $b instanceof ProximityResult) ? $a->distanceKm <=> $b->distanceKm : 0)->first(); // @phpstan-ignore instanceof.alwaysFalse, booleanAnd.alwaysFalse
+                // sortBy() takes a single-argument KEY EXTRACTOR, not a two-argument
+                // comparator: the prior ($a, $b) form left $b unbound, so the <=>
+                // evaluated to 0 for every item and the stable sort preserved insertion
+                // order — campaign distance reflected an arbitrary session, not the
+                // nearest one. campaignSessionGames() guarantees every element is a
+                // ProximityResult, so the extractor is typed accordingly.
+                $first = $group->sortBy(fn (ProximityResult $a) => $a->distanceKm)->first();
                 if (! $first instanceof ProximityResult) {
                     return null;
                 }
@@ -303,6 +293,44 @@ class DiscoveryQueryService
             })
             ->filter()
             ->toArray();
+    }
+
+    /**
+     * Filter ProximityQuery game results down to campaign-session games.
+     *
+     * Every result's entity is a hydrated Game. A campaign-session game carries a
+     * non-null campaign_id; a standalone game does not. The correct test combines
+     * an instanceof Game guard (which lets static analysis resolve the campaign_id
+     * column) with a plain null check — Eloquent exposes columns through
+     * $attributes / the __get() magic accessor, NOT as real PHP properties, so the
+     * previous property_exists() check returned false for every hydrated model and
+     * silently dropped ALL campaigns from proximity-filtered discovery (both the
+     * campaigns query and the merged games+campaigns path returned zero campaigns
+     * whenever a location+radius was active). Centralised here so the two
+     * campaign-proximity consumers cannot drift apart again.
+     *
+     * @param  Collection<int, mixed>  $results
+     * @return Collection<int, ProximityResult<Model>>
+     */
+    private function campaignSessionGames(Collection $results): Collection
+    {
+        // Collection::filter() returns Collection<int, mixed> (it cannot narrow TValue
+        // via the predicate), so the declared ProximityResult return needs an explicit
+        // ignore on the return statement below.
+        return $results->filter(function (mixed $r) { // @phpstan-ignore return.type
+            if (! $r instanceof ProximityResult) {
+                return false;
+            }
+
+            // instanceof Game lets larastan resolve the campaign_id column (the base
+            // Model type does not declare it) and is runtime-correct: only Games
+            // carry campaign sessions.
+            if (! $r->entity instanceof Game) {
+                return false;
+            }
+
+            return $r->entity->campaign_id !== null;
+        });
     }
 
     // ── Paginated results ──────────────────────────────
@@ -388,15 +416,15 @@ class DiscoveryQueryService
         $gamesQuery = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $date);
         $campaignsQuery = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $recurrence);
 
-        $games = $gamesQuery->get()->each(fn ($item) => [
-            $item->discoverable_type = 'game',
-            $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0),
-        ]);
+        $games = $gamesQuery->get()->each(function ($item) {
+            $item->discoverable_type = 'game';
+            $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0);
+        });
 
-        $campaigns = $campaignsQuery->get()->each(fn ($item) => [
-            $item->discoverable_type = 'campaign',
-            $item->discoverable_sort_key = (int) ($item->sessions->first()->date_time->timestamp ?? $item->created_at->timestamp ?? 0),
-        ]);
+        $campaigns = $campaignsQuery->get()->each(function ($item) {
+            $item->discoverable_type = 'campaign';
+            $item->discoverable_sort_key = (int) ($item->sessions->first()->date_time->timestamp ?? $item->created_at->timestamp ?? 0);
+        });
 
         /** @var Collection<int, Game|Campaign> $merged */
         $merged = collect([...$games, ...$campaigns]);
@@ -601,7 +629,7 @@ class DiscoveryQueryService
             return null;
         }
 
-        $visibilityClause = $this->buildVisibilityClauseCallback($user);
+        $visibilityClause = $this->buildVisibilityClause($user);
 
         // Exclude user's own games/campaigns and ones they're already in or applied to
         $excludeUser = function ($query) use ($user) {
@@ -813,39 +841,16 @@ class DiscoveryQueryService
     }
 
     /**
-     * Build a connection-aware visibility clause for games or campaigns.
+     * Build a connection-aware visibility clause for games and campaigns.
      *
-     * Public items are visible to everyone.
-     * Protected items are visible only to the owner's connections (friends, teammates)
-     * and existing participants.
+     * Public items are visible to everyone. Protected items are visible only to the
+     * owner's connections (friends, teammates) and existing participants. The single
+     * shared builder for both discovery query paths (the former
+     * buildVisibilityClauseCallback was a byte-identical duplicate).
      *
      * @param  User|null  $user  Current viewer
-     * @param  string  $table  Table name for participant subquery ('games' or 'campaigns')
      */
-    private function buildVisibilityClause($user, string $table = 'games'): \Closure
-    {
-        return function ($q) use ($user) {
-            $q->where('visibility', 'public');
-
-            if ($user) {
-                $q->orWhere(function ($q) use ($user) {
-                    $q->where('visibility', 'protected')
-                        ->where(function ($q) use ($user) {
-                            $allowedOwnerIds = app(SocialGraphService::class)
-                                ->getAllowedOwnerIdsForProtectedContent($user);
-                            $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
-                        });
-                });
-            }
-        };
-    }
-
-    /**
-     * Build a connection-aware visibility callback for inline use in query builders.
-     * Returns the same logic as buildVisibilityClause but as a standalone callable.
-     */
-    private function buildVisibilityClauseCallback(?User $user): \Closure
+    private function buildVisibilityClause(?User $user): \Closure
     {
         return function ($q) use ($user) {
             $q->where('visibility', 'public');
