@@ -61,6 +61,9 @@ class LocationDriftService
      * @param  int|null  $limit  Bounds the row-by-row scans (stale-geocode
      *                           candidates + geocode refresh). Grouping queries (place_id / name)
      *                           always run complete because partial grouping would miss duplicates.
+     *                           Cost-basis-aware by design: it caps rows *inspected* in default
+     *                           mode and expensive *geocode API calls* under $refreshGeocode — the
+     *                           two counters are intentionally not aligned.
      * @param  bool  $refreshGeocode  Opt-in expensive mode: re-geocode rows via
      *                                Nominatim (1 req/sec) and flag moves > 500m.
      * @return array<int, array{check: string, label: string, count: int, severity: string, detail: string, sample_ids: array<int, string>}>
@@ -136,10 +139,20 @@ class LocationDriftService
             }
 
             $first = $rows->first();
-            $targetId = is_scalar($first) ? (string) $first : '';
+            // pluck('id') is typed mixed, so narrow explicitly. The count() >= 2
+            // guard above makes a non-scalar unreachable — fail loud rather than
+            // fabricate an empty id, which would log phantom drift rows (a
+            // data-quality detector must never emit made-up location ids).
+            if (! is_scalar($first)) {
+                throw new \LogicException('Location id missing from pluck("id") result.');
+            }
+            $targetId = (string) $first;
 
             foreach ($rows->skip(1) as $id) {
-                $id = is_scalar($id) ? (string) $id : '';
+                if (! is_scalar($id)) {
+                    throw new \LogicException('Location id missing from pluck("id") result.');
+                }
+                $id = (string) $id;
                 if (isset($flagged[$id])) {
                     continue;
                 }

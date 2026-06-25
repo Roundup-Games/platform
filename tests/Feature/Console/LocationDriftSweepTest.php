@@ -135,6 +135,32 @@ describe('locations:drift-sweep command', function () {
         expect(Location::find($f['dupe']->id)->drift_status)->toBe('duplicate');
     });
 
+    it('rejects an invalid --limit and preserves the admin queue instead of wiping it', function () {
+        $f = seedDriftSweepFixtures();
+
+        // A pre-existing flag of the kind an admin is actively reviewing.
+        DB::table('locations')->where('id', $f['clean']->id)->update([
+            'drift_status' => 'stale_geocode',
+            'drift_detected_at' => now(),
+            'drift_metadata' => ['reason' => 'sentinel_zero_zero'],
+        ]);
+
+        // --limit=0 is the data-loss case: without up-front validation it
+        // coerces to 0, still resets every flag (runChecks resets when not
+        // dry-run) but processes zero rows — silently clearing the admin queue.
+        // Also exercise non-numeric / negative / fractional inputs.
+        foreach (['0', '-1', 'abc', '2.5'] as $badLimit) {
+            $this->artisan("locations:drift-sweep --limit={$badLimit}")
+                ->assertFailed();
+        }
+
+        // Data-loss guard held: validation rejected before runChecks touched
+        // the table, so the admin queue survives every invalid invocation.
+        $clean = Location::find($f['clean']->id);
+        expect($clean->drift_status)->toBe('stale_geocode')
+            ->and($clean->drift_detected_at)->not->toBeNull();
+    });
+
     it('logs structured sweep started and completed fields', function () {
         $f = seedDriftSweepFixtures();
 

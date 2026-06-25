@@ -236,15 +236,23 @@ it('flags geocode drift over 500m when refresh is enabled', function () {
         'longitude' => '13.4050',
     ]);
 
-    // Geocoder returns a point ~556m north (>500m threshold).
+    // Geocoder returns a point ~556m north (>500m threshold). The mock is
+    // constrained on its INPUT: it only fires for a non-empty address that
+    // carries the seeded street. This pins that the refresh path actually
+    // loads the address columns — without them fullAddress() resolves to ''
+    // and the refresh silently no-ops against a real geocoder, yet an
+    // unconstrained mock would return the drifted point regardless of input
+    // and the test would stay green on the broken code.
     $geocoder = Mockery::mock(GeocodingService::class);
-    $geocoder->shouldReceive('geocode')->andReturn([
-        'lat' => 52.5250,
-        'lng' => 13.4050,
-        'display_name' => 'Somewhere Else',
-        'place_id' => 'refresh_020',
-        'raw' => [],
-    ]);
+    $geocoder->shouldReceive('geocode')
+        ->with(Mockery::on(fn ($address) => is_string($address) && $address !== '' && str_contains($address, 'Test Street 1')))
+        ->andReturn([
+            'lat' => 52.5250,
+            'lng' => 13.4050,
+            'display_name' => 'Somewhere Else',
+            'place_id' => 'refresh_020',
+            'raw' => [],
+        ]);
 
     $service = new LocationDriftService($geocoder, geocodeThrottleMicroseconds: 0);
     $service->runChecks(dryRun: false, limit: null, refreshGeocode: true);
