@@ -2,12 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\ParsesPositiveIntegerOptions;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class PruneDataExports extends Command
 {
+    use ParsesPositiveIntegerOptions;
+
     /**
      * The name and signature of the console command.
      */
@@ -22,14 +25,11 @@ class PruneDataExports extends Command
 
     public function handle(): int
     {
-        $days = (int) $this->option('days');
-        $dryRun = (bool) $this->option('dry-run');
-
-        if ($days < 1) {
-            $this->error('The --days option must be at least 1.');
-
+        if (! $this->positiveIntegerOption('days', $days, 'days')) {
             return self::FAILURE;
         }
+        assert($days !== null); // the --days signature default (7) guarantees a value
+        $dryRun = (bool) $this->option('dry-run');
 
         $cutoff = now()->subDays($days);
         $disk = Storage::disk('local');

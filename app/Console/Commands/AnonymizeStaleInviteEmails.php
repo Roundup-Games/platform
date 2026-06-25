@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\ParsesPositiveIntegerOptions;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Models\CampaignParticipant;
@@ -14,6 +15,8 @@ use Illuminate\Support\Str;
 
 class AnonymizeStaleInviteEmails extends Command
 {
+    use ParsesPositiveIntegerOptions;
+
     protected $signature = 'anonymize:stale-invite-emails
                             {--dry-run : Show what would be done without making changes}
                             {--days=90 : Anonymize invitee emails on entities ended more than N days ago}';
@@ -23,13 +26,10 @@ class AnonymizeStaleInviteEmails extends Command
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
-        $days = (int) $this->option('days');
-
-        if ($days < 1) {
-            $this->error('The --days option must be at least 1.');
-
+        if (! $this->positiveIntegerOption('days', $days, 'days')) {
             return self::FAILURE;
         }
+        assert($days !== null); // the --days signature default (90) guarantees a value
 
         try {
             $gameCount = $this->anonymizeGameParticipants($days, $dryRun);

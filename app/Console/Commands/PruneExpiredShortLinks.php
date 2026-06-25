@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\ParsesPositiveIntegerOptions;
 use App\Enums\CampaignStatus;
 use App\Enums\EventStatus;
 use App\Enums\GameStatus;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Log;
 
 class PruneExpiredShortLinks extends Command
 {
+    use ParsesPositiveIntegerOptions;
+
     protected $signature = 'short-links:prune
                             {--dry-run : Show what would be done without making changes}
                             {--days=90 : Remove analytics hits older than N days}
@@ -26,14 +29,14 @@ class PruneExpiredShortLinks extends Command
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
-        $days = (int) $this->option('days');
-        $grace = (int) $this->option('grace');
-
-        if ($days < 1) {
-            $this->error('The --days option must be at least 1.');
-
+        if (! $this->positiveIntegerOption('days', $days, 'days')) {
             return self::FAILURE;
         }
+        assert($days !== null); // the --days signature default (90) guarantees a value
+        // --grace intentionally allows 0 (expire links immediately on entity
+        // completion), so it cannot use positiveIntegerOption (which rejects 0).
+        // Fractions coerce down via (int) — non-destructive for a timing offset.
+        $grace = (int) $this->option('grace');
 
         if ($grace < 0) {
             $this->error('The --grace option must be non-negative.');

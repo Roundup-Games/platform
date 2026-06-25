@@ -2,12 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\ParsesPositiveIntegerOptions;
 use App\Models\PushSubscription;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 class PruneStalePushSubscriptions extends Command
 {
+    use ParsesPositiveIntegerOptions;
+
     protected $signature = 'pwa:prune-stale-subscriptions
                             {--dry-run : Show what would be deleted without deleting}
                             {--max-age=180 : Delete subscriptions not updated in N days}';
@@ -16,7 +19,14 @@ class PruneStalePushSubscriptions extends Command
 
     public function handle(): int
     {
-        $maxAge = (int) $this->option('max-age');
+        // Validate up front: max-age=0 must fail fast rather than coerce to 0.
+        // subDays(0) == now(), so `updated_at < now` matches every row and
+        // delete() wipes the whole table — an unrecoverable mass-delete from a
+        // typo'd option.
+        if (! $this->positiveIntegerOption('max-age', $maxAge, 'days')) {
+            return self::FAILURE;
+        }
+        assert($maxAge !== null); // the --max-age signature default (180) guarantees a value
         $dryRun = (bool) $this->option('dry-run');
 
         $cutoff = now()->subDays($maxAge);

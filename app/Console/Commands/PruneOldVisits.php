@@ -2,12 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\ParsesPositiveIntegerOptions;
 use App\Models\UserAppVisit;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 class PruneOldVisits extends Command
 {
+    use ParsesPositiveIntegerOptions;
+
     protected $signature = 'pwa:prune-visits
                             {--dry-run : Show what would be deleted without deleting}
                             {--max-age=90 : Delete visit records older than N days}';
@@ -16,7 +19,14 @@ class PruneOldVisits extends Command
 
     public function handle(): int
     {
-        $maxAge = (int) $this->option('max-age');
+        // Validate up front: max-age=0 must fail fast rather than coerce to 0.
+        // subDays(0) == today(), so `visit_date < today` matches every row and
+        // delete() wipes the whole table — an unrecoverable mass-delete from a
+        // typo'd option.
+        if (! $this->positiveIntegerOption('max-age', $maxAge, 'days')) {
+            return self::FAILURE;
+        }
+        assert($maxAge !== null); // the --max-age signature default (90) guarantees a value
         $dryRun = (bool) $this->option('dry-run');
 
         $cutoff = now()->subDays($maxAge)->toDateString();

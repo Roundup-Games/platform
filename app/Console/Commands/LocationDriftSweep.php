@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\ParsesPositiveIntegerOptions;
 use App\Services\LocationDriftService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
@@ -34,6 +35,8 @@ use Illuminate\Support\Facades\Log;
  */
 class LocationDriftSweep extends Command
 {
+    use ParsesPositiveIntegerOptions;
+
     protected $signature = 'locations:drift-sweep
                             {--dry-run : Detect and report drift without writing flags}
                             {--limit= : Bound the row-by-row stale-geocode scan}
@@ -44,20 +47,11 @@ class LocationDriftSweep extends Command
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
-        $limitRaw = $this->option('limit');
-        if ($limitRaw !== null && $limitRaw !== '') {
-            // Validate up front: an invalid --limit (non-numeric or <= 0) must
-            // fail fast rather than coerce to 0. With limit=0 the sweep would
-            // still reset every drift flag (runChecks resets when !dry-run) but
-            // process zero rows — silently wiping the admin queue. Reject instead.
-            if (! ctype_digit((string) $limitRaw) || (int) $limitRaw <= 0) {
-                $this->error('The --limit option must be a positive integer.');
-
-                return self::FAILURE;
-            }
-            $limit = (int) $limitRaw;
-        } else {
-            $limit = null;
+        // Validate up front: limit=0 must fail fast rather than coerce to 0.
+        // With limit=0 the sweep still resets every drift flag (runChecks resets
+        // when !dry-run) but processes zero rows — silently wiping the admin queue.
+        if (! $this->positiveIntegerOption('limit', $limit)) {
+            return self::FAILURE;
         }
         $refreshGeocode = (bool) $this->option('refresh-geocode');
         $startedAt = now();

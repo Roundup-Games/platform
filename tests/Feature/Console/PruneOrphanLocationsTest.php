@@ -115,3 +115,26 @@ it('does not delete locations referenced by campaigns', function () {
 
     expect(Location::where('name', 'Campaign Location')->exists())->toBeTrue();
 });
+
+it('rejects an invalid --hours and preserves data instead of widening the delete window', function () {
+    // A manual-source orphan older than 24h that a valid run would delete.
+    $orphan = Location::factory()->create([
+        'source' => 'manual',
+        'name' => 'Guard Test Orphan',
+        'city' => 'Nowhere',
+        'created_at' => now()->subDays(2),
+    ]);
+
+    // --hours=0 removes the just-created safety margin: subHours(0) == now(),
+    // so `created_at < now` matches every orphan regardless of age, deleting
+    // locations created moments ago that have not yet been linked to a
+    // game/event/campaign. Reject before the query runs. Also exercise
+    // non-numeric / negative / fractional inputs.
+    foreach (['0', 'abc', '-1', '2.5'] as $badHours) {
+        $this->artisan("locations:prune-orphans --hours={$badHours}")
+            ->assertFailed();
+    }
+
+    // Data preserved: the orphan survives every invalid invocation.
+    expect(Location::where('name', 'Guard Test Orphan')->exists())->toBeTrue();
+});
