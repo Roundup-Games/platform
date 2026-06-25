@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Services;
 
+use App\Dto\PushPayload;
 use App\Enums\NotificationCategory;
 use App\Models\User;
 use App\Models\UserRelationship;
@@ -297,6 +298,44 @@ describe('NotificationService', function () {
                     && in_array(MailChannel::class, $channels)
             );
         });
+
+        it('includes push channel when the recipient has push enabled and the notification has toPush', function () {
+            Notification::fake();
+
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'game_invitation' => ['database' => true, 'mail' => true, 'push' => true],
+                ],
+            ]);
+
+            $notification = new TestBaseNotification(['game_id' => 1]);
+            $this->service->send($user, $notification, NotificationCategory::GameInvitation);
+
+            Notification::assertSentTo(
+                $user,
+                TestBaseNotification::class,
+                fn ($n, $channels) => in_array(PushChannel::class, $channels)
+            );
+        });
+
+        it('excludes push channel when the recipient has push disabled', function () {
+            Notification::fake();
+
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'game_invitation' => ['database' => true, 'mail' => true, 'push' => false],
+                ],
+            ]);
+
+            $notification = new TestBaseNotification(['game_id' => 1]);
+            $this->service->send($user, $notification, NotificationCategory::GameInvitation);
+
+            Notification::assertSentTo(
+                $user,
+                TestBaseNotification::class,
+                fn ($n, $channels) => ! in_array(PushChannel::class, $channels)
+            );
+        });
     });
 
     // ── markReadByType ───────────────────────────────────────────
@@ -448,5 +487,16 @@ class TestBaseNotification extends BaseNotification
     {
         return (new MailMessage)
             ->line('Test base notification');
+    }
+
+    public function toPush(object $notifiable): PushPayload
+    {
+        return new PushPayload(
+            title: 'Test',
+            body: 'Test push',
+            icon: '/icon.png',
+            url: '/test',
+            tag: 'test',
+        );
     }
 }

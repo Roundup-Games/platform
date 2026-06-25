@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
+use App\Notifications\Channels\PushChannel;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 
 /**
@@ -12,7 +13,7 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
  * is starting within the next hour.
  *
  * Dispatched by the SendSessionReminders artisan command, not by user actions.
- * Database-only notification — no mail channel.
+ * Database + push notification — no mail channel.
  */
 class SessionReminder extends BaseNotification
 {
@@ -26,15 +27,15 @@ class SessionReminder extends BaseNotification
     ) {}
 
     /**
-     * Database-only notification — no mail channel.
-     * Declares a narrower supported set; NotificationService intersects
-     * this with the recipient's enabled channels.
+     * Database + push, no mail channel.
+     * Overrides BaseNotification's default (which includes mail) because this
+     * notification has no toMail() implementation.
      *
      * @return array<int, string>
      */
     protected function supportedChannels(): array
     {
-        return [DatabaseChannel::class];
+        return [DatabaseChannel::class, PushChannel::class];
     }
 
     /**

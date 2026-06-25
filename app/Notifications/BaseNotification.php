@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\User;
+use App\Notifications\Channels\PushChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Channels\DatabaseChannel;
@@ -45,11 +46,22 @@ abstract class BaseNotification extends Notification implements ShouldQueue
      * Channels this notification type supports by default. Subclasses
      * override to declare a narrower set (e.g. database-only notifications).
      *
+     * Push is auto-detected: a notification that implements toPush() declares
+     * push intent, so PushChannel is included automatically. This keeps the
+     * 30+ toPush() implementations reachable without each subclass repeating
+     * the channel declaration.
+     *
      * @return array<int, string>
      */
     protected function supportedChannels(): array
     {
-        return [DatabaseChannel::class, MailChannel::class];
+        $channels = [DatabaseChannel::class, MailChannel::class];
+
+        if (method_exists($this, 'toPush')) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
     }
 
     /**
