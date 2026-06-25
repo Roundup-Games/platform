@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Listeners\DropDemoDomainMail;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
 use App\Models\Campaign;
@@ -63,6 +64,7 @@ use Filament\View\PanelsRenderHook;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
@@ -185,6 +187,11 @@ class AppServiceProvider extends ServiceProvider
         // Escalated ticket event listeners for game system requests
         EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
         EventFacade::listen(TicketClosed::class, HandleGameSystemTicketClosed::class);
+
+        // Safety net: never deliver to synthetic/demo (RFC 2606) email domains.
+        // Fires on every send path (queue, scheduler, web) so demo data created by
+        // DemoSeedCommand cannot leak into a live mailer.
+        EventFacade::listen(MessageSending::class, DropDemoDomainMail::class);
 
         // Escalated helpdesk authorization gates
         // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)
