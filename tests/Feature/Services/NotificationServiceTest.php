@@ -11,6 +11,7 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 
 describe('NotificationService', function () {
@@ -210,6 +211,12 @@ describe('NotificationService', function () {
         });
 
         it('logs dispatched notification with type, target, channels', function () {
+            // Isolate from the mail transport: TestNotification::via() advertises
+            // the mail channel, so notify() attempts a send to the factory user's
+            // example.* address. DropDemoDomainMail would then log, colliding with
+            // the strict Log mock below. Mail::fake() suppresses MessageSending.
+            Mail::fake();
+
             $user = User::factory()->create([
                 'notification_settings' => [
                     'game_invitation' => ['database' => true, 'mail' => false],
