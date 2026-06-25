@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\NotificationCategory;
 use App\Models\User;
+use App\Notifications\BaseNotification;
 use App\Notifications\Channels\PushChannel;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -59,9 +60,32 @@ class NotificationService
             }
 
             // ── Channel resolution ──
-            $channels = $this->resolveChannels($notifiable, $category);
+            // resolveChannels() returns the channels the recipient has ENABLED
+            // for this category (name => class). Intersect that with the channels
+            // the notification itself SUPPORTS (via()) so a database-only
+            // notification never sends mail even if the user enabled it, and a
+            // user who disabled mail never receives it even if the notification
+            // supports it.
+            $dispatchChannels = $this->resolveChannels($notifiable, $category);
 
-            if (empty($channels)) {
+            if ($notification instanceof BaseNotification) {
+                $supportedChannels = $notification->via($notifiable);
+
+                $dispatchChannels = array_filter(
+                    $dispatchChannels,
+                    fn (string $channel) => in_array($channel, $supportedChannels, true),
+                );
+
+                // Push the resolved intersection onto the instance so via() —
+                // read by Laravel's queued dispatcher at enqueue time — returns
+                // only these channels. This is what makes "mail: false" actually
+                // suppress mail across the queue boundary.
+                if (! empty($dispatchChannels)) {
+                    $notification->setResolvedChannels(array_values($dispatchChannels));
+                }
+            }
+
+            if (empty($dispatchChannels)) {
                 Log::info('notification.dispatch_skipped', [
                     'reason' => 'all_channels_disabled',
                     'notifiable_id' => $notifiable->id,
@@ -86,7 +110,7 @@ class NotificationService
                 'notifiable_id' => $notifiable->id,
                 'notification_type' => $notificationType,
                 'category' => $categoryValue,
-                'channels' => array_keys($channels),
+                'channels' => array_keys($dispatchChannels),
             ]);
         } catch (\Throwable $e) {
             Log::error('notification.dispatch_failed', [

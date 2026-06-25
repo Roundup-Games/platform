@@ -5,6 +5,7 @@ namespace Tests\Feature\Services;
 use App\Enums\NotificationCategory;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Notifications\BaseNotification;
 use App\Notifications\Channels\PushChannel;
 use App\Services\NotificationService;
 use Illuminate\Notifications\Channels\DatabaseChannel;
@@ -254,6 +255,48 @@ describe('NotificationService', function () {
             // Should NOT throw
             $this->service->send($user, $notification, NotificationCategory::GameInvitation);
         });
+
+        it('restricts BaseNotification dispatch to the recipient-enabled channels (mail disabled)', function () {
+            Notification::fake();
+
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'game_invitation' => ['database' => true, 'mail' => false],
+                ],
+            ]);
+
+            $notification = new TestBaseNotification(['game_id' => 1]);
+            $this->service->send($user, $notification, NotificationCategory::GameInvitation);
+
+            // The notification supports both channels, but the recipient disabled
+            // mail — only the database channel should be dispatched.
+            Notification::assertSentTo(
+                $user,
+                TestBaseNotification::class,
+                fn ($n, $channels) => in_array(DatabaseChannel::class, $channels)
+                    && ! in_array(MailChannel::class, $channels)
+            );
+        });
+
+        it('dispatches all supported channels when the recipient has them enabled', function () {
+            Notification::fake();
+
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'game_invitation' => ['database' => true, 'mail' => true],
+                ],
+            ]);
+
+            $notification = new TestBaseNotification(['game_id' => 1]);
+            $this->service->send($user, $notification, NotificationCategory::GameInvitation);
+
+            Notification::assertSentTo(
+                $user,
+                TestBaseNotification::class,
+                fn ($n, $channels) => in_array(DatabaseChannel::class, $channels)
+                    && in_array(MailChannel::class, $channels)
+            );
+        });
     });
 
     // ── markReadByType ───────────────────────────────────────────
@@ -391,3 +434,19 @@ class TestNotificationWithActor extends TestNotification
 }
 
 class TestNotificationB extends TestNotification {}
+
+class TestBaseNotification extends BaseNotification
+{
+    public function __construct(public array $payload = []) {}
+
+    public function toDatabase(object $notifiable): array
+    {
+        return $this->payload;
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->line('Test base notification');
+    }
+}

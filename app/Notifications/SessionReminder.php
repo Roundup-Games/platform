@@ -27,11 +27,12 @@ class SessionReminder extends BaseNotification
 
     /**
      * Database-only notification — no mail channel.
-     * Override BaseNotification's default which includes MailChannel.
+     * Declares a narrower supported set; NotificationService intersects
+     * this with the recipient's enabled channels.
      *
      * @return array<int, string>
      */
-    public function via(User $notifiable): array
+    protected function supportedChannels(): array
     {
         return [DatabaseChannel::class];
     }
