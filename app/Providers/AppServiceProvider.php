@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Listeners\DropDemoDomainMail;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
+use App\Listeners\SuppressAutomatedTicketStatusNotifications;
 use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
@@ -65,6 +66,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
@@ -192,6 +194,15 @@ class AppServiceProvider extends ServiceProvider
         // Fires on every send path (queue, scheduler, web) so demo data created by
         // DemoSeedCommand cannot leak into a live mailer.
         EventFacade::listen(MessageSending::class, DropDemoDomainMail::class);
+
+        // Suppress customer-facing "Status Updated" notifications when a ticket
+        // status change was system-initiated (no human causer) — e.g. the nightly
+        // escalated:close-resolved archival job and escalation-rule transitions.
+        // Human-initiated changes still notify normally.
+        EventFacade::listen(
+            NotificationSending::class,
+            SuppressAutomatedTicketStatusNotifications::class
+        );
 
         // Escalated helpdesk authorization gates
         // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)

@@ -46,6 +46,22 @@ class HandleGameSystemTicketClosed implements ShouldQueue
 
         if (isset($metadata['duplicate_of_game_system_id'])) {
             $this->handleDuplicate($ticket, $metadata);
+        } elseif (! empty($metadata['game_system_id'])) {
+            // The ticket was approved earlier — a GameSystem was created and its
+            // id recorded in metadata — and is now being closed. This is almost
+            // always the nightly escalated:close-resolved job archiving a ticket
+            // that was resolved (approved) days earlier. The
+            // GameSystemRequestApproved notification already went out at resolve
+            // time, so an archival close must not send a spurious rejection.
+            // Genuine rejections (open → closed, never approved) never carry a
+            // game_system_id, so they still notify correctly below.
+            Log::info('Game system ticket closed after approval — skipping rejection notification', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'game_system_id' => $metadata['game_system_id'],
+            ]);
+
+            return;
         } else {
             $this->handleRejection($ticket);
         }

@@ -279,6 +279,79 @@ class GameSystemTicketListenerTest extends TestCase
         $this->assertNull($notification->data['rejection_reason']);
     }
 
+    // ── Approval-then-archival-close (regression: false rejection) ──
+
+    public function test_approved_ticket_closed_by_auto_archive_does_not_send_rejection(): void
+    {
+        // Regression: a ticket that was approved earlier (game_system_id set) and
+        // is later archived by the nightly escalated:close-resolved job must NOT
+        // trigger a spurious rejection. The approval notification already went
+        // out at resolve time.
+        $gameSystem = GameSystem::factory()->create([
+            'name' => ['en' => 'Wingspan'],
+            'slug' => 'wingspan',
+        ]);
+
+        $ticket = $this->createGameSystemTicket([
+            'status' => TicketStatus::Closed->value,
+            'metadata' => [
+                'game_system_request' => true,
+                'bgg_url' => null,
+                'publisher' => null,
+                'designer' => null,
+                'game_system_type' => 'boardgame',
+                'game_system_id' => $gameSystem->id,
+            ],
+        ]);
+
+        // An internal note exists (left over from approval review) — must NOT
+        // be misread as a rejection reason.
+        $admin = User::factory()->create();
+        $ticket->addReply($admin, 'Checked for expansions, will notify user.', true);
+
+        $event = new TicketClosedEvent($ticket, null);
+        app(HandleGameSystemTicketClosed::class)->handle($event);
+
+        $this->assertEquals(
+            0,
+            $this->user->notifications()->where('type', GameSystemRequestRejected::class)->count(),
+            'Approved ticket archived by close-resolved must not send a rejection.'
+        );
+        $this->assertEquals(
+            0,
+            $this->user->notifications()->where('type', GameSystemRequestDuplicate::class)->count()
+        );
+    }
+
+    public function test_genuine_rejection_without_game_system_id_still_notifies(): void
+    {
+        // Safety net: a true rejection (never approved, no game_system_id) closed
+        // directly by an admin must still send the rejection notification.
+        $ticket = $this->createGameSystemTicket([
+            'status' => TicketStatus::Closed->value,
+            'metadata' => [
+                'game_system_request' => true,
+                'bgg_url' => null,
+                'publisher' => null,
+                'designer' => null,
+                'game_system_type' => 'boardgame',
+                'game_system_id' => null,
+            ],
+        ]);
+
+        $admin = User::factory()->create();
+        $ticket->addReply($admin, 'Already exists in the catalog.', true);
+
+        $event = new TicketClosedEvent($ticket, null);
+        app(HandleGameSystemTicketClosed::class)->handle($event);
+
+        $this->assertNotEquals(
+            0,
+            $this->user->notifications()->where('type', GameSystemRequestRejected::class)->count(),
+            'Genuine rejection (no game_system_id) must still notify.'
+        );
+    }
+
     // ── Duplicate flow (ticket closed with duplicate metadata) ──
 
     public function test_duplicate_sends_duplicate_notification(): void
