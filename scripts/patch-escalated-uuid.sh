@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
-# Patch escalated-laravel to work with UUID user PKs.
-# Re-applies after every composer install/update.
+# Patch escalated-laravel to work with the platform's UUID user primary keys.
+# Re-applies after every composer install/update via composer.json post-autoload-dump.
 #
-# Three categories of fixes:
-#   1. Remove `int` type hints from methods receiving user/agent IDs
-#   2. Remove reply->attachments eager load (UUID FK vs int PK mismatch)
-#   3. (Future: proper fix via upstream PR)
+# Background: the platform converts escalated's user-ref and morph columns to
+# PostgreSQL `uuid` (see 2026_05_14_233000_convert_escalated_user_refs_to_uuid.php)
+# because the host User model uses UUID keys. escalated's own ticket/reply models
+# still carry integer auto-increment PKs.
 #
-# This should be replaced by a proper upstream fix in escalated-laravel.
+# What used to be patched (now obsolete upstream — escalated-laravel >= v1.4.0):
+#   - int type hints on scopes/services/events receiving user/agent IDs.
+#     Upstream now ships `int|string` everywhere (Ticket::assign, scopeAssignedTo,
+#     SavedView::scopeForUser, TicketAssigned::$agentId, etc.), so the type-hint
+#     stripping is no longer needed and was removed.
+#
+# What is still patched here:
+#   - Attachment eager-loads. The morph column `attachments.attachable_id` was
+#     converted to UUID, but escalated Ticket/Reply models have integer PKs, so
+#     any `->with('attachments')` produces `WHERE attachable_id IN (1)` which
+#     PostgreSQL rejects (operator does not exist: uuid = bigint). Removing the
+#     eager-load is the minimal fix; attachments still lazy-load per-instance
+#     when needed and upload/storage is unaffected.
 
 set -e
 
@@ -18,118 +30,51 @@ if [ ! -d "$VENDOR_DIR" ]; then
     exit 0
 fi
 
-echo "  > Patching escalated-laravel for UUID compatibility..."
+echo "  > Patching escalated-laravel for UUID attachment compatibility..."
 
 # =====================================================================
-# 1. Remove int type hints from scope/instance/service methods
+# Remove ALL attachment eager loads (UUID morph column vs int model PK)
 # =====================================================================
+# Covers every controller that eager-loads ticket/reply attachments: the five
+# original TicketControllers plus the two Mobile* controllers added in
+# escalated-laravel v1.4.0 (latent 500 if escalated.api.enabled is ever true).
 
-# Models: scope methods
-sed -i.bak -E 's/(public function scope(ForAgent|AssignedTo|ForUser)\(\$query, )int (\$[a-zA-Z]+)/\1\3/g' \
-    "$VENDOR_DIR/Models/Macro.php" \
-    "$VENDOR_DIR/Models/CannedResponse.php" \
-    "$VENDOR_DIR/Models/ChatSession.php" \
-    "$VENDOR_DIR/Models/Ticket.php" \
-    "$VENDOR_DIR/Models/SavedView.php"
-
-# Models: instance methods — Ticket
-sed -i.bak -E 's/(public function (isFollowedBy|follow|unfollow)\()int (\$[a-zA-Z]+)/\1\3/g' \
-    "$VENDOR_DIR/Models/Ticket.php"
-# assign(): normalize to a single canonical, duplicate-free signature.
-# Upstream now ships `Model|int|string` natively. The older non-idempotent
-# `Model|int -> Model|string|int` substitution matched inside `Model|int|string`
-# and produced `Model|string|int|string` → PHP fatal "Duplicate type string
-# is redundant" (Ticket.php:519), which crashed every scheduled escalated
-# command with exit code 255. This regex handles all known forms (old upstream
-# `Model|int`, new upstream `Model|int|string`, and any previously
-# double-patched `Model|string|int|string`) idempotently. (Merged from main
-# 748abe22; equivalent to the prior per-branch regex but production-hardened
-# and explicit about the captured `$param`.)
-sed -i.bak -E 's/public function assign\(Model(\|string)?\|int(\|string)? (\$[a-zA-Z]+)/public function assign(Model|string|int \3/' \
-    "$VENDOR_DIR/Models/Ticket.php"
-
-# Models: instance methods — Contact, AgentProfile
-sed -i.bak -E 's/(public function (linkToUser|promoteToUser)\()int (\$[a-zA-Z]+)/\1\3/g' \
-    "$VENDOR_DIR/Models/Contact.php"
-sed -i.bak -E 's/(public static function forUser\()int (\$[a-zA-Z]+)/\1\2/g' \
-    "$VENDOR_DIR/Models/AgentProfile.php"
-
-# Contracts & Drivers: assignTicket
-sed -i.bak -E 's/(public function assignTicket\([^,]+, )int (\$[a-zA-Z]+)/\1\2/g' \
-    "$VENDOR_DIR/Contracts/TicketDriver.php" \
-    "$VENDOR_DIR/Drivers/LocalDriver.php" \
-    "$VENDOR_DIR/Drivers/CloudDriver.php" \
-    "$VENDOR_DIR/Drivers/SyncedDriver.php"
-
-# Events: TicketAssigned constructor
-sed -i.bak -E 's/(public )int (\$agentId)/\1\2/g' \
-    "$VENDOR_DIR/Events/TicketAssigned.php"
-
-# Services: AssignmentService
-sed -i.bak -E 's/(public function (assign|reassign)\([^,]+, )int (\$[a-zA-Z]+)/\1\3/g' \
-    "$VENDOR_DIR/Services/AssignmentService.php"
-sed -i.bak -E 's/(public function getAgentWorkload\()int (\$[a-zA-Z]+)/\1\2/g' \
-    "$VENDOR_DIR/Services/AssignmentService.php"
-
-# Services: CapacityService
-sed -i.bak -E 's/(public function (canAcceptTicket|incrementLoad|decrementLoad)\()int (\$[a-zA-Z]+)/\1\3/g' \
-    "$VENDOR_DIR/Services/CapacityService.php"
-
-# Services: ChatRoutingService, ChatAvailabilityService
-sed -i.bak -E 's/(public function getAgentChatCount\()int (\$[a-zA-Z]+)/\1\2/g' \
-    "$VENDOR_DIR/Services/ChatRoutingService.php" \
-    "$VENDOR_DIR/Services/ChatAvailabilityService.php"
-
-# Services: ChatSessionService
-sed -i.bak -E 's/(public function assignAgent\([^,]+, )int (\$[a-zA-Z]+)/\1\2/g' \
-    "$VENDOR_DIR/Services/ChatSessionService.php"
-sed -i.bak -E 's/\?int \$userId/?string \$userId/g' \
-    "$VENDOR_DIR/Services/ChatSessionService.php"
-
-# Services: ReportingService
-sed -i.bak -E 's/(public function (getAgentMetrics|agentResponseTimePercentiles)\()int (\$[a-zA-Z]+)/\1\3/g' \
-    "$VENDOR_DIR/Services/ReportingService.php"
-
-# Middleware: CheckPermission
-sed -i.bak -E 's/(protected function userHasPermission\()int (\$[a-zA-Z]+)/\1\2/g' \
-    "$VENDOR_DIR/Http/Middleware/CheckPermission.php"
-
-# =====================================================================
-# 2. Remove ALL attachment eager loads (UUID FK vs int PK mismatch)
-# =====================================================================
-# The convert_escalated_user_refs_to_uuid migration changed attachable_id
-# to UUID. ALL escalated models (Ticket, Reply, SideConversationReply) have
-# integer auto-increment PKs. Eager loading ANY morphMany attachments
-# generates WHERE attachable_id IN (1) which PostgreSQL rejects (uuid != int).
-#
-# Fix: remove 'attachments' from ALL eager-load arrays in ticket controllers.
-# Upload/storing attachments still works — only the eager-load is removed.
-# Attachments can lazy-load individually when needed.
-
-# Remove 'attachments' from ticket-level eager loads
-# Customer: 'attachments', 'tags', 'department'
-sed -i.bak "s/'attachments', 'tags', 'department'/'tags', 'department'/g" \
+CONTROLLERS=(
     "$VENDOR_DIR/Http/Controllers/Customer/TicketController.php"
-
-# Guest: 'attachments', 'department'
-sed -i.bak "s/'attachments', 'department'/'department'/g" \
     "$VENDOR_DIR/Http/Controllers/Guest/TicketController.php"
-
-# Admin, Agent, API: 'attachments', 'tags', 'department', ...
-sed -i.bak "s/'attachments', 'tags', 'department'/'tags', 'department'/g" \
-    "$VENDOR_DIR/Http/Controllers/Admin/TicketController.php" \
-    "$VENDOR_DIR/Http/Controllers/Agent/TicketController.php" \
+    "$VENDOR_DIR/Http/Controllers/Admin/TicketController.php"
+    "$VENDOR_DIR/Http/Controllers/Agent/TicketController.php"
     "$VENDOR_DIR/Http/Controllers/Api/TicketController.php"
+    "$VENDOR_DIR/Http/Controllers/Api/MobileTicketController.php"
+    "$VENDOR_DIR/Http/Controllers/Api/MobileGuestTicketController.php"
+)
 
-# Remove 'attachments' from reply-level eager loads: with('author', 'attachments')
-sed -i.bak "s/with('author', 'attachments')/with('author')/g" \
-    "$VENDOR_DIR/Http/Controllers/Customer/TicketController.php" \
-    "$VENDOR_DIR/Http/Controllers/Admin/TicketController.php" \
-    "$VENDOR_DIR/Http/Controllers/Agent/TicketController.php" \
-    "$VENDOR_DIR/Http/Controllers/Api/TicketController.php" \
-    "$VENDOR_DIR/Http/Controllers/Guest/TicketController.php"
+# Remove 'attachments' from every eager-load context. Three forms appear across
+# the controllers:
+#   1. Leading element in a single-line array:  'attachments', 'tags', 'department'
+#   2. Reply eager-load:                         with('author', 'attachments')
+#   3. Trailing element or standalone line:
+#        $ticket->load(['department', 'tags', 'assignee', 'attachments'])
+#        multi-line arrays where 'attachments', sits on its own line
+# The standalone-line deletion and trailing-element strip also cover the
+# Mobile* controllers added in v1.4.0. Validation rules ('attachments' => ...)
+# and upload calls ($request->file('attachments', ...)) use ' =>' / 'file(' and
+# are never matched by these patterns.
+for f in "${CONTROLLERS[@]}"; do
+    [ -f "$f" ] || continue
+    # 1. Leading element in known multi-relation arrays.
+    sed -i.bak "s/'attachments', 'tags', 'department'/'tags', 'department'/g" "$f"
+    sed -i.bak "s/'attachments', 'department'/'department'/g" "$f"
+    # 2. Reply-level eager-load.
+    sed -i.bak "s/with('author', 'attachments')/with('author')/g" "$f"
+    # 3a. Trailing 'attachments' before a closing bracket.
+    sed -i.bak "s/, 'attachments'\]/\]/g" "$f"
+    # 3b. Standalone 'attachments', line (multi-line load arrays).
+    sed -i.bak -e "/^[[:space:]]*'attachments',[[:space:]]*$/d" "$f"
+done
 
-# Also patch SideConversation models if they load attachments on replies
+# Also strip reply-level attachment eager-loads from SideConversation models
+# if they ship them (guarded — not all releases do).
 for SC in \
     "$VENDOR_DIR/Models/SideConversation.php" \
     "$VENDOR_DIR/Models/SideConversationReply.php"; do
@@ -141,4 +86,4 @@ done
 # Clean up backups
 find "$VENDOR_DIR" -name "*.bak" -delete
 
-echo "  > Escalated UUID patch applied."
+echo "  > Escalated UUID attachment patch applied."

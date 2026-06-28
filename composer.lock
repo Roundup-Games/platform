@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c534581bd7364869b56090045d30e237",
+    "content-hash": "e2fc812564803fd0c5ef5f9cee40ee4b",
     "packages": [
         {
             "name": "blade-ui-kit/blade-heroicons",
@@ -1157,20 +1157,21 @@
         },
         {
             "name": "escalated-dev/escalated-filament",
-            "version": "v1.1.0",
+            "version": "v1.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/escalated-dev/escalated-filament.git",
-                "reference": "b341dd8c562ab0f2992b7e881179839368faee52"
+                "reference": "3b753cc76fecd495d650a646208e1c413b4989fb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/escalated-dev/escalated-filament/zipball/b341dd8c562ab0f2992b7e881179839368faee52",
-                "reference": "b341dd8c562ab0f2992b7e881179839368faee52",
+                "url": "https://api.github.com/repos/escalated-dev/escalated-filament/zipball/3b753cc76fecd495d650a646208e1c413b4989fb",
+                "reference": "3b753cc76fecd495d650a646208e1c413b4989fb",
                 "shasum": ""
             },
             "require": {
-                "escalated-dev/escalated-laravel": "^1.0",
+                "escalated-dev/escalated-laravel": "^1.5.0",
+                "escalated-dev/locale": "^0.1",
                 "filament/filament": "^4.0 || ^5.0",
                 "php": "^8.2"
             },
@@ -1202,7 +1203,7 @@
             ],
             "description": "Filament admin panel integration for the Escalated support ticket system",
             "keywords": [
-                "admin-panel",
+                "customer-support",
                 "filament",
                 "helpdesk",
                 "laravel",
@@ -1211,9 +1212,9 @@
             ],
             "support": {
                 "issues": "https://github.com/escalated-dev/escalated-filament/issues",
-                "source": "https://github.com/escalated-dev/escalated-filament/tree/v1.1.0"
+                "source": "https://github.com/escalated-dev/escalated-filament/tree/v1.3.0"
             },
-            "time": "2026-04-18T19:34:26+00:00"
+            "time": "2026-06-27T10:09:42+00:00"
         },
         {
             "name": "escalated-dev/escalated-laravel",
