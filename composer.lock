@@ -2699,20 +2699,20 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v13.16.1",
+            "version": "v13.17.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "6135650d69bd9442e470bb1b343422081b076f1e"
+                "reference": "0802b7a81f3252d78200b8037ac183a686a529f0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/6135650d69bd9442e470bb1b343422081b076f1e",
-                "reference": "6135650d69bd9442e470bb1b343422081b076f1e",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/0802b7a81f3252d78200b8037ac183a686a529f0",
+                "reference": "0802b7a81f3252d78200b8037ac183a686a529f0",
                 "shasum": ""
             },
             "require": {
-                "brick/math": "^0.14.2 || ^0.15 || ^0.16 || ^0.17",
+                "brick/math": "^0.14.2 || ^0.15 || ^0.16 || ^0.17 || ^0.18",
                 "composer-runtime-api": "^2.2",
                 "doctrine/inflector": "^2.0.5",
                 "dragonmantank/cron-expression": "^3.4",
@@ -2919,7 +2919,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2026-06-16T16:07:50+00:00"
+            "time": "2026-06-23T19:42:45+00:00"
         },
         {
             "name": "laravel/horizon",
@@ -4193,16 +4193,16 @@
         },
         {
             "name": "livewire/livewire",
-            "version": "v4.3.1",
+            "version": "v4.3.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/livewire/livewire.git",
-                "reference": "6a9dd03f45a4b200abfd0ff644745b23fa7baaaa"
+                "reference": "8021f2561865c4c297a3bfca37212a99034377e7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/livewire/livewire/zipball/6a9dd03f45a4b200abfd0ff644745b23fa7baaaa",
-                "reference": "6a9dd03f45a4b200abfd0ff644745b23fa7baaaa",
+                "url": "https://api.github.com/repos/livewire/livewire/zipball/8021f2561865c4c297a3bfca37212a99034377e7",
+                "reference": "8021f2561865c4c297a3bfca37212a99034377e7",
                 "shasum": ""
             },
             "require": {
@@ -4257,7 +4257,7 @@
             "description": "A front-end framework for Laravel.",
             "support": {
                 "issues": "https://github.com/livewire/livewire/issues",
-                "source": "https://github.com/livewire/livewire/tree/v4.3.1"
+                "source": "https://github.com/livewire/livewire/tree/v4.3.3"
             },
             "funding": [
                 {
@@ -4265,7 +4265,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-06-02T08:58:52+00:00"
+            "time": "2026-06-27T03:16:11+00:00"
         },
         {
             "name": "maennchen/zipstream-php",
@@ -5557,16 +5557,16 @@
         },
         {
             "name": "posthog/posthog-php",
-            "version": "4.8.2",
+            "version": "4.8.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PostHog/posthog-php.git",
-                "reference": "81d712bb49d7ad23b69f2fb0e19e910e3f8d1f65"
+                "reference": "dc728eb206fc71cb02c4f0bb9a6380c2d9571933"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PostHog/posthog-php/zipball/81d712bb49d7ad23b69f2fb0e19e910e3f8d1f65",
-                "reference": "81d712bb49d7ad23b69f2fb0e19e910e3f8d1f65",
+                "url": "https://api.github.com/repos/PostHog/posthog-php/zipball/dc728eb206fc71cb02c4f0bb9a6380c2d9571933",
+                "reference": "dc728eb206fc71cb02c4f0bb9a6380c2d9571933",
                 "shasum": ""
             },
             "require": {
@@ -5604,9 +5604,9 @@
             ],
             "support": {
                 "issues": "https://github.com/PostHog/posthog-php/issues",
-                "source": "https://github.com/PostHog/posthog-php/tree/4.8.2"
+                "source": "https://github.com/PostHog/posthog-php/tree/4.8.4"
             },
-            "time": "2026-06-19T06:52:04+00:00"
+            "time": "2026-06-24T18:46:41+00:00"
         },
         {
             "name": "pragmarx/google2fa",
@@ -7232,16 +7232,16 @@
         },
         {
             "name": "spatie/laravel-medialibrary",
-            "version": "11.23.0",
+            "version": "11.23.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/spatie/laravel-medialibrary.git",
-                "reference": "98409dd203ad74a06b4ef5a7139ededc13bcf835"
+                "reference": "143106b61b945f1ca815e6a71598c03881469228"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/spatie/laravel-medialibrary/zipball/98409dd203ad74a06b4ef5a7139ededc13bcf835",
-                "reference": "98409dd203ad74a06b4ef5a7139ededc13bcf835",
+                "url": "https://api.github.com/repos/spatie/laravel-medialibrary/zipball/143106b61b945f1ca815e6a71598c03881469228",
+                "reference": "143106b61b945f1ca815e6a71598c03881469228",
                 "shasum": ""
             },
             "require": {
@@ -7326,7 +7326,7 @@
             ],
             "support": {
                 "issues": "https://github.com/spatie/laravel-medialibrary/issues",
-                "source": "https://github.com/spatie/laravel-medialibrary/tree/11.23.0"
+                "source": "https://github.com/spatie/laravel-medialibrary/tree/11.23.1"
             },
             "funding": [
                 {
@@ -7338,7 +7338,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-05-28T06:39:00+00:00"
+            "time": "2026-06-24T08:31:39+00:00"
         },
         {
             "name": "spatie/laravel-package-tools",
@@ -15997,22 +15997,23 @@
         },
         {
             "name": "testcontainers/testcontainers",
-            "version": "1.0.8",
+            "version": "1.0.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/testcontainers/testcontainers-php.git",
-                "reference": "266f0beca7bfc654b763c97b6ba7d228eb4a3d8e"
+                "reference": "75bca0595636bedfb8bfcb165e02cbc1423ef7be"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/testcontainers/testcontainers-php/zipball/266f0beca7bfc654b763c97b6ba7d228eb4a3d8e",
-                "reference": "266f0beca7bfc654b763c97b6ba7d228eb4a3d8e",
+                "url": "https://api.github.com/repos/testcontainers/testcontainers-php/zipball/75bca0595636bedfb8bfcb165e02cbc1423ef7be",
+                "reference": "75bca0595636bedfb8bfcb165e02cbc1423ef7be",
                 "shasum": ""
             },
             "require": {
                 "beluga-php/docker-php": "^1.45",
                 "ext-curl": "*",
-                "php": ">= 8.1"
+                "php": ">= 8.1",
+                "php-http/client-common": "^2.7"
             },
             "require-dev": {
                 "brianium/paratest": "^6.11",
@@ -16052,9 +16053,9 @@
             ],
             "support": {
                 "issues": "https://github.com/testcontainers/testcontainers-php/issues",
-                "source": "https://github.com/testcontainers/testcontainers-php/tree/1.0.8"
+                "source": "https://github.com/testcontainers/testcontainers-php/tree/1.0.9"
             },
-            "time": "2026-03-12T05:59:42+00:00"
+            "time": "2026-06-26T03:20:55+00:00"
         },
         {
             "name": "theseer/tokenizer",
