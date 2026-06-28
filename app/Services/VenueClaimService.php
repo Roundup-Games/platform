@@ -35,12 +35,12 @@ use Illuminate\Support\Facades\Log;
  * stewardship of a page that already exists, not about disclosing a private
  * address.
  *
- * === MEM517 ===
+ * === Assignment ===
  *
- * Tickets must NOT be assigned to an agent via {@see Ticket::assign()} — the
- * vendor TicketAssigned event types `$agentId` as int, which is incompatible
- * with our UUID user keys. If assignment is ever needed, use
- * `$ticket->updateQuietly(['assigned_to' => $id])`.
+ * {@see Ticket::assign()} is UUID-safe as of escalated-laravel v1.4.0
+ * (the TicketAssigned event's $agentId is typed int|string). This service
+ * does not assign tickets itself — venue claims route through the Events
+ * department queue — but no workaround is required if assignment is added.
  */
 class VenueClaimService
 {

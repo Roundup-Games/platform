@@ -22,7 +22,6 @@ use App\Services\GameSystemRequestService;
 use App\Services\VenueClaimService;
 use App\Services\VenueProposalService;
 use Escalated\Filament\Resources\TicketResource\Pages\ViewTicket as BaseViewTicket;
-use Escalated\Laravel\Enums\ActivityType;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Services\TicketService;
@@ -1309,7 +1308,7 @@ class ViewTicket extends BaseViewTicket
      * the open-ticket guard, the managed_by mutation, and the TicketService
      * note + resolve (see T02). This caller stays thin on purpose: re-doing
      * the lock, note, or resolve here would double-execute (e.g. resolving an
-     * already-resolved ticket). Honors MEM517 (no Ticket::assign).
+     * already-resolved ticket).
      */
     protected function performApproveVenueClaim(Ticket $ticket): void
     {
@@ -1630,14 +1629,10 @@ class ViewTicket extends BaseViewTicket
                 ['admin' => $platformAdmin] = $assignmentInfo;
 
                 if ($platformAdmin->id !== $user->id) {
-                    // Update assigned_to directly to avoid TicketAssigned event type mismatch
-                    // (vendor event expects int agentId but our User model uses UUID)
-                    $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
-                    $ticket->logActivity(
-                        ActivityType::Assigned,
-                        $user,
-                        ['agent_id' => $platformAdmin->id]
-                    );
+                    // Ticket::assign() is UUID-safe since escalated-laravel v1.4.0
+                    // (TicketAssigned.$agentId is int|string) and fires the event,
+                    // activity log, and broadcast that updateQuietly suppressed.
+                    $ticket->assign($platformAdmin, $user);
                 }
             });
 
@@ -2109,12 +2104,7 @@ class ViewTicket extends BaseViewTicket
                 ['admin' => $platformAdmin] = $assignmentInfo;
 
                 if ($platformAdmin->id !== $user->id) {
-                    $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
-                    $ticket->logActivity(
-                        ActivityType::Assigned,
-                        $user,
-                        ['agent_id' => $platformAdmin->id]
-                    );
+                    $ticket->assign($platformAdmin, $user);
                 }
             });
 
