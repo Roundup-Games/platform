@@ -9,6 +9,8 @@ use App\Relations\StringKeyMorphMany;
 use App\Services\ShortLinkService;
 use App\Services\SocialGraphService;
 use Database\Factories\CampaignFactory;
+use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
+use Escalated\Laravel\Contracts\TicketSubject;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -39,12 +41,23 @@ use Spatie\Translatable\HasTranslations;
  * @property int|null $discoverable_sort_key
  * @property float|null $distance_km
  */
-class Campaign extends Model
+class Campaign extends Model implements TicketSubject
 {
     use HasCapacity;
 
     /** @use HasFactory<CampaignFactory> */
     use HasFactory;
+
+    use PresentsAsTicketSubject;
+
+    /**
+     * Deep link into the host app for this campaign when attached as a
+     * ticket subject. Returns null when the campaign has no public route.
+     */
+    public function ticketSubjectUrl(): ?string
+    {
+        return route('campaigns.detail', $this, absolute: false);
+    }
 
     use HasSEO;
     use HasTranslations;

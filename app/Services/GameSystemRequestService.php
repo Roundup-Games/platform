@@ -155,6 +155,10 @@ class GameSystemRequestService
         $metadata['game_system_id'] = $gameSystem->id;
         $ticket->updateQuietly(['metadata' => $metadata]);
 
+        // Attach the synced GameSystem as the ticket subject now that it exists
+        // (deferred link — the request ticket predates the GameSystem).
+        $ticket->attachSubject($gameSystem, 'created');
+
         Log::info('BGG sync from ticket completed', [
             'ticket_id' => $ticket->id,
             'game_system_id' => $gameSystem->id,
@@ -194,6 +198,10 @@ class GameSystemRequestService
             // Use updateQuietly to avoid re-triggering model events (e.g. ticket listeners).
             $metadata['game_system_id'] = $gameSystem->id;
             $ticket->updateQuietly(['metadata' => $metadata]);
+
+            // Attach the manually-created GameSystem as the ticket subject
+            // (deferred link — the request ticket predates the GameSystem).
+            $ticket->attachSubject($gameSystem, 'created');
 
             Log::info('Manual GameSystem created from ticket', [
                 'ticket_id' => $ticket->id,

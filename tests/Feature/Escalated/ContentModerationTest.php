@@ -11,8 +11,10 @@ use App\Notifications\ContentRemoved;
 use App\Notifications\ContentReportWarning;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Events\TicketAssigned;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 
 beforeEach(function () {
@@ -335,6 +337,29 @@ it('escalate action increases priority to urgent and reassigns to Platform Admin
     expect($notes)->toHaveCount(1);
     expect($notes->first()->body)->toContain('escalated');
     expect($notes->first()->body)->toContain($this->agent->name);
+});
+
+// Regression guard for the MEM517 removal (2026-06-27): the escalation action
+// must call Ticket::assign() so the TicketAssigned event fires (audit trail,
+// webhook, assignment notification) — not updateQuietly, which suppressed it.
+// Note: this asserts the event fires with the correct agent; it does NOT by
+// itself distinguish assign()-inside-transaction from the DB::afterCommit()
+// deferral. That the deferred callback only fires on commit is guaranteed by
+// Laravel's transaction contract, not re-asserted here.
+it('escalate action fires the TicketAssigned event after commit', function () {
+    ['ticket' => $ticket] = createUserReportTicket();
+
+    $this->actingAs($this->agent);
+
+    Event::fake([TicketAssigned::class]);
+    invokeModerationAction('performEscalateContentReport', $ticket);
+
+    // assign() is deferred via DB::afterCommit(); under DatabaseTransactions
+    // the nested transaction completing is enough for the callback to run.
+    Event::assertDispatched(TicketAssigned::class, function (TicketAssigned $e) use ($ticket) {
+        return $e->ticket->is($ticket)
+            && $e->agentId === $this->platformAdmin->id;
+    });
 });
 
 // ── Edge Case Tests ────────────────────────────────────────────────────

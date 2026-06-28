@@ -12,8 +12,10 @@ use App\Services\UserAnonymizationService;
 use App\Services\UserPreferenceResolver;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\UserFactory;
+use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
 use Escalated\Laravel\Contracts\HasTickets;
 use Escalated\Laravel\Contracts\Ticketable;
+use Escalated\Laravel\Contracts\TicketSubject;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Contracts\Translation\HasLocalePreference;
@@ -90,7 +92,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'slug',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id', 'gender', 'gender_consent', 'analytics_consent'])]
-class User extends Authenticatable implements FilamentUser, HasLocalePreference, HasMedia, Ticketable
+class User extends Authenticatable implements FilamentUser, HasLocalePreference, HasMedia, Ticketable, TicketSubject
 {
     use Billable;
     use HasApiTokens;
@@ -103,6 +105,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     use HasTickets;
     use InteractsWithMedia;
     use Notifiable;
+    use PresentsAsTicketSubject;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
 
     protected $keyType = 'string';
@@ -575,6 +578,20 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    /**
+     * Deep link into the host app for this user when attached as a ticket
+     * subject. Users are routed by slug; users without a slug (rare, legacy)
+     * render without a link.
+     */
+    public function ticketSubjectUrl(): ?string
+    {
+        if (empty($this->slug)) {
+            return null;
+        }
+
+        return route('profile.public', $this, absolute: false);
     }
 
     /**

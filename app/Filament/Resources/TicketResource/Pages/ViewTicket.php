@@ -22,8 +22,10 @@ use App\Services\GameSystemRequestService;
 use App\Services\VenueClaimService;
 use App\Services\VenueProposalService;
 use Escalated\Filament\Resources\TicketResource\Pages\ViewTicket as BaseViewTicket;
+use Escalated\Laravel\Contracts\TicketSubject;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Models\Ticket;
+use Escalated\Laravel\Models\TicketSubjectLink;
 use Escalated\Laravel\Services\TicketService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
@@ -36,12 +38,14 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
 /**
@@ -120,22 +124,31 @@ class ViewTicket extends BaseViewTicket
         $ticket = $this->getRecord();
         $metadata = $ticket->metadata ?? [];
 
-        if (empty($metadata)) {
+        // Load the subjects collection once and thread it through both section
+        // builders, so the metadata sections can check $subjects->contains(...)
+        // for de-duplication instead of re-querying (2 queries/view avoided).
+        /** @var Collection<int, TicketSubjectLink> $subjects */
+        $subjects = $ticket->subjects()->with('subject')->get();
+
+        if (empty($metadata) && $subjects->isEmpty()) {
             return $parent;
         }
 
-        $metadataSection = $this->buildMetadataSection($ticket, $metadata);
+        $subjectsSection = $this->buildSubjectsSection($subjects);
+        $metadataSection = $this->buildMetadataSection($ticket, $metadata, $subjects);
 
-        if ($metadataSection === null) {
+        if ($metadataSection === null && $subjectsSection === null) {
             return $parent;
         }
 
-        // Insert the metadata section into the left column (first Group, columnSpan 2)
-        // after the Ticket Information section
+        // Insert the sections into the left column (first Group, columnSpan 2)
+        // after the Ticket Information section. Subjects render first (the
+        // entities the ticket is *about*), then the legacy metadata payload.
         $components = $parent->getComponents();
         if (isset($components[0]) && $components[0] instanceof Group) {
             $leftChildren = $components[0]->getChildComponents();
-            array_splice($leftChildren, 1, 0, [$metadataSection]);
+            $toInsert = array_values(array_filter([$subjectsSection, $metadataSection]));
+            array_splice($leftChildren, 1, 0, $toInsert);
             $components[0]->childComponents($leftChildren);
         }
 
@@ -143,18 +156,71 @@ class ViewTicket extends BaseViewTicket
     }
 
     /**
+     * Build the ticket-subjects Infolist section: the host-app entities this
+     * ticket is *about* (Game, User, Campaign, Location, GameSystem, Review),
+     * each rendered as a chip with its model-owned deep link. Renders nothing
+     * when the ticket has no subjects (legacy metadata tickets fall back to
+     * buildContentReportSection/buildReviewReportSection).
+     *
+     * @param  Collection<int, TicketSubjectLink>  $subjects  Pre-loaded with the 'subject' relation.
+     */
+    protected function buildSubjectsSection(Collection $subjects): ?Section
+    {
+        if ($subjects->isEmpty()) {
+            return null;
+        }
+
+        $entries = [];
+        foreach ($subjects as $link) {
+            // Entry name must be a stable, backslash-free token unique within
+            // the ticket. subject_type is the morph alias (game/campaign/...)
+            // for aliased models or the FQCN otherwise; slug() normalizes both
+            // so Filament never sees a key like "subject_App\Models\User_<id>".
+            $entryName = 'subject_'.Str::slug($link->subject_type).'_'.$link->subject_id;
+            $entryLabel = $link->role ? ucfirst($link->role) : __('Subject');
+
+            $subject = $link->subject;
+
+            if (! $subject instanceof TicketSubject) {
+                // Subject model was deleted or no longer implements the contract;
+                // render a minimal chip from the link row so the audit trail stays visible.
+                $entries[] = Infolists\Components\TextEntry::make($entryName)
+                    ->label($entryLabel)
+                    ->state($link->subject_type.' #'.$link->subject_id)
+                    ->color('gray');
+
+                continue;
+            }
+
+            // Label carries the role (e.g. "Reported"); the state is just the
+            // entity title — avoids rendering the role twice in one chip.
+            $entries[] = Infolists\Components\TextEntry::make($entryName)
+                ->label($entryLabel)
+                ->state($subject->ticketSubjectTitle())
+                ->url($subject->ticketSubjectUrl(), shouldOpenInNewTab: true)
+                ->color('primary');
+        }
+
+        return Section::make(__('Linked entities'))
+            ->description(__('Host-app records this ticket is about'))
+            ->schema($entries)
+            ->collapsible();
+    }
+
+    /**
      * Build the metadata Infolist section for a ticket.
      *
      * @param  array<string, mixed>  $metadata
+     * @param  Collection<int, TicketSubjectLink>  $subjects  Pre-loaded for de-dup checks.
      */
-    protected function buildMetadataSection(Ticket $ticket, array $metadata): ?Section
+    protected function buildMetadataSection(Ticket $ticket, array $metadata, Collection $subjects): ?Section
     {
         $ticketType = $ticket->ticket_type;
 
         // Decide which schema to render
         return match ($ticketType) {
-            'content_report' => $this->buildContentReportSection($metadata),
-            'review_report' => $this->buildReviewReportSection($metadata),
+            'content_report' => $this->buildContentReportSection($metadata, $subjects),
+            'review_report' => $this->buildReviewReportSection($metadata, $subjects),
             'game_system_request' => $this->buildGameSystemRequestSection($metadata),
             'venue_proposal' => $this->buildVenueProposalSection($metadata),
             'venue_claim' => $this->buildVenueClaimSection($metadata),
@@ -166,17 +232,25 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * @param  array<string, mixed>  $metadata
+     * @param  Collection<int, TicketSubjectLink>  $subjects
      */
-    protected function buildContentReportSection(array $metadata): Section
+    protected function buildContentReportSection(array $metadata, Collection $subjects): Section
     {
         $entries = [];
+
+        // When the ticket has first-class subjects (post-TicketSubjects migration),
+        // the reported entity is rendered by buildSubjectsSection(); skip the
+        // metadata-derived entity chip here to avoid duplication. Legacy tickets
+        // without subjects keep rendering it from metadata. Checked against the
+        // pre-loaded collection (no extra query).
+        $hasReportedSubject = $subjects->contains(fn ($s) => $s->role === 'reported');
 
         // Reported entity
         $entityType = isset($metadata['entity_type']) ? self::asString($metadata['entity_type']) : null;
         $entityId = isset($metadata['entity_id']) ? self::asString($metadata['entity_id']) : null;
         $entityName = isset($metadata['entity_name']) ? self::asString($metadata['entity_name']) : $entityId;
 
-        if ($entityType) {
+        if ($entityType && ! $hasReportedSubject) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_entity_type')
                 ->label('Entity type')
                 ->state(ucfirst($entityType))
@@ -184,7 +258,7 @@ class ViewTicket extends BaseViewTicket
                 ->color('info');
         }
 
-        if ($entityName && $entityId) {
+        if ($entityName && $entityId && ! $hasReportedSubject) {
             $url = $this->resolveEntityUrl($entityType, $entityId);
             $entries[] = Infolists\Components\TextEntry::make('metadata_entity')
                 ->label('Reported entity')
@@ -193,7 +267,7 @@ class ViewTicket extends BaseViewTicket
                 ->color('primary');
         }
 
-        if ($entityId) {
+        if ($entityId && ! $hasReportedSubject) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_entity_id')
                 ->label('Entity ID')
                 ->state($entityId)
@@ -233,13 +307,20 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * @param  array<string, mixed>  $metadata
+     * @param  Collection<int, TicketSubjectLink>  $subjects
      */
-    protected function buildReviewReportSection(array $metadata): Section
+    protected function buildReviewReportSection(array $metadata, Collection $subjects): Section
     {
         $entries = [];
 
+        // When the ticket has first-class subjects (post-TicketSubjects
+        // migration), the review + author render via buildSubjectsSection().
+        // Skip the metadata-derived review_id / review_author chips here to
+        // avoid duplication. Checked against the pre-loaded collection.
+        $hasSubjects = $subjects->isNotEmpty();
+
         // Review info
-        if (isset($metadata['review_id'])) {
+        if (isset($metadata['review_id']) && ! $hasSubjects) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_review_id')
                 ->label('Review ID')
                 ->state($metadata['review_id'])
@@ -248,7 +329,7 @@ class ViewTicket extends BaseViewTicket
 
         // Review author
         $reviewAuthorId = $metadata['review_author_id'] ?? null;
-        if ($reviewAuthorId) {
+        if ($reviewAuthorId && ! $hasSubjects) {
             $author = User::find(self::asString($reviewAuthorId));
             $entries[] = Infolists\Components\TextEntry::make('metadata_review_author')
                 ->label('Review author')
@@ -1632,7 +1713,11 @@ class ViewTicket extends BaseViewTicket
                     // Ticket::assign() is UUID-safe since escalated-laravel v1.4.0
                     // (TicketAssigned.$agentId is int|string) and fires the event,
                     // activity log, and broadcast that updateQuietly suppressed.
-                    $ticket->assign($platformAdmin, $user);
+                    // Deferred to afterCommit(): the DispatchWebhook listener does a
+                    // blocking Http::timeout(10) call, which would hold the row
+                    // lock for the whole transaction and risk send-on-rollback.
+                    $admin = $platformAdmin;
+                    DB::afterCommit(fn () => $ticket->assign($admin, $user));
                 }
             });
 
@@ -2104,7 +2189,12 @@ class ViewTicket extends BaseViewTicket
                 ['admin' => $platformAdmin] = $assignmentInfo;
 
                 if ($platformAdmin->id !== $user->id) {
-                    $ticket->assign($platformAdmin, $user);
+                    // Deferred to afterCommit(): Ticket::assign() dispatches
+                    // TicketAssigned, whose DispatchWebhook listener does a blocking
+                    // Http::timeout(10) call. Running it inside the transaction
+                    // would hold the row lock and risk send-on-rollback.
+                    $admin = $platformAdmin;
+                    DB::afterCommit(fn () => $ticket->assign($admin, $user));
                 }
             });
 

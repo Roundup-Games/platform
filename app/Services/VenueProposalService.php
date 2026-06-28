@@ -144,6 +144,10 @@ class VenueProposalService
         $metadata['location_id'] = $location->id;
         $ticket->updateQuietly(['metadata' => $metadata]);
 
+        // Attach the created/updated Location as the ticket subject now that
+        // it exists (deferred link — the proposal ticket predates the venue).
+        $ticket->attachSubject($location, 'venue');
+
         Log::info('venue_proposal.approved', [
             'ticket_id' => $ticket->id,
             'ticket_reference' => $ticket->reference,

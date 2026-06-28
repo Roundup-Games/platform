@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\GmProficiency;
 use Database\Factories\ReviewFactory;
+use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
+use Escalated\Laravel\Contracts\TicketSubject;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,10 +24,22 @@ use Illuminate\Support\Str;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-class Review extends Model
+class Review extends Model implements TicketSubject
 {
     /** @use HasFactory<ReviewFactory> */
     use HasFactory;
+
+    use PresentsAsTicketSubject;
+
+    /**
+     * Reviews have no `name`/`title` attribute and no public detail page,
+     * so the subject title identifies the review by its author and the URL
+     * stays null (non-clickable chip in the ticket UI).
+     */
+    public function ticketSubjectTitle(): string
+    {
+        return __('Review by :name', ['name' => $this->reviewer->name ?? __('Unknown')]);
+    }
 
     protected $keyType = 'string';
 

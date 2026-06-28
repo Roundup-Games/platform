@@ -1,0 +1,23 @@
+<?php
+
+// Stub for Escalated\Laravel\Models\TicketSubjectLink to add PHPStan property
+// annotations. The vendor model resolves its table dynamically (getTable() =>
+// Escalated::table('ticket_subjects')), which prevents Larastan from binding
+// the model to its migration and inferring column types. Declaring the columns
+// here mirrors the EscalatedTicket.stub / EscalatedReply.stub pattern.
+
+namespace Escalated\Laravel\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * @property int $id
+ * @property int $ticket_id
+ * @property string $subject_type
+ * @property string $subject_id
+ * @property string|null $role
+ * @property int $position
+ * @property-read Ticket|null $ticket
+ * @property-read Model|null $subject
+ */
+class TicketSubjectLink extends Model {}

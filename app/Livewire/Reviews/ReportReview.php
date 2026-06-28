@@ -174,6 +174,15 @@ class ReportReview extends Component
             'metadata' => $metadata,
         ]);
 
+        // Attach both the reported review and its author as first-class ticket
+        // subjects. The review has no public page (non-clickable chip) but is a
+        // queryable FK link; the author links to their profile. Metadata still
+        // carries reason/details/reporter for backward-compat rendering.
+        $ticket->attachSubject($review, 'reported');
+        if ($reviewAuthor) {
+            $ticket->attachSubject($reviewAuthor, 'author');
+        }
+
         // Apply review-report tag
         $tag = Tag::where('name', 'review-report')->first();
         if ($tag) {

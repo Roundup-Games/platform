@@ -260,6 +260,11 @@ class ReportContent extends Component
             'metadata' => $metadata,
         ]);
 
+        // Attach the reported entity as a first-class ticket subject (queryable
+        // FK link + model-owned deep link) in addition to the metadata payload,
+        // which continues to carry non-entity context (reason, details, actor).
+        $ticket->attachSubject($entity, 'reported');
+
         // Apply entity-type tag
         $tagName = $this->entityType.'-report';
         $tag = Tag::where('name', $tagName)->first();

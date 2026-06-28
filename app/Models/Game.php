@@ -14,6 +14,8 @@ use App\Services\LocationDisclosureService;
 use App\Services\ShortLinkService;
 use App\Services\SocialGraphService;
 use Database\Factories\GameFactory;
+use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
+use Escalated\Laravel\Contracts\TicketSubject;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -56,7 +58,7 @@ use Spatie\Translatable\HasTranslations;
  * @property int|null $discoverable_sort_key
  * @property float|null $distance_km
  */
-class Game extends Model
+class Game extends Model implements TicketSubject
 {
     use HasCapacity;
 
@@ -65,6 +67,16 @@ class Game extends Model
 
     use HasSEO;
     use HasTranslations;
+    use PresentsAsTicketSubject;
+
+    /**
+     * Deep link into the host app for this game when attached as a ticket
+     * subject. Uses the public game detail route.
+     */
+    public function ticketSubjectUrl(): ?string
+    {
+        return route('games.detail', $this, absolute: false);
+    }
 
     /** @var array<int, string> */
     public array $translatable = ['name', 'description'];

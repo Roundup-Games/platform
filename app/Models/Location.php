@@ -7,6 +7,8 @@ use App\Services\Geohash;
 use App\Services\LocationDisclosureService;
 use App\Services\ProximityQuery;
 use Database\Factories\LocationFactory;
+use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
+use Escalated\Laravel\Contracts\TicketSubject;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -51,12 +53,16 @@ use Spatie\SchemaOrg\PostalAddress;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-class Location extends Model
+class Location extends Model implements TicketSubject
 {
     /** @use HasFactory<LocationFactory> */
     use HasFactory;
 
+    // Location has no public-facing route; ticketSubjectUrl() returns null
+    // (the trait default), so subjects render without a link in the ticket UI.
+
     use HasSEO;
+    use PresentsAsTicketSubject;
 
     protected $keyType = 'string';
 

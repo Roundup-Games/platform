@@ -82,6 +82,13 @@ class VenueClaimService
             'metadata' => $metadata,
         ]);
 
+        // Attach the claimed Location as a first-class ticket subject — a
+        // queryable FK link and a model-owned deep link for the admin UI.
+        // (hasPendingClaim still matches on metadata->location_id rather than
+        // the subject relation, so duplicate detection stays robust against
+        // legacy tickets that haven't been backfilled to subjects yet.)
+        $ticket->attachSubject($location, 'venue');
+
         $this->applyVenueClaimTag($ticket);
 
         Log::info('venue_claim.submitted', [

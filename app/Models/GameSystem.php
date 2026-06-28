@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\GameSystemFactory;
+use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
+use Escalated\Laravel\Contracts\TicketSubject;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,13 +36,24 @@ use Spatie\Translatable\HasTranslations;
  * @property Carbon|null $updated_at
  * @property array<int, array{question: string, answer: string}>|null $faq_content
  */
-class GameSystem extends Model implements HasMedia
+class GameSystem extends Model implements HasMedia, TicketSubject
 {
     /** @use HasFactory<GameSystemFactory> */
     use HasFactory;
 
     use HasSEO;
     use HasTranslations;
+    use PresentsAsTicketSubject;
+
+    /**
+     * Deep link into the host app for this game system when attached as a
+     * ticket subject. GameSystemDetail is slug-based.
+     */
+    public function ticketSubjectUrl(): ?string
+    {
+        return route('game-systems.show', $this, absolute: false);
+    }
+
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
 
