@@ -224,12 +224,13 @@
                 </a>
                 <button
                     type="submit"
-                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors"
+                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap"
                     wire:loading.attr="disabled"
                 >
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">save</span>
-                    <span wire:loading.remove>{{ __('session_zero.action_create_survey') }}</span>
-                    <span wire:loading>{{ __('session_zero.action_creating') }}</span>
+                    {{-- Stable label so the redirect trigger stays in the DOM (M054). --}}
+                    <span class="material-symbols-outlined text-sm" wire:loading.remove wire:target="save" aria-hidden="true">save</span>
+                    <span class="material-symbols-outlined text-sm animate-spin" wire:loading wire:target="save" aria-hidden="true" role="status" aria-label="{{ __('session_zero.action_creating') }}">progress_activity</span>
+                    {{ __('session_zero.action_create_survey') }}
                 </button>
             </div>
         </form>

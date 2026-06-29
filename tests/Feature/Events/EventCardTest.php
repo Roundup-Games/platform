@@ -48,6 +48,37 @@ describe('EventCardTest', function () {
         // Fail-closed: empty raw-city set renders nothing (no icon span, no text).
         expect($rendered)->not->toContain('location_on');
     });
+
+    it('shows the Registration open badge when status is registration_open', function () {
+        // M054 audit: Event::status is cast to the EventStatus enum, so a bare
+        // `$event->status === 'registration_open'` comparison is ALWAYS false
+        // and the badge never rendered. The fix uses ->value. This pins it.
+        $event = Event::factory()->create([
+            'name' => ['en' => 'Open Event'],
+            'city' => 'Springfield',
+            'country' => 'US',
+            'is_public' => true,
+            'status' => 'registration_open',
+        ]);
+
+        $rendered = Blade::render('<x-event-card :event="$event" />', ['event' => $event]);
+
+        expect($rendered)->toContain(__('events.content_registration_open'));
+    });
+
+    it('does not show the Registration open badge for a non-open status', function () {
+        $event = Event::factory()->create([
+            'name' => ['en' => 'Draft Event'],
+            'city' => 'Springfield',
+            'country' => 'US',
+            'is_public' => true,
+            'status' => 'draft',
+        ]);
+
+        $rendered = Blade::render('<x-event-card :event="$event" />', ['event' => $event]);
+
+        expect($rendered)->not->toContain(__('events.content_registration_open'));
+    });
 });
 
 describe('LocationDisplay raw-city path', function () {

@@ -72,13 +72,14 @@
 
                 {{-- Save --}}
                 <div class="flex justify-end">
-                    <button type="submit" wire:loading.attr="disabled"
-                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium">
-                        <span class="material-symbols-outlined text-base" wire:loading.remove aria-hidden="true">save</span>
-                        <span wire:loading.remove>{{ __('common.action_save_changes') }}</span>
-                        <span wire:loading class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
-                            {{ __('common.content_saving') }}
+                    <button type="submit" wire:loading.attr="disabled" wire:target="savePrivacySettings"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium whitespace-nowrap">
+                        {{-- Stable label so the redirect trigger stays in the DOM (M054).
+                            wire:target scopes loading to this form only (multiple submit forms on this page). --}}
+                        <span class="inline-flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base" wire:loading.remove wire:target="savePrivacySettings" aria-hidden="true">save</span>
+                            <span class="material-symbols-outlined text-base animate-spin" wire:loading wire:target="savePrivacySettings" aria-hidden="true" role="status" aria-label="{{ __('common.content_saving') }}">progress_activity</span>
+                            {{ __('common.action_save_changes') }}
                         </span>
                     </button>
                 </div>

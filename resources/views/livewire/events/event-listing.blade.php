@@ -94,15 +94,15 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
                                     {{ __(ucfirst($event->type)) }}
                                 </span>
-                                @if($event->status === 'registration_open')
+                                @if($event->status->value === 'registration_open')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
                                         {{ __('events.content_registration_open') }}
                                     </span>
-                                @elseif($event->status === 'in_progress')
+                                @elseif($event->status->value === 'in_progress')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                                         {{ __('common.content_in_progress') }}
                                     </span>
-                                @elseif($event->status === 'registration_closed')
+                                @elseif($event->status->value === 'registration_closed')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
                                         {{ __('events.content_registration_closed') }}
                                     </span>

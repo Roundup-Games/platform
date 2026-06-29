@@ -281,12 +281,14 @@
                 {{-- Actions --}}
                 <div class="flex items-center gap-4 pt-2">
                     <button type="submit" wire:loading.attr="disabled" wire:loading.attr="aria-busy=true"
-                            class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium shadow-ambient">
-                        <span class="material-symbols-outlined text-base" wire:loading.remove aria-hidden="true">add_circle</span>
-                        <span wire:loading.remove>{{ __('games.action_create_game') }}</span>
-                        <span wire:loading class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
-                            {{ __('common.content_creating') }}
+                            class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium shadow-ambient whitespace-nowrap">
+                        {{-- Stable label + icon swap: the label element is never removed by wire:loading,
+                            so the submit trigger stays in the DOM across the request and Livewire's
+                            navigate redirect fires reliably (see apply-to-game fix, M054). --}}
+                        <span class="inline-flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base" wire:loading.remove wire:target="save" aria-hidden="true">add_circle</span>
+                            <span class="material-symbols-outlined text-base animate-spin" wire:loading wire:target="save" aria-hidden="true" role="status" aria-label="{{ __('common.content_creating') }}">progress_activity</span>
+                            {{ __('games.action_create_game') }}
                         </span>
                     </button>
                     <a href="{{ route('dashboard') }}" wire:navigate

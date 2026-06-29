@@ -228,14 +228,14 @@
             {{-- Actions --}}
             <div class="flex items-center gap-4 pt-2">
                 <button wire:click="save" wire:loading.attr="disabled"
-                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium shadow-ambient">
-                    <span class="material-symbols-outlined text-base" wire:loading.remove aria-hidden="true">add_circle</span>
-                    <span wire:loading.remove>{{ __('campaigns.action_create_campaign') }}</span>
-                    <span wire:loading class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
-                        {{ __('common.content_creating') }}
-                    </span>
-                </button>
+                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium shadow-ambient whitespace-nowrap">
+                        {{-- Stable label + icon swap so the redirect trigger stays in the DOM (M054). --}}
+                        <span class="inline-flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base" wire:loading.remove wire:target="save" aria-hidden="true">add_circle</span>
+                            <span class="material-symbols-outlined text-base animate-spin" wire:loading wire:target="save" aria-hidden="true" role="status" aria-label="{{ __('common.content_creating') }}">progress_activity</span>
+                            {{ __('campaigns.action_create_campaign') }}
+                        </span>
+                    </button>
                 <a href="{{ route('dashboard') }}" wire:navigate
                    class="px-4 py-2.5 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
                     {{ __('common.action_cancel') }}
