@@ -207,7 +207,15 @@ describe('GameListing', function () {
     });
 
     it('filters by date this_month', function () {
-        Game::factory()->create(['name' => ['en' => 'This Month Game'], 'date_time' => now()->addDays(3), 'visibility' => 'public', 'status' => 'scheduled']);
+        // A date that is both in the future (the base listing query requires
+        // date_time > now()) AND within the current calendar month. Using
+        // addDays(3) alone is a month-end flake (e.g. June 29 + 3 = July 4,
+        // outside the this_month range) and startOfMonth()->addDays(3) lands in
+        // the past late in the month. Clamp to a guaranteed future-in-month date.
+        $inMonth = now()->startOfMonth()->addDays(3)->isFuture()
+            ? now()->startOfMonth()->addDays(3)
+            : now()->addDay();
+        Game::factory()->create(['name' => ['en' => 'This Month Game'], 'date_time' => $inMonth, 'visibility' => 'public', 'status' => 'scheduled']);
         Game::factory()->create(['name' => ['en' => 'Far Future Game'], 'date_time' => now()->addMonths(3), 'visibility' => 'public', 'status' => 'scheduled']);
 
         Livewire\Livewire::test(GameListing::class)

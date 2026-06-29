@@ -395,6 +395,46 @@ class LocationDisclosureService
     }
 
     /**
+     * True when the viewer is genuinely nearby the location: shares a
+     * geohash-4 tile OR is within the grid distance (5km).
+     *
+     * The proximity authority for the Area disclosure LABEL (D101): "In your
+     * area" must reflect actual proximity, not merely "the address is hidden
+     * for privacy". Mirrors the in-area rule of {@see gridSnap()} but is
+     * available without a precise distance (the address-line path has only
+     * the viewer + location, not a precomputed haversine).
+     *
+     * Returns false for a null viewer (guest) or when either location is
+     * unresolvable — the caller then falls back to the city label rather than
+     * a false "In your area".
+     */
+    public function isViewerNearby(?Location $location, ?User $viewer): bool
+    {
+        if ($location === null || $viewer === null) {
+            return false;
+        }
+
+        if ($this->sameTile($location, $viewer)) {
+            return true;
+        }
+
+        $viewerLocation = $viewer->linkedLocation;
+        // linkedLocation() is typed BelongsTo<Location>, so phpstan treats the
+        // magic getter as non-null; guard the runtime-null result explicitly.
+        if ($viewerLocation === null || $viewerLocation->latitude === null || $viewerLocation->longitude === null
+            || $location->latitude === null || $location->longitude === null) {
+            return false;
+        }
+
+        return ProximityQuery::haversineDistance(
+            (float) $viewerLocation->latitude,
+            (float) $viewerLocation->longitude,
+            (float) $location->latitude,
+            (float) $location->longitude,
+        ) < self::GRID_SIZE_KM;
+    }
+
+    /**
      * Structured warning for post-incident review of fail-closed triggers.
      *
      * @param  array<string, mixed>  $context

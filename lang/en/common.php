@@ -33,6 +33,7 @@ return [
     'action_publish' => 'Publish',
     'action_publish_immediately' => 'Publish immediately',
     'action_loading' => 'Loading...',
+    'action_submitting' => 'Submitting...',
     'action_approve' => 'Approve',
     'action_reject' => 'Reject',
     'action_remove' => 'Remove',

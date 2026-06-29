@@ -173,6 +173,18 @@
                                     </div>
                                 @endif
                             @endif
+                            {{-- Application message: visible to the host on every game type, including
+                                public games where applications are auto-approved and the applicant skips
+                                the Pending Applications section entirely. The applications relationship is
+                                eager-loaded in ManageParticipants::render(). --}}
+                            @if(isset($joinSourceBadge) && $joinSourceBadge === \App\Enums\JoinSource::Application)
+                                @php
+                                    $applicationMessage = $entity->applications->firstWhere('user_id', $participant->user_id)?->message;
+                                @endphp
+                                @if($applicationMessage)
+                                    <p class="text-xs text-on-surface-variant italic ml-13">&ldquo;{{ $applicationMessage }}&rdquo;</p>
+                                @endif
+                            @endif
                         </div>
                     @endforeach
                 </div>

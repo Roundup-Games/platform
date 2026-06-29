@@ -35,7 +35,7 @@
          Guarded like the venue-name link below: only render when linkedLocation
          is eager-loaded AND present, so cards rendered in a loop (NearbySessions)
          never trigger a lazy N+1, and an entity with no location shows no empty pill. --}}
-    @if($entity->relationLoaded('linkedLocation') && $entity->linkedLocation)
+    @if($entity->relationLoaded('linkedLocation') && $entity->linkedLocation && $distanceKm > 0)
     <div class="absolute top-3 right-3 z-10">
             <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium">
             <x-distance-display :precise-km="$distanceKm" :location="$entity->linkedLocation" :entity="$entity" icon="straighten" />

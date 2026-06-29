@@ -82,11 +82,15 @@ class GameSystemRequestRejected extends BaseNotification
         $data = [
             'type' => 'game_system_request_rejected',
             'ticket_id' => $this->ticket->id,
+            'ticket_reference' => $this->ticket->reference,
             'game_system_name' => $name,
             'rejection_reason' => $rejectionReason,
             'message' => __('notifications.body_game_system_request_rejected', [
                 'name' => $name,
             ]),
+            // Link to the support ticket so the requester can read the rejection
+            // reason and any reply thread (M054/S03).
+            'action_url' => route('escalated.customer.tickets.show', $this->ticket),
         ];
 
         if ($rejectionReason) {

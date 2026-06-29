@@ -104,6 +104,9 @@ return [
     'verb_game_completed' => 'Spiel abgeschlossen',
     'verb_campaign_cancelled' => 'Kampagne abgesagt',
     'verb_campaign_completed' => 'Kampagne abgeschlossen',
+    'verb_game_system_request_approved' => 'Spielesystem-Anfrage genehmigt',
+    'verb_game_system_request_rejected' => 'Spielesystem-Anfrage abgelehnt',
+    'verb_game_system_request_duplicate' => 'Spielesystem-Anfrage als Duplikat markiert',
 
     // Anzeigetexte — Satzbausteine (1/2/3+ Akteure)
     'display_one_actor' => ':actor :verb',

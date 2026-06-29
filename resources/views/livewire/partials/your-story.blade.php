@@ -7,9 +7,9 @@
     $iconStyles = [
         'trophy' => 'bg-primary/10 text-primary',
         'users' => 'bg-secondary/10 text-secondary',
-        'book-open' => 'bg-tertiary/10 text-tertiary',
+        'menu_book' => 'bg-tertiary/10 text-tertiary',
         'star' => 'bg-primary/10 text-primary',
-        'compass' => 'bg-secondary/10 text-secondary',
+        'explore' => 'bg-secondary/10 text-secondary',
     ];
 @endphp
 

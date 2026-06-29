@@ -146,11 +146,11 @@ function renderGameHeader(Game $game, ?User $actingAs = null): string
 // ── _game-header partial (HIGH-2 source; public + dashboard game detail) ────
 
 describe('game detail address line (the HIGH-2 source)', function () {
-    it('shows "In your area" to an authenticated stranger (no street, no city)', function () {
-        // Graduated disclosure (D079): a stranger to a private (unverified,
-        // non-commercial) location gets the Area rung — never the city or
-        // street. This is stricter than the old binary gate, which showed
-        // the city to everyone who was not an approved participant.
+    it('shows the city (not "In your area") to an authenticated stranger who is not nearby', function () {
+        // D101: a stranger to a private location with no confirmed proximity
+        // sees the city — never a false "In your area" for a distant/unknown
+        // viewer, and never the street. (This stranger has no linked location,
+        // so proximity cannot be confirmed.)
         $game = legacyGame($this->gameSystem, $this->owner, $this->normalizedLocation->id);
         $stranger = User::factory()->create();
 
@@ -158,21 +158,49 @@ describe('game detail address line (the HIGH-2 source)', function () {
 
         assertNoLegacyLeakIn($html);
         expect($html)
-            ->toContain(__('people.label_disclosure_level_area'))
-            ->not->toContain('Metropolis')      // city withheld from strangers
-            ->not->toContain('456 Public Ave'); // street withheld
+            ->toContain('Metropolis')      // city shown (D101)
+            ->not->toContain(__('people.label_disclosure_level_area')) // no false "in your area"
+            ->not->toContain('456 Public Ave'); // street still withheld
     });
 
-    it('shows "In your area" to a guest on the public game detail page', function () {
+    it('shows the city (not "In your area") to a guest with no confirmed proximity', function () {
         // The public game detail is guest-only (authenticated users are
-        // redirected to the dashboard detail). A guest at a private location
-        // also gets the Area rung.
+        // redirected to the dashboard detail). A guest has no viewer location,
+        // so proximity cannot be confirmed → city (D101).
         $game = legacyGame($this->gameSystem, $this->owner, $this->normalizedLocation->id);
 
         $html = renderGameHeader($game); // guest
 
         assertNoLegacyLeakIn($html);
-        expect($html)->toContain(__('people.label_disclosure_level_area'));
+        expect($html)
+            ->toContain('Metropolis')
+            ->not->toContain('456 Public Ave');
+    });
+
+    it('shows "In your area" to a nearby stranger who shares the geohash tile', function () {
+        // D101: a stranger whose location shares a geohash-4 tile with the
+        // game genuinely is in the area, so the Area label is correct.
+        $nearbyLocation = Location::factory()->create([
+            'latitude' => '52.5200000',
+            'longitude' => '13.4050000',
+            'city' => 'Berlin',
+            'is_verified' => false,
+            'venue_type' => null,
+        ]);
+        $nearbyLocation->refresh(); // pick up trigger-computed geohash_4
+        $game = legacyGame($this->gameSystem, $this->owner, $nearbyLocation->id);
+
+        $viewerLocation = Location::factory()->create([
+            'latitude' => '52.5210000',
+            'longitude' => '13.4060000',
+        ]);
+        $viewerLocation->refresh();
+        $nearbyStranger = User::factory()->create(['location_id' => $viewerLocation->id]);
+
+        $html = renderGameHeader($game, actingAs: $nearbyStranger);
+
+        expect($html)->toContain(__('people.label_disclosure_level_area'))
+            ->and($html)->not->toContain('456 Public Ave');
     });
 
     it('does not leak to a stranger when only legacy JSON is present (location_id null)', function () {

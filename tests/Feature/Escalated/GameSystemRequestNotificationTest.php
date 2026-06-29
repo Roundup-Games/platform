@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Notifications\GameSystemRequestApproved;
 use App\Notifications\GameSystemRequestDuplicate;
 use App\Notifications\GameSystemRequestRejected;
+use App\Services\NotificationQueryService;
 use App\Services\NotificationService;
 use Database\Seeders\EscalatedSetupSeeder;
 use Escalated\Laravel\Enums\TicketChannel;
@@ -74,7 +75,8 @@ describe('Database channel persistence', function () {
             ->and($notification->data['game_system_id'])->toBe($gameSystem->id)
             ->and($notification->data['game_system_name'])->toBe('Catan')
             ->and($notification->data['game_system_slug'])->toBe('catan')
-            ->and($notification->data['action_url'])->toContain('/game-systems/catan');
+            ->and($notification->data['ticket_reference'])->not->toBeNull()
+            ->and($notification->data['action_url'])->toContain('/support/');
     });
 
     it('persists GameSystemRequestRejected with rejection reason', function () {
@@ -127,7 +129,8 @@ describe('Database channel persistence', function () {
             ->and($notification->data['existing_game_system_id'])->toBe($existingSystem->id)
             ->and($notification->data['existing_game_system_name'])->toBe('Catan')
             ->and($notification->data['existing_game_system_slug'])->toBe('catan')
-            ->and($notification->data['action_url'])->toContain('/game-systems/catan');
+            ->and($notification->data['ticket_reference'])->not->toBeNull()
+            ->and($notification->data['action_url'])->toContain('/support/');
     });
 });
 
@@ -212,7 +215,8 @@ describe('End-to-end dispatch via NotificationService', function () {
         expect($notification)->not->toBeNull()
             ->and($notification->data['game_system_name'])->toBe('Twilight Imperium')
             ->and($notification->data['game_system_slug'])->toBe('twilight-imperium')
-            ->and($notification->data['action_url'])->toContain('/game-systems/twilight-imperium');
+            ->and($notification->data['ticket_reference'])->not->toBeNull()
+            ->and($notification->data['action_url'])->toContain('/support/');
     });
 
     it('stores rejected notification in database with reason', function () {
@@ -255,7 +259,8 @@ describe('End-to-end dispatch via NotificationService', function () {
         expect($notification)->not->toBeNull()
             ->and($notification->data['existing_game_system_name'])->toBe('Checkers')
             ->and($notification->data['existing_game_system_slug'])->toBe('checkers')
-            ->and($notification->data['action_url'])->toContain('/game-systems/checkers');
+            ->and($notification->data['ticket_reference'])->not->toBeNull()
+            ->and($notification->data['action_url'])->toContain('/support/');
     });
 });
 
@@ -313,5 +318,43 @@ describe('via() returns database and mail channels', function () {
         $channels = (new GameSystemRequestDuplicate($ticket, $existingSystem))->via($notifiable);
 
         expect($channels)->toContain(DatabaseChannel::class, MailChannel::class);
+    });
+});
+
+// ── In-app notification display links to the ticket (M054/S03) ──
+
+describe('In-app display links to the support ticket', function () {
+    it('renders the requested game system name as a link to the support ticket', function () {
+        $ticket = createGameSystemRequestTicket($this->user, $this->department, [
+            'subject' => 'Game System Request: Catan',
+        ]);
+        $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'Catan'], 'slug' => 'catan']);
+
+        $this->user->notifyNow(new GameSystemRequestApproved($ticket, $gameSystem));
+
+        $groups = app(NotificationQueryService::class)->getGroupedForUser($this->user);
+        $group = $groups->first(fn ($g) => $g->type === 'GameSystemRequestApproved');
+
+        expect($group)->not->toBeNull()
+            ->and($group->actionUrl)->toContain('/support/')
+            ->and($group->displayHtml)->toContain('Catan')
+            ->and($group->displayHtml)->toContain('/support/')
+            ->and($group->displayHtml)->toContain('href=');
+    });
+
+    it('links a rejected request to its support ticket', function () {
+        $ticket = createGameSystemRequestTicket($this->user, $this->department, [
+            'subject' => 'Game System Request: Monopoly',
+        ]);
+
+        $this->user->notifyNow(new GameSystemRequestRejected($ticket));
+
+        $groups = app(NotificationQueryService::class)->getGroupedForUser($this->user);
+        $group = $groups->first(fn ($g) => $g->type === 'GameSystemRequestRejected');
+
+        expect($group)->not->toBeNull()
+            ->and($group->actionUrl)->toContain('/support/')
+            ->and($group->displayHtml)->toContain('Monopoly')
+            ->and($group->displayHtml)->toContain('/support/');
     });
 });

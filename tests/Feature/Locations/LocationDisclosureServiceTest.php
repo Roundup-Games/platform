@@ -528,6 +528,111 @@ class LocationDisclosureServiceTest extends TestCase
     }
 
     // ══════════════════════════════════════════════════
+    //  IS VIEWER NEARBY — D101 proximity authority for the Area label
+    // ══════════════════════════════════════════════════
+
+    #[Test]
+    public function is_viewer_nearby_true_when_viewer_shares_geohash_tile(): void
+    {
+        $owner = User::factory()->create();
+        $game = $this->game($owner);
+
+        $private = Location::factory()->create([
+            'venue_type' => null,
+            'is_verified' => false,
+            'latitude' => '52.5200000',
+            'longitude' => '13.4050000',
+        ]);
+        $private->refresh();
+
+        $viewer = User::factory()->create([
+            'location_id' => Location::factory()->create([
+                'latitude' => '52.5210000',
+                'longitude' => '13.4060000',
+            ])->id,
+        ]);
+
+        $this->assertTrue($this->service->isViewerNearby($private, $viewer));
+    }
+
+    #[Test]
+    public function is_viewer_nearby_true_when_within_five_km(): void
+    {
+        $private = Location::factory()->create([
+            'venue_type' => null,
+            'is_verified' => false,
+            'latitude' => '52.5200000',
+            'longitude' => '13.4050000',
+        ]);
+        $private->refresh();
+
+        // ~1.5km away, adjacent tile may differ but <5km wins.
+        $viewer = User::factory()->create([
+            'location_id' => Location::factory()->create([
+                'latitude' => '52.5330000',
+                'longitude' => '13.4100000',
+            ])->id,
+        ]);
+
+        $this->assertTrue($this->service->isViewerNearby($private, $viewer));
+    }
+
+    #[Test]
+    public function is_viewer_nearby_false_for_distant_viewer(): void
+    {
+        // Berlin game, Munich viewer — the reported visual-testing bug.
+        $private = Location::factory()->create([
+            'venue_type' => null,
+            'is_verified' => false,
+            'latitude' => '52.5200000',  // Berlin
+            'longitude' => '13.4050000',
+        ]);
+        $private->refresh();
+
+        $viewer = User::factory()->create([
+            'location_id' => Location::factory()->create([
+                'latitude' => '48.1351000',  // Munich (~500km)
+                'longitude' => '11.5820000',
+            ])->id,
+        ]);
+
+        $this->assertFalse($this->service->isViewerNearby($private, $viewer));
+    }
+
+    #[Test]
+    public function is_viewer_nearby_false_for_guest_or_unresolvable_location(): void
+    {
+        $private = $this->location(type: null, verified: false);
+
+        $this->assertFalse($this->service->isViewerNearby($private, null));   // guest
+        $this->assertFalse($this->service->isViewerNearby(null, User::factory()->create())); // null location
+
+        // Viewer with no linked location → cannot confirm proximity.
+        $viewerWithoutLocation = User::factory()->create();
+        $this->assertFalse($this->service->isViewerNearby($private, $viewerWithoutLocation));
+    }
+
+    // ══════════════════════════════════════════════════
+    //  DISTANCE COMPONENT — zero/unknown distance renders nothing (M054/S04)
+    // ══════════════════════════════════════════════════
+
+    #[Test]
+    public function distance_component_hides_when_no_real_distance_supplied(): void
+    {
+        // The 0.0 sentinel (a caller that omits precise-km, e.g. the campaign
+        // fallback) must render nothing rather than a false "In your area".
+        $unknown = new \App\View\Components\DistanceDisplay(preciseKm: 0.0);
+        $this->assertSame('', $unknown->label);
+
+        $gridSnappedUnknown = new \App\View\Components\DistanceDisplay(preciseKm: 0.0, gridSnap: true);
+        $this->assertSame('', $gridSnappedUnknown->label);
+
+        // A real close distance still flags "In your area".
+        $close = new \App\View\Components\DistanceDisplay(preciseKm: 3.0, gridSnap: true);
+        $this->assertSame(__('people.nearby_in_your_area'), $close->label);
+    }
+
+    // ══════════════════════════════════════════════════
     //  STRANGER PREVIEW (T08 organizer picker preview)
     // ══════════════════════════════════════════════════
 

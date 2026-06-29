@@ -72,7 +72,7 @@ class LocationDisplay extends Component
             $level = app(LocationDisclosureService::class)
                 ->addressLevel($location, $resolvedViewer, $entity);
 
-            $this->addressLine = $this->resolveGraduatedLine($level, $location);
+            $this->addressLine = $this->resolveGraduatedLine($level, $location, $resolvedViewer);
 
             return;
         }
@@ -89,7 +89,7 @@ class LocationDisplay extends Component
             $level = app(LocationDisclosureService::class)
                 ->strangerPreviewLevel($location);
 
-            $this->addressLine = $this->resolveGraduatedLine($level, $location);
+            $this->addressLine = $this->resolveGraduatedLine($level, $location, $resolvedViewer);
 
             return;
         }
@@ -110,15 +110,30 @@ class LocationDisplay extends Component
         return view('components.location-display');
     }
 
-    private function resolveGraduatedLine(DisclosureLevel $level, ?Location $location): ?string
+    private function resolveGraduatedLine(DisclosureLevel $level, ?Location $location, ?User $viewer): ?string
     {
         return match ($level) {
             DisclosureLevel::Exact => $location?->fullAddress(),
             DisclosureLevel::City => $location?->city,
-            // __() is typed string|array|null in Laravel; a found key returns a string,
-            // so cast to satisfy the strict string|null return type.
-            DisclosureLevel::Area => (string) __('people.label_disclosure_level_area'),
+            // D101: "In your area" only when the viewer is genuinely nearby
+            // (same geohash-4 tile or <5km); otherwise show the city so a
+            // distant game is never falsely labelled local.
+            DisclosureLevel::Area => $this->areaLine($location, $viewer),
             DisclosureLevel::None => null,
         };
+    }
+
+    /**
+     * Resolve the Area-rung label per D101: "In your area" for a nearby
+     * viewer, else the location's city (or null when the city is unknown,
+     * rendering nothing rather than a false proximity claim).
+     */
+    private function areaLine(?Location $location, ?User $viewer): ?string
+    {
+        if (app(LocationDisclosureService::class)->isViewerNearby($location, $viewer)) {
+            return (string) __('people.label_disclosure_level_area');
+        }
+
+        return $location?->city;
     }
 }

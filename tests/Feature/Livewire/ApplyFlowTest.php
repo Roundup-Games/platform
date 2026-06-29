@@ -366,3 +366,91 @@ describe('ApplyToGame capacity guard', function () {
             ->and($participant->waitlisted_at)->not->toBeNull();
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// APPLY TO GAME — SUBMIT FEEDBACK (M054/S01)
+// The submit button must give immediate visual feedback while the request is
+// in flight. Robust pattern: the label element stays stable in the DOM (only
+// the icon swaps to a spinner), so the submit trigger is never removed by
+// wire:loading — which keeps Livewire's navigate redirect firing reliably
+// and avoids the label reflowing to two lines.
+// ═══════════════════════════════════════════════════════════
+
+describe('ApplyToGame submit feedback', function () {
+    it('renders a spinner and keeps the label stable on the submit button', function () {
+        $owner = createUser();
+        $viewer = createUser();
+
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'max_players' => 5,
+        ]);
+
+        $html = Livewire::actingAs($viewer)
+            ->test(ApplyToGame::class, ['id' => $game->id])
+            ->html();
+
+        // Spinner + wire:loading wiring present.
+        expect($html)->toContain('wire:loading')
+            ->and($html)->toContain('wire:target="submitApplication"')
+            ->and($html)->toContain('animate-spin');
+
+        // The submit-trigger label is stable: it is NOT replaced by a
+        // "Submitting…" block that swaps the trigger out of the DOM.
+        expect($html)->toContain(__('games.action_join_game'))
+            ->and($html)->not->toContain('>'.__('common.action_submitting').'<');
+    });
+
+    it('shows the Join Game label for a public game (visibility is an enum, not a string)', function () {
+        // Regression guard: Game::visibility is cast to the Visibility enum, so
+        // a `=== 'public'` string comparison in Blade is ALWAYS false and falls
+        // through to the protected-game "Submit Application" label — which also
+        // masked the missing-redirect symptom (the wrong label rendered).
+        $owner = createUser();
+        $viewer = createUser();
+
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'max_players' => 5,
+        ]);
+
+        $html = Livewire::actingAs($viewer)
+            ->test(ApplyToGame::class, ['id' => $game->id])
+            ->html();
+
+        expect($html)->toContain(__('games.action_join_game'))
+            ->and($html)->not->toContain(__('common.action_submit_application'));
+    });
+
+    it('shows the Submit Application label for a protected game', function () {
+        $owner = createUser();
+        $viewer = createUser();
+
+        UserRelationship::follow($viewer, $owner);
+        UserRelationship::follow($owner, $viewer);
+
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'max_players' => 5,
+        ]);
+
+        $html = Livewire::actingAs($viewer)
+            ->test(ApplyToGame::class, ['id' => $game->id])
+            ->html();
+
+        expect($html)->toContain(__('common.action_submit_application'))
+            ->and($html)->not->toContain(__('games.action_join_game'));
+    });
+});

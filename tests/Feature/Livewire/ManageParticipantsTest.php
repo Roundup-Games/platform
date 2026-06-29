@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Games\ManageParticipants as GameManageParticipants;
+use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\User;
 use Tests\Traits\CreatesGameInstances;
@@ -101,4 +103,58 @@ test('owner name does not appear in approved participants section', function () 
         ->test(GameManageParticipants::class, ['id' => $this->game->id])
         ->assertSee('UniquePlayerName')
         ->assertDontSee($this->owner->name);
+});
+
+// ═══════════════════════════════════════════════════════════
+// APPLICATION MESSAGE VISIBILITY (M054/S01)
+// A host must see the message an applicant wrote, even on public games
+// where applications are auto-approved and the applicant never passes
+// through the Pending Applications section.
+// ═══════════════════════════════════════════════════════════
+
+test('host sees application message for an auto-approved applicant', function () {
+    $applicant = User::factory()->create([
+        'name' => 'MessageApplicant',
+        'profile_complete' => true,
+    ]);
+
+    GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $applicant->id,
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
+        'join_source' => JoinSource::Application->value,
+    ]);
+
+    GameApplication::create([
+        'game_id' => $this->game->id,
+        'user_id' => $applicant->id,
+        'status' => 'approved',
+        'message' => 'I would love to join your game!',
+    ]);
+
+    Livewire\Livewire::actingAs($this->owner)
+        ->test(GameManageParticipants::class, ['id' => $this->game->id])
+        ->assertSee('I would love to join your game!');
+});
+
+test('host does not see a message slot for a non-application participant', function () {
+    // A player who joined via share link has no application message and should
+    // not render an empty message slot.
+    $player = User::factory()->create([
+        'name' => 'ShareLinkPlayer',
+        'profile_complete' => true,
+    ]);
+
+    GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $player->id,
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
+        'join_source' => JoinSource::ShareLink->value,
+    ]);
+
+    Livewire\Livewire::actingAs($this->owner)
+        ->test(GameManageParticipants::class, ['id' => $this->game->id])
+        ->assertDontSee('I would love to join your game!');
 });

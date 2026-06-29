@@ -560,7 +560,7 @@ class DashboardDiscoveryServiceTest extends TestCase
 
         $commitment = collect($cards)->firstWhere('key', 'campaign_commitment');
         $this->assertNotNull($commitment);
-        $this->assertEquals('book-open', $commitment['icon']);
+        $this->assertEquals('menu_book', $commitment['icon']);
         $this->assertNotNull($commitment['earned_at']);
     }
 
@@ -682,7 +682,7 @@ class DashboardDiscoveryServiceTest extends TestCase
 
         $explorer = collect($cards)->firstWhere('key', 'explorer');
         $this->assertNotNull($explorer);
-        $this->assertEquals('compass', $explorer['icon']);
+        $this->assertEquals('explore', $explorer['icon']);
     }
 
     public function test_milestone_cards_no_explorer_with_fewer_systems(): void

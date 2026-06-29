@@ -454,6 +454,16 @@ class NotificationQueryService
 
         $mapping = self::TARGET_ENTITY_KEYS[$shortType] ?? null;
         if ($mapping === null) {
+            // Game-system-request notifications store the requested system name
+            // under game_system_name (approved/rejected) or existing_game_system_name
+            // (duplicate). They have no entity_name/game_name/campaign_name key, so
+            // without this they would render with no linked entity (M054/S03).
+            if (in_array($shortType, ['GameSystemRequestApproved', 'GameSystemRequestRejected', 'GameSystemRequestDuplicate'], true)) {
+                $val = $data['game_system_name'] ?? $data['existing_game_system_name'] ?? null;
+
+                return is_string($val) ? $val : null;
+            }
+
             $val = $data['entity_name'] ?? $data['game_name'] ?? $data['campaign_name'] ?? null;
 
             return is_string($val) ? $val : null;

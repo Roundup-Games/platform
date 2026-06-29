@@ -101,6 +101,9 @@ return [
     'verb_game_completed' => 'Game completed',
     'verb_campaign_cancelled' => 'Campaign cancelled',
     'verb_campaign_completed' => 'Campaign completed',
+    'verb_game_system_request_approved' => 'Game system request approved',
+    'verb_game_system_request_rejected' => 'Game system request declined',
+    'verb_game_system_request_duplicate' => 'Game system request marked as duplicate',
 
     // Display strings — sentence templates (1/2/3+ actors)
     'display_one_actor' => ':actor :verb',

@@ -415,7 +415,7 @@ class DashboardDiscoveryService
             'campaign_commitment',
             'profile.dashboard_story_campaign_commitment',
             'profile.dashboard_story_campaign_commitment_desc',
-            'book-open',
+            'menu_book',
             $fifthSession?->date_time,
         );
     }
@@ -507,7 +507,7 @@ class DashboardDiscoveryService
             'explorer',
             'profile.dashboard_story_explorer',
             'profile.dashboard_story_explorer_desc',
-            'compass',
+            'explore',
             $lastGame?->date_time,
         );
     }

@@ -71,6 +71,14 @@ class DistanceDisplay extends Component
      */
     private function resolveDisplay(Game|Campaign|null $entity, ?User $viewer): DistanceValue
     {
+        // No real distance supplied (the 0.0 sentinel used when a caller omits
+        // precise-km, e.g. the campaign fallback in NearbySessions) → render
+        // nothing. Without this, 0.0 < 5km falsely flags "In your area" for
+        // cards whose distance is simply unknown (M054/S04).
+        if ($this->preciseKm <= 0.0) {
+            return DistanceValue::hidden();
+        }
+
         // gridSnap (cached-widget path) takes precedence over precise by
         // construction: it is the explicit fail-closed path (always grid-snaps,
         // ignores any Location). No current caller passes both flags — they are

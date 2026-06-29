@@ -49,18 +49,20 @@ class GameSystemRequestApproved extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
         return [
             'type' => 'game_system_request_approved',
             'ticket_id' => $this->ticket->id,
+            'ticket_reference' => $this->ticket->reference,
             'game_system_id' => $this->gameSystem->id,
             'game_system_name' => $this->gameSystem->name,
             'game_system_slug' => $this->gameSystem->slug,
             'message' => __('notifications.body_game_system_request_approved', [
                 'name' => $this->gameSystem->name,
             ]),
-            'action_url' => route('game-systems.show', ['locale' => $locale, 'slug' => $this->gameSystem->slug]),
+            // Link to the support ticket so the requester can review the request
+            // and its resolution (M054/S03). The game system page is still
+            // reachable via the in-app catalog.
+            'action_url' => route('escalated.customer.tickets.show', $this->ticket),
         ];
     }
 

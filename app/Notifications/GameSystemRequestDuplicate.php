@@ -63,12 +63,13 @@ class GameSystemRequestDuplicate extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $name = $this->getGameSystemName();
 
         return [
             'type' => 'game_system_request_duplicate',
             'ticket_id' => $this->ticket->id,
+            'ticket_reference' => $this->ticket->reference,
+            'game_system_name' => $name,
             'existing_game_system_id' => $this->existingSystem->id,
             'existing_game_system_name' => $this->existingSystem->name,
             'existing_game_system_slug' => $this->existingSystem->slug,
@@ -76,7 +77,9 @@ class GameSystemRequestDuplicate extends BaseNotification
                 'name' => $name,
                 'existing' => $this->existingSystem->name,
             ]),
-            'action_url' => route('game-systems.show', ['locale' => $locale, 'slug' => $this->existingSystem->slug]),
+            // Link to the support ticket so the requester can review the
+            // duplicate resolution (M054/S03).
+            'action_url' => route('escalated.customer.tickets.show', $this->ticket),
         ];
     }
 

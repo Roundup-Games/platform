@@ -1,3 +1,5 @@
+@use(App\Enums\Visibility)
+
 <div>
     <x-hero title="{{ __('games.content_games') }}" :subtitle="__('campaigns.action_find_tabletop_sessions_one_shots')" />
 
@@ -168,7 +170,7 @@
                                         {{ $game->gameSystem?->name }}
                                     </span>
                                 @endif
-                                @if($game->visibility === 'protected')
+                                @if($game->visibility === Visibility::Protected)
                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                                         <span class="material-symbols-outlined text-xs" aria-hidden="true">group</span>
                                         {{ __('common.content_protected') }}
