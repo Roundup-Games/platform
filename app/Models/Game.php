@@ -54,6 +54,7 @@ use Spatie\Translatable\HasTranslations;
  * @property string|null $pivot_status
  * @property array<string, mixed>|null $location
  * @property array<string, mixed>|null $safety_rules
+ * @property array<int, string>|null $game_systems
  * @property string|null $discoverable_type
  * @property int|null $discoverable_sort_key
  * @property float|null $distance_km
@@ -93,8 +94,8 @@ class Game extends Model implements TicketSubject
     ];
 
     protected $fillable = [
-        'owner_id', 'campaign_id', 'game_system_id', 'name', 'date_time',
-        'description', 'expected_duration', 'price', 'language', 'location', 'location_id', 'location_instructions',
+        'owner_id', 'campaign_id', 'game_system_id', 'game_systems', 'name', 'date_time',
+        'description', 'host_note', 'expected_duration', 'price', 'language', 'location', 'location_id', 'location_instructions',
         'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
         'reminder_sent_at', 'reminder_24h_sent_at', 'recap', 'min_reliability_preference',
@@ -116,6 +117,7 @@ class Game extends Model implements TicketSubject
             'max_players' => 'integer',
             'complexity' => 'decimal:2',
             'vibe_flags' => 'array',
+            'game_systems' => 'array',
             'game_type' => GameType::class,
             'visibility' => Visibility::class,
             'status' => GameStatus::class,
@@ -137,6 +139,35 @@ class Game extends Model implements TicketSubject
         static::creating(function (self $game) {
             if (empty($game->id)) {
                 $game->id = (string) Str::uuid();
+            }
+        });
+
+        // Keep the cached game_system_id anchor synced to the first element of
+        // the multi-system game_systems array. The anchor is consumed by ~8
+        // read sites (cover image, BGG badge, complexity autofill, schema.org
+        // Event), so it must never drift from the array's first element for
+        // multi-system games. Legacy single-system games have a null/empty
+        // array and keep their game_system_id unchanged.
+        static::saving(function (self $game) {
+            $systems = $game->game_systems;
+
+            if (! empty($systems)) {
+                $expectedAnchor = $systems[0];
+                $currentAnchor = $game->game_system_id;
+
+                // Defensive drift detection: warn if the anchor was set to
+                // something other than the array's first element. Should never
+                // fire in normal operation — if it does, the caller set a
+                // mismatched game_system_id that we are now correcting.
+                if ($currentAnchor !== null && $currentAnchor !== $expectedAnchor) {
+                    Log::warning('game.game_systems.anchor_drift_detected', [
+                        'game_id' => $game->id,
+                        'old_anchor' => $currentAnchor,
+                        'new_anchor' => $expectedAnchor,
+                    ]);
+                }
+
+                $game->game_system_id = $expectedAnchor;
             }
         });
 

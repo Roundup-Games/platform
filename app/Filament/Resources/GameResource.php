@@ -180,6 +180,7 @@ class GameResource extends Resource
                     ->color(fn (GameType $state): string => match ($state) {
                         GameType::BoardGame => 'info',
                         GameType::Ttrpg => 'warning',
+                        GameType::Gathering => 'success',
                     })
                     ->formatStateUsing(fn (GameType $state): string => $state->label())
                     ->toggleable(),
