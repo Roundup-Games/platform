@@ -60,3 +60,19 @@ build-tools/.venv/
 build-tools/MaterialSymbolsOutlined.woff2
 build-tools/material-symbols.codepoints
 build-tools/_subset_material.py
+
+# ── GSD baseline (auto-generated) ──
+.gsd-worktrees/
+.gsd-backups/
+nul
+nul.*
+con
+con.*
+prn
+prn.*
+aux
+aux.*
+com[1-9]
+com[1-9].*
+lpt[1-9]
+lpt[1-9].*

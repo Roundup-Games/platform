@@ -150,6 +150,13 @@ class PublicGameDetail extends Component
         }
         $this->game->load($relations);
 
+        // Pre-warm the memoized gameSystems() relation so a multi-system
+        // Gathering resolves every offered system in ONE query before render.
+        // Single-system games (game_systems null) skip this entirely.
+        if (is_array($this->game->game_systems) && $this->game->game_systems !== []) {
+            $this->game->gameSystems();
+        }
+
         seo()->for($this->game);
 
         return view('livewire.games.public-game-detail', [

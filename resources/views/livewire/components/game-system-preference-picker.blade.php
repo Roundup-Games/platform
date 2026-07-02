@@ -15,7 +15,7 @@
             type="text"
             id="preference-picker-{{ $preferenceType }}"
             class="w-full pl-10 pr-10 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
-            placeholder="{{ $preferenceType === 'favorite' ? __('games.placeholder_search_game_systems_to_add_as_favorites') : __('games.placeholder_search_game_systems_to_avoid') }}"
+            placeholder="{{ $mode === 'creation' ? __('games.placeholder_search_game_systems_to_add') : ($preferenceType === 'favorite' ? __('games.placeholder_search_game_systems_to_add_as_favorites') : __('games.placeholder_search_game_systems_to_avoid')) }}"
             autocomplete="off"
             wire:model.live.debounce.300ms="search"
             wire:focus="setOpen"
@@ -176,9 +176,11 @@
                                     <span class="text-xs px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary font-medium">
                                         {{ __('games.content_base_game') }}
                                     </span>
-                                    <span class="text-xs text-on-surface-variant">
-                                        {{ $preferenceType === 'favorite' ? __('games.content_implies_all_expansions') : __('games.content_blocks_all_expansions') }}
-                                    </span>
+                                    @if($mode !== 'creation')
+                                        <span class="text-xs text-on-surface-variant">
+                                            {{ $preferenceType === 'favorite' ? __('games.content_implies_all_expansions') : __('games.content_blocks_all_expansions') }}
+                                        </span>
+                                    @endif
                                 @else
                                     <span class="text-xs px-1.5 py-0.5 rounded-sm bg-secondary/10 text-secondary">
                                         {{ __('games.content_expansion') }}
@@ -231,12 +233,12 @@
                         </span>
                     @else
                         {{-- Base game chip --}}
-                        @if($preferenceType === 'favorite' && $system->expansions_count > 0)
+                        @if($mode !== 'creation' && $preferenceType === 'favorite' && $system->expansions_count > 0)
                             <span class="text-xs text-on-surface-variant">
                                 +{{ $system->expansions_count }} {{ __('games.content_implied') }}
                             </span>
                         @endif
-                        @if($preferenceType === 'avoid' && $system->expansions_count > 0)
+                        @if($mode !== 'creation' && $preferenceType === 'avoid' && $system->expansions_count > 0)
                             <span class="text-xs text-on-surface-variant">
                                 +{{ $system->expansions_count }} {{ __('games.content_blocked') }}
                             </span>
@@ -256,7 +258,9 @@
         </div>
     @else
         <p class="mt-2 text-sm text-on-surface-variant italic">
-            @if($preferenceType === 'favorite')
+            @if($mode === 'creation')
+                {{ __('games.content_no_game_systems_added_yet') }}
+            @elseif($preferenceType === 'favorite')
                 {{ __('games.error_no_favorite_game_systems_selected_yet') }}
             @else
                 {{ __('games.error_no_avoided_game_systems_selected_yet') }}

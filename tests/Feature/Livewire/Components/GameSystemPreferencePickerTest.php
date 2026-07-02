@@ -594,3 +594,89 @@ describe('Resolution — Per-Expansion Granularity', function () {
         expect($result['avoided']->pluck('id')->toArray())->toContain($exp1->id);
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// CREATION MODE (Gathering host-creation path)
+// ═══════════════════════════════════════════════════════════
+
+describe('Creation Mode', function () {
+    it('dispatches selection-changed with the added id', function () {
+        $user = prefCreateUser();
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class, ['mode' => 'creation'])
+            ->call('add', $base->id)
+            ->assertDispatched('selection-changed',
+                preferenceType: 'favorite',
+                selectedIds: [$base->id],
+            );
+    });
+
+    it('renders the neutral placeholder text instead of the favorites placeholder', function () {
+        $user = prefCreateUser();
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class, ['mode' => 'creation'])
+            ->assertSee(__('games.placeholder_search_game_systems_to_add'))
+            ->assertDontSee(__('games.placeholder_search_game_systems_to_add_as_favorites'));
+    });
+
+    it('renders the neutral empty-state message', function () {
+        $user = prefCreateUser();
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class, ['mode' => 'creation'])
+            ->assertSee(__('games.content_no_game_systems_added_yet'));
+    });
+
+    it('skips conflict detection even when an expansion of a conflicting base is added', function () {
+        $user = prefCreateUser();
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $expansion = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
+
+        // In favorite mode favoriting an expansion whose base is avoided would
+        // be blocked. Creation mode has no conflicts, so it is added cleanly.
+        Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class, [
+                'mode' => 'creation',
+                'preferenceType' => 'favorite',
+                'conflictIds' => [$base->id],
+            ])
+            ->call('add', $expansion->id)
+            ->assertSet('selectedIds', [$expansion->id])
+            ->assertSet('conflictMessage', '');
+    });
+
+    it('enforces the maxSystems cap and does not append beyond the limit', function () {
+        $user = prefCreateUser();
+        $game1 = prefCreateBaseGame(['name' => ['en' => 'Alpha']]);
+        $game2 = prefCreateBaseGame(['name' => ['en' => 'Beta']]);
+        $game3 = prefCreateBaseGame(['name' => ['en' => 'Gamma']]);
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class, [
+                'mode' => 'creation',
+                'maxSystems' => 2,
+            ])
+            ->call('add', $game1->id)
+            ->call('add', $game2->id)
+            ->call('add', $game3->id)
+            ->assertSet('selectedIds', [$game1->id, $game2->id])
+            ->assertSet('conflictMessage', __('games.error_max_game_systems_reached', ['max' => 2]));
+    });
+
+    it('does not enforce a cap when maxSystems is zero (unlimited)', function () {
+        $user = prefCreateUser();
+        $game1 = prefCreateBaseGame(['name' => ['en' => 'Alpha']]);
+        $game2 = prefCreateBaseGame(['name' => ['en' => 'Beta']]);
+        $game3 = prefCreateBaseGame(['name' => ['en' => 'Gamma']]);
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class, ['mode' => 'creation'])
+            ->call('add', $game1->id)
+            ->call('add', $game2->id)
+            ->call('add', $game3->id)
+            ->assertSet('selectedIds', [$game1->id, $game2->id, $game3->id]);
+    });
+});

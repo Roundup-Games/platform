@@ -75,6 +75,7 @@ class GameResource extends Resource
                                     ->options([
                                         'board_game' => 'Board Game',
                                         'ttrpg' => 'TTRPG',
+                                        'gathering' => 'Gathering',
                                     ])
                                     ->default('board_game')
                                     ->required(),

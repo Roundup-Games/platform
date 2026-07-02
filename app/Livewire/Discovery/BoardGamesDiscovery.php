@@ -12,8 +12,8 @@ use App\Models\Location;
 use App\Models\User;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -186,6 +186,10 @@ class BoardGamesDiscovery extends Component
      * Adds type=boardgame constraint so only board games appear
      * on the board games discovery page (no TTRPG bleed-through).
      *
+     * R048: Gatherings are capped per feed page, so the true DB paginate is
+     * replaced by a candidate fetch wide enough to backfill trimmed Gatherings
+     * before building the paginator over the capped slice.
+     *
      * @return LengthAwarePaginator<int, Game>
      */
     protected function getBoardGameResults(DiscoveryQueryService $service, DiscoveryFilters $filters, ?User $user, ?float $lat, ?float $lng, bool $hasLocation): LengthAwarePaginator
@@ -198,14 +202,33 @@ class BoardGamesDiscovery extends Component
             $lng,
             $hasLocation,
             $this->date,
-        )->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'));
+        );
+        $service->applySystemTypeScope($query, 'boardgame');
 
-        $paginator = $query->paginate($this->displayCount)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
+        // Candidate fetch: the window plus a small surplus of focused games so
+        // trimmed Gathering slots can be backfilled. count() runs before take()
+        // so the LIMIT never contaminates the aggregate.
+        $maxPerSlice = $service->gatheringCapForWindow($this->displayCount);
+        $total = $query->count();
+        $candidates = $query->take($this->displayCount + $maxPerSlice * 2)->get()
+            ->each(fn ($game) => $game->discoverable_type = 'game');
+
+        $capped = $service->applyGatheringCap($candidates->toBase(), $this->displayCount, $maxPerSlice);
+        $items = $capped['items'];
 
         if ($this->radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
-            $service->enrichWithDistance($paginator->getCollection(), 'game', $lat, $lng, $this->radius, $this->usingFallbackRadius);
+            $service->enrichWithDistance($items, 'game', $lat, $lng, $this->radius, $this->usingFallbackRadius);
         }
 
-        return $paginator;
+        return new LengthAwarePaginator(
+            $items,
+            $total,
+            $this->displayCount,
+            LengthAwarePaginator::resolveCurrentPage(),
+            [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ],
+        );
     }
 }

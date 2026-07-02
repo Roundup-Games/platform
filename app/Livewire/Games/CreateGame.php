@@ -52,6 +52,11 @@ class CreateGame extends Component
 
     public ?string $game_system_id = null;
 
+    /** @var array<int, string> Game systems for a Gathering (multi-select; the S01 saving event syncs game_system_id from [0]) */
+    public array $game_systems = [];
+
+    public ?string $host_note = null;
+
     public string $date_time = '';
 
     public string $description = '';
@@ -100,6 +105,9 @@ class CreateGame extends Component
             'name' => 'required|string|max:255',
             'game_type' => 'required|string|in:'.implode(',', GameType::values()),
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
+            'game_systems' => 'nullable|array',
+            'game_systems.*' => 'nullable|uuid|exists:game_systems,id',
+            'host_note' => 'nullable|string|max:1000',
             'date_time' => 'required|date',
             'description' => 'nullable|string|max:5000',
             'expected_duration' => 'nullable|numeric|min:0.5|max:24',
@@ -173,6 +181,19 @@ class CreateGame extends Component
         $this->autofillFromGameSystem($id);
     }
 
+    /**
+     * Multi-select game systems from the GameSystemPreferencePicker (creation
+     * mode) — used by Gatherings. preferenceType is ignored here because the
+     * creation picker has no favorites/avoids.
+     *
+     * @param  array<int, string>  $selectedIds
+     */
+    #[On('selection-changed')]
+    public function onGameSystemsChanged(array $selectedIds): void
+    {
+        $this->game_systems = array_map('strval', $selectedIds);
+    }
+
     // ── Lifecycle ─────────────────────────────────────────
 
     public function mount(): void
@@ -213,6 +234,10 @@ class CreateGame extends Component
         $this->min_reliability_preference = $source->min_reliability_preference !== null
             ? (string) $source->min_reliability_preference
             : null;
+
+        // Pre-fill Gathering fields (multi-system picker + host note)
+        $this->game_systems = array_map('strval', $source->game_systems ?? []);
+        $this->host_note = $source->host_note;
 
         // Load vibe_flags into vibePreferences array (flat DB array → favorite map)
         if (! empty($source->vibe_flags)) {
@@ -261,6 +286,8 @@ class CreateGame extends Component
         $this->game_type = $type;
         // Reset type-specific fields when type changes
         $this->game_system_id = null;
+        $this->game_systems = [];
+        $this->host_note = null;
         $this->vibePreferences = [];
         $this->safety_rules = [];
         $this->comfort_notes = '';
@@ -392,6 +419,16 @@ class CreateGame extends Component
 
         $validated = $this->validate();
 
+        // Gatherings require at least one game system (the host picks what to
+        // play). Enforced here rather than via a rule because it is conditional
+        // on game_type. game_system_id is intentionally NOT set for gatherings —
+        // the Game saving event (S01) derives it from game_systems[0].
+        if ($this->game_type === 'gathering' && empty($validated['game_systems'])) {
+            $this->addError('game_systems', __('Please select at least one game system.'));
+
+            return;
+        }
+
         // Cross-field validation after individual field validation
         if (
             isset($validated['min_players'], $validated['max_players'])
@@ -421,6 +458,15 @@ class CreateGame extends Component
             $benchMode = false;
         }
 
+        // Gatherings are multi-system social sessions: force complexity/bench/
+        // reliability clean so the warm form can't persist GM-complexity state.
+        // The existing game_system_id line passes null for gatherings (no single
+        // picker); the Game saving event (S01) then sets it from game_systems[0].
+        $isGathering = $this->game_type === 'gathering';
+        $complexity = $isGathering ? null : ($this->complexity ?: null);
+        $minReliabilityPreference = $isGathering ? null : ($validated['min_reliability_preference'] ?: null);
+        $benchMode = $isGathering ? false : $benchMode;
+
         // Build translatable values for name and description only
         $translatable = $this->buildTranslatableValues(
             ['name', 'description'],
@@ -428,10 +474,12 @@ class CreateGame extends Component
             $validated,
         );
 
-        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode) {
+        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode, $complexity, $minReliabilityPreference) {
             $game = Game::create([
                 'owner_id' => Auth::id(),
                 'game_system_id' => $validated['game_system_id'],
+                'game_systems' => $validated['game_systems'] ?? null,
+                'host_note' => $validated['host_note'] ?? null,
                 'name' => $translatable['name'],
                 'game_type' => $validated['game_type'],
                 'date_time' => $validated['date_time'],
@@ -449,9 +497,9 @@ class CreateGame extends Component
                 'min_players' => $validated['min_players'] ?? 2,
                 'max_players' => $validated['max_players'] ?? 6,
                 'experience_level' => $validated['experience_level'],
-                'complexity' => $this->complexity ?: null,
+                'complexity' => $complexity,
                 'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
-                'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
+                'min_reliability_preference' => $minReliabilityPreference,
                 'bench_mode' => $benchMode,
             ]);
 

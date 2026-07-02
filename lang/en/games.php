@@ -236,6 +236,7 @@ return [
     'type_board_game' => 'Board Game',
     'type_ttrpg' => 'TTRPG',
     'type_gathering' => 'Gathering',
+    'content_also_offering' => 'Also offering',
     'content_what_are_you_playing' => 'What are you playing?',
     'content_type_board_game_examples' => 'Catan, Azul, Wingspan…',
     'content_type_ttrpg_examples' => 'D&D, Pathfinder, Call of Cthulhu…',

@@ -16,6 +16,36 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Gathering Cap Per Feed Page
+    |--------------------------------------------------------------------------
+    |
+    | Maximum number of Gathering-type games allowed per 12-item feed page so
+    | multi-system Gatherings cannot dominate the discovery feed (R048). The cap
+    | scales with the rendered window size, so loading more (e.g. 24 items)
+    | permits proportionally more Gatherings. Tunable from real feed-composition
+    | data via the game.discovery.gathering_cap_applied debug log.
+    |
+    */
+    'gathering_cap_per_page' => env('DISCOVERY_GATHERING_CAP_PER_PAGE', 1),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Gathering Relevance Penalty
+    |--------------------------------------------------------------------------
+    |
+    | Magnitude by which a Gathering is demoted below an otherwise-equal focused
+    | single-system game when the two share the same primary sort key (date_time
+    | or distance). The tiebreaker only reorders items within an identical
+    | primary-key bucket — it never overrides distinct date_times/distances.
+    | Tunable post-launch from real feed-composition data (R048); the binary
+    | 0/1 CASE keeps a single focused-above-Gathering tier today, but raising
+    | the value reserves headroom for future ranking tiers.
+    |
+    */
+    'gathering_relevance_penalty' => env('DISCOVERY_GATHERING_RELEVANCE_PENALTY', 1),
+
+    /*
+    |--------------------------------------------------------------------------
     | Discovery Cache TTL
     |--------------------------------------------------------------------------
     |

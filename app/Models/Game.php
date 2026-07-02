@@ -17,6 +17,7 @@ use Database\Factories\GameFactory;
 use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
 use Escalated\Laravel\Contracts\TicketSubject;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -215,6 +216,66 @@ class Game extends Model implements TicketSubject
     public function gameSystem(): BelongsTo
     {
         return $this->belongsTo(GameSystem::class);
+    }
+
+    /**
+     * Resolve every offered GameSystem for a multi-system Gathering.
+     *
+     * Memoized on the instance via the Eloquent relation cache: the first call
+     * resolves GameSystem::whereIn('id', game_systems) and stores the result with
+     * setRelation('gameSystems', ...); every later call (repeated card access,
+     * card + detail) returns the cache without re-querying. The query layer can
+     * pre-warm the cache by calling setRelation directly — see
+     * DiscoveryQueryService::eagerLoadGameSystems, which resolves all systems
+     * for a whole feed page in ONE query.
+     *
+     * Returns an empty Collection for legacy single-system games (game_systems
+     * is null) and for games whose stored UUIDs no longer resolve. Order tracks
+     * the stored array order (anchor first), matching how Gatherings are created.
+     *
+     * NOTE: always call this as a method ($game->gameSystems()), never as a
+     * property ($game->gameSystems). Property access routes through Eloquent's
+     * relation resolver, which requires a Relation return type and would throw.
+     *
+     * @return EloquentCollection<int, GameSystem>
+     */
+    public function gameSystems(): EloquentCollection
+    {
+        if ($this->relationLoaded('gameSystems')) {
+            /** @var EloquentCollection<int, GameSystem> $loaded */
+            $loaded = $this->getRelation('gameSystems');
+
+            return $loaded;
+        }
+
+        $ids = is_array($this->game_systems) ? $this->game_systems : [];
+
+        $resolved = GameSystem::whereIn('id', $ids)->get();
+
+        // Re-order the resolved models to match the stored array order (anchor
+        // first) so card/detail chips render deterministically.
+        $ordered = new EloquentCollection;
+        foreach ($ids as $id) {
+            $system = $resolved->firstWhere('id', $id);
+            if ($system !== null) {
+                $ordered->push($system);
+            }
+        }
+
+        $this->setRelation('gameSystems', $ordered);
+
+        return $ordered;
+    }
+
+    /**
+     * Whether this game offers more than one system (a multi-system Gathering).
+     *
+     * Backed by the memoized {@see gameSystems()} resolver so the check never
+     * adds a query when the systems are already eager-loaded.
+     */
+    public function hasMultipleSystems(): bool
+    {
+        return $this->gameSystems()->count() > 1;
     }
 
     /**

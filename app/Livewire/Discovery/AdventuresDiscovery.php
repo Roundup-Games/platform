@@ -8,12 +8,14 @@ use App\Enums\ExperienceLevel;
 use App\Enums\PlayStyle;
 use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -178,7 +180,8 @@ class AdventuresDiscovery extends Component
 
         $gamesQuery = $service->buildGamesQuery(
             $filters, $user, $this->radius, $lat, $lng, $hasLocation, null,
-        )->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'));
+        );
+        $service->applySystemTypeScope($gamesQuery, 'ttrpg');
 
         // Apply session_type filter
         if ($this->session_type === 'campaign') {
@@ -235,6 +238,7 @@ class AdventuresDiscovery extends Component
             $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0);
         });
 
+        /** @var Collection<int, Campaign|Game> $merged */
         $merged = collect()->merge($campaigns)->merge($games);
 
         // Apply proximity filtering if radius is set
@@ -243,11 +247,19 @@ class AdventuresDiscovery extends Component
             $merged = $result['collection'];
             $this->usingFallbackRadius = $result['usingFallback'];
         } else {
-            $merged = $merged->sortByDesc('discoverable_sort_key')->values();
+            // Stable multi-key sort: primary date desc (discoverable_sort_key),
+            // then Gathering demotion asc (focused=0 before Gathering=1) per R048
+            // gathering_relevance_penalty — a tiebreaker that only reorders items
+            // within the same primary-key bucket.
+            $merged = $merged->sortBy([
+                ['discoverable_sort_key', 'desc'],
+                [fn ($g) => $service->gatheringRankKey($g), 'asc'],
+            ])->values();
         }
 
         $total = $merged->count();
-        $items = $merged->take($this->displayCount)->values();
+        $capped = $service->applyGatheringCap($merged, $this->displayCount);
+        $items = $capped['items'];
 
         $results = new LengthAwarePaginator($items, $total, $this->displayCount, 1, [
             'path' => request()->url(),

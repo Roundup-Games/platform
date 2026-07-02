@@ -19,7 +19,7 @@
                     <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('games.content_what_are_you_playing') }}</h2>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {{-- Board Game Card --}}
                     <button type="button" wire:click="selectType('board_game')"
                             class="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-outline-variant/30 bg-surface-container-lowest hover:border-secondary/50 hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer text-center">
@@ -35,6 +35,14 @@
                         <span class="text-base font-heading font-semibold text-on-surface">{{ __('games.type_ttrpg') }}</span>
                         <span class="text-xs text-on-surface-variant">{{ __('games.content_type_ttrpg_examples') }}</span>
                     </button>
+
+                    {{-- Gathering Card --}}
+                    <button type="button" wire:click="selectType('gathering')"
+                            class="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-outline-variant/30 bg-surface-container-lowest hover:border-secondary/50 hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer text-center">
+                        <span class="material-symbols-outlined text-4xl text-primary group-hover:scale-110 transition-transform" aria-hidden="true">groups</span>
+                        <span class="text-base font-heading font-semibold text-on-surface">{{ __('games.type_gathering') }}</span>
+                        <span class="text-xs text-on-surface-variant">{{ __('games.content_type_gathering_examples') }}</span>
+                    </button>
                 </div>
             </section>
         @endif
@@ -43,20 +51,24 @@
         @if($step === 'form')
             {{-- Type Switcher --}}
             <div class="flex items-center gap-2 mb-6">
+                @php($typeIcons = ['board_game' => 'casino', 'ttrpg' => 'auto_stories', 'gathering' => 'groups'])
                 <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high text-sm">
-                    @if($game_type === 'board_game')
-                        <span class="material-symbols-outlined text-base text-primary" aria-hidden="true">casino</span>
-                        <span class="font-medium text-on-surface">{{ __('games.type_board_game') }}</span>
-                    @else
-                        <span class="material-symbols-outlined text-base text-primary" aria-hidden="true">auto_stories</span>
-                        <span class="font-medium text-on-surface">{{ __('games.type_ttrpg') }}</span>
-                    @endif
+                    <span class="material-symbols-outlined text-base text-primary" aria-hidden="true">{{ $typeIcons[$game_type ?? 'board_game'] ?? 'casino' }}</span>
+                    <span class="font-medium text-on-surface">{{ $this->gameTypeOptions[$game_type ?? 'board_game'] ?? '' }}</span>
                 </div>
-                <button type="button"
-                        @if($game_type === 'board_game') wire:click="changeType('ttrpg')" @else wire:click="changeType('board_game')" @endif
-                        class="text-xs text-primary hover:text-primary-fixed-dim font-medium transition-colors">
-                    {{ __('games.action_switch_type') }}
-                </button>
+                <div class="flex items-center gap-1">
+                    @foreach(['board_game', 'ttrpg', 'gathering'] as $switchType)
+                        <button type="button"
+                                @if($game_type === $switchType) disabled aria-current="true" @else wire:click="changeType('{{ $switchType }}')" @endif
+                                @class([
+                                    'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+                                    'text-primary bg-primary-container/40' => $game_type === $switchType,
+                                    'text-on-surface-variant hover:text-primary' => $game_type !== $switchType,
+                                ])>
+                            {{ $this->gameTypeOptions[$switchType] }}
+                        </button>
+                    @endforeach
+                </div>
                 @error('game_type') <p class="ml-2 text-sm text-error">{{ $message }}</p> @enderror
             </div>
 
@@ -68,10 +80,8 @@
 
                     <div class="space-y-4">
                         {{-- Translatable fields (name + description) rendered via locale-aware section --}}
-                        @php
-                            $allLocales = $this->getAllLocales();
-                            $baselineLocale = $this->getBaselineLocale();
-                        @endphp
+                        @php($allLocales = $this->getAllLocales())
+                        @php($baselineLocale = $this->getBaselineLocale())
                         <x-forms.translatable-section
                             :fields="[
                                 ['name' => 'name', 'label' => __('campaigns.field_session_name'), 'placeholder' => __('games.placeholder_game_name')],
@@ -91,17 +101,25 @@
                             @error('date_time') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
 
-                        <div>
-                            <livewire:components.game-system-picker
-                                :fieldId="'game-system'"
-                                :label="__('games.content_game_system')"
-                                :error="$errors->first('game_system_id')"
-                                :gameType="$game_type"
-                                :value="$game_system_id"
-                                wire:model.live="game_system_id"
-                                wire:key="game-system-picker-{{ $game_type ?? 'default' }}"
-                            />
-                        </div>
+                        @if($game_type !== 'gathering')
+                            <div>
+                                <livewire:components.game-system-picker
+                                    :fieldId="'game-system'"
+                                    :label="__('games.content_game_system')"
+                                    :error="$errors->first('game_system_id')"
+                                    :gameType="$game_type"
+                                    :value="$game_system_id"
+                                    wire:model.live="game_system_id"
+                                    wire:key="game-system-picker-{{ $game_type ?? 'default' }}"
+                                />
+                            </div>
+                        @else
+                            <div>
+                                <label class="block text-sm font-medium text-on-surface mb-1">{{ __('games.content_game_system') }}</label>
+                                <livewire:components.game-system-preference-picker :mode="'creation'" :preferenceType="'favorite'" :selectedIds="$game_systems" :maxSystems="6" wire:key="game-system-picker-gathering" />
+                                @error('game_systems') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
                     </div>
                 </section>
 
@@ -143,36 +161,38 @@
                             </div>
                         </div>
 
-                        {{-- Bench Mode Toggle --}}
-                        <div class="mt-2">
-                            <div class="flex items-center gap-3">
-                                <button type="button"
-                                        @if(!$isGM) disabled @else wire:click="$toggle('bench_mode')" @endif
-                                        @class([
-                                            'relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0',
-                                            'bg-primary' => $bench_mode,
-                                            'bg-surface-container-highest' => !$bench_mode,
-                                            'opacity-50 cursor-not-allowed' => !$isGM,
-                                        ])
-                                        role="switch"
-                                        aria-label="{{ __('games.label_bench_mode') }}"
-                                        aria-checked="{{ $bench_mode ? 'true' : 'false' }}">
-                                    <span @class([
-                                        'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
-                                        'translate-x-6' => $bench_mode,
-                                        'translate-x-1' => !$bench_mode,
-                                    ])></span>
-                                </button>
-                                <div>
-                                    <span class="text-sm font-medium text-on-surface">{{ __('games.label_bench_mode') }}</span>
-                                    @if(!$isGM)
-                                        <p class="text-xs text-on-surface-variant">{{ __('games.content_bench_mode_requires_gm') }}</p>
-                                    @else
-                                        <p class="text-xs text-on-surface-variant">{{ __('games.content_bench_mode_description') }}</p>
-                                    @endif
+                        {{-- Bench Mode Toggle (hidden for gatherings — not GM-gated matchmaking) --}}
+                        @if($game_type !== 'gathering')
+                            <div class="mt-2">
+                                <div class="flex items-center gap-3">
+                                    <button type="button"
+                                            @if(!$isGM) disabled @else wire:click="$toggle('bench_mode')" @endif
+                                            @class([
+                                                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0',
+                                                'bg-primary' => $bench_mode,
+                                                'bg-surface-container-highest' => !$bench_mode,
+                                                'opacity-50 cursor-not-allowed' => !$isGM,
+                                            ])
+                                            role="switch"
+                                            aria-label="{{ __('games.label_bench_mode') }}"
+                                            aria-checked="{{ $bench_mode ? 'true' : 'false' }}">
+                                        <span @class([
+                                            'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
+                                            'translate-x-6' => $bench_mode,
+                                            'translate-x-1' => !$bench_mode,
+                                        ])></span>
+                                    </button>
+                                    <div>
+                                        <span class="text-sm font-medium text-on-surface">{{ __('games.label_bench_mode') }}</span>
+                                        @if(!$isGM)
+                                            <p class="text-xs text-on-surface-variant">{{ __('games.content_bench_mode_requires_gm') }}</p>
+                                        @else
+                                            <p class="text-xs text-on-surface-variant">{{ __('games.content_bench_mode_description') }}</p>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @endif
                     </div>
                 </section>
 
@@ -212,6 +232,20 @@
                                 <label class="block text-sm font-medium text-on-surface mb-2">{{ __('safety.content_safety_tools') }}</label>
                                 <livewire:components.safety-tool-picker mode="selection" :selected="isset($safety_rules['tools']) ? $safety_rules['tools'] : []" :linesAndVeilsText="$safety_rules['lines_and_veils_text'] ?? ''" :customNote="$safety_rules['custom_note'] ?? ''" wire:key="game-safety-picker-ttrpg" />
                             </div>
+                        @elseif($game_type === 'gathering')
+                            {{-- Gathering: Warm, minimal form (host note + vibes) --}}
+                            <div>
+                                <label for="game-host-note" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_host_note') }}</label>
+                                <textarea id="game-host-note" wire:model="host_note" rows="3" placeholder="{{ __('games.placeholder_host_note') }}"
+                                          class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
+                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_host_note') }}</p>
+                                @error('host_note') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-on-surface mb-2">{{ __('common.content_vibe_flags') }}</label>
+                                <livewire:components.vibe-preference-picker :mode="'selection'" :gameType="'gathering'" :preferences="$vibePreferences" wire:key="game-vibe-picker-gathering" />
+                            </div>
                         @else
                             {{-- Board Game: Simplified form --}}
                             <div>
@@ -227,17 +261,19 @@
                             </div>
                         @endif
 
-                        <div>
-                            <label for="game-attendance" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_attendance_tolerance') }}</label>
-                            <select id="game-attendance" wire:model="min_reliability_preference"
-                                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
-                                @foreach($this->attendanceToleranceOptions as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                            <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_attendance_tolerance') }}</p>
-                            @error('min_reliability_preference') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
+                        @if($game_type !== 'gathering')
+                            <div>
+                                <label for="game-attendance" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_attendance_tolerance') }}</label>
+                                <select id="game-attendance" wire:model="min_reliability_preference"
+                                        class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
+                                    @foreach($this->attendanceToleranceOptions as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_attendance_tolerance') }}</p>
+                                @error('min_reliability_preference') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
                     </div>
                 </section>
 
