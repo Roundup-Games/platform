@@ -138,8 +138,11 @@
 
                             <div>
                                 <label for="game-max-players" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_max_players') }}</label>
-                                <input type="number" id="game-max-players" wire:model.live="max_players" min="1" max="99" placeholder="6"
+                                <input type="number" id="game-max-players" wire:model.live="max_players" min="1" max="99" placeholder="{{ $game_type === 'gathering' ? '12' : '6' }}"
                                        class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                                @if($game_type === 'gathering')
+                                    <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.content_max_players_venue_hint') }}</p>
+                                @endif
                                 @error('max_players') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                             </div>
                         </div>

@@ -557,6 +557,15 @@ class CreateGame extends Component
             'ttrpg' => '3',
             default => '2',
         };
+
+        // Gatherings are larger, warmer, all-welcome social sessions (R047):
+        // a raised venue-size capacity default and an "all welcome" experience
+        // level. Autofill never overrides these for gatherings because the
+        // single-system picker (which drives autofill) is hidden on this branch.
+        if ($type === 'gathering') {
+            $this->max_players = 12;
+            $this->experience_level = 'all';
+        }
     }
 
     protected function autofillFromGameSystem(?string $id): void

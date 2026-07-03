@@ -213,6 +213,11 @@ class BoardGamesDiscovery extends Component
         $candidates = $query->take($this->displayCount + $maxPerSlice * 2)->get()
             ->each(fn ($game) => $game->discoverable_type = 'game');
 
+        // Resolve every offered GameSystem for the page's multi-system Gatherings
+        // in ONE query so cards render the Gathering badge + all offered system
+        // chips without per-card N+1 (R048).
+        $service->eagerLoadGameSystems($candidates->toBase());
+
         $capped = $service->applyGatheringCap($candidates->toBase(), $this->displayCount, $maxPerSlice);
         $items = $capped['items'];
 

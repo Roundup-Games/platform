@@ -168,6 +168,7 @@ class ParticipantLifecycle
 
             $locked->update([
                 'status' => ParticipantStatus::Approved->value,
+                'approved_at' => now(),
                 'benched_at' => null,
             ]);
 
@@ -244,6 +245,7 @@ class ParticipantLifecycle
         $participant->update([
             'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
+            'approved_at' => now(),
             'join_source' => JoinSource::Application,
         ]);
 
@@ -498,6 +500,7 @@ class ParticipantLifecycle
             $lockedParticipant->update([
                 'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Approved->value,
+                'approved_at' => now(),
             ]);
 
             return 'approved';

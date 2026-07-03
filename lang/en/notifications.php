@@ -12,6 +12,7 @@ return [
     'category_application_rejected' => 'Application Rejected',
     'category_participant_joined' => 'Participant Joined',
     'category_participant_removed' => 'Participant Removed',
+    'category_seat_demoted' => 'Seat Demoted',
     'category_team_member_removed' => 'Team Member Removed',
     'category_game_cancelled' => 'Game Cancelled',
     'category_game_completed' => 'Game Completed',
@@ -156,6 +157,10 @@ return [
     'body_participant_removed' => 'You were removed from **:entity**. If you have questions, reach out to the organizer.',
     'action_participant_removed' => 'Browse Games',
 
+    'subject_seat_demoted' => 'Your seat in :entity was reclaimed',
+    'body_seat_demoted' => 'Your approved seat in **:entity** was reclaimed because the host lowered the player limit. Reason: :reason. You are now back on the waitlist and will be re-promoted if a seat opens up.',
+    'action_seat_demoted' => 'View :entity',
+
     'subject_team_member_removed' => 'You were removed from :team',
     'body_team_member_removed' => 'You were removed from the team **:team**. If you have questions, contact the team organizer.',
     'action_team_member_removed' => 'Browse Teams',
@@ -294,6 +299,8 @@ return [
     // Waitlist push
     'push_title_waitlist_promoted' => 'Spot Available!',
     'push_body_waitlist_promoted' => 'A spot opened up in :game. Confirm by :deadline.',
+    'push_title_seat_demoted' => 'Seat Reclaimed',
+    'push_body_seat_demoted' => 'Your seat in :game was reclaimed. Reason: :reason.',
     'push_title_confirmation_expired' => 'Confirmation Expired',
     'push_body_confirmation_expired' => 'Your confirmation window for :game has expired.',
 

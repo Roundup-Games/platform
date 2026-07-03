@@ -13,6 +13,7 @@ use App\Notifications\SessionAddedToCampaign;
 use App\Services\NotificationService;
 use App\Services\OwnerParticipantService;
 use App\Services\ParticipantService;
+use App\Services\RecurrenceService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,20 @@ class AddSessionToCampaign extends Component
     {
         $this->campaign = Campaign::findOrFail($id);
         $this->authorize('update', $this->campaign);
+
+        // Pre-fill the next cadence date when deep-linked from a "plan ahead"
+        // nudge CTA (?prefill=1). Only date/time is pre-filled — the host still
+        // names the session. RecurrenceService::nextSuggestedDateTime returns
+        // null for any campaign without a recognisable recurrence, so the null
+        // check below is the sole (defensive) gate. (The campaigns.recurrence
+        // enum column currently restricts values to weekly/bi-weekly/monthly,
+        // so the suggestion is non-null for every persisted campaign.)
+        if (request()->boolean('prefill')) {
+            $suggested = app(RecurrenceService::class)->nextSuggestedDateTime($this->campaign);
+            if ($suggested) {
+                $this->date_time = $suggested->format('Y-m-d\TH:i'); // datetime-local input format
+            }
+        }
     }
 
     /**
@@ -60,8 +75,17 @@ class AddSessionToCampaign extends Component
         $campaign = $this->campaign;
         $ownerId = Auth::id();
 
-        // Defensive check: warn if campaign's game system is not TTRPG
-        if ($campaign->gameSystem && $campaign->gameSystem->type !== 'ttrpg') {
+        // Resolve the campaign's intended game type, defaulting to 'ttrpg' for
+        // legacy campaigns created before campaigns.game_type existed (R050).
+        // A Gathering-type campaign spawns Gathering-type sessions so recurring
+        // nights flow through S03's Gathering-aware discovery/card path.
+        $campaignGameTypeObject = $campaign->game_type;
+        $campaignGameType = $campaignGameTypeObject !== null ? $campaignGameTypeObject->value : 'ttrpg';
+
+        // Defensive check: warn only when a TTRPG-typed campaign carries a
+        // non-TTRPG game system. (Gathering campaigns legitimately host any
+        // system, so the warning is gated on the ttrpg type.)
+        if ($campaignGameType === 'ttrpg' && $campaign->gameSystem && $campaign->gameSystem->type !== 'ttrpg') {
             Log::warning('add_session_to_campaign.non_ttrpg_system', [
                 'campaign_id' => $campaign->id,
                 'game_system_id' => $campaign->game_system_id,
@@ -69,11 +93,20 @@ class AddSessionToCampaign extends Component
             ]);
         }
 
-        $game = DB::transaction(function () use ($validated, $campaign, $ownerId) {
+        // For a Gathering campaign, materialize the 1-element game_systems set
+        // (R046: a single-system game is a 1-element set) so the spawned session
+        // is a valid Gathering that renders/ranks through S03's Gathering-aware
+        // path. The Game saving event (S01) keeps game_system_id === game_systems[0].
+        $gameSystems = ($campaignGameType === 'gathering' && $campaign->game_system_id !== null)
+            ? [$campaign->game_system_id]
+            : null;
+
+        $game = DB::transaction(function () use ($validated, $campaign, $ownerId, $campaignGameType, $gameSystems) {
             $game = Game::create([
                 'owner_id' => $ownerId,
                 'campaign_id' => $campaign->id,
                 'game_system_id' => $campaign->game_system_id,
+                'game_systems' => $gameSystems,
                 'name' => $validated['name'],
                 'description' => $validated['description'],
                 'date_time' => $validated['date_time'],
@@ -83,7 +116,7 @@ class AddSessionToCampaign extends Component
                 'location' => [
                     'details' => $validated['location_details'],
                 ],
-                'game_type' => 'ttrpg',
+                'game_type' => $campaignGameType,
                 'status' => 'scheduled',
                 'visibility' => $campaign->visibility,
                 'min_players' => $campaign->min_players,

@@ -72,9 +72,17 @@ class OwnerParticipantService
         $ownerId = $entity->owner_id;
 
         try {
+            // approved_at is stamped here so owner rows carry the LIFO-ordering
+            // field for capacity demotion. Mass-assigned to game_participants
+            // only — Campaign's $fillable excludes the column (capacity
+            // adjustment is Game-scoped), so Campaign rows are a safe no-op.
             $participant = $participantClass::updateOrCreate(
                 [$foreignKey => $entity->id, 'user_id' => $ownerId],
-                ['role' => ParticipantRole::Owner, 'status' => ParticipantStatus::Approved],
+                [
+                    'role' => ParticipantRole::Owner,
+                    'status' => ParticipantStatus::Approved,
+                    'approved_at' => now(),
+                ],
             );
         } catch (QueryException $e) {
             // Only handle unique constraint violations (concurrent insert race).

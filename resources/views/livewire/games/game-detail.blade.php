@@ -65,6 +65,9 @@
 
                 @include('livewire.games.partials._participant-list')
 
+                {{-- Capacity editor (host affordance) --}}
+                @include('livewire.games.partials._capacity-editor')
+
                 {{-- Host Bulletin Board --}}
                 <livewire:games.game-bulletin-board :game="$game" />
 

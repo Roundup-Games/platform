@@ -82,6 +82,9 @@ return [
     // New keys for entity domain migration
     'action_add_session' => 'Session hinzufügen',
     'action_add_session_to_campaign' => 'Session zur Kampagne hinzufügen',
+    'nudge_plan_ahead_title' => 'Vorausplanen',
+    'nudge_plan_ahead_desc' => 'Du hast weniger als ~2 Sitzungen deines Rhythmus geplant. Plane jetzt die nächste.',
+    'nudge_plan_ahead_action' => 'Nächste Sitzung planen',
     'content_create_new_session_linked_to' => 'Erstelle eine neue Spielsession für :campaign.',
     'content_session_details' => 'Session-Details',
     'content_campaign_settings' => 'Kampagneneinstellungen',
@@ -195,4 +198,5 @@ return [
     'error_not_a_participant' => 'Du bist kein Teilnehmer in dieser Kampagne.',
     'flash_you_left_the_campaign' => 'Du hast die Kampagne verlassen.',
     'content_leave_hint' => 'Dir haben sich die Pläne geändert?',
+    'content_gathering_campaign_hint' => 'Ein regelmäßiger Brettspielabend oder lockeres Treffen. Sitzungen erben diesen Typ.',
 ];

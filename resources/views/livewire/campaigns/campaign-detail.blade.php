@@ -246,6 +246,23 @@
             {{-- Main column --}}
             <div class="lg:col-span-2 space-y-6">
 
+                @if($isOwner && !empty($planAheadNudge))
+                    <div class="bg-tertiary-container rounded-xl shadow-ambient p-4 mb-6 flex items-center justify-between gap-4">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-xl text-on-tertiary-container" aria-hidden="true">event_repeat</span>
+                            <div>
+                                <p class="font-medium text-on-tertiary-container">{{ $planAheadNudge['title'] }}</p>
+                                <p class="text-sm text-on-tertiary-container/80">{{ $planAheadNudge['description'] }}</p>
+                            </div>
+                        </div>
+                        <a href="{{ $planAheadNudge['action_url'] }}" wire:navigate
+                           class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors whitespace-nowrap">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                            {{ $planAheadNudge['action_label'] }}
+                        </a>
+                    </div>
+                @endif
+
                 {{-- Upcoming Sessions --}}
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                     <div class="flex items-center justify-between mb-4">

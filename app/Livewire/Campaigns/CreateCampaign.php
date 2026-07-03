@@ -5,6 +5,7 @@ namespace App\Livewire\Campaigns;
 use App\Enums\CampaignStatus;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
+use App\Enums\GameType;
 use App\Enums\VibeFlag;
 use App\Enums\Visibility;
 use App\Models\Campaign;
@@ -41,6 +42,14 @@ class CreateCampaign extends Component
     }
 
     public ?string $game_system_id = null;
+
+    /**
+     * Campaign game type (R050). Defaults to 'ttrpg' for backward compatibility —
+     * campaigns were implicitly TTRPG before this field existed. A 'gathering'
+     * campaign is a recurring board-game night; AddSessionToCampaign propagates
+     * the type onto each spawned session.
+     */
+    public ?string $game_type = 'ttrpg';
 
     public ?string $location_id = null;
 
@@ -86,6 +95,7 @@ class CreateCampaign extends Component
     {
         return array_merge([
             'name' => 'required|string|max:255',
+            'game_type' => 'required|string|in:'.implode(',', GameType::values()),
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
             'location_id' => 'nullable|uuid|exists:locations,id',
             'location_instructions' => 'nullable|string|max:1000',
@@ -192,6 +202,20 @@ class CreateCampaign extends Component
      * @return array<string, mixed>
      */
     #[Computed]
+    public function gameTypeOptions(): array
+    {
+        $options = [];
+        foreach (GameType::cases() as $case) {
+            $options[$case->value] = __('games.type_'.$case->value);
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    #[Computed]
     public function experienceLevelOptions(): array
     {
         $options = ['' => __('discovery.content_any')];
@@ -267,6 +291,7 @@ class CreateCampaign extends Component
             $campaign = Campaign::create([
                 'owner_id' => Auth::id(),
                 'game_system_id' => $validated['game_system_id'],
+                'game_type' => $validated['game_type'],
                 'location_id' => $this->location_id,
                 'location_instructions' => $validated['location_instructions'] ?? null,
                 'name' => $translatable['name'],

@@ -12,6 +12,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Review;
 use App\Models\ShortLink;
 use App\Services\ParticipantLifecycle;
+use App\Services\RecurrenceService;
 use App\Services\ReviewEligibilityService;
 use App\Services\Roster;
 use App\Services\ShortLinkService;
@@ -476,6 +477,39 @@ class CampaignDetail extends Component
             : collect();
     }
 
+    /**
+     * Owner-only "plan ahead" nudge for a recurring campaign whose upcoming
+     * scheduled sessions fall short of the ~2-cadence-unit horizon.
+     *
+     * mount() authorizes only 'view' (participants can view), so the explicit
+     * isOwner() gate here is required. RecurrenceService::shouldNudge() already
+     * handles non-recurring / non-Active / healthy-hizon gracefully (returns
+     * false), but the cheap recurrence guard short-circuits before the DB query
+     * for the common non-recurring case.
+     *
+     * @return array{title:string,description:string,action_url:string,action_label:string}|null
+     */
+    #[Computed]
+    public function planAheadNudge(): ?array
+    {
+        if (! $this->isOwner()) {
+            return null;
+        }
+        if (! $this->campaign->recurrence) {
+            return null;
+        }
+        if (! app(RecurrenceService::class)->shouldNudge($this->campaign)) {
+            return null;
+        }
+
+        return [
+            'title' => __('campaigns.nudge_plan_ahead_title'),
+            'description' => __('campaigns.nudge_plan_ahead_desc'),
+            'action_url' => route('campaigns.add-session', [$this->campaign->id, 'prefill' => 1]),
+            'action_label' => __('campaigns.nudge_plan_ahead_action'),
+        ];
+    }
+
     // ── Render ─────────────────────────────────────────
 
     public function render(): View
@@ -525,6 +559,7 @@ class CampaignDetail extends Component
             'waitlistedPlayers' => $this->waitlistedPlayers(),
             'benchedPlayers' => $this->benchedPlayers(),
             'userBenchParticipant' => $this->userBenchParticipant(),
+            'planAheadNudge' => $this->planAheadNudge(),
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),

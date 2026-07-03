@@ -36,11 +36,25 @@
                     />
 
                     <div>
+                        <label for="campaign-game-type" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_game_type') }} <span class="text-error">*</span></label>
+                        <select id="campaign-game-type" wire:model="game_type"
+                                class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
+                            @foreach($this->gameTypeOptions as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @if($game_type === 'gathering')
+                            <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('campaigns.content_gathering_campaign_hint') }}</p>
+                        @endif
+                        @error('game_type') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
                         <livewire:components.game-system-picker
                             :fieldId="'campaign-system'"
                             :label="__('games.content_game_system')"
                             :error="$errors->first('game_system_id')"
-                            :gameType="'ttrpg'"
+                            :gameType="$game_type"
                             wire:model.live="game_system_id"
                         />
                     </div>

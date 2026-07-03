@@ -159,6 +159,31 @@ describe('CreateGame — Gathering Type Switching', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
+// GATHERING DEFAULTS (R047)
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateGame — Gathering Defaults (R047)', function () {
+    it('applies a raised venue-size max_players default when gathering is selected', function () {
+        createGatheringComponent()
+            ->call('selectType', 'gathering')
+            ->assertSet('max_players', 12);
+    });
+
+    it('defaults experience_level to all-welcome when gathering is selected', function () {
+        createGatheringComponent()
+            ->call('selectType', 'gathering')
+            ->assertSet('experience_level', 'all');
+    });
+
+    it('does not apply the gathering defaults to focused types', function () {
+        createGatheringComponent()
+            ->call('selectType', 'board_game')
+            ->assertSet('max_players', null)
+            ->assertSet('experience_level', null);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
 // RENDERING — ADAPTIVE FORM
 // ═══════════════════════════════════════════════════════════
 

@@ -83,6 +83,9 @@ return [
     // New keys for entity domain migration
     'action_add_session' => 'Add Session',
     'action_add_session_to_campaign' => 'Add Session to Campaign',
+    'nudge_plan_ahead_title' => 'Plan ahead',
+    'nudge_plan_ahead_desc' => 'You have fewer than ~2 sessions of your cadence scheduled. Plan the next one now.',
+    'nudge_plan_ahead_action' => 'Plan next session',
     'content_create_new_session_linked_to' => 'Create a new game session linked to :campaign.',
     'content_session_details' => 'Session Details',
     'content_campaign_settings' => 'Campaign Settings',
@@ -194,4 +197,5 @@ return [
     'error_not_a_participant' => 'You are not a participant in this campaign.',
     'flash_you_left_the_campaign' => 'You have left the campaign.',
     'content_leave_hint' => 'Changed your mind?',
+    'content_gathering_campaign_hint' => 'A recurring board game night or casual meet-up. Sessions inherit this type.',
 ];

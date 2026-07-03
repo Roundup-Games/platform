@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CampaignStatus;
+use App\Enums\GameType;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
 use App\Relations\StringKeyMorphMany;
@@ -31,6 +32,7 @@ use Spatie\Translatable\HasTranslations;
 /**
  * @property Visibility|null $visibility
  * @property CampaignStatus|null $status
+ * @property GameType|null $game_type
  * @property Carbon|null $share_token_expires_at
  * @property bool $bench_mode
  * @property int|null $completed_games_count
@@ -77,7 +79,7 @@ class Campaign extends Model implements TicketSubject
     ];
 
     protected $fillable = [
-        'owner_id', 'game_system_id', 'location_id', 'location_instructions', 'name', 'description', 'images',
+        'owner_id', 'game_system_id', 'game_type', 'location_id', 'location_instructions', 'name', 'description', 'images',
         'recurrence', 'time_of_day', 'session_duration', 'price_per_session',
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
@@ -98,6 +100,7 @@ class Campaign extends Model implements TicketSubject
             'vibe_flags' => 'array',
             'visibility' => Visibility::class,
             'status' => CampaignStatus::class,
+            'game_type' => GameType::class,
             'share_token' => 'string',
             'share_token_expires_at' => 'datetime',
             'bench_mode' => 'boolean',

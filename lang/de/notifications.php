@@ -12,6 +12,7 @@ return [
     'category_application_rejected' => 'Bewerbung abgelehnt',
     'category_participant_joined' => 'Teilnehmer beigetreten',
     'category_participant_removed' => 'Teilnehmer entfernt',
+    'category_seat_demoted' => 'Platz abgegeben',
     'category_team_member_removed' => 'Teammitglied entfernt',
     'category_game_cancelled' => 'Spiel abgesagt',
     'category_game_completed' => 'Spiel abgeschlossen',
@@ -158,6 +159,10 @@ return [
     'subject_participant_removed' => 'Du wurdest aus :entity entfernt',
     'body_participant_removed' => 'Du wurdest aus **:entity** entfernt. Wenn du Fragen hast, wende dich an den Organisator.',
     'action_participant_removed' => 'Spiele entdecken',
+
+    'subject_seat_demoted' => 'Dein Platz in :entity wurde abgegeben',
+    'body_seat_demoted' => 'Dein bestätigter Platz in **:entity** wurde abgegeben, da der Gastgeber die Spielerzahl reduziert hat. Grund: :reason. Du bist nun wieder auf der Warteliste und wirst bei frei werdendem Platz erneut vorgeschlagen.',
+    'action_seat_demoted' => ':entity anzeigen',
 
     'subject_team_member_removed' => 'Du wurdest aus :team entfernt',
     'body_team_member_removed' => 'Du wurdest aus dem Team **:team** entfernt. Wenn du Fragen hast, kontaktiere den Team-Organisator.',
