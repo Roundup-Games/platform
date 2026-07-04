@@ -503,4 +503,10 @@ return [
     'error_capacity_game_completed' => 'Capacity can’t be changed after a game is completed or attendance is resolved.',
     'error_capacity_zero_invalid' => 'Max players can’t be cleared from the roster.',
     'error_capacity_range' => 'Max players must be between 2 and 30.',
+
+    // Cover image upload (host-uploaded entity covers — S07/T02)
+    'field_cover_image' => 'Cover Image',
+    'content_cover_image_hint' => 'Upload a cover image (JPEG, PNG, or WebP, max 5 MB). Optional — we\'ll use the game system\'s cover if you don\'t provide one.',
+    'error_cover_image_too_large' => 'The cover image must be 5 MB or smaller.',
+    'action_remove_cover_image' => 'Remove cover image',
 ];

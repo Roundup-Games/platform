@@ -9,6 +9,8 @@ use App\Models\Concerns\HasCapacity;
 use App\Relations\StringKeyMorphMany;
 use App\Services\ShortLinkService;
 use App\Services\SocialGraphService;
+use App\Traits\ResolvesCoverImage;
+use App\Traits\StringMorphMediaKey;
 use Database\Factories\CampaignFactory;
 use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
 use Escalated\Laravel\Contracts\TicketSubject;
@@ -23,6 +25,8 @@ use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\SchemaOrg\Event as SchemaEvent;
 use Spatie\SchemaOrg\EventStatusType;
 use Spatie\SchemaOrg\Person as SchemaPerson;
@@ -43,16 +47,30 @@ use Spatie\Translatable\HasTranslations;
  * @property string|null $pivot_status
  * @property string|null $discoverable_type
  * @property int|null $discoverable_sort_key
+ * @property int|null $discoverable_gathering_rank
  * @property float|null $distance_km
  */
-class Campaign extends Model implements TicketSubject
+class Campaign extends Model implements HasMedia, TicketSubject
 {
     use HasCapacity;
 
     /** @use HasFactory<CampaignFactory> */
     use HasFactory;
 
+    // Spatie MediaLibrary: host-uploaded cover images. StringMorphMediaKey
+    // overrides media() so the varchar(36) model_id column compares correctly
+    // against this model's string PK. Mirrors GameSystem's trait resolution.
+    use InteractsWithMedia;
     use PresentsAsTicketSubject;
+    use ResolvesCoverImage;
+    use StringMorphMediaKey {
+        StringMorphMediaKey::media insteadof InteractsWithMedia;
+        // Our cover collection/conversion definitions override Spatie's empty
+        // HasMedia stubs; class-body precedence is unavailable because we pull
+        // them in via a shared trait, so resolve the collisions here.
+        ResolvesCoverImage::registerMediaCollections insteadof InteractsWithMedia;
+        ResolvesCoverImage::registerMediaConversions insteadof InteractsWithMedia;
+    }
 
     /**
      * Deep link into the host app for this campaign when attached as a
@@ -80,8 +98,15 @@ class Campaign extends Model implements TicketSubject
         'bench_mode' => false,
     ];
 
+    /**
+     * Write-side bridge for the dropped game_system_id anchor column.
+     *
+     * @var list<string>
+     */
+    protected array $pendingGameSystemIds = [];
+
     protected $fillable = [
-        'owner_id', 'game_type', 'location_id', 'location_instructions', 'name', 'description', 'images',
+        'owner_id', 'game_type', 'location_id', 'location_instructions', 'name', 'description',
         'recurrence', 'time_of_day', 'session_duration', 'price_per_session',
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
@@ -91,7 +116,6 @@ class Campaign extends Model implements TicketSubject
     protected function casts(): array
     {
         return [
-            'images' => 'array',
             'session_duration' => 'float',
             'price_per_session' => 'float',
             'minimum_requirements' => 'array',
@@ -114,6 +138,15 @@ class Campaign extends Model implements TicketSubject
         static::creating(function (self $campaign) {
             if (empty($campaign->id)) {
                 $campaign->id = (string) Str::uuid();
+            }
+        });
+
+        // Write-side bridge: route any legacy game_system_id mass-assignment
+        // to the gameSystems pivot after persist. See Game::booted for details.
+        static::created(function (self $campaign) {
+            if (! empty($campaign->pendingGameSystemIds)) {
+                $campaign->gameSystems()->sync($campaign->pendingGameSystemIds);
+                $campaign->load('gameSystems');
             }
         });
 
@@ -157,6 +190,32 @@ class Campaign extends Model implements TicketSubject
     public function getGameSystemAttribute(): ?GameSystem
     {
         return $this->gameSystems->first();
+    }
+
+    /**
+     * Representative game_system_id accessor (bridge for the dropped anchor column).
+     *
+     * Returns the first offered system's id, or null. Kept so property reads
+     * ($campaign->game_system_id) across CreateCampaign/AddSessionToCampaign/
+     * GenerateUserDataExport continue to work. Callers needing the full set
+     * should read ->gameSystems directly.
+     */
+    public function getGameSystemIdAttribute(): ?string
+    {
+        $first = $this->gameSystems->first();
+
+        return $first !== null ? (string) $first->id : null;
+    }
+
+    /**
+     * Write-side bridge for the dropped game_system_id anchor column. See
+     * Game::setGameSystemIdAttribute for full rationale.
+     */
+    public function setGameSystemIdAttribute(mixed $id): void
+    {
+        if (is_string($id) && $id !== '' && $id !== '0') {
+            $this->pendingGameSystemIds[] = $id;
+        }
     }
 
     /**
@@ -281,13 +340,11 @@ class Campaign extends Model implements TicketSubject
             ? Str::limit(strip_tags($this->description), 160)
             : null;
 
-        // Representative cover image: first offered system's cover for the
-        // multi-system reality (campaigns default to their recurring offering
-        // set; see campaign_game_system pivot). Falls back to host images or
-        // the OG default.
-        $image = isset($this->images[0]) && $this->images[0]
-            ? $this->images[0]
-            : ($this->gameSystems->first()?->coverImageUrl() ?: asset('images/og-default.jpg'));
+        // Cover image via the deterministic fallback chain (S07): host-uploaded
+        // cover -> representative GameSystem cover -> og-default.jpg asset.
+        // The legacy $this->images JSON column was dropped in S07; every cover
+        // surface now reads through resolveCoverUrl().
+        $image = $this->resolveCoverUrl();
 
         $isPublic = $this->visibility === Visibility::Public;
         $robots = $isPublic

@@ -324,6 +324,10 @@ return [
     'body_content_removed_reason' => 'Reason: :reason',
     'body_content_removed_guidelines' => 'Repeated violations may result in account suspension.',
 
+    // Moderation — Cover image removed (scoped takedown; entity itself stays published)
+    'subject_cover_removed' => 'Cover Image Removed',
+    'body_cover_removed' => 'The cover image on your :entityType ":entityName" has been removed by our moderation team. Your :entityType itself is still published — you can upload a new cover image anytime.',
+
     'subject_account_suspended' => 'Account Suspended',
     'body_account_suspended' => 'Your account has been suspended due to a violation of our community guidelines.',
     'body_account_suspended_reason' => 'Reason: :reason',

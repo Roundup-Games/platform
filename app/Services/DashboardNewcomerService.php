@@ -105,7 +105,7 @@ class DashboardNewcomerService
         $games = Game::nearbyOpen($geohash4)
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
-            ->with(['gameSystem', 'gameSystems', 'owner', 'linkedLocation'])
+            ->with(['gameSystems', 'owner', 'linkedLocation'])
             ->limit(30)
             ->get();
 

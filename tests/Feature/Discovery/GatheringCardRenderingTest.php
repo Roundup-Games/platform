@@ -39,7 +39,6 @@ describe('GatheringCardRendering', function () {
         Game::factory()->create([
             'game_type' => 'board_game',
             'game_system_id' => $system->id,
-            'game_systems' => null,
             'name' => ['en' => 'Single System Board Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
@@ -103,7 +102,6 @@ describe('GatheringCardRendering', function () {
         $game = Game::factory()->create([
             'game_type' => 'board_game',
             'game_system_id' => $system->id,
-            'game_systems' => null,
             'name' => ['en' => 'Legacy Single System'],
             'visibility' => 'public',
             'status' => 'scheduled',

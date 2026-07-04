@@ -80,8 +80,8 @@ describe('CreateGame — Gathering Save', function () {
         expect($game)->not->toBeNull()
             ->and($game->owner_id)->toBe($user->id)
             ->and($game->game_type->value)->toBe('gathering')
-            // game_systems JSON array contains all three selected systems
-            ->and($game->game_systems)->toBe($systemIds)
+            // The belongsToMany pivot contains exactly the three selected systems
+            ->and($game->gameSystems->modelKeys())->toEqualCanonicalizing($systemIds)
             // host_note persisted verbatim
             ->and($game->host_note)->toBe('Bring snacks and good vibes!')
             // Gatherings force complexity/bench/reliability clean
@@ -89,8 +89,9 @@ describe('CreateGame — Gathering Save', function () {
             ->and($game->bench_mode)->toBeFalse()
             ->and($game->min_reliability_preference)->toBeNull();
 
-        // The S01 saving event syncs the anchor: game_system_id === game_systems[0]
-        expect($game->game_system_id)->toBe($systemIds[0]);
+        // The representative-id bridge accessor returns a member of the offered set
+        // (the cached-anchor + saving-event sync was retired in S06).
+        expect($systemIds)->toContain($game->game_system_id);
     })->group('smoke');
 });
 
@@ -127,7 +128,12 @@ describe('CreateGame — Gathering Clone', function () {
                 'host_note' => 'Same warm note',
             ]);
 
-        $expectedSystemIds = array_map('strval', $source->game_systems ?? []);
+        $expectedSystemIds = $source->gameSystems
+            ->pluck('id')
+            ->filter(fn (mixed $id): bool => is_string($id))
+            ->map(fn (string $id): string => $id)
+            ->values()
+            ->all();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class, ['clone' => $source->id])

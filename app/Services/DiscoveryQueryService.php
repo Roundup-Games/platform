@@ -79,14 +79,12 @@ class DiscoveryQueryService
         }));
 
         $query->when(! empty($gameSystemId), function (Builder $q) use ($gameSystemId) {
-            // Games match when the id is the cached anchor OR any offered system
-            // (R048: a Gathering appears in each offered system's feed).
-            // Campaign has no game_systems column, so it stays anchor-only.
-            if ($q->getModel() instanceof Game) {
-                $q->where(fn (Builder $q) => $q->where('game_system_id', $gameSystemId)->orWhereJsonContains('game_systems', $gameSystemId));
-            } else {
-                $q->where('game_system_id', $gameSystemId);
-            }
+            // Match via the canonical pivot: a Gathering (or any game/campaign)
+            // appears in a system's feed iff that system is in its offered set
+            // (R048). Both Game and Campaign route through the same pivot shape
+            // (game_game_system / campaign_game_system), so the former
+            // instanceof-Game branch collapses to one whereHas.
+            $q->whereHas('gameSystems', fn (Builder $q) => $q->where('game_systems.id', $gameSystemId));
         });
         $query->when(! empty($experienceLevel), fn ($q) => $q->where('experience_level', $experienceLevel));
 
@@ -122,31 +120,17 @@ class DiscoveryQueryService
     /**
      * Scope a games query to a given game system type, honouring multi-system Gatherings.
      *
-     * A game is included when its anchor system (game_system_id) is of $type OR
-     * when any of its offered game_systems is a system of $type. Type-system IDs
-     * are resolved once, then each is added as an orWhereJsonContains so a
-     * multi-system Gathering surfaces in every offered type's feed.
-     *
-     * Apply ONLY to Game queries — Campaign has no game_systems column. For
-     * campaign queries keep the anchor-only whereHas('gameSystem', type=$type).
+     * A game is included when ANY of its offered systems (via the game_game_system
+     * pivot) is of $type, so a multi-system Gathering surfaces in every offered
+     * type's feed (R048). The former cached-anchor + JSON-array union collapses
+     * to a single whereHas('gameSystems').
      *
      * @param  Builder<Game>  $query
      * @param  string  $type  GameSystem type ('boardgame' or 'ttrpg')
      */
     public function applySystemTypeScope(Builder $query, string $type): void
     {
-        $typeSystemIds = GameSystem::where('type', $type)
-            ->pluck('id')
-            ->filter(fn (mixed $id) => is_string($id))
-            ->values()
-            ->all();
-
-        $query->where(function (Builder $q) use ($type, $typeSystemIds) {
-            $q->whereHas('gameSystem', fn (Builder $q) => $q->where('type', $type));
-            foreach ($typeSystemIds as $id) {
-                $q->orWhereJsonContains('game_systems', $id);
-            }
-        });
+        $query->whereHas('gameSystems', fn (Builder $q) => $q->where('type', $type));
     }
 
     // ── Gathering cap (R048) ───────────────────────────────────────────
@@ -273,7 +257,7 @@ class DiscoveryQueryService
             ->where($this->buildVisibilityClause($user))
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->with(['owner', 'gameSystem', 'gameSystems', 'campaign', 'linkedLocation'])
+            ->with(['owner', 'gameSystems', 'campaign', 'linkedLocation'])
             ->withCount(['participants as participants_count' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)]);
 
         $query = $this->withOverflowCounts($query);
@@ -984,9 +968,6 @@ class DiscoveryQueryService
     {
         return function (Builder $q) use ($allowedSystemIds): void {
             $q->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds));
-            foreach ($allowedSystemIds as $id) {
-                $q->orWhereJsonContains('game_systems', $id);
-            }
         };
     }
 

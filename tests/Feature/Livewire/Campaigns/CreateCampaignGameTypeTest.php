@@ -84,9 +84,10 @@ describe('AddSessionToCampaign — game type propagation (R050)', function () {
         $game = Game::where('campaign_id', $campaign->id)->first();
         expect($game)->not->toBeNull()
             ->and($game->game_type->value)->toBe('gathering')
-            // 1-element set (R046 single-system = 1-element set) → valid Gathering
-            ->and($game->game_systems)->toBe([$system->id])
-            // anchor synced to the set's first element (S01 saving event)
+            // Copy-on-write spawn: the campaign's 1-element gameSystems set is
+            // synced onto the session's own game_game_system pivot (S06).
+            ->and($game->gameSystems->modelKeys())->toBe([$system->id])
+            // Representative accessor resolves through the pivot (S06 bridge).
             ->and($game->game_system_id)->toBe($system->id);
     });
 
@@ -110,7 +111,9 @@ describe('AddSessionToCampaign — game type propagation (R050)', function () {
 
         $game = Game::where('campaign_id', $campaign->id)->first();
         expect($game->game_type->value)->toBe('ttrpg')
-            ->and($game->game_systems)->toBeNull(); // single-system: no array
+            // Copy-on-write: the campaign's single system is synced to the
+            // session pivot (1-element set, not a null array post-S06).
+            ->and($game->gameSystems->modelKeys())->toBe([$system->id]);
     });
 
     it('treats a legacy campaign with null game_type as ttrpg (backward compatible)', function () {

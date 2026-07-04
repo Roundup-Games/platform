@@ -15,6 +15,7 @@ use App\Services\ShortLinkService;
 use App\Services\VenueTrustService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -23,12 +24,16 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /** @property-read bool $canCreatePublic */
 #[Layout('layouts.app')]
 class CreateCampaign extends Component
 {
     use BuildsTranslatableFormFields;
+
+    // Livewire file-upload support for the host-uploaded cover image (S07).
+    use WithFileUploads;
 
     public string $name = '';
 
@@ -89,6 +94,12 @@ class CreateCampaign extends Component
     public bool $bench_mode = false;
 
     /**
+     * Optional host-uploaded cover image (S07). Stored to the Spatie 'cover'
+     * media collection after create via addMedia()->toMediaCollection('cover').
+     */
+    public ?UploadedFile $cover_image = null;
+
+    /**
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -113,6 +124,9 @@ class CreateCampaign extends Component
             'experience_level' => 'nullable|string|in:'.implode(',', ExperienceLevel::values()),
             'complexity' => 'nullable|numeric|min:1|max:5',
             'bench_mode' => 'boolean',
+            // Host-uploaded cover (S07): the model's registerMediaCollections()
+            // also enforces the jpeg/png/webp mime allow-list at storage time.
+            'cover_image' => 'nullable|image|mimes:jpeg,png,webp|max:5120',
         ], $this->translatableValidationRules(
             ['name' => 'required|string|max:255', 'description' => 'nullable|string|max:10000'],
             $this->language,
@@ -290,7 +304,6 @@ class CreateCampaign extends Component
         $campaign = DB::transaction(function () use ($validated, $translatable, $vibeFlags, $benchMode) {
             $campaign = Campaign::create([
                 'owner_id' => Auth::id(),
-                'game_system_id' => $validated['game_system_id'],
                 'game_type' => $validated['game_type'],
                 'location_id' => $this->location_id,
                 'location_instructions' => $validated['location_instructions'] ?? null,
@@ -318,9 +331,8 @@ class CreateCampaign extends Component
             // Sync the canonical campaign_game_system pivot: the
             // campaign's system set is the recurring DEFAULT offering (the
             // template). AddSessionToCampaign copy-on-writes this set into each
-            // spawned session's game_game_system rows at creation time. The
-            // legacy game_system_id anchor stays in sync via the relation until
-            // T06 drops it. single-system campaigns (the only kind today)
+            // spawned session's game_game_system rows at creation time.
+            // single-system campaigns (the only kind today)
             // produce a one-element pivot set.
             $campaignSystemIds = array_filter(
                 [$validated['game_system_id'] ?? null],
@@ -332,6 +344,34 @@ class CreateCampaign extends Component
 
             return $campaign;
         });
+
+        // Persist the host-uploaded cover to the Spatie 'cover' collection.
+        // singleFile() on the collection means a fresh upload replaces any
+        // prior cover. Runs OUTSIDE the create transaction: media storage
+        // writes files and a media row, neither of which the campaign row
+        // depends on, and Spatie's medialibrary does not participate in the
+        // caller's DB transaction safely.
+        if ($this->cover_image instanceof UploadedFile) {
+            try {
+                $campaign->addMedia($this->cover_image)->toMediaCollection('cover');
+
+                Log::info('Campaign cover image uploaded', [
+                    'campaign_id' => $campaign->id,
+                    'owner_id' => Auth::id(),
+                    'mime' => $this->cover_image->getMimeType(),
+                    'size' => $this->cover_image->getSize(),
+                ]);
+            } catch (\Throwable $e) {
+                // Upload failures are non-fatal: the campaign is already created
+                // and resolveCoverUrl() falls back to the representative
+                // system cover. Surface the failure for follow-up.
+                Log::warning('Campaign cover image upload failed', [
+                    'campaign_id' => $campaign->id,
+                    'owner_id' => Auth::id(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         Log::info('Campaign created', [
             'campaign_id' => $campaign->id,

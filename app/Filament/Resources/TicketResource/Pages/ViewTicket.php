@@ -39,6 +39,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -275,6 +276,35 @@ class ViewTicket extends BaseViewTicket
                 ->color('gray')
                 ->limit(30)
                 ->tooltip($entityId);
+        }
+
+        // Cover image preview: when the reported entity carries a host-uploaded
+        // cover (rung 1 of resolveCoverUrl()), surface it inline so the reviewer
+        // can see the offending image without leaving the ticket. Entities on the
+        // representative/default rung render nothing here (nothing image-specific
+        // to review). Reactive moderation: the cover is shown so the reviewer can
+        // pick the proportionate Clear Cover action vs full Remove Content.
+        // buildContentReportSection() does not receive $ticket, so resolve
+        // the carrying entity from the metadata-derived type/id in scope.
+        $coverEntity = match ($entityType) {
+            'game' => ($entityId !== null && $entityId !== '') ? Game::find($entityId) : null,
+            'campaign' => ($entityId !== null && $entityId !== '') ? Campaign::find($entityId) : null,
+            default => null,
+        };
+        if ($coverEntity !== null && $coverEntity->hasCover()) {
+            $coverUrl = $coverEntity->resolveCoverUrl();
+            if (is_string($coverUrl) && $coverUrl !== '') {
+                // Infolists Placeholder renders arbitrary HtmlString via
+                // ->content(); TextEntry has no content() method (PHPStan L9).
+                $entries[] = Placeholder::make('metadata_cover_preview')
+                    ->label('Cover image (reported)')
+                    ->content(new HtmlString(
+                        '<div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">'
+                        .'<img src="'.e($coverUrl).'" alt="Reported cover image" class="w-full max-h-64 object-contain bg-gray-50 dark:bg-gray-800">'
+                        .'</div>'
+                        .'<p class="mt-1 text-xs text-gray-500">Host-uploaded cover. Use \"Clear Cover Image\" to remove only this image.</p>'
+                    ));
+            }
         }
 
         // Report reason
@@ -1529,6 +1559,30 @@ class ViewTicket extends BaseViewTicket
                     $this->performWarnUser($ticket, $entityType, $entityName, $data['warning_note'] ?? null);
                 }),
 
+            Action::make('clearCover')
+                ->label('Clear Cover Image')
+                ->icon(Heroicon::OutlinedPhoto)
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Clear Cover Image')
+                ->modalDescription("This removes ONLY the host-uploaded cover image on the reported {$entityType} — the {$entityType} itself stays published and falls back to its representative/default cover. The owner is notified. Use this instead of \"Remove Content\" when only the image is the issue.")
+                ->modalSubmitActionLabel('Clear Cover')
+                ->visible(function () use ($ticket, $entityType) {
+                    // Proportionate toakedown: only offer when the reported
+                    // entity is a game/campaign that actually carries a
+                    // host-uploaded cover (rung 1). Entities on the
+                    // representative/default rung have nothing to clear.
+                    if (! $ticket->isOpen() || ! in_array($entityType, ['game', 'campaign'], true)) {
+                        return false;
+                    }
+                    $entity = $this->resolveReportedEntity($ticket, $entityType);
+
+                    return $entity !== null && method_exists($entity, 'hasCover') && $entity->hasCover();
+                })
+                ->action(function () use ($ticket, $entityType, $entityName) {
+                    $this->performClearCover($ticket, $entityType, $entityName);
+                }),
+
             Action::make('removeContent')
                 ->label('Remove Content')
                 ->icon(Heroicon::OutlinedTrash)
@@ -2029,6 +2083,94 @@ class ViewTicket extends BaseViewTicket
     }
 
     /**
+     * Clear ONLY the host-uploaded cover image on a reported game/campaign
+     * (proportionate cover takedown). The entity itself stays published and
+     * resolveCoverUrl() falls through to the representative/default rung.
+     *
+     * Reactive model: this is the cover-specific response the existing
+     * ReportContent -> Safety ticket flow already surfaces. The reviewer sees
+     * the cover in the ticket's cover-preview entry and can choose this lighter
+     * action instead of canceling the whole entity via performRemoveContent().
+     * Mirrors performRemoveContent()'s structure (transaction + note + close +
+     * owner notify) but calls clearCoverImage() and scopes the notification so
+     * the owner learns the cover specifically was removed.
+     */
+    protected function performClearCover(Ticket $ticket, ?string $entityType, ?string $entityName): void
+    {
+        try {
+            $admin = auth()->user();
+            if (! $admin instanceof User) {
+                return;
+            }
+            $ticketService = app(TicketService::class);
+
+            $entity = $this->resolveReportedEntity($ticket, $entityType);
+            if ($entity === null || ! method_exists($entity, 'clearCoverImage')) {
+                Notification::make()
+                    ->warning()
+                    ->title('Entity not found')
+                    ->body('Could not resolve the reported entity. No cover cleared.')
+                    ->send();
+
+                return;
+            }
+
+            $cleared = false;
+
+            DB::transaction(function () use ($entity, $ticket, $admin, $ticketService, &$cleared) {
+                $cleared = $entity->clearCoverImage();
+
+                $ticketService->addNote($ticket, $admin, $cleared
+                    ? 'Cover image cleared by admin; entity remains published.'
+                    : 'Cover clear attempted but no host cover was present.');
+                $ticketService->close($ticket, $admin);
+            });
+
+            if ($cleared) {
+                $owner = $this->resolveReportedUser($ticket, $entityType);
+                if ($owner) {
+                    $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
+                    $owner->notify(new ContentRemoved(
+                        $entityType ?? 'content',
+                        $entityName ?? 'reported content',
+                        self::asString($reason),
+                        'cover_image',
+                    ));
+                }
+            }
+
+            Log::info('content_report.cover_cleared', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'entity_type' => $entityType,
+                'entity_id' => $ticket->metadata['entity_id'] ?? null,
+                'cleared' => $cleared,
+                'admin_id' => $admin->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title($cleared ? 'Cover image cleared' : 'No cover to clear')
+                ->body($cleared
+                    ? 'The host-uploaded cover was removed; the entity stays published and now shows its fallback cover. The owner has been notified.'
+                    : 'The reported entity had no host-uploaded cover to clear.')
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to clear cover for report', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Clear cover failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
      * Remove content: close ticket, hide/remove the reported entity, notify owner.
      */
     protected function performRemoveContent(Ticket $ticket, ?string $entityType, ?string $entityName): void
@@ -2243,6 +2385,29 @@ class ViewTicket extends BaseViewTicket
             'user' => $entityId !== null ? User::find(self::asString($entityId)) : null,
             'game' => $entityId !== null ? Game::find(self::asString($entityId))?->owner : null,
             'campaign' => $entityId !== null ? Campaign::find(self::asString($entityId))?->owner : null,
+            default => null,
+        };
+    }
+
+    /**
+     * Resolve the reported entity model itself (Game/Campaign/User) from ticket
+     * metadata. Used by the cover-takedown flow (performClearCover + the
+     * "Clear Cover Image" action visibility check + the cover preview entry)
+     * to load the actual record carrying the host-uploaded cover.
+     *
+     * @return Model|Game|Campaign|User|null
+     */
+    protected function resolveReportedEntity(Ticket $ticket, ?string $entityType)
+    {
+        $entityId = isset($ticket->metadata['entity_id']) ? self::asString($ticket->metadata['entity_id']) : null;
+        if ($entityId === null || $entityId === '') {
+            return null;
+        }
+
+        return match ($entityType) {
+            'user' => User::find($entityId),
+            'game' => Game::find($entityId),
+            'campaign' => Campaign::find($entityId),
             default => null,
         };
     }

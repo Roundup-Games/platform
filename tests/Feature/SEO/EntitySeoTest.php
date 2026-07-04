@@ -210,16 +210,18 @@ describe('entity SEO common assertions', function () {
 // ── Campaign unique assertions ──────────────────────────────────────────────
 
 describe('Campaign getDynamicSEOData unique assertions', function () {
-    it('returns game system cover image as fallback when no campaign images', function () {
+    it('returns game system cover image as the representative resolveCoverUrl() fallback', function () {
         $system = GameSystem::factory()->create([
             'thumbnail_url' => 'https://example.com/system-cover.jpg',
         ]);
         $campaign = Campaign::factory()->create([
             'game_system_id' => $system->id,
-            'images' => null,
             'visibility' => Visibility::Public,
         ]);
 
+        // S07: campaigns.images JSON column was dropped; the cover surface now
+        // reads through ResolvesCoverImage::resolveCoverUrl(). With no host
+        // cover media, rung 2 (representative GameSystem cover) wins.
         $seo = $campaign->getDynamicSEOData();
 
         expect($seo->image)->toBe('https://example.com/system-cover.jpg');

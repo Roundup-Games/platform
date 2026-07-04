@@ -9,27 +9,27 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends Factory<Campaign>
+ *
+ * S06 pivot migration: the legacy campaigns.game_system_id anchor was dropped.
+ * The factory can no longer carry the offered-system set through state() (state
+ * keys become INSERT columns), so the canonical write path is the belongsToMany
+ * pivot, attached in afterCreating. See GameFactory for the same pattern.
  */
 class CampaignFactory extends Factory
 {
-    /**
-     * Keep the campaign_game_system pivot in sync with the legacy
-     * game_system_id anchor, so pivot-backed reads return these
-     * fixtures. Runs once on create(); the anchor is retired in T06.
-     *
-     * This is the factory's canonical write path for single-system campaigns.
-     * Multi-system recurring defaults (used by the copy-on-write feature test)
-     * are set up via withCampaignGameSystems(), whose afterCreating runs AFTER
-     * this one and overwrites the pivot with the explicit set, so the final
-     * state is the caller's intended offering.
-     */
     public function configure(): static
     {
         return $this->afterCreating(function (Campaign $campaign): void {
-            $anchor = $campaign->game_system_id;
-            if ($anchor !== null) {
-                $campaign->gameSystems()->sync([$anchor]);
+            // Skip the default single-system attach when a state method already
+            // claimed the pivot (withCampaignGameSystems). relationLoaded()
+            // guards getRelation(), which throws on a missing key.
+            $claimed = $campaign->relationLoaded('factoryPivotClaimed')
+                && $campaign->getRelation('factoryPivotClaimed') === true;
+            if ($claimed || $campaign->gameSystems->isNotEmpty()) {
+                return;
             }
+            $system = GameSystem::factory()->create();
+            $campaign->gameSystems()->sync([(string) $system->id]);
         });
     }
 
@@ -42,7 +42,6 @@ class CampaignFactory extends Factory
     {
         return [
             'owner_id' => User::factory(),
-            'game_system_id' => GameSystem::factory(),
             'name' => ['en' => fake()->words(3, true).' Campaign'],
             'description' => ['en' => fake()->paragraph()],
             'visibility' => 'public',
@@ -64,28 +63,23 @@ class CampaignFactory extends Factory
     /**
      * Seed a multi-system recurring default offering.
      *
-     * Campaigns have no game_systems JSON column, so the multi-system set lives
-     * only in the campaign_game_system pivot. This state creates the given
-     * GameSystems, syncs them onto the campaign's pivot, and sets the legacy
-     * game_system_id anchor to the first element (kept alive until dropped).
-     * Used by the AddSessionToCampaign copy-on-write test to verify that
-     * a spawned session inherits the full default set and can then be
-     * overridden per-session without touching the template.
+     * The set lives only in the campaign_game_system pivot (Campaigns have no
+     * game_systems JSON column). Used by the AddSessionToCampaign copy-on-write
+     * test to verify that a spawned session inherits the full default set and
+     * can then be overridden per-session without touching the template.
      *
-     * @param  array<int, string>  $ids  GameSystem UUIDs; anchor taken from [0].
+     * @param  array<int, string>  $ids  GameSystem UUIDs to attach.
      */
     public function withCampaignGameSystems(array $ids): static
     {
-        return $this->state(function () use ($ids): array {
-            $ids = array_values($ids);
-
-            return [
-                'game_system_id' => $ids[0] ?? null,
-            ];
-        })->afterCreating(function (Campaign $campaign) use ($ids): void {
-            if (! empty($ids)) {
-                $campaign->gameSystems()->sync(array_values(array_map('strval', $ids)));
-            }
-        });
+        return $this
+            ->afterMaking(function (Campaign $campaign): void {
+                $campaign->setRelation('factoryPivotClaimed', true);
+            })
+            ->afterCreating(function (Campaign $campaign) use ($ids): void {
+                if (! empty($ids)) {
+                    $campaign->gameSystems()->sync(array_values(array_map('strval', $ids)));
+                }
+            });
     }
 }

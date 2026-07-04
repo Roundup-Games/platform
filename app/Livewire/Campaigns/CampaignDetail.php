@@ -516,11 +516,11 @@ class CampaignDetail extends Component
     {
         $this->campaign->load([
             'owner',
-            'gameSystem.categories',
-            'gameSystem.mechanics',
-            'gameSystem.publishers',
-            'gameSystem.baseGame',
-            'gameSystem.expansions',
+            'gameSystems.categories',
+            'gameSystems.mechanics',
+            'gameSystems.publishers',
+            'gameSystems.baseGame',
+            'gameSystems.expansions',
             'participants.user',
             'applications.user',
             'linkedLocation',

@@ -1,13 +1,9 @@
 {{-- Hero section: cover image, badges, title, metadata --}}
 @php
-    // Representative hero image: first offered system's cover (a multi-system
-    // Gathering has no single canonical image; pending host-uploaded hero in
-    // a later slice). Eager-loaded gameSystems avoids an N+1 on detail pages.
-    $representativeSystem = $game->gameSystems->first();
-    $coverUrl = $representativeSystem?->getFirstMediaUrl('cover');
-    if (! $coverUrl && $representativeSystem?->thumbnail_url) {
-        $coverUrl = $representativeSystem->thumbnail_url;
-    }
+    // Cover image via the deterministic fallback chain (S07): host-uploaded
+    // cover -> representative GameSystem cover -> og-default.jpg asset.
+    // Eager-loaded gameSystems keeps the representative rung N+1-safe.
+    $coverUrl = $game->resolveCoverUrl();
 @endphp
 @if($coverUrl)
     @push('preload')

@@ -123,7 +123,7 @@ class GameActivityFeedService
     protected function getGamesCreated(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
     {
         return Game::whereIn('owner_id', $socialCircleIds)
-            ->with(['owner', 'gameSystem', 'gameSystems'])
+            ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->orderBy('created_at', 'desc')
             ->limit(50)
@@ -166,7 +166,7 @@ class GameActivityFeedService
         $gameIds = $gameIds->diff($viewerGameIds);
 
         return Game::whereIn('id', $gameIds)
-            ->with(['owner', 'gameSystem', 'gameSystems', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', ParticipantRole::Player->value)->where('status', 'approved')])
+            ->with(['owner', 'gameSystems', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', ParticipantRole::Player->value)->where('status', 'approved')])
             ->withCount('participants')
             ->orderBy('updated_at', 'desc')
             ->limit(50)
@@ -198,7 +198,7 @@ class GameActivityFeedService
     {
         return Game::whereIn('owner_id', $socialCircleIds)
             ->where('status', 'completed')
-            ->with(['owner', 'gameSystem', 'gameSystems'])
+            ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->orderBy('updated_at', 'desc')
             ->limit(50)
@@ -224,7 +224,7 @@ class GameActivityFeedService
             ->where('status', 'completed')
             ->whereNotNull('recap')
             ->where('recap', '!=', '')
-            ->with(['owner', 'gameSystem', 'gameSystems'])
+            ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->orderBy('updated_at', 'desc')
             ->limit(50)
@@ -247,7 +247,7 @@ class GameActivityFeedService
     protected function getCampaignsCreated(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
     {
         return Campaign::whereIn('owner_id', $socialCircleIds)
-            ->with(['owner', 'gameSystem', 'gameSystems'])
+            ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->orderBy('created_at', 'desc')
             ->limit(50)
@@ -282,7 +282,7 @@ class GameActivityFeedService
         $campaignIds = $campaignIds->diff($viewerCampaignIds);
 
         return Campaign::whereIn('id', $campaignIds)
-            ->with(['owner', 'gameSystem', 'gameSystems', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', ParticipantRole::Player->value)->where('status', 'approved')])
+            ->with(['owner', 'gameSystems', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', ParticipantRole::Player->value)->where('status', 'approved')])
             ->withCount('participants')
             ->orderBy('updated_at', 'desc')
             ->limit(50)
@@ -312,7 +312,7 @@ class GameActivityFeedService
     {
         return Campaign::whereIn('owner_id', $socialCircleIds)
             ->where('status', 'completed')
-            ->with(['owner', 'gameSystem', 'gameSystems'])
+            ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->orderBy('updated_at', 'desc')
             ->limit(50)
@@ -337,7 +337,7 @@ class GameActivityFeedService
         return Game::whereNotNull('campaign_id')
             ->whereHas('campaign', fn ($q) => $q->whereIn('owner_id', $socialCircleIds))
             ->where('status', 'scheduled')
-            ->with(['owner', 'gameSystem', 'gameSystems', 'campaign'])
+            ->with(['owner', 'gameSystems', 'campaign'])
             ->withCount('participants')
             ->orderBy('created_at', 'desc')
             ->limit(50)
@@ -392,14 +392,15 @@ class GameActivityFeedService
 
     /**
      * Resolve an image URL from a game or campaign entity.
+     *
+     * Routes through ResolvesCoverImage::resolveCoverUrl() (S07) so the feed
+     * honors the host-uploaded cover -> representative GameSystem cover ->
+     * og-default.jpg fallback chain. Callers eager-load 'gameSystems' (see the
+     * ->with(['owner', 'gameSystems']) calls in the query builders above),
+     * which keeps the representative rung N+1-safe on feed pages.
      */
     protected function resolveImageUrl(Game|Campaign $entity): ?string
     {
-        // Campaigns store images as a JSON array
-        if ($entity instanceof Campaign && filled($entity->images)) {
-            return $entity->images[0] ?? null;
-        }
-
-        return null;
+        return $entity->resolveCoverUrl();
     }
 }

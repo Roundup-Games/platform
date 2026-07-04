@@ -10,36 +10,37 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends Factory<Game>
+ *
+ * S06 pivot migration: the legacy games.game_system_id anchor + game_systems
+ * JSON array were dropped. The factory can no longer carry the offered-system
+ * set through state() (state keys become INSERT columns), so the canonical
+ * write path is the belongsToMany pivot, attached in afterCreating.
+ *
+ * Ordering (avoids orphan GameSystem rows):
+ *   1. afterMaking callbacks run at make() time (before persist). gathering() /
+ *      withGameSystems() set a transient factoryPivotClaimed relation flag.
+ *   2. afterCreating callbacks run in registration order: configure()'s default
+ *      (registered at construction) runs first — it skips when the flag is set,
+ *      otherwise attaches one default system so bare Game::factory()->create()
+ *      still yields a single-system game. gathering()/withGameSystems() run
+ *      after and sync their explicit set, replacing any default.
  */
 class GameFactory extends Factory
 {
-    /**
-     * Keep the game_game_system pivot in sync with whatever the legacy
-     * game_system_id anchor + game_systems JSON array carry, so pivot-backed
-     * queries return these fixtures. Runs once on create(); both
-     * single-system games (anchor only) and multi-system Gatherings (JSON set)
-     * get their pivot rows. The legacy columns are retired in T06.
-     *
-     * This is the factory's canonical write path for the pivot. Test
-     * factories don't flow through CreateGame/AddSessionToCampaign, so the
-     * copy-on-write sync there doesn't apply — instead the pivot is derived
-     * from the same anchor + JSON set the test sets up, exactly as the T01
-     * backfill migration derives it for production data.
-     */
     public function configure(): static
     {
         return $this->afterCreating(function (Game $game): void {
-            $anchor = $game->game_system_id;
-            $systems = is_array($game->game_systems) ? $game->game_systems : [];
-
-            $ids = array_values(array_filter(array_unique(array_merge(
-                $anchor !== null ? [$anchor] : [],
-                $systems,
-            )), fn (mixed $id): bool => is_string($id)));
-
-            if (! empty($ids)) {
-                $game->gameSystems()->sync($ids);
+            // Skip the default single-system attach when a state method already
+            // claimed the pivot (gathering/withGameSystems). The flag is stashed
+            // via setRelation so it never reaches the INSERT statement.
+            // relationLoaded() guards getRelation(), which throws on a missing key.
+            $claimed = $game->relationLoaded('factoryPivotClaimed')
+                && $game->getRelation('factoryPivotClaimed') === true;
+            if ($claimed || $game->gameSystems->isNotEmpty()) {
+                return;
             }
+            $system = GameSystem::factory()->create();
+            $game->gameSystems()->sync([(string) $system->id]);
         });
     }
 
@@ -53,11 +54,6 @@ class GameFactory extends Factory
         return [
             'owner_id' => User::factory(),
             'game_type' => 'board_game',
-            'game_system_id' => GameSystem::factory(),
-            // Multi-system JSON array. Null for the legacy single-system path
-            // (board_game / ttrpg) so existing read sites are unaffected.
-            // Populated by the gathering() state for Gathering-type games.
-            'game_systems' => null,
             'name' => ['en' => fake()->words(3, true)],
             'date_time' => now()->addDays(fake()->numberBetween(1, 30)),
             'description' => ['en' => fake()->sentence()],
@@ -81,48 +77,49 @@ class GameFactory extends Factory
     /**
      * A multi-system Gathering (e.g. a board game night spanning several games).
      *
-     * Creates two real GameSystems and seeds game_systems with their UUIDs,
-     * setting game_system_id (the cached anchor) to the array's first element so
-     * the Game::saving sync event records no drift. The systems are persisted
-     * eagerly (inside the state closure) because the JSON array needs real UUIDs
-     * and the anchor column carries a foreign key — nested factories don't
-     * resolve inside arrays, so eager create is the only faithful option.
+     * Creates two real GameSystems and attaches them via the pivot. Systems are
+     * persisted inside afterCreating (post-save) because the pivot needs real
+     * UUIDs and belongsToMany::sync() requires the Game to exist first.
      *
      * Side effect: GameSystem rows are created even on factory->make(). The
-     * codebase only ever creates (never makes) Games in tests, and each test runs
-     * inside a DatabaseTransactions wrapper, so this is safe in practice.
+     * codebase only ever creates (never makes) Games in tests, and each test
+     * runs inside a DatabaseTransactions wrapper, so this is safe in practice.
      */
     public function gathering(): static
     {
-        return $this->state(function (): array {
-            $systems = GameSystem::factory()->count(2)->create();
-
-            return [
+        return $this
+            ->afterMaking(function (Game $game): void {
+                $game->setRelation('factoryPivotClaimed', true);
+            })
+            ->state([
                 'game_type' => GameType::Gathering->value,
-                'game_system_id' => $systems->first()->id,
-                'game_systems' => $systems->modelKeys(),
-            ];
-        });
+            ])
+            ->afterCreating(function (Game $game): void {
+                $systems = GameSystem::factory()->count(2)->create();
+                $game->gameSystems()->sync(
+                    $systems->pluck('id')
+                        ->map(fn (mixed $id): string => (string) $id)
+                        ->all()
+                );
+            });
     }
 
     /**
-     * Set an explicit multi-system set for a Gathering.
+     * Set an explicit multi-system set for a Gathering (or single-system game).
      *
-     * The anchor (game_system_id) is synced to the array's first element to match
-     * the Game::saving invariant. Use after gathering() (or standalone) when a
-     * test needs deterministic control over the system set.
+     * Use after gathering() (or standalone) when a test needs deterministic
+     * control over the offered set. Attaches via the pivot in afterCreating.
      *
-     * @param  array<int, string>  $ids  GameSystem UUIDs, anchor taken from [0].
+     * @param  array<int, string>  $ids  GameSystem UUIDs to attach.
      */
     public function withGameSystems(array $ids): static
     {
-        return $this->state(function () use ($ids): array {
-            $ids = array_values($ids);
-
-            return [
-                'game_system_id' => $ids[0] ?? null,
-                'game_systems' => $ids,
-            ];
-        });
+        return $this
+            ->afterMaking(function (Game $game): void {
+                $game->setRelation('factoryPivotClaimed', true);
+            })
+            ->afterCreating(function (Game $game) use ($ids): void {
+                $game->gameSystems()->sync(array_values(array_map('strval', $ids)));
+            });
     }
 }

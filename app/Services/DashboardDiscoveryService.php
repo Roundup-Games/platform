@@ -133,7 +133,7 @@ class DashboardDiscoveryService
         $games = Game::nearbyOpen($geohash4)
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
-            ->with(['gameSystem', 'gameSystems', 'linkedLocation'])
+            ->with(['gameSystems', 'linkedLocation'])
             ->limit(20)
             ->get();
 

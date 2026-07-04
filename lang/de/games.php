@@ -504,4 +504,10 @@ return [
     'error_capacity_game_completed' => 'Die Kapazität kann nach Abschluss des Spiels oder der Anwesenheitsauflösung nicht mehr geändert werden.',
     'error_capacity_zero_invalid' => 'Die Maximalzahl kann nicht vom Teilnehmerkreis gelöscht werden.',
     'error_capacity_range' => 'Die Maximalzahl muss zwischen 2 und 30 liegen.',
+
+    // Cover image upload (host-uploaded entity covers — S07/T02)
+    'field_cover_image' => 'Titelbild',
+    'content_cover_image_hint' => 'Lade ein Titelbild hoch (JPEG, PNG oder WebP, max. 5 MB). Optional — wir verwenden das Cover des Spielsystems, wenn du keines angibst.',
+    'error_cover_image_too_large' => 'Das Titelbild darf maximal 5 MB groß sein.',
+    'action_remove_cover_image' => 'Titelbild entfernen',
 ];

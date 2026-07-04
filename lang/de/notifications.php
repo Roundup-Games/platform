@@ -327,6 +327,10 @@ return [
     'body_content_removed_reason' => 'Grund: :reason',
     'body_content_removed_guidelines' => 'Wiederholte Verstöße können zur Kontosperrung führen.',
 
+    // Moderation — Titelbild entfernt (scoped Takedown; Entität selbst bleibt veröffentlicht)
+    'subject_cover_removed' => 'Titelbild entfernt',
+    'body_cover_removed' => 'Das Titelbild deines :entityType „:entityName" wurde von unserem Moderationsteam entfernt. Dein :entityType selbst ist weiterhin veröffentlicht — du kannst jederzeit ein neues Titelbild hochladen.',
+
     // Moderation — Konto gesperrt
     'subject_account_suspended' => 'Konto gesperrt',
     'body_account_suspended' => 'Dein Konto wurde wegen eines Verstoßes gegen unsere Community-Richtlinien gesperrt.',

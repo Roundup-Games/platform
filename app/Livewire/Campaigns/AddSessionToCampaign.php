@@ -103,32 +103,24 @@ class AddSessionToCampaign extends Component
         //
         // campaign_game_system is the canonical template (single-system today,
         // multi-system ready). For legacy single-system campaigns it carries one
-        // row; for Gathering campaigns it carries the host's picked set. We read
-        // it once here and pass it both to the legacy column writes (kept alive
-        // until T06 drops them) and to the pivot sync below.
+        // row; for Gathering campaigns it carries the host's picked set.
         $campaignSystemIds = $campaign->gameSystems()->allRelatedIds()->all();
 
         // Fallback for campaigns whose pivot was never populated (defensive —
         // should not happen post-backfill, but keeps legacy data working):
-        // derive the set from the cached anchor.
+        // derive the set from the representative bridge accessor.
         if (empty($campaignSystemIds) && $campaign->game_system_id !== null) {
             $campaignSystemIds = [$campaign->game_system_id];
         }
 
-        // For a Gathering campaign, materialize the 1-element game_systems set
-        // (R046: a single-system game is a 1-element set) so the spawned session
-        // is a valid Gathering that renders/ranks through S03's Gathering-aware
-        // path. The Game saving event (S01) keeps game_system_id === game_systems[0].
-        $gameSystems = ($campaignGameType === 'gathering' && ! empty($campaignSystemIds))
-            ? array_values(array_map('strval', $campaignSystemIds))
-            : null;
+        // For a Gathering campaign, the session is a valid Gathering that
+        // renders/ranks through S03's Gathering-aware path; its offered set is
+        // the campaign's pivot (materialized via sync below).
 
-        $game = DB::transaction(function () use ($validated, $campaign, $ownerId, $campaignGameType, $gameSystems, $campaignSystemIds) {
+        $game = DB::transaction(function () use ($validated, $campaign, $ownerId, $campaignGameType, $campaignSystemIds) {
             $game = Game::create([
                 'owner_id' => $ownerId,
                 'campaign_id' => $campaign->id,
-                'game_system_id' => $campaign->game_system_id,
-                'game_systems' => $gameSystems,
                 'name' => $validated['name'],
                 'description' => $validated['description'],
                 'date_time' => $validated['date_time'],
@@ -153,9 +145,9 @@ class AddSessionToCampaign extends Component
             app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
 
             // Copy-on-write the campaign's default system set into the session's
-            // own game_game_system rows. This is the canonical write — the legacy
-            // column writes above are kept in sync for the transition (retired
-            // in T06). Empty set is guarded so sync() never detaches.
+            // own game_game_system rows (the canonical write since S06/T06
+            // dropped the legacy anchor columns). Empty set is guarded so
+            // sync() never detaches.
             if (! empty($campaignSystemIds)) {
                 $game->gameSystems()->sync(array_values(array_map('strval', $campaignSystemIds)));
             }

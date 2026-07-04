@@ -12,11 +12,17 @@ use function Pest\Laravel\actingAs;
  * Honest multi-system match contract for discovery (R048: a Gathering appears
  * in each offered system's feed).
  *
- * Before this slice, discovery matched only on the cached anchor
- * (game_system_id), so a Gathering anchored to ttrpg A but offering boardgame B
- * was invisible to board-game feeds. These tests assert the fix across the four
- * surfaces touched by T02: the shared game_system_id filter, the board-game type
- * scope, the ttrpg type scope, and logged-in recommendations.
+ * Under the cached-anchor model a Gathering whose game_system_id pointed at
+ * ttrpg A but which also offered boardgame B was invisible to board-game feeds.
+ * S06 replaced that anchor with the game_game_system belongsToMany pivot and
+ * rewrote every query site to whereHas('gameSystems', ...), so a Gathering now
+ * surfaces in every system it offers. These tests assert the contract across
+ * the four discovery surfaces: the shared game_system_id filter, the board-game
+ * type scope, the ttrpg type scope, and logged-in recommendations.
+ *
+ * The component-level game_system_id property is the user-facing filter input
+ * (which system's feed to render); it is unrelated to the dropped games column
+ * of the same name and is consumed via whereHas('gameSystems', id).
  */
 describe('GatheringMatch', function () {
     // ── Shared game_system_id filter (applySharedFilters) ───────────────
@@ -41,8 +47,8 @@ describe('GatheringMatch', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        // Anchored to A. The anchor passes today; B and C only pass after the
-        // whereJsonContains('game_systems') OR is added to the shared filter.
+        // Offers all three systems. Under the pivot model every offered system
+        // surfaces the Gathering via whereHas('gameSystems', id).
         foreach ([$a, $b, $c] as $systemId) {
             Livewire\Livewire::test(BoardGamesDiscovery::class)
                 ->set('game_system_id', $systemId)
@@ -53,7 +59,7 @@ describe('GatheringMatch', function () {
 
     // ── Type scope: BoardGamesDiscovery (applySystemTypeScope) ──────────
 
-    it('shows a ttrpg-anchored Gathering that also offers a boardgame on the board-game feed', function () {
+    it('shows a ttrpg-offering Gathering that also offers a boardgame on the board-game feed', function () {
         $ttrpgSystem = GameSystem::factory()->create(['type' => 'ttrpg']);
         $boardgameSystem = GameSystem::factory()->create(['type' => 'boardgame']);
 
@@ -64,16 +70,16 @@ describe('GatheringMatch', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        // Anchor is ttrpg, so the old anchor-only type scope hid this Gathering
-        // from the board-game feed. After the fix, the offered boardgame system
-        // surfaces it via orWhereJsonContains.
+        // Under the pivot model the type scope is a single
+        // whereHas('gameSystems', type => 'boardgame'), so the offered boardgame
+        // system surfaces this Gathering on the board-game feed.
         Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->assertSee('Cross-Type Board Gathering');
     });
 
     // ── Type scope: AdventuresDiscovery (applySystemTypeScope) ──────────
 
-    it('shows a boardgame-anchored Gathering that also offers a ttrpg on the adventures feed', function () {
+    it('shows a boardgame-offering Gathering that also offers a ttrpg on the adventures feed', function () {
         $boardgameSystem = GameSystem::factory()->create(['type' => 'boardgame']);
         $ttrpgSystem = GameSystem::factory()->create(['type' => 'ttrpg']);
 
@@ -84,9 +90,8 @@ describe('GatheringMatch', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        // Anchor is boardgame, so the old anchor-only type scope hid this
-        // Gathering from adventures. After the fix, the offered ttrpg system
-        // surfaces it via orWhereJsonContains on the games query.
+        // The offered ttrpg system surfaces this Gathering on the adventures
+        // feed via whereHas('gameSystems', type => 'ttrpg').
         Livewire\Livewire::test(AdventuresDiscovery::class)
             ->assertSee('Cross-Type Adventure Gathering');
     });
@@ -98,12 +103,13 @@ describe('GatheringMatch', function () {
         $anchorSystem = GameSystem::factory()->create(['type' => 'boardgame']);
         $offeredSystem = GameSystem::factory()->create(['type' => 'boardgame']);
 
-        // User favorites ONLY the non-anchor offered system.
+        // User favorites ONLY one of the offered systems (not the first one,
+        // which is what the representative-accessor returns).
         $user->favoriteGameSystems()->attach($offeredSystem->id, ['preference_type' => 'favorite']);
 
-        // Gathering anchored to a non-favorited system but offering the favorite.
-        // The old anchor-only whereIn('game_system_id', [offered]) hid it; the fix
-        // adds orWhereJsonContains('game_systems', offered) so it surfaces.
+        // Gathering offering both systems. Under the cached-anchor model this
+        // was invisible when the favorite was not the anchored system; the
+        // pivot model matches on the full offered set via whereHas.
         Game::factory()->gathering()->withGameSystems([$anchorSystem->id, $offeredSystem->id])->create([
             'name' => ['en' => 'Multi-System Recommendation Target'],
             'visibility' => 'public',

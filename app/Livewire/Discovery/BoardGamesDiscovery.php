@@ -164,7 +164,7 @@ class BoardGamesDiscovery extends Component
         // Cross-track hint: count active public TTRPG campaigns
         $adventureCount = Campaign::where('status', 'active')
             ->visibleTo(null)
-            ->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'))
+            ->whereHas('gameSystems', fn ($q) => $q->where('type', 'ttrpg'))
             ->count();
 
         return view('livewire.discovery.board-games-discovery', [
