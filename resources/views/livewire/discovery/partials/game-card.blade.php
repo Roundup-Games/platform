@@ -44,16 +44,12 @@
                     {{ __('campaigns.content_campaign') }}
                 </span>
             @endif
-            @if($game->game_type === App\Enums\GameType::Gathering)
-                @foreach($game->gameSystems() as $system)
+            @if($game->gameSystems->isNotEmpty())
+                @foreach($game->gameSystems as $system)
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
                         {{ $system->name }}
                     </span>
                 @endforeach
-            @elseif($game->gameSystem)
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                    {{ $game->gameSystem?->name }}
-                </span>
             @endif
             @if(isset($game->distance_km) && $game->distance_km !== null)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container">

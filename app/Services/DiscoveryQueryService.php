@@ -15,7 +15,6 @@ use App\Models\User;
 use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
@@ -112,11 +111,11 @@ class DiscoveryQueryService
         $query->when(! empty($complexityMax), fn ($q) => $q->where('complexity', '<=', $complexityMax));
 
         $query->when(! empty($categoryIds), function ($q) use ($categoryIds) {
-            $q->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('game_system_categories.id', $categoryIds));
+            $q->whereHas('gameSystems.categories', fn ($q) => $q->whereIn('game_system_categories.id', $categoryIds));
         });
 
         $query->when(! empty($mechanicIds), function ($q) use ($mechanicIds) {
-            $q->whereHas('gameSystem.mechanics', fn ($q) => $q->whereIn('game_system_mechanics.id', $mechanicIds));
+            $q->whereHas('gameSystems.mechanics', fn ($q) => $q->whereIn('game_system_mechanics.id', $mechanicIds));
         });
     }
 
@@ -255,62 +254,6 @@ class DiscoveryQueryService
         return $this->isGathering($item) ? 1 : 0;
     }
 
-    /**
-     * Eager-load every offered GameSystem for a collection of games in ONE query.
-     *
-     * Collects every game_systems UUID across the collection, resolves them with a
-     * single GameSystem::whereIn, and injects each game's subset via setRelation so
-     * the memoized {@see Game::gameSystems()} resolver never re-queries per-card.
-     * Non-Game items (Campaigns in a merged collection) are skipped; games with no
-     * game_systems are seeded with an empty relation so the resolver short-circuits.
-     *
-     * @template TItem of mixed
-     *
-     * @param  Collection<int, TItem>  $items  Feed-page items (Games and/or Campaigns).
-     */
-    public function eagerLoadGameSystems(Collection $items): void
-    {
-        /** @var Collection<int, Game> $games */
-        $games = $items->filter(fn (mixed $item) => $item instanceof Game)->values();
-
-        if ($games->isEmpty()) {
-            return;
-        }
-
-        $allIds = [];
-        foreach ($games as $game) {
-            $ids = is_array($game->game_systems) ? $game->game_systems : [];
-            foreach ($ids as $id) {
-                if (! in_array($id, $allIds, true)) {
-                    $allIds[] = $id;
-                }
-            }
-        }
-
-        if ($allIds === []) {
-            // No multi-system games — seed each with an empty relation so the
-            // resolver short-circuits without ever querying.
-            $games->each(fn (Game $game) => $game->setRelation('gameSystems', new EloquentCollection));
-
-            return;
-        }
-
-        $resolved = GameSystem::whereIn('id', $allIds)->get();
-
-        $games->each(function (Game $game) use ($resolved): void {
-            $ids = is_array($game->game_systems) ? $game->game_systems : [];
-
-            $subset = new EloquentCollection;
-            foreach ($ids as $id) {
-                $system = $resolved->firstWhere('id', $id);
-                if ($system !== null) {
-                    $subset->push($system);
-                }
-            }
-            $game->setRelation('gameSystems', $subset);
-        });
-    }
-
     // ── Games query ────────────────────────────────────
 
     /**
@@ -330,7 +273,7 @@ class DiscoveryQueryService
             ->where($this->buildVisibilityClause($user))
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->with(['owner', 'gameSystem', 'campaign', 'linkedLocation'])
+            ->with(['owner', 'gameSystem', 'gameSystems', 'campaign', 'linkedLocation'])
             ->withCount(['participants as participants_count' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)]);
 
         $query = $this->withOverflowCounts($query);
@@ -371,7 +314,7 @@ class DiscoveryQueryService
         $query = Campaign::query()
             ->where($this->buildVisibilityClause($user))
             ->where('status', 'active')
-            ->with(['owner', 'gameSystem'])
+            ->with(['owner', 'gameSystems'])
             ->with(['sessions' => fn ($q) => $q->where('status', 'scheduled')->where('date_time', '>', now())->orderBy('date_time')->limit(1)])
             ->withCount('sessions')
             ->withCount('participants');
@@ -513,11 +456,6 @@ class DiscoveryQueryService
         $query = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $date);
         $paginator = $query->paginate($perPage)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
 
-        // Resolve every offered GameSystem for the page's multi-system Gatherings
-        // in ONE query so cards render the Gathering badge + all offered system
-        // chips without per-card N+1 (R048).
-        $this->eagerLoadGameSystems($paginator->getCollection()->toBase());
-
         if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
             $this->enrichWithDistance($paginator->getCollection(), 'game', $lat, $lng, $radius, false);
         }
@@ -593,12 +531,6 @@ class DiscoveryQueryService
             $item->discoverable_type = 'game';
             $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0);
         });
-
-        // Resolve every offered GameSystem for the page's multi-system Gatherings
-        // in ONE query so cards render the Gathering badge + all offered system
-        // chips without per-card N+1 (R048). Seeded before the merge so the
-        // Campaign items in $merged are simply skipped.
-        $this->eagerLoadGameSystems($games->toBase());
 
         $campaigns = $campaignsQuery->get()->each(function ($item) {
             $item->discoverable_type = 'campaign';
@@ -859,7 +791,7 @@ class DiscoveryQueryService
                 })
                 ->where('owner_id', '!=', $user->id)
                 ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
-                ->with(['owner', 'gameSystem', 'campaign'])
+                ->with(['owner', 'gameSystems', 'campaign'])
                 ->withCount('participants');
 
             $boostedGames = $this->withOverflowCounts($boostedGames)
@@ -867,16 +799,13 @@ class DiscoveryQueryService
                 ->limit(6)
                 ->get();
             $tagItems($boostedGames, 'game');
-            // Resolve every offered GameSystem for the band's multi-system Gatherings
-            // in ONE query so cards render all offered system chips without N+1 (R048).
-            $this->eagerLoadGameSystems($boostedGames->toBase());
 
             // Only include campaign recommendations when not scoped to a specific type
             if ($systemType === null) {
                 $boostedCampaigns = Campaign::query()
                     ->where($visibilityClause)
                     ->where('status', 'active')
-                    ->whereIn('game_system_id', $allowedSystemIds)
+                    ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds))
                     ->where(function ($q) use ($favoriteVibes) {
                         foreach ($favoriteVibes as $vibe) {
                             $q->orWhereJsonContains('vibe_flags', $vibe);
@@ -884,7 +813,7 @@ class DiscoveryQueryService
                     })
                     ->where('owner_id', '!=', $user->id)
                     ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
-                    ->with(['owner', 'gameSystem'])
+                    ->with(['owner', 'gameSystems'])
                     ->withCount('sessions')
                     ->withCount('participants');
 
@@ -905,7 +834,7 @@ class DiscoveryQueryService
             ->where($this->matchAllowedSystems($allowedSystemIds))
             ->where('owner_id', '!=', $user->id)
             ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
-            ->with(['owner', 'gameSystem', 'campaign'])
+            ->with(['owner', 'gameSystems', 'campaign'])
             ->withCount('participants');
 
         $fallbackGames = $this->withOverflowCounts($fallbackGames)
@@ -913,19 +842,16 @@ class DiscoveryQueryService
             ->limit(6)
             ->get();
         $tagItems($fallbackGames, 'game');
-        // Resolve every offered GameSystem for the band's multi-system Gatherings
-        // in ONE query so cards render all offered system chips without N+1 (R048).
-        $this->eagerLoadGameSystems($fallbackGames->toBase());
 
         $fallbackCampaigns = collect();
         if ($systemType === null) {
             $fallbackCampaigns = Campaign::query()
                 ->where($visibilityClause)
                 ->where('status', 'active')
-                ->whereIn('game_system_id', $allowedSystemIds)
+                ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds))
                 ->where('owner_id', '!=', $user->id)
                 ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
-                ->with(['owner', 'gameSystem'])
+                ->with(['owner', 'gameSystems'])
                 ->withCount('sessions')
                 ->withCount('participants');
 
@@ -1048,8 +974,8 @@ class DiscoveryQueryService
      * Build a where-group matching games whose anchor OR any offered system is allowed.
      *
      * Recommendations use this so a Gathering surfaces when a user favors any of
-     * its offered (non-anchor) systems. Campaign queries do not use it — Campaign
-     * has no game_systems column and stays anchor-only (whereIn on game_system_id).
+     * its offered (non-anchor) systems. Campaign queries use the same pivot now (campaign_game_system).
+     * matches via campaign_game_system pivot.
      *
      * @param  array<int, string>  $allowedSystemIds
      * @return \Closure(Builder<Game>):void
@@ -1057,7 +983,7 @@ class DiscoveryQueryService
     private function matchAllowedSystems(array $allowedSystemIds): \Closure
     {
         return function (Builder $q) use ($allowedSystemIds): void {
-            $q->whereIn('game_system_id', $allowedSystemIds);
+            $q->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds));
             foreach ($allowedSystemIds as $id) {
                 $q->orWhereJsonContains('game_systems', $id);
             }

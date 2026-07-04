@@ -42,8 +42,12 @@
                    class="shrink-0 w-56 sm:w-64 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-4 group"
                    role="listitem">
                     <div class="min-w-0">
-                        {{-- System badge --}}
-                        @if($systemBadge['name'] ?? null)
+                        {{-- System badge: 'N games on offer' for multi-system Gatherings --}}
+                        @if(($systemBadge['systems_count'] ?? 0) > 1)
+                            <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary mb-2">
+                                {{ trans_choice('games.content_n_games_on_offer', $systemBadge['systems_count']) }}
+                            </span>
+                        @elseif($systemBadge['name'] ?? null)
                             <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary mb-2">
                                 {{ $systemBadge['name'] }}
                             </span>

@@ -25,10 +25,12 @@
                 <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">campaign</span>
                 {{ __('campaigns.content_campaign') }}
             </span>
-            @if($campaign->gameSystem)
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                    {{ $campaign->gameSystem?->name }}
-                </span>
+            @if($campaign->gameSystems->isNotEmpty())
+                @foreach($campaign->gameSystems as $system)
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
+                        {{ $system->name }}
+                    </span>
+                @endforeach
             @endif
             @if(isset($campaign->distance_km) && $campaign->distance_km !== null)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container">

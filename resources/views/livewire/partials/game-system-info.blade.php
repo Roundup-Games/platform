@@ -30,7 +30,7 @@
     $isGathering = $entity instanceof \App\Models\Game
         && $entity->game_type === \App\Enums\GameType::Gathering;
     $additionalSystems = $isGathering
-        ? $entity->gameSystems()->reject(fn (\App\Models\GameSystem $s) => $s->id === $entity->game_system_id)
+        ? $entity->gameSystems->reject(fn (\App\Models\GameSystem $s) => $s->id === $entity->game_system_id)
         : collect();
 @endphp
 

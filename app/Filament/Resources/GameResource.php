@@ -60,9 +60,10 @@ class GameResource extends Resource
                                     ->relationship('owner', 'name')
                                     ->searchable()
                                     ->required(),
-                                Select::make('game_system_id')
-                                    ->label('Game System')
-                                    ->relationship('gameSystem', 'name')
+                                Select::make('gameSystems')
+                                    ->label('Game Systems')
+                                    ->relationship('gameSystems', 'name')
+                                    ->multiple()
                                     ->searchable()
                                     ->preload(),
                                 Select::make('campaign_id')
@@ -185,8 +186,8 @@ class GameResource extends Resource
                     })
                     ->formatStateUsing(fn (GameType $state): string => $state->label())
                     ->toggleable(),
-                TextColumn::make('gameSystem.name')
-                    ->label('System')
+                TextColumn::make('gameSystems.name')
+                    ->label('Systems')
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('date_time')

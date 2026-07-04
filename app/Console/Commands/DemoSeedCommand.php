@@ -446,6 +446,11 @@ class DemoSeedCommand extends Command
         $this->assignShortLinkAttribution();
         $this->seedNotifications();
 
+        // populate the canonical game_game_system + campaign_game_system
+        // pivots from the just-written anchor columns. Idempotent (ON CONFLICT
+        // DO NOTHING) so it stays safe if re-run on a partially-seeded DB.
+        $this->syncGameSystemPivots();
+
         if (! $this->dryRun) {
             $this->updateGmAggregates();
         }
@@ -613,6 +618,49 @@ class DemoSeedCommand extends Command
             return;
         }
         DB::table($table)->insert($rows);
+    }
+
+    /**
+     * Populate the canonical game_game_system + campaign_game_system pivots
+     * from the anchor columns this seeder just wrote. Mirrors the
+     * migration's two-step backfill: (1) the cached game_system_id anchor
+     * covers every single-system game + the anchor of every multi-system
+     * Gathering; (2) the expanded game_systems JSON adds the remaining systems
+     * of multi-system Gatherings, deduped via ON CONFLICT DO NOTHING.
+     *
+     * Skipped in dry-run (the raw INSERTs would be silently swallowed by
+     * dryInsertMany anyway). ON CONFLICT DO NOTHING makes this idempotent
+     * against the migration's own backfill and any prior seed run.
+     */
+    private function syncGameSystemPivots(): void
+    {
+        if ($this->dryRun) {
+            return;
+        }
+
+        DB::statement(<<<'SQL'
+            INSERT INTO game_game_system (game_id, game_system_id)
+            SELECT id, game_system_id
+            FROM games
+            WHERE game_system_id IS NOT NULL
+            ON CONFLICT DO NOTHING
+        SQL);
+
+        DB::statement(<<<'SQL'
+            INSERT INTO game_game_system (game_id, game_system_id)
+            SELECT g.id, sys::uuid
+            FROM games g, jsonb_array_elements_text(g.game_systems) AS sys
+            WHERE g.game_systems IS NOT NULL
+            ON CONFLICT DO NOTHING
+        SQL);
+
+        DB::statement(<<<'SQL'
+            INSERT INTO campaign_game_system (campaign_id, game_system_id)
+            SELECT id, game_system_id
+            FROM campaigns
+            WHERE game_system_id IS NOT NULL
+            ON CONFLICT DO NOTHING
+        SQL);
     }
 
     // =========================================================================

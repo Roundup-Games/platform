@@ -239,6 +239,8 @@ return [
     'type_ttrpg' => 'TTRPG',
     'type_gathering' => 'Gathering',
     'content_also_offering' => 'Also offering',
+    'content_n_games_on_offer' => '{1}1 game on offer|[2,*]:count games on offer',
+    'content_games_on_hand' => 'Games on hand',
     'content_what_are_you_playing' => 'What are you playing?',
     'content_type_board_game_examples' => 'Catan, Azul, Wingspan…',
     'content_type_ttrpg_examples' => 'D&D, Pathfinder, Call of Cthulhu…',

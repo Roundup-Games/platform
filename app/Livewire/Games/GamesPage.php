@@ -241,7 +241,7 @@ class GamesPage extends Component
         $user = authenticatedUser();
 
         $ownedGames = Game::where('owner_id', $user->id)
-            ->with(['gameSystem', 'participants', 'campaign'])
+            ->with(['gameSystem', 'gameSystems', 'participants', 'campaign'])
             ->orderBy('date_time', 'desc')
             ->get();
 
@@ -250,7 +250,7 @@ class GamesPage extends Component
                 ->where('role', ParticipantRole::Player->value)
                 ->where('status', 'approved');
         })->where('owner_id', '!=', $user->id)
-            ->with(['gameSystem', 'participants', 'owner', 'campaign'])
+            ->with(['gameSystem', 'gameSystems', 'participants', 'owner', 'campaign'])
             ->orderBy('date_time', 'desc')
             ->get();
 

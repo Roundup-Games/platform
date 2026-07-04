@@ -1057,17 +1057,11 @@ class GameDetail extends Component
     public function render(): View
     {
         $this->game->load([
-            'owner', 'campaign', 'gameSystem.categories', 'gameSystem.mechanics',
-            'gameSystem.publishers', 'gameSystem.baseGame', 'gameSystem.expansions',
+            'owner', 'campaign',
+            'gameSystems.categories', 'gameSystems.mechanics',
+            'gameSystems.publishers', 'gameSystems.baseGame', 'gameSystems.expansions',
             'participants.user', 'applications.user', 'linkedLocation',
         ]);
-
-        // Pre-warm the memoized gameSystems() relation so a multi-system
-        // Gathering resolves every offered system in ONE query before render.
-        // Single-system games (game_systems null) skip this entirely.
-        if (is_array($this->game->game_systems) && $this->game->game_systems !== []) {
-            $this->game->gameSystems();
-        }
 
         $sz = $this->sessionZeroState();
         $db = $this->debriefingState();

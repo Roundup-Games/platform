@@ -467,6 +467,22 @@ class CreateGame extends Component
         $minReliabilityPreference = $isGathering ? null : ($validated['min_reliability_preference'] ?: null);
         $benchMode = $isGathering ? false : $benchMode;
 
+        // Canonical system set: the game_game_system pivot is the
+        // source of truth for which systems this game offers. For a Gathering
+        // the host picks a set via the multi-select; for a focused board_book /
+        // ttrpg the single picker carries one system. The legacy
+        // game_system_id anchor + game_systems JSON columns are still written
+        // for the transition (retired in T06); the saving event keeps the
+        // anchor synced to the set's first element.
+        if ($isGathering) {
+            $pivotSystemIds = array_map('strval', $validated['game_systems'] ?? []);
+        } else {
+            $pivotSystemIds = array_filter(
+                [$validated['game_system_id'] ?? null],
+                fn (?string $id): bool => $id !== null,
+            );
+        }
+
         // Build translatable values for name and description only
         $translatable = $this->buildTranslatableValues(
             ['name', 'description'],
@@ -474,7 +490,7 @@ class CreateGame extends Component
             $validated,
         );
 
-        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode, $complexity, $minReliabilityPreference) {
+        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode, $complexity, $minReliabilityPreference, $pivotSystemIds) {
             $game = Game::create([
                 'owner_id' => Auth::id(),
                 'game_system_id' => $validated['game_system_id'],
@@ -504,6 +520,13 @@ class CreateGame extends Component
             ]);
 
             app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
+
+            // Sync the canonical pivot. Runs inside the create transaction so a
+            // failure rolls the whole game back. empty() would detach everything,
+            // so guard against an empty set (single-system games always have one).
+            if (! empty($pivotSystemIds)) {
+                $game->gameSystems()->sync($pivotSystemIds);
+            }
 
             return $game;
         });

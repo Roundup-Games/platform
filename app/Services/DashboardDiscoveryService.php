@@ -133,7 +133,7 @@ class DashboardDiscoveryService
         $games = Game::nearbyOpen($geohash4)
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
-            ->with(['gameSystem', 'linkedLocation'])
+            ->with(['gameSystem', 'gameSystems', 'linkedLocation'])
             ->limit(20)
             ->get();
 
@@ -206,8 +206,9 @@ class DashboardDiscoveryService
                 'id' => $game->id,
                 'name' => $game->name,
                 'system_badge' => [
-                    'name' => $game->gameSystem?->name,
-                    'icon' => $game->gameSystem?->coverImageUrl('thumb'),
+                    'name' => $game->gameSystems->first()?->name,
+                    'icon' => $game->gameSystems->first()?->coverImageUrl('thumb'),
+                    'systems_count' => $game->gameSystems->count(),
                 ],
                 'date_time' => $game->date_time?->toIso8601String(),
                 'relative_time' => $this->formatRelativeTime($game->date_time),

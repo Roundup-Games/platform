@@ -206,16 +206,16 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         return $this->belongsToMany(GameSystemMechanic::class, 'game_system_mechanic');
     }
 
-    /** @return HasMany<Game, $this> */
-    public function games(): HasMany
+    /** @return BelongsToMany<Game, $this> */
+    public function games(): BelongsToMany
     {
-        return $this->hasMany(Game::class);
+        return $this->belongsToMany(Game::class, 'game_game_system');
     }
 
-    /** @return HasMany<Campaign, $this> */
-    public function campaigns(): HasMany
+    /** @return BelongsToMany<Campaign, $this> */
+    public function campaigns(): BelongsToMany
     {
-        return $this->hasMany(Campaign::class);
+        return $this->belongsToMany(Campaign::class, 'campaign_game_system');
     }
 
     /** @return BelongsToMany<User, $this> */

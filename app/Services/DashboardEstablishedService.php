@@ -223,7 +223,7 @@ class DashboardEstablishedService
                             });
                     });
             })
-            ->with(['gameSystem', 'owner', 'linkedLocation'])
+            ->with(['gameSystem', 'gameSystems', 'owner', 'linkedLocation'])
             ->get();
 
         // Score each game
@@ -281,7 +281,7 @@ class DashboardEstablishedService
                 'entity_type' => 'game',
                 'entity_id' => $game->id,
                 'entity_name' => $game->name,
-                'game_system_name' => $game->gameSystem?->name,
+                'game_system_name' => $game->gameSystems->first()?->name,
                 'date_time' => $game->date_time?->toIso8601String(),
                 'spots_available' => $item['spots_available'],
                 'distance_km' => $item['distance_km'] !== null ? round($item['distance_km'], 1) : null,
@@ -318,7 +318,7 @@ class DashboardEstablishedService
                             });
                     });
             })
-            ->with(['gameSystem', 'owner'])
+            ->with(['gameSystem', 'gameSystems', 'owner'])
             ->withCount(['participants as approved_participant_count' => function ($query) {
                 $query->where('status', ParticipantStatus::Approved->value);
             }])
@@ -338,7 +338,7 @@ class DashboardEstablishedService
                 'entity_type' => 'campaign',
                 'entity_id' => $campaign->id,
                 'entity_name' => $campaign->name,
-                'game_system_name' => $campaign->gameSystem?->name,
+                'game_system_name' => $campaign->gameSystems->first()?->name,
                 'recurrence' => $campaign->recurrence,
                 'spots_available' => $spotsAvailable,
                 'distance_km' => null,
@@ -385,7 +385,7 @@ class DashboardEstablishedService
                 GameStatus::Canceled->value,
             ])
             ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
-            ->with(['gameSystem', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value), 'campaign'])
+            ->with(['gameSystem', 'gameSystems', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value), 'campaign'])
             ->orderBy('date_time')
             ->get();
 
@@ -429,7 +429,7 @@ class DashboardEstablishedService
                 'date_time' => $game->date_time->toIso8601String(),
                 'expected_duration' => $game->expected_duration,
                 'status' => $game->status->value ?? '',
-                'game_system_name' => $game->gameSystem?->name,
+                'game_system_name' => $game->gameSystems->first()?->name,
                 'campaign_name' => $game->campaign?->name,
                 'max_players' => $game->max_players,
                 'is_past' => $isPast,
@@ -572,7 +572,7 @@ class DashboardEstablishedService
         /** @var Game|null $lastGame */
         $lastGame = Game::where('owner_id', $user->id)
             ->where('status', GameStatus::Completed->value)
-            ->with('gameSystem')
+            ->with(['gameSystem', 'gameSystems'])
             ->orderByDesc('date_time')
             ->first();
 
@@ -584,7 +584,7 @@ class DashboardEstablishedService
             'game' => [
                 'id' => $lastGame->id,
                 'name' => $lastGame->name,
-                'system' => $lastGame->gameSystem?->name,
+                'system' => $lastGame->gameSystems->first()?->name,
                 'expected_duration' => $lastGame->expected_duration,
             ],
             'clone_url' => route('games.create', ['clone' => $lastGame->id]),

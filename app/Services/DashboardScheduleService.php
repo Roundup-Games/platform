@@ -87,7 +87,7 @@ class DashboardScheduleService
                         ->where('status', ParticipantStatus::Approved));
             })
             ->orderBy('date_time')
-            ->with(['gameSystem'])
+            ->with(['gameSystem', 'gameSystems'])
             ->first();
 
         if ($game === null) {
@@ -149,7 +149,7 @@ class DashboardScheduleService
                         ->where('user_id', $user->id)
                         ->where('status', ParticipantStatus::Approved->value));
             })
-            ->with(['gameSystem', 'campaign', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)])
+            ->with(['gameSystem', 'gameSystems', 'campaign', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)])
             ->orderBy('date_time')
             ->get();
 
@@ -193,8 +193,11 @@ class DashboardScheduleService
             'id' => $game->id,
             'name' => $game->name,
             'system_badge' => [
-                'name' => $game->gameSystem?->name,
-                'icon' => $game->gameSystem?->coverImageUrl('thumb'),
+                'name' => $game->gameSystems->first()?->name,
+                'icon' => $game->gameSystems->first()?->coverImageUrl('thumb'),
+                // Additive: lets compact tiles render trans_choice('games.content_n_games_on_offer', N)
+                // instead of one arbitrary name when a Gathering offers >1 system.
+                'systems_count' => $game->gameSystems->count(),
             ],
             'date_time' => $game->date_time?->toIso8601String(),
             'relative_time' => $this->formatRelativeTime($game->date_time),

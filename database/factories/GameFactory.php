@@ -14,6 +14,36 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class GameFactory extends Factory
 {
     /**
+     * Keep the game_game_system pivot in sync with whatever the legacy
+     * game_system_id anchor + game_systems JSON array carry, so pivot-backed
+     * queries return these fixtures. Runs once on create(); both
+     * single-system games (anchor only) and multi-system Gatherings (JSON set)
+     * get their pivot rows. The legacy columns are retired in T06.
+     *
+     * This is the factory's canonical write path for the pivot. Test
+     * factories don't flow through CreateGame/AddSessionToCampaign, so the
+     * copy-on-write sync there doesn't apply — instead the pivot is derived
+     * from the same anchor + JSON set the test sets up, exactly as the T01
+     * backfill migration derives it for production data.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Game $game): void {
+            $anchor = $game->game_system_id;
+            $systems = is_array($game->game_systems) ? $game->game_systems : [];
+
+            $ids = array_values(array_filter(array_unique(array_merge(
+                $anchor !== null ? [$anchor] : [],
+                $systems,
+            )), fn (mixed $id): bool => is_string($id)));
+
+            if (! empty($ids)) {
+                $game->gameSystems()->sync($ids);
+            }
+        });
+    }
+
+    /**
      * Define the model's default state.
      *
      * @return array<string, mixed>

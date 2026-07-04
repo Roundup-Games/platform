@@ -105,7 +105,7 @@ class DashboardNewcomerService
         $games = Game::nearbyOpen($geohash4)
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
-            ->with(['gameSystem', 'owner', 'linkedLocation'])
+            ->with(['gameSystem', 'gameSystems', 'owner', 'linkedLocation'])
             ->limit(30)
             ->get();
 
@@ -181,8 +181,11 @@ class DashboardNewcomerService
                 'name' => $game->name,
                 'date_time' => $game->date_time?->toIso8601String(),
                 'expected_duration' => $game->expected_duration,
-                'game_system_name' => $game->gameSystem?->name,
-                'game_system_id' => $game->game_system_id,
+                'game_system_name' => $game->gameSystems->first()?->name,
+                'game_system_id' => $game->gameSystems->first()?->id,
+                // Additive: lets the compact newcomer tile render
+                // trans_choice('games.content_n_games_on_offer', N) for Gatherings.
+                'systems_count' => $game->gameSystems->count(),
                 'max_players' => $game->max_players,
                 'participant_count' => (int) ($game->participant_count ?? 0),
                 'spots_available' => $item['spots_available'],

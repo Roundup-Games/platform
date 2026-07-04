@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -27,6 +28,7 @@ use Spatie\SchemaOrg\EventStatusType;
 use Spatie\SchemaOrg\Person as SchemaPerson;
 use Spatie\SchemaOrg\Place;
 use Spatie\SchemaOrg\PostalAddress;
+use Spatie\SchemaOrg\Thing;
 use Spatie\Translatable\HasTranslations;
 
 /**
@@ -79,7 +81,7 @@ class Campaign extends Model implements TicketSubject
     ];
 
     protected $fillable = [
-        'owner_id', 'game_system_id', 'game_type', 'location_id', 'location_instructions', 'name', 'description', 'images',
+        'owner_id', 'game_type', 'location_id', 'location_instructions', 'name', 'description', 'images',
         'recurrence', 'time_of_day', 'session_duration', 'price_per_session',
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
@@ -133,11 +135,28 @@ class Campaign extends Model implements TicketSubject
     }
 
     /**
-     * @return BelongsTo<GameSystem, $this>
+     * Every GameSystem offered by this campaign (the recurring default offering).
+     *
+     * Canonical belongsToMany pivot backed by campaign_game_system (replaces the
+     * former cached game_system_id anchor). Eager-load with Campaign::with('gameSystems').
+     *
+     * @return BelongsToMany<GameSystem, $this>
      */
-    public function gameSystem(): BelongsTo
+    public function gameSystems(): BelongsToMany
     {
-        return $this->belongsTo(GameSystem::class);
+        return $this->belongsToMany(GameSystem::class, 'campaign_game_system');
+    }
+
+    /**
+     * Representative GameSystem accessor (bridge for the former BelongsTo anchor).
+     *
+     * Returns the first offered system, or null when the campaign has none. Kept so
+     * ~10 secondary Blade reads ($campaign->gameSystem?->name) and the hero cover-image
+     * pick continue to work without per-template migration.
+     */
+    public function getGameSystemAttribute(): ?GameSystem
+    {
+        return $this->gameSystems->first();
     }
 
     /**
@@ -262,9 +281,13 @@ class Campaign extends Model implements TicketSubject
             ? Str::limit(strip_tags($this->description), 160)
             : null;
 
+        // Representative cover image: first offered system's cover for the
+        // multi-system reality (campaigns default to their recurring offering
+        // set; see campaign_game_system pivot). Falls back to host images or
+        // the OG default.
         $image = isset($this->images[0]) && $this->images[0]
             ? $this->images[0]
-            : ($this->gameSystem?->coverImageUrl() ?: asset('images/og-default.jpg'));
+            : ($this->gameSystems->first()?->coverImageUrl() ?: asset('images/og-default.jpg'));
 
         $isPublic = $this->visibility === Visibility::Public;
         $robots = $isPublic
@@ -315,6 +338,20 @@ class Campaign extends Model implements TicketSubject
 
             // Free/paid
             $event->isAccessibleForFree(empty($this->price_per_session));
+
+            // schema.org about: name EVERY offered system so the full
+            // recurring offering is honest in structured data. Additive.
+            $about = $this->gameSystems->map(function (GameSystem $sys) {
+                $thing = (new Thing)->name($sys->name);
+                if ($sys->slug) {
+                    $thing->identifier($sys->slug);
+                }
+
+                return $thing;
+            })->values()->all();
+            if (! empty($about)) {
+                $event->about($about);
+            }
 
             $schema->push($event->toArray());
         }

@@ -315,6 +315,21 @@ class CreateCampaign extends Component
 
             app(OwnerParticipantService::class)->ensureCampaignOwnerParticipant($campaign);
 
+            // Sync the canonical campaign_game_system pivot: the
+            // campaign's system set is the recurring DEFAULT offering (the
+            // template). AddSessionToCampaign copy-on-writes this set into each
+            // spawned session's game_game_system rows at creation time. The
+            // legacy game_system_id anchor stays in sync via the relation until
+            // T06 drops it. single-system campaigns (the only kind today)
+            // produce a one-element pivot set.
+            $campaignSystemIds = array_filter(
+                [$validated['game_system_id'] ?? null],
+                fn (?string $id): bool => $id !== null,
+            );
+            if (! empty($campaignSystemIds)) {
+                $campaign->gameSystems()->sync($campaignSystemIds);
+            }
+
             return $campaign;
         });
 

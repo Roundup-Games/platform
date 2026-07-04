@@ -3,15 +3,14 @@
 use App\Livewire\Discovery\BoardGamesDiscovery;
 use App\Models\Game;
 use App\Models\GameSystem;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 
 /**
  * R048: A multi-system Gathering must render distinctly on the discovery card —
  * a distinct "Gathering" badge and a chip for every offered system — while a
  * single-system game renders byte-identically to today (the plain "Game" badge
- * and its one anchor system). Backed by a memoized Game::gameSystems() resolver
- * and a single-query batch eager-load so cards don't N+1.
+ * and its one system). Backed by the canonical belongsToMany pivot
+ * (game_game_system) and standard Eloquent eager-loading so cards don't N+1.
  */
 describe('GatheringCardRendering', function () {
     it('renders a Gathering card with the Gathering badge and every offered system name', function () {
@@ -73,15 +72,15 @@ describe('GatheringCardRendering', function () {
             ->toContain('Offered System');
     });
 
-    // ── Resolver: ordered set + memoization ────────────────────────────
+    // ── Pivot relation: offered-system set + eager-load contract ─────
 
-    it('resolves the offered systems in stored order and memoizes so repeated access issues no extra query', function () {
+    it('resolves every offered system via the belongsToMany pivot', function () {
         $first = GameSystem::factory()->create(['type' => 'boardgame', 'name' => ['en' => 'First System']]);
         $second = GameSystem::factory()->create(['type' => 'boardgame', 'name' => ['en' => 'Second System']]);
         $third = GameSystem::factory()->create(['type' => 'boardgame', 'name' => ['en' => 'Third System']]);
 
         $game = Game::factory()->gathering()->withGameSystems([$first->id, $second->id, $third->id])->create([
-            'name' => ['en' => 'Memo Resolver Test'],
+            'name' => ['en' => 'Pivot Resolver Test'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -90,26 +89,15 @@ describe('GatheringCardRendering', function () {
         // Reload a fresh instance so no relation cache is pre-populated.
         $game = Game::find($game->id);
 
-        DB::flushQueryLog();
-        DB::enableQueryLog();
-
-        $resolved = $game->gameSystems();
-        $queriesAfterFirstCall = count(DB::getQueryLog());
-
-        // Ordered to match the stored game_systems array (anchor first).
-        expect($resolved->count())->toBe(3)
-            ->and($resolved->pluck('name')->all())->toBe(['First System', 'Second System', 'Third System'])
+        // belongsToMany pivot: every offered system is present. The pivot has no
+        // order column, so chip render order is unspecified — assert the SET.
+        expect($game->gameSystems)->toHaveCount(3)
+            ->and($game->gameSystems->pluck('name')->sort()->values()->all())
+            ->toBe(['First System', 'Second System', 'Third System'])
             ->and($game->hasMultipleSystems())->toBeTrue();
-
-        // Second access must return the memoized collection without a new query.
-        $again = $game->gameSystems();
-        $queriesAfterSecondCall = count(DB::getQueryLog());
-
-        expect($queriesAfterSecondCall)->toBe($queriesAfterFirstCall)
-            ->and($again->modelKeys())->toBe($resolved->modelKeys());
     });
 
-    it('resolves an empty collection for a legacy single-system game and is not multi-system', function () {
+    it('resolves the single offered system for a legacy single-system game and is not multi-system', function () {
         $system = GameSystem::factory()->create(['type' => 'boardgame']);
 
         $game = Game::factory()->create([
@@ -124,7 +112,9 @@ describe('GatheringCardRendering', function () {
 
         $game = Game::find($game->id);
 
-        expect($game->gameSystems())->toBeEmpty()
+        // GameFactory mirrors the anchor into the pivot, so the single system
+        // resolves via the SAME unified read path as a multi-system Gathering.
+        expect($game->gameSystems)->toHaveCount(1)
             ->and($game->hasMultipleSystems())->toBeFalse();
     });
 
@@ -139,23 +129,19 @@ describe('GatheringCardRendering', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        $game = Game::find($game->id);
-
-        // Simulate the batch eager-load by injecting a subset relation. The
-        // resolver trusts the injected type (standard Eloquent relation cache
-        // behavior), so mirror what DiscoveryQueryService::eagerLoadGameSystems
-        // injects: an EloquentCollection, not a base Support\Collection.
-        $subset = new EloquentCollection([$systemA]);
-        $game->setRelation('gameSystems', $subset);
+        // Eager-load via with() — the standard contract DiscoveryQueryService
+        // and BoardGamesDiscovery::loadMissing now rely on instead of the deleted
+        // manual batch resolver.
+        $game = Game::with('gameSystems')->find($game->id);
 
         DB::flushQueryLog();
         DB::enableQueryLog();
 
-        $resolved = $game->gameSystems();
+        $resolved = $game->gameSystems;
         $queryCount = count(DB::getQueryLog());
 
-        // The resolver must short-circuit on the preloaded relation (no query).
+        // Preloaded relation cache must short-circuit (no lazy query).
         expect($queryCount)->toBe(0)
-            ->and($resolved->modelKeys())->toBe([$systemA->id]);
+            ->and($resolved->modelKeys())->toContain($systemA->id, $systemB->id);
     });
 });

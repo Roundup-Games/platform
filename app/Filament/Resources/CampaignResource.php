@@ -57,9 +57,10 @@ class CampaignResource extends Resource
                                     ->relationship('owner', 'name')
                                     ->searchable()
                                     ->required(),
-                                Select::make('game_system_id')
-                                    ->label('Game System')
-                                    ->relationship('gameSystem', 'name')
+                                Select::make('gameSystems')
+                                    ->label('Game Systems')
+                                    ->relationship('gameSystems', 'name')
+                                    ->multiple()
                                     ->searchable()
                                     ->preload(),
                                 Select::make('recurrence')
@@ -161,8 +162,8 @@ class CampaignResource extends Resource
                     ->label('Owner')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('gameSystem.name')
-                    ->label('System')
+                TextColumn::make('gameSystems.name')
+                    ->label('Systems')
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('recurrence')

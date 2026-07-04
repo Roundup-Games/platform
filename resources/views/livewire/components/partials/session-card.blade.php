@@ -53,8 +53,17 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 mb-3">
-            {{-- Game system name --}}
-            @if($systemName)
+            {{-- Game system chips: render EVERY offered system when the pivot is
+                 loaded (honest multi-system), else fall back to the caller's
+                 representative gameSystem prop / entity name. Guarded on
+                 relationLoaded so a card loop never triggers a lazy N+1. --}}
+            @if($entity->relationLoaded('gameSystems') && $entity->gameSystems->isNotEmpty())
+                @foreach($entity->gameSystems as $system)
+                    <span class="inline-flex items-center text-sm text-on-surface-variant">
+                        {{ $system->name }}
+                    </span>
+                @endforeach
+            @elseif($systemName)
                 <span class="inline-flex items-center text-sm text-on-surface-variant">
                     {{ $systemName }}
                 </span>
