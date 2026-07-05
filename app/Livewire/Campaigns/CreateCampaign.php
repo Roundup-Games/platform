@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -126,7 +127,9 @@ class CreateCampaign extends Component
             'bench_mode' => 'boolean',
             // Host-uploaded cover (S07): the model's registerMediaCollections()
             // also enforces the jpeg/png/webp mime allow-list at storage time.
-            'cover_image' => 'nullable|image|mimes:jpeg,png,webp|max:5120',
+            // Max dimensions guard against decompression-bomb spikes during
+            // Spatie's og/thumb conversions (defense-in-depth).
+            'cover_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:5120', Rule::dimensions()->maxWidth(4096)->maxHeight(4096)],
         ], $this->translatableValidationRules(
             ['name' => 'required|string|max:255', 'description' => 'nullable|string|max:10000'],
             $this->language,

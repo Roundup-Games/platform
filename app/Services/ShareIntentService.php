@@ -253,6 +253,18 @@ class ShareIntentService
                     $participantData['waitlisted_at'] = now();
                 } elseif ($status === ParticipantStatus::Benched) {
                     $participantData['benched_at'] = now();
+                } elseif ($status === ParticipantStatus::Approved) {
+                    // Stamp approved_at on game participants so LIFO
+                    // capacity-demotion ordering is correct for direct share
+                    // joins — without this, the demote query's
+                    // `approved_at IS NULL ASC` ordering would shield these
+                    // players from demotion (MEM: stamp every Approved
+                    // transition). Campaign participants have no approved_at
+                    // column (capacity demotion is Game-scoped), so guard on
+                    // the model class rather than mass-assigning blindly.
+                    if ($modelClass === GameParticipant::class) {
+                        $participantData['approved_at'] = now();
+                    }
                 }
 
                 $modelClass::create($participantData);

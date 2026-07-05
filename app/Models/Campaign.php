@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use App\Enums\CampaignStatus;
+use App\Enums\DisclosureLevel;
 use App\Enums\GameType;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
 use App\Relations\StringKeyMorphMany;
+use App\Services\LocationDisclosureService;
 use App\Services\ShortLinkService;
 use App\Services\SocialGraphService;
 use App\Traits\ResolvesCoverImage;
@@ -424,26 +426,45 @@ class Campaign extends Model implements HasMedia, TicketSubject
 
     /**
      * Build a schema.org Place from the campaign's linked location.
+     *
+     * JSON-LD is a single server-rendered artifact served to EVERY viewer
+     * (including crawlers), so the structured-data location MUST reflect the
+     * most-restrictive (stranger) disclosure level — never more. A public
+     * campaign at a private home would otherwise leak the host's street
+     * address in the Event schema even though <x-location-display> correctly
+     * hides it in the HTML body. Only a verified commercial venue (the Exact
+     * rung for a stranger, via the single authority) gets a PostalAddress;
+     * every other location emits NO Place so no street/locality reaches an
+     * indexed route. Mirrors Game::buildEventPlace() (M053 regression).
      */
     private function buildEventPlace(): ?Place
     {
-        if ($this->linkedLocation) {
-            $address = (new PostalAddress);
-            if ($this->linkedLocation->address) {
-                $address->streetAddress($this->linkedLocation->address);
-            }
-            if ($this->linkedLocation->city) {
-                $address->addressLocality($this->linkedLocation->city);
-            }
-            if ($this->linkedLocation->country) {
-                $address->addressCountry($this->linkedLocation->country);
-            }
-
-            return (new Place)
-                ->name($this->linkedLocation->name)
-                ->address($address);
+        // No normalized location → no Place (fail-closed).
+        if (! $this->linkedLocation) {
+            return null;
         }
 
-        return null;
+        $location = $this->linkedLocation;
+
+        $level = app(LocationDisclosureService::class)->strangerPreviewLevel($location);
+
+        if ($level !== DisclosureLevel::Exact) {
+            return null;
+        }
+
+        $address = (new PostalAddress);
+        if ($location->address) {
+            $address->streetAddress($location->address);
+        }
+        if ($location->city) {
+            $address->addressLocality($location->city);
+        }
+        if ($location->country) {
+            $address->addressCountry($location->country);
+        }
+
+        return (new Place)
+            ->name($location->name)
+            ->address($address);
     }
 }

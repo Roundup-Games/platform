@@ -766,6 +766,12 @@ class GameDetail extends Component
                     ]);
                 } else {
                     $baseData['status'] = ParticipantStatus::Approved->value;
+                    // Stamp approved_at so LIFO capacity-demotion ordering is
+                    // correct for share-link direct joins — without this, the
+                    // demote query's `approved_at IS NULL ASC` ordering would
+                    // shield these players from demotion (MEM: stamp every
+                    // Approved transition). Mirrors WaitlistService::confirmPromotion.
+                    $baseData['approved_at'] = now();
 
                     GameParticipant::create($baseData);
 

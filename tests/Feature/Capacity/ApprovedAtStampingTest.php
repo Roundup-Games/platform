@@ -2,14 +2,17 @@
 
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\OwnerParticipantService;
 use App\Services\ParticipantLifecycle;
+use App\Services\ShareIntentService;
 use App\Services\WaitlistService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 use Tests\Traits\CreatesGameInstances;
 
 uses(CreatesGameInstances::class);
@@ -209,6 +212,92 @@ describe('approved_at stamping', function () {
             ->and($fresh->benched_at)->toBeNull()
             ->and($fresh->approved_at)->not->toBeNull()
             ->and($fresh->promoted_manually)->toBeFalse();
+    });
+
+    it('stamps approved_at when a player joins directly via a share link (GameDetail::joinViaShareLink)', function () {
+        // Regression: the not-full branch of joinViaShareLink creates an
+        // Approved GameParticipant directly. Without stamping approved_at,
+        // the LIFO demote query (`approved_at IS NULL ASC, approved_at DESC`)
+        // would shield these players from demotion — the opposite of the
+        // "most-recently-approved demoted first" rule.
+        $owner = User::factory()->create();
+        $token = (string) Str::uuid();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'max_players' => 5,
+            'min_players' => 2,
+            'share_token' => $token,
+            'visibility' => 'protected',
+            'campaign_id' => null,
+            'date_time' => now()->addDays(10),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => ParticipantRole::Owner->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        $joiner = User::factory()->create();
+
+        Livewire::actingAs($joiner)
+            ->withQueryParams(['share' => $token])
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('joinViaShareLink')
+            ->assertHasNoErrors();
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $joiner->id)
+            ->first();
+
+        expect($participant)->not->toBeNull()
+            ->and($participant->status)->toBe(ParticipantStatus::Approved)
+            ->and($participant->approved_at)->not->toBeNull()
+            ->and($participant->promoted_manually)->toBeFalse();
+    });
+
+    it('stamps approved_at when a player joins via ShareIntentService with room available', function () {
+        // Regression: ShareIntentService::createParticipantForEntity() builds
+        // a participant with status from determineStatus(), which returns
+        // Approved when the game has room. Same LIFO-ordering concern as the
+        // share-link path above.
+        $owner = User::factory()->create();
+        $token = (string) Str::uuid();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'max_players' => 5,
+            'min_players' => 2,
+            'share_token' => $token,
+            'visibility' => 'protected',
+            'campaign_id' => null,
+            'date_time' => now()->addDays(10),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => ParticipantRole::Owner->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        $joiner = User::factory()->create();
+
+        $result = app(ShareIntentService::class)->processShareIntent(
+            [
+                'entity_type' => 'game',
+                'entity_id' => $game->id,
+                'share_token' => $token,
+            ],
+            $joiner,
+        );
+
+        expect($result->shouldRedirect)->toBeTrue();
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $joiner->id)
+            ->first();
+
+        expect($participant)->not->toBeNull()
+            ->and($participant->status)->toBe(ParticipantStatus::Approved)
+            ->and($participant->approved_at)->not->toBeNull()
+            ->and($participant->promoted_manually)->toBeFalse();
     });
 
     it('keeps approved_at null and promoted_manually false on a plain non-transition insert', function () {
