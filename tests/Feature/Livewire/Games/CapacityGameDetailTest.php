@@ -253,6 +253,23 @@ describe('validation', function () {
 
         expect($game->fresh()->max_players)->toBe(3);
     });
+
+    it('rejects a confirmed demote whose reason exceeds 500 characters', function () {
+        // The reason is persisted into notifications.data and rendered in
+        // email/push, so cap it (parity with attendanceReports.*.reason).
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        Livewire::actingAs($this->owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('updateCapacity', 2)                                      // arms modal
+            ->call('updateCapacity', 2, str_repeat('x', 501))                // over-cap reason
+            ->assertHasErrors(['capacityReason'])
+            ->assertSee(__('games.error_capacity_reason_too_long'));
+
+        // No demotion occurred: max_players unchanged, no Waitlisted rows.
+        expect($game->fresh()->max_players)->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
+    });
 });
 
 // ═══════════════════════════════════════════════════════════

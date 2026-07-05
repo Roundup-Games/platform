@@ -119,6 +119,7 @@
                         </label>
                         <textarea id="capacityReason" rows="3" wire:model="capacityReason"
                             placeholder="{{ __('games.placeholder_capacity_reason') }}"
+                            maxlength="500"
                             class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"></textarea>
                         @error('capacityReason')
                             <p class="mt-1 text-xs text-error">{{ $message }}</p>

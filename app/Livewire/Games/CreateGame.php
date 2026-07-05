@@ -449,7 +449,7 @@ class CreateGame extends Component
         // on game_type. game_system_id is intentionally NOT set for gatherings —
         // the Game saving event (S01) derives it from game_systems[0].
         if ($this->game_type === 'gathering' && empty($validated['game_systems'])) {
-            $this->addError('game_systems', __('Please select at least one game system.'));
+            $this->addError('game_systems', __('games.error_gathering_requires_system'));
 
             return;
         }

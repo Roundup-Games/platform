@@ -503,6 +503,9 @@ return [
     'error_capacity_game_completed' => 'Capacity can’t be changed after a game is completed or attendance is resolved.',
     'error_capacity_zero_invalid' => 'Max players can’t be cleared from the roster.',
     'error_capacity_range' => 'Max players must be between 2 and 30.',
+    'error_capacity_reason_required' => 'Please provide a short reason for the players being moved to the waitlist.',
+    'error_capacity_reason_too_long' => 'The reason must be 500 characters or fewer.',
+    'error_gathering_requires_system' => 'Please select at least one game system for the gathering.',
 
     // Cover image upload (host-uploaded entity covers — S07/T02)
     'field_cover_image' => 'Cover Image',

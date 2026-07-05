@@ -50,26 +50,18 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Re-add the cached-anchor columns + game_systems JSON array (best-effort
-        // shape only; pivot data is NOT copied back — this is a point-of-no-return
-        // migration in practice, kept reversible only for schema parity).
-        Schema::table('games', function (Blueprint $table) {
-            $table->foreignId('game_system_id')
-                ->nullable()
-                ->constrained('game_systems')
-                ->cascadeOnDelete()
-                ->after('campaign_id');
-            $table->json('game_systems')->nullable()->after('game_system_id');
-        });
-        DB::statement('ALTER TABLE games ALTER COLUMN game_systems TYPE jsonb USING game_systems::jsonb');
-        DB::statement('CREATE INDEX games_game_systems_gin_idx ON games USING GIN (game_systems jsonb_path_ops)');
-
-        Schema::table('campaigns', function (Blueprint $table) {
-            $table->foreignId('game_system_id')
-                ->nullable()
-                ->constrained('game_systems')
-                ->cascadeOnDelete()
-                ->after('owner_id');
-        });
+        // Irreversible in practice: the cached-anchor + JSON-array data was
+        // replaced by the game_game_system / campaign_game_system pivots, and
+        // pivot associations are NOT copied back into the legacy columns on
+        // rollback. Throw rather than silently destroy data or create a
+        // broken schema (the prior foreignId() form also produced bigint
+        // columns that could not reference the uuid game_systems.id PK).
+        //
+        // To revert schema shape on a fresh database, restore from a backup
+        // taken before this migration rather than rolling back through it.
+        throw new RuntimeException(
+            '2026_07_30_100000_drop_legacy_game_system_columns is irreversible: '
+            .'pivot associations are not copied back into the legacy columns.'
+        );
     }
 };

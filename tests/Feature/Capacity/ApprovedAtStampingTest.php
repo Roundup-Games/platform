@@ -300,22 +300,28 @@ describe('approved_at stamping', function () {
             ->and($participant->promoted_manually)->toBeFalse();
     });
 
-    it('keeps approved_at null and promoted_manually false on a plain non-transition insert', function () {
+    it('keeps approved_at null on a raw DB insert that bypasses the model entirely', function () {
         ['game' => $game] = approvedAtFullGame(maxPlayers: 5);
 
-        $participant = GameParticipant::create([
+        // A raw DB::table insert skips both the Approved-transition services
+        // AND the Eloquent model events (including the GameParticipantObserver
+        // saving() backstop). It therefore proves the column itself carries no
+        // DB-level default — the stamp comes from the application layer
+        // (service seams + observer), never from the schema. The model-layer
+        // observer backstop is covered by the two tests above.
+        $rawId = (string) Str::uuid();
+        DB::table('game_participants')->insert([
+            'id' => $rawId,
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
             'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
+            'created_at' => now(),
         ]);
 
-        $fresh = $participant->fresh();
-        // The column exists (nullable) — a plain insert that bypasses the
-        // Approved-transition services does NOT auto-stamp. This proves the
-        // stamping lives entirely in the service seams, not a DB default.
-        expect($fresh->approved_at)->toBeNull()
-            ->and($fresh->promoted_manually)->toBeFalse();
+        $row = DB::table('game_participants')->where('id', $rawId)->first();
+        expect($row->approved_at)->toBeNull()
+            ->and($row->promoted_manually)->toBeFalse();
     });
 });
 
@@ -376,5 +382,52 @@ describe('legacy backfill', function () {
             ->and($row->promoted_manually)->toBeFalse();
         // approved_at should equal created_at (same second-resolution timestamp).
         expect($row->approved_at)->toBe($row->created_at);
+    });
+
+    it('stamps approved_at via the observer even when a create omits it', function () {
+        // Regression for the central invariant: the GameParticipantObserver's
+        // saving() hook backstops any future Approved-transition site that
+        // forgets approved_at. A bare create() with status Approved and no
+        // approved_at must still land a stamped value, so the LIFO demotion
+        // query (`ORDER BY approved_at IS NULL ASC, approved_at DESC`) can
+        // never silently shield a brand-new approved player from demotion.
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'max_players' => 4,
+        ]);
+
+        $participant = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+            // explicitly NO approved_at — the observer must supply it
+        ]);
+
+        expect($participant->fresh()->approved_at)->not->toBeNull();
+    });
+
+    it('stamps approved_at via the observer on an update that transitions to Approved', function () {
+        // Same invariant on the update path: a participant created as Pending
+        // then updated to Approved without an explicit approved_at must still
+        // have one stamped by the observer.
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'max_players' => 4,
+        ]);
+
+        $participant = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
+        ]);
+        expect($participant->approved_at)->toBeNull();
+
+        $participant->update(['status' => ParticipantStatus::Approved->value]);
+
+        expect($participant->fresh()->approved_at)->not->toBeNull();
     });
 });

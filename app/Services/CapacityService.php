@@ -63,9 +63,7 @@ class CapacityService
         // Service-level guard against the 0=unlimited footgun. Even if the
         // Livewire layer (T04) also validates, the service is the canonical
         // boundary for this invariant.
-        if ($newMax < 1) {
-            throw new \InvalidArgumentException('max_players must be at least 1.');
-        }
+        $this->assertValidMax($newMax);
 
         return DB::transaction(function () use ($game, $newMax) {
             // Re-fetch the locked row to serialise against concurrent capacity
@@ -118,6 +116,12 @@ class CapacityService
      */
     public function decrease(Game $game, int $newMax): CapacityChangeResult
     {
+        // Service-level guard — mirrors increase(). The Livewire layer rejects
+        // 0, but the service owns this invariant (decreasing to 0 would demote
+        // everyone then flip the game to unlimited via HasCapacity's 0=unlimited
+        // convention, which is never a valid result of a capacity change).
+        $this->assertValidMax($newMax);
+
         return DB::transaction(function () use ($game, $newMax) {
             /** @var Game $locked */
             $locked = Game::where('id', $game->id)->lockForUpdate()->firstOrFail();
@@ -227,6 +231,9 @@ class CapacityService
      */
     public function demote(Game $game, int $newMax, string $reason, User $actor): DemotionResult
     {
+        // Service-level guard — mirrors increase()/decrease().
+        $this->assertValidMax($newMax);
+
         // The displaced set + exempt count are produced inside the transaction
         // and returned so notifications can fan out AFTER commit.
         [$displaced, $exemptCount] = DB::transaction(function () use ($game, $newMax, $actor) {
@@ -372,5 +379,24 @@ class CapacityService
         return $game->participants()
             ->where('status', ParticipantStatus::Pending->value)
             ->count();
+    }
+
+    /**
+     * Reject any capacity change to a non-positive max_players.
+     *
+     * HasCapacity treats 0 as "unlimited" elsewhere in the system, so a 0
+     * result of an increase/decrease/demote is never valid — it would
+     * paradoxically flip a bounded game to unlimited (and, on demote,
+     * displace every demotable player first). Enforced at every public entry
+     * point so the Livewire layer's own validation is defense-in-depth, not
+     * the load-bearing check.
+     *
+     * @throws \InvalidArgumentException if $newMax is less than 1.
+     */
+    private function assertValidMax(int $newMax): void
+    {
+        if ($newMax < 1) {
+            throw new \InvalidArgumentException('max_players must be at least 1.');
+        }
     }
 }

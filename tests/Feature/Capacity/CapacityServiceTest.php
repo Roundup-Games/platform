@@ -60,6 +60,13 @@ function countStatus(Game $game, ParticipantStatus $status): int
 // ═══════════════════════════════════════════════════════════
 
 describe('increase', function () {
+    it('rejects a non-positive newMax at the service boundary (0 = unlimited footgun)', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        expect(fn () => $this->service->increase($game, 0))
+            ->toThrow(InvalidArgumentException::class);
+    });
+
     it('raises max_players and auto-promotes waitlisted players to Pending', function () {
         // Full game (max=3): owner + 2 approved.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
@@ -124,6 +131,13 @@ describe('increase', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('decrease', function () {
+    it('rejects a non-positive newMax at the service boundary (parity with increase)', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        expect(fn () => $this->service->decrease($game, 0))
+            ->toThrow(InvalidArgumentException::class);
+    });
+
     it('silently lowers max_players above the approved count with no roster change', function () {
         // approved=2 (owner + 1), max overridden to 4.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
@@ -345,6 +359,13 @@ describe('previewDemotion', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('demote', function () {
+    it('rejects a non-positive newMax at the service boundary (parity with increase)', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        expect(fn () => $this->service->demote($game, 0, 'reason', $this->owner))
+            ->toThrow(InvalidArgumentException::class);
+    });
+
     it('demotes the most-recently-approved non-exempt players by LIFO, sparing owner + manually-promoted', function () {
         $game = Game::factory()->create([
             'owner_id' => $this->owner->id,

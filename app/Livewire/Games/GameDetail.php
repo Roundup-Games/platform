@@ -514,6 +514,28 @@ class GameDetail extends Component
         // Confirming call (reason provided + flag set): run the demote. demote()
         // recomputes the displaced set under lock — it never trusts the
         // preview snapshot, so a stale/bypassed modal cannot corrupt state.
+        //
+        // Validate the reason before dispatching: it is persisted into the
+        // notifications.data JSON, rendered in email, and sent as a push body,
+        // so cap it (parity with attendanceReports.*.reason -> max:500) to keep
+        // notification row/payload sizes bounded.
+        $reasonValidator = Validator::make(
+            ['capacityReason' => $reason],
+            ['capacityReason' => ['required', 'string', 'max:500']],
+            [
+                'capacityReason.required' => __('games.error_capacity_reason_required'),
+                'capacityReason.max' => __('games.error_capacity_reason_too_long'),
+            ],
+        );
+
+        if ($reasonValidator->fails()) {
+            foreach ($reasonValidator->errors()->get('capacityReason') as $message) {
+                $this->addError('capacityReason', $message);
+            }
+
+            return;
+        }
+
         try {
             $result = $service->demote($this->game, $newMax, $reason, authenticatedUser());
         } catch (\DomainException $e) {

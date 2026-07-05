@@ -504,6 +504,9 @@ return [
     'error_capacity_game_completed' => 'Die Kapazität kann nach Abschluss des Spiels oder der Anwesenheitsauflösung nicht mehr geändert werden.',
     'error_capacity_zero_invalid' => 'Die Maximalzahl kann nicht vom Teilnehmerkreis gelöscht werden.',
     'error_capacity_range' => 'Die Maximalzahl muss zwischen 2 und 30 liegen.',
+    'error_capacity_reason_required' => 'Bitte gib einen kurzen Grund an, warum die Teilnehmenden auf die Warteliste verschoben werden.',
+    'error_capacity_reason_too_long' => 'Der Grund darf höchstens 500 Zeichen lang sein.',
+    'error_gathering_requires_system' => 'Bitte wähle mindestens ein Spielsystem für das Gathering aus.',
 
     // Cover image upload (host-uploaded entity covers — S07/T02)
     'field_cover_image' => 'Titelbild',
