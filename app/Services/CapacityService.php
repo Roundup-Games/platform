@@ -174,13 +174,13 @@ class CapacityService
 
         $wouldDemote = $demotable->take($actual)->map(fn (GameParticipant $p) => [
             'id' => $p->id,
-            'name' => $p->user?->name ?? '',
+            'name' => $p->user->name ?? '',
             'approved_at' => $p->approved_at?->toIso8601String(),
         ])->values()->all();
 
         $exemptRows = $exempt->map(fn (GameParticipant $p) => [
             'id' => $p->id,
-            'name' => $p->user?->name ?? '',
+            'name' => $p->user->name ?? '',
             'reason' => $p->role === ParticipantRole::Owner ? 'owner' : 'manually_promoted',
         ])->values()->all();
 
@@ -322,7 +322,7 @@ class CapacityService
 
         return new DemotionResult(
             demotedCount: $displaced->count(),
-            demoted: $displaced->pluck('id')->all(),
+            demoted: $displaced->map(fn (GameParticipant $p) => (string) $p->id)->all(),
             exemptCount: $exemptCount,
         );
     }

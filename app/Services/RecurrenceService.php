@@ -46,6 +46,24 @@ class RecurrenceService
     }
 
     /**
+     * Same as {@see cadenceDays()} but typed for the day-based branches only:
+     * returns a non-null int for weekly / bi-weekly.
+     *
+     * computeNextDate() reaches this only after {@see isKnownRecurrence()}
+     * rejected null/custom AND after the monthly arm matched, so the input
+     * is provably weekly or bi-weekly here. Throwing (not silently 0) keeps
+     * a future cadence addition from introducing a silent zero-day bug.
+     */
+    private function cadenceDaysForDayBased(?string $recurrence): int
+    {
+        return match ($recurrence) {
+            'weekly' => 7,
+            'bi-weekly' => 14,
+            default => throw new \LogicException('cadenceDaysForDayBased() called with non-day-based recurrence: '.($recurrence ?? 'null')),
+        };
+    }
+
+    /**
      * The "plan-ahead" horizon: roughly two cadence-units from $now.
      *
      *  - weekly    => now + 14 days  (2 weeks)
@@ -106,9 +124,10 @@ class RecurrenceService
             ? $farthestUpcoming->copy()
             : $now->copy();
 
-        $next = $recurrence === 'monthly'
-            ? $base->addMonthNoOverflow()
-            : $base->addDays($this->cadenceDays($recurrence));
+        $next = match (true) {
+            $recurrence === 'monthly' => $base->addMonthNoOverflow(),
+            default => $base->addDays($this->cadenceDaysForDayBased($recurrence)),
+        };
 
         return $this->applyTimeOfDay($next, $timeOfDay);
     }
@@ -125,12 +144,16 @@ class RecurrenceService
     {
         $now ??= now();
 
+        // ->max('date_time') returns the raw column value (a timestamp
+        // string on Postgres) or null when no rows match. Narrow with
+        // is_string() so Carbon::parse() gets the typed scalar it expects
+        // and any unexpected non-string aggregate falls through to null.
         $max = $c->sessions()
             ->where('status', 'scheduled')
             ->where('date_time', '>', $now)
             ->max('date_time');
 
-        return $max !== null ? Carbon::parse($max) : null;
+        return is_string($max) ? Carbon::parse($max) : null;
     }
 
     /**
