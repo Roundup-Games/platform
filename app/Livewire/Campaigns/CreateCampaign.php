@@ -411,14 +411,14 @@ class CreateCampaign extends Component
         if ($user !== null) {
             $defaults = app(CreateDefaultsService::class)->forCampaign($user);
 
-            $this->language = $defaults['language'] ?? 'en';
-            $this->location_id = $defaults['location_id'] ?? null;
-            $this->visibility = $defaults['visibility'] ?? 'protected';
-            $this->max_players = $defaults['max_players'] ?? null;
-            $this->experience_level = $defaults['experience_level'] ?? null;
-            $this->game_type = $defaults['game_type'] ?? 'ttrpg';
-            $this->game_system_id = $defaults['game_system_id'] ?? null;
-            $this->recurrence = $defaults['recurrence'] ?? 'weekly';
+            $this->language = $defaults->language ?? 'en';
+            $this->location_id = $defaults->locationId;
+            $this->visibility = $defaults->visibility ?? 'protected';
+            $this->max_players = $defaults->maxPlayers;
+            $this->experience_level = $defaults->experienceLevel;
+            $this->game_type = $defaults->gameType ?? 'ttrpg';
+            $this->game_system_id = $defaults->gameSystemId;
+            $this->recurrence = $defaults->recurrence ?? 'weekly';
         }
     }
 

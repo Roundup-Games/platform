@@ -187,7 +187,7 @@ describe('CTA Section', function () {
             ->get(route('home'))
             ->assertOk()
             ->assertSee(__('campaigns.action_browse_sessions'))
-            ->assertSee(route('games.index'));
+            ->assertSee(route('discover'));
     });
 
     it('does not show sign-up link for authenticated users', function () {

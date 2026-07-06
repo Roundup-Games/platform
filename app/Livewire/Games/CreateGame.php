@@ -671,48 +671,48 @@ class CreateGame extends Component
         $defaults = app(CreateDefaultsService::class)->forGameType($user, $gameType);
 
         // Language: prefer last session, then profile preference, then 'en'.
-        $this->language = $defaults['language'] ?? 'en';
+        $this->language = $defaults->language ?? 'en';
 
         // Location + instructions travel forward.
-        $this->location_id = $defaults['location_id'];
-        $this->location_instructions = $defaults['location_instructions'] ?? '';
+        $this->location_id = $defaults->locationId;
+        $this->location_instructions = $defaults->locationInstructions ?? '';
 
         // Visibility from last session (default 'protected' if none).
-        $this->visibility = $defaults['visibility'] ?? 'protected';
+        $this->visibility = $defaults->visibility ?? 'protected';
 
         // Experience level — but gatherings keep their 'all' default.
-        if ($type !== 'gathering' && $defaults['experience_level'] !== null) {
-            $this->experience_level = $defaults['experience_level'];
+        if ($type !== 'gathering' && $defaults->experienceLevel !== null) {
+            $this->experience_level = $defaults->experienceLevel;
         }
 
         // Duration: override the type default only if last session had one.
-        if ($defaults['expected_duration'] !== null) {
-            $this->expected_duration = $defaults['expected_duration'];
+        if ($defaults->expectedDuration !== null) {
+            $this->expected_duration = $defaults->expectedDuration;
         }
 
         // Seat counts — but gatherings keep their 12-player default.
         if ($type !== 'gathering') {
-            if ($defaults['max_players'] !== null) {
-                $this->max_players = $defaults['max_players'];
+            if ($defaults->maxPlayers !== null) {
+                $this->max_players = $defaults->maxPlayers;
             }
-            if ($defaults['min_players'] !== null) {
-                $this->min_players = $defaults['min_players'];
+            if ($defaults->minPlayers !== null) {
+                $this->min_players = $defaults->minPlayers;
             }
         }
 
         // Vibe flags from last session.
-        if ($defaults['vibe_flags'] !== null) {
-            foreach ($defaults['vibe_flags'] as $flag) {
+        if ($defaults->vibeFlags !== null) {
+            foreach ($defaults->vibeFlags as $flag) {
                 $this->vibePreferences[$flag] = 'favorite';
             }
         }
 
         // Offered-system set: gatherings get the multi-select set carried
         // forward; focused types get the single system.
-        if ($type === 'gathering' && ! empty($defaults['game_systems'])) {
-            $this->game_systems = $defaults['game_systems'];
-        } elseif ($defaults['game_system_id'] !== null) {
-            $this->game_system_id = $defaults['game_system_id'];
+        if ($type === 'gathering' && ! empty($defaults->gameSystems)) {
+            $this->game_systems = $defaults->gameSystems;
+        } elseif ($defaults->gameSystemId !== null) {
+            $this->game_system_id = $defaults->gameSystemId;
         }
     }
 

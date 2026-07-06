@@ -67,6 +67,56 @@ class ActionCenterService
     }
 
     /**
+     * Game-scoped Action Center items only (the ~10 game sources).
+     *
+     * Used by MyGamesBoardService so the board doesn't pay for the campaign/
+     * follower/review sources it discards. Identical ordering to getItems().
+     *
+     * @return ActionItem[]
+     */
+    public function getGameItems(User $user): array
+    {
+        $items = array_merge(
+            $this->getWaitlistConfirmations($user),
+            $this->getBelowMinPlayerWarnings($user),
+            $this->getPendingApplications($user),
+            $this->getPendingInvitations($user),
+            $this->getUnreportedAttendance($user),
+            $this->getMissingRecaps($user),
+            $this->getAvailableDebriefings($user),
+            $this->getHostBulletins($user),
+        );
+
+        usort($items, fn (ActionItem $a, ActionItem $b) => (ActionItem::priorityOrder($a->priority) <=> ActionItem::priorityOrder($b->priority)) === 0
+                ? $b->createdAt->timestamp <=> $a->createdAt->timestamp
+                : ActionItem::priorityOrder($a->priority) - ActionItem::priorityOrder($b->priority));
+
+        return $items;
+    }
+
+    /**
+     * Campaign-scoped Action Center items only (session alerts + recurrence nudges).
+     *
+     * Used by MyCampaignsBoardService so the board doesn't pay for the ~10
+     * game-scoped sources it discards. Identical ordering to getItems().
+     *
+     * @return ActionItem[]
+     */
+    public function getCampaignItems(User $user): array
+    {
+        $items = array_merge(
+            $this->getCampaignSessionAlerts($user),
+            $this->getRecurrencePlanningNudges($user),
+        );
+
+        usort($items, fn (ActionItem $a, ActionItem $b) => (ActionItem::priorityOrder($a->priority) <=> ActionItem::priorityOrder($b->priority)) === 0
+                ? $b->createdAt->timestamp <=> $a->createdAt->timestamp
+                : ActionItem::priorityOrder($a->priority) - ActionItem::priorityOrder($b->priority));
+
+        return $items;
+    }
+
+    /**
      * When no action items exist, return a warm all-clear message with
      * info about the user's next upcoming session.
      *

@@ -71,7 +71,7 @@ class MyCampaignsBoardService
             'pending_invitations' => $pendingInvitations,
             'ended' => $ended,
             'activity_feed' => app(GameActivityFeedService::class)->getCampaignFeed($user, 15),
-            'has_any_campaigns' => $ownedCampaigns->isNotEmpty() || $participatingCampaigns->isNotEmpty(),
+            'has_any_campaigns' => $ownedCampaigns->isNotEmpty() || $participatingCampaigns->isNotEmpty() || $pendingInvitations->isNotEmpty(),
         ];
     }
 
@@ -123,11 +123,6 @@ class MyCampaignsBoardService
      */
     private function campaignScopedActionItems(User $user): array
     {
-        $items = app(ActionCenterService::class)->getItems($user);
-
-        return array_values(array_filter(
-            $items,
-            fn (ActionItem $item) => ($item->metadata['entity_type'] ?? null) === 'campaign',
-        ));
+        return app(ActionCenterService::class)->getCampaignItems($user);
     }
 }

@@ -212,7 +212,7 @@ describe('GamesPage — Games I\'m In Display', function () {
             ->assertSee('Joined Game');
     });
 
-    it('does not show owned games in the playing section', function () {
+    it('shows owned games in the upcoming hosting section', function () {
         $user = gamesPageCreateUser();
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => ['en' => 'My Own Game']]);
 

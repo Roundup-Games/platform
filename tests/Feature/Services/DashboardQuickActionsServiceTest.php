@@ -84,7 +84,7 @@ class DashboardQuickActionsServiceTest extends TestCase
 
     // ── GM role ────────────────────────────────────────
 
-    public function test_gm_no_upcoming_shows_create_game(): void
+    public function test_gm_no_upcoming_shows_plan_something(): void
     {
         $user = User::factory()->create();
         $user->assignRole('Game Master');
@@ -277,7 +277,7 @@ class DashboardQuickActionsServiceTest extends TestCase
         $this->assertContains('profile.dashboard_quick_discover', $secondaryLabels);
     }
 
-    public function test_gm_with_upcoming_secondary_includes_create_game_and_discover(): void
+    public function test_gm_with_upcoming_secondary_includes_plan_and_discover(): void
     {
         $user = User::factory()->create();
         $user->assignRole('Game Master');

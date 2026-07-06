@@ -114,4 +114,24 @@ class MyCampaignsBoardServiceTest extends TestCase
 
         $this->assertTrue($board['pending_invitations']->contains('id', $invitation->id));
     }
+
+    public function test_has_any_campaigns_true_with_only_pending_invitation(): void
+    {
+        $host = User::factory()->create();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $host->id,
+            'status' => CampaignStatus::Active->value,
+        ]);
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $this->user->id,
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
+        ]);
+
+        $board = $this->service->build($this->user);
+
+        // A user with only an invitation should NOT see the empty state.
+        $this->assertTrue($board['has_any_campaigns']);
+    }
 }

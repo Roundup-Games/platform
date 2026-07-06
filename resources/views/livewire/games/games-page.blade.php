@@ -135,6 +135,7 @@
                 <div class="space-y-3">
                     @foreach($pendingInvitations as $invitation)
                         @php $game = $invitation->game; @endphp
+                        @continue(!$game)
                         <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden border-l-4 border-primary">
                             <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
                                 <div class="flex flex-wrap items-center gap-2 mb-2">

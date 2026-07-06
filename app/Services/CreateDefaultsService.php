@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Dto\CreateDefaults;
 use App\Enums\GameType;
 use App\Models\Game;
 use App\Models\User;
@@ -16,57 +17,44 @@ use App\Models\User;
  *   2. Profile preferences — preferred_language, favorite game system, location.
  *   3. Type defaults (delegated to the Livewire component's applyTypeDefaults()).
  *
- * Used by CreateGame::mount() and the unified Plan-something flow to pre-fill
- * the form without overriding an explicit clone source (?clone=ID).
+ * Returns a {@see CreateDefaults} with all-null fields when there is no prior
+ * session of the requested type; consumers supply their own per-field fallbacks.
+ *
+ * This service is the single coercion point: Eloquent attribute access resolves
+ * to mixed under Larastan, so every field is cast to its declared type here,
+ * producing a strongly-typed DTO consumers can assign to typed Livewire
+ * properties without PHPStan "does not accept mixed" failures.
  */
 class CreateDefaultsService
 {
     /**
      * Resolve creation defaults for the given game type.
-     *
-     * @return array<string, mixed> Resolved per-field defaults; consumers read keys.
      */
-    public function forGameType(User $user, GameType $type): array
+    public function forGameType(User $user, GameType $type): CreateDefaults
     {
         $lastGame = $this->lastAuthoredGameOfType($user, $type);
-        $favSystem = $this->favoriteGameSystemId($user, $type);
 
-        if ($lastGame !== null) {
-            $vibeFlags = ! empty($lastGame->vibe_flags)
-                ? (array) $lastGame->vibe_flags
-                : null;
-            $firstSystem = $lastGame->gameSystems->first();
-
-            return [
-                'language' => $lastGame->language ?? $this->preferredLanguage($user),
-                'location_id' => $lastGame->location_id ?? $user->location_id,
-                'location_instructions' => $lastGame->location_instructions,
-                'visibility' => $lastGame->visibility?->value,
-                'experience_level' => $lastGame->experience_level,
-                'expected_duration' => (string) $lastGame->expected_duration,
-                'max_players' => $lastGame->max_players,
-                'min_players' => $lastGame->min_players,
-                'vibe_flags' => $vibeFlags,
-                'game_system_id' => $firstSystem !== null ? $firstSystem->id : $favSystem,
-                // For gatherings: carry forward the full offered-system set.
-                'game_systems' => $lastGame->gameSystems->pluck('id')->all(),
-            ];
+        if ($lastGame === null) {
+            return new CreateDefaults;
         }
 
-        // No prior session of this type — fall back to profile preferences only.
-        return [
-            'language' => $this->preferredLanguage($user),
-            'location_id' => $user->location_id,
-            'location_instructions' => null,
-            'visibility' => null,
-            'experience_level' => null,
-            'expected_duration' => null,
-            'max_players' => null,
-            'min_players' => null,
-            'vibe_flags' => null,
-            'game_system_id' => $favSystem,
-            'game_systems' => [],
-        ];
+        $favSystem = $this->favoriteGameSystemId($user, $type);
+        $firstSystem = $lastGame->gameSystems->first();
+
+        return new CreateDefaults(
+            language: $lastGame->language ?? $this->preferredLanguage($user),
+            locationId: $lastGame->location_id ?? $user->location_id,
+            locationInstructions: $lastGame->location_instructions,
+            visibility: $lastGame->visibility !== null ? strval($lastGame->visibility->value) : null,
+            experienceLevel: $lastGame->experience_level,
+            expectedDuration: strval($lastGame->expected_duration),
+            maxPlayers: $lastGame->max_players,
+            minPlayers: $lastGame->min_players,
+            gameSystemId: $firstSystem !== null ? $firstSystem->id : $favSystem,
+            // For gatherings: carry forward the full offered-system set.
+            gameSystems: $lastGame->gameSystems->map(fn ($s) => (string) $s->id)->values()->all(),
+            vibeFlags: ! empty($lastGame->vibe_flags) ? (array) $lastGame->vibe_flags : null,
+        );
     }
 
     /**
@@ -74,12 +62,12 @@ class CreateDefaultsService
      *
      * Borrows from the user's most recent campaign-aware game of the same type
      * (or their last standalone game), plus profile preferences.
-     *
-     * @return array<string, mixed> Resolved per-field defaults; consumers read keys.
      */
-    public function forCampaign(User $user): array
+    public function forCampaign(User $user): CreateDefaults
     {
         // Prefer the last campaign-session the user organized, fall back to any game.
+        // Both paths eager-load gameSystems so the offered-system lookup below
+        // doesn't trigger a lazy-load query on the fallback branch.
         $lastCampaignGame = Game::where('owner_id', $user->id)
             ->whereNotNull('campaign_id')
             ->latest('date_time')
@@ -87,37 +75,28 @@ class CreateDefaultsService
             ->first();
 
         $lastAnyGame = Game::where('owner_id', $user->id)
+            ->with(['gameSystems'])
             ->latest('date_time')
             ->first();
 
         $source = $lastCampaignGame ?? $lastAnyGame;
 
-        if ($source !== null) {
-            $firstSystem = $source->gameSystems->first();
-
-            return [
-                'language' => $source->language ?? $this->preferredLanguage($user),
-                'location_id' => $source->location_id ?? $user->location_id,
-                'visibility' => $source->visibility?->value,
-                'experience_level' => $source->experience_level,
-                'max_players' => $source->max_players,
-                'game_type' => $source->game_type?->value,
-                'game_system_id' => $firstSystem !== null ? $firstSystem->id : $this->favoriteGameSystemId($user, GameType::Ttrpg),
-                'recurrence' => 'weekly',
-            ];
+        if ($source === null) {
+            return new CreateDefaults;
         }
 
-        // No prior campaign or game — bare defaults.
-        return [
-            'language' => $this->preferredLanguage($user),
-            'location_id' => $user->location_id,
-            'visibility' => null,
-            'experience_level' => null,
-            'max_players' => null,
-            'game_type' => null,
-            'game_system_id' => $this->favoriteGameSystemId($user, GameType::Ttrpg),
-            'recurrence' => 'weekly',
-        ];
+        $firstSystem = $source->gameSystems->first();
+
+        return new CreateDefaults(
+            language: $source->language ?? $this->preferredLanguage($user),
+            locationId: $source->location_id ?? $user->location_id,
+            visibility: $source->visibility !== null ? strval($source->visibility->value) : null,
+            experienceLevel: $source->experience_level,
+            maxPlayers: $source->max_players,
+            gameType: $source->game_type?->value,
+            gameSystemId: $firstSystem !== null ? $firstSystem->id : $this->favoriteGameSystemId($user, GameType::Ttrpg),
+            recurrence: 'weekly',
+        );
     }
 
     // ── Helpers ────────────────────────────────────────
@@ -137,11 +116,17 @@ class CreateDefaultsService
     /**
      * The user's favorite game system appropriate for the type, if any.
      *
-     * Board-game favorites for board_game/gathering; TTRPG favorites for ttrpg.
+     * Filters by GameSystem.type so a TTRPG favorite is never picked for a
+     * board-game session (and vice versa). Board-game favorites apply to
+     * board_game + gathering; TTRPG favorites apply to ttrpg.
      */
     private function favoriteGameSystemId(User $user, GameType $type): ?string
     {
-        $fav = $user->favoriteGameSystems()->first();
+        $systemType = $type === GameType::Ttrpg ? 'ttrpg' : 'boardgame';
+
+        $fav = $user->favoriteGameSystems()
+            ->where('type', $systemType)
+            ->first();
 
         return $fav?->id;
     }

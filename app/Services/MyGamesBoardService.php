@@ -80,12 +80,13 @@ class MyGamesBoardService
                 && $g->date_time !== null && $g->date_time >= $recentCutoff
         )->sortByDesc('date_time')->values();
 
-        $archive = $allRelevant->filter(function (Game $g) use ($recentCutoff): bool {
+        $archive = $allRelevant->filter(function (Game $g) use ($recentCutoff, $now): bool {
             // Everything not already shown above: cancelled sessions + completed
-            // sessions older than the recent window. Scheduled-future sessions
-            // are always in upcoming_*, never archived.
-            if ($g->status === GameStatus::Scheduled) {
-                return false;
+            // sessions older than the recent window. Scheduled games whose
+            // date_time is past or null (overdue/undated — never made it into
+            // upcoming_*) also land here so no game can fall through every section.
+            if ($g->status === GameStatus::Scheduled && $g->date_time !== null && $g->date_time > $now) {
+                return false; // it's in upcoming_hosting/upcoming_playing
             }
             if ($g->status === GameStatus::Completed && $g->date_time !== null && $g->date_time >= $recentCutoff) {
                 return false; // it's in recentCompleted
@@ -107,7 +108,7 @@ class MyGamesBoardService
             'recent_completed' => $recentCompleted,
             'archive' => $archive,
             'activity_feed' => $activityFeed,
-            'has_any_games' => $ownedGames->isNotEmpty() || $participatingGames->isNotEmpty(),
+            'has_any_games' => $ownedGames->isNotEmpty() || $participatingGames->isNotEmpty() || $pendingInvitations->isNotEmpty(),
         ];
     }
 
@@ -169,11 +170,6 @@ class MyGamesBoardService
      */
     private function gameScopedActionItems(User $user): array
     {
-        $items = app(ActionCenterService::class)->getItems($user);
-
-        return array_values(array_filter(
-            $items,
-            fn (ActionItem $item) => ($item->metadata['entity_type'] ?? null) === 'game',
-        ));
+        return app(ActionCenterService::class)->getGameItems($user);
     }
 }
