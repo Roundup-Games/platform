@@ -254,7 +254,7 @@
                 @if($isOwner && !empty($planAheadNudge))
                     <div class="bg-tertiary-container rounded-xl shadow-ambient p-4 mb-6 flex items-center justify-between gap-4">
                         <div class="flex items-start gap-3">
-                            <span class="material-symbols-outlined text-xl text-on-tertiary-container" aria-hidden="true">event_repeat</span>
+                            <span class="material-symbols-outlined text-xl text-on-tertiary-container" aria-hidden="true">repeat</span>
                             <div>
                                 <p class="font-medium text-on-tertiary-container">{{ $planAheadNudge['title'] }}</p>
                                 <p class="text-sm text-on-tertiary-container/80">{{ $planAheadNudge['description'] }}</p>

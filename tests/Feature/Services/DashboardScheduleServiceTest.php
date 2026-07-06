@@ -309,6 +309,53 @@ class DashboardScheduleServiceTest extends TestCase
         $this->assertNull($result);
     }
 
+    public function test_host_again_bridge_excludes_campaign_sessions(): void
+    {
+        // A completed session that belongs to a recurring Campaign.
+        $campaign = Campaign::factory()->create(['game_system_id' => $this->gameSystem->id]);
+        Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => $campaign->id,
+            'date_time' => now()->subDays(2),
+            'status' => GameStatus::Completed->value,
+        ]);
+
+        // The bridge must ignore it — campaign sessions have their own
+        // "plan ahead" nudge (RecurrenceService::shouldNudge), and surfacing
+        // one here would show two competing re-host prompts.
+        $result = $this->service->getHostAgainBridge($this->user);
+
+        $this->assertNull($result);
+    }
+
+    public function test_host_again_bridge_prefers_standalone_session_over_campaign_session(): void
+    {
+        // Older standalone session (eligible).
+        $standalone = Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => null,
+            'date_time' => now()->subDays(5),
+            'status' => GameStatus::Completed->value,
+        ]);
+
+        // Newer campaign session (must be skipped despite being more recent).
+        $campaign = Campaign::factory()->create(['game_system_id' => $this->gameSystem->id]);
+        Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => $campaign->id,
+            'date_time' => now()->subDays(1),
+            'status' => GameStatus::Completed->value,
+        ]);
+
+        $result = $this->service->getHostAgainBridge($this->user);
+
+        $this->assertNotNull($result);
+        $this->assertEquals($standalone->id, $result['game']['id']);
+    }
+
     // ── getNextUpcomingGame ─────────────────────────────
 
     public function test_next_upcoming_game_returns_null_when_no_games(): void

@@ -26,148 +26,123 @@
             </div>
         @endif
 
-        {{-- My Games Section --}}
-        <section>
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-heading font-semibold text-on-surface">{{ __('games.heading_my_games') }}</h2>
-                <a href="{{ route('games.create') }}" wire:navigate
-                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold shadow-xs hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
-                    <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
-                    {{ __('common.action_create') }}
-                </a>
-            </div>
+        @php
+            $priorityColors = [
+                'critical' => 'bg-error',
+                'high' => 'bg-warning',
+                'medium' => 'bg-primary',
+                'low' => 'bg-on-surface-variant/40',
+            ];
+        @endphp
 
-            @if($ownedGames->isEmpty())
-                <div class="bg-surface-container-low rounded-xl p-8 text-center">
-                    <span class="material-symbols-outlined text-4xl text-on-surface-variant mb-2 block" aria-hidden="true">sports_esports</span>
-                    <p class="text-on-surface-variant text-sm">{{ __('games.content_no_owned_games') }}</p>
+        {{-- ═══ Empty state (no games at all) ═══ --}}
+        @if(! $hasAnyGames)
+            <section class="bg-surface-container-low rounded-xl p-8 sm:p-12 text-center">
+                <span class="material-symbols-outlined text-5xl text-on-surface-variant mb-3 block" aria-hidden="true">stadium</span>
+                <h2 class="text-lg font-heading font-semibold text-on-surface">{{ __('games.content_empty_no_games_title') }}</h2>
+                <p class="text-on-surface-variant text-sm mt-1 max-w-md mx-auto">{{ __('games.content_empty_no_games_body') }}</p>
+                <div class="mt-5 flex flex-wrap justify-center gap-3">
+                    <a href="{{ route('discover') }}" wire:navigate
+                       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-on-primary shadow-xs hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">explore</span>
+                        {{ __('games.action_empty_discover') }}
+                    </a>
                     <a href="{{ route('games.create') }}" wire:navigate
-                       class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-on-primary shadow-xs hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
+                       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-outline text-on-surface hover:bg-surface-container-lowest transition-colors whitespace-nowrap">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                        {{ __('games.action_empty_plan') }}
+                    </a>
+                </div>
+            </section>
+        @endif
+
+        {{-- ═══ Needs your attention ═══ --}}
+        @if(count($needsAttention) > 0)
+            <section>
+                <div class="flex items-center justify-between mb-1">
+                    <h2 class="text-xl font-heading font-semibold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary" aria-hidden="true" style="font-variation-settings: 'FILL' 1">recommend</span>
+                        {{ __('games.heading_needs_your_attention') }}
+                    </h2>
+                    <span class="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-primary text-on-primary text-xs font-semibold">
+                        {{ count($needsAttention) }}
+                    </span>
+                </div>
+                <p class="text-xs text-on-surface-variant mb-3 ml-8">{{ __('games.content_needs_attention_hint') }}</p>
+                <ul class="space-y-2" role="list">
+                    @foreach($needsAttention as $item)
+                        @php
+                            $dotColor = $priorityColors[$item->priority] ?? 'bg-on-surface-variant/40';
+                        @endphp
+                        <li>
+                            <a href="{{ $item->actionUrl }}" wire:navigate
+                               class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low transition-colors group">
+                                <span class="w-2.5 h-2.5 rounded-full {{ $dotColor }} mt-2 shrink-0" aria-label="{{ $item->priority }} priority"></span>
+                                <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-xl mt-0.5 shrink-0" style="font-variation-settings: 'FILL' 0">{{ $item->icon }}</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-on-surface group-hover:text-primary transition-colors leading-snug">{{ $item->title }}</p>
+                                    <p class="text-xs text-on-surface-variant mt-0.5 line-clamp-2 leading-relaxed">{{ $item->description }}</p>
+                                </div>
+                                <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-lg mt-1 shrink-0 group-hover:text-primary transition-colors" style="font-variation-settings: 'FILL' 0">chevron_right</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+
+        {{-- ═══ Upcoming — hosting ═══ --}}
+        @if($upcomingHosting->isNotEmpty())
+            <section>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-heading font-semibold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">castle</span>
+                        {{ __('games.heading_upcoming_hosting') }}
+                    </h2>
+                    <a href="{{ route('games.create') }}" wire:navigate
+                       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold shadow-xs hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
                         {{ __('common.action_create') }}
                     </a>
                 </div>
-            @else
                 <div class="space-y-3">
-                    @foreach($ownedGames as $game)
-                        <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden">
-                            {{-- Info area: clickable to detail --}}
-                            <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="group block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
-                                <div class="flex flex-wrap items-center gap-2 mb-2">
-                                    <h3 class="text-base font-medium text-on-surface group-hover:text-secondary transition-colors">
-                                        {{ $game->name }}
-                                    </h3>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                        {{ $game->status->value === 'scheduled' ? 'bg-primary-container text-on-primary-container' : ($game->status->value === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
-                                        {{ __('games.status_' . $game->status->value) }}
-                                    </span>
-@foreach($game->gameSystems as $system)
-    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-        {{ $system->name }}
-    </span>
-@endforeach
-                                    @if($game->campaign)
-                                        <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                            <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
-                                            {{ $game->campaign->name }}
-                                        </span>
-                                    @endif
-                                </div>
-                                <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
-                                    @if($game->date_time)
-                                        <span class="flex items-center gap-1">
-                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">calendar_today</span>
-                                            {{ format_date($game->date_time, 'datetime') }}
-                                        </span>
-                                    @endif
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
-                                        {{ $game->participants->count() }}/{{ $game->max_players ?? '∞' }}
-                                    </span>
-                                </div>
-                            </a>
-
-                            {{-- Actions footer --}}
-                            @if($game->status->value === 'scheduled')
-                                <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">
-                                    <button wire:click="editGame('{{ $game->id }}')"
-                                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
-                                            aria-label="{{ __('games.action_edit_game') }}">
-                                        <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
-                                        <span class="hidden sm:inline">{{ __('games.action_edit_game') }}</span>
-                                    </button>
-                                    <a href="{{ route('games.create') }}?clone={{ $game->id }}" wire:navigate
-                                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
-                                       aria-label="{{ __('games.action_create_similar_session') }}">
-                                        <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
-                                        <span class="hidden sm:inline">{{ __('games.action_create_similar_session') }}</span>
-                                    </a>
-                                    <button wire:click="completeGame('{{ $game->id }}')"
-                                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-secondary hover:bg-secondary/10 transition-colors"
-                                            aria-label="{{ __('games.action_complete_game') }}">
-                                        <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
-                                        <span class="hidden sm:inline">{{ __('games.action_complete_game') }}</span>
-                                    </button>
-                                    <x-confirm-action
-                                        action="cancelGame('{{ $game->id }}')"
-                                        id="cancel-game-{{ $game->id }}"
-                                        :icon="'cancel'"
-                                        :trigger-label="__('games.action_cancel_game')"
-                                        trigger-class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
-                                        :confirm-label="__('games.action_cancel_game')"
-                                        :cancel-label="__('common.action_keep')"
-                                        :message="__('games.confirm_cancel_game')"
-                                        variant="inline"
-                                        severity="destructive"
-                                        confirm-icon="cancel"
-                                    />
-                                </div>
-                            @else
-                                <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">
-                                    <a href="{{ route('games.create') }}?clone={{ $game->id }}" wire:navigate
-                                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
-                                       aria-label="{{ __('games.action_create_similar_session') }}">
-                                        <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
-                                        <span class="hidden sm:inline">{{ __('games.action_create_similar_session') }}</span>
-                                    </a>
-                                </div>
-                            @endif
-                        </div>
+                    @foreach($upcomingHosting as $game)
+                        @include('livewire.games._game-card', ['game' => $game, 'asHost' => true])
                     @endforeach
                 </div>
-            @endif
-        </section>
+            </section>
+        @endif
 
-        {{-- Games I'm In Section --}}
-        <section>
-            <h2 class="text-xl font-heading font-semibold text-on-surface mb-4">{{ __('games.heading_games_im_in') }}</h2>
-
-            @if($participatingGames->isEmpty())
-                <div class="bg-surface-container-low rounded-xl p-8 text-center">
-                    <span class="material-symbols-outlined text-4xl text-on-surface-variant mb-2 block" aria-hidden="true">group</span>
-                    <p class="text-on-surface-variant text-sm">{{ __('games.content_no_games_joined') }}</p>
-                </div>
-            @else
+        {{-- ═══ Upcoming — playing ═══ --}}
+        @if($upcomingPlaying->isNotEmpty())
+            <section>
+                <h2 class="text-xl font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">groups</span>
+                    {{ __('games.heading_upcoming_playing') }}
+                </h2>
                 <div class="space-y-3">
-                    @foreach($participatingGames as $game)
-                        <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden">
-                            {{-- Info area: clickable to detail --}}
-                            <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="group block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
+                    @foreach($upcomingPlaying as $game)
+                        @include('livewire.games._game-card', ['game' => $game, 'asHost' => false])
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- ═══ Open invitations ═══ --}}
+        @if($pendingInvitations->isNotEmpty())
+            <section>
+                <h2 class="text-xl font-heading font-semibold text-on-surface mb-4">{{ __('games.heading_open_invitations') }}</h2>
+                <div class="space-y-3">
+                    @foreach($pendingInvitations as $invitation)
+                        @php $game = $invitation->game; @endphp
+                        @continue(!$game)
+                        <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden border-l-4 border-primary">
+                            <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
                                 <div class="flex flex-wrap items-center gap-2 mb-2">
-                                    <h3 class="text-base font-medium text-on-surface group-hover:text-secondary transition-colors">
-                                        {{ $game->name }}
-                                    </h3>
-@foreach($game->gameSystems as $system)
-    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-        {{ $system->name }}
-    </span>
-@endforeach
-                                    @if($game->campaign)
-                                        <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                            <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
-                                            {{ $game->campaign->name }}
-                                        </span>
-                                    @endif
+                                    <h3 class="text-base font-medium text-on-surface">{{ $game->name }}</h3>
+                                    @foreach($game->gameSystems as $system)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">{{ $system->name }}</span>
+                                    @endforeach
                                 </div>
                                 <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
                                     @if($game->date_time)
@@ -182,96 +157,76 @@
                                             {{ $game->owner->name }}
                                         </span>
                                     @endif
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
-                                        {{ $game->participants->count() }}/{{ $game->max_players ?? '∞' }}
-                                    </span>
                                 </div>
                             </a>
-                            {{-- Leave button for scheduled games --}}
-                            @if($game->status->value === 'scheduled')
-                                <div class="border-t border-outline-variant/30 px-4 py-2 sm:px-5">
-                                    <x-confirm-action
-                                        action="leaveGame('{{ $game->id }}')"
-                                        id="leave-game-{{ $game->id }}"
-                                        :icon="'logout'"
-                                        :trigger-label="__('games.action_leave_game')"
-                                        trigger-class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-error transition-colors"
-                                        :confirm-label="__('games.action_leave_game')"
-                                        :cancel-label="__('common.action_keep')"
-                                        :message="__('games.confirm_leave_game')"
-                                        variant="inline"
-                                        severity="destructive"
-                                        confirm-icon="logout"
-                                    />
-                                </div>
-                            @endif
+                            <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">
+                                <button wire:click="acceptInvitation('{{ $invitation->id }}')"
+                                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-secondary hover:bg-secondary/10 transition-colors"
+                                        aria-label="{{ __('games.action_accept_invitation') }}">
+                                    <span class="material-symbols-outlined text-base" aria-hidden="true">check</span>
+                                    <span class="hidden sm:inline">{{ __('games.action_accept_invitation') }}</span>
+                                </button>
+                                <button wire:click="declineInvitation('{{ $invitation->id }}')"
+                                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
+                                        aria-label="{{ __('games.action_decline_invitation') }}">
+                                    <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
+                                    <span class="hidden sm:inline">{{ __('games.action_decline_invitation') }}</span>
+                                </button>
+                            </div>
                         </div>
                     @endforeach
                 </div>
-            @endif
-        </section>
-
-        {{-- Open Invitations Section --}}
-        @if($pendingInvitations->isNotEmpty())
-        <section>
-            <h2 class="text-xl font-heading font-semibold text-on-surface mb-4">{{ __('games.heading_open_invitations') }}</h2>
-
-            <div class="space-y-3">
-                @foreach($pendingInvitations as $invitation)
-                    @php $game = $invitation->game; @endphp
-                    <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden border-l-4 border-primary">
-                        {{-- Info area --}}
-                        <div class="p-4 sm:p-5">
-                            <div class="flex flex-wrap items-center gap-2 mb-2">
-                                <h3 class="text-base font-medium text-on-surface">
-                                    {{ $game->name }}
-                                </h3>
-@foreach($game->gameSystems as $system)
-    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-        {{ $system->name }}
-    </span>
-@endforeach
-                            </div>
-                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
-                                @if($game->date_time)
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">calendar_today</span>
-                                        {{ format_date($game->date_time, 'datetime') }}
-                                    </span>
-                                @endif
-                                @if($game->owner)
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
-                                        {{ $game->owner->name }}
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- Actions footer --}}
-                        <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">
-                            <button wire:click="acceptInvitation('{{ $invitation->id }}')"
-                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-secondary hover:bg-secondary/10 transition-colors"
-                                    aria-label="{{ __('games.action_accept_invitation') }}">
-                                <span class="material-symbols-outlined text-base" aria-hidden="true">check</span>
-                                <span class="hidden sm:inline">{{ __('games.action_accept_invitation') }}</span>
-                            </button>
-                            <button wire:click="declineInvitation('{{ $invitation->id }}')"
-                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
-                                    aria-label="{{ __('games.action_decline_invitation') }}">
-                                <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
-                                <span class="hidden sm:inline">{{ __('games.action_decline_invitation') }}</span>
-                            </button>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </section>
+            </section>
         @endif
 
+        {{-- ═══ Recently completed ═══ --}}
+        @if($recentCompleted->isNotEmpty())
+            <section>
+                <h2 class="text-xl font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">history</span>
+                    {{ __('games.heading_recently_completed') }}
+                </h2>
+                <div class="space-y-3">
+                    @foreach($recentCompleted as $game)
+                        @php
+                            // In "recently completed", host context applies when the viewer owns it.
+                            $cardAsHost = (string) $game->owner_id === (string) auth()->id();
+                        @endphp
+                        @include('livewire.games._game-card', ['game' => $game, 'asHost' => $cardAsHost])
+                    @endforeach
+                </div>
+            </section>
+        @endif
 
-        {{-- Community Activity Feed --}}
+        {{-- ═══ Archive (collapsible) ═══ --}}
+        @if($archiveGames->isNotEmpty())
+            <section x-data="{ open: false }">
+                <button type="button" x-on:click="open = !open"
+                        class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors mb-3"
+                        :aria-expanded="open">
+                    <span class="material-symbols-outlined text-lg" aria-hidden="true" x-bind:style="open ? 'transform: rotate(90deg)' : ''">chevron_right</span>
+                    <h2 class="text-base font-heading font-semibold">{{ __('games.heading_archive') }}</h2>
+                    <span class="text-xs text-on-surface-variant">({{ $archiveGames->count() }})</span>
+                </button>
+                <div x-show="open"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1"
+                     class="space-y-3">
+                    @foreach($archiveGames as $game)
+                        @php
+                            $cardAsHost = (string) $game->owner_id === (string) auth()->id();
+                        @endphp
+                        @include('livewire.games._game-card', ['game' => $game, 'asHost' => $cardAsHost])
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- ═══ Community Activity Feed ═══ --}}
         @include('livewire.partials.activity-feed', ['activityFeed' => $activityFeed, 'entityType' => 'game'])
 
         {{-- Edit Game Modal --}}

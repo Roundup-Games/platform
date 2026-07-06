@@ -572,7 +572,14 @@ class DashboardEstablishedService
     }
 
     /**
-     * Compute the "host again" suggestion — the user's most recent completed game.
+     * Compute the "host again" suggestion — the user's most recent completed
+     * one-shot game session.
+     *
+     * Only standalone sessions qualify. Sessions spawned from a recurring
+     * Campaign (games.campaign_id IS NOT NULL) are intentionally excluded:
+     * they are governed by the campaign's own "plan ahead" nudge
+     * ({@see RecurrenceService::shouldNudge()}), and surfacing
+     * them here would show two competing re-host prompts for the same event.
      *
      * @return array<string, mixed>
      */
@@ -581,6 +588,7 @@ class DashboardEstablishedService
         /** @var Game|null $lastGame */
         $lastGame = Game::where('owner_id', $user->id)
             ->where('status', GameStatus::Completed->value)
+            ->whereNull('campaign_id')
             ->with(['gameSystems'])
             ->orderByDesc('date_time')
             ->first();

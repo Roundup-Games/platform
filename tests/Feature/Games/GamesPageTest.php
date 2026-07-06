@@ -212,17 +212,15 @@ describe('GamesPage — Games I\'m In Display', function () {
             ->assertSee('Joined Game');
     });
 
-    it('does not show owned games in Games I\'m In', function () {
+    it('shows owned games in the upcoming hosting section', function () {
         $user = gamesPageCreateUser();
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => ['en' => 'My Own Game']]);
 
+        // The owned game appears in the 'Upcoming — you\'re hosting' section...
         actingAs($user)
             ->get('/en/games')
-            ->assertSee('My Own Game'); // visible in My Games
-        // But the participating section should show empty state
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.content_no_games_joined'));
+            ->assertSee('My Own Game')
+            ->assertSee(__('games.heading_upcoming_hosting'));
     });
 });
 

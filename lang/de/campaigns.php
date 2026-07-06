@@ -82,9 +82,9 @@ return [
     // New keys for entity domain migration
     'action_add_session' => 'Session hinzufügen',
     'action_add_session_to_campaign' => 'Session zur Kampagne hinzufügen',
-    'nudge_plan_ahead_title' => 'Vorausplanen',
-    'nudge_plan_ahead_desc' => 'Du hast weniger als ~2 Sitzungen deines Rhythmus geplant. Plane jetzt die nächste.',
-    'nudge_plan_ahead_action' => 'Nächste Sitzung planen',
+    'heading_plan_ahead' => 'Vorausplanen',
+    'content_plan_ahead_nudge' => 'Du hast weniger als ~2 Sitzungen deines Rhythmus geplant. Plane jetzt die nächste.',
+    'action_plan_next_session' => 'Nächste Sitzung planen',
     'content_create_new_session_linked_to' => 'Erstelle eine neue Spielsession für :campaign.',
     'content_session_details' => 'Session-Details',
     'content_campaign_settings' => 'Kampagneneinstellungen',
@@ -148,6 +148,13 @@ return [
     'error_campaign_not_active' => 'Nur aktive Kampagnen können geändert werden.',
     'confirm_cancel_campaign' => 'Bist du sicher, dass du diese Kampagne abbrechen möchtest?',
     'content_no_owned_campaigns' => 'Du hast noch keine Kampagnen erstellt.',
+
+    // CampaignsPage — priorisierte Bereiche
+    'heading_active_hosting' => 'Aktiv — du organisierst',
+    'heading_active_playing' => 'Aktiv — du spielst mit',
+    'content_empty_no_campaigns_title' => 'Noch keine Kampagnen',
+    'content_empty_no_campaigns_body' => 'Finde eine wiederkehrende Gruppe zum Beitreten, oder starte deine eigene Kampagne.',
+    'action_empty_find_adventures' => 'Abenteuer finden',
 
     // CampaignsPage — Kampagnen, an denen ich teilnehme
     'heading_campaigns_im_in' => 'Kampagnen, an denen ich teilnehme',

@@ -144,11 +144,20 @@ return [
     'flash_game_completed' => 'Spiel als abgeschlossen markiert.',
     'error_game_not_scheduled' => 'Nur geplante Spiele können geändert werden.',
     'confirm_cancel_game' => 'Bist du sicher, dass du dieses Spiel absagen möchtest?',
-    'content_no_owned_games' => 'Du hast noch keine Spiele erstellt.',
+
+    // GamesPage — priorisierte Bereiche
+    'heading_needs_your_attention' => 'Braucht deine Aufmerksamkeit',
+    'heading_upcoming_hosting' => 'Anstehend — du leitest',
+    'heading_upcoming_playing' => 'Anstehend — du spielst mit',
+    'heading_recently_completed' => 'Kürzlich abgeschlossen',
+    'heading_archive' => 'Archiv',
+    'content_empty_no_games_title' => 'Noch keine Spiele',
+    'content_empty_no_games_body' => 'Durchsuche Sitzungen nach deinen Vorlieben, oder plane dein erstes Spiel.',
+    'action_empty_discover' => 'Sitzungen finden',
+    'action_empty_plan' => 'Sitzung planen',
+    'content_needs_attention_hint' => 'Die folgenden Punkte benötigen deine Aktion, bevor sie sich verschärfen.',
 
     // GamesPage — Spiele, an denen ich teilnehme
-    'heading_games_im_in' => 'Spiele, an denen ich teilnehme',
-    'content_no_games_joined' => 'Du hast noch an keinen Spielen teilgenommen.',
 
     // GamesPage — Offene Einladungen
     'heading_open_invitations' => 'Offene Einladungen',

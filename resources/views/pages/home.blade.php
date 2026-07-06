@@ -22,7 +22,7 @@
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
                         {{ __('campaigns.action_find_sessions_near_me') }}
                     </a>
-                    <a href="{{ route('games.index') }}" wire:navigate
+                    <a href="{{ route('discover') }}" wire:navigate
                        class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">casino</span>
                         {{ __('games.action_explore_games_cta') }}
@@ -193,7 +193,7 @@
                         {{ __('profile.action_create_free_account') }}
                     </a>
                 @else
-                    <a href="{{ route('games.index') }}" wire:navigate
+                    <a href="{{ route('discover') }}" wire:navigate
                        class="inline-flex items-center px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm shadow-md">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">search</span>
                         {{ __('campaigns.action_browse_sessions') }}

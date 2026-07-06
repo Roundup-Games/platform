@@ -5,7 +5,6 @@ namespace App\Livewire\Campaigns;
 use App\Enums\ActivityType;
 use App\Enums\CampaignStatus;
 use App\Enums\NotificationCategory;
-use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Campaign;
@@ -14,7 +13,7 @@ use App\Notifications\EntityCancelled;
 use App\Notifications\EntityCompleted;
 use App\Notifications\EntityUpdated;
 use App\Services\ActivityLogService;
-use App\Services\GameActivityFeedService;
+use App\Services\MyCampaignsBoardService;
 use App\Services\NotificationService;
 use App\Services\ParticipantLifecycle;
 use App\Services\Roster;
@@ -226,37 +225,19 @@ class CampaignsPage extends Component
 
         $user = authenticatedUser();
 
-        // My Campaigns — owned by the user
-        $ownedCampaigns = Campaign::where('owner_id', $user->id)
-            ->with(['gameSystems', 'participants'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // Campaigns I'm In — approved participations, not owned
-        $participatingCampaigns = Campaign::whereHas('participants', function ($query) use ($user) {
-            $query->where('user_id', $user->id)
-                ->where('role', ParticipantRole::Player->value)
-                ->where('status', 'approved');
-        })->where('owner_id', '!=', $user->id)
-            ->with(['gameSystems', 'participants', 'owner'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // Open Invitations — invited, pending
-        $pendingInvitations = CampaignParticipant::where('user_id', $user->id)
-            ->where('role', ParticipantRole::Invited->value)
-            ->where('status', 'pending')
-            ->with(['campaign.gameSystems', 'campaign.owner'])
-            ->get();
-
-        // Community activity feed — what friends/followed users are doing in campaigns
-        $activityFeed = app(GameActivityFeedService::class)->getCampaignFeed($user, 15);
+        // Prioritized board: needs-attention -> active hosting/playing -> ended.
+        // See MyCampaignsBoardService for the bucketing contract.
+        $board = app(MyCampaignsBoardService::class)->build($user);
 
         return view('livewire.campaigns.campaigns-page', [
-            'ownedCampaigns' => $ownedCampaigns,
-            'participatingCampaigns' => $participatingCampaigns,
-            'pendingInvitations' => $pendingInvitations,
-            'activityFeed' => $activityFeed,
+            'needsAttention' => $board['needs_attention'],
+            'activeHosting' => $board['active_hosting'],
+            'activePlaying' => $board['active_playing'],
+            'pendingInvitations' => $board['pending_invitations'],
+            'recentEnded' => $board['recent_ended'],
+            'archiveCampaigns' => $board['archive'],
+            'activityFeed' => $board['activity_feed'],
+            'hasAnyCampaigns' => $board['has_any_campaigns'],
         ]);
     }
 

@@ -329,8 +329,8 @@ class DashboardAssembler
         // 3. Create game is always a useful action for GMs.
         if ($user->isGM()) {
             $actions[] = [
-                'label' => (string) __('profile.dashboard_opportunities_create_cta'),
-                'url' => route('games.create'),
+                'label' => (string) __('plan.action_plan_something'),
+                'url' => route('plan.create'),
                 'style' => count($actions) === 0 ? 'primary' : 'secondary',
                 'icon' => 'add_circle',
             ];
