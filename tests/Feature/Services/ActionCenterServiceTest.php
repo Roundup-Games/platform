@@ -1116,4 +1116,82 @@ class ActionCenterServiceTest extends TestCase
         $recurrenceItems = array_filter($items, fn (ActionItem $i) => $i->type === 'recurrence_planning');
         $this->assertEmpty($recurrenceItems, 'Completed campaigns must never produce a planning nudge.');
     }
+
+    // ── Scoped getters (performance contract) ──────────────────────
+    // getCampaignItems()/getGameItems() exist so the My Games / My Campaigns
+    // boards don't run the full ~12-source getItems() pipeline just to discard
+    // most of it. These tests lock in the contract: campaign-scoped items must
+    // come back from getCampaignItems() only, game-scoped from getGameItems()
+    // only. A future refactor that reverts to getItems()+filter would silently
+    // reintroduce the wasted queries and fail these tests.
+
+    public function test_get_campaign_items_returns_only_campaign_scoped_types(): void
+    {
+        // Seed one campaign-scoped item (recurrence nudge) and one game-scoped
+        // item (a pending application on a game the user owns).
+        Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'active',
+            'recurrence' => 'weekly',
+        ]);
+
+        $game = Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => GameStatus::Scheduled->value,
+        ]);
+        GameParticipant::create([
+            'id' => (string) Str::uuid(),
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
+        ]);
+
+        $items = $this->service->getCampaignItems($this->user);
+
+        // Every returned item must be campaign-scoped — never game-scoped.
+        foreach ($items as $item) {
+            $this->assertSame('campaign', $item->metadata['entity_type'] ?? null);
+        }
+        $types = array_map(fn (ActionItem $i) => $i->type, $items);
+        $this->assertNotContains('pending_applications', $types, 'getCampaignItems() must not run the game-scoped application query.');
+        $this->assertContains('recurrence_planning', $types, 'Expected the campaign recurrence nudge.');
+    }
+
+    public function test_get_game_items_returns_only_game_scoped_types(): void
+    {
+        // Seed one game-scoped item (pending application) and one campaign-scoped
+        // item (recurrence nudge).
+        $game = Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => GameStatus::Scheduled->value,
+        ]);
+        GameParticipant::create([
+            'id' => (string) Str::uuid(),
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
+        ]);
+
+        Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'active',
+            'recurrence' => 'weekly',
+        ]);
+
+        $items = $this->service->getGameItems($this->user);
+
+        // Every returned item must be game-scoped — never campaign-scoped.
+        foreach ($items as $item) {
+            $this->assertSame('game', $item->metadata['entity_type'] ?? null);
+        }
+        $types = array_map(fn (ActionItem $i) => $i->type, $items);
+        $this->assertNotContains('recurrence_planning', $types, 'getGameItems() must not run the campaign recurrence query.');
+        $this->assertContains('pending_applications', $types, 'Expected the game pending-applications item.');
+    }
 }
