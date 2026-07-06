@@ -208,6 +208,10 @@ it('performClearCover clears the cover, closes the ticket, and notifies the owne
     attachCoverToGame($game);
     $game = $game->fresh();
 
+    // Capture the real host cover URL BEFORE the takedown so the post-clear
+    // comparison is meaningful (not a tautology against a null-derived URL).
+    $hostCoverUrl = $game->resolveCoverUrl();
+
     $reporter = User::factory()->create(['profile_complete' => true]);
     $ticket = coverReportTicket($game, 'game', $reporter);
 
@@ -222,7 +226,6 @@ it('performClearCover clears the cover, closes the ticket, and notifies the owne
 
     // Host cover gone; resolveCoverUrl() now returns a fallback (no longer the host media URL).
     expect($game->getFirstMedia('cover'))->toBeNull();
-    $hostCoverUrl = Storage::disk('public')->url($game->getFirstMedia('cover')?->id.'/conversions/'.pathinfo('cover.jpg', PATHINFO_FILENAME).'-thumb.jpg');
     expect($game->resolveCoverUrl())->not->toBe($hostCoverUrl);
 
     // Owner notified with the cover-scoped ContentRemoved notification.

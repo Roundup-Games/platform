@@ -81,9 +81,11 @@ class GameFactory extends Factory
      * persisted inside afterCreating (post-save) because the pivot needs real
      * UUIDs and belongsToMany::sync() requires the Game to exist first.
      *
-     * Side effect: GameSystem rows are created even on factory->make(). The
-     * codebase only ever creates (never makes) Games in tests, and each test
-     * runs inside a DatabaseTransactions wrapper, so this is safe in practice.
+     * Side effect: GameSystem rows are created only on factory->create() (via
+     * afterCreating), NOT on factory->make() — afterMaking only sets the
+     * transient flag without persisting. The codebase only ever creates
+     * (never makes) Games in tests, and each test runs inside a
+     * DatabaseTransactions wrapper, so this is safe in practice.
      */
     public function gathering(): static
     {

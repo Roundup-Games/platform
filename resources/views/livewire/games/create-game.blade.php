@@ -111,6 +111,9 @@
                                     <div class="flex items-center gap-2">
                                         <span class="material-symbols-outlined text-sm text-on-surface-variant" aria-hidden="true">description</span>
                                         <span class="text-sm text-on-surface-variant">{{ $cover_image->getClientOriginalName() }}</span>
+                                        <button type="button" wire:click="$set('cover_image', null)" class="text-on-surface-variant hover:text-error transition-colors" aria-label="{{ __('games.action_remove_cover_image') }}">
+                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
+                                        </button>
                                     </div>
                                 @else
                                     <input type="file" id="game-cover-image" wire:model="cover_image" accept="image/jpeg,image/png,image/webp"

@@ -296,7 +296,7 @@ describe('authorization', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('terminal-state guard', function () {
-    it('refuses capacity edits on a Completed game with an error flash', function () {
+    it('refuses capacity edits on a Completed game', function () {
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3, overrides: [
             'status' => GameStatus::Completed->value,
         ]);

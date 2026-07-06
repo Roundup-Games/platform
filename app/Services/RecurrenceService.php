@@ -207,8 +207,14 @@ class RecurrenceService
     }
 
     /**
-     * Apply an 'HH:MM' (or 'HH:MM:SS') time-of-day to a Carbon date, leaving
-     * the existing time untouched when the string is empty/malformed.
+     * Apply an 'HH:MM' (or 'HH:MM:SS') time-of-day to a Carbon date.
+     *
+     * Empty string is a no-op (leaves the existing time). Non-empty strings
+     * are delegated to Carbon's setTimeFromTimeString, which follows standard
+     * PHP DateTime::modify parsing — an unparseable value will not change the
+     * time but will not throw either. In practice, time_of_day is validated at
+     * the CreateCampaign level (H:i format), so malformed values should never
+     * reach this method.
      */
     private function applyTimeOfDay(Carbon $date, string $timeOfDay): Carbon
     {
