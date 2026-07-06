@@ -46,6 +46,7 @@ use App\Livewire\GM\SessionZero\CreateSessionZero;
 use App\Livewire\Notifications\NotificationsPage;
 use App\Livewire\Onboarding\CompleteProfile;
 use App\Livewire\People\PeoplePage;
+use App\Livewire\PlanSomething;
 use App\Livewire\Profile\AuthenticatedProfile;
 use App\Livewire\Profile\PublicProfile;
 use App\Livewire\Profile\Show;
@@ -255,6 +256,12 @@ Route::prefix('{locale}')
         });
 
         // ── Games ─────────────────────────────────────
+
+        // Unified "Plan something" entry point — asks one-time vs recurring,
+        // then routes to games.create or campaigns.create with smart defaults.
+        Route::middleware(['auth', 'profile.complete'])->group(function () {
+            Route::get('/plan', PlanSomething::class)->name('plan.create');
+        });
 
         Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/games/create', CreateGame::class)->name('games.create');

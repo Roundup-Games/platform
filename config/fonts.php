@@ -41,7 +41,7 @@ return [
         'map', 'location_on', 'location_off', 'my_location', 'edit_location',
         'add_location', 'add_location_alt', 'near_me', 'sports_esports', 'swords',
         'play_circle', 'stop_circle', 'start', 'event', 'event_available',
-        'event_busy', 'event_note', 'event_seat', 'event_upcoming', 'event_repeat',
+        'event_busy', 'event_note', 'event_seat', 'event_upcoming',
         'calendar_today', 'calendar_month', 'schedule',
         'campaign', 'playlist_add', 'repeat', 'local_fire_department',
 

@@ -92,10 +92,10 @@ class DashboardQuickActionsServiceTest extends TestCase
         $actions = $this->service->getQuickActions($user);
 
         $this->assertCount(3, $actions);
-        $this->assertEquals('profile.dashboard_quick_create_game', $actions[0]['label']);
+        $this->assertEquals('plan.action_plan_something', $actions[0]['label']);
         $this->assertEquals('primary', $actions[0]['style']);
         $this->assertEquals('add_circle', $actions[0]['icon']);
-        $this->assertEquals(route('games.create'), $actions[0]['url']);
+        $this->assertEquals(route('plan.create'), $actions[0]['url']);
     }
 
     public function test_gm_with_upcoming_shows_gm_workspace(): void
@@ -121,7 +121,7 @@ class DashboardQuickActionsServiceTest extends TestCase
         // Secondary should include Create Game and Discover
         $secondaryLabels = collect($actions)->skip(1)->pluck('label')->toArray();
         $this->assertContains('profile.dashboard_quick_discover', $secondaryLabels);
-        $this->assertContains('profile.dashboard_quick_create_game', $secondaryLabels);
+        $this->assertContains('plan.action_plan_something', $secondaryLabels);
     }
 
     // ── Team captain role ──────────────────────────────
@@ -293,7 +293,7 @@ class DashboardQuickActionsServiceTest extends TestCase
 
         $secondaryLabels = collect($actions)->skip(1)->pluck('label')->toArray();
         $this->assertContains('profile.dashboard_quick_discover', $secondaryLabels);
-        $this->assertContains('profile.dashboard_quick_create_game', $secondaryLabels);
+        $this->assertContains('plan.action_plan_something', $secondaryLabels);
     }
 
     // ── Player as approved participant ─────────────────

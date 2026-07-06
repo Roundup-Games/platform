@@ -1035,7 +1035,7 @@ class ActionCenterServiceTest extends TestCase
         $item = $recurrenceItems[0];
         $this->assertSame('low', $item->priority);
         $this->assertStringContainsString('prefill=1', $item->actionUrl);
-        $this->assertSame('event_repeat', $item->icon);
+        $this->assertSame('repeat', $item->icon);
         $this->assertSame('campaign', $item->metadata['entity_type']);
     }
 

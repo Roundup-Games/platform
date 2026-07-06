@@ -520,10 +520,10 @@ class CampaignDetail extends Component
             }
 
             return [
-                'title' => __('campaigns.nudge_plan_ahead_title'),
-                'description' => __('campaigns.nudge_plan_ahead_desc'),
+                'title' => __('campaigns.heading_plan_ahead'),
+                'description' => __('campaigns.content_plan_ahead_nudge'),
                 'action_url' => route('campaigns.add-session', [$this->campaign->id, 'prefill' => 1]),
-                'action_label' => __('campaigns.nudge_plan_ahead_action'),
+                'action_label' => __('campaigns.action_plan_next_session'),
             ];
         }
 

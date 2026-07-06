@@ -193,7 +193,7 @@
 @php
     $steps = $tracker['steps'] ?? [];
     $currentStep = $tracker['current_step'] ?? 1;
-    $stepIcons = ['person', 'tune', 'search', 'celebration'];
+    $stepIcons = ['person', 'tune', 'search', 'emoji_events'];
     $stepRoutes = ['profile.edit', 'profile.edit', 'discover', 'games.index'];
 @endphp
 <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">

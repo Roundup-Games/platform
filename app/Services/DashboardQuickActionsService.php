@@ -139,8 +139,8 @@ class DashboardQuickActionsService
                 'icon' => 'groups',
             ],
             $role === 'gm' && ! $hasUpcoming => [
-                'label' => 'profile.dashboard_quick_create_game',
-                'url' => route('games.create'),
+                'label' => 'plan.action_plan_something',
+                'url' => route('plan.create'),
                 'style' => 'primary',
                 'icon' => 'add_circle',
             ],
@@ -193,11 +193,11 @@ class DashboardQuickActionsService
         }
 
         // Create Game — for GMs if not primary
-        $createLabel = 'profile.dashboard_quick_create_game';
-        if ($role === 'gm' && $primaryLabel !== $createLabel) {
+        $planLabel = 'plan.action_plan_something';
+        if ($role === 'gm' && $primaryLabel !== $planLabel) {
             $candidates[] = [
-                'label' => $createLabel,
-                'url' => route('games.create'),
+                'label' => $planLabel,
+                'url' => route('plan.create'),
                 'style' => 'secondary',
                 'icon' => 'add_circle',
             ];
@@ -212,10 +212,12 @@ class DashboardQuickActionsService
                 'icon' => 'auto_stories',
             ];
         } else {
-            // Find Campaigns — if not in any campaign
+            // Find Campaigns — discovery surface (cross-platform adventures &
+            // recurring campaigns to join), NOT the campaigns.index management
+            // screen. The management page is useless to someone in no campaign.
             $candidates[] = [
                 'label' => 'profile.dashboard_quick_find_campaigns',
-                'url' => route('campaigns.index'),
+                'url' => route('discover.adventures'),
                 'style' => 'secondary',
                 'icon' => 'campaign',
             ];

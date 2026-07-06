@@ -83,9 +83,9 @@ return [
     // New keys for entity domain migration
     'action_add_session' => 'Add Session',
     'action_add_session_to_campaign' => 'Add Session to Campaign',
-    'nudge_plan_ahead_title' => 'Plan ahead',
-    'nudge_plan_ahead_desc' => 'You have fewer than ~2 sessions of your cadence scheduled. Plan the next one now.',
-    'nudge_plan_ahead_action' => 'Plan next session',
+    'heading_plan_ahead' => 'Plan ahead',
+    'content_plan_ahead_nudge' => 'You have fewer than ~2 sessions of your cadence scheduled. Plan the next one now.',
+    'action_plan_next_session' => 'Plan next session',
     'content_create_new_session_linked_to' => 'Create a new game session linked to :campaign.',
     'content_session_details' => 'Session Details',
     'content_campaign_settings' => 'Campaign Settings',
@@ -149,6 +149,14 @@ return [
     'error_campaign_not_active' => 'Only active campaigns can be modified.',
     'confirm_cancel_campaign' => 'Are you sure you want to cancel this campaign?',
     'content_no_owned_campaigns' => 'You haven\'t created any campaigns yet.',
+
+    // CampaignsPage — priority board sections
+    'heading_active_hosting' => 'Active — you\'re organizing',
+    'heading_active_playing' => 'Active — you\'re playing',
+    'heading_ended' => 'Ended',
+    'content_empty_no_campaigns_title' => 'No campaigns yet',
+    'content_empty_no_campaigns_body' => 'Find a recurring game to join, or start your own campaign.',
+    'action_empty_find_adventures' => 'Find adventures',
 
     // CampaignsPage — Campaigns I'm In section
     'heading_campaigns_im_in' => 'Campaigns I\'m In',

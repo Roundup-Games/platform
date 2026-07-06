@@ -10,6 +10,7 @@ use App\Enums\VibeFlag;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\GameSystem;
+use App\Services\CreateDefaultsService;
 use App\Services\OwnerParticipantService;
 use App\Services\ShortLinkService;
 use App\Services\VenueTrustService;
@@ -400,6 +401,25 @@ class CreateCampaign extends Component
         session()->flash('success', __('campaigns.flash_campaign_name_created_successfully', ['name' => $campaign->name]));
 
         $this->redirect(route('campaigns.show', $campaign->id), navigate: true);
+    }
+
+    public function mount(): void
+    {
+        // Smart defaults: carry forward language, location, visibility, and
+        // seat count from the user's prior campaign or standalone sessions.
+        $user = Auth::user();
+        if ($user !== null) {
+            $defaults = app(CreateDefaultsService::class)->forCampaign($user);
+
+            $this->language = $defaults['language'] ?? 'en';
+            $this->location_id = $defaults['location_id'] ?? null;
+            $this->visibility = $defaults['visibility'] ?? 'protected';
+            $this->max_players = $defaults['max_players'] ?? null;
+            $this->experience_level = $defaults['experience_level'] ?? null;
+            $this->game_type = $defaults['game_type'] ?? 'ttrpg';
+            $this->game_system_id = $defaults['game_system_id'] ?? null;
+            $this->recurrence = $defaults['recurrence'] ?? 'weekly';
+        }
     }
 
     public function render(): View

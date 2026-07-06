@@ -150,11 +150,20 @@ return [
     'flash_game_completed' => 'Game marked as completed.',
     'error_game_not_scheduled' => 'Only scheduled games can be modified.',
     'confirm_cancel_game' => 'Are you sure you want to cancel this game?',
-    'content_no_owned_games' => 'You haven\'t created any games yet.',
+
+    // GamesPage — priority board sections
+    'heading_needs_your_attention' => 'Needs your attention',
+    'heading_upcoming_hosting' => 'Upcoming — you\'re hosting',
+    'heading_upcoming_playing' => 'Upcoming — you\'re playing',
+    'heading_recently_completed' => 'Recently completed',
+    'heading_archive' => 'Archive',
+    'content_empty_no_games_title' => 'No games yet',
+    'content_empty_no_games_body' => 'Browse sessions matching your preferences, or plan your first game.',
+    'action_empty_discover' => 'Find sessions',
+    'action_empty_plan' => 'Plan a session',
+    'content_needs_attention_hint' => 'Items below need your action before they escalate.',
 
     // GamesPage — Games I'm In section
-    'heading_games_im_in' => 'Games I\'m In',
-    'content_no_games_joined' => 'You haven\'t joined any games yet.',
 
     // GamesPage — Open Invitations section
     'heading_open_invitations' => 'Open Invitations',

@@ -85,6 +85,11 @@
                      @click.away="open = false"
                      class="bg-surface/95 backdrop-blur-md border-b border-outline-variant/15">
                     <div class="px-4 pb-4 space-y-1">
+                        <a href="{{ route('plan.create') }}" wire:navigate
+                           class="flex items-center justify-center gap-2 px-4 py-3 mb-1 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-colors">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">add_circle</span>
+                            {{ __('plan.action_plan_something') }}
+                        </a>
                         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
                             {{ __('profile.content_dashboard') }}
@@ -176,6 +181,13 @@
 
                     {{-- Navigation --}}
                     <nav class="flex-1 px-3 py-6 space-y-1" aria-label="{{ __('common.aria_main_navigation') }}">
+                        {{-- Primary CTA: Plan something --}}
+                        <a href="{{ route('plan.create') }}" wire:navigate
+                           class="flex items-center justify-center gap-2 px-4 py-3 mb-2 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-all duration-200 shadow-sm">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">add_circle</span>
+                            {{ __('plan.action_plan_something') }}
+                        </a>
+
                         {{-- Primary navigation items --}}
                         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>

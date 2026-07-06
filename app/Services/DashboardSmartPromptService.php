@@ -198,7 +198,7 @@ class DashboardSmartPromptService
         return [
             'type' => 'empty_week',
             'message' => __('profile.dashboard_prompt_msg_empty_week'),
-            'action_url' => route('games.index'),
+            'action_url' => route('discover'),
             'action_label' => $nearbyCount > 0 ? trans_choice('profile.dashboard_prompt_msg_browse_nearby', $nearbyCount, ['count' => $nearbyCount]) : __('profile.dashboard_prompt_find_game'),
             'metadata' => [
                 'nearby_count' => $nearbyCount,

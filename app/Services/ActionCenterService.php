@@ -591,7 +591,7 @@ class ActionCenterService
             description: __('profile.dashboard_action_recurrence_desc'),
             actionUrl: route('campaigns.add-session', [$c->id, 'prefill' => 1]),
             actionLabel: __('profile.dashboard_action_recurrence_action'),
-            icon: 'event_repeat',
+            icon: 'repeat',
             createdAt: now(),
             metadata: [
                 'entity_type' => 'campaign',

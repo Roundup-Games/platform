@@ -10,6 +10,7 @@ use App\Enums\VibeFlag;
 use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Services\CreateDefaultsService;
 use App\Services\OwnerParticipantService;
 use App\Services\ShortLinkService;
 use App\Services\VenueTrustService;
@@ -40,6 +41,10 @@ class CreateGame extends Component
     /** Optional query parameter: game ID to clone from */
     #[Url]
     public ?string $clone = null;
+
+    /** Optional query parameter: pre-selected game type (from the unified Plan flow) */
+    #[Url]
+    public ?string $type = null;
 
     public string $name = '';
 
@@ -215,6 +220,16 @@ class CreateGame extends Component
 
     public function mount(): void
     {
+        // If a type was pre-selected via ?type= (e.g. from the Plan flow),
+        // auto-advance to the form with smart defaults applied.
+        if (($this->clone === null || $this->clone === '') && $this->type !== null) {
+            if (in_array($this->type, GameType::values(), true)) {
+                $this->selectType($this->type);
+            }
+
+            return;
+        }
+
         if ($this->clone === null || $this->clone === '') {
             return;
         }
@@ -300,6 +315,7 @@ class CreateGame extends Component
         $this->game_type = $type;
         $this->step = 'form';
         $this->applyTypeDefaults($type);
+        $this->applySmartDefaults($type);
     }
 
     public function changeType(string $type): void
@@ -634,6 +650,69 @@ class CreateGame extends Component
         if ($type === 'gathering') {
             $this->max_players = 12;
             $this->experience_level = 'all';
+        }
+    }
+
+    /**
+     * Layer smart defaults from the user's last session of the same type
+     * and profile preferences on top of the bare type defaults.
+     *
+     * Only fills fields that are still at their type-default value; clone
+     * data (which runs after mount via a separate path) is never affected.
+     */
+    protected function applySmartDefaults(string $type): void
+    {
+        $user = Auth::user();
+        if ($user === null) {
+            return;
+        }
+
+        $gameType = GameType::from($type);
+        $defaults = app(CreateDefaultsService::class)->forGameType($user, $gameType);
+
+        // Language: prefer last session, then profile preference, then 'en'.
+        $this->language = $defaults['language'] ?? 'en';
+
+        // Location + instructions travel forward.
+        $this->location_id = $defaults['location_id'];
+        $this->location_instructions = $defaults['location_instructions'] ?? '';
+
+        // Visibility from last session (default 'protected' if none).
+        $this->visibility = $defaults['visibility'] ?? 'protected';
+
+        // Experience level — but gatherings keep their 'all' default.
+        if ($type !== 'gathering' && $defaults['experience_level'] !== null) {
+            $this->experience_level = $defaults['experience_level'];
+        }
+
+        // Duration: override the type default only if last session had one.
+        if ($defaults['expected_duration'] !== null) {
+            $this->expected_duration = $defaults['expected_duration'];
+        }
+
+        // Seat counts — but gatherings keep their 12-player default.
+        if ($type !== 'gathering') {
+            if ($defaults['max_players'] !== null) {
+                $this->max_players = $defaults['max_players'];
+            }
+            if ($defaults['min_players'] !== null) {
+                $this->min_players = $defaults['min_players'];
+            }
+        }
+
+        // Vibe flags from last session.
+        if ($defaults['vibe_flags'] !== null) {
+            foreach ($defaults['vibe_flags'] as $flag) {
+                $this->vibePreferences[$flag] = 'favorite';
+            }
+        }
+
+        // Offered-system set: gatherings get the multi-select set carried
+        // forward; focused types get the single system.
+        if ($type === 'gathering' && ! empty($defaults['game_systems'])) {
+            $this->game_systems = $defaults['game_systems'];
+        } elseif ($defaults['game_system_id'] !== null) {
+            $this->game_system_id = $defaults['game_system_id'];
         }
     }
 

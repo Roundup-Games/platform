@@ -5,7 +5,6 @@ namespace App\Livewire\Games;
 use App\Enums\ActivityType;
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
-use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Game;
@@ -16,7 +15,7 @@ use App\Notifications\EntityUpdated;
 use App\Services\ActivityLogService;
 use App\Services\AttendanceService;
 use App\Services\DebriefingService;
-use App\Services\GameActivityFeedService;
+use App\Services\MyGamesBoardService;
 use App\Services\NotificationService;
 use App\Services\ParticipantLifecycle;
 use App\Services\Roster;
@@ -240,34 +239,19 @@ class GamesPage extends Component
 
         $user = authenticatedUser();
 
-        $ownedGames = Game::where('owner_id', $user->id)
-            ->with(['gameSystems', 'participants', 'campaign'])
-            ->orderBy('date_time', 'desc')
-            ->get();
-
-        $participatingGames = Game::whereHas('participants', function ($query) use ($user) {
-            $query->where('user_id', $user->id)
-                ->where('role', ParticipantRole::Player->value)
-                ->where('status', 'approved');
-        })->where('owner_id', '!=', $user->id)
-            ->with(['gameSystems', 'participants', 'owner', 'campaign'])
-            ->orderBy('date_time', 'desc')
-            ->get();
-
-        $pendingInvitations = GameParticipant::where('user_id', $user->id)
-            ->where('role', ParticipantRole::Invited->value)
-            ->where('status', 'pending')
-            ->with(['game.gameSystems', 'game.owner'])
-            ->get();
-
-        // Community activity feed — what friends/followed users are doing in games
-        $activityFeed = app(GameActivityFeedService::class)->getFeed($user, 15);
+        // Prioritized board: needs-attention -> upcoming -> recent -> archive.
+        // See MyGamesBoardService for the bucketing contract.
+        $board = app(MyGamesBoardService::class)->build($user);
 
         return view('livewire.games.games-page', [
-            'ownedGames' => $ownedGames,
-            'participatingGames' => $participatingGames,
-            'pendingInvitations' => $pendingInvitations,
-            'activityFeed' => $activityFeed,
+            'needsAttention' => $board['needs_attention'],
+            'upcomingHosting' => $board['upcoming_hosting'],
+            'upcomingPlaying' => $board['upcoming_playing'],
+            'pendingInvitations' => $board['pending_invitations'],
+            'recentCompleted' => $board['recent_completed'],
+            'archiveGames' => $board['archive'],
+            'activityFeed' => $board['activity_feed'],
+            'hasAnyGames' => $board['has_any_games'],
         ]);
     }
 
