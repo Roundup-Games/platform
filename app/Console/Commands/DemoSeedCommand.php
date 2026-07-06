@@ -395,6 +395,22 @@ class DemoSeedCommand extends Command
         'dungeon-crawl', 'theater-of-the-mind', 'rules-as-written',
     ];
 
+    /** @var array<string, string[]> Warm host notes for Gathering-type campaigns, keyed by language */
+    private const GATHERING_HOST_NOTES = [
+        'en' => [
+            'Pull up a chair! We play a mix of light and heavy games — newcomers always welcome.',
+            'Casual game night. Bring a game you love or try something from our shelf.',
+            'Friendly group, all experience levels. We teach every game we play.',
+            'Open table night — drop in, grab a drink, and let us roll some dice.',
+        ],
+        'de' => [
+            'Setzt euch dazu! Wir spielen eine Mischung aus leichten und schweren Spielen — Neueinsteiger immer willkommen.',
+            'Lockerer Spieleabend. Bringt ein Spiel mit oder probiert etwas von unserem Regal.',
+            'Familiar Gruppe, alle Erfahrungsstufen. Wir erklären jedes Spiel, das wir spielen.',
+            'Offener Spieleabend — kommt vorbei, holt euch etwas zu trinken und wir würfeln.',
+        ],
+    ];
+
     private const GM_BIOS = [
         'Veteran TTRPG game master with 10+ years of running campaigns. Love narrative-driven games with deep character work.',
         'Board game enthusiast and organizer hosting weekly public game nights — all skill levels welcome.',
@@ -1475,6 +1491,7 @@ class DemoSeedCommand extends Command
                 $participantIds = [$gm['id']];
 
                 // GM as owner
+                $gmJoinedAt = $dateTime->copy()->subDays(random_int(1, 7));
                 $participantBatch[] = [
                     'id' => (string) Str::orderedUuid(),
                     'game_id' => $gameId,
@@ -1486,7 +1503,12 @@ class DemoSeedCommand extends Command
                     'invitee_email' => null,
                     'benched_at' => null,
                     'waitlisted_at' => null,
-                    'created_at' => $dateTime->copy()->subDays(random_int(1, 7)),
+                    'created_at' => $gmJoinedAt,
+                    // approved_at is stamped by GameParticipantObserver::saving()
+                    // on real writes; raw DB inserts bypass the observer, so set
+                    // it explicitly here to keep CapacityService's LIFO demotion
+                    // ordering (ORDER BY approved_at DESC) meaningful in demo data.
+                    'approved_at' => $gmJoinedAt,
                 ];
 
                 // Players — batch
@@ -1495,6 +1517,7 @@ class DemoSeedCommand extends Command
                         ? AttendanceStatus::Attended->value
                         : AttendanceStatus::NoShow->value);
 
+                    $playerJoinedAt = $dateTime->copy()->subDays(random_int(1, 7));
                     $participantBatch[] = [
                         'id' => (string) Str::orderedUuid(),
                         'game_id' => $gameId,
@@ -1506,7 +1529,8 @@ class DemoSeedCommand extends Command
                         'invitee_email' => $this->inviteeEmailForSource($pid, $joinSource),
                         'benched_at' => null,
                         'waitlisted_at' => null,
-                        'created_at' => $dateTime->copy()->subDays(random_int(1, 7)),
+                        'created_at' => $playerJoinedAt,
+                        'approved_at' => $playerJoinedAt,
                     ];
                     if (! $isCancelled && $attendance === AttendanceStatus::Attended->value) {
                         $participantIds[] = $pid;
@@ -1544,6 +1568,9 @@ class DemoSeedCommand extends Command
                         'benched_at' => $isBench ? $dateTime->copy()->subDays(random_int(0, 5)) : null,
                         'waitlisted_at' => $isBench ? null : $dateTime->copy()->subDays(random_int(0, 5)),
                         'created_at' => $dateTime->copy()->subDays(random_int(1, 7)),
+                        // Key present (null) for batch-insert uniformity; only
+                        // Approved participants carry a real approved_at value.
+                        'approved_at' => null,
                     ];
 
                     // Application matching the overflow participant's status
@@ -1829,14 +1856,14 @@ class DemoSeedCommand extends Command
     {
         $this->newLine();
         $this->info('Creating campaigns...');
-        if (empty($this->ttrpgPool)) {
-            $this->warn('No TTRPG systems in pool. Skipping campaigns.');
+        if (empty($this->ttrpgPool) && empty($this->boardGamePool)) {
+            $this->warn('No TTRPG or board game systems in pool. Skipping campaigns.');
 
             return;
         }
 
         // Pre-compute static arrays used in tight loops (avoids per-iteration collect() allocations)
-        $recurrenceOptions = ['weekly', 'bi-weekly'];
+        $recurrenceOptions = ['weekly', 'bi-weekly', 'monthly'];
         $experienceLevels = array_map(fn ($case) => $case->value, ExperienceLevel::cases());
 
         $bar = $this->output->createProgressBar(count($this->gmInfo));
@@ -1845,6 +1872,7 @@ class DemoSeedCommand extends Command
 
         $totalCampaigns = 0;
         $totalSessions = 0;
+        $totalGatherings = 0;
 
         // Batch accumulators — flush every 500 rows for performance
         /** @var list<array<string, mixed>> $campaignBatch */
@@ -1864,7 +1892,6 @@ class DemoSeedCommand extends Command
             &$campaignBatch, &$campaignParticipantBatch, &$campaignApplicationBatch,
             &$gameBatch, &$gameParticipantBatch, &$gameApplicationBatch,
         ): void {
-            // Flush any batch that has rows — called at flush points to prevent unbounded growth
             if (! empty($campaignBatch)) {
                 $this->dryInsertMany('campaigns', $campaignBatch);
                 $campaignBatch = [];
@@ -1897,11 +1924,65 @@ class DemoSeedCommand extends Command
             $cityLocs = $this->locationsByCity[$city] ?? [];
 
             for ($c = 0; $c < $campaignCount; $c++) {
-                $rpg = $this->ttrpgPool[array_rand($this->ttrpgPool)];
+                // ── Campaign type: ~20% Gathering (multi-system board game
+                // night) when board systems are available, else TTRPG. ──
+                $isGathering = ! empty($this->boardGamePool) && mt_rand() / mt_getrandmax() < 0.20;
+                $gameType = $isGathering ? GameType::Gathering : GameType::Ttrpg;
 
-                $maxPlayers = random_int($rpg['min'], $rpg['max']);
-                $minPlayers = max($rpg['min'], $maxPlayers - 2);
-                $isBench = mt_rand() / mt_getrandmax() < 0.20;
+                if ($isGathering) {
+                    // Pick 2-6 distinct board game systems (the multi-system
+                    // offering that distinguishes a Gathering from a single-
+                    // system board session). Dedup by id — the weighted pool
+                    // can contain the same system multiple times.
+                    $want = random_int(2, max(2, min(6, count($this->boardGamePool))));
+                    $shuffled = $this->boardGamePool;
+                    shuffle($shuffled);
+                    $systemIds = [];
+                    foreach ($shuffled as $candidate) {
+                        if (! in_array($candidate['id'], $systemIds, true)) {
+                            $systemIds[] = $candidate['id'];
+                        }
+                        if (count($systemIds) >= $want) {
+                            break;
+                        }
+                    }
+                    $representativeSystemId = $systemIds[0];
+                    // Gatherings are larger, casual tables — no bench mode.
+                    $maxPlayers = random_int(8, 12);
+                    $minPlayers = max(3, $maxPlayers - 4);
+                    $isBench = false;
+                    $vibeType = 'board';
+                    $safetyTools = ['lines_and_veils', 'x-card'];
+                } else {
+                    $rpg = $this->ttrpgPool[array_rand($this->ttrpgPool)];
+                    $maxPlayers = random_int($rpg['min'], $rpg['max']);
+                    $minPlayers = max($rpg['min'], $maxPlayers - 2);
+                    $isBench = mt_rand() / mt_getrandmax() < 0.20;
+                    $systemIds = [$rpg['id']];
+                    $representativeSystemId = $rpg['id'];
+                    $vibeType = 'ttrpg';
+                    $safetyTools = ['session_zero', 'lines_and_veils', 'x-card'];
+                }
+
+                // ── Campaign settings every session must honor: recurrence
+                // cadence, time-of-day, and session duration. Previously the
+                // seeder generated random per-session times/durations that
+                // contradicted these, making the campaign detail page look
+                // incoherent (a weekly-18:00 campaign with sessions at random
+                // times, random durations, wrong spacing). ──
+                $recurrence = $recurrenceOptions[array_rand($recurrenceOptions)];
+                $cadenceDays = match ($recurrence) {
+                    'weekly' => 7,
+                    'bi-weekly' => 14,
+                    'monthly' => 30,
+                };
+                $timeHour = random_int(14, 20);
+                $timeMinute = random_int(0, 3) * 15;
+                $timeOfDay = sprintf('%02d:%02d', $timeHour, $timeMinute);
+                $sessionDuration = $isGathering
+                    ? (float) random_int(2, 4) + (mt_rand() / mt_getrandmax() < 0.5 ? 0.0 : 0.5)
+                    : (float) random_int(3, 5);
+
                 $locationId = $cityLocs[array_rand($cityLocs)] ?? null;
 
                 // Visibility: 20% public, 40% protected, 40% private
@@ -1920,29 +2001,47 @@ class DemoSeedCommand extends Command
                 $campaignName = $campaignNames[array_rand($campaignNames)];
                 $campaignCreatedAt = now()->subDays(random_int(14, 60));
                 $campaignExpLevel = $experienceLevels[array_rand($experienceLevels)];
+                $hostNote = $isGathering ? self::GATHERING_HOST_NOTES[$language][array_rand(self::GATHERING_HOST_NOTES[$language])] : null;
 
                 $campaignBatch[] = [
                     'id' => $campaignId,
                     'owner_id' => $gm['id'],
-                    'game_system_id' => $rpg['id'],
+                    'game_system_id' => $representativeSystemId,
+                    'game_type' => $gameType->value,
                     'location_id' => $locationId,
                     'name' => json_encode([$language => $campaignName.' '.self::MARKER]),
                     'description' => json_encode([$language => $campaignDescs[array_rand($campaignDescs)].' '.self::MARKER]),
                     'visibility' => $visibility->value,
                     'min_players' => $minPlayers,
                     'max_players' => $maxPlayers,
-                    'recurrence' => $recurrenceOptions[array_rand($recurrenceOptions)],
-                    'time_of_day' => sprintf('%02d:%02d', random_int(14, 20), random_int(0, 3) * 15),
-                    'session_duration' => random_int(3, 5),
+                    'recurrence' => $recurrence,
+                    'time_of_day' => $timeOfDay,
+                    'session_duration' => $sessionDuration,
                     'experience_level' => $campaignExpLevel,
-                    'vibe_flags' => json_encode($this->randomVibes('ttrpg')),
-                    'safety_rules' => json_encode(['tools' => ['session_zero', 'lines_and_veils', 'x-card']]),
+                    'vibe_flags' => json_encode($this->randomVibes($vibeType)),
+                    'safety_rules' => json_encode(['tools' => $safetyTools]),
                     'bench_mode' => $isBench,
                     'status' => $campaignStatus,
                     'language' => $language,
                     'created_at' => $campaignCreatedAt,
                     'updated_at' => now(),
                 ];
+
+                // Queue the extra (non-representative) system pivots for multi-
+                // system gatherings. dryInsertMany()'s harvest attaches the
+                // representative (game_system_id) to the pivot; these are the
+                // additional 1-5 systems. insertOrIgnore in syncGameSystemPivots
+                // keeps this idempotent.
+                foreach (array_slice($systemIds, 1) as $extraSid) {
+                    $this->pendingCampaignSystemPivots[] = [
+                        'campaign_id' => $campaignId,
+                        'game_system_id' => $extraSid,
+                    ];
+                }
+
+                if ($isGathering) {
+                    $totalGatherings++;
+                }
 
                 // Select campaign participants using same visibility-aware logic
                 $playerCount = random_int(max(2, $minPlayers - 1), max(2, $maxPlayers - 1));
@@ -2027,153 +2126,172 @@ class DemoSeedCommand extends Command
                     ];
                 }
 
-                // --- Session Zero ---
-                $interval = $isBench ? 14 : 7;
-                $baseDate = now()->subDays(random_int(7, 21));
-                $szId = (string) Str::orderedUuid();
-                $szDate = $baseDate->copy()->addDays(random_int(0, 7));
-                // Cancelled campaigns have cancelled session zeros; otherwise 75% completed
-                // Both active and completed campaigns can have completed session zeros
-                $szCompleted = $campaignStatus !== 'cancelled' && mt_rand() / mt_getrandmax() < 0.75;
-                $szStatus = $campaignStatus === 'cancelled'
-                    ? GameStatus::Canceled->value
-                    : ($szCompleted ? GameStatus::Completed->value : GameStatus::Scheduled->value);
+                // Session counter threads through every session in this campaign
+                // so numbering is continuous (1, 2, 3, 4, …) rather than
+                // restarting at 1 for the future block. TTRPG session zero is
+                // #1; gatherings have no session zero and start at 1.
+                $sessionCounter = 0;
 
-                $gameBatch[] = [
-                    'id' => $szId,
-                    'owner_id' => $gm['id'],
-                    'campaign_id' => $campaignId,
-                    'game_system_id' => $rpg['id'],
-                    'name' => json_encode([$language => ($language === 'de' ? 'Session Zero: Charaktere & Weltenbau' : 'Session Zero: Character & World Building').' '.self::MARKER]),
-                    'description' => json_encode([$language => self::SESSION_ZERO_DESC[$language].' '.self::MARKER]),
-                    'game_type' => GameType::Ttrpg->value,
-                    'date_time' => $szDate,
-                    'expected_duration' => 2.5,
-                    'location_id' => $locationId,
-                    'location' => $this->buildLocationJson($locationId),
-                    'status' => $szStatus,
-                    'visibility' => $visibility->value,
-                    'experience_level' => $campaignExpLevel,
-                    'min_players' => $minPlayers,
-                    'max_players' => $maxPlayers,
-                    'bench_mode' => $isBench,
-                    'vibe_flags' => json_encode($this->randomVibes('ttrpg')),
-                    'safety_rules' => json_encode(['tools' => ['session_zero', 'lines_and_veils', 'x-card']]),
-                    'language' => $language,
-                    'recap' => $szCompleted ? self::RECAPS[$language][array_rand(self::RECAPS[$language])] : null,
-                    'created_at' => $szDate->copy()->subDays(7),
-                    'updated_at' => $szDate,
-                ];
-
+                // ── Session Zero (TTRPG only — gatherings have no session zero) ──
+                $szCompleted = false;
+                $szId = null;
+                $szDate = null;
                 $attendedPids = [];
-                foreach ($campaignParticipants as $pid) {
-                    // Attendance randomization: 90% attended, 10% no-show for completed sessions
-                    $attendance = null;
-                    if ($szCompleted && $pid !== $gm['id']) {
-                        $attendance = mt_rand() / mt_getrandmax() < 0.90
-                            ? AttendanceStatus::Attended->value
-                            : AttendanceStatus::NoShow->value;
-                    } elseif ($szCompleted) {
-                        $attendance = AttendanceStatus::Attended->value; // GM always attended
-                    }
 
-                    // Track who actually attended for survey seeding
-                    if ($szCompleted && ($attendance === AttendanceStatus::Attended->value || $pid === $gm['id'])) {
-                        $attendedPids[] = $pid;
-                    }
+                if (! $isGathering) {
+                    $baseDate = now()->subDays(random_int(7, 21));
+                    $szId = (string) Str::orderedUuid();
+                    $szDate = $baseDate->copy()->addDays(random_int(0, 7))->setTime($timeHour, $timeMinute);
+                    // Cancelled campaigns have cancelled session zeros; otherwise 75% completed
+                    $szCompleted = $campaignStatus !== 'cancelled' && mt_rand() / mt_getrandmax() < 0.75;
+                    $szStatus = $campaignStatus === 'cancelled'
+                        ? GameStatus::Canceled->value
+                        : ($szCompleted ? GameStatus::Completed->value : GameStatus::Scheduled->value);
+                    $sessionCounter = 1;
 
-                    $gameParticipantBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
-                        'game_id' => $szId,
-                        'user_id' => $pid,
-                        'role' => $pid === $gm['id'] ? ParticipantRole::Owner->value : ParticipantRole::Player->value,
-                        'status' => ParticipantStatus::Approved->value,
-                        'attendance_status' => $attendance,
-                        'join_source' => $joinSource,
-                        'invitee_email' => $pid !== $gm['id'] ? $this->inviteeEmailForSource($pid, $joinSource) : null,
-                        'benched_at' => null,
-                        'waitlisted_at' => null,
-                        'created_at' => $szDate->copy()->subDays(random_int(1, 7)),
+                    $gameBatch[] = [
+                        'id' => $szId,
+                        'owner_id' => $gm['id'],
+                        'campaign_id' => $campaignId,
+                        'game_system_id' => $representativeSystemId,
+                        'name' => json_encode([$language => ($language === 'de' ? 'Session Zero: Charaktere & Weltenbau' : 'Session Zero: Character & World Building').' '.self::MARKER]),
+                        'description' => json_encode([$language => self::SESSION_ZERO_DESC[$language].' '.self::MARKER]),
+                        'host_note' => null,
+                        'game_type' => $gameType->value,
+                        'date_time' => $szDate,
+                        'expected_duration' => 2.5, // session zero is shorter than play sessions
+                        'location_id' => $locationId,
+                        'location' => $this->buildLocationJson($locationId),
+                        'status' => $szStatus,
+                        'visibility' => $visibility->value,
+                        'experience_level' => $campaignExpLevel,
+                        'min_players' => $minPlayers,
+                        'max_players' => $maxPlayers,
+                        'bench_mode' => $isBench,
+                        'vibe_flags' => json_encode($this->randomVibes($vibeType)),
+                        'safety_rules' => json_encode(['tools' => $safetyTools]),
+                        'language' => $language,
+                        'recap' => $szCompleted ? self::RECAPS[$language][array_rand(self::RECAPS[$language])] : null,
+                        'created_at' => $szDate->copy()->subDays(7),
+                        'updated_at' => $szDate,
                     ];
 
-                    // Game application for each campaign session participant
-                    // Game application for each campaign session participant (skip GM — owners don't apply)
-                    if ($pid !== $gm['id']) {
-                        $gameApplicationBatch[] = [
+                    foreach ($campaignParticipants as $pid) {
+                        // Attendance randomization: 90% attended, 10% no-show for completed sessions
+                        $attendance = null;
+                        if ($szCompleted && $pid !== $gm['id']) {
+                            $attendance = mt_rand() / mt_getrandmax() < 0.90
+                                ? AttendanceStatus::Attended->value
+                                : AttendanceStatus::NoShow->value;
+                        } elseif ($szCompleted) {
+                            $attendance = AttendanceStatus::Attended->value; // GM always attended
+                        }
+
+                        // Track who actually attended for survey seeding
+                        if ($szCompleted && ($attendance === AttendanceStatus::Attended->value || $pid === $gm['id'])) {
+                            $attendedPids[] = $pid;
+                        }
+
+                        $szParticipantCreatedAt = $szDate->copy()->subDays(random_int(1, 7));
+                        $gameParticipantBatch[] = [
                             'id' => (string) Str::orderedUuid(),
                             'game_id' => $szId,
                             'user_id' => $pid,
+                            'role' => $pid === $gm['id'] ? ParticipantRole::Owner->value : ParticipantRole::Player->value,
                             'status' => ParticipantStatus::Approved->value,
-                            'message' => null,
-                            'created_at' => $szDate->copy()->subDays(random_int(3, 14)),
-                            'updated_at' => $szDate->copy()->subDays(random_int(1, 7)),
+                            'attendance_status' => $attendance,
+                            'join_source' => $joinSource,
+                            'invitee_email' => $pid !== $gm['id'] ? $this->inviteeEmailForSource($pid, $joinSource) : null,
+                            'benched_at' => null,
+                            'waitlisted_at' => null,
+                            'created_at' => $szParticipantCreatedAt,
+                            // Raw DB insert bypasses GameParticipantObserver::saving(),
+                            // so stamp approved_at explicitly for CapacityService LIFO.
+                            'approved_at' => $szParticipantCreatedAt,
                         ];
+
+                        // Game application for each campaign session participant (skip GM — owners don't apply)
+                        if ($pid !== $gm['id']) {
+                            $gameApplicationBatch[] = [
+                                'id' => (string) Str::orderedUuid(),
+                                'game_id' => $szId,
+                                'user_id' => $pid,
+                                'status' => ParticipantStatus::Approved->value,
+                                'message' => null,
+                                'created_at' => $szDate->copy()->subDays(random_int(3, 14)),
+                                'updated_at' => $szDate->copy()->subDays(random_int(1, 7)),
+                            ];
+                        }
                     }
-                }
-                $totalSessions++;
+                    $totalSessions++;
 
-                // Track non-cancelled public/protected session zeros for short links
-                if ($szStatus !== GameStatus::Canceled->value && $visibility !== Visibility::Private) {
-                    $this->campaignSessionGames[] = ['game_id' => $szId, 'owner_id' => $gm['id']];
-                }
+                    // Track non-cancelled public/protected session zeros for short links
+                    if ($szStatus !== GameStatus::Canceled->value && $visibility !== Visibility::Private) {
+                        $this->campaignSessionGames[] = ['game_id' => $szId, 'owner_id' => $gm['id']];
+                    }
 
-                // Track completed session zeros for survey seeding and review generation
-                if ($szCompleted) {
-                    // Exclude GM from survey participants — surveys are for players
-                    $surveyParticipantIds = array_values(array_filter($attendedPids, fn ($pid) => $pid !== $gm['id']));
-                    $szEntry = [
-                        'game_id' => $szId,
-                        'owner_id' => $gm['id'],
-                        'language' => $language,
-                        'participant_ids' => $surveyParticipantIds,
-                    ];
-                    $this->completedSessionZeros[] = $szEntry;
-                    // Also feed into completedGames so createReviews() generates TTRPG reviews
-                    // (createReviews already filters out owner from reviewers)
-                    $szEntry['is_session_zero'] = true;
-                    $this->completedGames[] = $szEntry;
-
-                    // Queue attendance reports for session zero participants
-                    foreach ($surveyParticipantIds as $pid) {
-                        $this->attendanceReportQueue[] = [
+                    // Track completed session zeros for survey seeding and review generation
+                    if ($szCompleted) {
+                        // Exclude GM from survey participants — surveys are for players
+                        $surveyParticipantIds = array_values(array_filter($attendedPids, fn ($pid) => $pid !== $gm['id']));
+                        $szEntry = [
                             'game_id' => $szId,
                             'owner_id' => $gm['id'],
-                            'reported_id' => $pid,
-                            'attendance' => AttendanceStatus::Attended->value,
-                        ];
-                    }
-
-                    // Track campaign for campaign-level reviews only when campaign is completed
-                    // Active campaigns haven't had enough play to warrant a campaign-level review
-                    if ($campaignStatus === 'completed') {
-                        $this->completedCampaignsForReview[] = [
-                            'campaign_id' => $campaignId,
-                            'owner_id' => $gm['id'],
-                            'participant_ids' => array_values(array_filter(
-                                $campaignParticipants,
-                                fn ($pid) => $pid !== $gm['id']
-                            )),
                             'language' => $language,
+                            'participant_ids' => $surveyParticipantIds,
                         ];
+                        $this->completedSessionZeros[] = $szEntry;
+                        // Also feed into completedGames so createReviews() generates TTRPG reviews
+                        $szEntry['is_session_zero'] = true;
+                        $this->completedGames[] = $szEntry;
+
+                        // Queue attendance reports for session zero participants
+                        foreach ($surveyParticipantIds as $pid) {
+                            $this->attendanceReportQueue[] = [
+                                'game_id' => $szId,
+                                'owner_id' => $gm['id'],
+                                'reported_id' => $pid,
+                                'attendance' => AttendanceStatus::Attended->value,
+                            ];
+                        }
+
+                        // Track campaign for campaign-level reviews only when campaign is completed
+                        if ($campaignStatus === 'completed') {
+                            $this->completedCampaignsForReview[] = [
+                                'campaign_id' => $campaignId,
+                                'owner_id' => $gm['id'],
+                                'participant_ids' => array_values(array_filter(
+                                    $campaignParticipants,
+                                    fn ($pid) => $pid !== $gm['id']
+                                )),
+                                'language' => $language,
+                            ];
+                        }
                     }
                 }
 
-                // --- Completed past sessions (active & completed campaigns) ---
-                // These represent sessions that already happened between session zero and now,
-                // with full attendance tracking, recaps, and post-completion data.
+                // ── Completed past sessions (active & completed campaigns) ──
                 $pastSessionCount = $campaignStatus === 'cancelled' ? 0
                     : random_int(1, 3);
                 for ($p = 1; $p <= $pastSessionCount; $p++) {
-                    $maxDaysAgo = max(3, $szDate->diffInDays(now()) - 1);
+                    $maxDaysAgo = max(3, ($szDate ? $szDate->diffInDays(now()) : 21) - 1);
                     $pastDaysAgo = random_int(3, (int) $maxDaysAgo);
-                    $pastDate = now()->subDays($pastDaysAgo)->setTime(random_int(14, 20), random_int(0, 3) * 15);
+                    $pastDate = now()->subDays($pastDaysAgo)->setTime($timeHour, $timeMinute);
                     $pId = (string) Str::orderedUuid();
-                    $sessionNum = $p + 1; // session zero was #1
+                    $sessionCounter++;
+                    $sessionNum = $sessionCounter;
 
-                    $sessionLabel = $language === 'de' ? "Sitzung {$sessionNum}" : "Session {$sessionNum}";
-                    $sessionDesc = $language === 'de'
-                        ? "Abgeschlossene Kampagnensitzung {$sessionNum}. ".self::MARKER
-                        : "Completed campaign session {$sessionNum}. ".self::MARKER;
+                    if ($isGathering) {
+                        $sessionLabel = $language === 'de' ? "Spieleabend {$sessionNum}" : "Game Night {$sessionNum}";
+                        $sessionDesc = $language === 'de'
+                            ? 'Offener Spieleabend — bringt eure Lieblingsspiele mit. '.self::MARKER
+                            : 'Open game night — bring your favourite games. '.self::MARKER;
+                    } else {
+                        $sessionLabel = $language === 'de' ? "Sitzung {$sessionNum}" : "Session {$sessionNum}";
+                        $sessionDesc = $language === 'de'
+                            ? "Abgeschlossene Kampagnensitzung {$sessionNum}. ".self::MARKER
+                            : "Completed campaign session {$sessionNum}. ".self::MARKER;
+                    }
 
                     // ~3% of past sessions were cancelled
                     $isPastCancelled = mt_rand() / mt_getrandmax() < 0.03;
@@ -2185,12 +2303,13 @@ class DemoSeedCommand extends Command
                         'id' => $pId,
                         'owner_id' => $gm['id'],
                         'campaign_id' => $campaignId,
-                        'game_system_id' => $rpg['id'],
+                        'game_system_id' => $representativeSystemId,
                         'name' => json_encode([$language => $sessionLabel.' '.self::MARKER]),
                         'description' => json_encode([$language => $sessionDesc]),
-                        'game_type' => GameType::Ttrpg->value,
+                        'host_note' => $hostNote,
+                        'game_type' => $gameType->value,
                         'date_time' => $pastDate,
-                        'expected_duration' => random_int(3, 5),
+                        'expected_duration' => $sessionDuration,
                         'location_id' => $locationId,
                         'location' => $this->buildLocationJson($locationId),
                         'status' => $pStatus,
@@ -2199,13 +2318,21 @@ class DemoSeedCommand extends Command
                         'min_players' => $minPlayers,
                         'max_players' => $maxPlayers,
                         'bench_mode' => $isBench,
-                        'vibe_flags' => json_encode($this->randomVibes('ttrpg')),
+                        'vibe_flags' => json_encode($this->randomVibes($vibeType)),
                         'safety_rules' => json_encode(['tools' => ['lines_and_veils', 'x-card']]),
                         'language' => $language,
                         'recap' => $isPastCancelled ? null : self::RECAPS[$language][array_rand(self::RECAPS[$language])],
                         'created_at' => $pastDate->copy()->subDays(random_int(3, 7)),
                         'updated_at' => $pastDate,
                     ];
+
+                    // Queue extra system pivots for multi-system gathering sessions
+                    foreach (array_slice($systemIds, 1) as $extraSid) {
+                        $this->pendingGameSystemPivots[] = [
+                            'game_id' => $pId,
+                            'game_system_id' => $extraSid,
+                        ];
+                    }
 
                     $pastAttendedPids = [];
                     foreach ($campaignParticipants as $pid) {
@@ -2227,6 +2354,7 @@ class DemoSeedCommand extends Command
                             $sessionJoinSource = $this->joinSourceForVisibility($visibility->value, false);
                         }
 
+                        $pastParticipantCreatedAt = $pastDate->copy()->subDays(random_int(1, 5));
                         $gameParticipantBatch[] = [
                             'id' => (string) Str::orderedUuid(),
                             'game_id' => $pId,
@@ -2238,7 +2366,8 @@ class DemoSeedCommand extends Command
                             'invitee_email' => $pid !== $gm['id'] ? $this->inviteeEmailForSource($pid, $sessionJoinSource) : null,
                             'benched_at' => null,
                             'waitlisted_at' => null,
-                            'created_at' => $pastDate->copy()->subDays(random_int(1, 5)),
+                            'created_at' => $pastParticipantCreatedAt,
+                            'approved_at' => $pastParticipantCreatedAt,
                         ];
 
                         if ($pid !== $gm['id']) {
@@ -2298,16 +2427,25 @@ class DemoSeedCommand extends Command
                     }
                 }
 
-                // --- Future sessions (3-5, only for active campaigns) ---
+                // ── Future sessions (active campaigns get 3-5, others 0-1) ──
                 $futureCount = $campaignStatus === 'active' ? random_int(3, 5) : random_int(0, 1);
                 for ($f = 1; $f <= $futureCount; $f++) {
-                    $futureDate = now()->addDays($f * $interval)->setTime(random_int(14, 20), random_int(0, 3) * 15);
+                    $futureDate = now()->addDays($f * $cadenceDays)->setTime($timeHour, $timeMinute);
                     $sId = (string) Str::orderedUuid();
+                    $sessionCounter++;
+                    $sessionNum = $sessionCounter;
 
-                    $sessionLabel = $language === 'de' ? "Sitzung {$f}" : "Session {$f}";
-                    $sessionDesc = $language === 'de'
-                        ? "Kampagnensitzung {$f}. ".self::MARKER
-                        : "Campaign session {$f}. ".self::MARKER;
+                    if ($isGathering) {
+                        $sessionLabel = $language === 'de' ? "Spieleabend {$sessionNum}" : "Game Night {$sessionNum}";
+                        $sessionDesc = $language === 'de'
+                            ? 'Nächster Spieleabend — alle willkommen. '.self::MARKER
+                            : 'Next game night — everyone welcome. '.self::MARKER;
+                    } else {
+                        $sessionLabel = $language === 'de' ? "Sitzung {$sessionNum}" : "Session {$sessionNum}";
+                        $sessionDesc = $language === 'de'
+                            ? "Kampagnensitzung {$sessionNum}. ".self::MARKER
+                            : "Campaign session {$sessionNum}. ".self::MARKER;
+                    }
 
                     // Cancelled campaigns have all future sessions cancelled too
                     if ($campaignStatus === 'cancelled') {
@@ -2323,12 +2461,13 @@ class DemoSeedCommand extends Command
                         'id' => $sId,
                         'owner_id' => $gm['id'],
                         'campaign_id' => $campaignId,
-                        'game_system_id' => $rpg['id'],
+                        'game_system_id' => $representativeSystemId,
                         'name' => json_encode([$language => $sessionLabel.' '.self::MARKER]),
                         'description' => json_encode([$language => $sessionDesc]),
-                        'game_type' => GameType::Ttrpg->value,
+                        'host_note' => $hostNote,
+                        'game_type' => $gameType->value,
                         'date_time' => $futureDate,
-                        'expected_duration' => random_int(3, 5),
+                        'expected_duration' => $sessionDuration,
                         'location_id' => $locationId,
                         'location' => $this->buildLocationJson($locationId),
                         'status' => $fStatus,
@@ -2337,13 +2476,21 @@ class DemoSeedCommand extends Command
                         'min_players' => $minPlayers,
                         'max_players' => $maxPlayers,
                         'bench_mode' => $isBench,
-                        'vibe_flags' => json_encode($this->randomVibes('ttrpg')),
+                        'vibe_flags' => json_encode($this->randomVibes($vibeType)),
                         'safety_rules' => json_encode(['tools' => ['lines_and_veils', 'x-card']]),
                         'language' => $language,
                         'recap' => null,
                         'created_at' => $campaignCreatedAt->copy()->addDays(random_int(5, 12)),
                         'updated_at' => now(),
                     ];
+
+                    // Queue extra system pivots for multi-system gathering sessions
+                    foreach (array_slice($systemIds, 1) as $extraSid) {
+                        $this->pendingGameSystemPivots[] = [
+                            'game_id' => $sId,
+                            'game_system_id' => $extraSid,
+                        ];
+                    }
 
                     foreach ($campaignParticipants as $pid) {
                         // Diversify join sources: ~80% use campaign's join source, ~20% get a random valid one
@@ -2352,6 +2499,9 @@ class DemoSeedCommand extends Command
                             $sessionJoinSource = $this->joinSourceForVisibility($visibility->value, false);
                         }
 
+                        // Players join scheduled sessions over time — spread
+                        // approved_at so LIFO demotion ordering is demonstrable.
+                        $futureParticipantCreatedAt = $campaignCreatedAt->copy()->addDays(random_int(5, 12));
                         $gameParticipantBatch[] = [
                             'id' => (string) Str::orderedUuid(),
                             'game_id' => $sId,
@@ -2363,7 +2513,8 @@ class DemoSeedCommand extends Command
                             'invitee_email' => $pid !== $gm['id'] ? $this->inviteeEmailForSource($pid, $sessionJoinSource) : null,
                             'benched_at' => null,
                             'waitlisted_at' => null,
-                            'created_at' => $campaignCreatedAt->copy()->addDays(random_int(5, 12)),
+                            'created_at' => $futureParticipantCreatedAt,
+                            'approved_at' => $futureParticipantCreatedAt,
                         ];
 
                         // Game application for each campaign session participant (skip GM — owners don't apply)
@@ -2438,7 +2589,7 @@ class DemoSeedCommand extends Command
 
         $bar->finish();
         $this->newLine();
-        $this->info("Created {$totalCampaigns} campaigns with {$totalSessions} sessions.");
+        $this->info("Created {$totalCampaigns} campaigns with {$totalSessions} sessions ({$totalGatherings} gatherings).");
     }
 
     // =========================================================================
@@ -2531,6 +2682,7 @@ class DemoSeedCommand extends Command
                 $joinSource = $this->joinSourceForVisibility($visibility->value);
 
                 // GM as owner
+                $gmJoinedAt = now()->subDays(random_int(1, 5));
                 $participantBatch[] = [
                     'id' => (string) Str::orderedUuid(),
                     'game_id' => $gameId,
@@ -2542,12 +2694,17 @@ class DemoSeedCommand extends Command
                     'invitee_email' => null,
                     'benched_at' => null,
                     'waitlisted_at' => null,
-                    'created_at' => now()->subDays(random_int(1, 5)),
+                    'created_at' => $gmJoinedAt,
+                    'approved_at' => $gmJoinedAt,
                 ];
 
                 // No application for GM — owners create the game, they don't apply to join
 
                 foreach ($selected as $pid) {
+                    // Players join over time — spread approved_at so the LIFO
+                    // demotion ordering (most-recently-approved demoted first)
+                    // is demonstrable on this scheduled session.
+                    $playerJoinedAt = now()->subDays(random_int(1, 14));
                     $participantBatch[] = [
                         'id' => (string) Str::orderedUuid(),
                         'game_id' => $gameId,
@@ -2559,7 +2716,8 @@ class DemoSeedCommand extends Command
                         'invitee_email' => $this->inviteeEmailForSource($pid, $joinSource),
                         'benched_at' => null,
                         'waitlisted_at' => null,
-                        'created_at' => now()->subDays(random_int(1, 5)),
+                        'created_at' => $playerJoinedAt,
+                        'approved_at' => $playerJoinedAt,
                     ];
 
                     $applicationBatch[] = [
