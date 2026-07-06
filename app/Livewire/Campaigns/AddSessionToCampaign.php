@@ -106,11 +106,14 @@ class AddSessionToCampaign extends Component
         // row; for Gathering campaigns it carries the host's picked set.
         $campaignSystemIds = $campaign->gameSystems()->allRelatedIds()->all();
 
-        // Fallback for campaigns whose pivot was never populated (defensive —
-        // should not happen post-backfill, but keeps legacy data working):
-        // derive the set from the representative bridge accessor.
-        if (empty($campaignSystemIds) && $campaign->game_system_id !== null) {
-            $campaignSystemIds = [$campaign->game_system_id];
+        // The pivot is the single source of truth after S06 dropped the cached
+        // game_system_id column. An empty set here means the campaign was
+        // created without any systems — log it so the edge case is visible
+        // (the session will still be created, just without an offered set).
+        if (empty($campaignSystemIds)) {
+            Log::warning('add_session_to_campaign.empty_system_set', [
+                'campaign_id' => $campaign->id,
+            ]);
         }
 
         // For a Gathering campaign, the session is a valid Gathering that

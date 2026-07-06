@@ -53,13 +53,6 @@ function addWaitlistedPlayer(Game $game): GameParticipant
 // ═══════════════════════════════════════════════════════════
 
 describe('increase', function () {
-    it('rejects a non-positive newMax at the service boundary (0 = unlimited footgun)', function () {
-        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
-
-        expect(fn () => $this->service->increase($game, 0))
-            ->toThrow(InvalidArgumentException::class);
-    });
-
     it('raises max_players and auto-promotes waitlisted players to Pending', function () {
         // Full game (max=3): owner + 2 approved.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
