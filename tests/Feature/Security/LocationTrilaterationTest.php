@@ -121,7 +121,7 @@ function tri_renderSessionCard(Game|Campaign $entity, ?GameSystem $system, float
 {
     return view('livewire.components.partials.session-card', [
         'entity' => $entity,
-        'gameSystem' => $system,
+        'gameSystems' => $system,
         'distanceKm' => $distanceKm,
         'participantCount' => 0,
         'type' => $type,
@@ -177,7 +177,7 @@ beforeEach(function () {
         'status' => 'scheduled',
         'name' => ['en' => 'Private Home Game'],
     ]);
-    $this->privateGame->load('linkedLocation', 'gameSystem');
+    $this->privateGame->load('linkedLocation', 'gameSystems');
 
     // Guest viewer throughout (no Auth::login) — the unauthenticated attacker.
     Auth::logout();
@@ -242,7 +242,7 @@ describe('spoofed-coordinate trilateration defence', function () {
             'status' => 'active',
             'name' => ['en' => 'Private Home Campaign'],
         ]);
-        $campaign->load('linkedLocation', 'gameSystem');
+        $campaign->load('linkedLocation', 'gameSystems');
 
         foreach (tri_spoofVantagePoints() as $label => $point) {
             $precise = tri_preciseDistanceBetween($point['lat'], $point['lng'], TARGET_LAT, TARGET_LNG);
@@ -289,7 +289,7 @@ describe('venue-aware contrast (snap is not blanket)', function () {
             'status' => 'scheduled',
             'name' => ['en' => 'Café Game'],
         ]);
-        $venueGame->load('linkedLocation', 'gameSystem');
+        $venueGame->load('linkedLocation', 'gameSystems');
 
         $precise = 3.27; // arbitrary precise figure
 

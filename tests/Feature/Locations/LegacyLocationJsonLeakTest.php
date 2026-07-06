@@ -131,7 +131,7 @@ function makeApprovedGameParticipant(Game $game): GameParticipant
 // drive disclosure by authenticating $actingAs (null ⇒ guest).
 function renderGameHeader(Game $game, ?User $actingAs = null): string
 {
-    $game->load(['gameSystem', 'campaign', 'linkedLocation']);
+    $game->load(['gameSystems', 'campaign', 'linkedLocation']);
 
     if ($actingAs !== null) {
         Auth::login($actingAs);
@@ -315,14 +315,14 @@ it('does not embed the legacy address in the schema.org JSON-LD Place', function
 
 it('does not leak the legacy address via the discovery session card', function () {
     $game = legacyGame($this->gameSystem, $this->owner, null);
-    $game->load('gameSystem');
+    $game->load('gameSystems');
 
     // The card surfaces entity name / system / distance / roster only — it must
     // never display any address. Guards against future regressions that might
     // add address display to discovery cards.
     $rendered = view('livewire.components.partials.session-card', [
         'entity' => $game,
-        'gameSystem' => $game->gameSystem,
+        'gameSystems' => $game->gameSystem,
         'distanceKm' => 3.2,
         'participantCount' => 0,
         'type' => 'session',

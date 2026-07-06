@@ -154,7 +154,7 @@ describe('game header venue link', function () {
     it('shows the venue link for a public game at a verified venue', function () {
         $venue = venueLinkCreateVenue(['name' => 'Cafe Meeple']);
         $game = venueLinkCreateGame($venue);
-        $game->load(['gameSystem', 'linkedLocation']);
+        $game->load(['gameSystems', 'linkedLocation']);
 
         $rendered = view('livewire.games.partials._game-header', [
             'game' => $game,
@@ -168,7 +168,7 @@ describe('game header venue link', function () {
     it('shows NO venue link for a public game at a private home', function () {
         $location = venueLinkCreatePrivateLocation(['name' => 'Quiet Apartment']);
         $game = venueLinkCreateGame($location);
-        $game->load(['gameSystem', 'linkedLocation']);
+        $game->load(['gameSystems', 'linkedLocation']);
 
         $rendered = view('livewire.games.partials._game-header', [
             'game' => $game,
@@ -188,7 +188,7 @@ describe('session card venue link', function () {
     it('shows the venue link for a verified-venue session', function () {
         $venue = venueLinkCreateVenue(['name' => 'Board Game Bar']);
         $game = venueLinkCreateGame($venue);
-        $game->load(['gameSystem', 'linkedLocation']);
+        $game->load(['gameSystems', 'linkedLocation']);
 
         $rendered = view('livewire.components.partials.session-card', [
             'entity' => $game,
@@ -202,7 +202,7 @@ describe('session card venue link', function () {
     it('omits the venue link for a private-home session (no name chip)', function () {
         $location = venueLinkCreatePrivateLocation(['name' => 'Living Room Host']);
         $game = venueLinkCreateGame($location);
-        $game->load(['gameSystem', 'linkedLocation']);
+        $game->load(['gameSystems', 'linkedLocation']);
 
         $rendered = view('livewire.components.partials.session-card', [
             'entity' => $game,

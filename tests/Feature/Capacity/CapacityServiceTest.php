@@ -48,13 +48,6 @@ function addWaitlistedPlayer(Game $game): GameParticipant
     ]);
 }
 
-function countStatus(Game $game, ParticipantStatus $status): int
-{
-    return $game->participants()
-        ->where('status', $status->value)
-        ->count();
-}
-
 // ═══════════════════════════════════════════════════════════
 // increase()
 // ═══════════════════════════════════════════════════════════

@@ -294,6 +294,22 @@ function openSlot(Game $game): void
         ->update(['status' => ParticipantStatus::Rejected->value]);
 }
 
+/**
+ * Count a game's participants in a given status.
+ *
+ * Defined here (not in a per-file test helper) so it is available in every
+ * Pest process, including --parallel workers. CapacityServiceTest and
+ * CapacityGameDetailTest both call it; defining it in only one of those files
+ * broke the other under --parallel (cross-file global function lookup is
+ * per-process — same failure mode as createVerifiedVenue above).
+ */
+function countStatus(Game $game, ParticipantStatus $status): int
+{
+    return $game->participants()
+        ->where('status', $status->value)
+        ->count();
+}
+
 // ── SEO Test Helpers ──────────────────────────────────────────────────────
 
 /**
