@@ -492,7 +492,12 @@ class GameDetail extends Component
         $preview = $service->previewDemotion($this->game, $newMax);
 
         // Silent decrease (above/equal approved count) — no roster change.
-        if ($preview->actualDemotionCount === 0) {
+        // Guard with requestedDisplaced === 0 (not just actualDemotionCount === 0)
+        // because the all-exempt overflow case (requested > 0, demotable = 0)
+        // would call decrease() with newMax < approvedCount and hit
+        // DemotionRequiresConfirmation uncaught. In that case, fall through to
+        // the confirm flow so the host sees the preview and demote() runs.
+        if ($preview->actualDemotionCount === 0 && $preview->requestedDisplaced === 0) {
             $service->decrease($this->game, $newMax);
             $this->refreshAfterCapacityChange();
             session()->flash('success', __('games.flash_capacity_decreased', ['max' => $newMax]));

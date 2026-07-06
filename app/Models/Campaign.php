@@ -113,6 +113,9 @@ class Campaign extends Model implements HasMedia, TicketSubject
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
         'share_token', 'share_token_expires_at', 'bench_mode',
+        // Bridge: the dropped game_system_id column is captured by
+        // setGameSystemIdAttribute and synced to the gameSystems pivot.
+        'game_system_id',
     ];
 
     protected function casts(): array
@@ -179,7 +182,10 @@ class Campaign extends Model implements HasMedia, TicketSubject
      */
     public function gameSystems(): BelongsToMany
     {
-        return $this->belongsToMany(GameSystem::class, 'campaign_game_system');
+        // orderBy name so the "representative first system" accessors are
+        // deterministic across queries (see Game::gameSystems for rationale).
+        return $this->belongsToMany(GameSystem::class, 'campaign_game_system')
+            ->orderBy('game_systems.name');
     }
 
     /**

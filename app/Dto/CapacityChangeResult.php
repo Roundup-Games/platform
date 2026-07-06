@@ -16,7 +16,9 @@ class CapacityChangeResult
 {
     /**
      * @param  int|null  $oldMax  Previous max_players (null = was unlimited).
-     * @param  int|null  $newMax  Resulting max_players (null = still unlimited, e.g. a no-op increase on an unlimited game).
+     * @param  int  $newMax  Resulting max_players. CapacityService::increase()/decrease()
+     *                       always produce a non-null int (they reject newMax < 1); null is
+     *                       never produced in practice.
      * @param  int  $promotedCount  Waitlisted players moved to Pending (increase path only).
      */
     public function __construct(

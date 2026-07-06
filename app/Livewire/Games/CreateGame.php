@@ -58,7 +58,7 @@ class CreateGame extends Component
 
     public ?string $game_system_id = null;
 
-    /** @var array<int, string> Game systems for a Gathering (multi-select; the S01 saving event syncs game_system_id from [0]) */
+    /** @var array<int, string> Game systems for a Gathering (multi-select; save() syncs them to the gameSystems pivot directly) */
     public array $game_systems = [];
 
     public ?string $host_note = null;
@@ -117,8 +117,8 @@ class CreateGame extends Component
             'name' => 'required|string|max:255',
             'game_type' => 'required|string|in:'.implode(',', GameType::values()),
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
-            'game_systems' => 'nullable|array',
-            'game_systems.*' => 'nullable|uuid|exists:game_systems,id',
+            'game_systems' => 'nullable|array|max:6',
+            'game_systems.*' => 'required|uuid|exists:game_systems,id',
             'host_note' => 'nullable|string|max:1000',
             'date_time' => 'required|date',
             'description' => 'nullable|string|max:5000',

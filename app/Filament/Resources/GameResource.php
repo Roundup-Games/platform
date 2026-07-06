@@ -73,11 +73,7 @@ class GameResource extends Resource
                                     ->preload(),
                                 Select::make('game_type')
                                     ->label('Game Type')
-                                    ->options([
-                                        'board_game' => 'Board Game',
-                                        'ttrpg' => 'TTRPG',
-                                        'gathering' => 'Gathering',
-                                    ])
+                                    ->options(collect(GameType::cases())->mapWithKeys(fn (GameType $t) => [$t->value => $t->label()]))
                                     ->default('board_game')
                                     ->required(),
                                 DateTimePicker::make('date_time')

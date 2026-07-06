@@ -226,8 +226,6 @@ class AdventuresDiscovery extends Component
         }
 
         // Campaigns boosted (sorted first), then games by date
-        $perPage = $this->displayCount;
-
         $campaigns = $campaignsQuery->get()->each(function ($item) use ($service) {
             $item->discoverable_type = 'campaign';
             $item->discoverable_sort_key = PHP_INT_MAX - (int) ($item->created_at->timestamp ?? 0);

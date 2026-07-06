@@ -1,7 +1,7 @@
 {{-- Capacity editor (host affordance, Game-specific) --}}
 
 @php
-    $approvedCount = $game->participants->where('status.value', 'approved')->count();
+    $approvedCount = $game->approvedParticipantCount();
     $canEdit = $isOwner
         && $game->status->value === 'scheduled'
         && $game->attendance_resolved_at === null;
@@ -33,7 +33,7 @@
             </button>
         </div>
 
-        <form x-show="editing" x-cloak wire:submit.prevent="updateCapacity({{ $capacityNewMax ?? 'null' }})"
+        <form x-show="editing" x-cloak wire:submit.prevent="updateCapacity($wire.capacityNewMax)"
               class="mt-3 flex flex-wrap items-end gap-3">
             <div class="flex-1 min-w-[140px]">
                 <label for="capacityNewMax" class="block text-xs font-medium text-on-surface-variant mb-1">

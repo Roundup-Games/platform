@@ -138,6 +138,12 @@ class Game extends Model implements HasMedia, TicketSubject
         'share_token', 'share_token_expires_at', 'bench_mode',
         'attendance_window_opens_at', 'attendance_window_closes_at',
         'attendance_resolved_at', 'attendance_resolution_method',
+        // Bridge: the dropped game_system_id / game_systems columns are captured
+        // by setGameSystemIdAttribute / setGameSystemsAttribute and synced to
+        // the gameSystems pivot. Kept fillable so legacy mass-assignment
+        // (Game::create(['game_system_id' => $id]) and factory overrides)
+        // continues to work.
+        'game_system_id', 'game_systems',
     ];
 
     protected function casts(): array
@@ -236,7 +242,12 @@ class Game extends Model implements HasMedia, TicketSubject
      */
     public function gameSystems(): BelongsToMany
     {
-        return $this->belongsToMany(GameSystem::class, 'game_game_system');
+        // orderBy name so the "representative first system" accessors
+        // (getGameSystemAttribute / getGameSystemIdAttribute / resolveCoverUrl)
+        // are deterministic across queries and cache refreshes, rather than
+        // depending on unpredictable pivot row return order.
+        return $this->belongsToMany(GameSystem::class, 'game_game_system')
+            ->orderBy('game_systems.name');
     }
 
     /**

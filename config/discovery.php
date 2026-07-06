@@ -33,13 +33,11 @@ return [
     | Gathering Relevance Penalty
     |--------------------------------------------------------------------------
     |
-    | Magnitude by which a Gathering is demoted below an otherwise-equal focused
-    | single-system game when the two share the same primary sort key (date_time
-    | or distance). The tiebreaker only reorders items within an identical
-    | primary-key bucket — it never overrides distinct date_times/distances.
-    | Tunable post-launch from real feed-composition data (R048); the binary
-    | 0/1 CASE keeps a single focused-above-Gathering tier today, but raising
-    | the value reserves headroom for future ranking tiers.
+    | RESERVED (currently unused). The tiebreaker currently hardcodes a binary
+    | 0/1 CASE WHEN game_type = 'gathering' tier in DiscoveryQueryService. This
+    | config value is kept for forward-compatibility: once real feed-composition
+    | data justifies multi-tier ranking, DiscoveryQueryService will read this
+    | value instead of the hardcoded CASE. Tunable post-launch (R048).
     |
     */
     'gathering_relevance_penalty' => env('DISCOVERY_GATHERING_RELEVANCE_PENALTY', 1),

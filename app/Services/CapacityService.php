@@ -71,6 +71,16 @@ class CapacityService
             /** @var Game $locked */
             $locked = Game::where('id', $game->id)->lockForUpdate()->firstOrFail();
 
+            // Terminal-state guard — parity with demote(). The Livewire layer
+            // also checks this, but the service is the canonical boundary for
+            // capacity mutations; a completed or attendance-resolved game must
+            // reject every max_players change, not just demote().
+            if ($locked->status === GameStatus::Completed || $locked->attendance_resolved_at !== null) {
+                throw new \DomainException(
+                    'Cannot adjust capacity on a completed game or after attendance has been resolved.'
+                );
+            }
+
             $oldMax = $locked->max_players;
 
             // Promotees land in Pending, so count Pending rows before/after to

@@ -329,8 +329,17 @@ class PostHogEventBridge
             return [];
         }
 
-        $subject->loadMissing('reviewable.gameSystems');
+        // Load the reviewable first, then conditionally load gameSystems
+        // only on types that support the relation (Game, Campaign). A plain
+        // loadMissing('reviewable.gameSystems') would throw
+        // BadMethodCallException on a Location reviewable (no gameSystems).
+        $subject->loadMissing('reviewable');
         $reviewable = $subject->reviewable;
+
+        if ($reviewable instanceof Game || $reviewable instanceof Campaign) {
+            $reviewable->loadMissing('gameSystems');
+        }
+
         $gameSystem = null;
 
         if ($reviewable instanceof Game) {

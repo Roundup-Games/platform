@@ -292,7 +292,10 @@ class ViewTicket extends BaseViewTicket
             default => null,
         };
         if ($coverEntity !== null && $coverEntity->hasCover()) {
-            $coverUrl = $coverEntity->resolveCoverUrl();
+            // Use the 'og' conversion (1200x630) for the admin review preview so
+            // the infolist renders a reasonably-sized image rather than the
+            // full-size original (up to 4096x4096 / 5 MB).
+            $coverUrl = $coverEntity->resolveCoverUrl('og');
             if (is_string($coverUrl) && $coverUrl !== '') {
                 // Infolists Placeholder renders arbitrary HtmlString via
                 // ->content(); TextEntry has no content() method (PHPStan L9).

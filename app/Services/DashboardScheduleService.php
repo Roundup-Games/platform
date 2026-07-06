@@ -149,7 +149,7 @@ class DashboardScheduleService
                         ->where('user_id', $user->id)
                         ->where('status', ParticipantStatus::Approved->value));
             })
-            ->with(['gameSystems', 'campaign', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)])
+            ->with(['gameSystems', 'campaign', 'media', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)])
             ->orderBy('date_time')
             ->get();
 

@@ -81,9 +81,15 @@ class DashboardEstablishedService
 
             $playedCount = $playedQuery->count();
             // Unique systems offered via the canonical pivot (the cached
-            // games.game_system_id anchor was dropped in S06/T06).
+            // games.game_system_id anchor was dropped in S06/T06). Derive the
+            // system count from the SAME filtered set as playedQuery (completed,
+            // non-owned) — not the unfiltered $playedGameIds — so hosted or
+            // non-completed games don't inflate the count. Clone the query
+            // before pluck because count() corrupts the builder's aggregate
+            // state (calling pluck() on the same instance would fail).
+            $filteredPlayedIds = (clone $playedQuery)->pluck('id');
             $systemCount = DB::table('game_game_system')
-                ->whereIn('game_id', $playedGameIds)
+                ->whereIn('game_id', $filteredPlayedIds)
                 ->distinct('game_system_id')
                 ->count('game_system_id');
         }

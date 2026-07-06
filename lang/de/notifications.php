@@ -303,6 +303,8 @@ return [
     // Wartelisten-Push
     'push_title_waitlist_promoted' => 'Platz frei!',
     'push_body_waitlist_promoted' => 'Ein Platz in :game ist frei. Bestätige bis :deadline.',
+    'push_title_seat_demoted' => 'Platz zurückgefordert',
+    'push_body_seat_demoted' => 'Dein Platz in :game wurde zurückgefordert. Grund: :reason.',
     'push_title_confirmation_expired' => 'Bestätigung abgelaufen',
     'push_body_confirmation_expired' => 'Dein Bestätigungszeitfenster für :game ist abgelaufen.',
 

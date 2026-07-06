@@ -223,19 +223,21 @@ class GameSystemPreferencePicker extends Component
 
     public function add(string $id): void
     {
-        // Enforce the optional max-systems cap (used in creation mode).
-        // Checked before the duplicate-check so the cap message surfaces once
-        // the limit is reached regardless of what is being added.
-        if ($this->maxSystems > 0 && count($this->selectedIds) >= $this->maxSystems) {
-            $this->conflictMessage = __('games.error_max_game_systems_reached', ['max' => $this->maxSystems]);
+        // Prevent duplicates first so an already-selected id is always a silent
+        // no-op — even when the cap is reached. Otherwise clicking a selected
+        // item at the cap surfaces the misleading "max reached" message.
+        if (in_array($id, $this->selectedIds, true)) {
+            $this->search = '';
+            $this->isOpen = false;
 
             return;
         }
 
-        // Prevent duplicates
-        if (in_array($id, $this->selectedIds, true)) {
-            $this->search = '';
-            $this->isOpen = false;
+        // Enforce the optional max-systems cap (used in creation mode). Now
+        // checked AFTER the duplicate guard so only a genuinely new selection
+        // can trip it.
+        if ($this->maxSystems > 0 && count($this->selectedIds) >= $this->maxSystems) {
+            $this->conflictMessage = __('games.error_max_game_systems_reached', ['max' => $this->maxSystems]);
 
             return;
         }
