@@ -39,8 +39,8 @@ function addWaitlistedPlayerForCapacity(Game $game): GameParticipant
     ]);
 }
 
-// `countStatus()` is provided globally by CapacityServiceTest.php (Pest
-// loads all test files into one scope). It is intentionally not redeclared here.
+// `countStatus()` is provided globally by tests/Pest.php so it is available
+// to every Pest worker under --parallel (cross-file function lookup is per-process).
 
 // ═══════════════════════════════════════════════════════════
 // (a) Increase — auto-promotes a waitlisted player to Pending
