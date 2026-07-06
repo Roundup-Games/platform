@@ -27,6 +27,7 @@ return [
         // Navigation & UI
         'menu', 'close', 'arrow_back', 'arrow_forward', 'arrow_upward',
         'chevron_right', 'expand_more', 'more_vert', 'open_in_new',
+        'arrow_downward',
         'cancel', 'search', 'filter_list', 'tune', 'refresh',
 
         // Auth & user
@@ -38,9 +39,9 @@ return [
         // Games & discovery
         'casino', 'auto_stories', 'explore', 'explore_off', 'stadium',
         'map', 'location_on', 'location_off', 'my_location', 'edit_location',
-        'add_location', 'near_me', 'sports_esports', 'swords',
+        'add_location', 'add_location_alt', 'near_me', 'sports_esports', 'swords',
         'play_circle', 'stop_circle', 'start', 'event', 'event_available',
-        'event_busy', 'event_note', 'event_seat', 'event_upcoming',
+        'event_busy', 'event_note', 'event_seat', 'event_upcoming', 'event_repeat',
         'calendar_today', 'calendar_month', 'schedule',
         'campaign', 'playlist_add', 'repeat', 'local_fire_department',
 
@@ -57,7 +58,7 @@ return [
         'public', 'contact_support', 'flag',
 
         // Content & media
-        'edit', 'edit_note', 'draw', 'delete', 'delete_forever',
+        'edit', 'edit_note', 'draw', 'delete', 'delete_forever', 'description',
         'download', 'upload', 'cloud_upload', 'cloud_done', 'cloud_off',
         'save', 'publish', 'visibility', 'visibility_off',
         'assignment', 'notes', 'menu_book', 'school', 'psychology',
