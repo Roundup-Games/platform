@@ -83,9 +83,10 @@ return [
         'pause_circle', 'search_off', 'inbox', 'code', 'dashboard',
 
         // Pledge & algorithms pages
-        'account_balance', 'distance', 'insights', 'function',
+        'account_balance', 'distance', 'insights',
+        'function',   // single-arrow function icon (f866)
         'lightbulb', 'account_tree', 'grid_on',
-        'functions',
+        'functions',  // sigma-style functions icon (e24a) — distinct from 'function'
 
         // Social platform icons (from config/platforms.php)
         'alternate_email', 'photo_camera', 'smart_display', 'music_note',

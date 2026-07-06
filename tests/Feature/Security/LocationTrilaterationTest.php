@@ -38,9 +38,9 @@ use Livewire\Livewire;
 | a brute-force sweep proves unlimited queries cannot beat the 5km floor.
 |
 | Rate-limit note: per-session throttling of guest coordinate updates is the
-| MEDIUM-4 defence-in-depth layer shipped by T07. The final test here is the
-| explicit cross-check; it is skipped until T07 lands so the suite stays green
-| and the cross-task link is discoverable.
+| MEDIUM-4 defence-in-depth layer (HasGuestLocation trait). The final test here
+| is the permanent cross-check that the rate limiter is wired and active on the
+| CRITICAL-1 guest-reachable surface.
 */
 
 // ── Target: a private home game at a precise, known point (Berlin Alex) ─────
