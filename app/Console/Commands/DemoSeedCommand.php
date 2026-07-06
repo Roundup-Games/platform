@@ -406,7 +406,7 @@ class DemoSeedCommand extends Command
         'de' => [
             'Setzt euch dazu! Wir spielen eine Mischung aus leichten und schweren Spielen — Neueinsteiger immer willkommen.',
             'Lockerer Spieleabend. Bringt ein Spiel mit oder probiert etwas von unserem Regal.',
-            'Familiar Gruppe, alle Erfahrungsstufen. Wir erklären jedes Spiel, das wir spielen.',
+            'Familiäre Gruppe, alle Erfahrungsstufen. Wir erklären jedes Spiel, das wir spielen.',
             'Offener Spieleabend — kommt vorbei, holt euch etwas zu trinken und wir würfeln.',
         ],
     ];
@@ -2273,9 +2273,21 @@ class DemoSeedCommand extends Command
                 // ── Completed past sessions (active & completed campaigns) ──
                 $pastSessionCount = $campaignStatus === 'cancelled' ? 0
                     : random_int(1, 3);
+                // Pre-generate one random days-ago per past session (hoisted:
+                // maxDaysAgo is invariant across iterations), sorted descending
+                // so session numbers increase monotonically with recency — the
+                // earliest-numbered past session is oldest (just after session
+                // zero), each later one more recent (towards now). Without this,
+                // independent random values left "Session 3" older than
+                // "Session 2", jumbling the detail page's chronological sort.
+                $maxDaysAgo = max(3, ($szDate ? $szDate->diffInDays(now()) : 21) - 1);
+                $pastDaysAgoSequence = [];
+                for ($i = 0; $i < $pastSessionCount; $i++) {
+                    $pastDaysAgoSequence[] = random_int(3, (int) $maxDaysAgo);
+                }
+                rsort($pastDaysAgoSequence);
                 for ($p = 1; $p <= $pastSessionCount; $p++) {
-                    $maxDaysAgo = max(3, ($szDate ? $szDate->diffInDays(now()) : 21) - 1);
-                    $pastDaysAgo = random_int(3, (int) $maxDaysAgo);
+                    $pastDaysAgo = $pastDaysAgoSequence[$p - 1];
                     $pastDate = now()->subDays($pastDaysAgo)->setTime($timeHour, $timeMinute);
                     $pId = (string) Str::orderedUuid();
                     $sessionCounter++;
