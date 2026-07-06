@@ -153,7 +153,6 @@ return [
     // CampaignsPage — priority board sections
     'heading_active_hosting' => 'Active — you\'re organizing',
     'heading_active_playing' => 'Active — you\'re playing',
-    'heading_ended' => 'Ended',
     'content_empty_no_campaigns_title' => 'No campaigns yet',
     'content_empty_no_campaigns_body' => 'Find a recurring game to join, or start your own campaign.',
     'action_empty_find_adventures' => 'Find adventures',

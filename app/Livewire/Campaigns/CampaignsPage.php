@@ -234,7 +234,8 @@ class CampaignsPage extends Component
             'activeHosting' => $board['active_hosting'],
             'activePlaying' => $board['active_playing'],
             'pendingInvitations' => $board['pending_invitations'],
-            'endedCampaigns' => $board['ended'],
+            'recentEnded' => $board['recent_ended'],
+            'archiveCampaigns' => $board['archive'],
             'activityFeed' => $board['activity_feed'],
             'hasAnyCampaigns' => $board['has_any_campaigns'],
         ]);

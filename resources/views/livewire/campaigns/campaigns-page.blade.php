@@ -176,15 +176,31 @@
             </section>
         @endif
 
-        {{-- ═══ Ended (collapsible) ═══ --}}
-        @if($endedCampaigns->isNotEmpty())
+        {{-- ═══ Recently ended (expanded) ═══ --}}
+        @if($recentEnded->isNotEmpty())
+            <section>
+                <h2 class="text-xl font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">history</span>
+                    {{ __('campaigns.heading_recently_ended') }}
+                </h2>
+                <div class="space-y-3">
+                    @foreach($recentEnded as $campaign)
+                        @php $asOrg = (string) $campaign->owner_id === (string) auth()->id(); @endphp
+                        @include('livewire.campaigns._campaign-card', ['campaign' => $campaign, 'asOrganizer' => $asOrg])
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- ═══ Archive (collapsible) ═══ --}}
+        @if($archiveCampaigns->isNotEmpty())
             <section x-data="{ open: false }">
                 <button type="button" x-on:click="open = !open"
                         class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors mb-3"
                         :aria-expanded="open">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true" x-bind:style="open ? 'transform: rotate(90deg)' : ''">chevron_right</span>
-                    <h2 class="text-base font-heading font-semibold">{{ __('campaigns.heading_ended') }}</h2>
-                    <span class="text-xs text-on-surface-variant">({{ $endedCampaigns->count() }})</span>
+                    <h2 class="text-base font-heading font-semibold">{{ __('campaigns.heading_archive') }}</h2>
+                    <span class="text-xs text-on-surface-variant">({{ $archiveCampaigns->count() }})</span>
                 </button>
                 <div x-show="open"
                      x-transition:enter="transition ease-out duration-200"
@@ -194,7 +210,7 @@
                      x-transition:leave-start="opacity-100 translate-y-0"
                      x-transition:leave-end="opacity-0 -translate-y-1"
                      class="space-y-3">
-                    @foreach($endedCampaigns as $campaign)
+                    @foreach($archiveCampaigns as $campaign)
                         @php $asOrg = (string) $campaign->owner_id === (string) auth()->id(); @endphp
                         @include('livewire.campaigns._campaign-card', ['campaign' => $campaign, 'asOrganizer' => $asOrg])
                     @endforeach

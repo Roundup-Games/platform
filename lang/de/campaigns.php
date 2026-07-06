@@ -152,7 +152,6 @@ return [
     // CampaignsPage — priorisierte Bereiche
     'heading_active_hosting' => 'Aktiv — du organisierst',
     'heading_active_playing' => 'Aktiv — du spielst mit',
-    'heading_ended' => 'Beendet',
     'content_empty_no_campaigns_title' => 'Noch keine Kampagnen',
     'content_empty_no_campaigns_body' => 'Finde eine wiederkehrende Gruppe zum Beitreten, oder starte deine eigene Kampagne.',
     'action_empty_find_adventures' => 'Abenteuer finden',

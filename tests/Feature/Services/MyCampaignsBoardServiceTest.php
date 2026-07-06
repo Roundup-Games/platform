@@ -41,7 +41,8 @@ class MyCampaignsBoardServiceTest extends TestCase
         $this->assertFalse($board['has_any_campaigns']);
         $this->assertCount(0, $board['active_hosting']);
         $this->assertCount(0, $board['active_playing']);
-        $this->assertCount(0, $board['ended']);
+        $this->assertCount(0, $board['recent_ended']);
+        $this->assertCount(0, $board['archive']);
     }
 
     public function test_active_owned_campaign_lands_in_active_hosting(): void
@@ -55,7 +56,8 @@ class MyCampaignsBoardServiceTest extends TestCase
 
         $this->assertTrue($board['has_any_campaigns']);
         $this->assertTrue($board['active_hosting']->contains('id', $active->id));
-        $this->assertFalse($board['ended']->contains('id', $active->id));
+        $this->assertFalse($board['recent_ended']->contains('id', $active->id));
+        $this->assertFalse($board['archive']->contains('id', $active->id));
     }
 
     public function test_completed_and_cancelled_campaigns_lands_in_ended(): void
@@ -71,8 +73,11 @@ class MyCampaignsBoardServiceTest extends TestCase
 
         $board = $this->service->build($this->user);
 
-        $this->assertTrue($board['ended']->contains('id', $completed->id));
-        $this->assertTrue($board['ended']->contains('id', $cancelled->id));
+        // Freshly-ended campaigns (updated_at within the recency window)
+        // land in recent_ended, not archive.
+        $this->assertTrue($board['recent_ended']->contains('id', $completed->id));
+        $this->assertTrue($board['recent_ended']->contains('id', $cancelled->id));
+        $this->assertFalse($board['archive']->contains('id', $completed->id));
         $this->assertCount(0, $board['active_hosting']);
     }
 
@@ -133,5 +138,29 @@ class MyCampaignsBoardServiceTest extends TestCase
 
         // A user with only an invitation should NOT see the empty state.
         $this->assertTrue($board['has_any_campaigns']);
+    }
+
+    public function test_ended_campaigns_split_into_recent_and_archive_by_recency(): void
+    {
+        // A completed campaign ended >30 days ago -> archive.
+        $old = Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'status' => CampaignStatus::Completed->value,
+            'updated_at' => now()->subDays(60),
+        ]);
+
+        // A completed campaign ended recently -> recent_ended.
+        $recent = Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'status' => CampaignStatus::Completed->value,
+            'updated_at' => now()->subDays(5),
+        ]);
+
+        $board = $this->service->build($this->user);
+
+        $this->assertTrue($board['recent_ended']->contains('id', $recent->id));
+        $this->assertFalse($board['recent_ended']->contains('id', $old->id));
+        $this->assertTrue($board['archive']->contains('id', $old->id));
+        $this->assertFalse($board['archive']->contains('id', $recent->id));
     }
 }

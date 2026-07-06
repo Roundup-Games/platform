@@ -30,6 +30,9 @@ use Illuminate\Database\Eloquent\Collection;
  */
 class MyCampaignsBoardService
 {
+    /** Ended campaigns newer than this many days are "recent", older are "archive". */
+    private const RECENT_ENDED_DAYS = 30;
+
     /**
      * Build the full My Campaigns board for a user.
      *
@@ -38,7 +41,8 @@ class MyCampaignsBoardService
      *     active_hosting: Collection<int, Campaign>,
      *     active_playing: Collection<int, Campaign>,
      *     pending_invitations: Collection<int, CampaignParticipant>,
-     *     ended: Collection<int, Campaign>,
+     *     recent_ended: Collection<int, Campaign>,
+     *     archive: Collection<int, Campaign>,
      *     activity_feed: LengthAwarePaginator<int, FeedItem>,
      *     has_any_campaigns: bool,
      * }
@@ -57,19 +61,34 @@ class MyCampaignsBoardService
             fn (Campaign $c) => $c->status === CampaignStatus::Active
         )->values();
 
+        // Ended (completed/cancelled) campaigns split by recency — mirrors the
+        // games board's recent_completed/archive pattern. updated_at is the
+        // recency signal: it's bumped on status change, so a campaign that
+        // ended last week has updated_at ≈ last week. Recent ended shows
+        // expanded; older ones collapse into the archive.
+        $recentEndedCutoff = now()->copy()->subDays(self::RECENT_ENDED_DAYS);
         $ended = $ownedCampaigns
             ->concat($participatingCampaigns)
             ->unique('id')
             ->filter(fn (Campaign $c) => $c->status !== CampaignStatus::Active)
-            ->sortByDesc('created_at')
+            ->sortByDesc('updated_at')
             ->values();
+
+        $recentEnded = $ended->filter(
+            fn (Campaign $c) => $c->updated_at !== null && $c->updated_at >= $recentEndedCutoff
+        )->values();
+
+        $archive = $ended->filter(
+            fn (Campaign $c) => $c->updated_at === null || $c->updated_at < $recentEndedCutoff
+        )->values();
 
         return [
             'needs_attention' => $this->campaignScopedActionItems($user),
             'active_hosting' => $activeHosting,
             'active_playing' => $activePlaying,
             'pending_invitations' => $pendingInvitations,
-            'ended' => $ended,
+            'recent_ended' => $recentEnded,
+            'archive' => $archive,
             'activity_feed' => app(GameActivityFeedService::class)->getCampaignFeed($user, 15),
             'has_any_campaigns' => $ownedCampaigns->isNotEmpty() || $participatingCampaigns->isNotEmpty() || $pendingInvitations->isNotEmpty(),
         ];
