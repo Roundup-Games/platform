@@ -11,10 +11,15 @@
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <section class="relative bg-primary text-on-primary overflow-hidden">
-        @php($coverUrl = $campaign->gameSystem?->getFirstMediaUrl('cover'))
-        @if(!$coverUrl && $campaign->gameSystem?->thumbnail_url)
-            @php($coverUrl = $campaign->gameSystem->thumbnail_url)
-        @endif
+        @php
+            // Cover image via the deterministic fallback chain (S07/T03):
+            // host-uploaded cover -> representative GameSystem cover ->
+            // og-default.jpg asset. The fallback re-renders automatically when
+            // an admin clears an offending host cover via the cover-takedown
+            // action (resolveCoverUrl()'s on-disk file_exists guard makes a
+            // removed media row fall through cleanly to the next rung).
+            $coverUrl = $campaign->resolveCoverUrl();
+        @endphp
         @if($coverUrl)
             <div class="absolute inset-0">
                 <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-xs scale-105" aria-hidden="true" fetchpriority="high">
@@ -245,6 +250,23 @@
 
             {{-- Main column --}}
             <div class="lg:col-span-2 space-y-6">
+
+                @if($isOwner && !empty($planAheadNudge))
+                    <div class="bg-tertiary-container rounded-xl shadow-ambient p-4 mb-6 flex items-center justify-between gap-4">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-xl text-on-tertiary-container" aria-hidden="true">event_repeat</span>
+                            <div>
+                                <p class="font-medium text-on-tertiary-container">{{ $planAheadNudge['title'] }}</p>
+                                <p class="text-sm text-on-tertiary-container/80">{{ $planAheadNudge['description'] }}</p>
+                            </div>
+                        </div>
+                        <a href="{{ $planAheadNudge['action_url'] }}" wire:navigate
+                           class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors whitespace-nowrap">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                            {{ $planAheadNudge['action_label'] }}
+                        </a>
+                    </div>
+                @endif
 
                 {{-- Upcoming Sessions --}}
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">

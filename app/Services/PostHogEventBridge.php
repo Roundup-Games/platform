@@ -7,7 +7,6 @@ use App\Jobs\EnrichPostHogProfile;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Models\GameSystem;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -197,14 +196,13 @@ class PostHogEventBridge
             return [];
         }
 
-        $subject->loadMissing('gameSystem');
-        /** @var GameSystem|null $gameSystem */
-        $gameSystem = $subject->gameSystem;
+        $subject->loadMissing('gameSystems');
+        $representative = $subject->gameSystems->first();
 
         return [
             'game_id' => $subject->id,
-            'game_system' => $gameSystem?->name,
-            'game_system_id' => $subject->game_system_id,
+            'game_system' => $representative?->name,
+            'game_system_id' => $representative?->id,
             'visibility' => $subject->visibility?->value,
             'max_players' => $subject->max_players,
             'min_players' => $subject->min_players,
@@ -225,14 +223,13 @@ class PostHogEventBridge
             return [];
         }
 
-        $subject->loadMissing('gameSystem');
-        /** @var GameSystem|null $gameSystem */
-        $gameSystem = $subject->gameSystem;
+        $subject->loadMissing('gameSystems');
+        $representative = $subject->gameSystems->first();
 
         return [
             'campaign_id' => $subject->id,
-            'game_system' => $gameSystem?->name,
-            'game_system_id' => $subject->game_system_id,
+            'game_system' => $representative?->name,
+            'game_system_id' => $representative?->id,
             'visibility' => $subject->visibility?->value,
             'max_players' => $subject->max_players,
             'min_players' => $subject->min_players,
@@ -251,15 +248,14 @@ class PostHogEventBridge
     private function extractPlayerJoinedProperties(?Model $subject): array
     {
         if ($subject instanceof GameParticipant) {
-            $subject->loadMissing('game.gameSystem');
+            $subject->loadMissing('game.gameSystems');
             /** @var Game|null $game */
             $game = $subject->game;
-            /** @var GameSystem|null $gameSystem */
-            $gameSystem = $game?->gameSystem;
+            $representative = $game?->gameSystems->first();
 
             return [
                 'game_id' => $subject->game_id,
-                'game_system' => $gameSystem?->name,
+                'game_system' => $representative?->name,
                 'participant_role' => $subject->role->value ?? '',
                 'source' => $subject->join_source?->value,
             ];
@@ -284,13 +280,12 @@ class PostHogEventBridge
             return [];
         }
 
-        $subject->loadMissing('gameSystem');
-        /** @var GameSystem|null $gameSystem */
-        $gameSystem = $subject->gameSystem;
+        $subject->loadMissing('gameSystems');
+        $representative = $subject->gameSystems->first();
 
         return [
             'game_id' => $subject->id,
-            'game_system' => $gameSystem?->name,
+            'game_system' => $representative?->name,
             'scheduled_date' => $subject->date_time?->toDateString(),
             'location_type' => $subject->location['type'] ?? null,
             'is_online' => ($subject->location['type'] ?? null) === 'online',
@@ -334,14 +329,23 @@ class PostHogEventBridge
             return [];
         }
 
-        $subject->loadMissing('reviewable.gameSystem');
+        // Load the reviewable first, then conditionally load gameSystems
+        // only on types that support the relation (Game, Campaign). A plain
+        // loadMissing('reviewable.gameSystems') would throw
+        // BadMethodCallException on a Location reviewable (no gameSystems).
+        $subject->loadMissing('reviewable');
         $reviewable = $subject->reviewable;
+
+        if ($reviewable instanceof Game || $reviewable instanceof Campaign) {
+            $reviewable->loadMissing('gameSystems');
+        }
+
         $gameSystem = null;
 
         if ($reviewable instanceof Game) {
-            $gameSystem = $reviewable->gameSystem?->name;
+            $gameSystem = $reviewable->gameSystems->first()?->name;
         } elseif ($reviewable instanceof Campaign) {
-            $gameSystem = $reviewable->gameSystem?->name;
+            $gameSystem = $reviewable->gameSystems->first()?->name;
         }
 
         return [

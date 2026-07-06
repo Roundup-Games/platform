@@ -281,7 +281,7 @@ class AuthenticatedProfile extends Component
             ->whereIn('visibility', $scope)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->with(['owner', 'gameSystem'])
+            ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->orderBy('date_time')
             ->limit(10)
@@ -318,7 +318,7 @@ class AuthenticatedProfile extends Component
 
         return Campaign::whereIn('id', $allCampaignIds)
             ->whereIn('visibility', $scope)
-            ->with(['owner', 'gameSystem'])
+            ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->latest()
             ->limit(10)

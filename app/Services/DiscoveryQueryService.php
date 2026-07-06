@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Dto\DiscoveryFilters;
 use App\Dto\ProximityResult;
+use App\Enums\GameType;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Service encapsulating all discovery query logic previously spread across
@@ -35,6 +37,12 @@ class DiscoveryQueryService
 
     /** Fallback radius when primary radius returns empty */
     public const FALLBACK_RADIUS = 100;
+
+    /**
+     * Base feed page size (displayCount increments by this on loadMore).
+     * The Gathering cap scales per this many items.
+     */
+    public const BASE_PAGE_SIZE = 12;
 
     public function __construct(
         private readonly ProximityQuery $proximity,
@@ -70,7 +78,14 @@ class DiscoveryQueryService
             $this->orWhereTranslatableLike($q, 'description', (string) $search);
         }));
 
-        $query->when(! empty($gameSystemId), fn ($q) => $q->where('game_system_id', $gameSystemId));
+        $query->when(! empty($gameSystemId), function (Builder $q) use ($gameSystemId) {
+            // Match via the canonical pivot: a Gathering (or any game/campaign)
+            // appears in a system's feed iff that system is in its offered set
+            // (R048). Both Game and Campaign route through the same pivot shape
+            // (game_game_system / campaign_game_system), so the former
+            // instanceof-Game branch collapses to one whereHas.
+            $q->whereHas('gameSystems', fn (Builder $q) => $q->where('game_systems.id', $gameSystemId));
+        });
         $query->when(! empty($experienceLevel), fn ($q) => $q->where('experience_level', $experienceLevel));
 
         $query->when(! empty($vibeFlags), function ($q) use ($vibeFlags) {
@@ -94,12 +109,133 @@ class DiscoveryQueryService
         $query->when(! empty($complexityMax), fn ($q) => $q->where('complexity', '<=', $complexityMax));
 
         $query->when(! empty($categoryIds), function ($q) use ($categoryIds) {
-            $q->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('game_system_categories.id', $categoryIds));
+            $q->whereHas('gameSystems.categories', fn ($q) => $q->whereIn('game_system_categories.id', $categoryIds));
         });
 
         $query->when(! empty($mechanicIds), function ($q) use ($mechanicIds) {
-            $q->whereHas('gameSystem.mechanics', fn ($q) => $q->whereIn('game_system_mechanics.id', $mechanicIds));
+            $q->whereHas('gameSystems.mechanics', fn ($q) => $q->whereIn('game_system_mechanics.id', $mechanicIds));
         });
+    }
+
+    /**
+     * Scope a games query to a given game system type, honouring multi-system Gatherings.
+     *
+     * A game is included when ANY of its offered systems (via the game_game_system
+     * pivot) is of $type, so a multi-system Gathering surfaces in every offered
+     * type's feed (R048). The former cached-anchor + JSON-array union collapses
+     * to a single whereHas('gameSystems').
+     *
+     * @param  Builder<Game>  $query
+     * @param  string  $type  GameSystem type ('boardgame' or 'ttrpg')
+     */
+    public function applySystemTypeScope(Builder $query, string $type): void
+    {
+        $query->whereHas('gameSystems', fn (Builder $q) => $q->where('type', $type));
+    }
+
+    // ── Gathering cap (R048) ───────────────────────────────────────────
+
+    /**
+     * Resolve the maximum Gatherings allowed in a window of $perPage items.
+     *
+     * The cap scales with the window size: one `gathering_cap_per_page` (default
+     * 1) per BASE_PAGE_SIZE items, so loading more (e.g. 24 items) permits
+     * proportionally more Gatherings while keeping density bounded.
+     */
+    public function gatheringCapForWindow(int $perPage): int
+    {
+        $configured = config('discovery.gathering_cap_per_page', 1);
+        $baseCap = is_numeric($configured) ? (int) $configured : 1;
+        $pagesInWindow = max(1, (int) ceil($perPage / self::BASE_PAGE_SIZE));
+
+        return $baseCap * $pagesInWindow;
+    }
+
+    /**
+     * Cap Gatherings in a candidate collection so they cannot dominate a feed page.
+     *
+     * Walks $items in their existing feed order (date_time or distance) keeping
+     * the first $maxPerSlice Gatherings encountered; every further Gathering is
+     * trimmed and its slot is backfilled with the next focused (non-Gathering)
+     * candidate, preserving the prior order. The result is re-sliced to exactly
+     * $perPage items.
+     *
+     * Deterministic: a stable single pass keeps the relative order of every item
+     * that survives. Returns the number of trimmed Gatherings for observability.
+     *
+     * @template TModel of Model
+     *
+     * @param  Collection<int, TModel>  $items  Candidates already in feed order.
+     * @return array{items: Collection<int, TModel>, trimmed: int}
+     */
+    public function applyGatheringCap(Collection $items, int $perPage, ?int $maxPerSlice = null): array
+    {
+        $maxPerSlice ??= $this->gatheringCapForWindow($perPage);
+
+        $gatheringsInWindow = $items
+            ->take($perPage)
+            ->filter(fn (mixed $item) => $this->isGathering($item))
+            ->count();
+        $gatheringsTrimmed = max(0, $gatheringsInWindow - $maxPerSlice);
+
+        if ($gatheringsTrimmed > 0) {
+            Log::debug('game.discovery.gathering_cap_applied', [
+                'gatherings_in_window' => $gatheringsInWindow,
+                'gatherings_trimmed' => $gatheringsTrimmed,
+            ]);
+        }
+
+        if ($gatheringsTrimmed === 0) {
+            return [
+                'items' => $items->take($perPage)->values(),
+                'trimmed' => 0,
+            ];
+        }
+
+        $result = new Collection;
+        $keptGatherings = 0;
+        foreach ($items as $item) {
+            if ($result->count() >= $perPage) {
+                break;
+            }
+            if ($this->isGathering($item)) {
+                if ($keptGatherings >= $maxPerSlice) {
+                    continue; // trimmed
+                }
+                $keptGatherings++;
+            }
+            $result->push($item);
+        }
+
+        return [
+            'items' => $result->values(),
+            'trimmed' => $gatheringsTrimmed,
+        ];
+    }
+
+    /**
+     * Whether a feed item is a Gathering.
+     *
+     * Only Game models carry game_type; Campaigns (and any non-Game item) are
+     * never Gatherings and pass through untouched.
+     */
+    private function isGathering(mixed $item): bool
+    {
+        return $item instanceof Game && $item->game_type === GameType::Gathering;
+    }
+
+    /**
+     * Secondary sort value for the R048 gathering_relevance_penalty tiebreaker.
+     *
+     * Returns 1 for a Gathering, 0 for everything else. Used as a stable
+     * secondary `sortBy` key so a focused single-system game ranks above an
+     * otherwise-equal Gathering (same date_time or distance) without ever
+     * reordering items with distinct primary keys. Exposed publicly so both the
+     * service sort sites and Livewire components can share one definition.
+     */
+    public function gatheringRankKey(mixed $item): int
+    {
+        return $this->isGathering($item) ? 1 : 0;
     }
 
     // ── Games query ────────────────────────────────────
@@ -121,7 +257,7 @@ class DiscoveryQueryService
             ->where($this->buildVisibilityClause($user))
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->with(['owner', 'gameSystem', 'campaign', 'linkedLocation'])
+            ->with(['owner', 'gameSystems', 'campaign', 'linkedLocation'])
             ->withCount(['participants as participants_count' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)]);
 
         $query = $this->withOverflowCounts($query);
@@ -138,7 +274,13 @@ class DiscoveryQueryService
             $this->applyProximitySubquery($query, 'games', $lat, $lng, $radius);
         }
 
-        return $query->orderBy('date_time');
+        // R048: demote Gatherings below focused single-system games sharing the
+        // same date_time. The CASE is a stable tiebreaker only — distinct
+        // date_times still rule because this is a secondary orderBy. Driven by
+        // the tunable gathering_relevance_penalty magnitude (binary tier today,
+        // headroom reserved for future ranking tiers).
+        return $query->orderBy('date_time')
+            ->orderByRaw("CASE WHEN game_type = 'gathering' THEN 1 ELSE 0 END ASC");
     }
 
     // ── Campaigns query ────────────────────────────────
@@ -156,7 +298,7 @@ class DiscoveryQueryService
         $query = Campaign::query()
             ->where($this->buildVisibilityClause($user))
             ->where('status', 'active')
-            ->with(['owner', 'gameSystem'])
+            ->with(['owner', 'gameSystems'])
             ->with(['sessions' => fn ($q) => $q->where('status', 'scheduled')->where('date_time', '>', now())->orderBy('date_time')->limit(1)])
             ->withCount('sessions')
             ->withCount('participants');
@@ -387,11 +529,21 @@ class DiscoveryQueryService
             $merged = $proxResult['collection'];
             $usingFallback = $proxResult['usingFallback'];
         } else {
-            $merged = $merged->sortByDesc('discoverable_sort_key')->values();
+            // R048 gathering_relevance_penalty tiebreak (stable sequential sort):
+            // sort by the least-significant key first (Gathering demotion asc),
+            // then the most-significant (date desc). Stability preserves the
+            // Gathering ordering within an identical date bucket, so a focused
+            // game beats an equal-date Gathering without reordering distinct
+            // date_times.
+            $merged = $merged
+                ->sortBy(fn (Campaign|Game $g) => $this->gatheringRankKey($g))
+                ->sortByDesc('discoverable_sort_key')
+                ->values();
         }
 
         $total = $merged->count();
-        $items = $merged->take($perPage)->values();
+        $capped = $this->applyGatheringCap($merged, $perPage);
+        $items = $capped['items'];
 
         $paginator = new Paginator($items, $total, $perPage, 1, [
             'path' => request()->url(),
@@ -420,8 +572,17 @@ class DiscoveryQueryService
     {
         [$filtered, $usingFallback] = $this->filterByProximity($merged, $lat, $lng, $radius);
 
+        // R048 gathering_relevance_penalty tiebreak (stable sequential sort):
+        // least-significant first (Gathering demotion asc), then most-significant
+        // (distance asc) so a focused game beats an equal-distance Gathering
+        // without reordering distinct distances.
+        $filtered = $filtered
+            ->sortBy(fn (Campaign|Game $g) => $this->gatheringRankKey($g))
+            ->sortBy('distance_km')
+            ->values();
+
         return [
-            'collection' => $filtered->sortBy('distance_km')->values(),
+            'collection' => $filtered,
             'usingFallback' => $usingFallback,
         ];
     }
@@ -606,7 +767,7 @@ class DiscoveryQueryService
                 ->where($visibilityClause)
                 ->where('status', 'scheduled')
                 ->where('date_time', '>', now())
-                ->whereIn('game_system_id', $allowedSystemIds)
+                ->where($this->matchAllowedSystems($allowedSystemIds))
                 ->where(function ($q) use ($favoriteVibes) {
                     foreach ($favoriteVibes as $vibe) {
                         $q->orWhereJsonContains('vibe_flags', $vibe);
@@ -614,7 +775,7 @@ class DiscoveryQueryService
                 })
                 ->where('owner_id', '!=', $user->id)
                 ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
-                ->with(['owner', 'gameSystem', 'campaign'])
+                ->with(['owner', 'gameSystems', 'campaign'])
                 ->withCount('participants');
 
             $boostedGames = $this->withOverflowCounts($boostedGames)
@@ -628,7 +789,7 @@ class DiscoveryQueryService
                 $boostedCampaigns = Campaign::query()
                     ->where($visibilityClause)
                     ->where('status', 'active')
-                    ->whereIn('game_system_id', $allowedSystemIds)
+                    ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds))
                     ->where(function ($q) use ($favoriteVibes) {
                         foreach ($favoriteVibes as $vibe) {
                             $q->orWhereJsonContains('vibe_flags', $vibe);
@@ -636,7 +797,7 @@ class DiscoveryQueryService
                     })
                     ->where('owner_id', '!=', $user->id)
                     ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
-                    ->with(['owner', 'gameSystem'])
+                    ->with(['owner', 'gameSystems'])
                     ->withCount('sessions')
                     ->withCount('participants');
 
@@ -654,10 +815,10 @@ class DiscoveryQueryService
             ->where($visibilityClause)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->whereIn('game_system_id', $allowedSystemIds)
+            ->where($this->matchAllowedSystems($allowedSystemIds))
             ->where('owner_id', '!=', $user->id)
             ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
-            ->with(['owner', 'gameSystem', 'campaign'])
+            ->with(['owner', 'gameSystems', 'campaign'])
             ->withCount('participants');
 
         $fallbackGames = $this->withOverflowCounts($fallbackGames)
@@ -671,10 +832,10 @@ class DiscoveryQueryService
             $fallbackCampaigns = Campaign::query()
                 ->where($visibilityClause)
                 ->where('status', 'active')
-                ->whereIn('game_system_id', $allowedSystemIds)
+                ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds))
                 ->where('owner_id', '!=', $user->id)
                 ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
-                ->with(['owner', 'gameSystem'])
+                ->with(['owner', 'gameSystems'])
                 ->withCount('sessions')
                 ->withCount('participants');
 
@@ -791,6 +952,23 @@ class DiscoveryQueryService
         return $query
             ->withCount(['participants as waitlisted_count' => fn ($q) => $q->where('status', 'waitlisted')])
             ->withCount(['participants as benched_count' => fn ($q) => $q->where('status', 'benched')]);
+    }
+
+    /**
+     * Build a where-group matching games whose anchor OR any offered system is allowed.
+     *
+     * Recommendations use this so a Gathering surfaces when a user favors any of
+     * its offered (non-anchor) systems. Campaign queries use the same pivot now (campaign_game_system).
+     * matches via campaign_game_system pivot.
+     *
+     * @param  array<int, string>  $allowedSystemIds
+     * @return \Closure(Builder<Game>):void
+     */
+    private function matchAllowedSystems(array $allowedSystemIds): \Closure
+    {
+        return function (Builder $q) use ($allowedSystemIds): void {
+            $q->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds));
+        };
     }
 
     /**

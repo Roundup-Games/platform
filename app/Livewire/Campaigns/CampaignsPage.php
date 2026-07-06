@@ -228,7 +228,7 @@ class CampaignsPage extends Component
 
         // My Campaigns — owned by the user
         $ownedCampaigns = Campaign::where('owner_id', $user->id)
-            ->with(['gameSystem', 'participants'])
+            ->with(['gameSystems', 'participants'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -238,7 +238,7 @@ class CampaignsPage extends Component
                 ->where('role', ParticipantRole::Player->value)
                 ->where('status', 'approved');
         })->where('owner_id', '!=', $user->id)
-            ->with(['gameSystem', 'participants', 'owner'])
+            ->with(['gameSystems', 'participants', 'owner'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -246,7 +246,7 @@ class CampaignsPage extends Component
         $pendingInvitations = CampaignParticipant::where('user_id', $user->id)
             ->where('role', ParticipantRole::Invited->value)
             ->where('status', 'pending')
-            ->with(['campaign.gameSystem', 'campaign.owner'])
+            ->with(['campaign.gameSystems', 'campaign.owner'])
             ->get();
 
         // Community activity feed — what friends/followed users are doing in campaigns

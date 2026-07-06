@@ -13,6 +13,8 @@ use App\Services\Geohash;
 use App\Services\LocationDisclosureService;
 use App\Services\ShortLinkService;
 use App\Services\SocialGraphService;
+use App\Traits\ResolvesCoverImage;
+use App\Traits\StringMorphMediaKey;
 use Database\Factories\GameFactory;
 use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
 use Escalated\Laravel\Contracts\TicketSubject;
@@ -20,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -28,12 +31,15 @@ use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\SchemaOrg\Event as SchemaEvent;
 use Spatie\SchemaOrg\EventStatusType;
 use Spatie\SchemaOrg\Offer;
 use Spatie\SchemaOrg\Person as SchemaPerson;
 use Spatie\SchemaOrg\Place;
 use Spatie\SchemaOrg\PostalAddress;
+use Spatie\SchemaOrg\Thing;
 use Spatie\Translatable\HasTranslations;
 
 /**
@@ -56,9 +62,10 @@ use Spatie\Translatable\HasTranslations;
  * @property array<string, mixed>|null $safety_rules
  * @property string|null $discoverable_type
  * @property int|null $discoverable_sort_key
+ * @property int|null $discoverable_gathering_rank
  * @property float|null $distance_km
  */
-class Game extends Model implements TicketSubject
+class Game extends Model implements HasMedia, TicketSubject
 {
     use HasCapacity;
 
@@ -67,7 +74,21 @@ class Game extends Model implements TicketSubject
 
     use HasSEO;
     use HasTranslations;
+
+    // Spatie MediaLibrary: host-uploaded cover images. StringMorphMediaKey
+    // overrides media() so the varchar(36) model_id column compares correctly
+    // against this model's string PK. Mirrors GameSystem's trait resolution.
+    use InteractsWithMedia;
     use PresentsAsTicketSubject;
+    use ResolvesCoverImage;
+    use StringMorphMediaKey {
+        StringMorphMediaKey::media insteadof InteractsWithMedia;
+        // Our cover collection/conversion definitions override Spatie's empty
+        // HasMedia stubs; class-body precedence is unavailable because we pull
+        // them in via a shared trait, so resolve the collisions here.
+        ResolvesCoverImage::registerMediaCollections insteadof InteractsWithMedia;
+        ResolvesCoverImage::registerMediaConversions insteadof InteractsWithMedia;
+    }
 
     /**
      * Deep link into the host app for this game when attached as a ticket
@@ -92,15 +113,37 @@ class Game extends Model implements TicketSubject
         'bench_mode' => false,
     ];
 
+    /**
+     * Write-side bridge for the dropped game_system_id anchor column and the
+     * dropped game_systems JSON array.
+     *
+     * Legacy mass-assignment (notably factory create([... 'game_system_id' =>
+     * $id]) and create([... 'game_systems' => [...]]) overrides, which run
+     * under unguarded and bypass $fillable) would otherwise hit the dropped
+     * columns at INSERT. setGameSystemIdAttribute() and
+     * setGameSystemsAttribute() capture those ids here; the created() hook
+     * syncs them to the gameSystems pivot after persist. App write paths use
+     * gameSystems()->sync() directly and never populate this.
+     *
+     * @var list<string>
+     */
+    protected array $pendingGameSystemIds = [];
+
     protected $fillable = [
-        'owner_id', 'campaign_id', 'game_system_id', 'name', 'date_time',
-        'description', 'expected_duration', 'price', 'language', 'location', 'location_id', 'location_instructions',
+        'owner_id', 'campaign_id', 'name', 'date_time',
+        'description', 'host_note', 'expected_duration', 'price', 'language', 'location', 'location_id', 'location_instructions',
         'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
         'reminder_sent_at', 'reminder_24h_sent_at', 'recap', 'min_reliability_preference',
         'share_token', 'share_token_expires_at', 'bench_mode',
         'attendance_window_opens_at', 'attendance_window_closes_at',
         'attendance_resolved_at', 'attendance_resolution_method',
+        // Bridge: the dropped game_system_id / game_systems columns are captured
+        // by setGameSystemIdAttribute / setGameSystemsAttribute and synced to
+        // the gameSystems pivot. Kept fillable so legacy mass-assignment
+        // (Game::create(['game_system_id' => $id]) and factory overrides)
+        // continues to work.
+        'game_system_id', 'game_systems',
     ];
 
     protected function casts(): array
@@ -137,6 +180,16 @@ class Game extends Model implements TicketSubject
         static::creating(function (self $game) {
             if (empty($game->id)) {
                 $game->id = (string) Str::uuid();
+            }
+        });
+
+        // Write-side bridge: route any legacy game_system_id mass-assignment
+        // (captured by setGameSystemIdAttribute) to the gameSystems pivot.
+        // Fires after INSERT so belongsToMany::sync() has a real id to attach.
+        static::created(function (self $game) {
+            if (! empty($game->pendingGameSystemIds)) {
+                $game->gameSystems()->sync($game->pendingGameSystemIds);
+                $game->load('gameSystems');
             }
         });
 
@@ -179,11 +232,105 @@ class Game extends Model implements TicketSubject
     }
 
     /**
-     * @return BelongsTo<GameSystem, $this>
+     * Every GameSystem offered by this game, including multi-system Gatherings.
+     *
+     * Canonical belongsToMany pivot backed by game_game_system (replaces the
+     * former game_systems JSON array + cached game_system_id anchor). Eager-load
+     * with Game::with('gameSystems') so feed pages don't N+1.
+     *
+     * @return BelongsToMany<GameSystem, $this>
      */
-    public function gameSystem(): BelongsTo
+    public function gameSystems(): BelongsToMany
     {
-        return $this->belongsTo(GameSystem::class);
+        // orderBy name so the "representative first system" accessors
+        // (getGameSystemAttribute / getGameSystemIdAttribute / resolveCoverUrl)
+        // are deterministic across queries and cache refreshes, rather than
+        // depending on unpredictable pivot row return order.
+        return $this->belongsToMany(GameSystem::class, 'game_game_system')
+            ->orderBy('game_systems.name');
+    }
+
+    /**
+     * Whether this game offers more than one system (a multi-system Gathering).
+     */
+    public function hasMultipleSystems(): bool
+    {
+        return $this->gameSystems->count() > 1;
+    }
+
+    /**
+     * Representative GameSystem accessor (bridge for the former BelongsTo anchor).
+     *
+     * Returns the first offered system, or null when the game has none. Kept so
+     * ~20 secondary Blade reads ($entity->gameSystem?->name) and the OG/hero
+     * cover-image pick continue to work without per-template migration. The
+     * canonical multi-system surface is the gameSystems() relation; callers that
+     * need the full set should read ->gameSystems directly.
+     */
+    public function getGameSystemAttribute(): ?GameSystem
+    {
+        return $this->gameSystems->first();
+    }
+
+    /**
+     * Representative game_system_id accessor (bridge for the dropped anchor column).
+     *
+     * Returns the first offered system's id, or null. Kept so ~10 property reads
+     * ($game->game_system_id) across CreateGame/AddSessionToCampaign/GenerateUserDataExport/
+     * DashboardDiscovery continue to work. Callers needing the full set should read
+     * ->gameSystems directly.
+     */
+    public function getGameSystemIdAttribute(): ?string
+    {
+        $first = $this->gameSystems->first();
+
+        return $first !== null ? (string) $first->id : null;
+    }
+
+    /**
+     * Write-side bridge for the dropped game_system_id anchor column.
+     *
+     * Mirrors getGameSystemIdAttribute(): when legacy code mass-assigns
+     * 'game_system_id' (notably factory create([...]) overrides, which run
+     * under unguarded and bypass $fillable), capture the id here instead of
+     * letting it reach the dropped column at INSERT. The created() hook then
+     * syncs the captured ids to the gameSystems pivot, so the model ends up
+     * associated with that system exactly as it was pre-refactor. App write
+     * paths (CreateGame/AddSessionToCampaign/DemoSeed) use sync() directly
+     * and never trigger this.
+     */
+    public function setGameSystemIdAttribute(mixed $id): void
+    {
+        if (is_string($id) && $id !== '' && $id !== '0') {
+            $this->pendingGameSystemIds[] = $id;
+        }
+    }
+
+    /**
+     * Write-side bridge for the dropped game_systems JSON array column.
+     *
+     * Mirrors setGameSystemIdAttribute(): when legacy code mass-assigns
+     * 'game_systems' (notably factory create([...]) overrides, which run
+     * under unguarded and bypass $fillable), capture the ids here instead
+     * of letting them reach the dropped column at INSERT. The created() hook
+     * syncs the captured ids to the gameSystems pivot alongside any singular
+     * game_system_id capture. null and empty arrays are no-ops (the factory
+     * default-attach then supplies one system). App write paths use
+     * gameSystems()->sync() directly and never trigger this.
+     */
+    public function setGameSystemsAttribute(mixed $systems): void
+    {
+        $ids = match (true) {
+            is_array($systems) => $systems,
+            is_string($systems) => [$systems],
+            default => [],
+        };
+
+        foreach ($ids as $id) {
+            if (is_string($id) && $id !== '' && $id !== '0') {
+                $this->pendingGameSystemIds[] = $id;
+            }
+        }
     }
 
     /**
@@ -505,7 +652,11 @@ class Game extends Model implements TicketSubject
             ? Str::limit(strip_tags($this->description), 160)
             : null;
 
-        $image = $this->gameSystem?->coverImageUrl() ?: asset('images/og-default.jpg');
+        // Cover image via the deterministic fallback chain (S07): host-uploaded
+        // cover -> representative GameSystem cover -> og-default.jpg asset.
+        // Eager-loaded gameSystems (callers use ->with('gameSystems')) makes the
+        // representative rung N+1-safe.
+        $image = $this->resolveCoverUrl();
 
         $isPublic = $this->visibility === Visibility::Public;
         $robots = $isPublic
@@ -567,6 +718,24 @@ class Game extends Model implements TicketSubject
                         ->priceCurrency('EUR')
                         ->availability('InStock')
                 );
+            }
+
+            // schema.org about: name EVERY offered system so the full
+            // multi-system offering is honest in structured data (a Gathering
+            // advertising D&D + Call of Cthulhu + Blades names all three, not
+            // just the anchor). Additive enrichment; single-system stays a
+            // one-element list. Spatie\SchemaOrg\Type::__call stores arbitrary
+            // properties, so about() is safe even when not auto-generated.
+            $about = $this->gameSystems->map(function (GameSystem $sys) {
+                $thing = (new Thing)->name($sys->name);
+                if ($sys->slug) {
+                    $thing->identifier($sys->slug);
+                }
+
+                return $thing;
+            })->values()->all();
+            if (! empty($about)) {
+                $event->about($about);
             }
 
             $schema->push($event->toArray());

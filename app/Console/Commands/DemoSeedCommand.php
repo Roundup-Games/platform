@@ -98,6 +98,12 @@ class DemoSeedCommand extends Command
     /** @var string[] resolved TTRPG system IDs (flat, for user preferences) */
     private array $resolvedTtrpgIds = [];
 
+    /** @var array<int, array{game_id: string, game_system_id: string}> in-memory game_game_system pivot pairs harvested by dryInsertMany() (S06: games.game_system_id dropped) */
+    private array $pendingGameSystemPivots = [];
+
+    /** @var array<int, array{campaign_id: string, game_system_id: string}> in-memory campaign_game_system pivot pairs harvested by dryInsertMany() (S06: campaigns.game_system_id dropped) */
+    private array $pendingCampaignSystemPivots = [];
+
     /** @var array<string, string> user ID => email (for invitee_email on friend_invite/email_invite) */
     private array $userEmailMap = [];
 
@@ -446,6 +452,11 @@ class DemoSeedCommand extends Command
         $this->assignShortLinkAttribution();
         $this->seedNotifications();
 
+        // populate the canonical game_game_system + campaign_game_system
+        // pivots from the just-written anchor columns. Idempotent (ON CONFLICT
+        // DO NOTHING) so it stays safe if re-run on a partially-seeded DB.
+        $this->syncGameSystemPivots();
+
         if (! $this->dryRun) {
             $this->updateGmAggregates();
         }
@@ -607,12 +618,67 @@ class DemoSeedCommand extends Command
      */
     private function dryInsertMany(string $table, array $rows): void
     {
+        // S06: the legacy games.game_system_id / campaigns.game_system_id anchor
+        // columns were dropped. Raw batch rows still carry those keys, so
+        // intercept games/campaigns here: harvest each row's system id into an
+        // in-memory pivot accumulator (flushed by syncGameSystemPivots()) and
+        // strip the dead key so the INSERT doesn't reference a column that no
+        // longer exists.
+        if ($table === 'games' || $table === 'campaigns') {
+            $cleaned = [];
+            foreach ($rows as $row) {
+                $systemId = $row['game_system_id'] ?? null;
+                $entityId = $row['id'] ?? null;
+                if (is_string($systemId) && is_string($entityId)) {
+                    if ($table === 'games') {
+                        $this->pendingGameSystemPivots[] = [
+                            'game_id' => $entityId,
+                            'game_system_id' => $systemId,
+                        ];
+                    } else {
+                        $this->pendingCampaignSystemPivots[] = [
+                            'campaign_id' => $entityId,
+                            'game_system_id' => $systemId,
+                        ];
+                    }
+                }
+                unset($row['game_system_id']);
+                $cleaned[] = $row;
+            }
+            $rows = $cleaned;
+        }
+
         if ($this->dryRun) {
             $this->dryCounts[$table] = ($this->dryCounts[$table] ?? 0) + count($rows);
 
             return;
         }
         DB::table($table)->insert($rows);
+    }
+
+    /**
+     * Flush the in-memory game_game_system / campaign_game_system pivot pairs
+     * harvested by dryInsertMany() while it stripped the dropped anchor column
+     * from games/campaigns batch rows.
+     *
+     * Replaces the former read-back from games.game_system_id / game_systems /
+     * campaigns.game_system_id (those columns were retired in S06/T06).
+     * insertOrIgnore keeps this idempotent against the migration's own backfill
+     * and any prior seed run. Skipped in dry-run (no rows were written).
+     */
+    private function syncGameSystemPivots(): void
+    {
+        if ($this->dryRun) {
+            return;
+        }
+
+        foreach (array_chunk($this->pendingGameSystemPivots, 500) as $chunk) {
+            DB::table('game_game_system')->insertOrIgnore($chunk);
+        }
+
+        foreach (array_chunk($this->pendingCampaignSystemPivots, 500) as $chunk) {
+            DB::table('campaign_game_system')->insertOrIgnore($chunk);
+        }
     }
 
     // =========================================================================

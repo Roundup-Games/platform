@@ -158,7 +158,7 @@ class CampaignListing extends Component
             })
             // Only active campaigns
             ->where('status', 'active')
-            ->with(['owner', 'gameSystem'])
+            ->with(['owner', 'gameSystems'])
             ->withCount('sessions');
 
         // Search by name/description
@@ -168,7 +168,9 @@ class CampaignListing extends Component
         }));
 
         // Game system filter
-        $query->when($this->game_system_id, fn ($q) => $q->where('game_system_id', $this->game_system_id));
+        // Game system filter — match via the canonical gameSystems pivot (R048:
+        // a Gathering/campaign appears in each offered system's feed).
+        $query->when($this->game_system_id, fn ($q) => $q->whereHas('gameSystems', fn ($q) => $q->where('game_systems.id', $this->game_system_id)));
 
         // Experience level filter
         $query->when($this->experience_level, fn ($q) => $q->where('experience_level', $this->experience_level));

@@ -87,7 +87,7 @@ class DashboardScheduleService
                         ->where('status', ParticipantStatus::Approved));
             })
             ->orderBy('date_time')
-            ->with(['gameSystem'])
+            ->with(['gameSystems'])
             ->first();
 
         if ($game === null) {
@@ -149,7 +149,7 @@ class DashboardScheduleService
                         ->where('user_id', $user->id)
                         ->where('status', ParticipantStatus::Approved->value));
             })
-            ->with(['gameSystem', 'campaign', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)])
+            ->with(['gameSystems', 'campaign', 'media', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)])
             ->orderBy('date_time')
             ->get();
 
@@ -193,8 +193,14 @@ class DashboardScheduleService
             'id' => $game->id,
             'name' => $game->name,
             'system_badge' => [
-                'name' => $game->gameSystem?->name,
-                'icon' => $game->gameSystem?->coverImageUrl('thumb'),
+                'name' => $game->gameSystems->first()?->name,
+                // Cover via the deterministic fallback chain (S07): host cover
+                // -> representative system cover -> og-default. gameSystems is
+                // eager-loaded above so the representative rung is N+1-safe.
+                'icon' => $game->resolveCoverUrl('thumb'),
+                // Additive: lets compact tiles render trans_choice('games.content_n_games_on_offer', N)
+                // instead of one arbitrary name when a Gathering offers >1 system.
+                'systems_count' => $game->gameSystems->count(),
             ],
             'date_time' => $game->date_time?->toIso8601String(),
             'relative_time' => $this->formatRelativeTime($game->date_time),

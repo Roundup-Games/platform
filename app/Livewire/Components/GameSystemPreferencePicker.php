@@ -38,6 +38,20 @@ class GameSystemPreferencePicker extends Component
     #[Locked]
     public string $preferenceType = 'favorite';
 
+    /**
+     * Picker mode: 'preference' (favorites/avoids on the profile page) or
+     * 'creation' (neutral host-creation voice when composing a Gathering).
+     */
+    #[Locked]
+    public string $mode = 'preference';
+
+    /**
+     * Maximum number of selectable systems. 0 means unlimited, which keeps
+     * the existing preference-page behavior unchanged. Enforced in add().
+     */
+    #[Locked]
+    public int $maxSystems = 0;
+
     /** @var array<int, string> IDs of currently selected game systems */
     public array $selectedIds = [];
 
@@ -64,10 +78,14 @@ class GameSystemPreferencePicker extends Component
         string $preferenceType = 'favorite',
         array $selectedIds = [],
         array $conflictIds = [],
+        string $mode = 'preference',
+        int $maxSystems = 0,
     ): void {
         $this->preferenceType = $preferenceType;
         $this->selectedIds = array_map('strval', $selectedIds);
         $this->conflictIds = array_map('strval', $conflictIds);
+        $this->mode = $mode;
+        $this->maxSystems = $maxSystems;
     }
 
     /**
@@ -205,7 +223,9 @@ class GameSystemPreferencePicker extends Component
 
     public function add(string $id): void
     {
-        // Prevent duplicates
+        // Prevent duplicates first so an already-selected id is always a silent
+        // no-op — even when the cap is reached. Otherwise clicking a selected
+        // item at the cap surfaces the misleading "max reached" message.
         if (in_array($id, $this->selectedIds, true)) {
             $this->search = '';
             $this->isOpen = false;
@@ -213,22 +233,35 @@ class GameSystemPreferencePicker extends Component
             return;
         }
 
-        // Block: favoriting an expansion when its base is avoided
-        if ($this->preferenceType === 'favorite') {
-            $system = GameSystem::findOrFail($id);
-            if ($system->base_game_id && in_array($system->base_game_id, $this->conflictIds, true)) {
-                $rawBaseName = GameSystem::where('id', $system->base_game_id)->value('name');
-                $baseName = is_string($rawBaseName) ? $rawBaseName : 'its base game';
-                $this->conflictMessage = __('games.error_name_s_base_game_base_name_is_in_your_avoid_list', [
-                    'name' => $system->name,
-                    'baseName' => $baseName,
-                ]);
+        // Enforce the optional max-systems cap (used in creation mode). Now
+        // checked AFTER the duplicate guard so only a genuinely new selection
+        // can trip it.
+        if ($this->maxSystems > 0 && count($this->selectedIds) >= $this->maxSystems) {
+            $this->conflictMessage = __('games.error_max_game_systems_reached', ['max' => $this->maxSystems]);
 
-                return;
-            }
+            return;
         }
 
-        $this->checkConflict($id);
+        // Creation mode has no favorites/avoids, so skip conflict detection
+        // entirely — the parent ignores preferenceType in that context.
+        if ($this->mode !== 'creation') {
+            // Block: favoriting an expansion when its base is avoided
+            if ($this->preferenceType === 'favorite') {
+                $system = GameSystem::findOrFail($id);
+                if ($system->base_game_id && in_array($system->base_game_id, $this->conflictIds, true)) {
+                    $rawBaseName = GameSystem::where('id', $system->base_game_id)->value('name');
+                    $baseName = is_string($rawBaseName) ? $rawBaseName : 'its base game';
+                    $this->conflictMessage = __('games.error_name_s_base_game_base_name_is_in_your_avoid_list', [
+                        'name' => $system->name,
+                        'baseName' => $baseName,
+                    ]);
+
+                    return;
+                }
+            }
+
+            $this->checkConflict($id);
+        }
 
         $this->selectedIds[] = $id;
         $this->search = '';

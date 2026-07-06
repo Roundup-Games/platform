@@ -210,16 +210,18 @@ describe('entity SEO common assertions', function () {
 // ── Campaign unique assertions ──────────────────────────────────────────────
 
 describe('Campaign getDynamicSEOData unique assertions', function () {
-    it('returns game system cover image as fallback when no campaign images', function () {
+    it('returns game system cover image as the representative resolveCoverUrl() fallback', function () {
         $system = GameSystem::factory()->create([
             'thumbnail_url' => 'https://example.com/system-cover.jpg',
         ]);
         $campaign = Campaign::factory()->create([
             'game_system_id' => $system->id,
-            'images' => null,
             'visibility' => Visibility::Public,
         ]);
 
+        // S07: campaigns.images JSON column was dropped; the cover surface now
+        // reads through ResolvesCoverImage::resolveCoverUrl(). With no host
+        // cover media, rung 2 (representative GameSystem cover) wins.
         $seo = $campaign->getDynamicSEOData();
 
         expect($seo->image)->toBe('https://example.com/system-cover.jpg');
@@ -255,6 +257,63 @@ describe('Campaign getDynamicSEOData unique assertions', function () {
         $event = collect($seo->schema->toArray())
             ->first(fn ($item) => ($item['@type'] ?? null) === 'Event');
         expect($event)->not->toBeNull();
+    });
+
+    // ── M055 regression: Campaign JSON-LD location must honour the disclosure service ──
+    // JSON-LD is a single server-rendered artifact served to every viewer
+    // (including crawlers), so the Event location must reflect the stranger
+    // (most-restrictive) disclosure level. A public campaign at a private
+    // home must NOT leak the host's street address in structured data even
+    // though the HTML body correctly shows only "In your area". Mirrors the
+    // Game M053 regression (EntitySeoTest, Game describe block).
+
+    it('emits a full PostalAddress in the Campaign Event location for a verified commercial venue', function () {
+        $venue = Location::factory()->verifiedVenue()->create([
+            'venue_type' => VenueType::Cafe,
+            'name' => 'Campaign Café',
+            'address' => 'Friedrichstraße 200',
+            'city' => 'Berlin',
+            'country' => 'DEU',
+            'is_verified' => true,
+        ]);
+        $campaign = Campaign::factory()->create([
+            'visibility' => Visibility::Public,
+            'status' => CampaignStatus::Active->value,
+            'location_id' => $venue->id,
+        ]);
+
+        $event = collect($campaign->getDynamicSEOData()->schema->toArray())
+            ->first(fn ($item) => ($item['@type'] ?? null) === 'Event');
+
+        expect($event)->not->toBeNull();
+        expect($event)->toHaveKey('location');
+        expect($event['location']['@type'] ?? null)->toBe('Place');
+        expect($event['location']['address']['@type'] ?? null)->toBe('PostalAddress');
+        expect($event['location']['address']['streetAddress'] ?? null)->toBe('Friedrichstraße 200');
+        expect($event['location']['address']['addressLocality'] ?? null)->toBe('Berlin');
+    });
+
+    it('does NOT leak the street address in Campaign JSON-LD for a public campaign at a private home (M055 regression)', function () {
+        $home = Location::factory()->create([
+            'venue_type' => VenueType::Other,
+            'is_verified' => false,
+            'name' => 'Private Home Campaign',
+            'address' => 'Torstraße 99',
+            'city' => 'Berlin',
+            'country' => 'DEU',
+        ]);
+        $campaign = Campaign::factory()->create([
+            'visibility' => Visibility::Public,
+            'status' => CampaignStatus::Active->value,
+            'location_id' => $home->id,
+        ]);
+
+        $schemaJson = json_encode($campaign->getDynamicSEOData()->schema->toArray());
+
+        // No Place, no PostalAddress, no street, no locality — fail-closed.
+        expect($schemaJson)->not->toContain('PostalAddress')
+            ->and($schemaJson)->not->toContain('Torstra')
+            ->and($schemaJson)->not->toContain('streetAddress');
     });
 });
 

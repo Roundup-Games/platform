@@ -97,11 +97,13 @@
 
                         {{-- Meta line --}}
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-on-surface-variant">
-                            @if($entity->gameSystem)
-                                <span class="inline-flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-xs" aria-hidden="true">casino</span>
-                                    {{ $entity->gameSystem->name }}
-                                </span>
+                            @if($entity->gameSystems->isNotEmpty())
+                                @foreach($entity->gameSystems as $system)
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-xs" aria-hidden="true">casino</span>
+                                        {{ $system->name }}
+                                    </span>
+                                @endforeach
                             @endif
 
                             @if($entityType === 'game' && isset($entity->date_time))

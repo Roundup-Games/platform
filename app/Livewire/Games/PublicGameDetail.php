@@ -139,8 +139,9 @@ class PublicGameDetail extends Component
     public function render(): View
     {
         $relations = [
-            'owner', 'campaign', 'gameSystem.categories', 'gameSystem.mechanics',
-            'gameSystem.publishers', 'gameSystem.baseGame', 'gameSystem.expansions',
+            'owner', 'campaign',
+            'gameSystems.categories', 'gameSystems.mechanics',
+            'gameSystems.publishers', 'gameSystems.baseGame', 'gameSystems.expansions',
             'linkedLocation',
         ];
         if (Auth::check()) {

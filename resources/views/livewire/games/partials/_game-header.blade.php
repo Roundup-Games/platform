@@ -1,10 +1,10 @@
 {{-- Hero section: cover image, badges, title, metadata --}}
 @php
-    $coverUrl = $game->gameSystem?->getFirstMediaUrl('cover');
+    // Cover image via the deterministic fallback chain (S07): host-uploaded
+    // cover -> representative GameSystem cover -> og-default.jpg asset.
+    // Eager-loaded gameSystems keeps the representative rung N+1-safe.
+    $coverUrl = $game->resolveCoverUrl();
 @endphp
-@if(!$coverUrl && $game->gameSystem?->thumbnail_url)
-    @php($coverUrl = $game->gameSystem->thumbnail_url)
-@endif
 @if($coverUrl)
     @push('preload')
         <link rel="preload" as="image" href="{{ $coverUrl }}" fetchpriority="high">

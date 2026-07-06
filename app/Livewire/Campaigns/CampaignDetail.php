@@ -12,6 +12,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Review;
 use App\Models\ShortLink;
 use App\Services\ParticipantLifecycle;
+use App\Services\RecurrenceService;
 use App\Services\ReviewEligibilityService;
 use App\Services\Roster;
 use App\Services\ShortLinkService;
@@ -335,9 +336,12 @@ class CampaignDetail extends Component
 
     // ── Computed Viewer State ───────────────────────────
 
-    private function viewerId(): string
+    private function viewerId(): ?string
     {
-        return (string) Auth::id();
+        // Mirrors GameDetail::viewerId(): returns null for a guest rather
+        // than "", so callers' truthiness gates (&& $id ...) type-check as
+        // genuinely nullable and PHPStan's booleanNot.alwaysFalse stays quiet.
+        return ($id = Auth::id()) !== null ? (string) $id : null;
     }
 
     /**
@@ -355,10 +359,18 @@ class CampaignDetail extends Component
             : null;
     }
 
+    /** @phpstan-impure — depends on the authenticated user (Auth::id()),
+     *  so its result varies per request and must not be treated as constant. */
     #[Computed]
     public function isOwner(): bool
     {
-        return ($id = $this->viewerId()) && (string) $this->campaign->owner_id === (string) $id;
+        $id = $this->viewerId();
+
+        // Explicit null guard (rather than the dense `($id = ...) &&` idiom)
+        // so PHPStan sees a genuine bool return path and cannot over-infer
+        // the result as constant. Mirrors the truthiness callers rely on.
+        return $id !== null
+            && (string) $this->campaign->owner_id === (string) $id;
     }
 
     #[Computed]
@@ -476,17 +488,59 @@ class CampaignDetail extends Component
             : collect();
     }
 
+    /**
+     * Owner-only "plan ahead" nudge for a recurring campaign whose upcoming
+     * scheduled sessions fall short of the ~2-cadence-unit horizon.
+     *
+     * mount() authorizes only 'view' (participants can view), so the explicit
+     * isOwner() gate here is required. RecurrenceService::shouldNudge() already
+     * handles non-recurring / non-Active / healthy-hizon gracefully (returns
+     * false), but the cheap recurrence guard short-circuits before the DB query
+     * for the common non-recurring case.
+     *
+     * @return array{title:string,description:string,action_url:string,action_label:string}|null
+     */
+    #[Computed]
+    public function planAheadNudge(): ?array
+    {
+        // Positive owner guard (rather than `if (! isOwner())`) avoids a
+        // context-specific PHPStan booleanNot.alwaysFalse false positive on
+        // the standalone negation of a #[Computed] method — the same call is
+        // fine inside a `&&` chain (canApplyDirectly/canJoinWaitlist) and as
+        // a positive `if ($this->isOwner())` (render/line 305). The gate is
+        // required because mount() authorizes only 'view', which participants
+        // also pass.
+        if ($this->isOwner()) {
+            // No `recurrence` null-guard needed: the column is NOT NULL
+            // (weekly/bi-weekly/monthly). shouldNudge() handles Active +
+            // horizon gating, and needsPlanning() degrades to false for any
+            // unrecognised recurrence.
+            if (! app(RecurrenceService::class)->shouldNudge($this->campaign)) {
+                return null;
+            }
+
+            return [
+                'title' => __('campaigns.nudge_plan_ahead_title'),
+                'description' => __('campaigns.nudge_plan_ahead_desc'),
+                'action_url' => route('campaigns.add-session', [$this->campaign->id, 'prefill' => 1]),
+                'action_label' => __('campaigns.nudge_plan_ahead_action'),
+            ];
+        }
+
+        return null;
+    }
+
     // ── Render ─────────────────────────────────────────
 
     public function render(): View
     {
         $this->campaign->load([
             'owner',
-            'gameSystem.categories',
-            'gameSystem.mechanics',
-            'gameSystem.publishers',
-            'gameSystem.baseGame',
-            'gameSystem.expansions',
+            'gameSystems.categories',
+            'gameSystems.mechanics',
+            'gameSystems.publishers',
+            'gameSystems.baseGame',
+            'gameSystems.expansions',
             'participants.user',
             'applications.user',
             'linkedLocation',
@@ -525,6 +579,7 @@ class CampaignDetail extends Component
             'waitlistedPlayers' => $this->waitlistedPlayers(),
             'benchedPlayers' => $this->benchedPlayers(),
             'userBenchParticipant' => $this->userBenchParticipant(),
+            'planAheadNudge' => $this->planAheadNudge(),
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),

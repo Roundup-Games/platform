@@ -147,12 +147,17 @@ function createCampaignReportTicket(): array
  * @param  string  $method  The perform* method name on ViewTicket.
  * @param  mixed  ...$args  Positional args forwarded to the method.
  */
-function invokeModerationAction(string $method, mixed ...$args): void
-{
-    $page = new ViewTicket;
-    $reflection = new ReflectionMethod($page, $method);
-    $reflection->setAccessible(true);
-    $reflection->invoke($page, ...$args);
+// Guarded with function_exists() so this file can coexist with
+// CoverImageTakedownTest.php (which re-declares the same helper) in a single
+// Pest suite run — matches the project's shared-helper convention.
+if (! function_exists('invokeModerationAction')) {
+    function invokeModerationAction(string $method, mixed ...$args): void
+    {
+        $page = new ViewTicket;
+        $reflection = new ReflectionMethod($page, $method);
+        $reflection->setAccessible(true);
+        $reflection->invoke($page, ...$args);
+    }
 }
 
 // ── Dismiss Action Tests ────────────────────────────────────────────────

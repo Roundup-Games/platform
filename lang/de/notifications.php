@@ -12,6 +12,7 @@ return [
     'category_application_rejected' => 'Bewerbung abgelehnt',
     'category_participant_joined' => 'Teilnehmer beigetreten',
     'category_participant_removed' => 'Teilnehmer entfernt',
+    'category_seat_demoted' => 'Platz abgegeben',
     'category_team_member_removed' => 'Teammitglied entfernt',
     'category_game_cancelled' => 'Spiel abgesagt',
     'category_game_completed' => 'Spiel abgeschlossen',
@@ -159,6 +160,10 @@ return [
     'body_participant_removed' => 'Du wurdest aus **:entity** entfernt. Wenn du Fragen hast, wende dich an den Organisator.',
     'action_participant_removed' => 'Spiele entdecken',
 
+    'subject_seat_demoted' => 'Dein Platz in :entity wurde abgegeben',
+    'body_seat_demoted' => 'Dein bestätigter Platz in **:entity** wurde abgegeben, da der Gastgeber die Spielerzahl reduziert hat. Grund: :reason. Du bist nun wieder auf der Warteliste und wirst bei frei werdendem Platz erneut vorgeschlagen.',
+    'action_seat_demoted' => ':entity anzeigen',
+
     'subject_team_member_removed' => 'Du wurdest aus :team entfernt',
     'body_team_member_removed' => 'Du wurdest aus dem Team **:team** entfernt. Wenn du Fragen hast, kontaktiere den Team-Organisator.',
     'action_team_member_removed' => 'Teams entdecken',
@@ -298,6 +303,8 @@ return [
     // Wartelisten-Push
     'push_title_waitlist_promoted' => 'Platz frei!',
     'push_body_waitlist_promoted' => 'Ein Platz in :game ist frei. Bestätige bis :deadline.',
+    'push_title_seat_demoted' => 'Platz zurückgefordert',
+    'push_body_seat_demoted' => 'Dein Platz in :game wurde zurückgefordert. Grund: :reason.',
     'push_title_confirmation_expired' => 'Bestätigung abgelaufen',
     'push_body_confirmation_expired' => 'Dein Bestätigungszeitfenster für :game ist abgelaufen.',
 
@@ -321,6 +328,10 @@ return [
     'body_content_removed' => 'Dein :entityType „:entityName" wurde von unserem Moderationsteam entfernt.',
     'body_content_removed_reason' => 'Grund: :reason',
     'body_content_removed_guidelines' => 'Wiederholte Verstöße können zur Kontosperrung führen.',
+
+    // Moderation — Titelbild entfernt (scoped Takedown; Entität selbst bleibt veröffentlicht)
+    'subject_cover_removed' => 'Titelbild entfernt',
+    'body_cover_removed' => 'Das Titelbild deines :entityType „:entityName" wurde von unserem Moderationsteam entfernt. Dein :entityType selbst ist weiterhin veröffentlicht — du kannst jederzeit ein neues Titelbild hochladen.',
 
     // Moderation — Konto gesperrt
     'subject_account_suspended' => 'Konto gesperrt',

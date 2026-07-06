@@ -1011,4 +1011,109 @@ class ActionCenterServiceTest extends TestCase
         $bulletin->refresh();
         $this->assertNotNull($bulletin->expires_at);
     }
+
+    // ── 12. Recurrence Planning Nudges (low) ────────────────────────────
+
+    public function test_get_items_includes_recurrence_planning_nudge_for_recurring_campaign_owner(): void
+    {
+        // Weekly Active campaign the user owns, with NO upcoming scheduled sessions.
+        Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'active',
+            'recurrence' => 'weekly',
+        ]);
+
+        $items = $this->service->getItems($this->user);
+
+        $recurrenceItems = array_values(array_filter(
+            $items,
+            fn (ActionItem $i) => $i->type === 'recurrence_planning',
+        ));
+        $this->assertCount(1, $recurrenceItems, 'Expected exactly one recurrence planning nudge for the owner.');
+
+        $item = $recurrenceItems[0];
+        $this->assertSame('low', $item->priority);
+        $this->assertStringContainsString('prefill=1', $item->actionUrl);
+        $this->assertSame('event_repeat', $item->icon);
+        $this->assertSame('campaign', $item->metadata['entity_type']);
+    }
+
+    public function test_recurrence_planning_nudge_absent_for_non_owner(): void
+    {
+        // Recurring campaign owned by someone else.
+        Campaign::factory()->create([
+            'owner_id' => User::factory()->create()->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'active',
+            'recurrence' => 'weekly',
+        ]);
+
+        $items = $this->service->getItems($this->user);
+
+        $recurrenceItems = array_filter($items, fn (ActionItem $i) => $i->type === 'recurrence_planning');
+        $this->assertEmpty($recurrenceItems, 'Non-owners must not see another host\'s recurrence nudge.');
+    }
+
+    public function test_recurrence_planning_nudge_absent_for_non_recurring_campaign(): void
+    {
+        // campaigns.recurrence is a NOT NULL enum (weekly/bi-weekly/monthly) per
+        // migration 2026_04_12 — research risk #4. To exercise the service's
+        // `whereNotNull('recurrence')` guard end-to-end we drop NOT NULL inside
+        // this transaction (PostgreSQL DDL is transactional, so DatabaseTransactions
+        // rolls the change back) and persist a null recurrence.
+        DB::statement('ALTER TABLE campaigns ALTER COLUMN recurrence DROP NOT NULL');
+
+        Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'active',
+            'recurrence' => null,
+        ]);
+
+        $items = $this->service->getItems($this->user);
+
+        $recurrenceItems = array_filter($items, fn (ActionItem $i) => $i->type === 'recurrence_planning');
+        $this->assertEmpty($recurrenceItems, 'A campaign without a recurrence cadence must not produce a nudge.');
+    }
+
+    public function test_recurrence_planning_nudge_absent_when_horizon_healthy(): void
+    {
+        // Weekly campaign with a scheduled session 20 days out — beyond the
+        // 2x-cadence (14-day) plan-ahead horizon, so no nudge is needed.
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'active',
+            'recurrence' => 'weekly',
+        ]);
+
+        Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'campaign_id' => $campaign->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(20),
+        ]);
+
+        $items = $this->service->getItems($this->user);
+
+        $recurrenceItems = array_filter($items, fn (ActionItem $i) => $i->type === 'recurrence_planning');
+        $this->assertEmpty($recurrenceItems, 'No nudge when the cadence horizon is already covered by a scheduled session.');
+    }
+
+    public function test_recurrence_planning_nudge_absent_for_completed_campaign(): void
+    {
+        Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'completed',
+            'recurrence' => 'weekly',
+        ]);
+
+        $items = $this->service->getItems($this->user);
+
+        $recurrenceItems = array_filter($items, fn (ActionItem $i) => $i->type === 'recurrence_planning');
+        $this->assertEmpty($recurrenceItems, 'Completed campaigns must never produce a planning nudge.');
+    }
 }

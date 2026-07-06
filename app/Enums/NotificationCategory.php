@@ -24,6 +24,7 @@ enum NotificationCategory: string
     // Participation
     case ParticipantJoined = 'participant_joined';
     case ParticipantRemoved = 'participant_removed';
+    case SeatDemoted = 'seat_demoted';
     case TeamMemberRemoved = 'team_member_removed';
 
     // Attendance
@@ -72,6 +73,7 @@ enum NotificationCategory: string
             self::ApplicationRejected => __('notifications.category_application_rejected'),
             self::ParticipantJoined => __('notifications.category_participant_joined'),
             self::ParticipantRemoved => __('notifications.category_participant_removed'),
+            self::SeatDemoted => __('notifications.category_seat_demoted'),
             self::TeamMemberRemoved => __('notifications.category_team_member_removed'),
             self::AttendanceReported => __('notifications.category_attendance_reported'),
             self::DisputeResolved => __('notifications.category_dispute_resolved'),
@@ -97,7 +99,7 @@ enum NotificationCategory: string
             self::NewFollower => 'social',
             self::GameInvitation, self::CampaignInvitation, self::TeamInvitation, self::SessionAddedToCampaign => 'invitations',
             self::NewApplication, self::ApplicationApproved, self::ApplicationRejected => 'applications',
-            self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved => 'participation',
+            self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved => 'participation',
             self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated => 'status',
             self::GameSystemRequest => 'content',
             self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder => 'scheduling',
@@ -127,7 +129,7 @@ enum NotificationCategory: string
             ],
             'participation' => [
                 'label' => __('notifications.group_participation'),
-                'categories' => [self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved],
+                'categories' => [self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved],
             ],
             'status' => [
                 'label' => __('notifications.group_status'),
@@ -193,6 +195,7 @@ enum NotificationCategory: string
             self::ApplicationRejected => true,
             self::ParticipantJoined => false,
             self::ParticipantRemoved => true,
+            self::SeatDemoted => true,
             self::TeamMemberRemoved => true,
             self::AttendanceReported => true,
             self::DisputeResolved => true,

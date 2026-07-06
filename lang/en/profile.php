@@ -313,6 +313,9 @@ return [
     'dashboard_action_campaign_session_action' => 'View campaign',
     'dashboard_action_bulletin_title' => 'Host update: :game',
     'dashboard_action_bulletin_action' => 'View game',
+    'dashboard_action_recurrence_title' => 'Plan ahead: :campaign',
+    'dashboard_action_recurrence_desc' => 'You have fewer than ~2 sessions of your cadence scheduled. Plan the next one now.',
+    'dashboard_action_recurrence_action' => 'Plan next session',
     'dashboard_action_expires_in_hm' => 'Expires in :h hour :m min',
     'dashboard_action_expires_in_m' => 'Expires in :m min',
 

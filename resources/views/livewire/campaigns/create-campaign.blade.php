@@ -36,13 +36,58 @@
                     />
 
                     <div>
+                        <label for="campaign-game-type" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_game_type') }} <span class="text-error">*</span></label>
+                        <select id="campaign-game-type" wire:model.live="game_type"
+                                class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
+                            @foreach($this->gameTypeOptions as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @if($game_type === 'gathering')
+                            <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('campaigns.content_gathering_campaign_hint') }}</p>
+                        @endif
+                        @error('game_type') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
                         <livewire:components.game-system-picker
                             :fieldId="'campaign-system'"
                             :label="__('games.content_game_system')"
                             :error="$errors->first('game_system_id')"
-                            :gameType="'ttrpg'"
+                            :gameType="$game_type"
                             wire:model.live="game_system_id"
                         />
+                    </div>
+
+                    {{-- Host-uploaded cover image (S07). Optional — resolveCoverUrl() falls back to the representative system cover, then og-default.jpg. --}}
+                    <div>
+                        <label for="campaign-cover-image" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_cover_image') }}</label>
+                        <div class="mt-1">
+                            @if($cover_image && str_starts_with($cover_image->getMimeType(), 'image/'))
+                                <div class="relative inline-block">
+                                    <img src="{{ $cover_image->temporaryUrl() }}" alt="" class="h-32 w-32 object-cover rounded-lg border border-outline-variant">
+                                    <button type="button" wire:click="$set('cover_image', null)" class="absolute -top-2 -right-2 bg-surface rounded-full p-1 shadow-md hover:bg-surface-container-high transition-colors" aria-label="{{ __('games.action_remove_cover_image') }}">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
+                                    </button>
+                                </div>
+                            @elseif($cover_image)
+                                {{-- Non-image file selected (will fail the image validation rule).
+                                     Rendered without temporaryUrl(), which throws for non-previewable mimes. --}}
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm text-on-surface-variant" aria-hidden="true">description</span>
+                                    <span class="text-sm text-on-surface-variant">{{ $cover_image->getClientOriginalName() }}</span>
+                                </div>
+                            @else
+                                <input type="file" id="campaign-cover-image" wire:model="cover_image" accept="image/jpeg,image/png,image/webp"
+                                       class="block w-full text-sm text-on-surface file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-on-primary file:font-medium hover:file:brightness-110 cursor-pointer" />
+                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.content_cover_image_hint') }}</p>
+                                <div wire:loading wire:target="cover_image" class="mt-1 text-xs text-on-surface-variant flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm animate-spin" aria-hidden="true" role="status">progress_activity</span>
+                                    {{ __('common.content_uploading') }}
+                                </div>
+                            @endif
+                        </div>
+                        @error('cover_image') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </section>

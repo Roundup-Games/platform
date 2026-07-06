@@ -50,7 +50,10 @@ function makeGameWithSystem(array $gameAttrs = [], array $systemAttrs = []): Gam
         'id' => Str::uuid()->toString(),
         'game_system_id' => $systemId,
     ], $gameAttrs));
-    $game->setRelation('gameSystem', $gameSystem);
+    // Set the plural pivot relation (not just the singular bridge) so
+    // loadMissing('gameSystems') skips the DB query on this unsaved model
+    // (the belongsToMany pivot was never written because make() does not persist).
+    $game->setRelation('gameSystems', collect([$gameSystem]));
 
     return $game;
 }
@@ -63,7 +66,7 @@ function makeCampaignWithSystem(array $campaignAttrs = [], array $systemAttrs = 
         'id' => Str::uuid()->toString(),
         'game_system_id' => $systemId,
     ], $campaignAttrs));
-    $campaign->setRelation('gameSystem', $gameSystem);
+    $campaign->setRelation('gameSystems', collect([$gameSystem]));
 
     return $campaign;
 }
@@ -404,6 +407,9 @@ it('tracks user journey: game created → player joined → session scheduled', 
     ]);
     $game->id = (string) Str::uuid();
     $game->saveQuietly();
+    // saveQuietly bypasses the created() event that syncs the gameSystems
+    // pivot — attach explicitly so the PostHog enrichment can load it.
+    $game->gameSystems()->sync([$gameSystem->id]);
 
     $service = new ActivityLogService;
 

@@ -146,7 +146,7 @@ class GmDirectory extends Component
         // Filter by game system (GM has run games with this system)
         if ($this->game_system_id) {
             $query->whereHas('user.ownedGames', function ($q) {
-                $q->where('game_system_id', $this->game_system_id);
+                $q->whereHas('gameSystems', fn ($q) => $q->where('game_systems.id', $this->game_system_id));
             });
         }
 

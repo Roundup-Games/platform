@@ -188,6 +188,7 @@ class WaitlistService
 
         $participant->update([
             'status' => ParticipantStatus::Approved->value,
+            'approved_at' => now(),
             'confirmation_expires_at' => null,
         ]);
 
@@ -348,8 +349,15 @@ class WaitlistService
 
         $participant->update([
             'status' => ParticipantStatus::Approved->value,
+            'approved_at' => now(),
             'confirmation_expires_at' => null,
             'waitlisted_at' => null,
+            // promoted_manually distinguishes a host-intentional capacity
+            // override from a normal FIFO/confirmation promotion. It is set
+            // true ONLY here and exempts the player from capacity-demotion
+            // LIFO. Mass-assigned to game_participants only (Campaign's
+            // $fillable excludes it, so Campaign rows are a safe no-op).
+            'promoted_manually' => true,
         ]);
     }
 

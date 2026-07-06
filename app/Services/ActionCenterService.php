@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Dto\ActionItem;
+use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
@@ -19,7 +20,7 @@ use App\Services\Concerns\DashboardFormatting;
 use Illuminate\Support\Str;
 
 /**
- * Aggregates actionable items from 10 sources into a prioritized list
+ * Aggregates actionable items from 12 sources into a prioritized list
  * for the dashboard Action Center.
  *
  * Single public method: getItems(User): array<ActionItem>
@@ -50,6 +51,7 @@ class ActionCenterService
             $this->getNewFollowers($user),
             $this->getCampaignSessionAlerts($user),
             $this->getHostBulletins($user),
+            $this->getRecurrencePlanningNudges($user),
         );
 
         usort($items, function (ActionItem $a, ActionItem $b) {
@@ -553,6 +555,47 @@ class ActionCenterService
                 'entity_type' => 'game',
                 'entity_id' => $b->game?->id,
                 'host_name' => $b->user?->name,
+            ],
+        ))->all();
+    }
+
+    // ── 12. Recurrence Planning Nudges (low) ───────────
+
+    /**
+     * Recurring campaigns the user owns that have fewer than ~2 sessions of
+     * their cadence scheduled ahead. Emits a low-priority "plan ahead" nudge
+     * that deep-links into prefill mode for adding the next session.
+     *
+     * Eligibility (Active status, cadence, plan-ahead horizon) lives entirely
+     * in {@see RecurrenceService::shouldNudge()}; this source only scopes the
+     * campaign query and maps results to ActionItems.
+     *
+     * @return array<int, ActionItem>
+     */
+    private function getRecurrencePlanningNudges(User $user): array
+    {
+        $campaigns = Campaign::query()
+            ->where('owner_id', $user->id)
+            ->where('status', CampaignStatus::Active)
+            ->whereNotNull('recurrence')
+            ->get();
+
+        $service = app(RecurrenceService::class);
+
+        $eligible = $campaigns->filter(fn (Campaign $c) => $service->shouldNudge($c));
+
+        return $eligible->map(fn (Campaign $c) => new ActionItem(
+            type: 'recurrence_planning',
+            priority: 'low',
+            title: __('profile.dashboard_action_recurrence_title', ['campaign' => $c->name]),
+            description: __('profile.dashboard_action_recurrence_desc'),
+            actionUrl: route('campaigns.add-session', [$c->id, 'prefill' => 1]),
+            actionLabel: __('profile.dashboard_action_recurrence_action'),
+            icon: 'event_repeat',
+            createdAt: now(),
+            metadata: [
+                'entity_type' => 'campaign',
+                'entity_id' => $c->id,
             ],
         ))->all();
     }

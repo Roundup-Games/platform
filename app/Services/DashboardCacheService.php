@@ -708,6 +708,7 @@ class DashboardCacheService
         $games = Game::query()
             ->select('games.*')
             ->selectSub($participantCountSubquery, 'participant_count')
+            ->with('gameSystems')
             ->join('locations', 'games.location_id', '=', 'locations.id')
             ->whereNotNull('locations.latitude')
             ->whereNotNull('locations.longitude')
@@ -735,7 +736,7 @@ class DashboardCacheService
                     'game_type' => $game->game_type?->value,
                     'max_players' => $game->max_players,
                     'participant_count' => (int) ($game->participant_count ?? 0),
-                    'game_system_id' => $game->game_system_id,
+                    'game_system_id' => $game->gameSystems->first()?->id,
                     'location_city' => $location?->city,
                     'owner_id' => $game->owner_id,
                 ];

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Concerns\DashboardFormatting;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Builds the "Nearby and Noteworthy", "Your Story" (milestone cards),
@@ -120,7 +121,8 @@ class DashboardDiscoveryService
         $excludeGameIds = $ownedGameIds->merge($participatingGameIds)->unique()->values()->toArray();
 
         // User's preferred system IDs for relevance tag
-        $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')->toArray();
+        $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')
+            ->filter(fn ($id) => is_string($id))->values()->all();
 
         // Social circle IDs for friends_are_going tag
         $socialCircleIds = $user->followings()
@@ -133,7 +135,7 @@ class DashboardDiscoveryService
         $games = Game::nearbyOpen($geohash4)
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
-            ->with(['gameSystem', 'linkedLocation'])
+            ->with(['gameSystems', 'linkedLocation'])
             ->limit(20)
             ->get();
 
@@ -161,8 +163,13 @@ class DashboardDiscoveryService
             $tags = [];
             $participantCount = (int) ($game->participant_count ?? 0);
 
-            // matches_your_taste
-            if (in_array($game->game_system_id, $preferredSystemIds)) {
+            // matches_your_taste — check ALL offered systems (via the pivot
+            // collection) so a multi-system Gathering offering a preferred
+            // system is tagged correctly, not just the representative first.
+            $offeredIds = $game->relationLoaded('gameSystems')
+                ? $game->gameSystems->pluck('id')->filter(fn ($id) => is_string($id))->values()->all()
+                : [];
+            if (! empty(array_intersect($offeredIds, $preferredSystemIds))) {
                 $tags[] = 'matches_your_taste';
             }
 
@@ -206,8 +213,9 @@ class DashboardDiscoveryService
                 'id' => $game->id,
                 'name' => $game->name,
                 'system_badge' => [
-                    'name' => $game->gameSystem?->name,
-                    'icon' => $game->gameSystem?->coverImageUrl('thumb'),
+                    'name' => $game->gameSystems->first()?->name,
+                    'icon' => $game->gameSystems->first()?->coverImageUrl('thumb'),
+                    'systems_count' => $game->gameSystems->count(),
                 ],
                 'date_time' => $game->date_time?->toIso8601String(),
                 'relative_time' => $this->formatRelativeTime($game->date_time),
@@ -471,18 +479,26 @@ class DashboardDiscoveryService
     private function computeExplorer(User $user): ?array
     {
         // Count unique game systems across both hosted and participated games
-        $hostedSystems = Game::where('owner_id', $user->id)
+        // via the canonical game_game_system pivot (the cached
+        // games.game_system_id anchor was dropped in S06/T06).
+        $hostedGameIds = Game::where('owner_id', $user->id)
             ->where('status', GameStatus::Completed->value)
-            ->distinct('game_system_id')
-            ->pluck('game_system_id');
+            ->pluck('id');
+
+        $hostedSystems = $hostedGameIds->isNotEmpty()
+            ? DB::table('game_game_system')
+                ->whereIn('game_id', $hostedGameIds)
+                ->distinct('game_system_id')
+                ->pluck('game_system_id')
+            : collect();
 
         $participatedGameIds = GameParticipant::where('user_id', $user->id)
             ->where('status', ParticipantStatus::Approved->value)
             ->pluck('game_id');
 
         $participatedSystems = $participatedGameIds->isNotEmpty()
-            ? Game::whereIn('id', $participatedGameIds)
-                ->where('status', GameStatus::Completed->value)
+            ? DB::table('game_game_system')
+                ->whereIn('game_id', $participatedGameIds)
                 ->distinct('game_system_id')
                 ->pluck('game_system_id')
             : collect();

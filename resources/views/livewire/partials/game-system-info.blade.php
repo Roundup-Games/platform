@@ -22,6 +22,16 @@
         || ($system->instructions && !empty($system->instructions['description']))
         || $system->expansions->count()
         || $system->baseGame;
+
+    // Multi-system Gathering: surface every additional offered system beyond
+    // the anchor. The instanceof guard is critical — Campaign has NO game_type
+    // column, so game_type must never be evaluated on a Campaign (it throws).
+    // PHP's && short-circuits, so the game_type access only runs for Games.
+    $isGathering = $entity instanceof \App\Models\Game
+        && $entity->game_type === \App\Enums\GameType::Gathering;
+    $additionalSystems = $isGathering
+        ? $entity->gameSystems->reject(fn (\App\Models\GameSystem $s) => $s->id === $entity->game_system_id)
+        : collect();
 @endphp
 
 <section class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden">
@@ -93,6 +103,19 @@
             </a>
         @endif
     </div>
+
+    {{-- Multi-system Gathering: links to each additional offered system --}}
+    @if($isGathering && $additionalSystems->isNotEmpty())
+        <div class="px-5 sm:px-6 pb-4 flex flex-wrap items-center gap-2 border-t border-outline-variant/20 pt-3">
+            <span class="text-xs font-medium text-on-surface-variant">{{ __('games.content_also_offering') }}</span>
+            @foreach($additionalSystems as $offeredSystem)
+                <a href="{{ route('game-systems.show', $offeredSystem->slug) }}" wire:navigate
+                   class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                    {{ $offeredSystem->name }}
+                </a>
+            @endforeach
+        </div>
+    @endif
 
     {{-- Expandable details --}}
     @if($hasRichData)

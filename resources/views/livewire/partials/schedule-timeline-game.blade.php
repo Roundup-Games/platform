@@ -18,8 +18,13 @@
                 {{ $game['name'] }}
             </p>
 
-            {{-- System badge --}}
-            @if($systemBadge['name'] ?? null)
+            {{-- System badge: honest multi-system — show 'N games on offer'
+                 for Gatherings offering >1 system, else the representative name. --}}
+            @if(($systemBadge['systems_count'] ?? 0) > 1)
+                <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+                    {{ trans_choice('games.content_n_games_on_offer', $systemBadge['systems_count']) }}
+                </span>
+            @elseif($systemBadge['name'] ?? null)
                 <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
                     {{ $systemBadge['name'] }}
                 </span>

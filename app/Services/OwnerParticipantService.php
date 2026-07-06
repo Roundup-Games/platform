@@ -72,9 +72,18 @@ class OwnerParticipantService
         $ownerId = $entity->owner_id;
 
         try {
+            // approved_at is intentionally NOT passed to updateOrCreate so an
+            // idempotent re-invocation does not overwrite the original approval
+            // timestamp. The GameParticipantObserver::saving() hook stamps it
+            // once on first creation; subsequent calls leave it untouched.
+            // (Campaign's $fillable excludes the column anyway — capacity
+            // adjustment is Game-scoped — so this is a Game-only concern.)
             $participant = $participantClass::updateOrCreate(
                 [$foreignKey => $entity->id, 'user_id' => $ownerId],
-                ['role' => ParticipantRole::Owner, 'status' => ParticipantStatus::Approved],
+                [
+                    'role' => ParticipantRole::Owner,
+                    'status' => ParticipantStatus::Approved,
+                ],
             );
         } catch (QueryException $e) {
             // Only handle unique constraint violations (concurrent insert race).

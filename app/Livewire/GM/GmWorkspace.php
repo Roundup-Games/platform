@@ -67,7 +67,7 @@ class GmWorkspace extends Component
         $upcomingSessions = Game::where('owner_id', $user->id)
             ->where('status', 'scheduled')
             ->whereBetween('date_time', [now(), now()->addDays(7)])
-            ->with(['gameSystem', 'participants'])
+            ->with(['gameSystems', 'participants'])
             ->orderBy('date_time')
             ->limit(10)
             ->get();

@@ -21,6 +21,8 @@ use Illuminate\Support\Carbon;
  * @property ParticipantStatus|null $status
  * @property AttendanceStatus|null $attendance_status
  * @property Carbon|null $created_at
+ * @property Carbon|null $approved_at
+ * @property bool $promoted_manually
  * @property Carbon|null $confirmation_expires_at
  * @property Carbon|null $waitlisted_at
  * @property Carbon|null $attendance_reported_at
@@ -38,12 +40,14 @@ class GameParticipant extends Pivot implements ParticipantContract
 
     protected $keyType = 'string';
 
-    protected $fillable = ['game_id', 'user_id', 'invitee_email', 'role', 'status', 'created_at', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_disputed_at', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at', 'join_source', 'short_link_id', 'removed_by', 'removed_at'];
+    protected $fillable = ['game_id', 'user_id', 'invitee_email', 'role', 'status', 'created_at', 'approved_at', 'promoted_manually', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_disputed_at', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at', 'join_source', 'short_link_id', 'removed_by', 'removed_at'];
 
     protected $casts = [
         'role' => ParticipantRole::class,
         'status' => ParticipantStatus::class,
         'created_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'promoted_manually' => 'boolean',
         'attendance_status' => AttendanceStatus::class,
         'attendance_reported_at' => 'datetime',
         'attendance_weight' => 'float',

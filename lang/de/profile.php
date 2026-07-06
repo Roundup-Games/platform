@@ -318,6 +318,9 @@ return [
     'dashboard_action_campaign_session_action' => 'Kampagne ansehen',
     'dashboard_action_bulletin_title' => 'Spielleiter-Update: :game',
     'dashboard_action_bulletin_action' => 'Spiel ansehen',
+    'dashboard_action_recurrence_title' => 'Vorausplanen: :campaign',
+    'dashboard_action_recurrence_desc' => 'Du hast weniger als ~2 Sitzungen deines Rhythmus eingeplant. Plane jetzt die nächste.',
+    'dashboard_action_recurrence_action' => 'Nächste Sitzung planen',
     'dashboard_action_expires_in_hm' => 'Läuft ab in :h Std. :m Min.',
     'dashboard_action_expires_in_m' => 'Läuft ab in :m Min.',
 

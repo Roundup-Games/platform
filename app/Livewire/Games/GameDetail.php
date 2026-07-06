@@ -16,6 +16,7 @@ use App\Models\SessionDebriefing;
 use App\Models\SessionZeroConfirmation;
 use App\Models\ShortLink;
 use App\Services\AttendanceService;
+use App\Services\CapacityService;
 use App\Services\DebriefingService;
 use App\Services\OverflowRouter;
 use App\Services\ParticipantLifecycle;
@@ -36,6 +37,7 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -72,6 +74,18 @@ class GameDetail extends Component
     public ?int $validatedShortLinkId = null;
 
     public ?string $confirmingAction = null;
+
+    /** @var string|null Marks the capacity-decrease confirm modal open. */
+    public ?string $confirmingCapacityDecrease = null;
+
+    /** @var int|null The pending new max_players awaiting host confirmation. */
+    public ?int $pendingNewMax = null;
+
+    /** @var string|null Host-supplied reason shown in the SeatDemoted notification. */
+    public ?string $capacityReason = null;
+
+    /** @var int|null Host-edited max_players input (wire:model target). */
+    public ?int $capacityNewMax = null;
 
     public function mount(string $id): void
     {
@@ -383,6 +397,218 @@ class GameDetail extends Component
         session()->flash('success', __($result->messageKey, $result->messageParams));
     }
 
+    // ── Capacity adjustment (host affordance) ──────────
+
+    /**
+     * Host-driven max_players change.
+     *
+     * Mirrors removeParticipant(): authorize('update'), then route to the
+     * CapacityService branch matching the request shape:
+     *  - increase → auto-promote waitlisted players to Pending;
+     *  - silent decrease (newMax >= approved count) → pure limit tightening;
+     *  - decrease below approved count → two-phase confirm. The first call
+     *    (no reason / flag unset) computes a preview and arms the confirm
+     *    modal; the confirming call (reason + flag set) runs the LIFO demote.
+     *
+     * The server NEVER authorises off the client-side preview snapshot —
+     * {@see CapacityService::demote()} recomputes the displaced set under a
+     * lockForUpdate transaction (defense against modal bypass / stale preview).
+     */
+    public function updateCapacity(int $newMax, ?string $reason = null): void
+    {
+        $this->authorize('update', $this->game);
+
+        // GUARD — no capacity edits after completion or attendance resolution.
+        if ($this->game->status === GameStatus::Completed
+            || $this->game->attendance_resolved_at !== null) {
+            session()->flash('error', __('games.error_capacity_game_completed'));
+            $this->clearCapacityConfirmState();
+
+            return;
+        }
+
+        // Validate newMax — integer, within CreateGame parity range.
+        // Explicitly reject 0: HasCapacity treats 0 as unlimited, so a host
+        // sending 0 would silently flip a bounded game to unlimited.
+        if ($newMax === 0) {
+            $this->addError('capacityNewMax', __('games.error_capacity_zero_invalid'));
+            $this->clearCapacityConfirmState();
+
+            return;
+        }
+
+        $validator = Validator::make(
+            ['capacityNewMax' => $newMax],
+            ['capacityNewMax' => ['required', 'integer', 'min:2', 'max:30']],
+            [
+                'capacityNewMax.required' => __('games.error_capacity_range'),
+                'capacityNewMax.integer' => __('games.error_capacity_range'),
+                'capacityNewMax.min' => __('games.error_capacity_range'),
+                'capacityNewMax.max' => __('games.error_capacity_range'),
+            ],
+        );
+
+        if ($validator->fails()) {
+            foreach ($validator->errors()->get('capacityNewMax') as $message) {
+                $this->addError('capacityNewMax', $message);
+            }
+            $this->clearCapacityConfirmState();
+
+            return;
+        }
+
+        // Reject newMax below the game's min_players — reuses the existing key
+        // so the message is consistent with the create/edit flows.
+        if ($newMax < (int) $this->game->min_players) {
+            $this->addError('capacityNewMax', __('games.error_min_players_cannot_exceed_max_players'));
+            $this->clearCapacityConfirmState();
+
+            return;
+        }
+
+        $service = app(CapacityService::class);
+        $reason = trim((string) $reason);
+
+        // INCREASE path.
+        if ($newMax > (int) $this->game->max_players) {
+            $result = $service->increase($this->game, $newMax);
+
+            $this->refreshAfterCapacityChange();
+            session()->flash('success', $this->increaseFlash($result->newMax ?? $newMax, $result->promotedCount));
+            $this->clearCapacityConfirmState();
+
+            return;
+        }
+
+        // No change.
+        if ($newMax === (int) $this->game->max_players) {
+            $this->clearCapacityConfirmState();
+
+            return;
+        }
+
+        // DECREASE path. previewDemotion() is a pure read — use it to decide
+        // silent vs. demote without a second locked transaction.
+        $preview = $service->previewDemotion($this->game, $newMax);
+
+        // Silent decrease (above/equal approved count) — no roster change.
+        // Guard with requestedDisplaced === 0 (not just actualDemotionCount === 0)
+        // because the all-exempt overflow case (requested > 0, demotable = 0)
+        // would call decrease() with newMax < approvedCount and hit
+        // DemotionRequiresConfirmation uncaught. In that case, fall through to
+        // the confirm flow so the host sees the preview and demote() runs.
+        if ($preview->actualDemotionCount === 0 && $preview->requestedDisplaced === 0) {
+            $service->decrease($this->game, $newMax);
+            $this->refreshAfterCapacityChange();
+            session()->flash('success', __('games.flash_capacity_decreased', ['max' => $newMax]));
+            $this->clearCapacityConfirmState();
+
+            return;
+        }
+
+        // Below-approved decrease — requires explicit confirmation.
+        // First call (no reason / flag unset): arm the modal with the preview.
+        if ($reason === '' || $this->confirmingCapacityDecrease !== 'capacity-decrease') {
+            $this->pendingNewMax = $newMax;
+            $this->confirmingCapacityDecrease = 'capacity-decrease';
+            $this->confirmingAction = 'capacity-decrease';
+
+            return;
+        }
+
+        // Confirming call (reason provided + flag set): run the demote. demote()
+        // recomputes the displaced set under lock — it never trusts the
+        // preview snapshot, so a stale/bypassed modal cannot corrupt state.
+        //
+        // Validate the reason before dispatching: it is persisted into the
+        // notifications.data JSON, rendered in email, and sent as a push body,
+        // so cap it (parity with attendanceReports.*.reason -> max:500) to keep
+        // notification row/payload sizes bounded.
+        $reasonValidator = Validator::make(
+            ['capacityReason' => $reason],
+            ['capacityReason' => ['required', 'string', 'max:500']],
+            [
+                'capacityReason.required' => __('games.error_capacity_reason_required'),
+                'capacityReason.max' => __('games.error_capacity_reason_too_long'),
+            ],
+        );
+
+        if ($reasonValidator->fails()) {
+            foreach ($reasonValidator->errors()->get('capacityReason') as $message) {
+                $this->addError('capacityReason', $message);
+            }
+
+            return;
+        }
+
+        try {
+            $result = $service->demote($this->game, $newMax, $reason, authenticatedUser());
+        } catch (\DomainException $e) {
+            // Game became completed/resolved between preview and confirm.
+            session()->flash('error', __('games.error_capacity_game_completed'));
+            $this->clearCapacityConfirmState();
+
+            return;
+        }
+
+        $this->refreshAfterCapacityChange();
+        session()->flash('success', $this->demoteFlash($newMax, $result->demotedCount));
+        $this->clearCapacityConfirmState();
+    }
+
+    /**
+     * Cancel the pending capacity-decrease confirmation and close the modal.
+     */
+    public function cancelCapacityDecrease(): void
+    {
+        $this->clearCapacityConfirmState();
+    }
+
+    private function clearCapacityConfirmState(): void
+    {
+        $this->confirmingCapacityDecrease = null;
+        $this->pendingNewMax = null;
+        $this->capacityReason = null;
+        if ($this->confirmingAction === 'capacity-decrease') {
+            $this->confirmingAction = null;
+        }
+    }
+
+    private function refreshAfterCapacityChange(): void
+    {
+        $this->game->load('participants.user');
+        $this->game->refresh();
+        unset(
+            $this->isGameFull,
+            $this->isParticipant,
+            $this->isApprovedParticipant,
+            $this->canApply,
+            $this->canJoinWaitlist,
+            $this->waitlistedPlayers,
+        );
+    }
+
+    private function increaseFlash(int $newMax, int $promotedCount): string
+    {
+        if ($promotedCount > 1) {
+            return __('games.flash_capacity_increased_many', ['max' => $newMax, 'count' => $promotedCount]);
+        }
+        if ($promotedCount === 1) {
+            return __('games.flash_capacity_increased_one', ['max' => $newMax]);
+        }
+
+        return __('games.flash_capacity_increased_none', ['max' => $newMax]);
+    }
+
+    private function demoteFlash(int $newMax, int $demotedCount): string
+    {
+        if ($demotedCount > 1) {
+            return __('games.flash_capacity_demoted_many', ['max' => $newMax, 'count' => $demotedCount]);
+        }
+
+        return __('games.flash_capacity_demoted_one', ['max' => $newMax]);
+    }
+
     // ── Self-service leave ─────────────────────────────
 
     public function leaveGame(): void
@@ -567,6 +793,12 @@ class GameDetail extends Component
                     ]);
                 } else {
                     $baseData['status'] = ParticipantStatus::Approved->value;
+                    // Stamp approved_at so LIFO capacity-demotion ordering is
+                    // correct for share-link direct joins — without this, the
+                    // demote query's `approved_at IS NULL ASC` ordering would
+                    // shield these players from demotion (MEM: stamp every
+                    // Approved transition). Mirrors WaitlistService::confirmPromotion.
+                    $baseData['approved_at'] = now();
 
                     GameParticipant::create($baseData);
 
@@ -858,8 +1090,9 @@ class GameDetail extends Component
     public function render(): View
     {
         $this->game->load([
-            'owner', 'campaign', 'gameSystem.categories', 'gameSystem.mechanics',
-            'gameSystem.publishers', 'gameSystem.baseGame', 'gameSystem.expansions',
+            'owner', 'campaign',
+            'gameSystems.categories', 'gameSystems.mechanics',
+            'gameSystems.publishers', 'gameSystems.baseGame', 'gameSystems.expansions',
             'participants.user', 'applications.user', 'linkedLocation',
         ]);
 
@@ -908,6 +1141,11 @@ class GameDetail extends Component
             'attendanceTallies' => $this->attendanceTallies(),
             'currentUserAttendanceStatus' => $this->currentUserAttendanceStatus(),
             'attendanceTimeRemaining' => $this->attendanceTimeRemaining(),
+            'capacityDemotionPreview' => ($this->confirmingCapacityDecrease === 'capacity-decrease'
+                && $this->pendingNewMax !== null)
+                    ? app(CapacityService::class)->previewDemotion($this->game, $this->pendingNewMax)
+                    : null,
+            'pendingNewMax' => $this->pendingNewMax,
         ]);
     }
 }

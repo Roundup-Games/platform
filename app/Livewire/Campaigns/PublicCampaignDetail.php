@@ -144,11 +144,11 @@ class PublicCampaignDetail extends Component
     {
         $relations = [
             'owner',
-            'gameSystem.categories',
-            'gameSystem.mechanics',
-            'gameSystem.publishers',
-            'gameSystem.baseGame',
-            'gameSystem.expansions',
+            'gameSystems.categories',
+            'gameSystems.mechanics',
+            'gameSystems.publishers',
+            'gameSystems.baseGame',
+            'gameSystems.expansions',
             'sessions' => fn ($q) => $q->orderBy('date_time')->limit(10),
             'linkedLocation',
         ];

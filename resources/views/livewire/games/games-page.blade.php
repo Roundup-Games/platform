@@ -61,11 +61,11 @@
                                         {{ $game->status->value === 'scheduled' ? 'bg-primary-container text-on-primary-container' : ($game->status->value === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
                                         {{ __('games.status_' . $game->status->value) }}
                                     </span>
-                                    @if($game->gameSystem)
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                            {{ $game->gameSystem->name }}
-                                        </span>
-                                    @endif
+@foreach($game->gameSystems as $system)
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+        {{ $system->name }}
+    </span>
+@endforeach
                                     @if($game->campaign)
                                         <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                                             <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
@@ -157,11 +157,11 @@
                                     <h3 class="text-base font-medium text-on-surface group-hover:text-secondary transition-colors">
                                         {{ $game->name }}
                                     </h3>
-                                    @if($game->gameSystem)
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                            {{ $game->gameSystem->name }}
-                                        </span>
-                                    @endif
+@foreach($game->gameSystems as $system)
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+        {{ $system->name }}
+    </span>
+@endforeach
                                     @if($game->campaign)
                                         <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                                             <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
@@ -227,11 +227,11 @@
                                 <h3 class="text-base font-medium text-on-surface">
                                     {{ $game->name }}
                                 </h3>
-                                @if($game->gameSystem)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                        {{ $game->gameSystem->name }}
-                                    </span>
-                                @endif
+@foreach($game->gameSystems as $system)
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+        {{ $system->name }}
+    </span>
+@endforeach
                             </div>
                             <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
                                 @if($game->date_time)

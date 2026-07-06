@@ -22,7 +22,7 @@ class DiscoveryPortal extends Component
         $boardGameCount = Game::where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->visibleTo(null)
-            ->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'))
+            ->whereHas('gameSystems', fn ($q) => $q->where('type', 'boardgame'))
             ->count();
 
         $adventureCount = Campaign::where('status', 'active')
@@ -31,7 +31,7 @@ class DiscoveryPortal extends Component
             + Game::where('status', 'scheduled')
                 ->where('date_time', '>', now())
                 ->visibleTo(null)
-                ->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'))
+                ->whereHas('gameSystems', fn ($q) => $q->where('type', 'ttrpg'))
                 ->count();
 
         return view('livewire.discovery.discovery-portal', [

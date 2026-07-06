@@ -10,6 +10,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\Concerns\DashboardFormatting;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -53,7 +54,8 @@ class DashboardNewcomerService
         // Count nearby games matching preferred systems
         $matchingGamesCount = 0;
         if ($hasLocation) {
-            $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')->toArray();
+            $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')
+                ->filter(fn ($id) => is_string($id))->values()->all();
             $matchingGamesCount = $this->countMatchingNearbyGames($user, $preferredSystemIds, $location);
         }
 
@@ -96,7 +98,8 @@ class DashboardNewcomerService
      */
     public function computePreferenceWeightedMatches(User $user, string $geohash4): array
     {
-        $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')->toArray();
+        $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')
+            ->filter(fn ($id) => is_string($id))->values()->all();
 
         // Exclude games the user already participates in or owns
         $excludeGameIds = $this->getExcludedGameIds($user);
@@ -105,7 +108,7 @@ class DashboardNewcomerService
         $games = Game::nearbyOpen($geohash4)
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
-            ->with(['gameSystem', 'owner', 'linkedLocation'])
+            ->with(['gameSystems', 'owner', 'linkedLocation'])
             ->limit(30)
             ->get();
 
@@ -118,8 +121,15 @@ class DashboardNewcomerService
             $spotsAvailable = $game->max_players - (int) ($game->participant_count ?? 0);
             $participantCount = (int) ($game->participant_count ?? 0);
 
-            // Preference match score (+50 if preferred system)
-            $preferenceScore = in_array($game->game_system_id, $preferredSystemIds) ? 50 : 0;
+            // Preference match score: +50 if ANY offered system is preferred.
+            // Uses the full eager-loaded gameSystems pivot collection (not the
+            // single-system bridge accessor) so a multi-system Gathering
+            // offering a preferred system receives the bonus.
+            $offeredSystemIds = $game->relationLoaded('gameSystems')
+                ? $game->gameSystems->pluck('id')->filter(fn ($id) => is_string($id))->values()->all()
+                : [];
+            $matchesTaste = ! empty(array_intersect($offeredSystemIds, $preferredSystemIds));
+            $preferenceScore = $matchesTaste ? 50 : 0;
 
             // Proximity score (0-30)
             $proximityScore = 0;
@@ -143,7 +153,7 @@ class DashboardNewcomerService
 
             // Relevance tags for UI badges
             $relevanceTags = [
-                'matches_your_taste' => in_array($game->game_system_id, $preferredSystemIds),
+                'matches_your_taste' => $matchesTaste,
                 'popular_nearby' => $participantCount >= 3,
                 // Truthy guard matches the HasCapacity convention (null OR 0 = unlimited)
                 // and the sibling DashboardDiscoveryService — an unlimited game can't fill.
@@ -181,8 +191,11 @@ class DashboardNewcomerService
                 'name' => $game->name,
                 'date_time' => $game->date_time?->toIso8601String(),
                 'expected_duration' => $game->expected_duration,
-                'game_system_name' => $game->gameSystem?->name,
-                'game_system_id' => $game->game_system_id,
+                'game_system_name' => $game->gameSystems->first()?->name,
+                'game_system_id' => $game->gameSystems->first()?->id,
+                // Additive: lets the compact newcomer tile render
+                // trans_choice('games.content_n_games_on_offer', N) for Gatherings.
+                'systems_count' => $game->gameSystems->count(),
                 'max_players' => $game->max_players,
                 'participant_count' => (int) ($game->participant_count ?? 0),
                 'spots_available' => $item['spots_available'],
@@ -407,7 +420,7 @@ class DashboardNewcomerService
     /**
      * Count nearby games matching the user's preferred game systems.
      *
-     * @param  array<string, mixed>  $preferredSystemIds
+     * @param  array<int, string>  $preferredSystemIds
      */
     private function countMatchingNearbyGames(User $user, array $preferredSystemIds, ?Location $location): int
     {
@@ -433,7 +446,10 @@ class DashboardNewcomerService
             ->where('games.status', GameStatus::Scheduled->value)
             ->where('games.date_time', '>=', now())
             ->where('games.date_time', '<=', now()->addDays(14))
-            ->whereIn('games.game_system_id', $preferredSystemIds)
+            // The cached games.game_system_id anchor was dropped in S06/T06;
+            // match via the canonical belongsToMany pivot so a multi-system
+            // Gathering offering a preferred system is counted correctly.
+            ->whereHas('gameSystems', fn (Builder $q) => $q->whereIn('game_systems.id', $preferredSystemIds))
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
             ->count();

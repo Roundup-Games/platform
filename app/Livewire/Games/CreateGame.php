@@ -15,21 +15,27 @@ use App\Services\ShortLinkService;
 use App\Services\VenueTrustService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /** @property-read bool $canCreatePublic */
 #[Layout('layouts.app')]
 class CreateGame extends Component
 {
     use BuildsTranslatableFormFields;
+
+    // Livewire file-upload support for the host-uploaded cover image (S07).
+    use WithFileUploads;
 
     /** Optional query parameter: game ID to clone from */
     #[Url]
@@ -51,6 +57,11 @@ class CreateGame extends Component
     public string $step = 'type';
 
     public ?string $game_system_id = null;
+
+    /** @var array<int, string> Game systems for a Gathering (multi-select; save() syncs them to the gameSystems pivot directly) */
+    public array $game_systems = [];
+
+    public ?string $host_note = null;
 
     public string $date_time = '';
 
@@ -92,6 +103,12 @@ class CreateGame extends Component
     public bool $bench_mode = false;
 
     /**
+     * Optional host-uploaded cover image (S07). Stored to the Spatie 'cover'
+     * media collection after create via addMedia()->toMediaCollection('cover').
+     */
+    public ?UploadedFile $cover_image = null;
+
+    /**
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -100,6 +117,9 @@ class CreateGame extends Component
             'name' => 'required|string|max:255',
             'game_type' => 'required|string|in:'.implode(',', GameType::values()),
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
+            'game_systems' => 'nullable|array|max:6',
+            'game_systems.*' => 'required|uuid|exists:game_systems,id',
+            'host_note' => 'nullable|string|max:1000',
             'date_time' => 'required|date',
             'description' => 'nullable|string|max:5000',
             'expected_duration' => 'nullable|numeric|min:0.5|max:24',
@@ -121,6 +141,11 @@ class CreateGame extends Component
             'min_reliability_preference' => 'nullable|numeric|min:0|max:100',
             'complexity' => 'nullable|numeric|min:0|max:5',
             'bench_mode' => 'boolean',
+            // Host-uploaded cover (S07): the model's registerMediaCollections()
+            // also enforces the jpeg/png/webp mime allow-list at storage time.
+            // Max dimensions guard against decompression-bomb spikes during
+            // Spatie's og/thumb conversions (defense-in-depth).
+            'cover_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:5120', Rule::dimensions()->maxWidth(4096)->maxHeight(4096)],
         ], $this->translatableValidationRules(
             ['name' => 'required|string|max:255', 'description' => 'nullable|string|max:5000'],
             $this->language,
@@ -173,6 +198,19 @@ class CreateGame extends Component
         $this->autofillFromGameSystem($id);
     }
 
+    /**
+     * Multi-select game systems from the GameSystemPreferencePicker (creation
+     * mode) — used by Gatherings. preferenceType is ignored here because the
+     * creation picker has no favorites/avoids.
+     *
+     * @param  array<int, string>  $selectedIds
+     */
+    #[On('selection-changed')]
+    public function onGameSystemsChanged(array $selectedIds): void
+    {
+        $this->game_systems = array_map('strval', $selectedIds);
+    }
+
     // ── Lifecycle ─────────────────────────────────────────
 
     public function mount(): void
@@ -199,7 +237,9 @@ class CreateGame extends Component
         // Pre-fill all shared fields (NOT date_time — leave empty for user)
         $this->name = $source->name;
         $this->description = $source->description ?? '';
-        $this->game_system_id = $source->game_system_id;
+        // Clone the offered-system set from the canonical pivot (the legacy
+        // game_system_id / game_systems columns were retired in S06/T06).
+        $this->game_system_id = $source->gameSystems->first()?->id;
         $this->location_id = $source->location_id;
         $this->location_instructions = $source->location_instructions ?? '';
         $this->price = $source->price !== null ? (string) $source->price : '';
@@ -213,6 +253,16 @@ class CreateGame extends Component
         $this->min_reliability_preference = $source->min_reliability_preference !== null
             ? (string) $source->min_reliability_preference
             : null;
+
+        // Pre-fill Gathering fields (multi-system picker + host note).
+        // Read the offered set from the belongsToMany pivot.
+        $this->game_systems = $source->gameSystems
+            ->pluck('id')
+            ->filter(fn (mixed $id): bool => is_string($id))
+            ->map(fn (string $id): string => $id)
+            ->values()
+            ->all();
+        $this->host_note = $source->host_note;
 
         // Load vibe_flags into vibePreferences array (flat DB array → favorite map)
         if (! empty($source->vibe_flags)) {
@@ -261,6 +311,8 @@ class CreateGame extends Component
         $this->game_type = $type;
         // Reset type-specific fields when type changes
         $this->game_system_id = null;
+        $this->game_systems = [];
+        $this->host_note = null;
         $this->vibePreferences = [];
         $this->safety_rules = [];
         $this->comfort_notes = '';
@@ -392,6 +444,16 @@ class CreateGame extends Component
 
         $validated = $this->validate();
 
+        // Gatherings require at least one game system (the host picks what to
+        // play). Enforced here rather than via a rule because it is conditional
+        // on game_type. game_system_id is intentionally NOT set for gatherings —
+        // the Game saving event (S01) derives it from game_systems[0].
+        if ($this->game_type === 'gathering' && empty($validated['game_systems'])) {
+            $this->addError('game_systems', __('games.error_gathering_requires_system'));
+
+            return;
+        }
+
         // Cross-field validation after individual field validation
         if (
             isset($validated['min_players'], $validated['max_players'])
@@ -421,6 +483,26 @@ class CreateGame extends Component
             $benchMode = false;
         }
 
+        // Gatherings are multi-system social sessions: force complexity/bench/
+        // reliability clean so the warm form can't persist GM-complexity state.
+        $isGathering = $this->game_type === 'gathering';
+        $complexity = $isGathering ? null : ($this->complexity ?: null);
+        $minReliabilityPreference = $isGathering ? null : ($validated['min_reliability_preference'] ?: null);
+        $benchMode = $isGathering ? false : $benchMode;
+
+        // Canonical system set: the game_game_system pivot is the
+        // source of truth for which systems this game offers. For a Gathering
+        // the host picks a set via the multi-select; for a focused board_book /
+        // ttrpg the single picker carries one system.
+        if ($isGathering) {
+            $pivotSystemIds = array_map('strval', $validated['game_systems'] ?? []);
+        } else {
+            $pivotSystemIds = array_filter(
+                [$validated['game_system_id'] ?? null],
+                fn (?string $id): bool => $id !== null,
+            );
+        }
+
         // Build translatable values for name and description only
         $translatable = $this->buildTranslatableValues(
             ['name', 'description'],
@@ -428,10 +510,10 @@ class CreateGame extends Component
             $validated,
         );
 
-        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode) {
+        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode, $complexity, $minReliabilityPreference, $pivotSystemIds) {
             $game = Game::create([
                 'owner_id' => Auth::id(),
-                'game_system_id' => $validated['game_system_id'],
+                'host_note' => $validated['host_note'] ?? null,
                 'name' => $translatable['name'],
                 'game_type' => $validated['game_type'],
                 'date_time' => $validated['date_time'],
@@ -449,16 +531,51 @@ class CreateGame extends Component
                 'min_players' => $validated['min_players'] ?? 2,
                 'max_players' => $validated['max_players'] ?? 6,
                 'experience_level' => $validated['experience_level'],
-                'complexity' => $this->complexity ?: null,
+                'complexity' => $complexity,
                 'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
-                'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
+                'min_reliability_preference' => $minReliabilityPreference,
                 'bench_mode' => $benchMode,
             ]);
 
             app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
 
+            // Sync the canonical pivot. Runs inside the create transaction so a
+            // failure rolls the whole game back. empty() would detach everything,
+            // so guard against an empty set (single-system games always have one).
+            if (! empty($pivotSystemIds)) {
+                $game->gameSystems()->sync($pivotSystemIds);
+            }
+
             return $game;
         });
+
+        // Persist the host-uploaded cover to the Spatie 'cover' collection.
+        // singleFile() on the collection means a fresh upload replaces any
+        // prior cover. Runs OUTSIDE the create transaction: media storage
+        // writes files and a media row, neither of which the game row depends
+        // on, and Spatie's medialibrary does not participate in the caller's
+        // DB transaction safely.
+        if ($this->cover_image instanceof UploadedFile) {
+            try {
+                $game->addMedia($this->cover_image)->toMediaCollection('cover');
+
+                Log::info('Game cover image uploaded', [
+                    'game_id' => $game->id,
+                    'owner_id' => Auth::id(),
+                    'mime' => $this->cover_image->getMimeType(),
+                    'size' => $this->cover_image->getSize(),
+                ]);
+            } catch (\Throwable $e) {
+                // Upload failures are non-fatal: the game is already created
+                // and resolveCoverUrl() falls back to the representative
+                // system cover. Surface the failure for follow-up.
+                Log::warning('Game cover image upload failed', [
+                    'game_id' => $game->id,
+                    'owner_id' => Auth::id(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         $logContext = [
             'game_id' => $game->id,
@@ -509,6 +626,15 @@ class CreateGame extends Component
             'ttrpg' => '3',
             default => '2',
         };
+
+        // Gatherings are larger, warmer, all-welcome social sessions (R047):
+        // a raised venue-size capacity default and an "all welcome" experience
+        // level. Autofill never overrides these for gatherings because the
+        // single-system picker (which drives autofill) is hidden on this branch.
+        if ($type === 'gathering') {
+            $this->max_players = 12;
+            $this->experience_level = 'all';
+        }
     }
 
     protected function autofillFromGameSystem(?string $id): void

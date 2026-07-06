@@ -8,12 +8,14 @@ use App\Enums\ExperienceLevel;
 use App\Enums\PlayStyle;
 use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -174,11 +176,12 @@ class AdventuresDiscovery extends Component
         // Build base queries via service, then scope to TTRPG systems
         $campaignsQuery = $service->buildCampaignsQuery(
             $filters, $user, $this->radius, $lat, $lng, $hasLocation, null,
-        )->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'));
+        )->whereHas('gameSystems', fn ($q) => $q->where('type', 'ttrpg'));
 
         $gamesQuery = $service->buildGamesQuery(
             $filters, $user, $this->radius, $lat, $lng, $hasLocation, null,
-        )->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'));
+        );
+        $service->applySystemTypeScope($gamesQuery, 'ttrpg');
 
         // Apply session_type filter
         if ($this->session_type === 'campaign') {
@@ -217,24 +220,29 @@ class AdventuresDiscovery extends Component
                 ->all();
 
             if (! empty($slugs)) {
-                $gamesQuery->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('slug', $slugs));
-                $campaignsQuery->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('slug', $slugs));
+                $gamesQuery->whereHas('gameSystems.categories', fn ($q) => $q->whereIn('slug', $slugs));
+                $campaignsQuery->whereHas('gameSystems.categories', fn ($q) => $q->whereIn('slug', $slugs));
             }
         }
 
         // Campaigns boosted (sorted first), then games by date
-        $perPage = $this->displayCount;
-
-        $campaigns = $campaignsQuery->get()->each(function ($item) {
+        $campaigns = $campaignsQuery->get()->each(function ($item) use ($service) {
             $item->discoverable_type = 'campaign';
             $item->discoverable_sort_key = PHP_INT_MAX - (int) ($item->created_at->timestamp ?? 0);
+            // Pre-compute the Gathering tiebreak so the merged sort can use a
+            // uniform string-key shape (phpstan rejects sortBy() entries that
+            // mix [string,dir] tuples with [Closure,dir] tuples). Mirrors
+            // discoverable_sort_key: a per-item decoration, not a column.
+            $item->discoverable_gathering_rank = $service->gatheringRankKey($item);
         });
 
-        $games = $gamesQuery->get()->each(function ($item) {
+        $games = $gamesQuery->get()->each(function ($item) use ($service) {
             $item->discoverable_type = 'game';
             $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0);
+            $item->discoverable_gathering_rank = $service->gatheringRankKey($item);
         });
 
+        /** @var Collection<int, Campaign|Game> $merged */
         $merged = collect()->merge($campaigns)->merge($games);
 
         // Apply proximity filtering if radius is set
@@ -243,11 +251,20 @@ class AdventuresDiscovery extends Component
             $merged = $result['collection'];
             $this->usingFallbackRadius = $result['usingFallback'];
         } else {
-            $merged = $merged->sortByDesc('discoverable_sort_key')->values();
+            // Stable multi-key sort: primary date desc (discoverable_sort_key),
+            // then Gathering demotion asc (focused=0 before Gathering=1) per R048
+            // gathering_relevance_penalty — a tiebreaker that only reorders items
+            // within the same primary-key bucket. Both keys are pre-computed
+            // decorations so the sortBy() call uses a uniform [string,dir] shape.
+            $merged = $merged->sortBy([
+                ['discoverable_sort_key', 'desc'],
+                ['discoverable_gathering_rank', 'asc'],
+            ])->values();
         }
 
         $total = $merged->count();
-        $items = $merged->take($this->displayCount)->values();
+        $capped = $service->applyGatheringCap($merged, $this->displayCount);
+        $items = $capped['items'];
 
         $results = new LengthAwarePaginator($items, $total, $this->displayCount, 1, [
             'path' => request()->url(),
@@ -261,7 +278,7 @@ class AdventuresDiscovery extends Component
         $boardGameSessionCount = Game::where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->visibleTo(null)
-            ->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'))
+            ->whereHas('gameSystems', fn ($q) => $q->where('type', 'boardgame'))
             ->count();
 
         return view('livewire.discovery.adventures-discovery', [

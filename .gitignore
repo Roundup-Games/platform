@@ -63,6 +63,7 @@ build-tools/_subset_material.py
 
 # ── GSD baseline (auto-generated) ──
 .gsd-worktrees/
+.gsd-backups/
 nul
 nul.*
 con

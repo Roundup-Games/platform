@@ -21,10 +21,17 @@
 
         {{-- Game System + Type Badge --}}
         <div class="flex items-center gap-2 mb-3 flex-wrap">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">casino</span>
-                {{ __('games.content_game') }}
-            </span>
+            @if($game->game_type === App\Enums\GameType::Gathering)
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                    <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">groups</span>
+                    {{ __('games.type_gathering') }}
+                </span>
+            @else
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                    <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">casino</span>
+                    {{ __('games.content_game') }}
+                </span>
+            @endif
             @if($game->campaign_id && $game->campaign)
                 <span
                     role="link"
@@ -37,10 +44,12 @@
                     {{ __('campaigns.content_campaign') }}
                 </span>
             @endif
-            @if($game->gameSystem)
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                    {{ $game->gameSystem?->name }}
-                </span>
+            @if($game->gameSystems->isNotEmpty())
+                @foreach($game->gameSystems as $system)
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
+                        {{ $system->name }}
+                    </span>
+                @endforeach
             @endif
             @if(isset($game->distance_km) && $game->distance_km !== null)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container">
