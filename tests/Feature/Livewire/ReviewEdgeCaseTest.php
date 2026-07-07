@@ -360,4 +360,34 @@ describe('Observer Integration', function () {
 
         expect($gmProfile->fresh()->average_rating)->toBe($originalRating);
     });
+
+    it('updating a published review rating recomputes the aggregate average', function () {
+        $gm = User::factory()->create(['profile_complete' => true]);
+        $gmProfile = GMProfile::factory()->create([
+            'user_id' => $gm->id,
+            'average_rating' => null,
+            'review_count' => 0,
+        ]);
+
+        // Two published reviews: a 3-star and a 5-star → average 4.00.
+        $reviewA = Review::factory()->create([
+            'gm_profile_id' => $gmProfile->id,
+            'rating' => 3,
+            'status' => 'published',
+        ]);
+        Review::factory()->create([
+            'gm_profile_id' => $gmProfile->id,
+            'rating' => 5,
+            'status' => 'published',
+        ]);
+
+        expect((float) $gmProfile->fresh()->average_rating)->toBe(4.0)
+            ->and($gmProfile->fresh()->review_count)->toBe(2);
+
+        // Edit the 3-star review up to 5 stars → average should become 5.00.
+        $reviewA->update(['rating' => 5]);
+
+        expect((float) $gmProfile->fresh()->average_rating)->toBe(5.0)
+            ->and($gmProfile->fresh()->review_count)->toBe(2);
+    });
 });

@@ -44,6 +44,13 @@ class DiscoveryQueryService
      */
     public const BASE_PAGE_SIZE = 12;
 
+    /**
+     * Maximum items in the recommendation rail. Also the perPage passed to
+     * {@see applyGatheringCap()} so Gatherings are density-capped here exactly
+     * as they are in the feed (R048).
+     */
+    public const RECOMMENDATION_RAIL_SIZE = 12;
+
     public function __construct(
         private readonly ProximityQuery $proximity,
     ) {}
@@ -697,7 +704,7 @@ class DiscoveryQueryService
      *
      * @param  User|null  $user  Current user (null returns null)
      * @param  string|null  $systemType  Scope recommendations to a game system type (e.g., 'boardgame', 'ttrpg'). Null = all types.
-     * @return array<string, mixed>|null
+     * @return array<int, Game|Campaign>|null
      */
     public function getRecommendations(?User $user, ?string $systemType = null): ?array
     {
@@ -780,7 +787,7 @@ class DiscoveryQueryService
 
             $boostedGames = $this->withOverflowCounts($boostedGames)
                 ->orderBy('date_time')
-                ->limit(6)
+                ->limit(intdiv(self::RECOMMENDATION_RAIL_SIZE, 2))
                 ->get();
             $tagItems($boostedGames, 'game');
 
@@ -803,7 +810,7 @@ class DiscoveryQueryService
 
                 $boostedCampaigns = $this->withOverflowCounts($boostedCampaigns)
                     ->orderBy('created_at', 'desc')
-                    ->limit(6)
+                    ->limit(intdiv(self::RECOMMENDATION_RAIL_SIZE, 2))
                     ->get();
                 $tagItems($boostedCampaigns, 'campaign');
             }
@@ -823,7 +830,7 @@ class DiscoveryQueryService
 
         $fallbackGames = $this->withOverflowCounts($fallbackGames)
             ->orderBy('date_time')
-            ->limit(6)
+            ->limit(self::RECOMMENDATION_RAIL_SIZE)
             ->get();
         $tagItems($fallbackGames, 'game');
 
@@ -841,7 +848,7 @@ class DiscoveryQueryService
 
             $fallbackCampaigns = $this->withOverflowCounts($fallbackCampaigns)
                 ->orderBy('created_at', 'desc')
-                ->limit(6)
+                ->limit(self::RECOMMENDATION_RAIL_SIZE)
                 ->get();
             $tagItems($fallbackCampaigns, 'campaign');
         }
@@ -872,7 +879,19 @@ class DiscoveryQueryService
             return null;
         }
 
-        return $merged->take(12)->all();
+        // R048 density rule: cap Gatherings at ~1 per rail so multi-system
+        // Gatherings cannot dominate recommendations, mirroring the feed cap.
+        // The match-strength ordering (boosted before fallback) is preserved —
+        // applyGatheringCap walks items in their existing order, keeping the
+        // earliest (strongest-match) Gathering and backfilling freed slots with
+        // focused games. The fallback buckets fetch RECOMMENDATION_RAIL_SIZE
+        // (not half) so the cap has focused candidates to backfill with even
+        // when a scoped/no-vibes path activates only one bucket. The feed's
+        // relevance-penalty sort is intentionally NOT applied here:
+        // recommendations are ordered by match tier, not by date, so the
+        // tiebreak has no natural primary key across boosted/fallback tiers.
+        /** @var Collection<int, Game|Campaign> $merged */
+        return $this->applyGatheringCap($merged, self::RECOMMENDATION_RAIL_SIZE)['items']->all();
     }
 
     // ── Curated filter lists ───────────────────────────

@@ -3,8 +3,12 @@
 use App\Enums\GameType;
 use App\Livewire\Discovery\BoardGamesDiscovery;
 use App\Models\Game;
+use App\Models\GameSystem;
+use App\Models\User;
 use App\Services\DiscoveryQueryService;
 use Illuminate\Support\Carbon;
+
+use function Pest\Laravel\actingAs;
 
 /**
  * R048: Gatherings are capped at ~1 per 12-item feed page so multi-system
@@ -153,5 +157,43 @@ describe('GatheringCap', function () {
             ->assertSee('Kept Earliest Gathering')
             ->assertDontSee('Trimmed Gathering Two')
             ->assertDontSee('Trimmed Gathering Three');
+    });
+});
+
+// R048 cap applied to the recommendation rail (getRecommendations), mirroring
+// the feed cap. A Gathering surfaces in recommendations when it offers a
+// favorited system, but cannot dominate the rail.
+describe('GatheringCapInRecommendations', function () {
+    it('caps Gatherings at one per recommendation rail even when several match a favorite system', function () {
+        $user = User::factory()->create(['profile_complete' => true]);
+        $system = GameSystem::factory()->create(['type' => 'boardgame']);
+        $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'favorite']);
+
+        // Four Gatherings all offer the favorite system at the earliest dates.
+        collect(range(1, 4))->each(fn (int $i) => Game::factory()->gathering()->withGameSystems([$system->id])->create([
+            'name' => ['en' => "Gathering {$i}"],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => Carbon::now()->addDays($i),
+        ]));
+
+        // Focused board games offering the same system fill the rail after backfill.
+        collect(range(1, 12))->each(fn (int $i) => Game::factory()->withGameSystems([$system->id])->create([
+            'name' => ['en' => "Focused {$i}"],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => Carbon::now()->addDays(10 + $i),
+        ]));
+
+        actingAs($user);
+        $recommendations = Livewire\Livewire::test(BoardGamesDiscovery::class)->viewData('recommendations');
+
+        expect($recommendations)->not->toBeNull('Expected recommendations for a user favoriting an offered system');
+
+        $gatherings = collect($recommendations)
+            ->filter(fn (Game $g) => $g->game_type === GameType::Gathering);
+
+        expect($gatherings)->toHaveCount(1, 'Recommendation rail should cap Gatherings at 1 per 12-window (R048)')
+            ->and($gatherings->first()->name)->toBe('Gathering 1');
     });
 });

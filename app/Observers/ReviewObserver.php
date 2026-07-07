@@ -36,14 +36,17 @@ class ReviewObserver
     }
 
     /**
-     * After a review is updated, refresh aggregates if the status changed.
+     * After a review is updated, refresh aggregates if the status or rating changed.
      *
      * A status transition (published ↔ hidden ↔ reported) changes which
-     * reviews count toward the aggregate, so we recalculate.
+     * reviews count toward the aggregate. A rating change on a published
+     * review moves the average without altering the count. Both require a
+     * recompute. Edits to body/proficiency_tags do not (body is not aggregated;
+     * top proficiency badges are computed live).
      */
     public function updated(Review $review): void
     {
-        if ($review->wasChanged('status')) {
+        if ($review->wasChanged('status') || $review->wasChanged('rating')) {
             if ($review->gm_profile_id) {
                 $gmProfile = $review->gmProfile;
                 if ($gmProfile) {
