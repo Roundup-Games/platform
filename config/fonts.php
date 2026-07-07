@@ -86,6 +86,7 @@ return [
         'account_balance', 'distance', 'insights',
         'function',   // single-arrow function icon (f866)
         'lightbulb', 'account_tree', 'grid_on',
+        'how_to_vote', 'timer', 'support_agent', 'table_rows', // algorithms: attendance + disclosure sections
         'functions',  // sigma-style functions icon (e24a) — distinct from 'function'
 
         // Social platform icons (from config/platforms.php)

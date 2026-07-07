@@ -47,6 +47,13 @@
                         </a>
                     </li>
                     <li>
+                        <a href="#attendance-resolution" class="flex items-center gap-3 group">
+                            <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">how_to_vote</span>
+                            <span class="text-on-surface group-hover:text-primary transition-colors font-medium">{{ __('pages.heading_pledge_algo_attendance') }}</span>
+                            <span class="material-symbols-outlined text-on-surface-variant text-base ml-auto group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
+                        </a>
+                    </li>
+                    <li>
                         <a href="#gm-ratings" class="flex items-center gap-3 group">
                             <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">star_rate</span>
                             <span class="text-on-surface group-hover:text-primary transition-colors font-medium">{{ __('pages.heading_pledge_algo_gm') }}</span>
@@ -71,6 +78,13 @@
                         <a href="#proximity-engine" class="flex items-center gap-3 group">
                             <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">distance</span>
                             <span class="text-on-surface group-hover:text-primary transition-colors font-medium">{{ __('pages.heading_pledge_algo_proximity') }}</span>
+                            <span class="material-symbols-outlined text-on-surface-variant text-base ml-auto group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#location-disclosure" class="flex items-center gap-3 group">
+                            <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">location_on</span>
+                            <span class="text-on-surface group-hover:text-primary transition-colors font-medium">{{ __('pages.heading_pledge_algo_disclosure') }}</span>
                             <span class="material-symbols-outlined text-on-surface-variant text-base ml-auto group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
                         </a>
                     </li>
@@ -218,7 +232,129 @@
         </div>
     </section>
 
-    {{-- ── 2. GM Ratings & Reviews ───────────────────────────── --}}
+    {{-- ── 2. Attendance Resolution ─────────────────────────── --}}
+    <section id="attendance-resolution" class="py-16 sm:py-20 bg-surface-container-low scroll-mt-24">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">how_to_vote</span>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight text-on-surface">
+                    {{ __('pages.heading_pledge_algo_attendance') }}
+                </h2>
+            </div>
+
+            <p class="text-on-surface-variant leading-relaxed mb-8">
+                {{ __('pages.content_pledge_algo_attendance_explanation') }}
+            </p>
+
+            {{-- Resolution Methods --}}
+            <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
+                <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">schedule</span>
+                    {{ __('pages.content_pledge_algo_attendance_methods_heading') }}
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">bolt</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_attendance_method_early') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_attendance_method_early_desc') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">timer</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_attendance_method_timeout') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_attendance_method_timeout_desc') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">support_agent</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_attendance_method_manual') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_attendance_method_manual_desc') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Decision Steps --}}
+            <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
+                <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">account_tree</span>
+                    {{ __('pages.content_pledge_algo_attendance_decision_heading') }}
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex items-start gap-3">
+                        <span class="inline-flex items-center justify-center w-7 h-7 bg-primary/10 rounded-full text-primary text-sm font-bold shrink-0">1</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_attendance_step_gate') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_attendance_step_gate_desc') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="inline-flex items-center justify-center w-7 h-7 bg-primary/10 rounded-full text-primary text-sm font-bold shrink-0">2</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_attendance_step_excused') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_attendance_step_excused_desc') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="inline-flex items-center justify-center w-7 h-7 bg-primary/10 rounded-full text-primary text-sm font-bold shrink-0">3</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_attendance_step_majority') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_attendance_step_majority_desc') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="inline-flex items-center justify-center w-7 h-7 bg-primary/10 rounded-full text-primary text-sm font-bold shrink-0">4</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_attendance_step_default') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_attendance_step_default_desc') }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-surface-container-lowest rounded-lg">
+                    <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_attendance_timing') }}</p>
+                </div>
+            </div>
+
+            {{-- Design Decisions --}}
+            <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
+                <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">lightbulb</span>
+                    {{ __('pages.content_pledge_algo_design_heading') }}
+                </h3>
+                <ul class="space-y-3">
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">chevron_right</span>
+                        <span class="text-on-surface-variant text-sm leading-relaxed">{{ __('pages.content_pledge_algo_attendance_design_1') }}</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">chevron_right</span>
+                        <span class="text-on-surface-variant text-sm leading-relaxed">{{ __('pages.content_pledge_algo_attendance_design_2') }}</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">chevron_right</span>
+                        <span class="text-on-surface-variant text-sm leading-relaxed">{{ __('pages.content_pledge_algo_attendance_design_3') }}</span>
+                    </li>
+                </ul>
+            </div>
+
+            {{-- GitHub Link --}}
+            <div class="text-center">
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/AttendanceResolutionService.php"
+                   target="_blank" rel="noopener noreferrer"
+                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
+                    <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
+                    {{ __('pages.content_pledge_algo_source_attendance') }}
+                </a>
+            </div>
+        </div>
+    </section>
+
+    {{-- ── 3. GM Ratings & Reviews ───────────────────────────── --}}
     <section id="gm-ratings" class="py-16 sm:py-20 bg-surface-container-low scroll-mt-24">
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
             <div class="flex items-center gap-3 mb-6">
@@ -280,7 +416,7 @@
         </div>
     </section>
 
-    {{-- ── 3. People Discovery ────────────────────────────────── --}}
+    {{-- ── 4. People Discovery ────────────────────────────────── --}}
     <section id="people-discovery" class="py-16 sm:py-20 bg-surface scroll-mt-24">
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
             <div class="flex items-center gap-3 mb-6">
@@ -418,7 +554,7 @@
         </div>
     </section>
 
-    {{-- ── 4. Session Recommendations ─────────────────────────── --}}
+    {{-- ── 5. Session Recommendations ─────────────────────────── --}}
     <section id="session-recommendations" class="py-16 sm:py-20 bg-surface-container-low scroll-mt-24">
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
             <div class="flex items-center gap-3 mb-6">
@@ -519,6 +655,15 @@
                 </ul>
             </div>
 
+            {{-- Gatherings info --}}
+            <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
+                <h3 class="font-heading font-semibold text-on-surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">groups</span>
+                    {{ __('pages.content_pledge_algo_session_gatherings_heading') }}
+                </h3>
+                <p class="text-on-surface-variant text-sm leading-relaxed">{{ __('pages.content_pledge_algo_session_gatherings_body') }}</p>
+            </div>
+
             {{-- GitHub Links --}}
             <div class="text-center flex flex-wrap justify-center gap-3">
                 <a href="https://github.com/roundup-games/platform/blob/main/app/Services/DiscoveryQueryService.php"
@@ -537,7 +682,7 @@
         </div>
     </section>
 
-    {{-- ── 5. Proximity Engine (Haversine) ─────────────────────── --}}
+    {{-- ── 6. Proximity Engine (Haversine) ─────────────────────── --}}
     <section id="proximity-engine" class="py-16 sm:py-20 bg-surface scroll-mt-24">
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
             <div class="flex items-center gap-3 mb-6">
@@ -615,7 +760,7 @@
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4 font-mono">5 chars</td>
-                            <td class="py-2 pr-4">~2.4km &times; 4.9km</td>
+                            <td class="py-2 pr-4">~4.9km &times; 4.9km</td>
                             <td class="py-2">{{ __('pages.content_pledge_algo_geohash_neighborhood') }}</td>
                         </tr>
                         <tr>
@@ -660,7 +805,142 @@
         </div>
     </section>
 
-    {{-- ── 6. Trending & Popular ──────────────────────────────── --}}
+    {{-- ── 7. Location Disclosure & Privacy ──────────────────── --}}
+    <section id="location-disclosure" class="py-16 sm:py-20 bg-surface-container-low scroll-mt-24">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">location_on</span>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight text-on-surface">
+                    {{ __('pages.heading_pledge_algo_disclosure') }}
+                </h2>
+            </div>
+
+            <p class="text-on-surface-variant leading-relaxed mb-8">
+                {{ __('pages.content_pledge_algo_disclosure_explanation') }}
+            </p>
+
+            {{-- Address Rungs --}}
+            <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
+                <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">tune</span>
+                    {{ __('pages.content_pledge_algo_disclosure_rungs_heading') }}
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-4 bg-surface-container-lowest rounded-lg">
+                        <div class="font-heading font-bold text-on-surface text-sm mb-1">{{ __('pages.content_pledge_algo_disclosure_rung_exact') }}</div>
+                        <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_exact_desc') }}</p>
+                    </div>
+                    <div class="p-4 bg-surface-container-lowest rounded-lg">
+                        <div class="font-heading font-bold text-on-surface text-sm mb-1">{{ __('pages.content_pledge_algo_disclosure_rung_city') }}</div>
+                        <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_city_desc') }}</p>
+                    </div>
+                    <div class="p-4 bg-surface-container-lowest rounded-lg">
+                        <div class="font-heading font-bold text-on-surface text-sm mb-1">{{ __('pages.content_pledge_algo_disclosure_rung_area') }}</div>
+                        <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_area_desc') }}</p>
+                    </div>
+                    <div class="p-4 bg-surface-container-lowest rounded-lg">
+                        <div class="font-heading font-bold text-on-surface-variant text-sm mb-1">{{ __('pages.content_pledge_algo_disclosure_rung_none') }}</div>
+                        <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_none_desc') }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Decision Matrix --}}
+            <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
+                <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">table_rows</span>
+                    {{ __('pages.content_pledge_algo_disclosure_matrix_heading') }}
+                </h3>
+                <table class="w-full text-sm text-on-surface-variant">
+                    <thead>
+                        <tr class="border-b border-outline-variant">
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_disclosure_table_relationship') }}</th>
+                            <th class="text-left py-2 font-medium">{{ __('pages.content_pledge_algo_disclosure_table_address') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-outline-variant/50">
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_disclosure_rel_owner') }}</td>
+                            <td class="py-2 font-mono text-primary">{{ __('pages.content_pledge_algo_disclosure_rung_exact') }}</td>
+                        </tr>
+                        <tr class="border-b border-outline-variant/50">
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_disclosure_rel_friend') }}</td>
+                            <td class="py-2 font-mono">{{ __('pages.content_pledge_algo_disclosure_rung_city') }}</td>
+                        </tr>
+                        <tr class="border-b border-outline-variant/50">
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_disclosure_rel_stranger') }}</td>
+                            <td class="py-2 font-mono">{{ __('pages.content_pledge_algo_disclosure_rung_area') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_disclosure_rel_blocked') }}</td>
+                            <td class="py-2 font-mono text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_none') }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="text-sm text-on-surface-variant mt-4 leading-relaxed">{{ __('pages.content_pledge_algo_disclosure_public_note') }}</p>
+            </div>
+
+            {{-- Distance Display --}}
+            <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
+                <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">straighten</span>
+                    {{ __('pages.content_pledge_algo_disclosure_distance_heading') }}
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">storefront</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_disclosure_distance_public') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_disclosure_distance_public_desc') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">grid_on</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_disclosure_distance_private') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_disclosure_distance_private_desc') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Design Decisions --}}
+            <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
+                <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">lightbulb</span>
+                    {{ __('pages.content_pledge_algo_design_heading') }}
+                </h3>
+                <ul class="space-y-3">
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">chevron_right</span>
+                        <span class="text-on-surface-variant text-sm leading-relaxed">{{ __('pages.content_pledge_algo_disclosure_design_1') }}</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">chevron_right</span>
+                        <span class="text-on-surface-variant text-sm leading-relaxed">{{ __('pages.content_pledge_algo_disclosure_design_2') }}</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" aria-hidden="true">chevron_right</span>
+                        <span class="text-on-surface-variant text-sm leading-relaxed">{{ __('pages.content_pledge_algo_disclosure_design_3') }}</span>
+                    </li>
+                </ul>
+            </div>
+
+            {{-- GitHub Link --}}
+            <div class="text-center">
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/LocationDisclosureService.php"
+                   target="_blank" rel="noopener noreferrer"
+                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
+                    <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
+                    {{ __('pages.content_pledge_algo_source_disclosure') }}
+                </a>
+            </div>
+        </div>
+    </section>
+
+    {{-- ── 8. Trending & Popular ──────────────────────────────── --}}
     <section id="trending" class="py-16 sm:py-20 bg-surface-container-low scroll-mt-24">
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
             <div class="flex items-center gap-3 mb-6">
@@ -755,7 +1035,7 @@
         </div>
     </section>
 
-    {{-- ── 7. Platform Score ──────────────────────────────────── --}}
+    {{-- ── 9. Platform Score ──────────────────────────────────── --}}
     <section id="platform-score" class="py-16 sm:py-20 bg-surface scroll-mt-24">
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
             <div class="flex items-center gap-3 mb-6">

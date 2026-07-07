@@ -84,7 +84,7 @@ class Geohash
      * Longer prefixes = smaller geographic area = more granular caching.
      * Approximate tile sizes at each precision:
      *   4 chars ≈ 20km × 20km (good for city-level caching)
-     *   5 chars ≈ 2.4km × 4.9km (good for neighborhood-level)
+     *   5 chars ≈ 4.9km × 4.9km (good for neighborhood-level — a near-square cell)
      *   6 chars ≈ 0.6km × 1.2km (good for venue-level)
      *
      * @param  float  $lat  Latitude
