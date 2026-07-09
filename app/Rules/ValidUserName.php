@@ -31,8 +31,8 @@ class ValidUserName implements ValidationRule
             return;
         }
 
-        // Check for special characters — keep only \w (word chars), spaces, dashes, underscores
-        // \w in Unicode mode matches \p{L}\p{N}_ so we allow letters, digits, underscore, plus spaces and hyphens
+        // Check for special characters — see sanitize() for the allowed set
+        // (word chars, spaces, hyphens, apostrophes, and periods).
         $stripped = $this->sanitize($value);
 
         if ($stripped !== $value) {

@@ -444,7 +444,7 @@ class DashboardDiscoveryService
             return null;
         }
 
-        $reviewStats = Review::whereBelongsTo($gmProfile)
+        $reviewStats = Review::whereBelongsTo($gmProfile, 'gmProfile')
             ->where('status', 'published')
             ->selectRaw('COUNT(*) as count, AVG(rating) as avg_rating')
             ->first();
@@ -455,7 +455,7 @@ class DashboardDiscoveryService
 
         // earned_at: date of the 3rd review
         /** @var Review|null $thirdReview */
-        $thirdReview = Review::whereBelongsTo($gmProfile)
+        $thirdReview = Review::whereBelongsTo($gmProfile, 'gmProfile')
             ->where('status', 'published')
             ->orderBy('created_at')
             ->skip(2)

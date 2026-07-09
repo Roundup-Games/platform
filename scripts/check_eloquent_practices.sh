@@ -51,8 +51,8 @@ test_hits=0
 # ripgrep explicitly so this branch should not trip there; locally it allows
 # the guardrail to run whenever rg IS present.
 if ! command -v rg &>/dev/null; then
-    printf "${YLW}⚠️  rg (ripgrep) not found — Eloquent practices guardrail skipped.${RST}\n" >&2
-    printf "${YLW}   Install ripgrep to run it locally; CI installs it in the practices job.${RST}\n" >&2
+    printf '%b⚠️  rg (ripgrep) not found — Eloquent practices guardrail skipped.%b\n' "${YLW}" "${RST}" >&2
+    printf '%b   Install ripgrep to run it locally; CI installs it in the practices job.%b\n' "${YLW}" "${RST}" >&2
     exit 0
 fi
 
@@ -64,12 +64,12 @@ scan() {
     # Drop non-Eloquent query-builder contexts (no model-aware API available).
     matches=$(printf '%s\n' "${matches}" | grep -v -e 'DB::table(' -e '->from(' || true)
     if [[ -z "${matches}" ]]; then
-        printf "  ${GRN}✅ %-9s${RST} %s\n" "${label}" "clean"
+        printf '  %b✅ %-9s%b %s\n' "${GRN}" "${label}" "${RST}" "clean"
         return 0
     fi
     local count
     count=$(printf '%s\n' "${matches}" | grep -c . || true)
-    printf "  ${RED}❌ %-9s${RST} %d hit(s) in %s\n" "${label}" "${count}" "${path}"
+    printf '  %b❌ %-9s%b %d hit(s) in %s\n' "${RED}" "${label}" "${RST}" "${count}" "${path}"
     printf '%s\n' "${matches}" | sed 's/^/      /'
     record_hits "${path}" "${count}"
 }
@@ -84,12 +84,12 @@ scan_ml() {
     local display
     display=$(rg -U -n -e "${pattern}" "${path}" 2>/dev/null || true)
     if [[ -z "${display}" ]]; then
-        printf "  ${GRN}✅ %-9s${RST} %s\n" "${label}" "clean"
+        printf '  %b✅ %-9s%b %s\n' "${GRN}" "${label}" "${RST}" "clean"
         return 0
     fi
     local count
     count=$(rg -U --count-matches -e "${pattern}" "${path}" 2>/dev/null | awk -F: '{s+=$NF} END{print s+0}' || true)
-    printf "  ${RED}❌ %-9s${RST} %d hit(s) in %s\n" "${label}" "${count}" "${path}"
+    printf '  %b❌ %-9s%b %d hit(s) in %s\n' "${RED}" "${label}" "${RST}" "${count}" "${path}"
     printf '%s\n' "${display}" | sed 's/^/      /'
     record_hits "${path}" "${count}"
 }
@@ -116,7 +116,7 @@ check_morph_map() {
     local blocks
     blocks=$(rg -U -N -e 'Relation::morphMap\(\[[^]]*\]\)' "${file}" 2>/dev/null || true)
     if [[ -z "${blocks}" ]]; then
-        printf "  ${YLW}⚠️  %-9s${RST} %s\n" "morphMap" "no morphMap registration found in ${file}"
+        printf '  %b⚠️  %-9s%b %s\n' "${YLW}" "morphMap" "${RST}" "no morphMap registration found in ${file}"
         return 0
     fi
     local bad
@@ -124,18 +124,18 @@ check_morph_map() {
     if [[ -n "${bad}" ]]; then
         local count
         count=$(printf '%s\n' "${bad}" | grep -c . || true)
-        printf "  ${RED}❌ %-9s${RST} %d forbidden alias(es) in %s (would orphan morph data)\n" "morphMap" "${count}" "${file}"
+        printf '  %b❌ %-9s%b %d forbidden alias(es) in %s (would orphan morph data)\n' "${RED}" "morphMap" "${RST}" "${count}" "${file}"
         printf '%s\n' "${bad}" | sed 's/^/      /'
         prod_hits=$((prod_hits + count))
     else
-        printf "  ${GRN}✅ %-9s${RST} %s\n" "morphMap" "no user/location aliases"
+        printf '  %b✅ %-9s%b %s\n' "${GRN}" "morphMap" "${RST}" "no user/location aliases"
     fi
 }
 
-printf "\n${CYN}🔍 Eloquent best-practices guardrail${RST}\n\n"
+printf '\n%b🔍 Eloquent best-practices guardrail%b\n\n' "${CYN}" "${RST}"
 
 # ── Production code (app/ + resources/views/) — HARD FAIL ────────────────────
-printf "${CYN}Production code (app/, resources/views/):${RST}\n"
+printf '%bProduction code (app/, resources/views/):%b\n' "${CYN}" "${RST}"
 
 # Rule 1 — routing: pass the model, not its id (games/campaigns are {id} routes)
 scan "R1-route" \
@@ -181,7 +181,7 @@ scan "R6-owner" \
 check_morph_map "app/Providers/AppServiceProvider.php"
 
 # ── Tests — REPORTED only (not fully migrated) ──────────────────────────────
-printf "\n${CYN}Tests (informational — not gating):${RST}\n"
+printf '\n%bTests (informational — not gating):%b\n' "${CYN}" "${RST}"
 scan "R4-where" \
     '->where\(\s*\x27(user_id|game_id|campaign_id)\x27\s*,\s*\$\w+->(id|getKey\(\))\)' \
     "tests/"
@@ -192,12 +192,12 @@ scan_ml "R2-create" \
 # ── Verdict ──────────────────────────────────────────────────────────────────
 printf "\n"
 if [[ "$prod_hits" -gt 0 ]]; then
-    printf "${RED}❌ FAIL:${RST} ${prod_hits} production-code violation(s) of the Eloquent baseline.\n"
+    printf '%b❌ FAIL:%b %s production-code violation(s) of the Eloquent baseline.\n' "${RED}" "${RST}" "${prod_hits}"
     printf "   See CONTRIBUTING.md → \"Eloquent Best Practices\". Use the model-aware API.\n"
     exit 1
 fi
-printf "${GRN}✅ PASS:${RST} no production-code violations"
+printf '%b✅ PASS:%b no production-code violations'
 if [[ "$test_hits" -gt 0 ]]; then
-    printf " (${YLW}${test_hits} test-only hits, informational${RST})"
+    printf ' (%b%s test-only hits, informational%b)' "${YLW}" "${test_hits}" "${RST}"
 fi
 printf ".\n"

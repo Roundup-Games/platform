@@ -439,7 +439,7 @@ class ActionCenterService
         }
 
         $reviews = Review::query()
-            ->whereBelongsTo($gmProfile)
+            ->whereBelongsTo($gmProfile, 'gmProfile')
             ->where('created_at', '>=', now()->subDays(7))
             ->with('reviewer')
             ->orderByDesc('created_at')
