@@ -13,7 +13,8 @@ class ValidUserName implements ValidationRule
      * Names must:
      * - Contain at least 6 non-space characters
      * - Not contain emojis
-     * - Not contain special characters (only word chars, spaces, dashes, underscores)
+     * - Not contain special characters (only word chars, spaces, hyphens,
+     *   apostrophes, and periods)
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
@@ -56,9 +57,11 @@ class ValidUserName implements ValidationRule
         // First strip emojis
         $name = self::stripEmojis($name);
 
-        // Strip special characters — keep only \w (word chars), spaces, hyphens
-        // \w in Unicode mode = \p{L}\p{N}_ (letters, numbers, underscore)
-        $name = (string) preg_replace('/[^\p{L}\p{N}\s_-]/u', '', $name);
+        // Strip special characters — keep word chars, spaces, hyphens,
+        // apostrophes, and periods. Apostrophes (O'Brien, D'Amore) and
+        // periods (St. Mary, Jr.) are legitimate in real names.
+        // \w in Unicode mode = \p{L}\p{N}_ (letters, numbers, underscore).
+        $name = (string) preg_replace('/[^\p{L}\p{N}\s_\'.-]/u', '', $name);
 
         return $name;
     }
