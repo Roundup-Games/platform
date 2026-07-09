@@ -50,8 +50,11 @@ jobs:
         with:
           php-version: '8.5'
           tools: composer:v2
-          # rg (ripgrep) ships in the PHP setup action's Ubuntu image; the
-          # guardrail degrades gracefully (skip) if it is not on PATH.
+
+      - name: Install ripgrep
+        # The Eloquent practices guardrail uses rg. The default ubuntu-latest
+        # image does not always include it, so install it explicitly.
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
