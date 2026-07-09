@@ -203,10 +203,7 @@ class PageController extends Controller
         if (auth()->check()) {
             /** @var User $user */
             $user = authenticatedUser();
-            Ticket::create($baseTicketData + [
-                'requester_type' => User::class,
-                'requester_id' => $user->id,
-            ]);
+            $user->escalatedTickets()->create($baseTicketData);
         } else {
             Ticket::create($baseTicketData + [
                 'guest_name' => $validated['name'],

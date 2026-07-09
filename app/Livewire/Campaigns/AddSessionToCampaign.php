@@ -7,7 +7,6 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\User;
 use App\Notifications\SessionAddedToCampaign;
 use App\Services\NotificationService;
@@ -121,9 +120,8 @@ class AddSessionToCampaign extends Component
         // the campaign's pivot (materialized via sync below).
 
         $game = DB::transaction(function () use ($validated, $campaign, $ownerId, $campaignGameType, $campaignSystemIds) {
-            $game = Game::create([
+            $game = $campaign->sessions()->create([
                 'owner_id' => $ownerId,
-                'campaign_id' => $campaign->id,
                 'name' => $validated['name'],
                 'description' => $validated['description'],
                 'date_time' => $validated['date_time'],
@@ -169,8 +167,7 @@ class AddSessionToCampaign extends Component
 
                 if ($isFull) {
                     // Place on bench instead of inviting
-                    GameParticipant::create([
-                        'game_id' => $game->id,
+                    $game->participants()->create([
                         'user_id' => $campaignParticipant->user_id,
                         'role' => ParticipantRole::Player->value,
                         'status' => ParticipantStatus::Benched->value,
@@ -178,8 +175,7 @@ class AddSessionToCampaign extends Component
                     ]);
                     $benchedCount++;
                 } else {
-                    GameParticipant::create([
-                        'game_id' => $game->id,
+                    $game->participants()->create([
                         'user_id' => $campaignParticipant->user_id,
                         'role' => ParticipantRole::Invited->value,
                         'status' => ParticipantStatus::Pending->value,
@@ -229,7 +225,7 @@ class AddSessionToCampaign extends Component
 
         session()->flash('success', __('campaigns.flash_session_name_added_to_campaign', ['name' => $game->name]));
 
-        $this->redirect(route('games.show', $game->id), navigate: true);
+        $this->redirect(route('games.show', $game), navigate: true);
     }
 
     public function render(): View

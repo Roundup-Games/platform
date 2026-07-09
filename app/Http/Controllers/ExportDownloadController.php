@@ -50,8 +50,7 @@ class ExportDownloadController extends Controller
         }
 
         // Resolve the export file from the most recently created resolved ticket for this user
-        $ticket = Ticket::where('requester_type', User::class)
-            ->where('requester_id', $user->id)
+        $ticket = Ticket::whereMorphedTo('requester', $user)
             ->where('ticket_type', 'data_export_request')
             ->whereNotNull('metadata->export_path')
             ->orderByDesc('created_at')

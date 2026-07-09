@@ -90,7 +90,7 @@ trait ManagesShortLinks
             ? 'games.show'
             : 'campaigns.show';
 
-        return route($route, $entity->getKey()).'?share='.$entity->share_token;
+        return route($route, $entity).'?share='.$entity->share_token;
     }
 
     // ── Short Link Actions ───────────────────────────────

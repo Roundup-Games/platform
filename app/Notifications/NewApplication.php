@@ -81,8 +81,8 @@ class NewApplication extends BaseNotification
     protected function resolveManageParticipantsUrl(string $locale): string
     {
         return match ($this->entityType) {
-            'campaign' => route('campaigns.manage-participants', ['locale' => $locale, 'id' => $this->entity->id]),
-            default => route('games.manage-participants', ['locale' => $locale, 'id' => $this->entity->id]),
+            'campaign' => route('campaigns.manage-participants', ['locale' => $locale, 'id' => $this->entity]),
+            default => route('games.manage-participants', ['locale' => $locale, 'id' => $this->entity]),
         };
     }
 

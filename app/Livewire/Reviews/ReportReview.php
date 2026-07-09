@@ -161,9 +161,7 @@ class ReportReview extends Component
             details: $this->description,
         );
 
-        $ticket = Ticket::create([
-            'requester_type' => User::class,
-            'requester_id' => $reporter->id,
+        $ticket = $reporter->escalatedTickets()->create([
             'subject' => 'Review Report: '.ucfirst($this->reason ?? 'other'),
             'description' => $this->buildTicketDescription($review, $reporter),
             'status' => TicketStatus::Open->value,
@@ -186,7 +184,7 @@ class ReportReview extends Component
         // Apply review-report tag
         $tag = Tag::where('name', 'review-report')->first();
         if ($tag) {
-            $ticket->tags()->syncWithoutDetaching([$tag->id]);
+            $ticket->tags()->syncWithoutDetaching($tag);
         }
 
         Log::info('review.report.ticket_created', [

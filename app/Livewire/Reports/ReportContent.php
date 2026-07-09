@@ -117,10 +117,13 @@ class ReportContent extends Component
         $duplicateDetected = false;
 
         DB::transaction(function () use ($entity, $reporter, &$duplicateDetected) {
-            // Lock existing open tickets for this reporter+entity to prevent concurrent inserts
+            // Lock existing open tickets for this reporter+entity to prevent concurrent inserts.
+            // whereMorphedTo constrains requester_type='App\\Models\\User' in addition to
+            // requester_id; content reports are always opened by authenticated Users via
+            // $reporter->escalatedTickets(), so this never excludes a legitimate duplicate.
             $existing = Ticket::where('ticket_type', 'content_report')
                 ->where('status', '!=', TicketStatus::Closed->value)
-                ->where('requester_id', $reporter->id)
+                ->whereMorphedTo('requester', $reporter)
                 ->whereJsonContains('metadata->entity_type', $this->entityType)
                 ->whereJsonContains('metadata->entity_id', $this->entityId)
                 ->lockForUpdate()
@@ -211,7 +214,7 @@ class ReportContent extends Component
     {
         // User profiles: check if reporter is the profile owner
         if ($entity instanceof User) {
-            return $entity->id === $reporter->id;
+            return $entity->is($reporter);
         }
 
         // Games and campaigns: check ownership via owner_id
@@ -247,9 +250,7 @@ class ReportContent extends Component
             entityOwnerName: $entityOwner,
         );
 
-        $ticket = Ticket::create([
-            'requester_type' => User::class,
-            'requester_id' => $reporter->id,
+        $ticket = $reporter->escalatedTickets()->create([
             'subject' => ucfirst($this->entityType).' Report: '.$this->formatReason($this->reason ?? ''),
             'description' => $this->buildTicketDescription($entity, $reporter, $entityName),
             'status' => TicketStatus::Open->value,
@@ -269,13 +270,13 @@ class ReportContent extends Component
         $tagName = $this->entityType.'-report';
         $tag = Tag::where('name', $tagName)->first();
         if ($tag) {
-            $ticket->tags()->syncWithoutDetaching([$tag->id]);
+            $ticket->tags()->syncWithoutDetaching($tag);
         }
 
         // Also apply reason tag if it exists
         $reasonTag = Tag::where('name', $this->reason)->first();
         if ($reasonTag) {
-            $ticket->tags()->syncWithoutDetaching([$reasonTag->id]);
+            $ticket->tags()->syncWithoutDetaching($reasonTag);
         }
 
         Log::info('content.report.ticket_created', [

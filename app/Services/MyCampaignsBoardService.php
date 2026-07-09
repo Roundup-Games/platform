@@ -101,7 +101,7 @@ class MyCampaignsBoardService
      */
     private function ownedCampaigns(User $user): Collection
     {
-        return Campaign::where('owner_id', $user->id)
+        return Campaign::whereBelongsTo($user, 'owner')
             ->with(['gameSystems', 'participants'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -113,7 +113,7 @@ class MyCampaignsBoardService
     private function participatingCampaigns(User $user): Collection
     {
         return Campaign::whereHas('participants', fn ($q) => $q
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('role', ParticipantRole::Player->value)
             ->where('status', ParticipantStatus::Approved->value),
         )
@@ -128,7 +128,7 @@ class MyCampaignsBoardService
      */
     private function pendingInvitations(User $user): Collection
     {
-        return CampaignParticipant::where('user_id', $user->id)
+        return CampaignParticipant::whereBelongsTo($user)
             ->where('role', ParticipantRole::Invited->value)
             ->where('status', ParticipantStatus::Pending->value)
             ->with(['campaign.gameSystems', 'campaign.owner'])

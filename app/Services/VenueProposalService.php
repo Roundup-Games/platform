@@ -61,9 +61,7 @@ class VenueProposalService
 
         $metadata = $this->buildMetadata($user, $data, $venueType instanceof VenueType ? $venueType->value : (is_string($venueType) ? $venueType : null));
 
-        $ticket = Ticket::create([
-            'requester_type' => User::class,
-            'requester_id' => $user->id,
+        $ticket = $user->escalatedTickets()->create([
             'subject' => 'Venue Proposal: '.trim(is_string($dn = $data['name'] ?? '') ? $dn : ''),
             'description' => $this->buildDescription($data, is_string($venueTypeLabel) ? $venueTypeLabel : null),
             'status' => TicketStatus::Open->value,
@@ -306,6 +304,6 @@ class VenueProposalService
             ['color' => '#10B981']
         );
 
-        $ticket->tags()->syncWithoutDetaching([$tag->id]);
+        $ticket->tags()->syncWithoutDetaching($tag);
     }
 }

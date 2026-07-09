@@ -144,7 +144,7 @@
         @if($games->count())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($games as $game)
-                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
+                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
                         <div class="h-1.5 bg-outline-variant/30"></div>
 
                         <div class="p-5">
@@ -187,7 +187,7 @@
 
                             {{-- Campaign link --}}
                             @if($game->campaign)
-                                <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign->id]) }}" wire:navigate
+                                <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign]) }}" wire:navigate
                                    onclick="event.stopPropagation()"
                                    class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
                                     <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>

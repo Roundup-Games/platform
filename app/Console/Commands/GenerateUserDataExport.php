@@ -362,7 +362,7 @@ class GenerateUserDataExport extends Command
         ]);
 
         // Reviews received as GM — only include the review content, not the reviewer's PII
-        $received = Review::whereHas('gmProfile', fn ($q) => $q->where('user_id', $user->id))
+        $received = Review::whereHas('gmProfile', fn ($q) => $q->whereBelongsTo($user))
             ->get()
             ->map(fn (Review $review) => [
                 'id' => $review->id,
@@ -406,7 +406,7 @@ class GenerateUserDataExport extends Command
      */
     protected function gatherActivityLog(User $user): array
     {
-        return ActivityLog::where('user_id', $user->id)
+        return ActivityLog::whereBelongsTo($user)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(fn (ActivityLog $log) => [

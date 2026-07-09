@@ -116,8 +116,8 @@ class UpdateUserDiscoveryCache implements ShouldBeUnique, ShouldQueue
         $candidateCount = count($scoredResults);
 
         // Update the NearbyDiscoveryView tracking row with current geohash
-        NearbyDiscoveryView::updateOrCreate(
-            ['user_id' => $user->id],
+        $user->discoveryView()->updateOrCreate(
+            [],
             [
                 'geohash_4' => $geohash4,
                 'last_discovery_view' => now(),

@@ -64,7 +64,7 @@ class GmWorkspace extends Component
         $user = authenticatedUser();
 
         // (1) Upcoming Sessions — games owned by this GM, scheduled, next 7 days
-        $upcomingSessions = Game::where('owner_id', $user->id)
+        $upcomingSessions = Game::whereBelongsTo($user, 'owner')
             ->where('status', 'scheduled')
             ->whereBetween('date_time', [now(), now()->addDays(7)])
             ->with(['gameSystems', 'participants'])
@@ -90,7 +90,7 @@ class GmWorkspace extends Component
         [$linkAnalytics, $topLinks, $topReferrers] = $this->getLinkAnalytics($user);
 
         // (7) All links for management table (moved from Blade template)
-        $allLinks = ShortLink::where('user_id', $user->id)
+        $allLinks = ShortLink::whereBelongsTo($user)
             ->with('linkable')
             ->orderByDesc('created_at')
             ->limit(20)
@@ -123,7 +123,7 @@ class GmWorkspace extends Component
         $user = authenticatedUser();
 
         $link = ShortLink::where('id', $linkId)
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->firstOrFail();
 
         // Verify the linkable entity is owned by this GM (defense-in-depth).
@@ -167,7 +167,7 @@ class GmWorkspace extends Component
         $cacheKey = "gm_workspace:participant_stats:{$user->id}";
 
         return Cache::remember($cacheKey, now()->addHour(), function () use ($user) {
-            $gameIds = Game::where('owner_id', $user->id)->pluck('id');
+            $gameIds = Game::whereBelongsTo($user, 'owner')->pluck('id');
 
             $totalUniquePlayers = GameParticipant::whereIn('game_id', $gameIds)
                 ->where('role', ParticipantRole::Player->value)
@@ -189,7 +189,7 @@ class GmWorkspace extends Component
                 ->count();
 
             $totalGames = $gameIds->count();
-            $activeCampaigns = Campaign::where('owner_id', $user->id)
+            $activeCampaigns = Campaign::whereBelongsTo($user, 'owner')
                 ->where('status', 'active')
                 ->count();
 
@@ -213,12 +213,10 @@ class GmWorkspace extends Component
         $result = Cache::remember($cacheKey, now()->addHour(), function () use ($user) {
             // Subquery for GM's short link IDs — avoids loading all IDs into PHP
             // and generates efficient WHERE short_link_id IN (SELECT ...) instead.
-            $gmLinkSub = fn ($q) => $q->select('id')
-                ->from('short_links')
-                ->where('user_id', $user->id);
+            $gmLinkSub = ShortLink::whereBelongsTo($user)->select('id');
 
             // Summary stats grouped by entity type
-            $linksByType = ShortLink::where('user_id', $user->id)
+            $linksByType = ShortLink::whereBelongsTo($user)
                 ->select('linkable_type', DB::raw('COUNT(*) as count'))
                 ->groupBy('linkable_type')
                 ->get()
@@ -232,7 +230,7 @@ class GmWorkspace extends Component
                 ->where('hit_at', '>=', now()->subDays(30))
                 ->count();
 
-            $totalLinks = ShortLink::where('user_id', $user->id)->count();
+            $totalLinks = ShortLink::whereBelongsTo($user)->count();
 
             $linkAnalytics = [
                 'totalLinks' => $totalLinks,
@@ -241,7 +239,7 @@ class GmWorkspace extends Component
             ];
 
             // Top 5 links by hit count
-            $topLinks = ShortLink::where('user_id', $user->id)
+            $topLinks = ShortLink::whereBelongsTo($user)
                 ->with('linkable')
                 ->orderByDesc('hit_count')
                 ->limit(5)

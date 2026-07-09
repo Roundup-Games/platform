@@ -91,8 +91,7 @@ class Show extends Component
         $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
 
         // Check if user has a pending data export request ticket
-        $this->hasPendingExportRequest = Ticket::where('requester_type', User::class)
-            ->where('requester_id', $user->id)
+        $this->hasPendingExportRequest = Ticket::whereMorphedTo('requester', $user)
             ->where('ticket_type', 'data_export_request')
             ->open()
             ->exists();
@@ -269,8 +268,7 @@ class Show extends Component
 
         try {
             $ticket = DB::transaction(function () use ($user, $department) {
-                $existing = Ticket::where('requester_type', User::class)
-                    ->where('requester_id', $user->id)
+                $existing = Ticket::whereMorphedTo('requester', $user)
                     ->where('ticket_type', 'data_export_request')
                     ->open()
                     ->lockForUpdate()
@@ -280,9 +278,7 @@ class Show extends Component
                     return null;
                 }
 
-                return Ticket::create([
-                    'requester_type' => User::class,
-                    'requester_id' => $user->id,
+                return $user->escalatedTickets()->create([
                     'subject' => "Data Export Request — {$user->name}",
                     'description' => 'User requested a full data export via settings.',
                     'status' => TicketStatus::Open->value,
@@ -324,8 +320,7 @@ class Show extends Component
     {
         $user = authenticatedUser();
 
-        $tickets = Ticket::where('requester_type', User::class)
-            ->where('requester_id', $user->id)
+        $tickets = Ticket::whereMorphedTo('requester', $user)
             ->orderByDesc('updated_at')
             ->limit(20)
             ->get(['id', 'reference', 'subject', 'status', 'priority', 'updated_at']);

@@ -26,7 +26,7 @@ class LocationMergeService
      */
     public function merge(Location $source, Location $target, ?User $actedBy = null): array
     {
-        if ($source->id === $target->id) {
+        if ($source->is($target)) {
             throw new \InvalidArgumentException('Cannot merge a location into itself.');
         }
 

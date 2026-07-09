@@ -39,7 +39,7 @@ class DebriefingService
         }
 
         $isParticipant = $game->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->exists();
 
@@ -51,8 +51,8 @@ class DebriefingService
             throw new \LogicException(__('games.error_debriefing_host_cannot_submit'));
         }
 
-        $existing = SessionDebriefing::where('game_id', $game->id)
-            ->where('user_id', $user->id)
+        $existing = SessionDebriefing::whereBelongsTo($game)
+            ->whereBelongsTo($user)
             ->exists();
 
         if ($existing) {
@@ -72,8 +72,7 @@ class DebriefingService
             throw new \LogicException(__('games.error_debriefing_empty_responses'));
         }
 
-        $debriefing = SessionDebriefing::create([
-            'game_id' => $game->id,
+        $debriefing = $game->sessionDebriefings()->create([
             'user_id' => $user->id,
             'tool_type' => $game->getDebriefingToolType(),
             'responses' => $filteredResponses,
@@ -152,7 +151,7 @@ class DebriefingService
      */
     public function getAnonymizedSummary(Game $game): array
     {
-        $debriefings = SessionDebriefing::where('game_id', $game->id)
+        $debriefings = SessionDebriefing::whereBelongsTo($game)
             ->submitted()
             ->get();
 
@@ -184,7 +183,7 @@ class DebriefingService
      */
     public function getHostDebriefings(Game $game): Collection
     {
-        return SessionDebriefing::where('game_id', $game->id)
+        return SessionDebriefing::whereBelongsTo($game)
             ->submitted()
             ->with('user')
             ->orderBy('submitted_at', 'desc')

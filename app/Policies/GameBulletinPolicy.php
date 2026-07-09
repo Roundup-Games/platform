@@ -51,7 +51,7 @@ class GameBulletinPolicy
 
         // Approved participants can view
         return $game->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->exists();
     }
@@ -74,7 +74,7 @@ class GameBulletinPolicy
 
         // Approved participants can view
         return $game->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->exists();
     }

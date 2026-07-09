@@ -16,6 +16,7 @@ use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
 use Escalated\Laravel\Contracts\HasTickets;
 use Escalated\Laravel\Contracts\Ticketable;
 use Escalated\Laravel\Contracts\TicketSubject;
+use Escalated\Laravel\Models\Ticket;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Contracts\Translation\HasLocalePreference;
@@ -29,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -181,6 +183,28 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function linkedAccounts()
     {
         return $this->hasMany(LinkedAccount::class);
+    }
+
+    /**
+     * @return HasMany<ActivityLog, $this>
+     */
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
+    /**
+     * Tickets opened by this user (polymorphic requester).
+     *
+     * Overrides {@see HasTickets::escalatedTickets()}
+     * with an explicit generic return type so static analysis infers Ticket
+     * from create()/make() calls on the relation.
+     *
+     * @return MorphMany<Ticket, $this>
+     */
+    public function escalatedTickets(): MorphMany
+    {
+        return $this->morphMany(Ticket::class, 'requester');
     }
 
     /**
@@ -851,7 +875,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
             $person = (new SchemaPerson)
                 ->name($this->name)
-                ->url(route('profile.public', $this->slug));
+                ->url(route('profile.public', $this));
 
             if ($description) {
                 $person->description($description);

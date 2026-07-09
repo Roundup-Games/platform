@@ -99,6 +99,9 @@
         "smoke": [
             "@php artisan test --group=smoke"
         ],
+        "practices": [
+            "bash scripts/check_eloquent_practices.sh"
+        ],
         "deploy:assets": [
             "bash build-tools/subset-icons.sh",
             "npm run build"

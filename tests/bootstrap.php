@@ -64,6 +64,22 @@ $isParallel = (bool) getenv('PARATEST');
 $token = (int) (getenv('TEST_TOKEN') ?: 0);
 $isPrimary = ! $isParallel || $token === 1;
 
+// Suppress Laravel's per-worker database creation (TestDatabases trait).
+// `php artisan test --parallel` sets LARAVEL_PARALLEL_TESTING, which makes
+// Laravel's TestDatabases trait create empty suffixed DBs
+// (roundup_games_test_test_{N}) and switch every worker's connection to
+// them — but they are never migrated, so every DB-backed test fails with
+// "relation does not exist". This project uses ONE shared database,
+// migrated once below (like Pest's parallel protocol). Setting
+// LARAVEL_PARALLEL_TESTING_WITHOUT_DATABASES makes TestDatabases no-op so
+// all workers reuse the shared DB the bootstrap manages.
+// `vendor/bin/pest --parallel` is unaffected: it doesn't set
+// LARAVEL_PARALLEL_TESTING, so TestDatabases already no-ops there.
+if (getenv('LARAVEL_PARALLEL_TESTING')) {
+    $_SERVER['LARAVEL_PARALLEL_TESTING_WITHOUT_DATABASES'] = '1';
+    putenv('LARAVEL_PARALLEL_TESTING_WITHOUT_DATABASES=1');
+}
+
 // Temp file for sharing container details across parallel workers.
 // Sequential mode keys it by PID (exclusive process); parallel mode uses a
 // stable name shared by all sibling workers of one paratest run.

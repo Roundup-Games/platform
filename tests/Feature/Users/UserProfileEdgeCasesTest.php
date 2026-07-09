@@ -46,20 +46,17 @@ describe('ValidUserName: boundary and mixed-content cases', function () {
         expect($passed)->toBeTrue();
     });
 
-    it('accepts names with apostrophes that get stripped but still pass length after sanitization', function () {
-        // O'Connor has 7 non-space chars after stripping apostrophe → OConnor (7 chars)
+    it('accepts names with apostrophes (legitimate in real names)', function () {
+        // Apostrophes appear in real names: O'Brien, D'Amore. The rule
+        // preserves them so factory-generated Faker names never flake.
         $rule = new ValidUserName;
 
-        $failed = false;
-        $failMessage = null;
-        $rule->validate('name', "O'Connor", function ($message) use (&$failed, &$failMessage) {
-            $failed = true;
-            $failMessage = $message;
+        $passed = true;
+        $rule->validate('name', "O'Connor", function () use (&$passed) {
+            $passed = false;
         });
 
-        // Apostrophe is a special char, so it should fail on special-char check
-        expect($failed)->toBeTrue();
-        expect($failMessage)->toContain('special characters');
+        expect($passed)->toBeTrue();
     });
 
     it('rejects a name that is all emojis', function () {
@@ -159,9 +156,9 @@ describe('ValidUserName: boundary and mixed-content cases', function () {
 });
 
 describe('ValidUserName::sanitize additional cases', function () {
-    it('strips @ symbols and dots from names', function () {
-        // Both @ and . are special characters that get stripped
-        expect(ValidUserName::sanitize('user@domain.com'))->toBe('userdomaincom');
+    it('strips @ symbols but preserves dots in names', function () {
+        // @ is stripped (merging adjacent tokens); . is preserved (St. Mary, Jr.)
+        expect(ValidUserName::sanitize('user@domain.com'))->toBe('userdomain.com');
     });
 
     it('strips curly braces and brackets', function () {

@@ -53,7 +53,7 @@ class SessionReminder extends BaseNotification
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
             'date_time' => $this->game->date_time?->toIso8601String(),
-            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
+            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
         ];
     }
 
@@ -88,7 +88,7 @@ class SessionReminder extends BaseNotification
                 'time' => $time,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
+            url: route('games.show', ['locale' => $locale, 'id' => $this->game]),
             tag: "game-reminder-{$this->window}-{$this->game->id}",
         );
     }

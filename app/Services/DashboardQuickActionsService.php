@@ -89,7 +89,7 @@ class DashboardQuickActionsService
     private function isTeamCaptainOfAny(User $user): bool
     {
         return TeamMember::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('role', 'captain')
             ->where('status', 'active')
             ->exists();
@@ -114,9 +114,9 @@ class DashboardQuickActionsService
             ->where('status', GameStatus::Scheduled)
             ->where('date_time', '>', now())
             ->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                $q->whereBelongsTo($user, 'owner')
                     ->orWhereHas('participants', fn ($pq) => $pq
-                        ->where('user_id', $user->id)
+                        ->whereBelongsTo($user)
                         ->where('status', ParticipantStatus::Approved));
             })
             ->exists();
@@ -237,7 +237,7 @@ class DashboardQuickActionsService
     private function isCampaignMember(User $user): bool
     {
         return CampaignParticipant::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->exists();
     }
@@ -250,7 +250,7 @@ class DashboardQuickActionsService
     private function getTeamManageUrl(User $user): string
     {
         $teamMember = TeamMember::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('role', 'captain')
             ->where('status', 'active')
             ->first();

@@ -294,7 +294,7 @@
                                     </div>
                                 </div>
                                 @can('view', $game)
-                                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}"
+                                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game]) }}"
                                        wire:navigate class="text-sm text-primary hover:underline ml-3 shrink-0">{{ __('common.action_view') }}</a>
                                 @endcan
                             </div>
@@ -327,7 +327,7 @@
                                     </div>
                                 </div>
                                 @can('view', $campaign)
-                                    <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}"
+                                    <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign]) }}"
                                        wire:navigate class="text-sm text-primary hover:underline ml-3 shrink-0">{{ __('common.action_view') }}</a>
                                 @endcan
                             </div>

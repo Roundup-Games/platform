@@ -92,7 +92,7 @@ class AttendanceResolutionService
             ->get();
 
         // Pre-fetch all reports for the game once (avoids N+1 inside participant loop)
-        $allReports = AttendanceReport::where('game_id', $game->id)->get();
+        $allReports = AttendanceReport::whereBelongsTo($game)->get();
 
         // Total non-self participants (each participant's denominator excludes themselves)
         $totalParticipants = $participants->count();

@@ -88,7 +88,7 @@
                 @if($game->visibility->value === 'protected')
                     <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_this_is_a_protected_game') }}</p>
                 @endif
-                <a href="{{ route('games.apply', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate
+                <a href="{{ route('games.apply', ['locale' => app()->getLocale(), 'id' => $game]) }}" wire:navigate
                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">
                         @if($game->visibility->value === 'public') login @else send @endif
@@ -142,7 +142,7 @@
 
     {{-- Manage Participants (owner only) --}}
     @if($isOwner)
-        <a href="{{ route('games.manage-participants', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate
+        <a href="{{ route('games.manage-participants', ['locale' => app()->getLocale(), 'id' => $game]) }}" wire:navigate
            class="block bg-surface-container-low rounded-xl shadow-ambient p-4 hover:bg-surface-container-high transition-colors group">
             <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-xl text-on-surface-variant group-hover:text-primary transition-colors" aria-hidden="true">group</span>

@@ -229,7 +229,7 @@ class GmSocialLinkService
      */
     private function deleteLink(User $user, string $platform): void
     {
-        $deleted = GmSocialLink::where('user_id', $user->id)
+        $deleted = GmSocialLink::whereBelongsTo($user)
             ->where('platform', $platform)
             ->delete();
 

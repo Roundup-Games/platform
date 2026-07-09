@@ -323,7 +323,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
                     $q->where('visibility', 'protected')
                         ->where(function ($q) use ($allowedOwnerIds, $viewer) {
                             $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $viewer->id));
+                                ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($viewer));
                         });
                 });
         });

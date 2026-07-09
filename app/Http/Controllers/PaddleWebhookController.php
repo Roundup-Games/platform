@@ -210,9 +210,7 @@ class PaddleWebhookController extends BaseWebhookController
                     return $existing;
                 }
 
-                return Ticket::create([
-                    'requester_type' => User::class,
-                    'requester_id' => $user->id,
+                return $user->escalatedTickets()->create([
                     'subject' => 'Payment Failed — Action May Be Required',
                     'description' => 'Auto-created from Paddle webhook payment failure event.',
                     'status' => TicketStatus::Open->value,
@@ -228,8 +226,8 @@ class PaddleWebhookController extends BaseWebhookController
                 // Apply tags only to newly created tickets
                 $billingTag = Tag::where('name', 'billing-support')->first();
                 $paymentTag = Tag::where('name', 'payment-failure')->first();
-                $tagIds = array_filter([$billingTag?->id, $paymentTag?->id]);
-                if (! empty($tagIds)) {
+                $tagIds = collect([$billingTag, $paymentTag])->filter();
+                if ($tagIds->isNotEmpty()) {
                     $ticket->tags()->syncWithoutDetaching($tagIds);
                 }
 

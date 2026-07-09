@@ -131,7 +131,7 @@ class AttendanceService
         // Reporter must be an approved participant
         /** @var GameParticipant|null $reporterParticipant */
         $reporterParticipant = $game->participants()
-            ->where('user_id', $reporter->id)
+            ->whereBelongsTo($reporter)
             ->where('status', ParticipantStatus::Approved->value)
             ->first();
 
@@ -164,8 +164,8 @@ class AttendanceService
             ->flip();
 
         // Check for duplicate reports (same reporter + reported user in this game)
-        $alreadyReportedIds = AttendanceReport::where('game_id', $game->id)
-            ->where('reporter_id', $reporter->id)
+        $alreadyReportedIds = AttendanceReport::whereBelongsTo($game)
+            ->whereBelongsTo($reporter, 'reporter')
             ->pluck('reported_id')
             ->flip();
 
@@ -224,8 +224,7 @@ class AttendanceService
         $created = 0;
         DB::transaction(function () use ($game, $reporter, $reports, $weight, $griefCheck, &$created) {
             foreach ($reports as $entry) {
-                AttendanceReport::create([
-                    'game_id' => $game->id,
+                $game->attendanceReports()->create([
                     'reporter_id' => $reporter->id,
                     'reported_id' => $entry['reported_id'],
                     'status' => $entry['status'],
@@ -258,8 +257,8 @@ class AttendanceService
             $notificationService = app(NotificationService::class);
             $reportedIds = collect($reports)->pluck('reported_id')->unique();
             $usersById = User::whereIn('id', $reportedIds)->get()->keyBy('id');
-            $freshReports = AttendanceReport::where('game_id', $game->id)
-                ->where('reporter_id', $reporter->id)
+            $freshReports = AttendanceReport::whereBelongsTo($game)
+                ->whereBelongsTo($reporter, 'reporter')
                 ->whereIn('reported_id', $reportedIds)
                 ->get()
                 ->groupBy('reported_id');
@@ -302,7 +301,7 @@ class AttendanceService
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
 
-        $distinctReporters = AttendanceReport::where('game_id', $game->id)
+        $distinctReporters = AttendanceReport::whereBelongsTo($game)
             ->distinct()
             ->count('reporter_id');
 
@@ -362,7 +361,7 @@ class AttendanceService
         $threshold = self::quarantineThreshold();
 
         if ($threshold > 0) {
-            $uncorroboratedGameCount = AttendanceReport::where('attendance_reports.reporter_id', $reporter->id)
+            $uncorroboratedGameCount = AttendanceReport::whereBelongsTo($reporter, 'reporter')
                 ->where('attendance_reports.is_corroborated', false)
                 ->where('attendance_reports.created_at', '>=', now()->subDays(self::quarantineLookbackDays()))
                 ->join('games', 'games.id', '=', 'attendance_reports.game_id')
@@ -442,7 +441,7 @@ class AttendanceService
         // Reporter must be an approved participant or the game owner.
         /** @var GameParticipant|null $reporterParticipant */
         $reporterParticipant = $game->participants()
-            ->where('user_id', $reporter->id)
+            ->whereBelongsTo($reporter)
             ->first();
 
         if (! $reporterParticipant && (string) $game->owner_id !== (string) $reporter->id) {
@@ -452,7 +451,7 @@ class AttendanceService
         // Reported user must be a participant or the game owner.
         /** @var GameParticipant|null $reportedParticipant */
         $reportedParticipant = $game->participants()
-            ->where('user_id', $reported->id)
+            ->whereBelongsTo($reported)
             ->first();
 
         if (! $reportedParticipant && (string) $game->owner_id !== (string) $reported->id) {
@@ -460,12 +459,12 @@ class AttendanceService
         }
 
         // Cannot self-report as host for own attendance
-        if ((string) $reporter->id === (string) $reported->id && (string) $game->owner_id === (string) $reporter->id) {
+        if ($reporter->is($reported) && (string) $game->owner_id === (string) $reporter->id) {
             return ['success' => false, 'reason' => 'Host cannot self-report attendance'];
         }
 
         // Self-reporting is allowed for non-hosts (only 'attended' or 'excused')
-        if ($reporter->id === $reported->id && ! in_array($status, ['attended', 'excused'], true)) {
+        if ($reporter->is($reported) && ! in_array($status, ['attended', 'excused'], true)) {
             return ['success' => false, 'reason' => 'Self-reporting is only allowed for attended or excused status'];
         }
 
@@ -500,8 +499,7 @@ class AttendanceService
         DB::transaction(function () use ($reportedParticipant, $status, $reporter, $weight, $game, $reported, $griefCheck) {
             $this->recordAttendance($reportedParticipant, $status, $reporter, $weight);
 
-            AttendanceReport::create([
-                'game_id' => $game->id,
+            $game->attendanceReports()->create([
                 'reporter_id' => $reporter->id,
                 'reported_id' => $reported->id,
                 'status' => $status,
@@ -528,9 +526,9 @@ class AttendanceService
         try {
             $notificationService = app(NotificationService::class);
             /** @var AttendanceReport|null $report */
-            $report = AttendanceReport::where('game_id', $game->id)
-                ->where('reported_id', $reported->id)
-                ->where('reporter_id', $reporter->id)
+            $report = AttendanceReport::whereBelongsTo($game)
+                ->whereBelongsTo($reported, 'reported')
+                ->whereBelongsTo($reporter, 'reporter')
                 ->orderByDesc('created_at')
                 ->first();
             if ($report) {
@@ -616,8 +614,7 @@ class AttendanceService
 
         // Record the late cancel atomically: report + reliability
         DB::transaction(function () use ($hostParticipant, $game) {
-            AttendanceReport::create([
-                'game_id' => $game->id,
+            $game->attendanceReports()->create([
                 'reporter_id' => $game->owner_id,
                 'reported_id' => $game->owner_id,
                 'status' => AttendanceStatus::LateCancel->value,
@@ -675,7 +672,7 @@ class AttendanceService
      */
     public function getVoteTallies(Game $game): array
     {
-        $rows = AttendanceReport::where('game_id', $game->id)
+        $rows = AttendanceReport::whereBelongsTo($game)
             ->selectRaw('reported_id, status, COUNT(*) as count')
             ->groupBy('reported_id', 'status')
             ->get();
@@ -707,8 +704,8 @@ class AttendanceService
      */
     public function hasUserReported(Game $game, User $user): bool
     {
-        return AttendanceReport::where('game_id', $game->id)
-            ->where('reporter_id', $user->id)
+        return AttendanceReport::whereBelongsTo($game)
+            ->whereBelongsTo($user, 'reporter')
             ->exists();
     }
 
@@ -721,7 +718,7 @@ class AttendanceService
     {
         /** @var GameParticipant|null $participant */
         $participant = $game->participants()
-            ->where('user_id', $viewer->id)
+            ->whereBelongsTo($viewer)
             ->first();
 
         return $participant?->attendance_status;
@@ -791,7 +788,7 @@ class AttendanceService
         }
 
         // Gather attendance report IDs for this participant
-        $reportIds = AttendanceReport::where('game_id', $game->id)
+        $reportIds = AttendanceReport::whereBelongsTo($game)
             ->where('reported_id', $participant->user_id)
             ->pluck('id')
             ->toArray();
@@ -809,9 +806,7 @@ class AttendanceService
 
         DB::transaction(function () use ($participant, $reason, $caller, $game, $reportIds, $department) {
             // Create Escalated ticket
-            $ticket = Ticket::create([
-                'requester_type' => User::class,
-                'requester_id' => $caller->id,
+            $ticket = $caller->escalatedTickets()->create([
                 'subject' => 'Attendance Dispute: '.$game->name,
                 'description' => $reason,
                 'status' => TicketStatus::Open->value,
@@ -832,7 +827,7 @@ class AttendanceService
             // Apply attendance-dispute tag
             $tag = Tag::where('name', 'attendance-dispute')->first();
             if ($tag) {
-                $ticket->tags()->syncWithoutDetaching([$tag->id]);
+                $ticket->tags()->syncWithoutDetaching($tag);
             }
 
             // Mark disputed_at on participant
@@ -891,8 +886,7 @@ class AttendanceService
 
         DB::transaction(function () use ($participant, $newStatus, $admin, $overrideReason, $game, $oldStatus) {
             // Create an admin override report record
-            AttendanceReport::create([
-                'game_id' => $game->id,
+            $game->attendanceReports()->create([
                 'reporter_id' => $admin->id,
                 'reported_id' => $participant->user_id,
                 'status' => $newStatus->value,

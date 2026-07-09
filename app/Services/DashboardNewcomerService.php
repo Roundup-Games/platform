@@ -270,13 +270,13 @@ class DashboardNewcomerService
         }
 
         // Step 3: Has any game participation (any status including pending)
-        $hasParticipation = GameParticipant::where('user_id', $user->id)->exists();
+        $hasParticipation = GameParticipant::whereBelongsTo($user)->exists();
         if ($hasParticipation) {
             $steps[2]['is_complete'] = true;
         }
 
         // Step 4: Has attended a completed game (as participant, not owner)
-        $hasAttended = GameParticipant::where('user_id', $user->id)
+        $hasAttended = GameParticipant::whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->whereHas('game', fn ($q) => $q
                 ->where('status', GameStatus::Completed->value)
@@ -467,8 +467,8 @@ class DashboardNewcomerService
             return $this->excludedGameIdsCache[$cacheKey];
         }
 
-        $ownedGameIds = Game::where('owner_id', $user->id)->pluck('id');
-        $participatingGameIds = GameParticipant::where('user_id', $user->id)
+        $ownedGameIds = Game::whereBelongsTo($user, 'owner')->pluck('id');
+        $participatingGameIds = GameParticipant::whereBelongsTo($user)
             ->pluck('game_id');
 
         return $this->excludedGameIdsCache[$cacheKey] = $ownedGameIds->merge($participatingGameIds)->unique()->values()->toArray();

@@ -38,7 +38,7 @@ class PublicGameDetail extends Component
         // Authenticated users should use the dashboard game detail (with join/apply CTA)
         if (Auth::check()) {
             $query = array_filter(['share' => request()->query('share')]);
-            $this->redirect(route('games.show', array_merge([$game->id], $query)), navigate: true);
+            $this->redirect(route('games.show', array_merge([$game], $query)), navigate: true);
 
             return;
         }
@@ -133,7 +133,7 @@ class PublicGameDetail extends Component
             return null;
         }
 
-        return route('games.detail', $this->game->id).'?share='.$this->game->share_token;
+        return route('games.detail', $this->game).'?share='.$this->game->share_token;
     }
 
     public function render(): View

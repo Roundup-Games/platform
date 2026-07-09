@@ -1,6 +1,6 @@
 @props(['campaign'])
 
-<a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group min-h-[220px]">
+<a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group min-h-[220px]">
     <div class="h-1.5 bg-secondary/60"></div>
 
     <div class="p-5">

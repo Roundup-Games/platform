@@ -15,8 +15,8 @@
                     $entity = $activity->entity;
                     $user = $activity->user;
                     $route = $entityType === 'game'
-                        ? route('games.detail', ['locale' => app()->getLocale(), 'id' => $entity->id])
-                        : route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $entity->id]);
+                        ? route('games.detail', ['locale' => app()->getLocale(), 'id' => $entity])
+                        : route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $entity]);
                     $icon = match($activity->type) {
                         'game_created', 'campaign_created' => 'add_circle',
                         'player_joined' => 'person_add',
@@ -77,7 +77,7 @@
                                     @if($activity->entityCampaign)
                                         <span class="text-sm text-on-surface-variant">
                                             {{ __('campaigns.activity_scheduled_session_for') }}
-                                            <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $activity->entityCampaign->id]) }}" wire:navigate class="font-medium text-secondary hover:text-secondary/80 transition-colors">
+                                            <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $activity->entityCampaign]) }}" wire:navigate class="font-medium text-secondary hover:text-secondary/80 transition-colors">
                                                 {{ $activity->entityCampaign->name }}
                                             </a>
                                         </span>

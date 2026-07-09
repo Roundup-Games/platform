@@ -152,7 +152,7 @@ class CampaignListing extends Component
                         ->where(function ($q) use ($user) {
                             $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
                             $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
+                                ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($user));
                         });
                 });
             })

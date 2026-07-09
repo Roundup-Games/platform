@@ -69,7 +69,7 @@ class ParticipantService
                 continue;
             }
 
-            if ($targetUser->id === $inviter->id) {
+            if ($targetUser->is($inviter)) {
                 $skippedCount++;
 
                 continue;
@@ -86,15 +86,14 @@ class ParticipantService
                 continue;
             }
 
-            if ($entity->participants()->where('user_id', $targetUser->id)->exists()) {
+            if ($entity->participants()->whereBelongsTo($targetUser)->exists()) {
                 $skippedCount++;
 
                 continue;
             }
 
             try {
-                $meta->participantClass::create([
-                    $meta->foreignKey => $entity->id,
+                $entity->participants()->create([
                     'user_id' => $targetUser->id,
                     'role' => ParticipantRole::Invited->value,
                     'status' => ParticipantStatus::Pending->value,
@@ -174,7 +173,7 @@ class ParticipantService
         EntityMeta $meta,
     ): ParticipantResult {
         // Already a participant?
-        if ($entity->participants()->where('user_id', $existingUser->id)->exists()) {
+        if ($entity->participants()->whereBelongsTo($existingUser)->exists()) {
             return ParticipantResult::fail('people.error_user_already_participant');
         }
 
@@ -184,8 +183,7 @@ class ParticipantService
             return app(OverflowRouter::class)->flashResult($entity);
         }
 
-        $meta->participantClass::create([
-            $meta->foreignKey => $entity->id,
+        $entity->participants()->create([
             'user_id' => $existingUser->id,
             'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
@@ -270,8 +268,7 @@ class ParticipantService
         ]);
 
         try {
-            $meta->participantClass::create([
-                $meta->foreignKey => $entity->id,
+            $entity->participants()->create([
                 'user_id' => null,
                 'invitee_email' => $suppressedEmail,
                 'role' => ParticipantRole::Invited->value,
@@ -295,8 +292,7 @@ class ParticipantService
         EntityMeta $meta,
     ): ParticipantResult {
         try {
-            $meta->participantClass::create([
-                $meta->foreignKey => $entity->id,
+            $entity->participants()->create([
                 'user_id' => null,
                 'invitee_email' => $normalizedEmail,
                 'role' => ParticipantRole::Invited->value,

@@ -86,7 +86,7 @@ class RegisteredUserController extends Controller
 
         foreach ($gameMatches as $participant) {
             try {
-                $participant->update(['user_id' => $user->id]);
+                $participant->user()->associate($user)->save();
             } catch (QueryException $e) {
                 Log::warning('registration.game_invite_match_conflict', [
                     'user_id' => $user->id,
@@ -112,7 +112,7 @@ class RegisteredUserController extends Controller
 
         foreach ($campaignMatches as $participant) {
             try {
-                $participant->update(['user_id' => $user->id]);
+                $participant->user()->associate($user)->save();
             } catch (QueryException $e) {
                 Log::warning('registration.campaign_invite_match_conflict', [
                     'user_id' => $user->id,

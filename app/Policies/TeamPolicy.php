@@ -109,7 +109,7 @@ class TeamPolicy
     private function isCaptainOrCoach(User $user, Team $team): bool
     {
         return $team->members()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', 'active')
             ->whereIn('role', ['captain', 'coach'])
             ->exists();

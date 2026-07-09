@@ -68,13 +68,13 @@ class CreateDefaultsService
         // Prefer the last campaign-session the user organized, fall back to any game.
         // Both paths eager-load gameSystems so the offered-system lookup below
         // doesn't trigger a lazy-load query on the fallback branch.
-        $lastCampaignGame = Game::where('owner_id', $user->id)
+        $lastCampaignGame = Game::whereBelongsTo($user, 'owner')
             ->whereNotNull('campaign_id')
             ->latest('date_time')
             ->with(['gameSystems'])
             ->first();
 
-        $lastAnyGame = Game::where('owner_id', $user->id)
+        $lastAnyGame = Game::whereBelongsTo($user, 'owner')
             ->with(['gameSystems'])
             ->latest('date_time')
             ->first();
@@ -106,7 +106,7 @@ class CreateDefaultsService
      */
     private function lastAuthoredGameOfType(User $user, GameType $type): ?Game
     {
-        return Game::where('owner_id', $user->id)
+        return Game::whereBelongsTo($user, 'owner')
             ->where('game_type', $type->value)
             ->latest('date_time')
             ->with(['gameSystems'])

@@ -81,8 +81,8 @@ class ParticipantJoined extends BaseNotification
     protected function resolveEntityUrl(string $locale): string
     {
         return match ($this->entityType) {
-            'campaign' => route('campaigns.show', ['locale' => $locale, 'id' => $this->entity->id]),
-            default => route('games.show', ['locale' => $locale, 'id' => $this->entity->id]),
+            'campaign' => route('campaigns.show', ['locale' => $locale, 'id' => $this->entity]),
+            default => route('games.show', ['locale' => $locale, 'id' => $this->entity]),
         };
     }
 

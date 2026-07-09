@@ -138,9 +138,7 @@ class ContactSupport extends Component
         // Determine ticket type based on issue type
         $ticketType = $this->issueType === 'data_request' ? 'data_export_request' : 'account_recovery';
 
-        $ticket = Ticket::create([
-            'requester_type' => User::class,
-            'requester_id' => $user->id,
+        $ticket = $user->escalatedTickets()->create([
             'subject' => $this->subject,
             'description' => $this->buildTicketDescription($user),
             'status' => TicketStatus::Open->value,
@@ -155,7 +153,7 @@ class ContactSupport extends Component
         $tagName = $ticketType === 'data_export_request' ? 'data-export' : 'account-recovery';
         $tag = Tag::where('name', $tagName)->first();
         if ($tag) {
-            $ticket->tags()->syncWithoutDetaching([$tag->id]);
+            $ticket->tags()->syncWithoutDetaching($tag);
         }
 
         Log::info('support.account_ticket_created', [

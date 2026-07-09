@@ -41,7 +41,7 @@ class BulletinPosted extends BaseNotification
             ->line(__('notifications.body_bulletin_content', [
                 'content' => Str::limit($this->bulletin->content, 100),
             ]))
-            ->action(__('notifications.action_view_game'), route('games.show', ['locale' => $locale, 'id' => $this->game->id]));
+            ->action(__('notifications.action_view_game'), route('games.show', ['locale' => $locale, 'id' => $this->game]));
     }
 
     /**
@@ -60,7 +60,7 @@ class BulletinPosted extends BaseNotification
             'entity_name' => $this->game->name,
             'actor_id' => $this->host->id,
             'bulletin_id' => $this->bulletin->id,
-            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
+            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
         ];
     }
 
@@ -86,7 +86,7 @@ class BulletinPosted extends BaseNotification
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
+            url: route('games.show', ['locale' => $locale, 'id' => $this->game]),
             tag: "bulletin-{$this->bulletin->id}",
         );
     }

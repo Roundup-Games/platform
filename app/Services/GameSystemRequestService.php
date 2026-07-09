@@ -53,9 +53,7 @@ class GameSystemRequestService
             notes: $notes,
         );
 
-        $ticket = Ticket::create([
-            'requester_type' => User::class,
-            'requester_id' => $user->id,
+        $ticket = $user->escalatedTickets()->create([
             'subject' => 'Game System Request: '.trim($name),
             'description' => is_string($data['notes'] ?? null) ? $data['notes'] : '',
             'status' => TicketStatus::Open->value,
@@ -266,7 +264,7 @@ class GameSystemRequestService
         $tag = Tag::where('name', 'bgg-sync')->first();
 
         if ($tag) {
-            $ticket->tags()->syncWithoutDetaching([$tag->id]);
+            $ticket->tags()->syncWithoutDetaching($tag);
         }
     }
 }

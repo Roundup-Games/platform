@@ -29,7 +29,7 @@ class EntityInvitation extends BaseNotification
     {
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $type = $this->getEntityType();
-        $actionUrl = route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]);
+        $actionUrl = route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]);
 
         return (new MailMessage)
             ->subject(__("notifications.subject_{$type}_invitation", [
@@ -63,7 +63,7 @@ class EntityInvitation extends BaseNotification
             "{$type}_name" => $this->entity->name,
             'inviter_id' => $this->inviter->id,
             'inviter_name' => $this->inviter->name,
-            'action_url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]),
+            'action_url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
         ];
     }
 
@@ -90,7 +90,7 @@ class EntityInvitation extends BaseNotification
                 $type => $this->entity->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]),
+            url: route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
             tag: "{$type}-invitation-{$this->entity->id}",
         );
     }

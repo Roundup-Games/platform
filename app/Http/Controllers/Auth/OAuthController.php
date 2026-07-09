@@ -219,8 +219,7 @@ class OAuthController
 
         // Atomically create via firstOrCreate to prevent race conditions
         try {
-            LinkedAccount::create([
-                'user_id' => $user->id,
+            $user->linkedAccounts()->create([
                 'provider' => $provider,
                 'provider_user_id' => $providerUserId,
                 'token' => $socialiteUser->token,
@@ -262,8 +261,7 @@ class OAuthController
      */
     private function createLinkedAccount(User $user, string $provider, \Laravel\Socialite\Two\User $socialiteUser, string $providerUserId): LinkedAccount
     {
-        return LinkedAccount::create([
-            'user_id' => $user->id,
+        return $user->linkedAccounts()->create([
             'provider' => $provider,
             'provider_user_id' => $providerUserId,
             'token' => $socialiteUser->token,

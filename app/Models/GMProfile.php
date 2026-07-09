@@ -80,6 +80,12 @@ class GMProfile extends Model
         return $this->hasMany(Review::class, 'gm_profile_id');
     }
 
+    /** @return HasMany<SessionZeroSurvey, $this> */
+    public function sessionZeroSurveys(): HasMany
+    {
+        return $this->hasMany(SessionZeroSurvey::class, 'gm_profile_id');
+    }
+
     // ── Convenience Methods ────────────────────────────
 
     /**

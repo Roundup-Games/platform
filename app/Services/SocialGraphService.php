@@ -24,7 +24,7 @@ class SocialGraphService
     public function isFollowing(User $viewer, User $target): bool
     {
         return $viewer->followings()
-            ->where('related_user_id', $target->id)
+            ->whereBelongsTo($target, 'related')
             ->exists();
     }
 
@@ -34,7 +34,7 @@ class SocialGraphService
     public function isFollowedBy(User $viewer, User $target): bool
     {
         return $viewer->followers()
-            ->where('user_id', $target->id)
+            ->whereBelongsTo($target)
             ->exists();
     }
 
@@ -46,7 +46,7 @@ class SocialGraphService
     public function isBlockedBy(User $viewer, User $target): bool
     {
         return $viewer->blockedBy()
-            ->where('user_id', $target->id)
+            ->whereBelongsTo($target)
             ->exists();
     }
 
@@ -56,7 +56,7 @@ class SocialGraphService
     public function hasBlocked(User $viewer, User $target): bool
     {
         return $viewer->blocks()
-            ->where('related_user_id', $target->id)
+            ->whereBelongsTo($target, 'related')
             ->exists();
     }
 

@@ -40,7 +40,7 @@ class UserPolicy
         }
 
         // Users can always view their own profile
-        if ($user->id === $targetUser->id) {
+        if ($user->is($targetUser)) {
             return true;
         }
 
@@ -61,7 +61,7 @@ class UserPolicy
     public function update(User $user, User $targetUser): bool
     {
         // Users can always update their own profile
-        if ($user->id === $targetUser->id) {
+        if ($user->is($targetUser)) {
             return true;
         }
 
@@ -74,7 +74,7 @@ class UserPolicy
     public function delete(User $user, User $targetUser): bool
     {
         // Cannot delete yourself
-        if ($user->id === $targetUser->id) {
+        if ($user->is($targetUser)) {
             return false;
         }
 
