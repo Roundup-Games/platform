@@ -152,7 +152,7 @@ class ParticipantLifecycle
         $promoterId = $promoter !== null ? $promoter->id : 'system';
 
         DB::transaction(function () use ($participant, $meta, $promoterId) {
-            $locked = $meta->participantClass::lockForUpdate()->where('id', $participant->getId())->firstOrFail();
+            $locked = $meta->participantClass::lockForUpdate()->whereKey($participant->getId())->firstOrFail();
 
             if ($locked->status !== ParticipantStatus::Benched) {
                 throw new \LogicException('Participant is not on the bench.');
@@ -201,7 +201,7 @@ class ParticipantLifecycle
 
         DB::transaction(function () use ($participant, $remover, $meta) {
             $locked = $meta->participantClass::lockForUpdate()
-                ->where('id', $participant->getId())
+                ->whereKey($participant->getId())
                 ->firstOrFail();
 
             if ($locked->status !== ParticipantStatus::Benched) {
@@ -467,7 +467,7 @@ class ParticipantLifecycle
         // transaction acquires its locks.
         $outcome = DB::transaction(function () use ($entity, $participant, $meta, $user, $inactiveStatuses) {
             $lockedEntity = $entity->newModelQuery()
-                ->where('id', $entity->id)
+                ->whereKey($entity)
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -479,7 +479,7 @@ class ParticipantLifecycle
             }
 
             $lockedParticipant = $meta->participantClass::lockForUpdate()
-                ->where('id', $participant->getId())
+                ->whereKey($participant->getId())
                 ->firstOrFail();
 
             // Re-validate inside the lock: a concurrent accept may have already
@@ -569,7 +569,7 @@ class ParticipantLifecycle
     {
         try {
             $owner = User::find((string) $entity->owner_id);
-            if ($owner && $owner->id !== $acceptingUser->id) {
+            if ($owner && $owner->isNot($acceptingUser)) {
                 app(NotificationService::class)->send(
                     $owner,
                     new ParticipantJoined($acceptingUser, $entity, strtolower($meta->type)),

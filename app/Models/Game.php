@@ -198,7 +198,7 @@ class Game extends Model implements HasMedia, TicketSubject
                 app(ShortLinkService::class)->expireLinksForEntity($game);
 
                 // Expire all active bulletins for this game
-                GameBulletin::where('game_id', $game->id)
+                GameBulletin::whereBelongsTo($game)
                     ->where(function ($q) {
                         $q->whereNull('expires_at')
                             ->orWhere('expires_at', '>', now());
@@ -538,7 +538,7 @@ class Game extends Model implements HasMedia, TicketSubject
                     $q->where('visibility', 'protected')
                         ->where(function ($q) use ($allowedOwnerIds, $viewer) {
                             $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $viewer->id));
+                                ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($viewer));
                         });
                 });
         });

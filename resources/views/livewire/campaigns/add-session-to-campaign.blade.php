@@ -3,7 +3,7 @@
         {{-- Page Header --}}
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('campaigns.show', $campaign->id) }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
+                <a href="{{ route('campaigns.show', $campaign) }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>
                 <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('campaigns.action_add_session_to_campaign') }}</h1>
@@ -156,7 +156,7 @@
                             {{ __('campaigns.action_create_session') }}
                         </span>
                     </button>
-                <a href="{{ route('campaigns.show', $campaign->id) }}" wire:navigate
+                <a href="{{ route('campaigns.show', $campaign) }}" wire:navigate
                    class="px-4 py-2.5 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
                     {{ __('common.action_cancel') }}
                 </a>

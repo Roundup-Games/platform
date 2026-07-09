@@ -1766,7 +1766,7 @@ class ViewTicket extends BaseViewTicket
                 $assignmentInfo = $this->findPlatformAdminForEscalation($user);
                 ['admin' => $platformAdmin] = $assignmentInfo;
 
-                if ($platformAdmin->id !== $user->id) {
+                if ($platformAdmin->isNot($user)) {
                     // Ticket::assign() is UUID-safe since escalated-laravel v1.4.0
                     // (TicketAssigned.$agentId is int|string) and fires the event,
                     // activity log, and broadcast that updateQuietly suppressed.
@@ -2333,7 +2333,7 @@ class ViewTicket extends BaseViewTicket
                 $assignmentInfo = $this->findPlatformAdminForEscalation($user);
                 ['admin' => $platformAdmin] = $assignmentInfo;
 
-                if ($platformAdmin->id !== $user->id) {
+                if ($platformAdmin->isNot($user)) {
                     // Deferred to afterCommit(): Ticket::assign() dispatches
                     // TicketAssigned, whose DispatchWebhook listener does a blocking
                     // Http::timeout(10) call. Running it inside the transaction

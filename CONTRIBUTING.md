@@ -81,6 +81,19 @@ General conventions:
 - **Never expose Eloquent models** as public Livewire properties — use `#[Locked]` with primitive types
 - **Translation keys** — use dotted key convention (`__('domain.key_name')`). See [lang/CONTRIBUTING_TRANSLATIONS.md](lang/CONTRIBUTING_TRANSLATIONS.md)
 
+### Eloquent Best Practices
+
+Prefer Laravel's model-aware APIs over manual ID plumbing — they are safer (correct key resolution, morph-map awareness) and read better. CI enforces the high-value subset via a grep-based check (see `scripts/check_eloquent_practices.sh`).
+
+- **Routing** — pass the model to `route()`, not its key: `route('users.show', $user)` not `$user->id`. *Exception:* routes whose parameter is an explicit `{slug}` resolved manually in `mount()` (Team, Event, GameSystem, Location, venues) must keep passing `$model->slug` — those models intentionally keep the default `id` route key for Filament compatibility.
+- **Creating related models** — create through the relationship: `$user->posts()->create($attrs)` not `Post::create(['user_id' => $user->id])`.
+- **BelongsToMany / pivot** — `attach()` / `sync()` / `syncWithoutDetaching()` / `updateExistingPivot()` accept models directly: `$user->roles()->attach($role)` not `$role->id`.
+- **Querying by relationship** — `whereBelongsTo($model)` (conventional FKs; pass a 2nd relation-name arg for non-conventional keys like `owner_id`, `reporter_id`) instead of `where('user_id', $model->id)`. For a model's own PK via a relation, use `whereKey($model)` instead of `where('id', $model->id)`. Bare `where('owner_id', ...)` is acceptable only where no model-aware API exists: negative comparisons (`where('owner_id', '!=', $user->id)` — `whereBelongsTo` is `=`-only) and where only a primitive id is in scope (e.g. `$userId` in anonymization jobs).
+- **Comparing models** — `is()` / `isNot()` instead of `->id === ->id`.
+- **Associating BelongsTo** — `$post->user()->associate($user)->save()` instead of setting the foreign key.
+- **Timestamp columns** — `touch('cancelled_at')` to stamp a single timestamp to now (not `update(['cancelled_at' => now()])`).
+- **Authorization** — `$this->authorize('ability', $model)` via a Policy, or `Gate::allowIf()` / `Gate::denyIf()` for inline boolean guards — not a manual `if (! $ok) abort(403)`.
+
 ## Testing
 
 ```bash

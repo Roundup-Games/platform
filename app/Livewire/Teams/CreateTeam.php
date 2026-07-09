@@ -3,7 +3,6 @@
 namespace App\Livewire\Teams;
 
 use App\Models\Team;
-use App\Models\TeamMember;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -82,8 +81,7 @@ class CreateTeam extends Component
         ]);
 
         // Creator becomes captain
-        TeamMember::create([
-            'team_id' => $team->id,
+        $team->members()->create([
             'user_id' => Auth::id(),
             'role' => 'captain',
             'status' => 'active',

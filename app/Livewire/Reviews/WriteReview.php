@@ -115,8 +115,8 @@ class WriteReview extends Component
         ]);
 
         $redirectRoute = $reviewable instanceof Game
-            ? route('games.show', $reviewable->id)
-            : route('campaigns.show', $reviewable->id);
+            ? route('games.show', $reviewable)
+            : route('campaigns.show', $reviewable);
 
         session()->flash('success', __('reviews.flash_review_submitted'));
 

@@ -205,7 +205,7 @@ class ShortLinkService
     public function getLinksForUser(User $user): Collection
     {
         /** @var Collection<(int|string), Collection<int, ShortLink>> $grouped */
-        $grouped = ShortLink::where('user_id', $user->id)
+        $grouped = ShortLink::whereBelongsTo($user)
             ->orderByDesc('created_at')
             ->get()
             ->groupBy(fn (ShortLink $link) => $link->linkable_type.':'.(string) $link->linkable_id);
@@ -241,7 +241,7 @@ class ShortLinkService
 
         $currentCount = ShortLink::where('linkable_type', get_class($linkable))
             ->where('linkable_id', (is_int($k = $linkable->getKey()) || is_string($k) ? (string) $k : ''))
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->count();
 
         return $currentCount < $maxLinks;
@@ -318,8 +318,8 @@ class ShortLinkService
     public function getEntityRoute(Model $linkable): string
     {
         return match (get_class($linkable)) {
-            Game::class => route('games.detail', $linkable->getKey()),
-            Campaign::class => route('campaigns.detail', $linkable->getKey()),
+            Game::class => route('games.detail', $linkable),
+            Campaign::class => route('campaigns.detail', $linkable),
             Event::class => route('events.detail', $linkable->slug),
             Team::class => route('teams.detail', $linkable->slug),
             default => throw new \InvalidArgumentException('Unsupported linkable type: '.get_class($linkable)),

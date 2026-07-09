@@ -147,7 +147,7 @@
         @if($campaigns->count())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($campaigns as $campaign)
-                    <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
+                    <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
                         <div class="h-1.5 bg-outline-variant/30"></div>
 
                         <div class="p-5">

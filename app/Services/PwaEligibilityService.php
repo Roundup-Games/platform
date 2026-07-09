@@ -103,9 +103,9 @@ class PwaEligibilityService
     {
         // 2a. Upcoming game within 7 days where user is owner or approved participant
         $hasUpcomingGame = Game::where(function ($q) use ($user) {
-            $q->where('owner_id', $user->id)
+            $q->whereBelongsTo($user, 'owner')
                 ->orWhereHas('participants', fn ($pq) => $pq
-                    ->where('user_id', $user->id)
+                    ->whereBelongsTo($user)
                     ->where('status', 'approved')
                 );
         })
@@ -118,13 +118,13 @@ class PwaEligibilityService
         }
 
         // 2b. First game creation (as owner) within last 5 minutes
-        $recentlyCreatedGame = Game::where('owner_id', $user->id)
+        $recentlyCreatedGame = Game::whereBelongsTo($user, 'owner')
             ->where('created_at', '>=', now()->subMinutes(5))
             ->exists();
 
         if ($recentlyCreatedGame) {
             // Only trigger for the user's first-ever game creation
-            $totalOwnedGames = Game::where('owner_id', $user->id)->count();
+            $totalOwnedGames = Game::whereBelongsTo($user, 'owner')->count();
 
             if ($totalOwnedGames <= 1) {
                 return PwaEligibilityResult::eligibleViaTrypass('trypass_first_game_created');
@@ -132,7 +132,7 @@ class PwaEligibilityService
         }
 
         // 2c. Recently approved as participant (within last 5 minutes)
-        $recentlyJoinedGame = GameParticipant::where('user_id', $user->id)
+        $recentlyJoinedGame = GameParticipant::whereBelongsTo($user)
             ->where('status', 'approved')
             ->where('created_at', '>=', now()->subMinutes(5))
             ->exists();
@@ -143,13 +143,13 @@ class PwaEligibilityService
 
         // 2d. Recently received first game/campaign invitation (pending status, within 5 minutes)
         //     Only triggers for the user's first-ever invitation to preserve the "special moment" intent.
-        $recentlyInvited = GameParticipant::where('user_id', $user->id)
+        $recentlyInvited = GameParticipant::whereBelongsTo($user)
             ->where('status', 'pending')
             ->where('created_at', '>=', now()->subMinutes(5))
             ->exists();
 
         if ($recentlyInvited) {
-            $totalInvitations = GameParticipant::where('user_id', $user->id)
+            $totalInvitations = GameParticipant::whereBelongsTo($user)
                 ->where('status', 'pending')
                 ->count();
 
@@ -159,12 +159,12 @@ class PwaEligibilityService
         }
 
         // 2e. First campaign creation within last 5 minutes
-        $recentlyCreatedCampaign = Campaign::where('owner_id', $user->id)
+        $recentlyCreatedCampaign = Campaign::whereBelongsTo($user, 'owner')
             ->where('created_at', '>=', now()->subMinutes(5))
             ->exists();
 
         if ($recentlyCreatedCampaign) {
-            $totalOwnedCampaigns = Campaign::where('owner_id', $user->id)->count();
+            $totalOwnedCampaigns = Campaign::whereBelongsTo($user, 'owner')->count();
 
             if ($totalOwnedCampaigns <= 1) {
                 return PwaEligibilityResult::eligibleViaTrypass('trypass_first_campaign_created');
@@ -179,7 +179,7 @@ class PwaEligibilityService
         $score = 0;
 
         // Signal 1: Visit days ≥ 2 distinct days
-        $visitDays = UserAppVisit::where('user_id', $user->id)
+        $visitDays = UserAppVisit::whereBelongsTo($user)
             ->distinct('visit_date')
             ->count('visit_date');
 
@@ -188,7 +188,7 @@ class PwaEligibilityService
         }
 
         // Signal 2: Has approved game participation
-        $hasGameParticipation = GameParticipant::where('user_id', $user->id)
+        $hasGameParticipation = GameParticipant::whereBelongsTo($user)
             ->where('status', 'approved')
             ->exists();
 
@@ -197,7 +197,7 @@ class PwaEligibilityService
         }
 
         // Signal 3: Has at least one follow relationship
-        $hasSocialInvestment = UserRelationship::where('user_id', $user->id)
+        $hasSocialInvestment = UserRelationship::whereBelongsTo($user)
             ->where('type', RelationshipType::Follow)
             ->exists();
 

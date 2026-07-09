@@ -118,7 +118,7 @@
                         @foreach($upcomingSessions as $session)
                             <div class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
                                 <div class="min-w-0">
-                                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $session->id]) }}"
+                                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $session]) }}"
                                        wire:navigate
                                        class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
                                         {{ $session->name }}
@@ -157,7 +157,7 @@
                         @foreach($pastSessions as $session)
                             <div class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
                                 <div class="min-w-0">
-                                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $session->id]) }}"
+                                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $session]) }}"
                                        wire:navigate
                                        class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
                                         {{ $session->name }}
@@ -195,7 +195,7 @@
                     <div class="divide-y divide-outline-variant/30">
                         @foreach($activeCampaigns as $campaign)
                             <div class="py-3 first:pt-0 last:pb-0">
-                                <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}"
+                                <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign]) }}"
                                    wire:navigate
                                    class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
                                     {{ $campaign->name }}
@@ -216,7 +216,7 @@
                     <div class="divide-y divide-outline-variant/30">
                         @foreach($completedCampaigns as $campaign)
                             <div class="py-3 first:pt-0 last:pb-0">
-                                <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}"
+                                <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign]) }}"
                                    wire:navigate
                                    class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
                                     {{ $campaign->name }}

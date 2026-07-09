@@ -95,7 +95,7 @@ class UserResource extends Resource
                                     ->suffixAction(
                                         Action::make('view_profile')
                                             ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
-                                            ->url(fn (?User $record): ?string => $record ? route('profile.public', $record->slug) : null)
+                                            ->url(fn (?User $record): ?string => $record ? route('profile.public', $record) : null)
                                             ->openUrlInNewTab()
                                     )
                                     ->helperText('Used in profile URL /u/{slug}. Letters, numbers, dots, hyphens, underscores.'),

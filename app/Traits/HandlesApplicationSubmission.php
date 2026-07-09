@@ -67,7 +67,7 @@ trait HandlesApplicationSubmission
         $status = $entity->status?->value;
         if (in_array($status, ['canceled', 'cancelled', 'completed'])) {
             session()->flash('error', __('common.error_entity_no_longer_available'));
-            $this->redirect(route($config['show_route'], $entity->id), navigate: true);
+            $this->redirect(route($config['show_route'], $entity), navigate: true);
 
             return;
         }
@@ -182,7 +182,7 @@ trait HandlesApplicationSubmission
                 'error' => $e->getMessage(),
             ]);
             session()->flash('info', __($config['translations']['race_applied']));
-            $this->redirect(route($config['show_route'], $entity->id), navigate: true);
+            $this->redirect(route($config['show_route'], $entity), navigate: true);
 
             return;
         } catch (\RuntimeException $e) {
@@ -233,6 +233,6 @@ trait HandlesApplicationSubmission
             session()->flash('success', __($config['translations']['application_submitted']));
         }
 
-        $this->redirect(route($config['show_route'], $entity->id), navigate: true);
+        $this->redirect(route($config['show_route'], $entity), navigate: true);
     }
 }

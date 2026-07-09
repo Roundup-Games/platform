@@ -131,7 +131,7 @@
                             @foreach($campaign->sessions as $session)
                                 <div class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                                     <div>
-                                        <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $session->id]) }}" class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
+                                        <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $session]) }}" class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
                                             {{ $session->name }}
                                         </a>
                                         <p class="text-xs text-on-surface-variant">{{ format_date($session->date_time, 'datetime') }}</p>

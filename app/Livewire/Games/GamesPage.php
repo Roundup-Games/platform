@@ -268,7 +268,7 @@ class GamesPage extends Component
         }
 
         $participant = $game->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->whereIn('status', [
                 ParticipantStatus::Approved->value,
                 ParticipantStatus::Waitlisted->value,

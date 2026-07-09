@@ -400,7 +400,7 @@ class CreateCampaign extends Component
 
         session()->flash('success', __('campaigns.flash_campaign_name_created_successfully', ['name' => $campaign->name]));
 
-        $this->redirect(route('campaigns.show', $campaign->id), navigate: true);
+        $this->redirect(route('campaigns.show', $campaign), navigate: true);
     }
 
     public function mount(): void

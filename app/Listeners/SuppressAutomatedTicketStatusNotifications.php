@@ -50,7 +50,7 @@ class SuppressAutomatedTicketStatusNotifications
         }
 
         $causerType = TicketActivity::query()
-            ->where('ticket_id', $ticket->id)
+            ->whereBelongsTo($ticket)
             ->where('type', ActivityType::StatusChanged->value)
             ->latest('id')
             ->value('causer_type');

@@ -80,7 +80,7 @@ class WaitlistService
             throw new \LogicException('Cannot add to waitlist: entity is not full.');
         }
 
-        $existing = $entity->participants()->where('user_id', $user->id)->first();
+        $existing = $entity->participants()->whereBelongsTo($user)->first();
         if ($existing !== null) {
             throw new \LogicException('User is already a participant of this entity.');
         }

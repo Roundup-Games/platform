@@ -102,7 +102,7 @@ class EntityCancelled extends BaseNotification
                 $type => $this->entity->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]),
+            url: route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
             tag: "{$type}-cancelled-{$this->entity->id}",
         );
     }

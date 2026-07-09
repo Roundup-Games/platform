@@ -141,7 +141,7 @@ class ActionCenterService
             'next_game' => $nextGame ? [
                 'name' => $nextGame->name,
                 'date_time' => $nextGame->date_time?->toIso8601String() ?? '',
-                'url' => route('games.show', $nextGame->id),
+                'url' => route('games.show', $nextGame),
             ] : null,
         ];
     }
@@ -156,7 +156,7 @@ class ActionCenterService
     private function getWaitlistConfirmations(User $user): array
     {
         $confirmations = GameParticipant::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Waitlisted)
             ->whereNotNull('confirmation_expires_at')
             ->where('confirmation_expires_at', '<=', now()->addHours(2))
@@ -169,7 +169,7 @@ class ActionCenterService
             priority: 'critical',
             title: __('profile.dashboard_action_waitlist_title', ['game' => $p->game->name ?? '']),
             description: __('profile.dashboard_action_waitlist_desc'),
-            actionUrl: $p->game ? route('games.show', $p->game->id) : '#',
+            actionUrl: $p->game ? route('games.show', $p->game) : '#',
             actionLabel: __('profile.dashboard_action_waitlist_action'),
             icon: 'schedule',
             createdAt: $p->waitlisted_at ?? $p->created_at ?? now(),
@@ -192,7 +192,7 @@ class ActionCenterService
     private function getBelowMinPlayerWarnings(User $user): array
     {
         $games = Game::query()
-            ->where('owner_id', $user->id)
+            ->whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Scheduled)
             ->where('date_time', '>', now())
             ->where('date_time', '<=', now()->addHours(48))
@@ -211,7 +211,7 @@ class ActionCenterService
                 'current' => $g->approved_count,
                 'min' => $g->min_players ?? 2,
             ]),
-            actionUrl: route('games.manage-participants', $g->id),
+            actionUrl: route('games.manage-participants', $g),
             actionLabel: __('profile.dashboard_action_min_players_action'),
             icon: 'warning',
             createdAt: $g->created_at ?? now(),
@@ -234,7 +234,7 @@ class ActionCenterService
     private function getPendingApplications(User $user): array
     {
         $games = Game::query()
-            ->where('owner_id', $user->id)
+            ->whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Scheduled)
             ->whereHas('participants', fn ($q) => $q
                 ->where('status', ParticipantStatus::Pending))
@@ -251,7 +251,7 @@ class ActionCenterService
             description: trans_choice('profile.dashboard_action_applications_desc', $g->pending_count ?? 0, [
                 'count' => $g->pending_count ?? 0,
             ]),
-            actionUrl: route('games.manage-participants', $g->id),
+            actionUrl: route('games.manage-participants', $g),
             actionLabel: __('profile.dashboard_action_applications_action'),
             icon: 'group_add',
             createdAt: $g->created_at ?? now(),
@@ -274,7 +274,7 @@ class ActionCenterService
     private function getPendingInvitations(User $user): array
     {
         $invitations = GameParticipant::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Pending)
             ->where(function ($q) {
                 $q->where('role', 'invited')
@@ -288,7 +288,7 @@ class ActionCenterService
             priority: 'high',
             title: __('profile.dashboard_action_invitation_title', ['game' => $p->game->name ?? '']),
             description: __('profile.dashboard_action_invitation_desc'),
-            actionUrl: $p->game ? route('games.show', $p->game->id) : '#',
+            actionUrl: $p->game ? route('games.show', $p->game) : '#',
             actionLabel: __('profile.dashboard_action_invitation_action'),
             icon: 'mail',
             createdAt: $p->created_at ?? now(),
@@ -324,10 +324,10 @@ class ActionCenterService
                 ->whereNull('attendance_window_closes_at')
                 ->orWhere('attendance_window_closes_at', '>', now()))
             ->whereHas('participants', fn ($q) => $q
-                ->where('user_id', $user->id)
+                ->whereBelongsTo($user)
                 ->where('status', ParticipantStatus::Approved))
             ->whereDoesntHave('attendanceReports', fn ($q) => $q
-                ->where('reporter_id', $user->id))
+                ->whereBelongsTo($user, 'reporter'))
             ->get();
 
         return $games->map(fn (Game $g) => new ActionItem(
@@ -335,7 +335,7 @@ class ActionCenterService
             priority: 'medium',
             title: __('profile.dashboard_action_attendance_title', ['game' => $g->name]),
             description: __('profile.dashboard_action_attendance_desc'),
-            actionUrl: route('games.show', $g->id),
+            actionUrl: route('games.show', $g),
             actionLabel: __('profile.dashboard_action_attendance_action'),
             icon: 'event_note',
             createdAt: $g->updated_at ?? now(),
@@ -356,7 +356,7 @@ class ActionCenterService
     private function getMissingRecaps(User $user): array
     {
         $games = Game::query()
-            ->where('owner_id', $user->id)
+            ->whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed)
             ->where('updated_at', '>=', now()->subDays(7))
             ->where(fn ($q) => $q->whereNull('recap')->orWhere('recap', ''))
@@ -367,7 +367,7 @@ class ActionCenterService
             priority: 'medium',
             title: __('profile.dashboard_action_recap_title', ['game' => $g->name]),
             description: __('profile.dashboard_action_recap_desc'),
-            actionUrl: route('games.show', $g->id),
+            actionUrl: route('games.show', $g),
             actionLabel: __('profile.dashboard_action_recap_action'),
             icon: 'edit_note',
             createdAt: $g->updated_at ?? now(),
@@ -393,14 +393,14 @@ class ActionCenterService
         $games = Game::query()
             ->where('status', GameStatus::Completed)
             ->whereHas('participants', fn ($q) => $q
-                ->where('user_id', $user->id)
+                ->whereBelongsTo($user)
                 ->where('status', ParticipantStatus::Approved))
             ->where(fn ($q) => $q
                 ->whereNotNull('safety_rules')
                 ->whereJsonContains('safety_rules', 'debriefing')
             )
             ->whereDoesntHave('sessionDebriefings', fn ($q) => $q
-                ->where('user_id', $user->id)
+                ->whereBelongsTo($user)
                 ->whereNotNull('submitted_at'))
             ->get();
 
@@ -409,7 +409,7 @@ class ActionCenterService
             priority: 'medium',
             title: __('profile.dashboard_action_debriefing_title', ['game' => $g->name]),
             description: __('profile.dashboard_action_debriefing_desc'),
-            actionUrl: route('games.show', $g->id),
+            actionUrl: route('games.show', $g),
             actionLabel: __('profile.dashboard_action_debriefing_action'),
             icon: 'auto_stories',
             createdAt: $g->updated_at ?? now(),
@@ -432,14 +432,14 @@ class ActionCenterService
      */
     private function getNewReviews(User $user): array
     {
-        $gmProfile = GMProfile::where('user_id', $user->id)->first();
+        $gmProfile = GMProfile::whereBelongsTo($user)->first();
 
         if (! $gmProfile) {
             return [];
         }
 
         $reviews = Review::query()
-            ->where('gm_profile_id', $gmProfile->id)
+            ->whereBelongsTo($gmProfile)
             ->where('created_at', '>=', now()->subDays(7))
             ->with('reviewer')
             ->orderByDesc('created_at')
@@ -475,7 +475,7 @@ class ActionCenterService
     private function getNewFollowers(User $user): array
     {
         $followers = UserRelationship::query()
-            ->where('related_user_id', $user->id)
+            ->whereBelongsTo($user, 'related')
             ->where('type', RelationshipType::Follow)
             ->where('created_at', '>=', now()->subDays(7))
             ->with('user')
@@ -536,7 +536,7 @@ class ActionCenterService
     private function getCampaignSessionAlerts(User $user): array
     {
         $campaignIds = CampaignParticipant::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved)
             ->pluck('campaign_id');
 
@@ -556,7 +556,7 @@ class ActionCenterService
             priority: 'low',
             title: __('profile.dashboard_action_campaign_session_title', ['campaign' => $c->name]),
             description: __('profile.dashboard_action_campaign_session_desc'),
-            actionUrl: route('campaigns.show', $c->id),
+            actionUrl: route('campaigns.show', $c),
             actionLabel: __('profile.dashboard_action_campaign_session_action'),
             icon: 'campaign',
             createdAt: $c->updated_at ?? $c->created_at ?? now(),
@@ -581,7 +581,7 @@ class ActionCenterService
         $bulletins = GameBulletin::query()
             ->whereHas('game', function ($q) use ($user) {
                 $q->whereHas('participants', fn ($pq) => $pq
-                    ->where('user_id', $user->id)
+                    ->whereBelongsTo($user)
                     ->where('status', ParticipantStatus::Approved->value));
             })
             ->where('user_id', '!=', $user->id)
@@ -596,7 +596,7 @@ class ActionCenterService
             priority: 'medium',
             title: __('profile.dashboard_action_bulletin_title', ['game' => $b->game->name ?? '']),
             description: Str::limit($b->content, 100),
-            actionUrl: $b->game ? route('games.show', $b->game->id) : '#',
+            actionUrl: $b->game ? route('games.show', $b->game) : '#',
             actionLabel: __('profile.dashboard_action_bulletin_action'),
             icon: 'campaign',
             createdAt: $b->created_at ?? now(),
@@ -625,7 +625,7 @@ class ActionCenterService
     private function getRecurrencePlanningNudges(User $user): array
     {
         $campaigns = Campaign::query()
-            ->where('owner_id', $user->id)
+            ->whereBelongsTo($user, 'owner')
             ->where('status', CampaignStatus::Active)
             ->whereNotNull('recurrence')
             ->get();
@@ -639,7 +639,7 @@ class ActionCenterService
             priority: 'low',
             title: __('profile.dashboard_action_recurrence_title', ['campaign' => $c->name]),
             description: __('profile.dashboard_action_recurrence_desc'),
-            actionUrl: route('campaigns.add-session', [$c->id, 'prefill' => 1]),
+            actionUrl: route('campaigns.add-session', [$c, 'prefill' => 1]),
             actionLabel: __('profile.dashboard_action_recurrence_action'),
             icon: 'repeat',
             createdAt: now(),
@@ -661,9 +661,9 @@ class ActionCenterService
             ->where('status', GameStatus::Scheduled)
             ->where('date_time', '>', now())
             ->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                $q->whereBelongsTo($user, 'owner')
                     ->orWhereHas('participants', fn ($pq) => $pq
-                        ->where('user_id', $user->id)
+                        ->whereBelongsTo($user)
                         ->where('status', ParticipantStatus::Approved));
             })
             ->orderBy('date_time')

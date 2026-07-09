@@ -72,7 +72,7 @@ class AttendanceNudgeJob implements ShouldQueue
                     $deadline = $game->attendance_window_closes_at?->format('M j, Y \a\t g:i A') ?? 'unknown deadline';
 
                     // Get IDs of users who already filed a report for this game
-                    $reporterIds = AttendanceReport::where('game_id', $game->id)
+                    $reporterIds = AttendanceReport::whereBelongsTo($game)
                         ->pluck('reporter_id')
                         ->flip();
 

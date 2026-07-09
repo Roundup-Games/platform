@@ -38,7 +38,7 @@
             @if($upcomingSessions->count())
                 <div class="space-y-3">
                     @foreach($upcomingSessions as $session)
-                        <a href="{{ route('games.show', $session->id) }}" wire:navigate
+                        <a href="{{ route('games.show', $session) }}" wire:navigate
                            class="block p-3 rounded-lg bg-surface-container-high/50 hover:bg-surface-container-high transition-colors group">
                             <div class="flex items-center justify-between">
                                 <div class="min-w-0">

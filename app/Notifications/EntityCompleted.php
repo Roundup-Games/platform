@@ -36,7 +36,7 @@ class EntityCompleted extends BaseNotification
             ->line(__("notifications.body_{$type}_completed", [
                 $type => $this->entity->name,
             ]))
-            ->action(__("notifications.action_{$type}_completed"), route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]))
+            ->action(__("notifications.action_{$type}_completed"), route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]))
             ->line($this->unsubscribeLine($notifiable, "{$type}_completed"));
     }
 
@@ -55,7 +55,7 @@ class EntityCompleted extends BaseNotification
             'entity_type' => $type,
             'entity_id' => $this->entity->id,
             'entity_name' => $this->entity->name,
-            'action_url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]),
+            'action_url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
         ];
     }
 

@@ -71,7 +71,7 @@ class RegisterForEvent extends Component
         $user = authenticatedUser();
 
         return Team::whereHas('members', function ($q) use ($user) {
-            $q->where('user_id', $user->id)
+            $q->whereBelongsTo($user)
                 ->where('status', 'active');
         })->get();
     }

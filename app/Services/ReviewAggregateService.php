@@ -20,7 +20,7 @@ class ReviewAggregateService
     public function updateAggregates(GMProfile $gmProfile): void
     {
         DB::transaction(function () use ($gmProfile) {
-            $aggregates = Review::where('gm_profile_id', $gmProfile->id)
+            $aggregates = Review::whereBelongsTo($gmProfile)
                 ->published()
                 ->selectRaw('COALESCE(AVG(rating), 0) as avg_rating, COUNT(*) as cnt')
                 ->first();
@@ -62,8 +62,7 @@ class ReviewAggregateService
                 return;
             }
 
-            $aggregates = Review::where('reviewable_type', Location::class)
-                ->where('reviewable_id', $locked->id)
+            $aggregates = Review::whereMorphedTo('reviewable', $locked)
                 ->published()
                 ->selectRaw('COALESCE(AVG(rating), 0) as avg_rating, COUNT(*) as cnt')
                 ->first();
@@ -101,7 +100,7 @@ class ReviewAggregateService
      */
     public function topProficiencies(GMProfile $gmProfile, int $limit = 3): Collection
     {
-        $reviews = Review::where('gm_profile_id', $gmProfile->id)
+        $reviews = Review::whereBelongsTo($gmProfile)
             ->published()
             ->whereNotNull('proficiency_tags')
             ->get(['proficiency_tags']);
@@ -127,7 +126,7 @@ class ReviewAggregateService
      */
     public function recentReviews(GMProfile $gmProfile, int $perPage = 5, int $page = 1): LengthAwarePaginator
     {
-        return Review::where('gm_profile_id', $gmProfile->id)
+        return Review::whereBelongsTo($gmProfile)
             ->published()
             ->with('reviewer')
             ->latest()

@@ -111,9 +111,9 @@ class ReviewEligibilityService
         $eligible = collect();
 
         // Eligible game sessions (exclude games the user owns)
-        $ownedGameIds = Game::where('owner_id', $user->id)->pluck('id');
+        $ownedGameIds = Game::whereBelongsTo($user, 'owner')->pluck('id');
 
-        $approvedGameIds = GameParticipant::where('user_id', $user->id)
+        $approvedGameIds = GameParticipant::whereBelongsTo($user)
             ->where('status', 'approved')
             ->whereNotIn('game_id', $ownedGameIds)
             ->pluck('game_id');
@@ -138,9 +138,9 @@ class ReviewEligibilityService
         }
 
         // Eligible campaigns (exclude campaigns the user owns)
-        $ownedCampaignIds = Campaign::where('owner_id', $user->id)->pluck('id');
+        $ownedCampaignIds = Campaign::whereBelongsTo($user, 'owner')->pluck('id');
 
-        $approvedCampaignIds = CampaignParticipant::where('user_id', $user->id)
+        $approvedCampaignIds = CampaignParticipant::whereBelongsTo($user)
             ->where('status', 'approved')
             ->whereNotIn('campaign_id', $ownedCampaignIds)
             ->pluck('campaign_id');
@@ -181,7 +181,7 @@ class ReviewEligibilityService
         }
 
         return $game->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', 'approved')
             ->exists();
     }
@@ -194,7 +194,7 @@ class ReviewEligibilityService
         }
 
         return $campaign->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', 'approved')
             ->exists();
     }
@@ -224,10 +224,10 @@ class ReviewEligibilityService
     private function isApprovedCompletedGameParticipantAtVenue(User $user, Location $location): bool
     {
         return GameParticipant::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', 'approved')
             ->whereHas('game', function ($game) use ($location) {
-                $game->where('location_id', $location->id)
+                $game->whereBelongsTo($location, 'linkedLocation')
                     ->where('date_time', '<', now());
             })
             ->exists();
@@ -254,10 +254,10 @@ class ReviewEligibilityService
     private function isApprovedCompletedCampaignParticipantAtVenue(User $user, Location $location): bool
     {
         return CampaignParticipant::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', 'approved')
             ->whereHas('campaign', function ($campaign) use ($location) {
-                $campaign->where('location_id', $location->id)
+                $campaign->whereBelongsTo($location, 'linkedLocation')
                     ->whereHas('sessions', function ($session) {
                         $session->where('date_time', '<', now());
                     });

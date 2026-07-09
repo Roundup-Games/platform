@@ -155,9 +155,7 @@ class BillingSupport extends Component
             default => TicketPriority::Medium->value,
         };
 
-        $ticket = Ticket::create([
-            'requester_type' => User::class,
-            'requester_id' => $user->id,
+        $ticket = $user->escalatedTickets()->create([
             'subject' => $this->subject,
             'description' => $this->buildTicketDescription($user, $subscription),
             'status' => TicketStatus::Open->value,
@@ -171,7 +169,7 @@ class BillingSupport extends Component
         // Apply billing-support tag
         $tag = Tag::where('name', 'billing-support')->first();
         if ($tag) {
-            $ticket->tags()->syncWithoutDetaching([$tag->id]);
+            $ticket->tags()->syncWithoutDetaching($tag);
         }
 
         Log::info('support.billing_ticket_created', [

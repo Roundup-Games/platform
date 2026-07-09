@@ -47,11 +47,11 @@ class DashboardEstablishedService
     public function computeContributions(User $user): array
     {
         // 1. Games hosted (owner, completed) — aggregate queries avoid loading full collection
-        $hostedCount = Game::where('owner_id', $user->id)
+        $hostedCount = Game::whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed->value)
             ->count();
 
-        $totalHours = (float) Game::where('owner_id', $user->id)
+        $totalHours = (float) Game::whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed->value)
             ->sum('expected_duration');
 
@@ -68,7 +68,7 @@ class DashboardEstablishedService
         }
 
         // 2. Games played (participated, not owned, completed)
-        $playedGameIds = GameParticipant::where('user_id', $user->id)
+        $playedGameIds = GameParticipant::whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->pluck('game_id');
 
@@ -96,7 +96,7 @@ class DashboardEstablishedService
 
         // 3. Longest campaign (active, owned by user, most completed games)
         /** @var Campaign|null $longestCampaign */
-        $longestCampaign = Campaign::where('owner_id', $user->id)
+        $longestCampaign = Campaign::whereBelongsTo($user, 'owner')
             ->where('status', CampaignStatus::Active->value)
             ->withCount(['sessions as completed_games_count' => function ($query) {
                 $query->where('status', GameStatus::Completed->value);
@@ -113,7 +113,7 @@ class DashboardEstablishedService
         }
 
         // 4. Recaps written
-        $recapsCount = Game::where('owner_id', $user->id)
+        $recapsCount = Game::whereBelongsTo($user, 'owner')
             ->whereNotNull('recap')
             ->count();
 
@@ -178,8 +178,8 @@ class DashboardEstablishedService
         $bounds = Geohash::prefixBounds($geohash4);
 
         // Games the user already owns or participates in
-        $ownedGameIds = Game::where('owner_id', $user->id)->pluck('id');
-        $participatingGameIds = GameParticipant::where('user_id', $user->id)
+        $ownedGameIds = Game::whereBelongsTo($user, 'owner')->pluck('id');
+        $participatingGameIds = GameParticipant::whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->pluck('game_id');
         $excludeGameIds = $ownedGameIds->merge($participatingGameIds)->unique()->values()->toArray();
@@ -228,7 +228,7 @@ class DashboardEstablishedService
                         $q->where('games.visibility', 'protected')
                             ->where(function ($q) use ($user, $allowedOwnerIds) {
                                 $q->whereIn('games.owner_id', $allowedOwnerIds)
-                                    ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
+                                    ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($user));
                             });
                     });
             })
@@ -300,13 +300,13 @@ class DashboardEstablishedService
 
         // ── Campaigns query ──────────────────────────────
         // Campaigns the user already participates in
-        $participatingCampaignIds = CampaignParticipant::where('user_id', $user->id)
+        $participatingCampaignIds = CampaignParticipant::whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->pluck('campaign_id')
             ->map(fn (mixed $id): string => to_string_id($id))
             ->all();
 
-        $ownedCampaignIds = Campaign::where('owner_id', $user->id)
+        $ownedCampaignIds = Campaign::whereBelongsTo($user, 'owner')
             ->pluck('id')
             ->map(fn (mixed $id): string => to_string_id($id))
             ->all();
@@ -323,7 +323,7 @@ class DashboardEstablishedService
                         $q->where('visibility', 'protected')
                             ->where(function ($q) use ($user, $allowedOwnerIds) {
                                 $q->whereIn('owner_id', $allowedOwnerIds)
-                                    ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
+                                    ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($user));
                             });
                     });
             })
@@ -377,10 +377,10 @@ class DashboardEstablishedService
         $endOfWeek = now()->endOfWeek();
 
         // Collect game IDs where user is owner or approved participant
-        $ownedGameIds = Game::where('owner_id', $user->id)
+        $ownedGameIds = Game::whereBelongsTo($user, 'owner')
             ->pluck('id');
 
-        $participatingGameIds = GameParticipant::where('user_id', $user->id)
+        $participatingGameIds = GameParticipant::whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->pluck('game_id');
 
@@ -537,7 +537,7 @@ class DashboardEstablishedService
     public function computeRecaps(User $user): array
     {
         $games = Game::whereHas('participants', fn ($q) => $q
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
         )
             ->where('owner_id', '!=', $user->id)
@@ -586,7 +586,7 @@ class DashboardEstablishedService
     public function computeHostAgain(User $user): array
     {
         /** @var Game|null $lastGame */
-        $lastGame = Game::where('owner_id', $user->id)
+        $lastGame = Game::whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed->value)
             ->whereNull('campaign_id')
             ->with(['gameSystems'])

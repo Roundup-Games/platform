@@ -14,7 +14,7 @@
         </div>
     @elseif($canApply)
         <div class="lg:hidden sticky bottom-0 z-30 bg-surface/95 backdrop-blur-md border-t border-outline-variant px-4 py-3">
-            <a href="{{ route('games.apply', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate
+            <a href="{{ route('games.apply', ['locale' => app()->getLocale(), 'id' => $game]) }}" wire:navigate
                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">
                     @if($game->visibility->value === 'public') login @else send @endif

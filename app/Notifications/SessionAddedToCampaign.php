@@ -27,7 +27,7 @@ class SessionAddedToCampaign extends BaseNotification
     public function toMail(User $notifiable): MailMessage
     {
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $actionUrl = route('games.show', ['locale' => $locale, 'id' => $this->session->id]);
+        $actionUrl = route('games.show', ['locale' => $locale, 'id' => $this->session]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_session_added_to_campaign', [
@@ -56,7 +56,7 @@ class SessionAddedToCampaign extends BaseNotification
             'session_name' => $this->session->name,
             'campaign_id' => $this->campaign->id,
             'campaign_name' => $this->campaign->name,
-            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->session->id]),
+            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->session]),
         ];
     }
 

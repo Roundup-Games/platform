@@ -4,7 +4,6 @@ namespace App\Livewire\GM\SessionZero;
 
 use App\Enums\SafetyTool;
 use App\Models\Game;
-use App\Models\SessionZeroSurvey;
 use App\Services\GmRoleService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
@@ -138,8 +137,7 @@ class CreateSessionZero extends Component
             'player_expectations' => $validated['player_expectations'],
         ];
 
-        $survey = SessionZeroSurvey::create([
-            'gm_profile_id' => $gmProfile->id,
+        $survey = $gmProfile->sessionZeroSurveys()->create([
             'game_id' => $gameId,
             'title' => $validated['title'],
             'content' => $content,

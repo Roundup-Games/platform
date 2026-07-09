@@ -349,15 +349,15 @@ class LocationDisclosureService
     {
         if ($entity instanceof Game) {
             return GameParticipant::query()
-                ->where('game_id', $entity->id)
-                ->where('user_id', $viewer->id)
+                ->whereBelongsTo($entity)
+                ->whereBelongsTo($viewer)
                 ->where('status', ParticipantStatus::Approved)
                 ->exists();
         }
 
         return CampaignParticipant::query()
-            ->where('campaign_id', $entity->id)
-            ->where('user_id', $viewer->id)
+            ->whereBelongsTo($entity)
+            ->whereBelongsTo($viewer)
             ->where('status', ParticipantStatus::Approved)
             ->exists();
     }

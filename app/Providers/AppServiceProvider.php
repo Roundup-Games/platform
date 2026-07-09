@@ -323,6 +323,14 @@ class AppServiceProvider extends ServiceProvider
             });
         }
 
+        // NOTE: User (ticket requester) and Location (review reviewable) are
+        // INTENTIONALLY absent from this map. They are written and queried via
+        // model-aware APIs (User::escalatedTickets() morphMany, whereMorphedTo)
+        // which resolve to the fully-qualified class name. Aliasing them here
+        // (e.g. 'user' => User::class) would store the short alias on new rows
+        // while all existing rows keep the FQCN — silently splitting the data
+        // so every ticket/review query misses pre-existing records.
+        // The CI guardrail (scripts/check_eloquent_practices.sh) asserts this.
         Relation::morphMap([
             'event' => Event::class,
             'event_announcement' => EventAnnouncement::class,

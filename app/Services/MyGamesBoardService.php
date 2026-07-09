@@ -121,7 +121,7 @@ class MyGamesBoardService
      */
     private function ownedGames(User $user): Collection
     {
-        return Game::where('owner_id', $user->id)
+        return Game::whereBelongsTo($user, 'owner')
             ->with(['gameSystems', 'participants', 'campaign'])
             ->orderBy('date_time', 'desc')
             ->get();
@@ -135,7 +135,7 @@ class MyGamesBoardService
     private function participatingGames(User $user): Collection
     {
         return Game::whereHas('participants', fn ($q) => $q
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('role', ParticipantRole::Player->value)
             ->where('status', ParticipantStatus::Approved->value),
         )
@@ -152,7 +152,7 @@ class MyGamesBoardService
      */
     private function pendingInvitations(User $user): Collection
     {
-        return GameParticipant::where('user_id', $user->id)
+        return GameParticipant::whereBelongsTo($user)
             ->where('role', ParticipantRole::Invited->value)
             ->where('status', ParticipantStatus::Pending->value)
             ->with(['game.gameSystems', 'game.owner'])

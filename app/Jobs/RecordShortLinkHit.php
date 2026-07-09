@@ -143,8 +143,7 @@ class RecordShortLinkHit implements ShouldQueue
 
         // ── Record hit + update counters in a transaction ────────────
         DB::transaction(function () use ($link, $refererDomain): void {
-            ShortLinkHit::create([
-                'short_link_id' => $link->id,
+            $link->hits()->create([
                 'ip_address' => $this->hashedIpAddress,
                 'referer' => $this->referer,
                 'referer_domain' => $refererDomain,

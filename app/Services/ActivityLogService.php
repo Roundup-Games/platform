@@ -64,8 +64,7 @@ class ActivityLogService
         array $properties = [],
     ): ?ActivityLog {
         try {
-            $entry = ActivityLog::create([
-                'user_id' => $user->id,
+            $entry = $user->activityLogs()->create([
                 'subject_type' => $subject ? get_class($subject) : null,
                 'subject_id' => $subject?->getKey(),
                 'event_type' => $type,
@@ -98,7 +97,7 @@ class ActivityLogService
     public function getRecentForUser(User $user, int $limit = 20): Collection
     {
         return ActivityLog::with('subject')
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get();

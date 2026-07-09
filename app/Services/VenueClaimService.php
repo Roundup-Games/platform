@@ -69,9 +69,7 @@ class VenueClaimService
 
         $metadata = $this->buildMetadata($claimant, $location, $data);
 
-        $ticket = Ticket::create([
-            'requester_type' => User::class,
-            'requester_id' => $claimant->id,
+        $ticket = $claimant->escalatedTickets()->create([
             'subject' => 'Venue Claim: '.trim((string) $location->name),
             'description' => $this->buildDescription($location, $data),
             'status' => TicketStatus::Open->value,
@@ -350,7 +348,7 @@ class VenueClaimService
             ['color' => '#3B82F6']
         );
 
-        $ticket->tags()->syncWithoutDetaching([$tag->id]);
+        $ticket->tags()->syncWithoutDetaching($tag);
     }
 
     /**

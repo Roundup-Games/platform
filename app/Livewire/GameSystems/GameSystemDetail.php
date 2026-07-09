@@ -68,18 +68,18 @@ class GameSystemDetail extends Component
         $user = authenticatedUser();
 
         $exists = $user->gameSystemPreferences()
-            ->where('game_system_id', $this->resolveSystem()->id)
+            ->wherePivot('game_system_id', $this->resolveSystem()->getKey())
             ->wherePivot('preference_type', 'favorite')
             ->exists();
 
         if ($exists) {
-            $user->gameSystemPreferences()->detach($this->resolveSystem()->id);
+            $user->gameSystemPreferences()->detach($this->resolveSystem());
             $this->dispatch('preference-updated');
             session()->flash('status', __('games.flash_removed_from_favorites'));
         } else {
             // Remove avoid if present, then add favorite
-            $user->gameSystemPreferences()->detach($this->resolveSystem()->id);
-            $user->gameSystemPreferences()->attach($this->resolveSystem()->id, ['preference_type' => 'favorite']);
+            $user->gameSystemPreferences()->detach($this->resolveSystem());
+            $user->gameSystemPreferences()->attach($this->resolveSystem(), ['preference_type' => 'favorite']);
             $this->dispatch('preference-updated');
             session()->flash('status', __('games.flash_added_to_favorites'));
         }
@@ -92,18 +92,18 @@ class GameSystemDetail extends Component
         $user = authenticatedUser();
 
         $exists = $user->gameSystemPreferences()
-            ->where('game_system_id', $this->resolveSystem()->id)
+            ->wherePivot('game_system_id', $this->resolveSystem()->getKey())
             ->wherePivot('preference_type', 'avoid')
             ->exists();
 
         if ($exists) {
-            $user->gameSystemPreferences()->detach($this->resolveSystem()->id);
+            $user->gameSystemPreferences()->detach($this->resolveSystem());
             $this->dispatch('preference-updated');
             session()->flash('status', __('games.flash_removed_from_avoid_list'));
         } else {
             // Remove favorite if present, then add avoid
-            $user->gameSystemPreferences()->detach($this->resolveSystem()->id);
-            $user->gameSystemPreferences()->attach($this->resolveSystem()->id, ['preference_type' => 'avoid']);
+            $user->gameSystemPreferences()->detach($this->resolveSystem());
+            $user->gameSystemPreferences()->attach($this->resolveSystem(), ['preference_type' => 'avoid']);
             $this->dispatch('preference-updated');
             session()->flash('status', __('games.flash_added_to_avoid_list'));
         }

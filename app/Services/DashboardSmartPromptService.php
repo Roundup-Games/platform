@@ -55,14 +55,14 @@ class DashboardSmartPromptService
     {
         /** @var Collection<int, GameParticipant> $pendingGames */
         $pendingGames = GameParticipant::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Pending)
             ->with('game.owner')
             ->orderByDesc('created_at')
             ->get();
 
         $pendingCampaigns = CampaignParticipant::query()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Pending)
             ->count();
 
@@ -141,9 +141,9 @@ class DashboardSmartPromptService
             ->where('status', GameStatus::Completed)
             ->where('updated_at', '>=', now()->subHours(48))
             ->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                $q->whereBelongsTo($user, 'owner')
                     ->orWhereHas('participants', fn ($pq) => $pq
-                        ->where('user_id', $user->id)
+                        ->whereBelongsTo($user)
                         ->where('status', ParticipantStatus::Approved));
             })
             ->whereNull('recap')
@@ -216,7 +216,7 @@ class DashboardSmartPromptService
     {
         /** @var UserRelationship|null $follower */
         $follower = UserRelationship::query()
-            ->where('related_user_id', $user->id)
+            ->whereBelongsTo($user, 'related')
             ->where('type', RelationshipType::Follow)
             ->where('created_at', '>=', now()->subHours(24))
             ->with('user.gameSystemPreferences')
@@ -277,9 +277,9 @@ class DashboardSmartPromptService
             ->where('status', GameStatus::Scheduled)
             ->where('date_time', '>', now())
             ->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                $q->whereBelongsTo($user, 'owner')
                     ->orWhereHas('participants', fn ($pq) => $pq
-                        ->where('user_id', $user->id)
+                        ->whereBelongsTo($user)
                         ->where('status', ParticipantStatus::Approved));
             })
             ->count();
@@ -314,9 +314,9 @@ class DashboardSmartPromptService
             ->where('status', GameStatus::Scheduled)
             ->where('date_time', '>', now())
             ->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                $q->whereBelongsTo($user, 'owner')
                     ->orWhereHas('participants', fn ($pq) => $pq
-                        ->where('user_id', $user->id)
+                        ->whereBelongsTo($user)
                         ->where('status', ParticipantStatus::Approved));
             })
             ->orderBy('date_time')

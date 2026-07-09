@@ -64,13 +64,13 @@ class GamePolicy
             return $user !== null
                 && ((string) $game->owner_id === (string) $user->id
                     || ($game->owner && $user->isFriendOrTeammate($game->owner))
-                    || $game->participants()->where('user_id', $user->id)->exists());
+                    || $game->participants()->whereBelongsTo($user)->exists());
         }
 
         // Private games require auth and ownership (or participation)
         return $user !== null
             && ((string) $game->owner_id === (string) $user->id
-                || $game->participants()->where('user_id', $user->id)->exists());
+                || $game->participants()->whereBelongsTo($user)->exists());
     }
 
     /**

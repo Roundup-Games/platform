@@ -40,7 +40,7 @@ class EntityUpdated extends BaseNotification
                 $type => $this->entity->name,
                 'fields' => $fields,
             ]))
-            ->action(__("notifications.action_view_{$type}"), route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]))
+            ->action(__("notifications.action_view_{$type}"), route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]))
             ->line($this->unsubscribeLine($notifiable, "{$type}_updated"));
     }
 
@@ -60,7 +60,7 @@ class EntityUpdated extends BaseNotification
             'entity_id' => $this->entity->id,
             'entity_name' => $this->entity->name,
             'changed_fields' => $this->changedFields,
-            'action_url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]),
+            'action_url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
         ];
     }
 

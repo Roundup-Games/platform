@@ -179,7 +179,7 @@ class BggSyncService
         if ($data['base_game_bgg_id'] !== null) {
             $baseGame = GameSystem::where('bgg_id', $data['base_game_bgg_id'])->first();
             if ($baseGame) {
-                $gameSystem->update(['base_game_id' => $baseGame->id]);
+                $gameSystem->baseGame()->associate($baseGame)->save();
             } else {
                 Log::info('BGG sync: base game not in catalog, auto-fetching', [
                     'base_game_bgg_id' => $data['base_game_bgg_id'],
@@ -187,7 +187,7 @@ class BggSyncService
                 ]);
                 $baseGame = $this->fetchAndUpsertBaseGame(is_int($data['base_game_bgg_id']) ? $data['base_game_bgg_id'] : 0);
                 if ($baseGame) {
-                    $gameSystem->update(['base_game_id' => $baseGame->id]);
+                    $gameSystem->baseGame()->associate($baseGame)->save();
                     Log::info('BGG sync: auto-fetched missing base game for expansion', [
                         'base_game_bgg_id' => $data['base_game_bgg_id'],
                         'base_game_name' => $baseGame->getTranslation('name', 'en'),
@@ -306,13 +306,12 @@ class BggSyncService
      */
     private function syncTaxonomy(GameSystem $gameSystem, string $relation, string $modelClass, array $names): void
     {
-        $ids = [];
+        $models = collect();
 
         foreach ($names as $name) {
-            $model = $modelClass::firstOrCreate(['name' => $name]);
-            $ids[] = $model->id;
+            $models->push($modelClass::firstOrCreate(['name' => $name]));
         }
 
-        $gameSystem->$relation()->sync($ids);
+        $gameSystem->$relation()->sync($models);
     }
 }

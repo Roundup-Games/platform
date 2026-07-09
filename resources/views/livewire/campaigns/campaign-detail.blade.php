@@ -276,7 +276,7 @@
                             {{ __('campaigns.content_sessions') }}
                         </h2>
                         @if($isOwner)
-                            <a href="{{ route('campaigns.add-session', $campaign->id) }}" wire:navigate
+                            <a href="{{ route('campaigns.add-session', $campaign) }}" wire:navigate
                                class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
                                 {{ __('campaigns.action_add_session') }}
@@ -288,7 +288,7 @@
                             @foreach($campaign->sessions as $session)
                                 <div class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                                     <div>
-                                        <a href="{{ route('games.show', $session->id) }}" wire:navigate class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
+                                        <a href="{{ route('games.show', $session) }}" wire:navigate class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
                                             {{ $session->name }}
                                         </a>
                                         <p class="text-xs text-on-surface-variant">{{ format_date($session->date_time, 'datetime') }}</p>
@@ -434,7 +434,7 @@
                             @if($campaign->visibility->value === 'protected')
                                 <p class="text-sm text-on-surface-variant mb-4">{{ __('campaigns.content_this_is_a_protected_campaign') }}</p>
                             @endif
-                            <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
+                            <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign]) }}" wire:navigate
                                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">
                                     {{ $campaign->visibility->value === 'public' ? 'login' : 'send' }}
@@ -486,7 +486,7 @@
 
                 {{-- Manage Participants (owner only) --}}
                 @if($isOwner)
-                    <a href="{{ route('campaigns.manage-participants', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
+                    <a href="{{ route('campaigns.manage-participants', ['locale' => app()->getLocale(), 'id' => $campaign]) }}" wire:navigate
                        class="block bg-surface-container-low rounded-xl shadow-ambient p-4 hover:bg-surface-container-high transition-colors group">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-xl text-on-surface-variant group-hover:text-primary transition-colors" aria-hidden="true">group</span>
@@ -633,7 +633,7 @@
             </div>
         @elseif($canApplyDirectly)
             <div class="lg:hidden sticky bottom-0 z-30 bg-surface/95 backdrop-blur-md border-t border-outline-variant px-4 py-3">
-                <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
+                <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign]) }}" wire:navigate
                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">
                         {{ $campaign->visibility->value === 'public' ? 'login' : 'send' }}

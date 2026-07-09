@@ -39,6 +39,26 @@ jobs:
       - name: Check code style
         run: vendor/bin/pint --test
 
+  practices:
+    name: Eloquent Best Practices
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+          # rg (ripgrep) ships in the PHP setup action's Ubuntu image; the
+          # guardrail degrades gracefully (skip) if it is not on PATH.
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Check Eloquent best-practices baseline
+        run: composer practices
+
   stan:
     name: Static Analysis (Larastan)
     runs-on: ubuntu-latest

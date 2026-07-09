@@ -64,13 +64,13 @@ class CampaignPolicy
             return $user !== null
                 && ((string) $campaign->owner_id === (string) $user->id
                     || ($campaign->owner && $user->isFriendOrTeammate($campaign->owner))
-                    || $campaign->participants()->where('user_id', $user->id)->exists());
+                    || $campaign->participants()->whereBelongsTo($user)->exists());
         }
 
         // Private campaigns require auth and ownership (or participation)
         return $user !== null
             && ((string) $campaign->owner_id === (string) $user->id
-                || $campaign->participants()->where('user_id', $user->id)->exists());
+                || $campaign->participants()->whereBelongsTo($user)->exists());
     }
 
     /**

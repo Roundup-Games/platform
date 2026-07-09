@@ -188,7 +188,7 @@ class ShareIntentService
 
         // Pre-lock check: already a participant?
         $existing = $modelClass::where($fkColumn, $entity->getKey())
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->first();
 
         if ($existing) {
@@ -226,7 +226,7 @@ class ShareIntentService
 
                 // Re-check under lock
                 $alreadyExists = $modelClass::where($fkColumn, $lockedEntity->getKey())
-                    ->where('user_id', $user->id)
+                    ->whereBelongsTo($user)
                     ->exists();
 
                 if ($alreadyExists) {

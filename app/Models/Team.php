@@ -159,7 +159,7 @@ class Team extends Model implements HasMedia
     public function isCaptain(User $user): bool
     {
         return $this->members()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('role', 'captain')
             ->where('status', 'active')
             ->exists();
@@ -168,7 +168,7 @@ class Team extends Model implements HasMedia
     public function hasMember(User $user): bool
     {
         return $this->members()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', 'active')
             ->exists();
     }

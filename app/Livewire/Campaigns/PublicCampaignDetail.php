@@ -38,7 +38,7 @@ class PublicCampaignDetail extends Component
         // Authenticated users should use the dashboard campaign detail (with join/apply CTA)
         if (Auth::check()) {
             $query = array_filter(['share' => request()->query('share')]);
-            $this->redirect(route('campaigns.show', array_merge([$campaign->id], $query)), navigate: true);
+            $this->redirect(route('campaigns.show', array_merge([$campaign], $query)), navigate: true);
 
             return;
         }
@@ -137,7 +137,7 @@ class PublicCampaignDetail extends Component
             return null;
         }
 
-        return route('campaigns.detail', $this->campaign->id).'?share='.$this->campaign->share_token;
+        return route('campaigns.detail', $this->campaign).'?share='.$this->campaign->share_token;
     }
 
     public function render(): View

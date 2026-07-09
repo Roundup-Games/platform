@@ -14,7 +14,7 @@
 @endphp
 
 <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden">
-    <a href="{{ route('campaigns.show', $campaign->id) }}" wire:navigate
+    <a href="{{ route('campaigns.show', $campaign) }}" wire:navigate
        class="group block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors @if(!$asOrganizer) @endif">
         <div class="flex flex-wrap items-center gap-2 mb-2">
             <h3 class="text-base font-medium text-on-surface @if(!$asOrganizer) group-hover:text-secondary transition-colors @endif">

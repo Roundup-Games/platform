@@ -43,9 +43,8 @@ class GmRoleService
             ]);
 
             // Create or reactivate the local subscription
-            $subscription = LocalSubscription::updateOrCreate(
+            $subscription = $user->localSubscriptions()->updateOrCreate(
                 [
-                    'user_id' => $user->id,
                     'membership_type_id' => $gmPlan->id,
                 ],
                 [
@@ -66,9 +65,7 @@ class GmRoleService
             }
 
             // Create or reactivate the GMProfile
-            $profile = GMProfile::firstOrNew(['user_id' => $user->id]);
-            $profile->is_active = true;
-            $profile->save();
+            $profile = $user->gmProfile()->updateOrCreate([], ['is_active' => true]);
 
             Log::info('GM subscription activated', [
                 'user_id' => $user->id,
@@ -90,7 +87,7 @@ class GmRoleService
     {
         DB::transaction(function () use ($user) {
             // Mark local subscription as canceled
-            $subscription = LocalSubscription::where('user_id', $user->id)
+            $subscription = LocalSubscription::whereBelongsTo($user)
                 ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
                 ->active()
                 ->first();
@@ -164,9 +161,7 @@ class GmRoleService
             $user->save();
 
             // Create or reactivate the GMProfile
-            $profile = GMProfile::firstOrNew(['user_id' => $user->id]);
-            $profile->is_active = true;
-            $profile->save();
+            $profile = $user->gmProfile()->updateOrCreate([], ['is_active' => true]);
 
             Log::info('GM role assigned', [
                 'user_id' => $user->id,

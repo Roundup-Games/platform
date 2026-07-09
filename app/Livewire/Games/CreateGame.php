@@ -19,6 +19,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -237,9 +238,7 @@ class CreateGame extends Component
         $source = Game::findOrFail($this->clone);
 
         // Only the owner can clone their own game
-        if ($source->owner_id !== Auth::id()) {
-            abort(403, __('games.error_clone_own_only'));
-        }
+        Gate::allowIf($source->owner_id === Auth::id(), __('games.error_clone_own_only'));
 
         // Verify the user can still create games (permission may have been revoked)
         $this->authorize('create', Game::class);
@@ -623,7 +622,7 @@ class CreateGame extends Component
 
         session()->flash('success', __('games.flash_game_name_created_successfully', ['name' => $game->name]));
 
-        $this->redirect(route('games.show', $game->id), navigate: true);
+        $this->redirect(route('games.show', $game), navigate: true);
     }
 
     public function render(): View

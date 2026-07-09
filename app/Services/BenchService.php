@@ -51,17 +51,15 @@ class BenchService
                 throw new \LogicException('Cannot add to bench: entity is not full.');
             }
 
-            $existing = $lockedEntity->participants()->where('user_id', $user->id)->first();
+            $existing = $lockedEntity->participants()->whereBelongsTo($user)->first();
             if ($existing !== null) {
                 throw new \LogicException('User is already a participant.');
             }
 
-            $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
             $foreignKey = $isCampaign ? 'campaign_id' : 'game_id';
 
             try {
-                $participant = $participantClass::create([
-                    $foreignKey => $lockedEntity->id,
+                $participant = $lockedEntity->participants()->create([
                     'user_id' => $user->id,
                     'role' => ParticipantRole::Player->value,
                     'status' => ParticipantStatus::Benched->value,

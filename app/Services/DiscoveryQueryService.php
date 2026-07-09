@@ -755,8 +755,8 @@ class DiscoveryQueryService
         // Exclude user's own games/campaigns and ones they're already in or applied to
         $excludeUser = function ($query) use ($user) {
             $query->where('owner_id', '!=', $user->id)
-                ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
-                ->whereDoesntHave('applications', fn ($q) => $q->where('user_id', $user->id));
+                ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
+                ->whereDoesntHave('applications', fn ($q) => $q->whereBelongsTo($user));
         };
 
         // Helper to tag items with discoverable_type
@@ -781,7 +781,7 @@ class DiscoveryQueryService
                     }
                 })
                 ->where('owner_id', '!=', $user->id)
-                ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
+                ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
                 ->with(['owner', 'gameSystems', 'campaign'])
                 ->withCount('participants');
 
@@ -803,7 +803,7 @@ class DiscoveryQueryService
                         }
                     })
                     ->where('owner_id', '!=', $user->id)
-                    ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
+                    ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
                     ->with(['owner', 'gameSystems'])
                     ->withCount('sessions')
                     ->withCount('participants');
@@ -824,7 +824,7 @@ class DiscoveryQueryService
             ->where('date_time', '>', now())
             ->where($this->matchAllowedSystems($allowedSystemIds))
             ->where('owner_id', '!=', $user->id)
-            ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
+            ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
             ->with(['owner', 'gameSystems', 'campaign'])
             ->withCount('participants');
 
@@ -841,7 +841,7 @@ class DiscoveryQueryService
                 ->where('status', 'active')
                 ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds))
                 ->where('owner_id', '!=', $user->id)
-                ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
+                ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
                 ->with(['owner', 'gameSystems'])
                 ->withCount('sessions')
                 ->withCount('participants');
@@ -1012,7 +1012,7 @@ class DiscoveryQueryService
                             $allowedOwnerIds = app(SocialGraphService::class)
                                 ->getAllowedOwnerIdsForProtectedContent($user);
                             $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
+                                ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($user));
                         });
                 });
             }

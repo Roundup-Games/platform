@@ -66,7 +66,7 @@ class ReliabilityScoreService
      */
     public function computeScore(User $user): array
     {
-        $participants = GameParticipant::where('user_id', $user->id)
+        $participants = GameParticipant::whereBelongsTo($user)
             ->whereNotNull('attendance_status')
             ->with('game')
             ->get();

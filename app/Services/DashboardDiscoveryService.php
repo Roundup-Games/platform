@@ -111,8 +111,8 @@ class DashboardDiscoveryService
     private function computeNearbyNoteworthy(User $user, string $geohash4): array
     {
         // Games the user already owns or participates in
-        $ownedGameIds = Game::where('owner_id', $user->id)->pluck('id');
-        $participatingGameIds = GameParticipant::where('user_id', $user->id)
+        $ownedGameIds = Game::whereBelongsTo($user, 'owner')->pluck('id');
+        $participatingGameIds = GameParticipant::whereBelongsTo($user)
             ->whereIn('status', [
                 ParticipantStatus::Approved->value,
                 ParticipantStatus::Pending->value,
@@ -308,7 +308,7 @@ class DashboardDiscoveryService
      */
     private function computeVeteranHost(User $user): ?array
     {
-        $completedHostedCount = Game::where('owner_id', $user->id)
+        $completedHostedCount = Game::whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed->value)
             ->count();
 
@@ -318,7 +318,7 @@ class DashboardDiscoveryService
 
         // Find when the 10th game was completed
         /** @var Game|null $tenthGame */
-        $tenthGame = Game::where('owner_id', $user->id)
+        $tenthGame = Game::whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed->value)
             ->orderBy('date_time')
             ->skip(9)
@@ -343,7 +343,7 @@ class DashboardDiscoveryService
      */
     private function computeCommunityBuilder(User $user): ?array
     {
-        $hostedGameIds = Game::where('owner_id', $user->id)
+        $hostedGameIds = Game::whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed->value)
             ->pluck('id');
 
@@ -363,7 +363,7 @@ class DashboardDiscoveryService
 
         // Approximate earned_at: date of the most recent completed hosted game
         /** @var Game|null $lastHosted */
-        $lastHosted = Game::where('owner_id', $user->id)
+        $lastHosted = Game::whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed->value)
             ->orderByDesc('date_time')
             ->first();
@@ -385,7 +385,7 @@ class DashboardDiscoveryService
      */
     private function computeCampaignCommitment(User $user): ?array
     {
-        $campaignIds = CampaignParticipant::where('user_id', $user->id)
+        $campaignIds = CampaignParticipant::whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->pluck('campaign_id');
 
@@ -413,7 +413,7 @@ class DashboardDiscoveryService
 
         // earned_at: date of the 5th completed session in this campaign
         /** @var Game|null $fifthSession */
-        $fifthSession = Game::where('campaign_id', $campaign->id)
+        $fifthSession = Game::whereBelongsTo($campaign)
             ->where('status', GameStatus::Completed->value)
             ->orderBy('date_time')
             ->skip(4)
@@ -438,13 +438,13 @@ class DashboardDiscoveryService
     {
         // Get user's GM profile
         /** @var GMProfile|null $gmProfile */
-        $gmProfile = GMProfile::where('user_id', $user->id)->first();
+        $gmProfile = GMProfile::whereBelongsTo($user)->first();
 
         if ($gmProfile === null) {
             return null;
         }
 
-        $reviewStats = Review::where('gm_profile_id', $gmProfile->id)
+        $reviewStats = Review::whereBelongsTo($gmProfile)
             ->where('status', 'published')
             ->selectRaw('COUNT(*) as count, AVG(rating) as avg_rating')
             ->first();
@@ -455,7 +455,7 @@ class DashboardDiscoveryService
 
         // earned_at: date of the 3rd review
         /** @var Review|null $thirdReview */
-        $thirdReview = Review::where('gm_profile_id', $gmProfile->id)
+        $thirdReview = Review::whereBelongsTo($gmProfile)
             ->where('status', 'published')
             ->orderBy('created_at')
             ->skip(2)
@@ -481,7 +481,7 @@ class DashboardDiscoveryService
         // Count unique game systems across both hosted and participated games
         // via the canonical game_game_system pivot (the cached
         // games.game_system_id anchor was dropped in S06/T06).
-        $hostedGameIds = Game::where('owner_id', $user->id)
+        $hostedGameIds = Game::whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed->value)
             ->pluck('id');
 
@@ -492,7 +492,7 @@ class DashboardDiscoveryService
                 ->pluck('game_system_id')
             : collect();
 
-        $participatedGameIds = GameParticipant::where('user_id', $user->id)
+        $participatedGameIds = GameParticipant::whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->pluck('game_id');
 
@@ -512,7 +512,7 @@ class DashboardDiscoveryService
         // Approximate earned_at: most recent completed game
         /** @var Game|null $lastGame */
         $lastGame = Game::where(function ($q) use ($user, $participatedGameIds) {
-            $q->where('owner_id', $user->id)
+            $q->whereBelongsTo($user, 'owner')
                 ->orWhereIn('id', $participatedGameIds);
         })
             ->where('status', GameStatus::Completed->value)

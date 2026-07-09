@@ -163,8 +163,7 @@ class EventAnnouncements extends Component
                 'updated_by' => Auth::id(),
             ]);
         } else {
-            $announcement = EventAnnouncement::create([
-                'event_id' => $this->event->id,
+            $announcement = $this->event->announcements()->create([
                 'author_id' => Auth::id(),
                 'title' => $translatable['title'],
                 'content' => $translatable['content'],

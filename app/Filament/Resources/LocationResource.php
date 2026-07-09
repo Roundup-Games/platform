@@ -290,7 +290,7 @@ class LocationResource extends Resource
                             return;
                         }
 
-                        if ($target->id === $record->id) {
+                        if ($target->is($record)) {
                             Notification::make()
                                 ->title('Cannot merge a location into itself')
                                 ->danger()

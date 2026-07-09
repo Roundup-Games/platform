@@ -15,7 +15,7 @@
 
 <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden">
     {{-- Info area: clickable to detail --}}
-    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate
+    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game]) }}" wire:navigate
        class="group block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
         <div class="flex flex-wrap items-center gap-2 mb-2">
             <h3 class="text-base font-medium text-on-surface group-hover:text-secondary transition-colors">

@@ -270,7 +270,7 @@ class PeoplePage extends Component
             return;
         }
 
-        UserRelationship::where('user_id', $target->id)
+        UserRelationship::whereBelongsTo($target)
             ->where('related_user_id', $this->authUser->id)
             ->where('type', RelationshipType::Follow)
             ->delete();

@@ -43,7 +43,7 @@ class ViewSessionZero extends Component
         // Check if current user already confirmed
         $user = Auth::user();
         if ($user) {
-            $existing = $survey->confirmations()->where('user_id', $user->id)->first();
+            $existing = $survey->confirmations()->whereBelongsTo($user)->first();
             if ($existing) {
                 $this->confirmed = true;
                 $this->confirmedAt = $existing->confirmed_at?->format('F j, Y \a\t g:i A');
@@ -69,7 +69,7 @@ class ViewSessionZero extends Component
         $this->confirming = true;
 
         // Double-check no existing confirmation
-        $exists = $survey->confirmations()->where('user_id', $user->id)->exists();
+        $exists = $survey->confirmations()->whereBelongsTo($user)->exists();
         if ($exists) {
             $this->confirmed = true;
             $this->confirming = false;

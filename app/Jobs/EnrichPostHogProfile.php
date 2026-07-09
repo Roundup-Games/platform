@@ -188,17 +188,17 @@ class EnrichPostHogProfile implements ShouldQueue
         try {
             switch ($type) {
                 case ActivityType::GameCreated:
-                    $set['games_created_count'] = Game::where('owner_id', $user->id)->count();
+                    $set['games_created_count'] = Game::whereBelongsTo($user, 'owner')->count();
                     $set['last_game_created_at'] = now()->toIso8601String();
                     $setOnce['first_game_created_at'] = now()->toIso8601String();
                     break;
 
                 case ActivityType::PlayerJoined:
-                    $set['games_joined_count'] = GameParticipant::where('user_id', $user->id)->count();
+                    $set['games_joined_count'] = GameParticipant::whereBelongsTo($user)->count();
                     break;
 
                 case ActivityType::CampaignCreated:
-                    $set['campaigns_created_count'] = Campaign::where('owner_id', $user->id)->count();
+                    $set['campaigns_created_count'] = Campaign::whereBelongsTo($user, 'owner')->count();
                     $setOnce['first_campaign_created_at'] = now()->toIso8601String();
                     break;
 
@@ -216,7 +216,7 @@ class EnrichPostHogProfile implements ShouldQueue
                     break;
 
                 case ActivityType::FollowReceived:
-                    $set['following_count'] = UserRelationship::where('user_id', $user->id)
+                    $set['following_count'] = UserRelationship::whereBelongsTo($user)
                         ->where('type', 'follow')
                         ->count();
                     break;
@@ -263,7 +263,7 @@ class EnrichPostHogProfile implements ShouldQueue
 
             // Single query: fetch all teams where user is an active member,
             // with active member count eager-loaded via withCount.
-            $teams = Team::whereHas('activeMembers', fn ($q) => $q->where('user_id', $user->id))
+            $teams = Team::whereHas('activeMembers', fn ($q) => $q->whereBelongsTo($user))
                 ->withCount('activeMembers')
                 ->get();
 
@@ -293,7 +293,7 @@ class EnrichPostHogProfile implements ShouldQueue
      */
     private function countInvitationsAccepted(User $user): int
     {
-        return ActivityLog::where('user_id', $user->id)
+        return ActivityLog::whereBelongsTo($user)
             ->where('event_type', ActivityType::InvitationAccepted->value)
             ->count();
     }

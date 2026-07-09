@@ -81,9 +81,9 @@ class DashboardScheduleService
             ->where('status', GameStatus::Scheduled)
             ->where('date_time', '>', now())
             ->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                $q->whereBelongsTo($user, 'owner')
                     ->orWhereHas('participants', fn ($pq) => $pq
-                        ->where('user_id', $user->id)
+                        ->whereBelongsTo($user)
                         ->where('status', ParticipantStatus::Approved));
             })
             ->orderBy('date_time')
@@ -113,9 +113,9 @@ class DashboardScheduleService
             ->where('status', GameStatus::Scheduled)
             ->where('date_time', '>', now())
             ->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                $q->whereBelongsTo($user, 'owner')
                     ->orWhereHas('participants', fn ($pq) => $pq
-                        ->where('user_id', $user->id)
+                        ->whereBelongsTo($user)
                         ->where('status', ParticipantStatus::Approved));
             })
             ->exists();
@@ -144,9 +144,9 @@ class DashboardScheduleService
             ->where('date_time', '>', $now)
             ->where('date_time', '<=', $fourteenDaysOut)
             ->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                $q->whereBelongsTo($user, 'owner')
                     ->orWhereHas('participants', fn ($pq) => $pq
-                        ->where('user_id', $user->id)
+                        ->whereBelongsTo($user)
                         ->where('status', ParticipantStatus::Approved->value));
             })
             ->with(['gameSystems', 'campaign', 'media', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)])

@@ -29,7 +29,7 @@ class AttendanceReportPolicy
     public function create(User $user, Game $game): bool
     {
         return $game->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved)
             ->exists();
     }
@@ -40,7 +40,7 @@ class AttendanceReportPolicy
     public function submitReport(User $user, Game $game): bool
     {
         return $game->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved)
             ->exists();
     }

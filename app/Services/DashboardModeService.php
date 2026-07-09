@@ -74,7 +74,7 @@ class DashboardModeService
     public function attendedGameCount(User $user): int
     {
         // Primary: explicit attendance_status = Attended
-        $attendedCount = GameParticipant::where('user_id', $user->id)
+        $attendedCount = GameParticipant::whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->where('attendance_status', AttendanceStatus::Attended->value)
             ->count();
@@ -85,7 +85,7 @@ class DashboardModeService
 
         // Fallback: approved participation in completed games (backward compat
         // for games that were completed before attendance tracking was added)
-        return GameParticipant::where('user_id', $user->id)
+        return GameParticipant::whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->whereHas('game', fn ($q) => $q->where('status', GameStatus::Completed->value))
             ->count();

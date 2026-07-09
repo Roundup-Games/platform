@@ -1,6 +1,6 @@
 @props(['game'])
 
-<a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group min-h-[220px]">
+<a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group min-h-[220px]">
     <div class="h-1.5 {{ $game->campaign_id ? 'bg-secondary/60' : 'bg-primary/60' }}"></div>
 
     <div class="p-5">
@@ -36,8 +36,8 @@
                 <span
                     role="link"
                     tabindex="0"
-                    onclick="event.stopPropagation(); window.location.href = '{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign_id]) }}'; return false;"
-                    onkeydown="if(event.key==='Enter'){event.stopPropagation(); window.location.href = '{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign_id]) }}'; return false;}"
+                    onclick="event.stopPropagation(); window.location.href = '{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign]) }}'; return false;"
+                    onkeydown="if(event.key==='Enter'){event.stopPropagation(); window.location.href = '{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign]) }}'; return false;}"
                     class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container hover:bg-secondary-container/80 transition-colors cursor-pointer"
                     aria-label="{{ __('campaigns.content_campaign') }}">
                     <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">campaign</span>

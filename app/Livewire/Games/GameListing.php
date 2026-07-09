@@ -153,7 +153,7 @@ class GameListing extends Component
                         ->where(function ($q) use ($user) {
                             $allowedOwnerIds = $user?->getAllowedOwnerIdsForProtectedContent() ?? [];
                             $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $user ? $pq->where('user_id', $user->id) : $pq->whereRaw('1 = 0'));
+                                ->orWhereHas('participants', fn ($pq) => $user ? $pq->whereBelongsTo($user) : $pq->whereRaw('1 = 0'));
                         });
                 });
             })

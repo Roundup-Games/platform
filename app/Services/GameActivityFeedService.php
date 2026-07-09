@@ -159,8 +159,8 @@ class GameActivityFeedService
             ->unique();
 
         // Don't show games the viewer already owns or participates in — those show in other sections
-        $viewerGameIds = Game::where('owner_id', $viewer->id)
-            ->orWhereHas('participants', fn ($q) => $q->where('user_id', $viewer->id))
+        $viewerGameIds = Game::whereBelongsTo($viewer, 'owner')
+            ->orWhereHas('participants', fn ($q) => $q->whereBelongsTo($viewer))
             ->pluck('id');
 
         $gameIds = $gameIds->diff($viewerGameIds);
@@ -275,8 +275,8 @@ class GameActivityFeedService
             ->pluck('campaign_id')
             ->unique();
 
-        $viewerCampaignIds = Campaign::where('owner_id', $viewer->id)
-            ->orWhereHas('participants', fn ($q) => $q->where('user_id', $viewer->id))
+        $viewerCampaignIds = Campaign::whereBelongsTo($viewer, 'owner')
+            ->orWhereHas('participants', fn ($q) => $q->whereBelongsTo($viewer))
             ->pluck('id');
 
         $campaignIds = $campaignIds->diff($viewerCampaignIds);

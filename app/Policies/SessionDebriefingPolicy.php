@@ -34,7 +34,7 @@ class SessionDebriefingPolicy
         }
 
         return $game->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved)
             ->exists();
     }
@@ -51,7 +51,7 @@ class SessionDebriefingPolicy
         }
 
         return $game->participants()
-            ->where('user_id', $user->id)
+            ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved)
             ->exists();
     }
