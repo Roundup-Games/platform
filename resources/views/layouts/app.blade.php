@@ -85,6 +85,8 @@
                      @click.away="open = false"
                      class="bg-surface/95 backdrop-blur-md border-b border-outline-variant/15">
                     <div class="px-4 pb-4 space-y-1">
+                        @auth
+                        {{-- Authenticated mobile nav: plan → dashboard → account. --}}
                         <a href="{{ route('plan.create') }}" wire:navigate
                            class="flex items-center justify-center gap-2 px-4 py-3 mb-1 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-colors">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">add_circle</span>
@@ -132,10 +134,6 @@
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('settings.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>settings</span>
                             {{ __('profile.content_settings') }}
                         </a>
-                        <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors">
-                            <span class="material-symbols-outlined text-lg" aria-hidden="true">cookie</span>
-                            {{ __('cookie-consent.nav_cookie_settings') }}
-                        </button>
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
                             <button type="submit" class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors">
@@ -143,6 +141,24 @@
                                 {{ __('auth.content_log_out') }}
                             </button>
                         </form>
+                        @else
+                        {{-- Guest mobile nav: sign-up / log-in CTAs. --}}
+                        <a href="{{ route('register') }}" wire:navigate
+                           class="flex items-center justify-center gap-2 px-4 py-3 mb-1 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-colors">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
+                            {{ __('auth.content_sign_up') }}
+                        </a>
+                        <a href="{{ route('login') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span>
+                            {{ __('auth.content_log_in') }}
+                        </a>
+                        @endauth
+
+                        {{-- Cookie settings (public — shown to guests and members) --}}
+                        <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">cookie</span>
+                            {{ __('cookie-consent.nav_cookie_settings') }}
+                        </button>
 
                         {{-- Utility row: language + theme --}}
                         <div class="pt-3 mt-2 border-t border-outline-variant/15 flex items-center justify-between">
@@ -181,6 +197,7 @@
 
                     {{-- Navigation --}}
                     <nav class="flex-1 px-3 py-6 space-y-1" aria-label="{{ __('common.aria_main_navigation') }}">
+                        @auth
                         {{-- Primary CTA: Plan something --}}
                         <a href="{{ route('plan.create') }}" wire:navigate
                            class="flex items-center justify-center gap-2 px-4 py-3 mb-2 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-all duration-200 shadow-sm">
@@ -194,7 +211,9 @@
                             {{ __('profile.content_dashboard') }}
                         </a>
 
-                        {{-- Notifications bell --}}
+                        {{-- Notifications bell (auth-only: mount() calls
+                             authenticatedUser(), non-nullable by design; the
+                             whole nav is @auth-guarded below). --}}
                         <livewire:notifications.notification-bell />
 
                         <a href="{{ route('games.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('games.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
@@ -226,6 +245,17 @@
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
                             {{ __('billing.content_billing') }}
                         </a>
+                        @else
+                        {{-- Guest nav CTAs (public pages share this layout) --}}
+                        <a href="{{ route('register') }}" wire:navigate class="flex items-center justify-center gap-2 px-4 py-3 mb-2 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-all duration-200 shadow-sm">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
+                            {{ __('auth.content_sign_up') }}
+                        </a>
+                        <a href="{{ route('login') }}" wire:navigate class="flex items-center justify-center gap-2 px-4 py-3 mb-2 rounded-xl text-sm font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-all duration-200">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span>
+                            {{ __('auth.content_log_in') }}
+                        </a>
+                        @endauth
                     </nav>
 
                     {{-- Account card at sidebar bottom --}}
@@ -238,6 +268,7 @@
                         $redirectPath = '/' . $otherLocale . '/' . ($segments[1] ?? '');
                     @endphp
                     <div class="border-t border-outline-variant/15 p-4 mt-auto">
+                        @auth
                         {{-- User identity --}}
                         <a href="{{ route('profile.show') }}" wire:navigate class="flex items-center gap-3 group">
                             <x-user-avatar :user="Auth::user()" size="w-9 h-9" text-size="text-sm" />
@@ -288,6 +319,39 @@
                                 </button>
                             </form>
                         </div>
+                        @else
+                        {{-- Guest utility row (locale + cookie + theme) --}}
+                        <div class="flex items-center gap-1 mb-3">
+                            <a href="{{ route('locale.switch', ['locale' => $otherLocale, 'redirect' => $redirectPath]) }}"
+                               title="{{ $localeLabel }}"
+                               class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
+                               aria-label="{{ $localeLabel }}">
+                                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">translate</span>
+                            </a>
+                            <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()"
+                                    title="{{ __('cookie-consent.nav_cookie_settings') }}"
+                                    class="js-cookie-consent-settings inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors cursor-pointer"
+                                    aria-label="{{ __('cookie-consent.nav_cookie_settings') }}">
+                                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">cookie</span>
+                            </button>
+                            <div class="flex-1"></div>
+                            <x-theme-toggle size="small" />
+                        </div>
+
+                        {{-- Guest auth CTAs --}}
+                        <div class="space-y-2">
+                            <a href="{{ route('login') }}" wire:navigate
+                               class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors">
+                                <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span>
+                                {{ __('auth.content_log_in') }}
+                            </a>
+                            <a href="{{ route('register') }}" wire:navigate
+                               class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm">
+                                <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
+                                {{ __('auth.content_sign_up') }}
+                            </a>
+                        </div>
+                        @endauth
                     </div>
                 </aside>
 
