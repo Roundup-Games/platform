@@ -206,4 +206,8 @@ return [
     'flash_you_left_the_campaign' => 'Du hast die Kampagne verlassen.',
     'content_leave_hint' => 'Dir haben sich die Pläne geändert?',
     'content_gathering_campaign_hint' => 'Ein regelmäßiger Brettspielabend oder lockeres Treffen. Sitzungen erben diesen Typ.',
+
+    // Type-selection step (mirrors CreateGame's card picker)
+    'content_what_are_you_setting_up' => 'Was möchtest du erstellen?',
+    'content_pick_the_type_for_your_recurring_event' => 'Wähle den Typ für dein wiederkehrendes Event. Du kannst ihn jederzeit ändern.',
 ];

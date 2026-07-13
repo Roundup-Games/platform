@@ -124,6 +124,9 @@ class AddSessionToCampaign extends Component
                 'owner_id' => $ownerId,
                 'name' => $validated['name'],
                 'description' => $validated['description'],
+                // A Gathering campaign carries a warm host note; propagate it
+                // onto each spawned session so recurring nights stay welcoming.
+                'host_note' => $campaign->host_note,
                 'date_time' => $validated['date_time'],
                 'expected_duration' => $campaign->session_duration ?? 2,
                 'price' => $campaign->price_per_session ?? 0,

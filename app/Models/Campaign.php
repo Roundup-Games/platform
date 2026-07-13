@@ -109,6 +109,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
 
     protected $fillable = [
         'owner_id', 'game_type', 'location_id', 'location_instructions', 'name', 'description',
+        'host_note',
         'recurrence', 'time_of_day', 'session_duration', 'price_per_session',
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',

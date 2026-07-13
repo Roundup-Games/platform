@@ -24,17 +24,21 @@ describe('CreateCampaign — game type (R050)', function () {
         $owner = createCampaignOwner();
         $system = GameSystem::factory()->create();
 
+        // A Gathering campaign is multi-system (parity with the Game flow): the
+        // host picks a set via the multi-select picker, synced to the
+        // campaign_game_system pivot. The single game_system_id stays empty.
         Livewire\Livewire::actingAs($owner)
             ->test(CreateCampaign::class)
             ->set('name', 'Weekly Board Game Night')
             ->set('game_type', 'gathering')
-            ->set('game_system_id', $system->id)
+            ->set('game_systems', [$system->id])
             ->call('save')
             ->assertHasNoErrors();
 
         $campaign = Campaign::where('owner_id', $owner->id)->first();
         expect($campaign)->not->toBeNull()
-            ->and($campaign->game_type->value)->toBe('gathering');
+            ->and($campaign->game_type->value)->toBe('gathering')
+            ->and($campaign->gameSystems->modelKeys())->toBe([$system->id]);
     });
 
     it('defaults to ttrpg game_type (backward compatible)', function () {

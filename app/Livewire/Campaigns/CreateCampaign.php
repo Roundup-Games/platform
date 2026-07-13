@@ -25,6 +25,7 @@ use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -37,6 +38,10 @@ class CreateCampaign extends Component
     // Livewire file-upload support for the host-uploaded cover image (S07).
     use WithFileUploads;
 
+    /** Optional query parameter: pre-selected game type (mirrors CreateGame). */
+    #[Url]
+    public ?string $type = null;
+
     public string $name = '';
 
     // ── Translatable fields ──
@@ -48,7 +53,12 @@ class CreateCampaign extends Component
         return ['name', 'description'];
     }
 
-    public ?string $game_system_id = null;
+    /**
+     * Two-step flow mirroring CreateGame: 'type' (the card picker) then 'form'.
+     * Defaults to 'type' so the host picks a vibe first; save() still works
+     * regardless of step (game_type carries a 'ttrpg' default for back-compat).
+     */
+    public string $step = 'type';
 
     /**
      * Campaign game type (R050). Defaults to 'ttrpg' for backward compatibility —
@@ -57,6 +67,14 @@ class CreateCampaign extends Component
      * the type onto each spawned session.
      */
     public ?string $game_type = 'ttrpg';
+
+    public ?string $game_system_id = null;
+
+    /** @var array<int, string> Game systems for a Gathering campaign (multi-select; save() syncs them to the gameSystems pivot directly) */
+    public array $game_systems = [];
+
+    /** Optional welcoming host note for Gathering campaigns (warm, all-welcome). */
+    public ?string $host_note = null;
 
     public ?string $location_id = null;
 
@@ -110,6 +128,9 @@ class CreateCampaign extends Component
             'name' => 'required|string|max:255',
             'game_type' => 'required|string|in:'.implode(',', GameType::values()),
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
+            'game_systems' => 'nullable|array|max:6',
+            'game_systems.*' => 'required|uuid|exists:game_systems,id',
+            'host_note' => 'nullable|string|max:1000',
             'location_id' => 'nullable|uuid|exists:locations,id',
             'location_instructions' => 'nullable|string|max:1000',
             'description' => 'nullable|string|max:10000',
@@ -181,6 +202,50 @@ class CreateCampaign extends Component
         $id = is_string($value) && Str::isUuid($value) ? $value : null;
         $this->game_system_id = $id;
         $this->autofillFromGameSystem($id);
+    }
+
+    /**
+     * Multi-select game systems from the GameSystemPreferencePicker (creation
+     * mode) — used by Gathering campaigns. preferenceType is ignored here
+     * because the creation picker has no favorites/avoids.
+     *
+     * @param  array<int, string>  $selectedIds
+     */
+    #[On('selection-changed')]
+    public function onGameSystemsChanged(array $selectedIds): void
+    {
+        $this->game_systems = array_map('strval', $selectedIds);
+    }
+
+    // ── Type Selection Actions ───────────────────────────
+
+    public function selectType(string $type): void
+    {
+        if (! in_array($type, GameType::values(), true)) {
+            return;
+        }
+
+        $this->game_type = $type;
+        $this->step = 'form';
+        $this->applyTypeDefaults($type);
+    }
+
+    public function changeType(string $type): void
+    {
+        if (! in_array($type, GameType::values(), true)) {
+            return;
+        }
+
+        $this->game_type = $type;
+        // Reset type-specific fields when the type changes
+        $this->game_system_id = null;
+        $this->game_systems = [];
+        $this->host_note = null;
+        $this->vibePreferences = [];
+        $this->safety_rules = [];
+        $this->experience_level = null;
+        $this->complexity = null;
+        $this->applyTypeDefaults($type);
     }
 
     // ── Lifecycle Hooks ──────────────────────────────────
@@ -268,6 +333,12 @@ class CreateCampaign extends Component
     {
         $this->authorize('create', Campaign::class);
 
+        if ($this->game_type === null) {
+            $this->addError('game_type', __('games.error_select_game_type'));
+
+            return;
+        }
+
         // Gate public visibility
         if ($this->visibility === 'public' && ! $this->canCreatePublic) {
             $this->visibility = 'protected';
@@ -285,6 +356,16 @@ class CreateCampaign extends Component
             return;
         }
 
+        // Gatherings require at least one game system (the host picks what to
+        // play). Enforced here rather than via a rule because it is conditional
+        // on game_type. game_system_id is intentionally NOT set for gatherings —
+        // the campaign's gameSystems pivot carries the host's picked set.
+        if ($this->game_type === 'gathering' && empty($validated['game_systems'])) {
+            $this->addError('game_systems', __('games.error_gathering_requires_system'));
+
+            return;
+        }
+
         // Extract favorite vibe flags for storage
         $vibeFlags = $this->selectedVibeFlags();
 
@@ -298,6 +379,28 @@ class CreateCampaign extends Component
             $benchMode = false;
         }
 
+        // Gatherings are larger, warmer, all-welcome recurring nights: force
+        // complexity/bench clean so the warm form can't persist GM-complexity
+        // state (mirrors CreateGame's gathering handling).
+        $isGathering = $this->game_type === 'gathering';
+        $complexity = $isGathering ? null : ($validated['complexity'] ?? null);
+        $benchMode = $isGathering ? false : $benchMode;
+
+        // Canonical system set: the campaign_game_system pivot is the
+        // source of truth for the recurring DEFAULT offering (the template).
+        // AddSessionToCampaign copy-on-writes this set into each spawned
+        // session's game_game_system rows at creation time. For a Gathering the
+        // host picks a set via the multi-select; for a focused board_book /
+        // ttrpg the single picker carries one system.
+        if ($isGathering) {
+            $pivotSystemIds = array_map('strval', $validated['game_systems'] ?? []);
+        } else {
+            $pivotSystemIds = array_filter(
+                [$validated['game_system_id'] ?? null],
+                fn (?string $id): bool => $id !== null,
+            );
+        }
+
         // Build translatable values for name and description only
         $translatable = $this->buildTranslatableValues(
             ['name', 'description'],
@@ -305,7 +408,7 @@ class CreateCampaign extends Component
             $validated,
         );
 
-        $campaign = DB::transaction(function () use ($validated, $translatable, $vibeFlags, $benchMode) {
+        $campaign = DB::transaction(function () use ($validated, $translatable, $vibeFlags, $benchMode, $complexity, $pivotSystemIds) {
             $campaign = Campaign::create([
                 'owner_id' => Auth::id(),
                 'game_type' => $validated['game_type'],
@@ -313,6 +416,7 @@ class CreateCampaign extends Component
                 'location_instructions' => $validated['location_instructions'] ?? null,
                 'name' => $translatable['name'],
                 'description' => $translatable['description'],
+                'host_note' => $validated['host_note'] ?? null,
                 'recurrence' => $validated['recurrence'],
                 'time_of_day' => $validated['time_of_day'],
                 'session_duration' => $validated['session_duration'] ?: null,
@@ -325,25 +429,19 @@ class CreateCampaign extends Component
                 'min_players' => $validated['min_players'],
                 'max_players' => $validated['max_players'],
                 'experience_level' => $validated['experience_level'],
-                'complexity' => $validated['complexity'] ?: null,
+                'complexity' => $complexity,
                 'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
                 'bench_mode' => $benchMode,
             ]);
 
             app(OwnerParticipantService::class)->ensureCampaignOwnerParticipant($campaign);
 
-            // Sync the canonical campaign_game_system pivot: the
-            // campaign's system set is the recurring DEFAULT offering (the
-            // template). AddSessionToCampaign copy-on-writes this set into each
-            // spawned session's game_game_system rows at creation time.
-            // single-system campaigns (the only kind today)
-            // produce a one-element pivot set.
-            $campaignSystemIds = array_filter(
-                [$validated['game_system_id'] ?? null],
-                fn (?string $id): bool => $id !== null,
-            );
-            if (! empty($campaignSystemIds)) {
-                $campaign->gameSystems()->sync($campaignSystemIds);
+            // Sync the canonical campaign_game_system pivot (the recurring
+            // default offering). Runs inside the create transaction so a failure
+            // rolls the whole campaign back. empty() would detach everything,
+            // so guard against an empty set (single-system campaigns always have one).
+            if (! empty($pivotSystemIds)) {
+                $campaign->gameSystems()->sync($pivotSystemIds);
             }
 
             return $campaign;
@@ -380,6 +478,7 @@ class CreateCampaign extends Component
         Log::info('Campaign created', [
             'campaign_id' => $campaign->id,
             'name' => $campaign->name,
+            'game_type' => $campaign->game_type?->value,
             'owner_id' => Auth::id(),
         ]);
 
@@ -405,20 +504,18 @@ class CreateCampaign extends Component
 
     public function mount(): void
     {
-        // Smart defaults: carry forward language, location, visibility, and
-        // seat count from the user's prior campaign or standalone sessions.
-        $user = Auth::user();
-        if ($user !== null) {
-            $defaults = app(CreateDefaultsService::class)->forCampaign($user);
+        // Smart defaults: carry forward language, location, visibility, type,
+        // and recurrence from the user's prior campaign or standalone sessions.
+        // Layered BEFORE type defaults so a ?type= deep-link can override below.
+        $this->applySmartDefaults();
 
-            $this->language = $defaults->language ?? 'en';
-            $this->location_id = $defaults->locationId;
-            $this->visibility = $defaults->visibility ?? 'protected';
-            $this->max_players = $defaults->maxPlayers;
-            $this->experience_level = $defaults->experienceLevel;
-            $this->game_type = $defaults->gameType ?? 'ttrpg';
-            $this->game_system_id = $defaults->gameSystemId;
-            $this->recurrence = $defaults->recurrence ?? 'weekly';
+        // If a type was pre-selected via ?type= (e.g. deep-linked from the
+        // unified Plan flow), advance straight to the form with that type's
+        // defaults applied on top of the smart defaults.
+        if ($this->type !== null && $this->type !== '' && in_array($this->type, GameType::values(), true)) {
+            $this->game_type = $this->type;
+            $this->step = 'form';
+            $this->applyTypeDefaults($this->type);
         }
     }
 
@@ -431,6 +528,59 @@ class CreateCampaign extends Component
 
     // ── Private Helpers ──────────────────────────────────
 
+    /**
+     * Bare per-type defaults: a sensible session duration for each type, plus
+     * the warm all-welcome seat/experience defaults for Gatherings. Only the
+     * gathering branch overrides smart defaults (gatherings are larger, warmer
+     * social nights — R047).
+     */
+    protected function applyTypeDefaults(string $type): void
+    {
+        $this->session_duration = match ($type) {
+            'board_game' => '1.5',
+            'ttrpg' => '3',
+            default => '2',
+        };
+
+        if ($type === 'gathering') {
+            $this->max_players = 12;
+            $this->experience_level = 'all';
+        }
+    }
+
+    /**
+     * Layer smart defaults from the user's prior campaign/session history and
+     * profile preferences on top of property defaults.
+     */
+    protected function applySmartDefaults(): void
+    {
+        $user = Auth::user();
+        if ($user === null) {
+            return;
+        }
+
+        $defaults = app(CreateDefaultsService::class)->forCampaign($user);
+
+        $this->language = $defaults->language ?? 'en';
+        $this->location_id = $defaults->locationId;
+        $this->visibility = $defaults->visibility ?? 'protected';
+        $this->recurrence = $defaults->recurrence ?? 'weekly';
+        $this->game_type = $defaults->gameType ?? 'ttrpg';
+        $this->game_system_id = $defaults->gameSystemId;
+
+        // Gatherings keep their warm 'all welcome' defaults (seat count + level
+        // come from applyTypeDefaults, not history). For focused types, carry
+        // forward the last session's experience level and seat count.
+        if ($this->game_type !== 'gathering') {
+            if ($defaults->experienceLevel !== null) {
+                $this->experience_level = $defaults->experienceLevel;
+            }
+            if ($defaults->maxPlayers !== null) {
+                $this->max_players = $defaults->maxPlayers;
+            }
+        }
+    }
+
     protected function autofillFromGameSystem(?string $id): void
     {
         if ($id === null) {
@@ -442,7 +592,14 @@ class CreateCampaign extends Component
             return;
         }
 
-        if ($system->average_play_time && $this->session_duration === '3') {
+        // Allow autofill to override type-default durations but not manual input
+        $typeDefault = match ($this->game_type) {
+            'board_game' => '1.5',
+            'ttrpg' => '3',
+            default => '',
+        };
+
+        if ($system->average_play_time && ($this->session_duration === '' || $this->session_duration === $typeDefault)) {
             $hours = $system->average_play_time / 60;
             $rounded = round($hours * 2) / 2;
             $this->session_duration = (string) max($rounded, 0.5);
