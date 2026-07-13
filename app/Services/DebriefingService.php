@@ -125,7 +125,7 @@ class DebriefingService
                 $this->notificationService->send(
                     $participant,
                     new DebriefingAvailable($game),
-                    NotificationCategory::GameUpdated,
+                    NotificationCategory::SessionContent,
                 );
             } catch (\Throwable $e) {
                 Log::warning('Failed to send debriefing notification', [

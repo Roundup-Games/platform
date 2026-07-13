@@ -82,7 +82,7 @@ class RecapService
                 $this->notificationService->send(
                     $participant,
                     new RecapPosted($game, $author),
-                    NotificationCategory::GameUpdated,
+                    NotificationCategory::SessionContent,
                 );
             } catch (\Throwable $e) {
                 Log::warning('Failed to send recap notification', [

@@ -15,6 +15,8 @@ use App\Models\Game;
 use App\Models\SuppressedInviteEmail;
 use App\Models\User;
 use App\Notifications\EntityInvitation;
+use App\Notifications\PlayerBenched;
+use App\Notifications\WaitlistPlaced;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -169,6 +171,50 @@ class OverflowRouter
             'user_id' => $participant->getUserId(),
             'overflow_status' => $overflow->statusValue(),
         ]);
+
+        // When an accepted invitee is placed on the bench or waitlist after
+        // accepting, notify them — accepting an invite expecting a seat and
+        // landing in the overflow pool is surprising enough to warrant a
+        // persistent notification (the flash is transient). Each overflow type
+        // gets its own notification class and category so users can tune them
+        // independently; both default to mail-off (informational, no deadline).
+        if ($overflow->isBench()) {
+            $user = $participant->getUser();
+            if ($user !== null) {
+                try {
+                    app(NotificationService::class)->send(
+                        $user,
+                        new PlayerBenched($entity, $meta->type),
+                        NotificationCategory::BenchUpdates,
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning('notification.bench_placement_dispatch_failed', [
+                        'entity_type' => $meta->type,
+                        $meta->foreignKey => $entity->id,
+                        'user_id' => $participant->getUserId(),
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        } elseif ($overflow->isWaitlist()) {
+            $user = $participant->getUser();
+            if ($user !== null) {
+                try {
+                    app(NotificationService::class)->send(
+                        $user,
+                        new WaitlistPlaced($entity),
+                        NotificationCategory::WaitlistPlacement,
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning('notification.waitlist_placement_dispatch_failed', [
+                        'entity_type' => $meta->type,
+                        $meta->foreignKey => $entity->id,
+                        'user_id' => $participant->getUserId(),
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
     }
 
     /**

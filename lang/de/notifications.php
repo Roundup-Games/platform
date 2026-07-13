@@ -14,11 +14,16 @@ return [
     'category_participant_removed' => 'Teilnehmer entfernt',
     'category_seat_demoted' => 'Platz abgegeben',
     'category_team_member_removed' => 'Teammitglied entfernt',
+    'category_waitlist_promoted' => 'Warteliste-Beförderung',
+    'category_waitlist_placement' => 'Warteliste-Platzierung',
+    'category_bench_updates' => 'Bank-Updates (Platzierung & Host-Beförderung)',
     'category_game_cancelled' => 'Spiel abgesagt',
     'category_game_completed' => 'Spiel abgeschlossen',
     'category_campaign_cancelled' => 'Kampagne abgesagt',
     'category_campaign_completed' => 'Kampagne abgeschlossen',
+    'category_session_content' => 'Sitzungsinhalte (Aushänge, Nachbesprechungen, Recap)',
     'category_review_reported' => 'Bewertung gemeldet',
+    'category_moderation_notice' => 'Moderationshinweise (Verwarnungen & Inhaltsentfernungen)',
     'category_below_min_players' => 'Mindestspielerzahl nicht erreicht',
     'category_confirmation_expired' => 'Bestätigung abgelaufen',
     'category_session_reminder' => 'Sitzungserinnerung',
@@ -57,7 +62,21 @@ return [
     'state_all' => 'Alle',
     'hint_preference_states' => 'Wähle, wie du für jede Kategorie benachrichtigt werden möchtest. „In-App" zeigt Benachrichtigungen im Glocken-Symbol an. „Alle" sendet zusätzlich eine E-Mail.',
     'hint_preference_channels' => 'Schalte jeden Kanal pro Benachrichtigungskategorie ein oder aus. Push-Benachrichtigungen müssen unten im Gerätebereich aktiviert werden.',
+
+    // Wöchentlicher Digest
+    'heading_weekly_digest' => 'Wöchentlicher E-Mail-Digest',
+    'hint_weekly_digest' => 'Erhalte eine wöchentliche Zusammenfassung verpasster Benachrichtigungen. Hält dich auf dem Laufenden, ohne dein Postfach zu überfluten.',
+    'subject_weekly_digest' => 'Dein wöchentliches Update',
+    'body_weekly_digest_intro' => 'Du hast diese Woche :count ungelesene Benachrichtigung(en):',
+    'body_weekly_digest_more' => '...und :count weitere',
+    'action_weekly_digest' => 'Alle Benachrichtigungen ansehen',
+    'body_weekly_digest_settings' => 'Du kannst deine Benachrichtigungseinstellungen in den Einstellungen ändern.',
     'channel_push' => 'Push',
+
+    'aria_master_toggle_all_in_app' => 'Alle In-App-Benachrichtigungen umschalten',
+    'aria_master_toggle_all_email' => 'Alle E-Mail-Benachrichtigungen umschalten',
+    'aria_master_toggle_all_push' => 'Alle Push-Benachrichtigungen umschalten',
+    'aria_master_toggle_group' => 'Alle :group-Benachrichtigungen umschalten',
 
     // Push-Geräteverwaltung
     'push_devices_heading' => 'Push-Geräte',
@@ -108,6 +127,13 @@ return [
     'verb_game_system_request_approved' => 'Spielesystem-Anfrage genehmigt',
     'verb_game_system_request_rejected' => 'Spielesystem-Anfrage abgelehnt',
     'verb_game_system_request_duplicate' => 'Spielesystem-Anfrage als Duplikat markiert',
+
+    // Teilnahme-Lebenszyklus-Verben (Bank, Warteliste, Degradierung)
+    'verb_waitlist_placed' => 'hat dich auf die Warteliste gesetzt für',
+    'verb_waitlist_promoted' => 'hat dich von der Warteliste befördert für',
+    'verb_player_benched' => 'hat dich auf die Bank gesetzt für',
+    'verb_promoted_from_bench' => 'hat dich von der Bank befördert für',
+    'verb_seat_demoted' => 'hat dich auf die Warteliste verschoben für',
 
     // Anzeigetexte — Satzbausteine (1/2/3+ Akteure)
     'display_one_actor' => ':actor :verb',
@@ -192,7 +218,7 @@ return [
     'body_review_rating' => 'Bewertung: :rating/5',
 
     // Spiel aktualisiert
-    'category_game_updated' => 'Spiel aktualisiert',
+    'category_game_updated' => 'Spieldetails aktualisiert',
     'subject_game_updated' => ':game wurde aktualisiert',
     'body_game_updated' => 'Das Spiel **:game** wurde aktualisiert. Änderungen: :fields.',
     'action_view_game' => 'Spiel anzeigen',
@@ -210,7 +236,7 @@ return [
     'action_view_game_system' => 'Spielsystem ansehen',
 
     // Kampagne aktualisiert
-    'category_campaign_updated' => 'Kampagne aktualisiert',
+    'category_campaign_updated' => 'Kampagnendetails aktualisiert',
     'subject_campaign_updated' => ':campaign wurde aktualisiert',
     'body_campaign_updated' => 'Die Kampagne **:campaign** wurde aktualisiert. Änderungen: :fields.',
     'action_view_campaign' => 'Kampagne anzeigen',
@@ -287,6 +313,20 @@ return [
     'subject_waitlist_promoted' => 'Ein Platz ist frei in :game!',
     'body_waitlist_promoted' => 'Ein Platz in **:game** ist frei geworden! Du hast bis :deadline Zeit, deine Teilnahme zu bestätigen.',
     'action_waitlist_promoted' => 'Platz bestätigen',
+
+    // Warteliste-Platzierung (rein informativ, keine Frist)
+    'subject_waitlist_placed' => 'Du wurdest auf die Warteliste für :game gesetzt',
+    'body_waitlist_placed' => '**:game** ist derzeit voll, daher wurdest du auf die Warteliste gesetzt. Wenn ein Platz frei wird, wirst du automatisch befördert.',
+    'action_waitlist_placed' => ':game ansehen',
+    'push_title_waitlist_placed' => 'Du bist auf der Warteliste',
+    'push_body_waitlist_placed' => 'Du wurdest auf die Warteliste für :game gesetzt.',
+
+    // Von der Bank befördert (host-gesteuert, keine Bestätigungsfrist)
+    'subject_promoted_from_bench' => 'Du wurdest bei :game von der Bank befördert!',
+    'body_promoted_from_bench' => 'Der Host hat dich für **:game** auf einen bestätigten Platz befördert. Du bist nicht mehr auf der Bank.',
+    'action_promoted_from_bench' => ':game ansehen',
+    'push_title_promoted_from_bench' => 'Du bist dabei!',
+    'push_body_promoted_from_bench' => 'Der Host hat dich für :game von der Bank befördert.',
 
     // Bestätigung abgelaufen
     'subject_confirmation_expired' => 'Bestätigungsfrist abgelaufen für :game',

@@ -619,7 +619,7 @@ class WaitlistService
                 confirmationDeadline: $expiresAt->isoFormat('LLL'),
             );
 
-            $notificationService->send($user, $notification, NotificationCategory::ParticipantJoined);
+            $notificationService->send($user, $notification, NotificationCategory::WaitlistPromoted);
         } catch (\Throwable $e) {
             Log::error('waitlist.notification_failed', [
                 'entity_id' => $entity->id,

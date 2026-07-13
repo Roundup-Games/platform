@@ -76,6 +76,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'phone',
     'privacy_settings',
     'notification_settings',
+    'weekly_digest_enabled',
     'reliability_score',
     'reliability_computed_at',
     'profile_version',

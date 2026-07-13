@@ -11,6 +11,8 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\NewApplication;
+use App\Notifications\PlayerBenched;
+use App\Notifications\WaitlistPlaced;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
 use Illuminate\Database\QueryException;
@@ -225,8 +227,49 @@ trait HandlesApplicationSubmission
 
         if ($isPublic && $isFull && $txDecisions->benchMode) {
             session()->flash('success', __($config['translations']['bench_success']));
+
+            // Notify the applicant they were placed on the bench (host-curated
+            // alternate pool, distinct from the FIFO waitlist). Dispatched after
+            // the transaction commits so a failure never rolls back the apply.
+            try {
+                $applicant = User::find(Auth::id());
+                if ($applicant) {
+                    app(NotificationService::class)->send(
+                        $applicant,
+                        new PlayerBenched($entity, $config['entity_type']),
+                        NotificationCategory::BenchUpdates,
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::error('notification.player_benched_dispatch_failed', [
+                    $config['log_key'] => $entity->id,
+                    'applicant_id' => Auth::id(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
         } elseif ($isPublic && $isFull) {
             session()->flash('success', __($config['translations']['waitlist_success']));
+
+            // Notify the applicant they were placed on the waitlist (FIFO
+            // queue). Dispatched after the transaction commits so a failure
+            // never rolls back the apply. Parallel to the bench notification
+            // above; mail-off by default since there is no action to take.
+            try {
+                $applicant = User::find(Auth::id());
+                if ($applicant) {
+                    app(NotificationService::class)->send(
+                        $applicant,
+                        new WaitlistPlaced($entity),
+                        NotificationCategory::WaitlistPlacement,
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::error('notification.waitlist_placed_dispatch_failed', [
+                    $config['log_key'] => $entity->id,
+                    'applicant_id' => Auth::id(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
         } elseif ($isPublic) {
             session()->flash('success', __($config['translations']['join_success']));
         } else {

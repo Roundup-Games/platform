@@ -14,13 +14,18 @@ return [
     'category_participant_removed' => 'Participant Removed',
     'category_seat_demoted' => 'Seat Demoted',
     'category_team_member_removed' => 'Team Member Removed',
+    'category_waitlist_promoted' => 'Waitlist Promotion',
+    'category_waitlist_placement' => 'Waitlist Placement',
+    'category_bench_updates' => 'Bench Updates (placement & host promotion)',
     'category_game_cancelled' => 'Game Cancelled',
     'category_game_completed' => 'Game Completed',
     'category_campaign_cancelled' => 'Campaign Cancelled',
     'category_campaign_completed' => 'Campaign Completed',
+    'category_session_content' => 'Session Content (bulletins, debriefings, recaps)',
 
     // Moderation
     'category_review_reported' => 'Review Reported',
+    'category_moderation_notice' => 'Moderation Notices (warnings & content removal)',
     'group_moderation' => 'Moderation',
 
     // UI — Bell dropdown
@@ -55,7 +60,21 @@ return [
     'state_all' => 'All',
     'hint_preference_states' => 'Choose how you want to be notified for each category. "In-App" shows notifications in the bell icon. "All" also sends email.',
     'hint_preference_channels' => 'Toggle each channel on or off per notification category. Push notifications require enabling in the device section below.',
+
+    // Weekly digest
+    'heading_weekly_digest' => 'Weekly Email Digest',
+    'hint_weekly_digest' => 'Receive one weekly summary email of notifications you missed. Keeps you in the loop without flooding your inbox.',
+    'subject_weekly_digest' => 'Your weekly roundup',
+    'body_weekly_digest_intro' => 'You have :count unread notification(s) this week:',
+    'body_weekly_digest_more' => '...and :count more',
+    'action_weekly_digest' => 'View All Notifications',
+    'body_weekly_digest_settings' => 'You can change your notification preferences in your settings.',
     'channel_push' => 'Push',
+
+    'aria_master_toggle_all_in_app' => 'Toggle all in-app notifications',
+    'aria_master_toggle_all_email' => 'Toggle all email notifications',
+    'aria_master_toggle_all_push' => 'Toggle all push notifications',
+    'aria_master_toggle_group' => 'Toggle all :group notifications',
 
     // Push subscription management
     'push_devices_heading' => 'Push Devices',
@@ -105,6 +124,13 @@ return [
     'verb_game_system_request_approved' => 'Game system request approved',
     'verb_game_system_request_rejected' => 'Game system request declined',
     'verb_game_system_request_duplicate' => 'Game system request marked as duplicate',
+
+    // Participation lifecycle verbs (bench, waitlist, demotion)
+    'verb_waitlist_placed' => 'placed you on the waitlist for',
+    'verb_waitlist_promoted' => 'promoted you off the waitlist for',
+    'verb_player_benched' => 'placed you on the bench for',
+    'verb_promoted_from_bench' => 'promoted you off the bench for',
+    'verb_seat_demoted' => 'moved you to the waitlist for',
 
     // Display strings — sentence templates (1/2/3+ actors)
     'display_one_actor' => ':actor :verb',
@@ -189,7 +215,7 @@ return [
     'body_review_content' => 'Review content: :body',
 
     // Game updated
-    'category_game_updated' => 'Game Updated',
+    'category_game_updated' => 'Game Details Updated',
     'subject_game_updated' => ':game has been updated',
     'body_game_updated' => 'The game **:game** has been updated. Changes: :fields.',
     'action_view_game' => 'View Game',
@@ -210,7 +236,7 @@ return [
     'action_view_game_system' => 'View Game System',
 
     // Campaign updated
-    'category_campaign_updated' => 'Campaign Updated',
+    'category_campaign_updated' => 'Campaign Details Updated',
     'subject_campaign_updated' => ':campaign has been updated',
     'body_campaign_updated' => 'The campaign **:campaign** has been updated. Changes: :fields.',
     'action_view_campaign' => 'View Campaign',
@@ -233,6 +259,20 @@ return [
     'subject_waitlist_promoted' => 'A spot opened in :game!',
     'body_waitlist_promoted' => 'A spot opened up in **:game**! You have until :deadline to confirm your participation.',
     'action_waitlist_promoted' => 'Confirm Your Spot',
+
+    // Waitlist placement (informational, no deadline)
+    'subject_waitlist_placed' => 'You\'ve been added to the waitlist for :game',
+    'body_waitlist_placed' => '**:game** is currently full, so you\'ve been placed on the waitlist. If a spot opens up, you\'ll be promoted automatically.',
+    'action_waitlist_placed' => 'View :game',
+    'push_title_waitlist_placed' => 'You\'re on the Waitlist',
+    'push_body_waitlist_placed' => 'You\'ve been added to the waitlist for :game.',
+
+    // Promoted from bench (host-curated, no confirmation deadline)
+    'subject_promoted_from_bench' => 'You\'ve been promoted off the bench in :game!',
+    'body_promoted_from_bench' => 'The host promoted you to an approved seat in **:game**. You\'re no longer on the bench.',
+    'action_promoted_from_bench' => 'View :game',
+    'push_title_promoted_from_bench' => 'You\'re In!',
+    'push_body_promoted_from_bench' => 'The host promoted you off the bench for :game.',
     'subject_confirmation_expired' => 'Waitlist confirmation expired for :game',
     'body_confirmation_expired' => 'Your confirmation window for **:game** has expired. You have been moved to the back of the waitlist.',
     'subject_below_min_players' => ':game needs more players',

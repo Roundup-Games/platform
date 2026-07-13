@@ -141,6 +141,10 @@ Schedule::command('attendance:nudge')
 Schedule::command('pwa:prune-stale-subscriptions')->weekly()->sundays()->at('03:00')->onOneServer();
 Schedule::command('pwa:prune-visits')->monthly()->onOneServer();
 
+// Weekly notification digest — one summary email per user instead of
+// dozens of per-category emails. Monday 04:00 to avoid the Sunday maintenance window.
+Schedule::command('notifications:weekly-digest')->weekly()->mondays()->at('04:00')->onOneServer();
+
 // Escalated helpdesk — auto-escalation, SLA enforcement, ticket lifecycle
 Schedule::command('escalated:evaluate-escalations')->everyFiveMinutes()->onOneServer();
 Schedule::command('escalated:run-automations')->everyMinute()->onOneServer();

@@ -30,9 +30,14 @@ class NotificationController extends Controller
         /** @var array<string, mixed> $settings */
         $settings = $user->notification_settings;
         $existingCategory = is_array($settings[$category] ?? null) ? $settings[$category] : [];
+        // Unsubscribe means "stop emailing me about this category" — it must not
+        // touch the in-app or push channels, which the user manages separately
+        // in their settings page. Preserving all three keys also keeps the
+        // stored record schema-consistent (database/mail/push).
         $settings[$category] = [
             'database' => (bool) ($existingCategory['database'] ?? true),
             'mail' => false,
+            'push' => (bool) ($existingCategory['push'] ?? false),
         ];
 
         $user->update(['notification_settings' => $settings]);

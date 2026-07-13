@@ -2,9 +2,6 @@
 
 namespace App\Enums;
 
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
-
 enum NotificationCategory: string
 {
     // Social
@@ -26,6 +23,9 @@ enum NotificationCategory: string
     case ParticipantRemoved = 'participant_removed';
     case SeatDemoted = 'seat_demoted';
     case TeamMemberRemoved = 'team_member_removed';
+    case WaitlistPromoted = 'waitlist_promoted';
+    case WaitlistPlacement = 'waitlist_placement';
+    case BenchUpdates = 'bench_updates';
 
     // Attendance
     case AttendanceReported = 'attendance_reported';
@@ -40,6 +40,7 @@ enum NotificationCategory: string
     case CampaignCompleted = 'campaign_completed';
     case GameUpdated = 'game_updated';
     case CampaignUpdated = 'campaign_updated';
+    case SessionContent = 'session_content';
 
     // Content
     case GameSystemRequest = 'game_system_request';
@@ -51,6 +52,7 @@ enum NotificationCategory: string
 
     // Moderation
     case ReviewReported = 'review_reported';
+    case ModerationNotice = 'moderation_notice';
 
     /**
      * @return string[]
@@ -75,6 +77,9 @@ enum NotificationCategory: string
             self::ParticipantRemoved => __('notifications.category_participant_removed'),
             self::SeatDemoted => __('notifications.category_seat_demoted'),
             self::TeamMemberRemoved => __('notifications.category_team_member_removed'),
+            self::WaitlistPromoted => __('notifications.category_waitlist_promoted'),
+            self::WaitlistPlacement => __('notifications.category_waitlist_placement'),
+            self::BenchUpdates => __('notifications.category_bench_updates'),
             self::AttendanceReported => __('notifications.category_attendance_reported'),
             self::DisputeResolved => __('notifications.category_dispute_resolved'),
             self::AttendanceNudge => __('notifications.category_attendance_nudge'),
@@ -85,11 +90,13 @@ enum NotificationCategory: string
             self::CampaignCompleted => __('notifications.category_campaign_completed'),
             self::GameUpdated => __('notifications.category_game_updated'),
             self::CampaignUpdated => __('notifications.category_campaign_updated'),
+            self::SessionContent => __('notifications.category_session_content'),
             self::GameSystemRequest => __('notifications.category_game_system_request'),
             self::BelowMinPlayers => __('notifications.category_below_min_players'),
             self::ConfirmationExpired => __('notifications.category_confirmation_expired'),
             self::SessionReminder => __('notifications.category_session_reminder'),
             self::ReviewReported => __('notifications.category_review_reported'),
+            self::ModerationNotice => __('notifications.category_moderation_notice'),
         };
     }
 
@@ -99,11 +106,11 @@ enum NotificationCategory: string
             self::NewFollower => 'social',
             self::GameInvitation, self::CampaignInvitation, self::TeamInvitation, self::SessionAddedToCampaign => 'invitations',
             self::NewApplication, self::ApplicationApproved, self::ApplicationRejected => 'applications',
-            self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved => 'participation',
-            self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated => 'status',
+            self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::WaitlistPromoted, self::WaitlistPlacement, self::BenchUpdates, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved => 'participation',
+            self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent => 'status',
             self::GameSystemRequest => 'content',
             self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder => 'scheduling',
-            self::ReviewReported => 'moderation',
+            self::ReviewReported, self::ModerationNotice => 'moderation',
         };
     }
 
@@ -129,11 +136,11 @@ enum NotificationCategory: string
             ],
             'participation' => [
                 'label' => __('notifications.group_participation'),
-                'categories' => [self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved],
+                'categories' => [self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::WaitlistPromoted, self::WaitlistPlacement, self::BenchUpdates, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved],
             ],
             'status' => [
                 'label' => __('notifications.group_status'),
-                'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated],
+                'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent],
             ],
             'content' => [
                 'label' => __('notifications.group_content'),
@@ -145,7 +152,7 @@ enum NotificationCategory: string
             ],
             'moderation' => [
                 'label' => __('notifications.group_moderation'),
-                'categories' => [self::ReviewReported],
+                'categories' => [self::ReviewReported, self::ModerationNotice],
             ],
         ];
 
@@ -165,63 +172,87 @@ enum NotificationCategory: string
     }
 
     /**
-     * The notification channels available for this category.
-     *
-     * @return class-string[]
-     */
-    public static function channels(): array
-    {
-        return [
-            DatabaseChannel::class,
-            MailChannel::class,
-        ];
-    }
-
-    /**
      * Whether mail is enabled by default for this category.
-     * Mail defaults to true for high-priority actionable events
-     * (invitations, cancellations, application outcomes, removals).
+     *
+     * Cost-aware policy: email (the only per-message channel — Resend) is on by
+     * default ONLY for time-critical, actionable events the user cannot recover
+     * by glancing at the bell — i.e. where missing it costs them a seat, a
+     * decision, or their plans. Everything else is in-app + push only; users
+     * who want those by email opt in explicitly. The weekly digest covers the
+     * in-app-only events so players still hear from us cheaply.
      */
     public function defaultMailEnabled(): bool
     {
         return match ($this) {
-            self::NewFollower => false,
-            self::GameInvitation => true,
-            self::CampaignInvitation => true,
+            // Invitations that expire / need a decision
+            self::GameInvitation,
+            self::CampaignInvitation,
             self::TeamInvitation => true,
             self::SessionAddedToCampaign => false,
-            self::NewApplication => true,
+
+            // Application outcomes the host or applicant must act on
+            self::NewApplication,
             self::ApplicationApproved => true,
-            self::ApplicationRejected => true,
-            self::ParticipantJoined => false,
-            self::ParticipantRemoved => true,
-            self::SeatDemoted => true,
-            self::TeamMemberRemoved => true,
-            self::AttendanceReported => true,
-            self::DisputeResolved => true,
-            self::AttendanceNudge => false,
-            self::AttendanceResolved => true,
-            self::GameCancelled => true,
-            self::GameCompleted => true,
+            self::ApplicationRejected => false,
+
+            // Participation changes that affect access
+            self::ParticipantRemoved,
+            self::SeatDemoted,
+            self::TeamMemberRemoved,
+            self::WaitlistPromoted => true,
+            self::ParticipantJoined,
+            self::WaitlistPlacement,
+            self::BenchUpdates => false,
+
+            // Attendance — push is the right channel for these
+            self::AttendanceReported,
+            self::DisputeResolved,
+            self::AttendanceNudge,
+            self::AttendanceResolved => false,
+
+            // Entity status — cancellations change plans; the rest is ambient
+            self::GameCancelled,
             self::CampaignCancelled => true,
-            self::CampaignCompleted => true,
-            self::GameUpdated => true,
-            self::CampaignUpdated => true,
-            self::GameSystemRequest => true,
-            self::BelowMinPlayers => true,
-            self::ConfirmationExpired => false,
+            self::GameCompleted,
+            self::CampaignCompleted,
+            self::GameUpdated,
+            self::CampaignUpdated,
+            self::SessionContent => false,
+
+            // Content / scheduling
+            self::GameSystemRequest => false,
+            self::BelowMinPlayers => false,
+            self::ConfirmationExpired,
             self::SessionReminder => true,
-            self::ReviewReported => true,
+
+            // Social / moderation
+            self::NewFollower => false,
+            self::ReviewReported => false,
+            self::ModerationNotice => true,
         };
     }
 
     /**
      * Whether push is enabled by default for this category.
-     * Push follows the same rule as mail — enabled for high-priority actionable events.
+     *
+     * Push is effectively free (compute only) and is the natural channel for
+     * immediate-but-not-email-worthy events, so it is on by default for every
+     * category except purely ambient noise (followers, completions, moderator
+     * queue) where a push would feel like spam. It is also on for every
+     * mail-defaulted category, since a user who granted push permission expects
+     * to be reached there.
      */
     public function defaultPushEnabled(): bool
     {
-        return $this->defaultMailEnabled();
+        return match ($this) {
+            // Ambient — no push by default
+            self::NewFollower,
+            self::GameCompleted,
+            self::CampaignCompleted,
+            self::ReviewReported => false,
+
+            default => true,
+        };
     }
 
     /**

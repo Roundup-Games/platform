@@ -15,19 +15,45 @@
     </div>
 @endif
 
-{{-- Channel header (visible on sm+) --}}
+{{-- Channel master switches: one click toggles all categories for that channel --}}
 <div class="hidden sm:grid sm:grid-cols-[1fr_repeat(3,minmax(0,80px))] gap-2 px-4">
     <span></span>
-    <span class="text-xs font-medium text-on-surface-variant text-center">{{ __('notifications.channel_in_app') }}</span>
-    <span class="text-xs font-medium text-on-surface-variant text-center">{{ __('notifications.channel_email') }}</span>
-    <span class="text-xs font-medium text-on-surface-variant text-center">{{ __('notifications.channel_push') }}</span>
+    @php
+        $allValues = \App\Enums\NotificationCategory::values();
+        $allDbOn = collect($allValues)->every(fn ($k) => !empty($notificationSettings[$k]['database']));
+        $allMailOn = collect($allValues)->every(fn ($k) => !empty($notificationSettings[$k]['mail']));
+        $allPushOn = collect($allValues)->every(fn ($k) => !empty($notificationSettings[$k]['push']));
+    @endphp
+    <button type="button" wire:click="toggleChannelGlobally('database')" class="text-xs font-medium text-center transition-colors hover:text-primary"
+            aria-label="{{ __('notifications.aria_master_toggle_all_in_app') }}">
+        <span @class(['text-primary' => $allDbOn, 'text-on-surface-variant' => !$allDbOn])>{{ __('notifications.channel_in_app') }}</span>
+    </button>
+    <button type="button" wire:click="toggleChannelGlobally('mail')" class="text-xs font-medium text-center transition-colors hover:text-primary"
+            aria-label="{{ __('notifications.aria_master_toggle_all_email') }}">
+        <span @class(['text-primary' => $allMailOn, 'text-on-surface-variant' => !$allMailOn])>{{ __('notifications.channel_email') }}</span>
+    </button>
+    <button type="button" wire:click="toggleChannelGlobally('push')" class="text-xs font-medium text-center transition-colors hover:text-primary"
+            aria-label="{{ __('notifications.aria_master_toggle_all_push') }}">
+        <span @class(['text-primary' => $allPushOn, 'text-on-surface-variant' => !$allPushOn])>{{ __('notifications.channel_push') }}</span>
+    </button>
+</div>
+
+{{-- Mobile channel master switches --}}
+<div class="sm:hidden flex justify-end gap-3 px-4 pb-2">
+    <button type="button" wire:click="toggleChannelGlobally('database')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_in_app') }}</button>
+    <button type="button" wire:click="toggleChannelGlobally('mail')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_email') }}</button>
+    <button type="button" wire:click="toggleChannelGlobally('push')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_push') }}</button>
 </div>
 
 @foreach(\App\Enums\NotificationCategory::grouped() as $groupKey => $group)
     <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
-        <h2 class="text-sm font-heading font-semibold tracking-tight text-on-surface-variant mb-3 uppercase">
-            {{ $group['label'] }}
-        </h2>
+        <div class="flex items-center justify-between mb-3">
+            <button type="button" wire:click="toggleGroup('{{ $groupKey }}')"
+                    class="text-sm font-heading font-semibold tracking-tight text-on-surface-variant uppercase hover:text-primary transition-colors"
+                    aria-label="{{ __('notifications.aria_master_toggle_group', ['group' => $group['label']]) }}">
+                {{ $group['label'] }}
+            </button>
+        </div>
         <div class="space-y-2">
             @foreach($group['options'] as $categoryValue => $categoryLabel)
                 @php
@@ -97,6 +123,37 @@
         </div>
     </section>
 @endforeach
+
+{{-- Weekly Digest Toggle --}}
+<section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+    <div class="flex items-center justify-between gap-4">
+        <div class="flex items-start gap-3 min-w-0">
+            <span class="material-symbols-outlined text-primary mt-0.5 shrink-0" style="font-variation-settings: 'FILL' 1" aria-hidden="true">mail</span>
+            <div class="min-w-0">
+                <h2 class="text-sm font-heading font-semibold tracking-tight text-on-surface-variant mb-1 uppercase">
+                    {{ __('notifications.heading_weekly_digest') }}
+                </h2>
+                <p class="text-sm text-on-surface-variant">{{ __('notifications.hint_weekly_digest') }}</p>
+            </div>
+        </div>
+        <button type="button"
+                wire:click="$toggle('weeklyDigestEnabled')"
+                @class([
+                    'relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0',
+                    'bg-primary' => $weeklyDigestEnabled,
+                    'bg-surface-container-highest' => !$weeklyDigestEnabled,
+                ])
+                role="switch"
+                aria-label="{{ __('notifications.heading_weekly_digest') }}"
+                :aria-checked="{{ $weeklyDigestEnabled ? 'true' : 'false' }}">
+            <span @class([
+                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
+                'translate-x-6' => $weeklyDigestEnabled,
+                'translate-x-1' => !$weeklyDigestEnabled,
+            ])></span>
+        </button>
+    </div>
+</section>
 
 {{-- Push Subscription Management --}}
 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">

@@ -29,12 +29,14 @@ class Show extends Component
     public array $privacySettings = [];
 
     // Notification settings
-    /** @var array<string, mixed> Per-category notification channel preferences */
+    /** @var array<string, array<string, bool>> Per-category notification channel preferences */
     public array $notificationSettings = [];
 
     public bool $privacySaved = false;
 
     public bool $notificationSaved = false;
+
+    public bool $weeklyDigestEnabled = true;
 
     public int $pushSubscriptionCount = 0;
 
@@ -81,14 +83,17 @@ class Show extends Component
         foreach (NotificationCategory::cases() as $category) {
             $key = $category->value;
             $this->notificationSettings[$key] = [
-                'database' => $storedNotifications[$key]['database'] ?? $defaults[$key]['database'],
-                'mail' => $storedNotifications[$key]['mail'] ?? $defaults[$key]['mail'],
-                'push' => $storedNotifications[$key]['push'] ?? ($defaults[$key]['push'] ?? false),
+                'database' => (bool) ($storedNotifications[$key]['database'] ?? $defaults[$key]['database']),
+                'mail' => (bool) ($storedNotifications[$key]['mail'] ?? $defaults[$key]['mail']),
+                'push' => (bool) ($storedNotifications[$key]['push'] ?? ($defaults[$key]['push'] ?? false)),
             ];
         }
 
         // Count existing push subscriptions for the subscribe/unsubscribe UI
         $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
+
+        // Load weekly digest preference (defaults to true)
+        $this->weeklyDigestEnabled = (bool) ($user->weekly_digest_enabled ?? true);
 
         // Check if user has a pending data export request ticket
         $this->hasPendingExportRequest = Ticket::whereMorphedTo('requester', $user)
@@ -122,6 +127,62 @@ class Show extends Component
         $this->privacySaved = true;
     }
 
+    /**
+     * Toggle a single channel (database/mail/push) across ALL categories.
+     * The most-used notification action on any platform — one click instead
+     * of 30 individual toggles. Persists immediately.
+     */
+    public function toggleChannelGlobally(string $channel): void
+    {
+        $allValues = NotificationCategory::values();
+
+        // Determine the majority state to decide the toggle direction:
+        // if most are on, turn all off; if most are off, turn all on.
+        $onCount = 0;
+        foreach ($allValues as $key) {
+            if (! empty($this->notificationSettings[$key][$channel])) {
+                $onCount++;
+            }
+        }
+        $newState = $onCount <= count($allValues) / 2;
+
+        foreach ($allValues as $key) {
+            $this->notificationSettings[$key][$channel] = $newState;
+        }
+    }
+
+    /**
+     * Toggle all three channels for every category in a group.
+     * Group-level master switch — enables/disables a whole section.
+     */
+    public function toggleGroup(string $groupKey): void
+    {
+        $grouped = NotificationCategory::grouped();
+
+        if (! isset($grouped[$groupKey])) {
+            return;
+        }
+
+        // Determine majority state across the group's categories
+        $categoryValues = array_keys($grouped[$groupKey]['options']);
+        $onCount = 0;
+        $totalChannels = count($categoryValues) * 3;
+        foreach ($categoryValues as $key) {
+            foreach (['database', 'mail', 'push'] as $channel) {
+                if (! empty($this->notificationSettings[$key][$channel])) {
+                    $onCount++;
+                }
+            }
+        }
+        $newState = $onCount <= $totalChannels / 2;
+
+        foreach ($categoryValues as $key) {
+            $this->notificationSettings[$key]['database'] = $newState;
+            $this->notificationSettings[$key]['mail'] = $newState;
+            $this->notificationSettings[$key]['push'] = $newState;
+        }
+    }
+
     public function saveNotificationSettings(): void
     {
         $user = authenticatedUser();
@@ -146,7 +207,10 @@ class Show extends Component
             ];
         }
 
-        $user->update(['notification_settings' => $settings]);
+        $user->update([
+            'notification_settings' => $settings,
+            'weekly_digest_enabled' => (bool) $this->weeklyDigestEnabled,
+        ]);
 
         // Refresh push subscription count
         $this->pushSubscriptionCount = $user->pushSubscriptions()->count();

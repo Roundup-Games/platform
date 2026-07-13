@@ -56,7 +56,22 @@ describe('NotificationService', function () {
             'mail only' => ['mail', 'database'],
         ]);
 
-        it('returns empty array when both channels are disabled', function () {
+        it('returns empty array when every channel is explicitly disabled', function () {
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'game_invitation' => ['database' => false, 'mail' => false, 'push' => false],
+                ],
+            ]);
+
+            $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
+
+            expect($channels)->toBeEmpty();
+        });
+
+        it('falls back to the category default for a channel key that is absent', function () {
+            // Simulates a legacy/partial row created before push existed: the
+            // push key is missing entirely. It must resolve to the category
+            // default (push=true for GameInvitation), not be treated as "off".
             $user = User::factory()->create([
                 'notification_settings' => [
                     'game_invitation' => ['database' => false, 'mail' => false],
@@ -65,7 +80,9 @@ describe('NotificationService', function () {
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            expect($channels)->toBeEmpty();
+            expect($channels)->toHaveKey('push');
+            expect($channels)->not->toHaveKey('database');
+            expect($channels)->not->toHaveKey('mail');
         });
 
         it('falls back to defaults when notification_settings is null', function () {
@@ -166,7 +183,7 @@ describe('NotificationService', function () {
 
             $user = User::factory()->create([
                 'notification_settings' => [
-                    'game_invitation' => ['database' => false, 'mail' => false],
+                    'game_invitation' => ['database' => false, 'mail' => false, 'push' => false],
                 ],
             ]);
 

@@ -199,13 +199,21 @@ class NotificationService
      * Resolve which notification channels are enabled for a user
      * and category combination.
      *
-     * Reads the user's notification_settings JSON column. Falls back to
-     * the category defaults from NotificationCategory::defaultSettings()
-     * when the settings are null or the specific category entry is missing/malformed.
+     * Reads the user's notification_settings JSON column and resolves each
+     * channel independently: a channel key that is explicitly present (even if
+     * false) is honoured, while a missing key falls back to that category's
+     * default. The whole category also falls back to defaults when the blob is
+     * null, the category is absent, or its value is malformed.
+     *
+     * This per-channel fallback keeps legacy/partial rows (e.g. created before
+     * push existed, or for categories added after the user last saved prefs)
+     * behaving as intended instead of silently treating a missing channel as
+     * disabled.
      *
      * Maps channel names to Laravel channel class strings:
      *   - 'database' → DatabaseChannel::class
      *   - 'mail'     → MailChannel::class
+     *   - 'push'     → PushChannel::class
      *
      * @return array<string, string> Channel name => channel class
      */
@@ -216,33 +224,45 @@ class NotificationService
         $categoryKey = $category->value;
         $defaults = NotificationCategory::defaultSettings();
 
-        // Use stored settings if valid, otherwise fall back to defaults
-        $categorySettings = null;
-        if (is_array($settings) && isset($settings[$categoryKey]) && is_array($settings[$categoryKey])) {
-            $categorySettings = $settings[$categoryKey];
-        } elseif (is_array($settings) && array_key_exists($categoryKey, $settings)) {
-            // Key exists but value is malformed — fall back to defaults
-            Log::warning('notification.malformed_settings', [
-                'user_id' => $user->id,
-                'category' => $categoryKey,
-                'raw_value' => $settings[$categoryKey],
-            ]);
+        $categoryDefaults = $defaults[$categoryKey] ?? ['database' => true, 'mail' => false, 'push' => false];
+
+        // Resolve the stored per-category settings. $stored stays null when the
+        // settings blob is null, the category is absent, or its value is malformed
+        // — in all those cases we fall back to the full category default below.
+        $stored = null;
+        if (is_array($settings) && array_key_exists($categoryKey, $settings)) {
+            if (is_array($settings[$categoryKey])) {
+                $stored = $settings[$categoryKey];
+            } else {
+                // Key exists but value is malformed — fall back to defaults
+                Log::warning('notification.malformed_settings', [
+                    'user_id' => $user->id,
+                    'category' => $categoryKey,
+                    'raw_value' => $settings[$categoryKey],
+                ]);
+            }
         }
 
-        if ($categorySettings === null) {
-            $categorySettings = $defaults[$categoryKey] ?? ['database' => true, 'mail' => false];
-        }
-
-        // Map enabled booleans to channel class strings
+        // Map enabled booleans to channel class strings.
         $channelMap = [
             'database' => DatabaseChannel::class,
             'mail' => MailChannel::class,
             'push' => PushChannel::class,
         ];
 
+        // Per-channel resolution: use the stored value when the channel key is
+        // explicitly present (even if false), otherwise fall back to the category
+        // default. This keeps behaviour correct for legacy/partial rows (e.g.
+        // created before push existed, or for categories added after the user
+        // last saved their preferences) instead of silently treating a missing
+        // channel key as "disabled".
         $resolved = [];
         foreach ($channelMap as $name => $class) {
-            if (! empty($categorySettings[$name])) {
+            $enabled = $stored !== null
+                ? (bool) ($stored[$name] ?? $categoryDefaults[$name])
+                : (bool) $categoryDefaults[$name];
+
+            if ($enabled) {
                 $resolved[$name] = $class;
             }
         }

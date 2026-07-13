@@ -4,6 +4,7 @@ namespace App\Filament\Resources\TicketResource\Pages;
 
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
+use App\Enums\NotificationCategory;
 use App\Enums\VenueType;
 use App\Filament\Resources\GameSystemResource;
 use App\Filament\Resources\TicketResource;
@@ -19,6 +20,7 @@ use App\Notifications\ContentRemoved;
 use App\Notifications\ContentReportWarning;
 use App\Services\BggSyncService;
 use App\Services\GameSystemRequestService;
+use App\Services\NotificationService;
 use App\Services\VenueClaimService;
 use App\Services\VenueProposalService;
 use Escalated\Filament\Resources\TicketResource\Pages\ViewTicket as BaseViewTicket;
@@ -2048,13 +2050,21 @@ class ViewTicket extends BaseViewTicket
                 $ticketService->close($ticket, $admin);
             });
 
-            // Send warning notification after transaction commits
+            // Send warning notification after transaction commits.
+            // Routed through NotificationService so the dispatch is logged, the
+            // recipient's channel preferences are honoured, and the block-list is
+            // respected. getActor() returns null on ContentReportWarning, so the
+            // block-list never suppresses these admin-issued notices anyway.
             $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
-            $reportedUser->notify(new ContentReportWarning(
-                $entityType ?? 'content',
-                $entityName ?? 'reported content',
-                self::asString($reason),
-            ));
+            app(NotificationService::class)->send(
+                $reportedUser,
+                new ContentReportWarning(
+                    $entityType ?? 'content',
+                    $entityName ?? 'reported content',
+                    self::asString($reason),
+                ),
+                NotificationCategory::ModerationNotice,
+            );
 
             Log::info('content_report.user_warned', [
                 'ticket_id' => $ticket->id,
@@ -2133,12 +2143,16 @@ class ViewTicket extends BaseViewTicket
                 $owner = $this->resolveReportedUser($ticket, $entityType);
                 if ($owner) {
                     $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
-                    $owner->notify(new ContentRemoved(
-                        $entityType ?? 'content',
-                        $entityName ?? 'reported content',
-                        self::asString($reason),
-                        'cover_image',
-                    ));
+                    app(NotificationService::class)->send(
+                        $owner,
+                        new ContentRemoved(
+                            $entityType ?? 'content',
+                            $entityName ?? 'reported content',
+                            self::asString($reason),
+                            'cover_image',
+                        ),
+                        NotificationCategory::ModerationNotice,
+                    );
                 }
             }
 
@@ -2208,11 +2222,15 @@ class ViewTicket extends BaseViewTicket
                 $reportedUser = $this->resolveReportedUser($ticket, $entityType);
                 if ($reportedUser) {
                     $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
-                    $reportedUser->notify(new ContentRemoved(
-                        $entityType ?? 'content',
-                        $entityName ?? 'reported content',
-                        self::asString($reason),
-                    ));
+                    app(NotificationService::class)->send(
+                        $reportedUser,
+                        new ContentRemoved(
+                            $entityType ?? 'content',
+                            $entityName ?? 'reported content',
+                            self::asString($reason),
+                        ),
+                        NotificationCategory::ModerationNotice,
+                    );
                 }
             }
 

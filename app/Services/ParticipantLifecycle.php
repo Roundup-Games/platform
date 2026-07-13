@@ -19,6 +19,7 @@ use App\Notifications\ApplicationRejected;
 use App\Notifications\EntityInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
+use App\Notifications\PromotedFromBench;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -151,7 +152,7 @@ class ParticipantLifecycle
         $meta = $participant->getEntityMeta();
         $promoterId = $promoter !== null ? $promoter->id : 'system';
 
-        DB::transaction(function () use ($participant, $meta, $promoterId) {
+        [$entity, $userId] = DB::transaction(function () use ($participant, $meta, $promoterId) {
             $locked = $meta->participantClass::lockForUpdate()->whereKey($participant->getId())->firstOrFail();
 
             if ($locked->status !== ParticipantStatus::Benched) {
@@ -178,7 +179,31 @@ class ParticipantLifecycle
                 'user_id' => $locked->user_id,
                 'promoted_by' => $promoterId,
             ]);
+
+            return [$lockedEntity, $locked->user_id];
         });
+
+        // Notify the promoted participant OUTSIDE the transaction so a dispatch
+        // failure can never roll back the promotion. Mirrors the post-commit
+        // notification pattern used by WaitlistService::notifyPromotion and
+        // CapacityService::demote.
+        $user = $userId !== null ? User::find($userId) : null;
+        if ($user !== null) {
+            try {
+                app(NotificationService::class)->send(
+                    $user,
+                    new PromotedFromBench($entity),
+                    NotificationCategory::BenchUpdates,
+                );
+            } catch (\Throwable $e) {
+                Log::warning('bench.promotion_notification_failed', [
+                    'entity_type' => $meta->type,
+                    $meta->foreignKey => $entity->id,
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

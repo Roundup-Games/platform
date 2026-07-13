@@ -155,7 +155,7 @@ class GameBulletinBoard extends Component
                 app(NotificationService::class)->send(
                     $participant,
                     $notification,
-                    NotificationCategory::GameUpdated
+                    NotificationCategory::SessionContent
                 );
             } catch (\Throwable $e) {
                 Log::error('bulletin.notification_dispatch_failed', [
