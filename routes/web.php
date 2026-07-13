@@ -374,7 +374,14 @@ Route::prefix('{locale}')
 // This must come after all explicit non-locale routes and the locale
 // group so it only catches genuinely unmatched GET requests.
 
-Route::get('/{path}', function (string $path) {
+Route::get('/{path}', function (string $path = '') {
+    // $path is optional because Laravel strips a null path parameter before
+    // invoking this catch-all (Route::parametersWithoutNulls). That happens
+    // for requests whose decoded path collapses to an empty segment — e.g. a
+    // URL-encoded slash (`/%2F`) — which would otherwise reach the closure
+    // with zero arguments and throw an ArgumentCountError (PostHog 019f17c8).
+    // The default routes those edge cases to the locale home instead of a 500.
+
     // Skip paths that have their own handling outside the locale group
     if (preg_match('#^(admin|api|auth|filament|livewire|locale|paddle|storage|sitemap|telescope|up|vendor)/#i', $path)) {
         abort(404);

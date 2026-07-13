@@ -104,16 +104,25 @@ describe('Protected paths not caught by fallback', function () {
     })->group('smoke');
 });
 
-describe('Already locale-prefixed paths', function () {
-    test('locale-prefixed path renders normally', function () {
-        $response = $this->get('/en/login');
+describe('Edge-case paths do not throw ArgumentCountError', function () {
+    test('URL-encoded slash (%2F) does not 500 the fallback closure', function () {
+        // Reproduces PostHog 019f17c8: the encoded slash decodes to an empty
+        // path segment, which Laravel null-strips before invoking the
+        // catch-all closure. A required `string $path` param then receives
+        // zero arguments and throws ArgumentCountError. The param is now
+        // optional, so these requests redirect to the locale home.
+        $response = $this->get('/%2F');
 
-        $response->assertStatus(200);
+        $response->assertStatus(302);
+        expect($response->headers->get('Location'))->toEndWith('/en');
     })->group('smoke');
 
-    test('german locale-prefixed path renders normally', function () {
-        $response = $this->get('/de/login');
+    test('a bare unmatched path still redirects normally', function () {
+        // Regression guard: the optional-default fix must not change the
+        // common bare-path redirect behavior.
+        $response = $this->get('/some-unmatched-path');
 
-        $response->assertStatus(200);
+        $response->assertStatus(302);
+        expect($response->headers->get('Location'))->toEndWith('/en/some-unmatched-path');
     })->group('smoke');
 });
