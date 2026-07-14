@@ -72,7 +72,11 @@ foreach ($matches[1] as $createTable) {
     // are genuinely nullable). We add explicit NULL to every column line
     // that doesn't already have a NULL/NOT NULL marker.
     $mapped = preg_replace_callback(
-        '/^(\s+[a-z_]+\s+.+?)(\s*,?\s*)$/mi',
+        // Column identifiers may contain digits (e.g. reminder_24h_sent_at,
+        // geohash_4). Omitting 0-9 silently skipped those columns, leaving
+        // them without a NULL marker so the parser defaulted them to NOT NULL
+        // — the inverse of the bug this transform exists to fix.
+        '/^(\s+[a-z0-9_]+\s+.+?)(\s*,?\s*)$/mi',
         static function (array $m): string {
             // Skip constraint definitions (CONSTRAINT, PRIMARY KEY, etc.)
             if (preg_match('/^(CONSTRAINT|PRIMARY|UNIQUE|FOREIGN|CHECK|KEY)\b/i', trim($m[1]))) {
@@ -122,26 +126,49 @@ foreach ($tables as $t) {
     $tableLookup[$t->name] = $t;
 }
 
-// Assertions on known tricky columns
+// Assertions on known tricky columns. Each row verifies column presence
+// and, where 'nullable' is non-null, that the inferred nullability matches
+// PostgreSQL reality. The nullability checks guard the [a-z0-9_]+ regex:
+// digit-bearing column names must still receive the NULL marker.
 $checks = [
-    // [table, column, reason]
-    ['media', 'uuid', 'column named uuid with type uuid (type-position regex edge case)'],
-    ['short_links', 'linkable_type', 'morph column — must be discoverable for policies'],
-    ['session_zero_surveys', 'uuid', 'column named uuid, must not be corrupted to varchar'],
-    ['users', 'id', 'primary key must be present'],
-    ['games', 'share_token', 'nullable uuid — must be marked nullable'],
+    // [table, column, expectedNullable, reason]  (null = presence-only)
+    ['media', 'uuid', null, 'column named uuid with type uuid (type-position regex edge case)'],
+    ['short_links', 'linkable_type', null, 'morph column — must be discoverable for policies'],
+    ['session_zero_surveys', 'uuid', null, 'column named uuid, must not be corrupted to varchar'],
+    ['users', 'id', false, 'primary key — must be inferred NOT NULL'],
+    ['games', 'share_token', true, 'nullable uuid — must be inferred nullable'],
+    ['games', 'max_players', false, "DEFAULT '6' ... NOT NULL — must stay NOT NULL"],
+    ['games', 'reminder_24h_sent_at', true, 'digit in name — must be inferred nullable'],
+    ['locations', 'geohash_4', true, 'digit in name — must be inferred nullable'],
 ];
 
 $errors = [];
-foreach ($checks as [$table, $column, $reason]) {
+foreach ($checks as [$table, $column, $expectedNullable, $reason]) {
     if (! isset($tableLookup[$table])) {
         $errors[] = "  MISSING TABLE: {$table} ({$reason})";
 
         continue;
     }
-    $colNames = array_map(fn ($c) => $c->name, $tableLookup[$table]->columns);
-    if (! in_array($column, $colNames)) {
+
+    $found = null;
+    foreach ($tableLookup[$table]->columns as $c) {
+        if ($c->name === $column) {
+            $found = $c;
+
+            break;
+        }
+    }
+
+    if ($found === null) {
         $errors[] = "  MISSING COLUMN: {$table}.{$column} ({$reason})";
+
+        continue;
+    }
+
+    if ($expectedNullable !== null && $found->nullable !== $expectedNullable) {
+        $got = $found->nullable ? 'nullable' : 'NOT NULL';
+        $want = $expectedNullable ? 'nullable' : 'NOT NULL';
+        $errors[] = "  NULLABILITY MISMATCH: {$table}.{$column} inferred {$got}, expected {$want} ({$reason})";
     }
 }
 

@@ -1060,7 +1060,7 @@ CREATE TABLE public.games (
     reminder_sent_at timestamp NULL,
     recap text NULL,
     min_reliability_preference numeric(5,2) NULL,
-    reminder_24h_sent_at timestamp,
+    reminder_24h_sent_at timestamp NULL,
     location_id varchar NULL,
     owner_id varchar NOT NULL,
     share_token varchar NULL,
@@ -1163,7 +1163,7 @@ CREATE TABLE public.locations (
     metadata json NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    geohash_4 varchar(4),
+    geohash_4 varchar(4) NULL,
     id varchar NOT NULL,
     is_verified boolean DEFAULT false NOT NULL,
     venue_type varchar(50) NULL,
@@ -1236,7 +1236,7 @@ CREATE TABLE public.model_has_roles (
 
 CREATE TABLE public.nearby_discovery_views (
     last_discovery_view timestamp NULL,
-    geohash_4 varchar(4),
+    geohash_4 varchar(4) NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     user_id varchar NOT NULL,
