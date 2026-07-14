@@ -1,6 +1,8 @@
 #!/usr/bin/env php
 <?php
 
+use Larastan\Larastan\SQL\IamcalSqlParser;
+
 /**
  * Generate a Larastan-compatible schema file from the PostgreSQL schema dump.
  *
@@ -98,3 +100,57 @@ echo '  Size:   '.number_format($bytes)." bytes\n";
 echo "  Type mappings: uuid→varchar, jsonb→json, bytea→text,\n";
 echo "                 character varying→varchar, timestamp(0)→timestamp, time(0)→time\n";
 echo "  Nullable: explicit NULL added (PostgreSQL defaults to nullable)\n";
+
+// ── Self-test: verify the generated file parses correctly ────────────
+// Re-parse the output through Larastan's SQL parser and assert that key
+// columns are discovered. This catches silent corruption from regex edge
+// cases before the file is committed.
+require_once __DIR__.'/../vendor/autoload.php';
+
+$parser = new IamcalSqlParser;
+try {
+    $tables = $parser->parseTables(file_get_contents($outputPath));
+} catch (Throwable $e) {
+    fwrite(STDERR, "\nSELF-TEST FAILED: generated file does not parse.\n");
+    fwrite(STDERR, '  Error: '.$e->getMessage()."\n");
+    exit(1);
+}
+
+// Build a lookup for spot-checks
+$tableLookup = [];
+foreach ($tables as $t) {
+    $tableLookup[$t->name] = $t;
+}
+
+// Assertions on known tricky columns
+$checks = [
+    // [table, column, reason]
+    ['media', 'uuid', 'column named uuid with type uuid (type-position regex edge case)'],
+    ['short_links', 'linkable_type', 'morph column — must be discoverable for policies'],
+    ['session_zero_surveys', 'uuid', 'column named uuid, must not be corrupted to varchar'],
+    ['users', 'id', 'primary key must be present'],
+    ['games', 'share_token', 'nullable uuid — must be marked nullable'],
+];
+
+$errors = [];
+foreach ($checks as [$table, $column, $reason]) {
+    if (! isset($tableLookup[$table])) {
+        $errors[] = "  MISSING TABLE: {$table} ({$reason})";
+
+        continue;
+    }
+    $colNames = array_map(fn ($c) => $c->name, $tableLookup[$table]->columns);
+    if (! in_array($column, $colNames)) {
+        $errors[] = "  MISSING COLUMN: {$table}.{$column} ({$reason})";
+    }
+}
+
+if (! empty($errors)) {
+    fwrite(STDERR, "\nSELF-TEST FAILED: key columns not discovered.\n");
+    foreach ($errors as $error) {
+        fwrite(STDERR, $error."\n");
+    }
+    exit(1);
+}
+
+echo "\nSelf-test passed: ".count($tables).' tables, '.count($checks)." key columns verified.\n";

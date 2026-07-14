@@ -77,6 +77,16 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      - name: Verify Larastan schema is in sync
+        # Regenerate the Larastan-compatible schema from the squashed dump
+        # and fail if it differs from the committed file. This catches drift
+        # after a re-squash (schema:dump --prune) where larastan-schema.sql
+        # was not regenerated. Incremental migration files don't need this —
+        # Larastan stacks them on top of the squashed baseline automatically.
+        run: |
+          php scripts/generate-larastan-schema.php
+          git diff --exit-code database/schema/larastan-schema.sql
+
       - name: Run Larastan
         run: vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
