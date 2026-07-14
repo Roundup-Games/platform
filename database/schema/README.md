@@ -35,6 +35,26 @@ appended to this file.
 - **This dump** is a load artifact, not a reference document. Agents should
   read models and run `db:table`, not ingest this file wholesale.
 
+## Larastan static analysis
+
+Larastan discovers model columns by parsing schema files in this directory.
+The PostgreSQL dump format (`pgsql-schema.sql`) cannot be parsed directly by
+Larastan's SQL parser (psql meta-commands and PostgreSQL-specific types like
+`uuid`, `jsonb` break it). A companion file `larastan-schema.sql` is
+auto-generated with type mappings (`uuid`→`varchar`, `jsonb`→`json`, etc.)
+so Larastan can extract column names and types.
+
+The `larastan-schema.sql` file is NOT loaded at runtime — it exists solely for
+static analysis. Regenerate it after re-squashing:
+
+```bash
+php scripts/generate-larastan-schema.php
+```
+
+A `phpstan-baseline.neon` captures 50 style findings that became visible
+because the SQL schema provides more accurate NOT NULL constraints than the
+Blueprint parser did. See the baseline header for details.
+
 ## DB-level constructs not expressed in models
 
 Three schema elements exist only here (not visible in Eloquent models):
