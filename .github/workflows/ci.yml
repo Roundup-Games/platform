@@ -87,6 +87,22 @@ jobs:
           php scripts/generate-larastan-schema.php
           git diff --exit-code database/schema/larastan-schema.sql
 
+      - name: Verify schema dump is normalized
+        # The baseline is loaded by `psql` on fresh databases. pg_dump 17+
+        # emits artifacts that prevent a clean load on the postgres:16
+        # CI/deploy target: \restrict/\unrestrict meta-commands (random
+        # tokens that also churn on every re-squash) and
+        # SET transaction_timeout (a PG17+ GUC unrecognized by PG16, which
+        # logs an ERROR on every load). This guard fails if a re-squash
+        # reintroduces them. See the re-squash runbook in
+        # database/schema/README.md.
+        run: |
+          if grep -nE '^\\(un)?restrict |SET transaction_timeout' database/schema/pgsql-schema.sql; then
+            echo "::error::Schema dump contains pg_dump version artifacts that break loading on postgres:16."
+            echo "Strip them per the re-squash runbook in database/schema/README.md."
+            exit 1
+          fi
+
       - name: Run Larastan
         run: vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
