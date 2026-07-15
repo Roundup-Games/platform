@@ -111,10 +111,15 @@ class Show extends Component
             'privacySettings.*' => ['required', 'string', 'in:everyone,friends,nobody'],
         ]);
 
-        // Only store fields that are part of the known FIELDS constant
+        // Only store fields that are part of the known FIELDS constant.
+        // The default mirrors mount(): only 'location' defaults to 'everyone',
+        // every other field defaults to 'friends'. Keeping these in sync prevents
+        // a field missing from the request payload from being silently widened
+        // to a more permissive visibility than the user ever chose.
         $settings = [];
         foreach (ProfileVisibilityResolver::FIELDS as $field) {
-            $settings[$field] = $validated['privacySettings'][$field] ?? 'everyone';
+            $default = $field === 'location' ? 'everyone' : 'friends';
+            $settings[$field] = $validated['privacySettings'][$field] ?? $default;
         }
 
         $user->update(['privacy_settings' => $settings]);
@@ -324,7 +329,9 @@ class Show extends Component
 
         $department = Department::where('name', 'Account Support')->first();
         if (! $department) {
-            Log::error('settings.data_export_department_missing');
+            Log::error('Data export request failed: Account Support department is missing', [
+                'user_id' => $user->id,
+            ]);
             $this->addError('dataExport', __('profile.error_data_export_request_failed'));
 
             return;

@@ -447,7 +447,9 @@ class DemoSeedCommand extends Command
         // Suppress all mail — @example.org would bounce
         $this->suppressMail();
 
-        $this->resolveGameSystems();
+        if (! $this->resolveGameSystems()) {
+            return self::FAILURE;
+        }
         $this->createLocations();
         $this->createUsers();
         $this->setupGMs();
@@ -534,7 +536,7 @@ class DemoSeedCommand extends Command
     // GAME SYSTEMS
     // =========================================================================
 
-    private function resolveGameSystems(): void
+    private function resolveGameSystems(): bool
     {
         // Resolve ALL game systems by slug — no hardcoded UUIDs.
         // DB player counts/play times are used when available, fallback to constant values.
@@ -624,7 +626,11 @@ class DemoSeedCommand extends Command
 
         if (empty($this->boardGamePool) && empty($this->ttrpgPool)) {
             $this->error('No game systems resolved at all. Check game_systems table and slug values.');
+
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -707,7 +713,7 @@ class DemoSeedCommand extends Command
      */
     private array $rowIdCounters = [];
 
-    private function nextRowId(string $table = 'linked_accounts'): int
+    private function nextRowId(string $table): int
     {
         if (! isset($this->rowIdCounters[$table])) {
             $max = DB::table($table)->max('id') ?? 0;
@@ -869,7 +875,7 @@ class DemoSeedCommand extends Command
         for ($i = 1; $i <= $count; $i++) {
             $out[] = [
                 'name' => $types[array_rand($types)].' '.$city.' '.($i + 10),
-                'plz' => $plzPrefix.str_pad((string) random_int(10, 99), 2, '0', STR_PAD_LEFT),
+                'plz' => $plzPrefix.str_pad((string) random_int(0, 99), 2, '0', STR_PAD_LEFT),
                 'lat' => round($cLat + random_int(-50, 50) / 1000, 4),
                 'lng' => round($cLng + random_int(-50, 50) / 1000, 4),
             ];
@@ -1781,10 +1787,10 @@ class DemoSeedCommand extends Command
             $reviewBodies = $language === 'de'
                 ? [
                     'Tolle Kampagne mit gutem Storyverlauf. '.self::MARKER,
-                    'Sehr empfehlenswert! Wir hatten viel Spass. '.self::MARKER,
+                    'Sehr empfehlenswert! Wir hatten viel Spaß. '.self::MARKER,
                     'Gute Balance zwischen Story und Kampf. '.self::MARKER,
                     'Spannende Kampagne mit interessanten Charakteren. '.self::MARKER,
-                    'Kampagne war gut strukturiert und hat Spass gemacht. '.self::MARKER,
+                    'Kampagne war gut strukturiert und hat Spaß gemacht. '.self::MARKER,
                     'Leider etwas zu lang, aber sonst gut. '.self::MARKER,
                     'Mittelmässig, hatte mir mehr erhofft. '.self::MARKER,
                     'Nicht meins, aber fair geleitet. '.self::MARKER,
@@ -3052,7 +3058,7 @@ class DemoSeedCommand extends Command
                     'id' => (string) Str::orderedUuid(),
                     'session_zero_survey_id' => $surveyId,
                     'confirmed_at' => now()->subDays(random_int(1, 10)),
-                    'user_id' => $participantIds[(string) $k],
+                    'user_id' => $participantIds[(int) $k],
                 ];
             }
 

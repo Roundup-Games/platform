@@ -171,9 +171,11 @@ describe('Pre-Date Blocked', function () {
         expect($service->canReviewCampaign($player, $campaign))->toBeFalse();
     });
 
-    it('game happening right now (now()) cannot be reviewed', function () {
+    it('game starting shortly (near-future boundary) cannot be reviewed', function () {
         $gm = User::factory()->create(['profile_complete' => true]);
-        // Use a future date to ensure isFuture() returns true
+        // Use a slightly-future date to assert isFuture() without risking the
+        // clock advancing past exactly now() mid-test (which would flip the
+        // result and make this assertion flaky).
         $game = Game::factory()->create([
             'owner_id' => $gm->id,
             'date_time' => now()->addMinutes(5),
@@ -219,14 +221,15 @@ describe('Duplicate Review Prevention', function () {
             'rating' => 4,
         ]);
 
-        $this->expectException(QueryException::class);
-        Review::factory()->create([
+        // A second review for the same reviewer+session must violate the
+        // unique(reviewable_id, reviewer_id) constraint.
+        expect(fn () => Review::factory()->create([
             'reviewable_type' => Game::class,
             'reviewable_id' => $game->id,
             'reviewer_id' => $player->id,
             'gm_profile_id' => $gmProfile->id,
             'rating' => 3,
-        ]);
+        ]))->toThrow(QueryException::class);
     });
 
     it('eligibility service blocks duplicate after first review', function () {
@@ -355,10 +358,13 @@ describe('Observer Integration', function () {
         ]);
 
         $originalRating = $gmProfile->fresh()->average_rating;
+        $originalCount = $gmProfile->fresh()->review_count;
 
         $review->update(['body' => 'Updated text']);
 
-        expect($gmProfile->fresh()->average_rating)->toBe($originalRating);
+        // Body edits must not recompute either aggregate field.
+        expect($gmProfile->fresh()->average_rating)->toBe($originalRating)
+            ->and($gmProfile->fresh()->review_count)->toBe($originalCount);
     });
 
     it('updating a published review rating recomputes the aggregate average', function () {

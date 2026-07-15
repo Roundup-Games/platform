@@ -74,11 +74,16 @@ describe('Bare path fallback', function () {
 });
 
 describe('Protected paths not caught by fallback', function () {
-    test('admin path returns 302 not locale redirect', function () {
+    test('admin path redirects to login, not a locale-prefixed admin path', function () {
         $response = $this->get('/admin');
 
-        // Admin has its own auth flow — should not hit the locale fallback
-        $response->assertStatus(302); // redirect to login
+        // Admin is a dedicated Filament panel registered ahead of the locale
+        // catch-all. Unauthenticated access must redirect to the app's login
+        // page (e.g. /en/login), NOT be mangled into a locale-prefixed admin
+        // URL like /en/admin — which is the regression this guards against.
+        $response->assertStatus(302);
+        expect($response->headers->get('Location'))->toEndWith('/login')
+            ->and($response->headers->get('Location'))->not->toEndWith('/admin');
     })->group('smoke');
 
     test('api geocode returns 404 on GET via new path', function () {
@@ -86,6 +91,17 @@ describe('Protected paths not caught by fallback', function () {
 
         // POST-only endpoint; GET returns 404
         $response->assertStatus(404);
+    })->group('smoke');
+
+    test('legacy /api/geocode permanently redirects to /api/v1/geocode', function () {
+        // Guard the Route::permanentRedirect at routes/web.php:118. The
+        // legacy path must issue a 301 to the versioned endpoint and must
+        // NOT be caught by the locale catch-all (which would mangle it into
+        // a locale-prefixed path).
+        $response = $this->get('/api/geocode');
+
+        $response->assertStatus(301);
+        expect($response->headers->get('Location'))->toEndWith('/api/v1/geocode');
     })->group('smoke');
 
     test('auth provider path still works', function () {
