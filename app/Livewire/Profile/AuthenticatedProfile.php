@@ -273,6 +273,8 @@ class AuthenticatedProfile extends Component
             ->whereIn('visibility', $scope)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
+            ->orderBy('date_time')
+            ->limit(10)
             ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->get();
@@ -289,6 +291,8 @@ class AuthenticatedProfile extends Component
             ->visibleTo($viewer)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
+            ->orderBy('date_time')
+            ->limit(10)
             ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->get();
@@ -320,6 +324,8 @@ class AuthenticatedProfile extends Component
         // Owned campaigns: tiered by the viewer→profile-user relationship.
         $ownedCampaigns = Campaign::where('owner_id', $profileUserId)
             ->whereIn('visibility', $scope)
+            ->latest('created_at')
+            ->limit(10)
             ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->get();
@@ -333,6 +339,8 @@ class AuthenticatedProfile extends Component
         $participatedCampaigns = Campaign::whereIn('id', $participatedCampaignIds)
             ->whereNotIn('id', $ownedCampaigns->modelKeys())
             ->visibleTo($viewer)
+            ->latest('created_at')
+            ->limit(10)
             ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->get();

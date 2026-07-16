@@ -256,3 +256,31 @@ function registerUser(string $email): User
 
     return $user;
 }
+
+// ── Successful-claim counting ─────────────────────────────
+
+it('counts only successfully claimed invitations, not conflicting saves', function () {
+    // A pending invite that will hit a unique-constraint conflict on save must
+    // NOT inflate the returned invite_match_count (the funnel metric).
+    $game = Game::factory()->create();
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => null,
+        'invitee_email' => 'conflict@example.com',
+        'role' => ParticipantRole::Invited->value,
+        'status' => ParticipantStatus::Pending->value,
+        'join_source' => JoinSource::EmailInvite->value,
+    ]);
+
+    // Pre-claim the row with a different user so the matcher's associate+save
+    // is forced to fail (the unique user/game constraint conflicts).
+    $claimer = User::factory()->create();
+    GameParticipant::where('invitee_email', 'conflict@example.com')
+        ->update(['user_id' => $claimer->id]);
+
+    $user = User::factory()->create(['email' => 'conflict@example.com']);
+
+    $count = app(PendingInvitationMatcher::class)->match($user);
+
+    expect($count)->toBe(0, 'a conflicting claim must not be counted as a match');
+});

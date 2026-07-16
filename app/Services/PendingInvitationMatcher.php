@@ -39,6 +39,7 @@ class PendingInvitationMatcher
             ->where('role', ParticipantRole::Invited->value)
             ->get();
 
+        $gameMatchCount = 0;
         foreach ($gameMatches as $participant) {
             try {
                 $participant->user()->associate($user)->save();
@@ -51,6 +52,7 @@ class PendingInvitationMatcher
 
                 continue;
             }
+            $gameMatchCount++;
             Log::info('registration.matched_game_invite', [
                 'user_id' => $user->id,
                 'game_id' => $participant->game_id,
@@ -65,6 +67,7 @@ class PendingInvitationMatcher
             ->where('role', ParticipantRole::Invited->value)
             ->get();
 
+        $campaignMatchCount = 0;
         foreach ($campaignMatches as $participant) {
             try {
                 $participant->user()->associate($user)->save();
@@ -77,6 +80,7 @@ class PendingInvitationMatcher
 
                 continue;
             }
+            $campaignMatchCount++;
             Log::info('registration.matched_campaign_invite', [
                 'user_id' => $user->id,
                 'campaign_id' => $participant->campaign_id,
@@ -84,14 +88,17 @@ class PendingInvitationMatcher
             ]);
         }
 
-        $totalMatches = $gameMatches->count() + $campaignMatches->count();
+        // Count only successfully claimed invitations — rows whose save() failed
+        // (e.g. unique-constraint conflict) were logged but not claimed, so they
+        // must not inflate the invite_match_count funnel metric.
+        $totalMatches = $gameMatchCount + $campaignMatchCount;
         if ($totalMatches > 0) {
             Log::info('registration.invite_matches_found', [
                 'user_id' => $user->id,
                 'email' => $email,
                 'total_matches' => $totalMatches,
-                'game_matches' => $gameMatches->count(),
-                'campaign_matches' => $campaignMatches->count(),
+                'game_matches' => $gameMatchCount,
+                'campaign_matches' => $campaignMatchCount,
             ]);
         }
 

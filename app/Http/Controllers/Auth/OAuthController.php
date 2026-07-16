@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Middleware\CaptureFirstTouch;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Rules\ValidUserName;
@@ -67,6 +68,15 @@ class OAuthController
         if (! in_array($provider, ['google'])) {
             return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unsupported login provider.']);
         }
+
+        // Consume first-touch attribution ONCE at the top of the callback, before
+        // any branching (existing-user login, linking, new registration, error) —
+        // otherwise stale keys could be applied to a later signup. The values
+        // were captured on the original landing page by CaptureFirstTouch.
+        $session = $request->session();
+        $firstTouchReferer = is_string($session->get(CaptureFirstTouch::REFERER_KEY)) ? $session->get(CaptureFirstTouch::REFERER_KEY) : null;
+        $firstTouchPath = is_string($session->get(CaptureFirstTouch::PATH_KEY)) ? $session->get(CaptureFirstTouch::PATH_KEY) : null;
+        $session->forget([CaptureFirstTouch::REFERER_KEY, CaptureFirstTouch::PATH_KEY, CaptureFirstTouch::CAPTURED_KEY]);
 
         try {
             /** @var \Laravel\Socialite\Two\User $socialiteUser */
@@ -213,14 +223,10 @@ class OAuthController
             ],
         );
 
-        // First-touch SEO attribution: use the referer/path captured at the
-        // initial redirect (not the callback's), falling back to null when no
-        // prior session exists (e.g. the user came directly to the callback URL).
-        $session = $request->session();
-        $firstTouchReferer = is_string($session->get('oauth.first_touch_referer')) ? $session->get('oauth.first_touch_referer') : null;
-        $firstTouchPath = is_string($session->get('oauth.first_touch_path')) ? $session->get('oauth.first_touch_path') : null;
+        // First-touch SEO attribution: the landing page + referer captured by
+        // CaptureFirstTouch on the original public-page request. identifyFirstTouch
+        // reduces the referer to a domain and detects content context from the path.
         $analytics->identifyFirstTouch($user, $firstTouchReferer, $firstTouchPath);
-        $session->forget(['oauth.first_touch_referer', 'oauth.first_touch_path']);
 
         return $this->redirectAfterLogin($user);
     }

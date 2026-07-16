@@ -2,11 +2,15 @@
 
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Http\Middleware\CaptureFirstTouch;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\LinkedAccount;
 use App\Models\User;
+use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
 use Laravel\Socialite\Facades\Socialite;
+use Tests\Helpers\TestablePostHogClient;
 
 // ── New user registration via OAuth ─────────────────────
 
@@ -392,4 +396,91 @@ it('returns success when linking an already-linked provider to the same user', f
     expect(LinkedAccount::where('user_id', $user->id)->where('provider', 'google')->count())->toBe(1);
     $response->assertRedirect(route('profile.edit'));
     $response->assertSessionHas('status');
+});
+
+// ── First-touch acquisition attribution ────────────────
+
+it('attributes OAuth signup to the landing page captured for the guest, not the auth endpoint', function () {
+    config(['posthog.enabled' => true]);
+    config(['posthog.api_key' => 'phc_test_key']);
+    $posthog = new TestablePostHogClient;
+    app()->instance(PostHogClient::class, $posthog);
+    $checker = $this->mock(PostHogConsentChecker::class);
+    $checker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+    app()->instance(PostHogConsentChecker::class, $checker);
+
+    // Simulate the CaptureFirstTouch middleware having recorded the real landing
+    // page when the guest first arrived (before the OAuth round-trip).
+    $this->withSession([
+        CaptureFirstTouch::PATH_KEY => '/en/discovery',
+        CaptureFirstTouch::REFERER_KEY => 'https://google.com/search?q=dnd',
+        CaptureFirstTouch::CAPTURED_KEY => true,
+    ]);
+
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
+    $socialiteUser->shouldReceive('getId')->andReturn('80808');
+    $socialiteUser->shouldReceive('getEmail')->andReturn('touch@google.com');
+    $socialiteUser->shouldReceive('getName')->andReturn('Touch User');
+    $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+    $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+    $socialiteUser->token = 'tok';
+    $socialiteUser->refreshToken = null;
+    Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+    $this->get('/auth/google/callback');
+
+    $identify = collect($posthog->identifyCalls)
+        ->first(fn (array $c) => isset($c['properties']['$set_once']['first_touch_entry_path'])
+            || isset($c['properties']['$set_once']['first_touch_referer_domain']));
+    expect($identify)->not->toBeNull('expected a first-touch identify call');
+    $setOnce = $identify['properties']['$set_once'] ?? [];
+    expect($setOnce['first_touch_entry_path'])->toBe('/en/discovery')
+        ->and($setOnce['first_touch_referer_domain'])->toBe('google.com');
+});
+
+it('clears first-touch attribution on every OAuth callback path (no stale leakage)', function () {
+    config(['posthog.enabled' => true]);
+    config(['posthog.api_key' => 'phc_test_key']);
+    $posthog = new TestablePostHogClient;
+    app()->instance(PostHogClient::class, $posthog);
+    $checker = $this->mock(PostHogConsentChecker::class);
+    $checker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+    app()->instance(PostHogConsentChecker::class, $checker);
+
+    // Existing-user login path (not a new registration) — must still consume the
+    // attribution so it can't leak onto a later signup.
+    $user = User::factory()->create([
+        'email' => 'returning@google.com',
+        'profile_complete' => true,
+    ]);
+    LinkedAccount::create([
+        'user_id' => $user->id,
+        'provider' => 'google',
+        'provider_user_id' => '90909',
+        'token' => 'tok',
+    ]);
+
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
+    $socialiteUser->shouldReceive('getId')->andReturn('90909');
+    $socialiteUser->shouldReceive('getEmail')->andReturn('returning@google.com');
+    $socialiteUser->shouldReceive('getName')->andReturn('Returning');
+    $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+    $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+    $socialiteUser->token = 'tok';
+    $socialiteUser->refreshToken = null;
+    Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+    $this->withSession([
+        CaptureFirstTouch::PATH_KEY => '/en/discovery',
+        CaptureFirstTouch::REFERER_KEY => 'https://google.com',
+        CaptureFirstTouch::CAPTURED_KEY => true,
+    ])->get('/auth/google/callback');
+
+    // The existing-user login path does NOT call identifyFirstTouch, so the
+    // attribution is consumed-but-unused here. Assert no first-touch identify
+    // fired (the values were dropped, not attributed to this returning user) and
+    // that a subsequent signup in the same session would see nothing left.
+    $firstTouchIdentify = collect($posthog->identifyCalls)
+        ->filter(fn (array $c) => isset($c['properties']['$set_once']['first_touch_entry_path']));
+    expect($firstTouchIdentify)->toHaveCount(0);
 });

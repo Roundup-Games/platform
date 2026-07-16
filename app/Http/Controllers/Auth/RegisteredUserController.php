@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\CaptureFirstTouch;
 use App\Models\User;
 use App\Rules\ValidUserName;
 use App\Services\PendingInvitationMatcher;
@@ -76,9 +77,15 @@ class RegisteredUserController extends Controller
             ],
         );
 
-        // First-touch SEO attribution: record the entry path + referrer domain as
-        // permanent person properties for organic/search investment analysis.
-        $analytics->identifyFirstTouch($user, $request->header('referer'), $request->path());
+        // First-touch SEO attribution: the landing page + referer were captured on
+        // the original public-page GET by the CaptureFirstTouch middleware (shared
+        // with the OAuth flow). Fall back to the registration request's own
+        // referer/path only if no prior landing was captured (e.g. direct POST).
+        $session = $request->session();
+        $firstTouchReferer = is_string($session->get(CaptureFirstTouch::REFERER_KEY)) ? $session->get(CaptureFirstTouch::REFERER_KEY) : $request->header('referer');
+        $firstTouchPath = is_string($session->get(CaptureFirstTouch::PATH_KEY)) ? $session->get(CaptureFirstTouch::PATH_KEY) : $request->path();
+        $session->forget([CaptureFirstTouch::REFERER_KEY, CaptureFirstTouch::PATH_KEY, CaptureFirstTouch::CAPTURED_KEY]);
+        $analytics->identifyFirstTouch($user, $firstTouchReferer, $firstTouchPath);
 
         return redirect()->route('onboarding.index');
     }
