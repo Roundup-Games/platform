@@ -101,6 +101,11 @@ Add `data-ph-mask` to any element displaying PII.
 - `discovery.search` — filter signature + `result_count` + `zero_results` flag. Zero-result searches surface unmet demand.
 - `link.hit` — anonymous short-link performance (consent-gated).
 - `subscription.started` / `subscription.updated` / `subscription.canceled` / `subscription.payment_failed` — captured at the Paddle webhook boundary. Consent via the persisted `analytics_consent` column (no cookie in webhook context). Fires when subscription billing goes live; zero rework then.
+- `application.submitted` — top of the matching funnel. `outcome` (approved/waitlisted/benched/pending), `visibility`, `is_full`.
+- `application.approved` / `application.rejected` — host decisions. Closes the acceptance-rate metric.
+- `participant.promoted` — bench → approved.
+- `participant.removed` — host-initiated removal (churn signal).
+- `notification.sent` / `notification.failed` — `category`, `channels`. Retention analytics: correlates 'received attendance nudge' with attendance outcomes.
 
 ## Architecture
 
@@ -112,6 +117,6 @@ Add `data-ph-mask` to any element displaying PII.
 **Person properties** (set via identify, non-PII, for segmentation):
 - Inline (`PostHogIdentifyUsers`, first GET of session): `locale`, `account_age_days`, `has_completed_onboarding`, `country`, `$set_once` `signup_date`/`signup_cohort_week`.
 - Async (`EnrichPostHogProfile`, on participatory events): `games_created_count`, `games_joined_count`, `modality` (online/in_person/mixed), `primary_game_system`, `reliability_tier`, plus first-event timestamps.
-- First-touch (`PostHogAnalytics::identifyFirstTouch`, at signup): `$set_once` `first_touch_referer_domain`, `first_touch_entry_path` — the SEO/acquisition signal.
+- First-touch (`PostHogAnalytics::identifyFirstTouch`, at signup): `$set_once` `first_touch_referer_domain`, `first_touch_entry_path`, `signup_content_type`, `signup_content_slug` — the SEO/acquisition signal including which public content page drove the signup.
 - Subscription (`PaddleWebhookController`): `$set` `subscription_status`.
 - **posthog.js**: client-side init, Livewire pageview tracking, session replay, surveys.

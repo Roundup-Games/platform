@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Contracts\Participant;
 use App\Enums\AttendanceStatus;
+use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -162,6 +165,13 @@ class PostHogAnalytics
             ? (parse_url($referer, PHP_URL_HOST) ?: null)
             : null;
 
+        // SEO conversion: detect which public content page drove the signup.
+        // Laravel's auth middleware stores the protected URL a guest was
+        // redirected from in session('url.intended'). Parse its path for known
+        // public-route patterns (game/campaign/venue detail or apply).
+        $intendedPath = $this->extractIntendedPath();
+        $contentContext = $this->detectContentContext($intendedPath ?? $entryPath);
+
         try {
             $this->posthog->identify([
                 'distinctId' => (string) $user->id,
@@ -169,6 +179,8 @@ class PostHogAnalytics
                     '$set_once' => array_filter([
                         'first_touch_referer_domain' => $refererDomain,
                         'first_touch_entry_path' => $entryPath !== '' ? $entryPath : null,
+                        'signup_content_type' => $contentContext['type'] ?? null,
+                        'signup_content_slug' => $contentContext['slug'] ?? null,
                     ]),
                 ],
             ]);
@@ -178,6 +190,61 @@ class PostHogAnalytics
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Extract the path from session('url.intended'), if set.
+     */
+    private function extractIntendedPath(): ?string
+    {
+        try {
+            $intended = session('url.intended');
+            if (! is_string($intended) || $intended === '') {
+                return null;
+            }
+
+            $path = parse_url($intended, PHP_URL_PATH);
+
+            return is_string($path) && $path !== '' ? $path : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Detect the public content type and slug from a URL path.
+     *
+     * Matches known public-route patterns:
+     *   /{locale}/games/{slug} or /{locale}/games/apply/{slug}
+     *   /{locale}/campaigns/{slug} or /{locale}/campaigns/apply/{slug}
+     *   /{locale}/venues/{slug}
+     *
+     * @return array{type: ?string, slug: ?string}
+     */
+    private function detectContentContext(?string $path): array
+    {
+        if ($path === null || $path === '') {
+            return ['type' => null, 'slug' => null];
+        }
+
+        try {
+            // Strip optional locale prefix: /en/... or en/... (path() omits leading /)
+            $stripped = preg_replace('#^/?[a-z]{2}/#', '', $path);
+
+            if (preg_match('#^games/(?:apply/)?([^/]+)#', (string) $stripped, $m)) {
+                return ['type' => 'game', 'slug' => $m[1]];
+            }
+            if (preg_match('#^campaigns/(?:apply/)?([^/]+)#', (string) $stripped, $m)) {
+                return ['type' => 'campaign', 'slug' => $m[1]];
+            }
+            if (preg_match('#^venues/([^/]+)#', (string) $stripped, $m)) {
+                return ['type' => 'venue', 'slug' => $m[1]];
+            }
+        } catch (\Throwable) {
+            // Fall through to null
+        }
+
+        return ['type' => null, 'slug' => null];
     }
 
     /**
@@ -197,5 +264,72 @@ class PostHogAnalytics
         }
 
         return (bool) $user->analytics_consent;
+    }
+
+    /**
+     * Capture a participant lifecycle transition for matching-quality analytics.
+     *
+     * Completes the application funnel: submitted → approved/rejected/promoted/
+     * removed. The event lands on the affected participant's person timeline so
+     * acceptance rates, fill velocity, and removal patterns are queryable per
+     * cohort (by game system, modality, etc.).
+     *
+     * No-ops when the participant has no user account (invitee-by-email) or
+     * consent is absent. Never throws.
+     *
+     * @param  Participant  $participant  The participant whose lifecycle changed.
+     * @param  Game|Campaign|null  $entity  The game or campaign.
+     * @param  string  $event  The transition event name (e.g. 'application.approved').
+     * @param  array<string, mixed>  $extra  Additional properties.
+     */
+    public function captureParticipantTransition(
+        Participant $participant,
+        Game|Campaign|null $entity,
+        string $event,
+        array $extra = [],
+    ): void {
+        if (! $this->posthog->isEnabled()) {
+            return;
+        }
+
+        $userId = $participant->getUserId();
+        if ($userId === null) {
+            return;
+        }
+
+        $user = $participant->getUser() ?? User::find($userId);
+        if ($user === null) {
+            return;
+        }
+
+        if (! $this->hasConsent($user)) {
+            return;
+        }
+
+        try {
+            // Force-reload (not loadMissing) because the relationship may have
+            // been accessed — and cached as empty — during entity creation.
+            $entity?->load('gameSystems');
+            $representative = $entity?->gameSystems?->first();
+
+            $this->posthog->capture([
+                'distinctId' => (string) $userId,
+                'event' => $event,
+                'properties' => array_merge([
+                    'entity_type' => $entity instanceof Campaign ? 'campaign' : ($entity instanceof Game ? 'game' : null),
+                    'entity_id' => $entity?->id,
+                    'game_system' => $representative?->name,
+                    'visibility' => $entity?->visibility?->value,
+                    'is_online' => ($entity instanceof Game ? ($entity->location['type'] ?? null) : null) === 'online',
+                ], $extra),
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('daily')->warning('posthog.analytics.participant_transition_failed', [
+                'event' => $event,
+                'participant_id' => $participant->getId(),
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

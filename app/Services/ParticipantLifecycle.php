@@ -188,6 +188,15 @@ class ParticipantLifecycle
         // notification pattern used by WaitlistService::notifyPromotion and
         // CapacityService::demote.
         $user = $userId !== null ? User::find($userId) : null;
+
+        // Matching-quality funnel: benched → approved promotion.
+        if ($user !== null) {
+            app(PostHogAnalytics::class)->capture(
+                $user,
+                'participant.promoted',
+                ['entity_type' => $meta->type, 'entity_id' => $entity->id],
+            );
+        }
         if ($user !== null) {
             try {
                 app(NotificationService::class)->send(
@@ -284,6 +293,12 @@ class ParticipantLifecycle
             'approved_by' => $approver->id,
         ]);
 
+        // Matching-quality funnel: the host approved this application.
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant, $entity, 'application.approved',
+            ['approved_by' => $approver->id],
+        );
+
         // Notify applicant
         try {
             $applicant = User::find($participant->getUserId());
@@ -336,6 +351,12 @@ class ParticipantLifecycle
             'user_id' => $rejectedUserId,
             'rejected_by' => $rejecter->id,
         ]);
+
+        // Matching-quality funnel: the host rejected this application.
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant, $entity, 'application.rejected',
+            ['rejected_by' => $rejecter->id],
+        );
 
         // Notify applicant
         try {
@@ -411,6 +432,12 @@ class ParticipantLifecycle
             'user_id' => $removedUserId,
             'removed_by' => $remover->id,
         ]);
+
+        // Churn signal: a host removed this participant.
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant, $entity, 'participant.removed',
+            ['removed_by' => $remover->id, 'previous_status' => $participant->getStatus()?->value],
+        );
 
         try {
             if ($removedUser) {

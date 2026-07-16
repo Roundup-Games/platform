@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\AttendanceStatus;
+use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -196,5 +198,103 @@ describe('PostHogAnalytics::identifyFirstTouch', function () {
         app(PostHogAnalytics::class)->identifyFirstTouch($user, 'https://google.com', '/en');
 
         expect($this->posthogClient->identifyCalls)->toHaveCount(0);
+    });
+});
+
+describe('PostHogAnalytics::identifyFirstTouch — SEO content detection', function () {
+    test('detects game content from intended URL via session', function () {
+        $user = User::factory()->create();
+        session(['url.intended' => 'https://roundup.games/en/games/apply/dnd-5e-one-shot']);
+
+        app(PostHogAnalytics::class)->identifyFirstTouch($user, null, 'en/register');
+
+        $setOnce = $this->posthogClient->identifyCalls[0]['properties']['$set_once'];
+        expect($setOnce['signup_content_type'])->toBe('game')
+            ->and($setOnce['signup_content_slug'])->toBe('dnd-5e-one-shot');
+    });
+
+    test('detects campaign content from entry path when no intended URL', function () {
+        $user = User::factory()->create();
+        session()->flush();
+
+        app(PostHogAnalytics::class)->identifyFirstTouch($user, null, 'en/campaigns/curse-of-strahd');
+
+        $setOnce = $this->posthogClient->identifyCalls[0]['properties']['$set_once'];
+        expect($setOnce['signup_content_type'])->toBe('campaign')
+            ->and($setOnce['signup_content_slug'])->toBe('curse-of-strahd');
+    });
+
+    test('leaves content null for generic pages', function () {
+        $user = User::factory()->create();
+        session()->flush();
+
+        app(PostHogAnalytics::class)->identifyFirstTouch($user, 'https://google.com', 'en/register');
+
+        $setOnce = $this->posthogClient->identifyCalls[0]['properties']['$set_once'];
+        expect($setOnce)->not->toHaveKey('signup_content_type')
+            ->and($setOnce)->not->toHaveKey('signup_content_slug');
+    });
+});
+
+describe('PostHogAnalytics::captureParticipantTransition', function () {
+    test('captures application.approved with entity enrichment', function () {
+        $user = User::factory()->create();
+        $system = GameSystem::factory()->create(['name' => 'Pathfinder']);
+        $game = Game::factory()->create(['owner_id' => $user->id]);
+        $game->gameSystems()->attach($system->id);
+        $participant = GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $user->id,
+        ]);
+
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant, $game, 'application.approved', ['approved_by' => 'host-uuid'],
+        );
+
+        $event = collect($this->posthogClient->capturedCalls)
+            ->first(fn (array $c) => ($c['event'] ?? null) === 'application.approved');
+        expect($event)->not->toBeNull()
+            ->and($event['distinctId'])->toBe((string) $user->id)
+            ->and($event['properties']['entity_type'])->toBe('game')
+            ->and($event['properties']['game_system'])->toBe('Pathfinder')
+            ->and($event['properties']['approved_by'])->toBe('host-uuid');
+    });
+
+    test('captures application.rejected for campaigns', function () {
+        $user = User::factory()->create();
+        $system = GameSystem::factory()->create(['name' => 'D&D 5e']);
+        $campaign = Campaign::factory()->create(['owner_id' => $user->id]);
+        $campaign->gameSystems()->attach($system->id);
+        $participant = CampaignParticipant::factory()->create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $user->id,
+        ]);
+
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant, $campaign, 'application.rejected',
+        );
+
+        $event = collect($this->posthogClient->capturedCalls)
+            ->first(fn (array $c) => ($c['event'] ?? null) === 'application.rejected');
+        expect($event)->not->toBeNull()
+            ->and($event['properties']['entity_type'])->toBe('campaign');
+    });
+
+    test('is gated behind consent', function () {
+        denyAnalyticsConsent();
+        $user = User::factory()->create(['analytics_consent' => false]);
+        $game = Game::factory()->create();
+        $participant = GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $user->id,
+        ]);
+
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant, $game, 'participant.removed',
+        );
+
+        $event = collect($this->posthogClient->capturedCalls)
+            ->filter(fn (array $c) => ($c['event'] ?? null) === 'participant.removed');
+        expect($event)->toHaveCount(0);
     });
 });
