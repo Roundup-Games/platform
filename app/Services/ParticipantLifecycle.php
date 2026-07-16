@@ -418,6 +418,11 @@ class ParticipantLifecycle
         // reliability weight.
         $attendanceStatus = $this->resolveDepartureAttendanceStatus($participant, $entity);
 
+        // Capture the pre-removal status BEFORE the update — $participant->update()
+        // mutates the in-memory model, so reading it afterwards would always
+        // report 'removed' and the churn signal's previous_status would be useless.
+        $previousStatus = $participant->getStatus();
+
         $update = [
             'status' => ParticipantStatus::Removed->value,
             'removed_by' => $remover->id,
@@ -442,7 +447,7 @@ class ParticipantLifecycle
         // Churn signal: a host removed this participant.
         app(PostHogAnalytics::class)->captureParticipantTransition(
             $participant, $entity, 'participant.removed',
-            ['removed_by' => $remover->id, 'previous_status' => $participant->getStatus()?->value],
+            ['removed_by' => $remover->id, 'previous_status' => $previousStatus?->value],
         );
 
         try {

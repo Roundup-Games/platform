@@ -235,6 +235,9 @@ class EnrichPostHogProfile implements ShouldQueue
                 ->selectRaw('COUNT(*) AS attended')
                 ->groupBy('game_game_system.game_system_id')
                 ->orderByDesc('attended')
+                // Tie-breaker so equal attendance counts always resolve to the
+                // same primary system (PostgreSQL returns ties nondeterministically).
+                ->orderBy('game_game_system.game_system_id')
                 ->first();
 
             $primarySystemName = null;

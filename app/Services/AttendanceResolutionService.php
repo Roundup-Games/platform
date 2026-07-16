@@ -225,6 +225,13 @@ class AttendanceResolutionService
 
                         $this->reliabilityService->recomputeAfterAttendance($participant);
 
+                        // Forward the consensus outcome to reliability analytics.
+                        // This branch skips applyResolvedStatus() (which dispatches
+                        // captureAttendanceOutcome) because the host carries a
+                        // harsher weight, so emit the analytics event here too —
+                        // otherwise host no-shows silently drop from attendance metrics.
+                        app(PostHogAnalytics::class)->captureAttendanceOutcome($participant, $resolvedStatus, 'consensus');
+
                         Log::info('Attendance resolved as NoShow (host, weighted)', [
                             'game_id' => $game->id,
                             'user_id' => $participant->user_id,

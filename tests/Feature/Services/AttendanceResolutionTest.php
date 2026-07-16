@@ -12,9 +12,13 @@ use App\Models\User;
 use App\Services\AttendanceResolutionService;
 use App\Services\AttendanceService;
 use App\Services\NotificationService;
+use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
 use App\Services\ReliabilityScoreService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Config;
 use Mockery\MockInterface;
+use Tests\Helpers\TestablePostHogClient;
 
 uses(DatabaseTransactions::class);
 
@@ -203,6 +207,37 @@ describe('basic consensus scenarios', function () {
         // weighted no_show = 2.0, total weighted = 4.0
         // 2.0 > 50% of 4.0 = 2.0? No, must be strictly > 50% → Attended
         expect(getAttendanceStatus($resolved, $target))->toBe(AttendanceStatus::Attended);
+    });
+
+    test('host no-show emits attendance.recorded (weighted host branch)', function () {
+        // Regression: the host no-show branch bypasses applyResolvedStatus() and
+        // previously skipped captureAttendanceOutcome(), silently dropping host
+        // no-shows from reliability analytics.
+        Config::set('posthog.enabled', true);
+        Config::set('posthog.api_key', 'phc_test_key');
+        $posthog = new TestablePostHogClient;
+        $this->app->instance(PostHogClient::class, $posthog);
+        $checker = $this->mock(PostHogConsentChecker::class);
+        $checker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+        $this->app->instance(PostHogConsentChecker::class, $checker);
+
+        ['game' => $game, 'host' => $host, 'players' => $players] = createCompletedGameWithPlayers(5);
+
+        // 3 of 4 players report the host as no_show → weighted 3.0 > 50% of 4.0.
+        fileReport($game, $players[0], $host, 'no_show');
+        fileReport($game, $players[1], $host, 'no_show');
+        fileReport($game, $players[2], $host, 'no_show');
+        fileReport($game, $players[3], $host, 'attended');
+
+        $resolved = resolveAndRefresh($game);
+
+        expect(getAttendanceStatus($resolved, $host))->toBe(AttendanceStatus::NoShow);
+
+        $attendance = collect($posthog->capturedCalls)
+            ->first(fn (array $c) => ($c['event'] ?? null) === 'attendance.recorded');
+        expect($attendance)->not->toBeNull()
+            ->and($attendance['distinctId'])->toBe((string) $host->id)
+            ->and($attendance['properties']['attendance_status'])->toBe('no_show');
     });
 
     test('single reporter in 5-person game → threshold not met, Attended', function () {

@@ -160,7 +160,7 @@ class PostHogIdentifyUsers
                 ],
                 '$set_once' => [
                     'signup_date' => $user->created_at?->toDateString(),
-                    'signup_cohort_week' => $user->created_at?->format('Y-W'),
+                    'signup_cohort_week' => $user->created_at?->format('o-W'),
                 ],
             ],
         ]);
