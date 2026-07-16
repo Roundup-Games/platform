@@ -1541,6 +1541,7 @@ CREATE TABLE public.users (
     remember_token varchar(100) NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
+    last_login_at timestamp NULL,
     paddle_id varchar(255) NULL,
     trial_ends_at timestamp NULL,
     password_set_at timestamp NULL,

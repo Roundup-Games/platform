@@ -97,6 +97,8 @@ Add `data-ph-mask` to any element displaying PII.
 **Product / funnel events** (via `PostHogAnalytics`, analytics-only, not in the feed):
 - `user.signed_up` — `signup_method` (email/oauth), `oauth_provider`, `invite_match_count`.
 - `onboarding.started` / `onboarding.completed` — drives the activation funnel.
+- `onboarding.step_completed` — per-step (1-4) drop-off signal; at adoption phase, onboarding friction is the #1 fixable growth lever.
+- `user.signed_in` — captured on every authentication (credentials, OAuth, remember-me) via a `Login` event listener. `is_first_session` (authoritative, from `last_login_at`), `remember`, `guard`. The retention signal — makes return-visit frequency and session-gap cohorts measurable. Paired with `$set last_login_at` / `$set_once first_login_at` person properties.
 - `attendance.recorded` — `attendance_status`, `resolution_context` (report/consensus/admin_override/host_cancel), `game_system`, `is_online`, `hours_to_session`. Powers reliability-by-cohort analysis (the platform's differentiator).
 - `discovery.search` — filter signature + `result_count` + `zero_results` flag. Zero-result searches surface unmet demand.
 - `link.hit` — anonymous short-link performance (consent-gated).
@@ -155,10 +157,12 @@ it means:
 - **PostHogIdentifyUsers** middleware: identifies users on GET page loads (pseudonymous — opaque ID + non-PII properties).
 - **PostHogEventBridge**: forwards ActivityLog community events to PostHog with enrichment.
 - **PostHogAnalytics**: consent-gated direct capture for product/funnel events (signup, onboarding, attendance, discovery) that don't belong in the activity feed.
+- **RecordUserSignIn**: `Login` event listener capturing the return-visit signal; stamps the first-party `last_login_at` column always and forwards `user.signed_in` to PostHog only with consent.
 - **PostHogExceptionReporter**: captures 5xx exceptions, rate-limited per class, legitimate-interest (no consent gate; path-only).
 - **PostHogFeatureFlag**: server-side flag evaluation with per-request cache.
 **Person properties** (set via identify, non-PII, for segmentation):
 - Inline (`PostHogIdentifyUsers`, first GET of session): `locale`, `account_age_days`, `has_completed_onboarding`, `country`, `$set_once` `signup_date`/`signup_cohort_week`.
+- On login (`RecordUserSignIn` listener): `$set last_login_at`, `$set_once first_login_at`.
 - Async (`EnrichPostHogProfile`, on participatory events): `games_created_count`, `games_joined_count`, `modality` (online/in_person/mixed), `primary_game_system`, `reliability_tier`, plus first-event timestamps.
 - First-touch (`PostHogAnalytics::identifyFirstTouch`, at signup): `$set_once` `first_touch_referer_domain`, `first_touch_entry_path`, `signup_content_type`, `signup_content_slug` — the SEO/acquisition signal including which public content page drove the signup.
 - Subscription (`PaddleWebhookController`): `$set` `subscription_status`.
