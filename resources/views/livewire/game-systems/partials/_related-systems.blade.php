@@ -1,5 +1,5 @@
         {{-- ── Base Game Quick Info (for expansions) ──────────────── --}}
-        @if($system->baseGame)
+        @if($system->baseGame && filled($system->baseGame->slug))
             <section class="bg-surface-container rounded-xl shadow-ambient p-5">
                 <h2 class="text-sm font-heading font-bold text-primary uppercase tracking-wide mb-3">{{ __('games.content_base_game_quick_info') }}</h2>
                 <a href="{{ route('game-systems.show', $system->baseGame->slug) }}" wire:navigate class="flex items-center gap-4 p-3 bg-surface rounded-lg hover:bg-primary/5 transition-colors group">
@@ -31,15 +31,18 @@
         @endif
 
         {{-- ── Expansions Section (for base games) ────────────────── --}}
-        @if($system->expansions->count() > 0)
+        {{-- Only expansions with a usable slug can be linked; a blank slug
+             would make route('game-systems.show') throw UrlGenerationException. --}}
+        @php($linkableExpansions = $system->expansions->filter(fn ($expansion) => filled($expansion->slug)))
+        @if($linkableExpansions->count() > 0)
             <section>
                 <h2 class="text-lg font-heading font-bold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary" aria-hidden="true">extension</span>
                     {{ __('games.heading_expansions') }}
-                    <span class="text-sm font-normal text-on-surface-variant">({{ $system->expansions->count() }})</span>
+                    <span class="text-sm font-normal text-on-surface-variant">({{ $linkableExpansions->count() }})</span>
                 </h2>
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                    @foreach($system->expansions as $expansion)
+                    @foreach($linkableExpansions as $expansion)
                         <a href="{{ route('game-systems.show', $expansion->slug) }}" wire:navigate class="block bg-surface-container rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
                             <div class="aspect-square bg-surface-container-high relative overflow-hidden">
                                 @php($expCover = $expansion->coverImageUrl('thumb'))

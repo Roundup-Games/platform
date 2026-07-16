@@ -113,7 +113,10 @@ class GameSystem extends Model implements HasMedia, TicketSubject
             }
             if (empty($gameSystem->slug)) {
                 $name = $gameSystem->getTranslation('name', 'en');
-                $gameSystem->slug = Str::slug(is_string($name) ? $name : '');
+                $slug = Str::slug(is_string($name) ? $name : '');
+                // Names that slugify to nothing (e.g. non-latin titles) must not
+                // leave a blank slug — it would break route('game-systems.show').
+                $gameSystem->slug = $slug !== '' ? $slug : 'game-system-'.$gameSystem->id;
             }
             if (empty($gameSystem->type)) {
                 $gameSystem->type = 'boardgame';

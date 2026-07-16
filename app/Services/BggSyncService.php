@@ -253,6 +253,12 @@ class BggSyncService
     {
         $baseSlug = Str::slug($name);
 
+        // Some BGG titles (e.g. non-latin scripts) slugify to an empty string,
+        // which would produce an unroutable game system. Fall back to the bgg_id.
+        if ($baseSlug === '') {
+            return 'game-system-'.$bggId;
+        }
+
         $existing = GameSystem::where('slug', $baseSlug)->first();
 
         // No conflict, or already ours from a previous sync

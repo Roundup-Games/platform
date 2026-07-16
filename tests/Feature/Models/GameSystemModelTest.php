@@ -191,6 +191,22 @@ describe('GameSystem TTRPG Support', function () {
     });
 });
 
+describe('GameSystem slug generation', function () {
+    it('derives a slug from the name when none is provided', function () {
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Wingspan Deluxe'], 'slug' => null]);
+
+        expect($system->slug)->toBe('wingspan-deluxe');
+    });
+
+    it('never persists a blank slug when the name slugifies to nothing', function () {
+        // Non-latin titles slugify to an empty string; the record must still be routable.
+        $system = GameSystem::factory()->create(['name' => ['en' => '桜'], 'slug' => null]);
+
+        expect($system->slug)->not->toBe('')
+            ->and($system->slug)->toBe('game-system-'.$system->id);
+    });
+});
+
 // ═══════════════════════════════════════════════════════════
 // CROSS-LINK TAXONOMY MODELS (shared fillable behavior)
 // ═══════════════════════════════════════════════════════════
