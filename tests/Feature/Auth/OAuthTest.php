@@ -1,5 +1,9 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use Laravel\Socialite\Facades\Socialite;
@@ -58,6 +62,37 @@ it('marks email as verified for OAuth registered users', function () {
 
     $user = User::where('email', 'new@google.com')->first();
     expect($user->email_verified_at)->not->toBeNull();
+});
+
+// ── Invitation matching on OAuth signup ────────────────
+
+it('matches pending email invitations on OAuth registration', function () {
+    $game = Game::factory()->create();
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => null,
+        'invitee_email' => 'invitee@google.com',
+        'role' => ParticipantRole::Invited->value,
+        'status' => ParticipantStatus::Pending->value,
+    ]);
+
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
+    $socialiteUser->shouldReceive('getId')->andReturn('77777');
+    $socialiteUser->shouldReceive('getEmail')->andReturn('invitee@google.com');
+    $socialiteUser->shouldReceive('getName')->andReturn('Invitee');
+    $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+    $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+    $socialiteUser->token = 'tok';
+    $socialiteUser->refreshToken = null;
+
+    Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+    $this->get('/auth/google/callback');
+
+    // The OAuth signup claims the pending invitation, same as email signup.
+    $user = User::where('email', 'invitee@google.com')->first();
+    expect($user)->not->toBeNull();
+    expect(GameParticipant::where('game_id', $game->id)->where('user_id', $user->id)->exists())->toBeTrue();
 });
 
 // ── Existing user login via OAuth ───────────────────────

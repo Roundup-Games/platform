@@ -3,12 +3,12 @@
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Services\PendingInvitationMatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -233,7 +233,6 @@ test('registration logs matched invites', function () {
  */
 function registerUser(string $email): User
 {
-    $controller = new RegisteredUserController;
     $request = Request::create('/register', 'POST', [
         'name' => 'Test User',
         'email' => $email,
@@ -251,10 +250,9 @@ function registerUser(string $email): User
         'profile_complete' => false,
     ]);
 
-    // Call matchPendingInvitations via reflection since it's private
-    $method = new ReflectionMethod($controller, 'matchPendingInvitations');
-    $method->setAccessible(true);
-    $method->invoke($controller, $user);
+    // Claim pending invitations via the shared service (extracted from the
+    // controller so email and OAuth registration flows match identically).
+    app(PendingInvitationMatcher::class)->match($user);
 
     return $user;
 }

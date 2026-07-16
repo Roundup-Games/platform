@@ -1,11 +1,15 @@
 <?php
 
 use App\Models\User;
+use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Subscription;
+use Tests\Helpers\TestablePostHogClient;
 
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\post;
@@ -115,6 +119,55 @@ function postSignedWebhook(string $uri, string $rawBody, string $signature): Tes
         'HTTP_PADDLE_SIGNATURE' => $signature,
     ], $rawBody);
 }
+
+describe('Webhook — analytics dedup', function () {
+    beforeEach(function () {
+        config(['cashier.webhook_secret' => null]);
+        config(['posthog.enabled' => true]);
+        config(['posthog.api_key' => 'phc_test_key']);
+        Cache::flush();
+
+        $posthog = new TestablePostHogClient;
+        app()->instance(PostHogClient::class, $posthog);
+        test()->testablePostHog = $posthog;
+
+        // Grant consent so the analytics capture is recorded.
+        $checker = test()->mock(PostHogConsentChecker::class);
+        $checker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+        app()->instance(PostHogConsentChecker::class, $checker);
+    });
+
+    it('captures subscription.canceled once per Paddle event_id across redeliveries', function () {
+        $user = webhookCreateUser(['analytics_consent' => true]);
+        $user->forceFill(['paddle_id' => 'ctm_dedup'])->save();
+        webhookCreateCustomer($user, 'ctm_dedup');
+        webhookCreateSubscription($user, [
+            'paddle_id' => 'sub_dedup',
+            'status' => 'active',
+        ]);
+
+        $postBody = [
+            'event_type' => 'subscription.canceled',
+            'event_id' => 'evt_dedup_1',
+            'data' => [
+                'id' => 'sub_dedup',
+                'status' => 'canceled',
+                'canceled_at' => now()->toIso8601String(),
+                'items' => [],
+                'customer_id' => 'ctm_dedup',
+            ],
+        ];
+
+        // First delivery captures; the identical redelivery (same event_id) is a
+        // no-op for analytics, so PostHog metrics aren't inflated by Paddle retries.
+        post('/paddle/webhook', $postBody)->assertStatus(200);
+        post('/paddle/webhook', $postBody)->assertStatus(200);
+
+        $canceled = collect(test()->testablePostHog->capturedCalls)
+            ->filter(fn (array $c) => ($c['event'] ?? null) === 'subscription.canceled');
+        expect($canceled)->toHaveCount(1);
+    });
+});
 
 describe('Webhook — Signature Verification', function () {
     it('accepts webhook with valid signature when webhook_secret is configured', function () {

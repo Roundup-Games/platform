@@ -14,6 +14,7 @@ use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Paddle\Http\Controllers\WebhookController as BaseWebhookController;
@@ -36,10 +37,18 @@ class PaddleWebhookController extends BaseWebhookController
 
     /**
      * Narrow a mixed value to a non-empty string (level-9 safe).
+     *
+     * Malformed (non-scalar) or empty values collapse to a neutral 'unknown'
+     * marker rather than a privileged status like 'active' — a missing/malformed
+     * Paddle status must never be recorded as an active subscription.
      */
     private static function asString(mixed $value): string
     {
-        return is_scalar($value) ? (string) $value : 'active';
+        if (is_scalar($value) && (string) $value !== '') {
+            return (string) $value;
+        }
+
+        return 'unknown';
     }
 
     /**
@@ -299,6 +308,18 @@ class PaddleWebhookController extends BaseWebhookController
     private function captureSubscriptionEvent(array $payload, string $event, array $properties = [], ?string $subscriptionStatus = null): void
     {
         try {
+            // Paddle delivers webhooks at-least-once and retries on non-2xx; without
+            // dedup the same event is captured into PostHog on every redelivery,
+            // inflating funnel/metrics. Key on the Paddle event_id + event name so
+            // a repeated delivery is a no-op for analytics. (Idempotency of the
+            // underlying DB writes is a separate concern; this guards the analytics
+            // capture specifically.)
+            $eventId = is_string($payload['event_id'] ?? null) ? $payload['event_id'] : null;
+            $dedupKey = "posthog:paddle_event:{$eventId}:{$event}";
+            if ($eventId !== null && Cache::has($dedupKey)) {
+                return;
+            }
+
             $paddleCustomerId = $this->extractData($payload)['customer_id'] ?? null;
             if (! $paddleCustomerId) {
                 return;
@@ -322,6 +343,10 @@ class PaddleWebhookController extends BaseWebhookController
             // column is the fallback signal in this cookie-less webhook context).
             if ($identifyProperties !== []) {
                 app(PostHogAnalytics::class)->identify($user, $identifyProperties);
+            }
+
+            if ($eventId !== null) {
+                Cache::put($dedupKey, true, now()->addDays(2));
             }
         } catch (\Throwable $e) {
             Log::warning('Paddle webhook: posthog capture failed', [

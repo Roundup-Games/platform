@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Rules\ValidUserName;
+use App\Services\PendingInvitationMatcher;
 use App\Services\PostHogAnalytics;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -44,6 +45,14 @@ class OAuthController
         if ($request->user()) {
             $request->session()->put('oauth_linking', true);
         }
+
+        // Capture the true first-touch BEFORE handing off to the provider. The
+        // callback request's referer/path is the provider's domain (e.g.
+        // google.com) and the /auth/{provider}/callback path — meaningless as
+        // acquisition attribution. Stash the entry referer + path here so the
+        // signup analytics records where the user actually came from.
+        $request->session()->put('oauth.first_touch_referer', $request->header('referer'));
+        $request->session()->put('oauth.first_touch_path', $request->path());
 
         return Socialite::driver($provider)->redirect();
     }
@@ -186,6 +195,11 @@ class OAuthController
             'provider_user_id' => $providerUserId,
         ]);
 
+        // Match pending email invitations to the newly registered user — the
+        // same logic the email-registration flow uses, so OAuth signups land on
+        // their invitations and the funnel metric is comparable across methods.
+        $inviteMatches = app(PendingInvitationMatcher::class)->match($user);
+
         // Acquisition funnel: capture the OAuth signup with provider attribution.
         $analytics = app(PostHogAnalytics::class);
         $analytics->capture(
@@ -194,13 +208,19 @@ class OAuthController
             [
                 'signup_method' => 'oauth',
                 'oauth_provider' => $provider,
-                'invite_match_count' => 0,
+                'invite_match_count' => $inviteMatches,
                 'locale' => app()->getLocale(),
             ],
         );
 
-        // First-touch SEO attribution.
-        $analytics->identifyFirstTouch($user, $request->header('referer'), $request->path());
+        // First-touch SEO attribution: use the referer/path captured at the
+        // initial redirect (not the callback's), falling back to null when no
+        // prior session exists (e.g. the user came directly to the callback URL).
+        $session = $request->session();
+        $firstTouchReferer = is_string($session->get('oauth.first_touch_referer')) ? $session->get('oauth.first_touch_referer') : null;
+        $firstTouchPath = is_string($session->get('oauth.first_touch_path')) ? $session->get('oauth.first_touch_path') : null;
+        $analytics->identifyFirstTouch($user, $firstTouchReferer, $firstTouchPath);
+        $session->forget(['oauth.first_touch_referer', 'oauth.first_touch_path']);
 
         return $this->redirectAfterLogin($user);
     }

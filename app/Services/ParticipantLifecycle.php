@@ -189,14 +189,16 @@ class ParticipantLifecycle
         // CapacityService::demote.
         $user = $userId !== null ? User::find($userId) : null;
 
-        // Matching-quality funnel: benched → approved promotion.
-        if ($user !== null) {
-            app(PostHogAnalytics::class)->capture(
-                $user,
-                'participant.promoted',
-                ['entity_type' => $meta->type, 'entity_id' => $entity->id],
-            );
-        }
+        // Matching-quality funnel: benched → approved promotion. Routed through
+        // captureParticipantTransition for the same richer entity enrichment
+        // (game_system, visibility, is_online) and consent gating the other
+        // lifecycle transitions use.
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant,
+            $entity,
+            'participant.promoted',
+            ['promoted_by' => $promoterId],
+        );
         if ($user !== null) {
             try {
                 app(NotificationService::class)->send(
