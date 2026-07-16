@@ -75,6 +75,25 @@ describe('EventAnnouncement visibility on the public event page', function () {
             ->assertDontSee('Admins Only Announcement');
     });
 
+    test('a pending registration does not count as registered', function () {
+        // Only a confirmed registration grants registered-level visibility.
+        // A pending registration (e.g. awaiting payment) must not.
+        [$event] = seedAnnouncementsForVisibilityTest();
+        $pending = User::factory()->create();
+
+        EventRegistration::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $pending->id,
+            'status' => 'pending',
+        ]);
+
+        Livewire::actingAs($pending)
+            ->test(EventDetail::class, ['slug' => $event->slug])
+            ->assertSee('All Visitors Announcement')
+            ->assertDontSee('Registered Only Announcement')
+            ->assertDontSee('Admins Only Announcement');
+    });
+
     test('the event organizer sees every announcement including "private"', function () {
         [$event] = seedAnnouncementsForVisibilityTest();
 

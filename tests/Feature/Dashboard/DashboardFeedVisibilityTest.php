@@ -194,6 +194,46 @@ describe('Community Feed — visibility filtering', function () {
             ->toBeFalse('protected game by a one-way follow must not appear');
     });
 
+    test('a public session in a private campaign is excluded (campaign visibility gates its sessions)', function () {
+        // Regression: getSessionsScheduled scopes the session (game) with
+        // visibleTo() but must ALSO scope the parent campaign — otherwise a
+        // public session attached to a private campaign leaks the campaign.
+        $friend = User::factory()->create(['name' => 'PrivateCampaigner']);
+        UserRelationship::create([
+            'user_id' => $this->user->id,
+            'related_user_id' => $friend->id,
+            'type' => 'follow',
+        ]);
+
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $friend->id,
+            'status' => 'active',
+            'visibility' => 'private',
+        ]);
+
+        // The SESSION itself is public, but its parent campaign is private —
+        // the session must still be hidden because the campaign owner's intent
+        // (private) gates everything under it.
+        Game::factory()->create([
+            'owner_id' => $friend->id,
+            'campaign_id' => $campaign->id,
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'visibility' => 'public',
+            'name' => ['en' => 'Public Session In Private Campaign'],
+        ]);
+
+        $feed = Livewire::test(Dashboard::class)
+            ->viewData('dashboard')->established->communityFeed->friends;
+
+        // The session_scheduled activity (which surfaces the campaign owner) must
+        // not fire for a campaign the viewer can't see. The same game may still
+        // appear via the generic game_created activity — that's the game's own
+        // public visibility, independent of its campaign.
+        expect($feed->filter(fn ($item) => $item->type === 'session_scheduled')->isEmpty())
+            ->toBeTrue('a session_scheduled activity for a private campaign must not appear');
+    });
+
     test('a protected game by a mutual friend appears in the feed', function () {
         $friend = User::factory()->create(['name' => 'MutualFriend']);
         // Mutual follow: both directions

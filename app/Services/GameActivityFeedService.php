@@ -12,6 +12,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class GameActivityFeedService
@@ -343,7 +344,12 @@ class GameActivityFeedService
     {
         return Game::whereNotNull('campaign_id')
             ->visibleTo($viewer)
-            ->whereHas('campaign', fn ($q) => $q->whereIn('owner_id', $socialCircleIds))
+            // Scope the parent campaign too: a public session must not surface a
+            // private/protected campaign the viewer couldn't see directly.
+            ->whereHas('campaign', function (Builder $q) use ($socialCircleIds, $viewer): void {
+                /** @var Builder<Campaign> $q */
+                $q->whereIn('owner_id', $socialCircleIds)->visibleTo($viewer);
+            })
             ->where('status', 'scheduled')
             ->with(['owner', 'gameSystems', 'campaign'])
             ->withCount('participants')

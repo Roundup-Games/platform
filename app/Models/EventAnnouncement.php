@@ -112,10 +112,12 @@ class EventAnnouncement extends Model
         if ($viewer !== null) {
             $canManage = $viewer->can('update', $event);
 
-            // Registered-level content is visible to anyone with an active
+            // Registered-level content is visible to anyone with a CONFIRMED
             // registration, and to organizers/admins (who manage everything
-            // on their own event even without a registration row).
-            if ($canManage || $event->registrations()->whereBelongsTo($viewer)->whereNull('cancelled_at')->exists()) {
+            // on their own event even without a registration row). A pending
+            // registration (e.g. awaiting payment) or a cancelled one does NOT
+            // grant access — only a confirmed registration counts as "registered".
+            if ($canManage || $event->registrations()->whereBelongsTo($viewer)->where('status', 'confirmed')->whereNull('cancelled_at')->exists()) {
                 $levels[] = self::VISIBILITY_REGISTERED;
             }
 
