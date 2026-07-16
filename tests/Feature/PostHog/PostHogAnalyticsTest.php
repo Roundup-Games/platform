@@ -130,3 +130,71 @@ describe('PostHogAnalytics::captureAttendanceOutcome', function () {
         expect($attendance)->toHaveCount(0);
     });
 });
+
+describe('PostHogAnalytics — webhook consent fallback', function () {
+    test('captures when cookie consent is absent but persisted flag is true', function () {
+        // Simulates a Paddle webhook: no cookie_consent cookie, but the user
+        // previously consented and the middleware persisted analytics_consent=true.
+        denyAnalyticsConsent();
+        $user = User::factory()->create(['analytics_consent' => true]);
+
+        app(PostHogAnalytics::class)->capture($user, 'subscription.started', ['status' => 'active']);
+
+        $sub = collect($this->posthogClient->capturedCalls)
+            ->first(fn (array $c) => ($c['event'] ?? null) === 'subscription.started');
+        expect($sub)->not->toBeNull()
+            ->and($sub['distinctId'])->toBe((string) $user->id);
+    });
+
+    test('skips when both cookie and persisted flag are absent', function () {
+        denyAnalyticsConsent();
+        $user = User::factory()->create(['analytics_consent' => false]);
+
+        app(PostHogAnalytics::class)->capture($user, 'subscription.started');
+
+        $sub = collect($this->posthogClient->capturedCalls)
+            ->filter(fn (array $c) => ($c['event'] ?? null) === 'subscription.started');
+        expect($sub)->toHaveCount(0);
+    });
+});
+
+describe('PostHogAnalytics::identifyFirstTouch', function () {
+    test('sets first_touch referer domain and entry path as $set_once', function () {
+        $user = User::factory()->create();
+
+        app(PostHogAnalytics::class)->identifyFirstTouch(
+            $user,
+            'https://google.com/search?q=board+games',
+            'en/discovery',
+        );
+
+        expect($this->posthogClient->identifyCalls)->toHaveCount(1);
+        $payload = $this->posthogClient->identifyCalls[0];
+        $setOnce = $payload['properties']['$set_once'] ?? [];
+        expect($setOnce['first_touch_referer_domain'])->toBe('google.com')
+            ->and($setOnce['first_touch_entry_path'])->toBe('en/discovery');
+    });
+
+    test('reduces referer to hostname only (strips query/UTM)', function () {
+        $user = User::factory()->create();
+
+        app(PostHogAnalytics::class)->identifyFirstTouch(
+            $user,
+            'https://google.com/search?q=test&utm_source=mail&uid=12345',
+            'en/register',
+        );
+
+        $setOnce = $this->posthogClient->identifyCalls[0]['properties']['$set_once'];
+        expect($setOnce['first_touch_referer_domain'])->toBe('google.com')
+            ->and($setOnce)->not->toHaveKey('utm_source');
+    });
+
+    test('is consent-gated', function () {
+        denyAnalyticsConsent();
+        $user = User::factory()->create(['analytics_consent' => false]);
+
+        app(PostHogAnalytics::class)->identifyFirstTouch($user, 'https://google.com', '/en');
+
+        expect($this->posthogClient->identifyCalls)->toHaveCount(0);
+    });
+});

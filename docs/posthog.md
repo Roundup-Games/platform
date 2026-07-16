@@ -83,7 +83,7 @@ Add `data-ph-mask` to any element displaying PII.
   - `necessary` — auth, CSRF, locale.
   - `analytics` (opt-in) — pseudonymous PostHog events. **All** PostHog event capture and identify is gated behind this.
   - `marketing` (opt-in) — the only tier under which identifiable contact details may be shared with a provider for outreach. Not yet consumed by any processor; wired as the growth substrate.
-- **Consent-gated surfaces**: `PostHogIdentifyUsers`, `PostHogEventBridge`, `PostHogAnalytics`, and the `link.hit` event all check `PostHogConsentChecker::hasAnalyticsConsent()`.
+- **Consent-gated surfaces**: `PostHogIdentifyUsers`, `PostHogEventBridge`, `PostHogAnalytics`, and the `link.hit` event all check `PostHogConsentChecker::hasAnalyticsConsent()`. In webhook/queue contexts with no cookie (Paddle server-to-server webhooks), `PostHogAnalytics` falls back to the persisted `analytics_consent` column, which the identify middleware keeps in sync.
 - **Exception tracking (legitimate interest)**: `PostHogExceptionReporter` captures unhandled 5xx errors **without** analytics consent (service stability is a legitimate interest under GDPR Art. 6(1)(f)). It records only the request **path** — never the full URL, query string, or form data — to avoid leaking share tokens or PII. This is disclosed in the privacy policy.
 - **Session replay masking**: all inputs, images, and `[data-ph-mask]` elements are masked. Add `data-ph-mask` to any element displaying personal data.
 - **Do Not Track**: the JS SDK respects the browser's DNT header; the identify middleware respects the `DNT` request header server-side.
@@ -100,6 +100,7 @@ Add `data-ph-mask` to any element displaying PII.
 - `attendance.recorded` — `attendance_status`, `resolution_context` (report/consensus/admin_override/host_cancel), `game_system`, `is_online`, `hours_to_session`. Powers reliability-by-cohort analysis (the platform's differentiator).
 - `discovery.search` — filter signature + `result_count` + `zero_results` flag. Zero-result searches surface unmet demand.
 - `link.hit` — anonymous short-link performance (consent-gated).
+- `subscription.started` / `subscription.updated` / `subscription.canceled` / `subscription.payment_failed` — captured at the Paddle webhook boundary. Consent via the persisted `analytics_consent` column (no cookie in webhook context). Fires when subscription billing goes live; zero rework then.
 
 ## Architecture
 
@@ -108,5 +109,9 @@ Add `data-ph-mask` to any element displaying PII.
 - **PostHogAnalytics**: consent-gated direct capture for product/funnel events (signup, onboarding, attendance, discovery) that don't belong in the activity feed.
 - **PostHogExceptionReporter**: captures 5xx exceptions, rate-limited per class, legitimate-interest (no consent gate; path-only).
 - **PostHogFeatureFlag**: server-side flag evaluation with per-request cache.
-- **EnrichPostHogProfile**: async job that sets computed non-PII person properties + team group analytics.
+**Person properties** (set via identify, non-PII, for segmentation):
+- Inline (`PostHogIdentifyUsers`, first GET of session): `locale`, `account_age_days`, `has_completed_onboarding`, `country`, `$set_once` `signup_date`/`signup_cohort_week`.
+- Async (`EnrichPostHogProfile`, on participatory events): `games_created_count`, `games_joined_count`, `modality` (online/in_person/mixed), `primary_game_system`, `reliability_tier`, plus first-event timestamps.
+- First-touch (`PostHogAnalytics::identifyFirstTouch`, at signup): `$set_once` `first_touch_referer_domain`, `first_touch_entry_path` — the SEO/acquisition signal.
+- Subscription (`PaddleWebhookController`): `$set` `subscription_status`.
 - **posthog.js**: client-side init, Livewire pageview tracking, session replay, surveys.

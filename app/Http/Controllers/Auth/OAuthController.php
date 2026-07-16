@@ -187,7 +187,8 @@ class OAuthController
         ]);
 
         // Acquisition funnel: capture the OAuth signup with provider attribution.
-        app(PostHogAnalytics::class)->capture(
+        $analytics = app(PostHogAnalytics::class);
+        $analytics->capture(
             $user,
             'user.signed_up',
             [
@@ -197,6 +198,9 @@ class OAuthController
                 'locale' => app()->getLocale(),
             ],
         );
+
+        // First-touch SEO attribution.
+        $analytics->identifyFirstTouch($user, $request->header('referer'), $request->path());
 
         return $this->redirectAfterLogin($user);
     }

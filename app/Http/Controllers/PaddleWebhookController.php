@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\GmRoleService;
+use App\Services\PostHogAnalytics;
+use App\Services\PostHogClient;
 use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
@@ -31,6 +33,14 @@ class PaddleWebhookController extends BaseWebhookController
         $data = $payload['data'] ?? [];
 
         return is_array($data) ? $data : [];
+    }
+
+    /**
+     * Narrow a mixed value to a non-empty string (level-9 safe).
+     */
+    private static function asString(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : 'active';
     }
 
     /**
@@ -70,6 +80,11 @@ class PaddleWebhookController extends BaseWebhookController
 
         parent::handleSubscriptionCreated($payload);
 
+        $this->captureSubscriptionEvent($payload, 'subscription.started', [
+            'status' => $data['status'] ?? null,
+            'price_id' => $this->nestedValue($data, 'items.0.price.id'),
+        ], self::asString($data['status'] ?? 'active'));
+
         // After Cashier processes the subscription, check if user has a GM profile
         // that should be reactivated. This handles the case where a user previously
         // had GM status but their Paddle subscription lapsed.
@@ -91,6 +106,11 @@ class PaddleWebhookController extends BaseWebhookController
         ]);
 
         parent::handleSubscriptionUpdated($payload);
+
+        $status = self::asString($data['status'] ?? 'active');
+        $this->captureSubscriptionEvent($payload, 'subscription.updated', [
+            'status' => $data['status'] ?? null,
+        ], $status);
     }
 
     /**
@@ -109,6 +129,11 @@ class PaddleWebhookController extends BaseWebhookController
         ]);
 
         parent::handleSubscriptionCanceled($payload);
+
+        $this->captureSubscriptionEvent($payload, 'subscription.canceled', [
+            'status' => $data['status'] ?? null,
+            'canceled_at' => $data['canceled_at'] ?? null,
+        ], 'canceled');
 
         // Revoke GM role if the user's paid subscription is canceled
         $this->revokeGmRoleFromPayload($payload);
@@ -153,6 +178,13 @@ class PaddleWebhookController extends BaseWebhookController
 
         // Auto-create a billing support ticket for payment failures that need human review
         $this->createPaymentFailureTicket($data);
+
+        // Payment failure is a leading churn signal — capture for retention analytics.
+        $this->captureSubscriptionEvent($payload, 'subscription.payment_failed', [
+            'amount' => $this->nestedValue($data, 'details.totals.total'),
+            'currency' => $data['currency_code'] ?? null,
+            'subscription_id' => $data['subscription_id'] ?? null,
+        ]);
     }
 
     /**
@@ -246,6 +278,57 @@ class PaddleWebhookController extends BaseWebhookController
             Log::warning('Failed to create payment failure ticket', [
                 'error' => $e->getMessage(),
                 'customer_id' => $data['customer_id'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Capture a subscription lifecycle event to PostHog for monetization analytics.
+     *
+     * The Paddle webhook is a server-to-server request with no cookie_consent
+     * cookie, so PostHogAnalytics falls back to the persisted analytics_consent
+     * column (kept in sync by the identify middleware). Non-consenting users'
+     * subscription state is still recorded in the DB for financial/legal reasons;
+     * only the analytics forwarding is consent-gated.
+     *
+     * Resolves the user via paddle_id (customer_id). No-op if the user can't be
+     * resolved (e.g. webhook for an unknown customer) or PostHog is disabled.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $properties
+     */
+    private function captureSubscriptionEvent(array $payload, string $event, array $properties = [], ?string $subscriptionStatus = null): void
+    {
+        try {
+            $paddleCustomerId = $this->extractData($payload)['customer_id'] ?? null;
+            if (! $paddleCustomerId) {
+                return;
+            }
+
+            $user = User::where('paddle_id', $paddleCustomerId)->first();
+            if (! $user) {
+                return;
+            }
+
+            $identifyProperties = [];
+            if ($subscriptionStatus !== null) {
+                $identifyProperties['$set'] = ['subscription_status' => $subscriptionStatus];
+            }
+
+            app(PostHogAnalytics::class)->capture($user, $event, $properties);
+
+            // Keep subscription_status current on the person profile for segmentation.
+            if ($identifyProperties !== []) {
+                app(PostHogClient::class)->identify([
+                    'distinctId' => (string) $user->id,
+                    'properties' => $identifyProperties,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Paddle webhook: posthog capture failed', [
+                'event' => $event,
+                'customer_id' => $paddleCustomerId ?? null,
+                'error' => $e->getMessage(),
             ]);
         }
     }

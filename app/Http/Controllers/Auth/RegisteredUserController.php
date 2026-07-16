@@ -68,7 +68,8 @@ class RegisteredUserController extends Controller
         // Acquisition funnel: capture the signup with attribution. Consent-gated
         // via PostHogAnalytics — non-consenting signups still appear in the users
         // table but are not server-side tracked. OAuth signups carry their provider.
-        app(PostHogAnalytics::class)->capture(
+        $analytics = app(PostHogAnalytics::class);
+        $analytics->capture(
             $user,
             'user.signed_up',
             [
@@ -78,6 +79,10 @@ class RegisteredUserController extends Controller
                 'locale' => app()->getLocale(),
             ],
         );
+
+        // First-touch SEO attribution: record the entry path + referrer domain as
+        // permanent person properties for organic/search investment analysis.
+        $analytics->identifyFirstTouch($user, $request->header('referer'), $request->path());
 
         return redirect()->route('onboarding.index');
     }

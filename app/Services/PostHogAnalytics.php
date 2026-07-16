@@ -46,7 +46,7 @@ class PostHogAnalytics
             return;
         }
 
-        if (! $this->consentChecker->hasAnalyticsConsent()) {
+        if (! $this->hasConsent($user)) {
             return;
         }
 
@@ -88,13 +88,14 @@ class PostHogAnalytics
             return;
         }
 
-        if (! $this->consentChecker->hasAnalyticsConsent()) {
-            return;
-        }
-
         $userId = $participant->user_id;
         if ($userId === null) {
             // Invitee-by-email participants have no user account yet — nothing to attribute.
+            return;
+        }
+
+        $user = $participant->user ?? User::find($userId);
+        if ($user && ! $this->hasConsent($user)) {
             return;
         }
 
@@ -131,5 +132,70 @@ class PostHogAnalytics
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Capture first-touch acquisition attribution as permanent person properties.
+     *
+     * Surfaces the SEO/acquisition signal as a queryable person attribute
+     * ($set_once) rather than requiring funnel reconstruction. Captures the
+     * referer domain and entry path from the signup request. Uses $set_once so
+     * only the first signup is recorded, even across multiple signup attempts.
+     *
+     * Privacy: referer is reduced to hostname only (full URLs may carry UTM/PII
+     * in query strings). Analytics-tier — gated by consent like all capture.
+     *
+     * @param  string|null  $referer  Raw Referer header from the signup request.
+     * @param  string|null  $entryPath  The request path at signup (e.g. the page they registered from).
+     */
+    public function identifyFirstTouch(User $user, ?string $referer, ?string $entryPath): void
+    {
+        if (! $this->posthog->isEnabled()) {
+            return;
+        }
+
+        if (! $this->hasConsent($user)) {
+            return;
+        }
+
+        $refererDomain = $referer !== null && $referer !== ''
+            ? (parse_url($referer, PHP_URL_HOST) ?: null)
+            : null;
+
+        try {
+            $this->posthog->identify([
+                'distinctId' => (string) $user->id,
+                'properties' => [
+                    '$set_once' => array_filter([
+                        'first_touch_referer_domain' => $refererDomain,
+                        'first_touch_entry_path' => $entryPath !== '' ? $entryPath : null,
+                    ]),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('daily')->warning('posthog.analytics.first_touch_failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Resolve consent for a user across request and webhook/queue contexts.
+     *
+     * In a normal browser request, the cookie_consent cookie is the live signal
+     * (checked via PostHogConsentChecker). In webhook/queue contexts (Paddle
+     * server-to-server webhooks, queued jobs) there is no cookie — so we fall
+     * back to the persisted analytics_consent column, which the identify
+     * middleware keeps in sync on every authenticated GET. This is exactly the
+     * use case the persisted column was added for.
+     */
+    private function hasConsent(User $user): bool
+    {
+        if ($this->consentChecker->hasAnalyticsConsent()) {
+            return true;
+        }
+
+        return (bool) $user->analytics_consent;
     }
 }
