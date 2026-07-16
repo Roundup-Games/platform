@@ -58,17 +58,31 @@ class RecordShortLinkHit implements ShouldQueue
     public ?string $hashedIpAddress = null;
 
     /**
+     * Whether the visitor granted analytics consent at redirect time.
+     *
+     * Consent is captured in ShortLinkController (which has request context)
+     * and passed here, mirroring EnrichPostHogProfile. The first-party hit row
+     * (count, referer domain, browser family) is always recorded — that is the
+     * link owner's operational data. Only the cross-user PostHog event is gated
+     * behind consent, since it contributes to platform-wide analytics.
+     */
+    public bool $hasConsent = false;
+
+    /**
      * @param  int  $shortLinkId  The ID of the ShortLink that was resolved.
      * @param  string|null  $ipAddress  The visitor's raw IP address (hashed in constructor).
      * @param  string|null  $referer  The Referer header value.
      * @param  string|null  $userAgent  The User-Agent header value.
+     * @param  bool  $hasConsent  Whether analytics consent was granted at redirect time.
      */
     public function __construct(
         public int $shortLinkId,
         ?string $ipAddress = null,
         public ?string $referer = null,
         public ?string $userAgent = null,
+        bool $hasConsent = false,
     ) {
+        $this->hasConsent = $hasConsent;
         // Compute the PostHog fingerprint from raw IP+UA before hashing.
         // This gives a consistent anonymous visitor ID without storing raw PII.
         $this->visitorFingerprint = ($ipAddress ?? '') !== '' || ($this->userAgent ?? '') !== ''
@@ -162,24 +176,29 @@ class RecordShortLinkHit implements ShouldQueue
         Cache::forget("short_link:{$link->code}");
 
         // ── PostHog link.hit event (after transaction commits) ───────
-        try {
-            $posthog->capture([
-                'distinctId' => $this->visitorFingerprint,
-                'event' => 'link.hit',
-                'properties' => [
-                    'link_id' => $link->id,
-                    'link_code' => $link->code,
-                    'link_label' => $link->label,
-                    'linkable_type' => class_basename($link->linkable_type),
-                    'linkable_id' => $link->linkable_id,
-                    'referer_domain' => $refererDomain,
-                ],
-            ]);
-        } catch (\Throwable $e) {
-            Log::warning('short_link.hit.posthog_failed', [
-                'short_link_id' => $link->id,
-                'error' => $e->getMessage(),
-            ]);
+        // Gated behind analytics consent. The first-party hit row above is
+        // always recorded (link owner operational data); only the cross-user
+        // analytics event requires consent.
+        if ($this->hasConsent) {
+            try {
+                $posthog->capture([
+                    'distinctId' => $this->visitorFingerprint,
+                    'event' => 'link.hit',
+                    'properties' => [
+                        'link_id' => $link->id,
+                        'link_code' => $link->code,
+                        'link_label' => $link->label,
+                        'linkable_type' => class_basename($link->linkable_type),
+                        'linkable_id' => $link->linkable_id,
+                        'referer_domain' => $refererDomain,
+                    ],
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('short_link.hit.posthog_failed', [
+                    'short_link_id' => $link->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         Log::debug('short_link.hit.recorded', [

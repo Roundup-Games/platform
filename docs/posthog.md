@@ -76,15 +76,37 @@ Add `data-ph-mask` to any element displaying PII.
 
 ## Privacy & GDPR
 
-- **No PII in analytics identifiers**: Anonymous users get a random session-scoped UUID (not IP-derived). Authenticated users are identified by their database ID only.
-- **PII stays server-side**: User name, email, and locale are set exclusively via server-side `identify()` — never exposed in the DOM or client-side `identify()` call.
-- **Session replay masking**: All inputs, images, and `[data-ph-mask]` elements are masked in recordings. Add `data-ph-mask` to any element displaying personal data.
-- **Do Not Track**: The JS SDK respects the browser's DNT header.
+- **Pseudonymized by design**: PostHog receives only the opaque internal user ID as the `distinctId`. **Name and email are never sent to PostHog** — events cannot be re-identified without this application's database. This is what makes our public "pseudonymized" privacy claim literally true.
+- **Non-PII person properties only**: `identifyServerSide()` sends `locale`, `account_age_days`, `has_completed_onboarding`, coarse `country`, and `$set_once` signup cohort. Computed properties (game-system cluster, modality tendency, lifetime counts) are set asynchronously by `EnrichPostHogProfile`.
+- **Anonymous IDs are not PII-derived**: anonymous users get a random session-scoped UUID (not an IP/UA hash).
+- **Three consent tiers** (see `config/cookie-consent.php`):
+  - `necessary` — auth, CSRF, locale.
+  - `analytics` (opt-in) — pseudonymous PostHog events. **All** PostHog event capture and identify is gated behind this.
+  - `marketing` (opt-in) — the only tier under which identifiable contact details may be shared with a provider for outreach. Not yet consumed by any processor; wired as the growth substrate.
+- **Consent-gated surfaces**: `PostHogIdentifyUsers`, `PostHogEventBridge`, `PostHogAnalytics`, and the `link.hit` event all check `PostHogConsentChecker::hasAnalyticsConsent()`.
+- **Exception tracking (legitimate interest)**: `PostHogExceptionReporter` captures unhandled 5xx errors **without** analytics consent (service stability is a legitimate interest under GDPR Art. 6(1)(f)). It records only the request **path** — never the full URL, query string, or form data — to avoid leaking share tokens or PII. This is disclosed in the privacy policy.
+- **Session replay masking**: all inputs, images, and `[data-ph-mask]` elements are masked. Add `data-ph-mask` to any element displaying personal data.
+- **Do Not Track**: the JS SDK respects the browser's DNT header; the identify middleware respects the `DNT` request header server-side.
+- **GDPR erasure**: `DeletePostHogUserData` sends a `$delete` for the user's distinctId on account anonymization.
+
+## Event Catalog
+
+**Community activity** (via `ActivityLogService` → `PostHogEventBridge`, also shown in the in-app feed):
+`game.created`, `game.completed`, `game.canceled`, `game.updated`, `campaign.*`, `game.player_joined`, `session.scheduled`, `session.recapped`, `session.debriefing_submitted`, `invitation.received`, `invitation.accepted`, `review.received`, `follow.received`.
+
+**Product / funnel events** (via `PostHogAnalytics`, analytics-only, not in the feed):
+- `user.signed_up` — `signup_method` (email/oauth), `oauth_provider`, `invite_match_count`.
+- `onboarding.started` / `onboarding.completed` — drives the activation funnel.
+- `attendance.recorded` — `attendance_status`, `resolution_context` (report/consensus/admin_override/host_cancel), `game_system`, `is_online`, `hours_to_session`. Powers reliability-by-cohort analysis (the platform's differentiator).
+- `discovery.search` — filter signature + `result_count` + `zero_results` flag. Zero-result searches surface unmet demand.
+- `link.hit` — anonymous short-link performance (consent-gated).
 
 ## Architecture
 
-- **PostHogIdentifyUsers** middleware: identifies users on GET page loads
-- **PostHogEventBridge**: forwards ActivityLog events to PostHog with enrichment
-- **PostHogExceptionReporter**: captures 5xx exceptions, rate-limited per class
-- **PostHogFeatureFlag**: server-side flag evaluation with per-request cache
-- **posthog.js**: client-side init, Livewire pageview tracking, session replay, surveys
+- **PostHogIdentifyUsers** middleware: identifies users on GET page loads (pseudonymous — opaque ID + non-PII properties).
+- **PostHogEventBridge**: forwards ActivityLog community events to PostHog with enrichment.
+- **PostHogAnalytics**: consent-gated direct capture for product/funnel events (signup, onboarding, attendance, discovery) that don't belong in the activity feed.
+- **PostHogExceptionReporter**: captures 5xx exceptions, rate-limited per class, legitimate-interest (no consent gate; path-only).
+- **PostHogFeatureFlag**: server-side flag evaluation with per-request cache.
+- **EnrichPostHogProfile**: async job that sets computed non-PII person properties + team group analytics.
+- **posthog.js**: client-side init, Livewire pageview tracking, session replay, surveys.

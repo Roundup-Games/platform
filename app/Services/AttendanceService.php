@@ -574,6 +574,12 @@ class AttendanceService
 
         // Trigger reliability recomputation
         $this->reliabilityService->recomputeAfterAttendance($participant);
+
+        // Forward the resolved outcome to reliability analytics.
+        $statusEnum = AttendanceStatus::tryFrom($status);
+        if ($statusEnum !== null) {
+            app(PostHogAnalytics::class)->captureAttendanceOutcome($participant, $statusEnum, 'report');
+        }
     }
 
     /**
@@ -659,6 +665,17 @@ class AttendanceService
             'hours_until_game' => $hoursUntilGame,
             'peak_roster' => $peakRoster,
         ]);
+
+        // Forward the host late-cancel outcome to reliability analytics. Only
+        // when a participant record exists — the else-branch above has no
+        // participant, in which case the reliability score alone was recomputed.
+        if ($hostParticipant) {
+            app(PostHogAnalytics::class)->captureAttendanceOutcome(
+                $hostParticipant,
+                AttendanceStatus::LateCancel,
+                'host_cancel',
+            );
+        }
     }
 
     // ── 5. Read-only query methods ─────────────────────────────
@@ -917,6 +934,9 @@ class AttendanceService
                 'reason' => $overrideReason,
             ]);
         });
+
+        // Forward the admin-overridden outcome to reliability analytics.
+        app(PostHogAnalytics::class)->captureAttendanceOutcome($participant, $newStatus, 'admin_override');
 
         // Notify the affected user of the dispute resolution (via NotificationService
         // to respect channel preferences, block-list, and push dispatch)

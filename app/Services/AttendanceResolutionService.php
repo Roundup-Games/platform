@@ -330,6 +330,9 @@ class AttendanceResolutionService
         ])->save();
 
         $this->reliabilityService->recomputeAfterAttendance($participant);
+
+        // Forward the consensus outcome to reliability analytics.
+        app(PostHogAnalytics::class)->captureAttendanceOutcome($participant, $status, 'consensus');
     }
 
     /**

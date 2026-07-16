@@ -7,6 +7,7 @@ use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\GeocodingService;
+use App\Services\PostHogAnalytics;
 use App\Services\ProfileVisibilityResolver;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
@@ -94,6 +95,9 @@ class CompleteProfile extends Component
 
             return;
         }
+
+        // Onboarding funnel: mark that the user entered the flow.
+        app(PostHogAnalytics::class)->capture($user, 'onboarding.started');
 
         // Pre-fill from any existing user data (e.g. from OAuth)
         $this->gender = $user->gender;
@@ -356,6 +360,19 @@ class CompleteProfile extends Component
         if ($freshUser && $freshUser->linkedLocation?->latitude && $freshUser->linkedLocation->longitude) {
             UpdateUserDiscoveryCache::dispatch((string) $freshUser->id, 'location_change');
         }
+
+        // Onboarding funnel: mark completion with the profile attributes that
+        // drive activation analysis. Consent-gated via PostHogAnalytics.
+        app(PostHogAnalytics::class)->capture(
+            $user,
+            'onboarding.completed',
+            [
+                'game_systems_selected_count' => count($this->favoriteGameSystemIds),
+                'location_source' => $this->locationSource,
+                'provided_phone' => filled($this->phone),
+                'provided_gender' => filled($this->gender),
+            ],
+        );
 
         // Use explicit locale-prefixed redirect instead of redirectRoute('dashboard').
         // Livewire update requests hit /livewire/update (outside the {locale} route group),

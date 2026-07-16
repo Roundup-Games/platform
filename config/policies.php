@@ -17,7 +17,7 @@ return [
     */
 
     'privacy' => [
-        'last_updated' => '2025-06-01',
+        'last_updated' => '2026-07-15',
     ],
 
     'terms' => [

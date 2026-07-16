@@ -17,7 +17,7 @@ beforeEach(function () {
     ]);
 });
 
-// ── Hit recording ──────────────────────────────────────
+// ── Hit recording (consent granted — PostHog fires) ─────
 
 describe('RecordShortLinkHit job — hit recording', function () {
     it('creates a ShortLinkHit record', function () {
@@ -29,6 +29,7 @@ describe('RecordShortLinkHit job — hit recording', function () {
             ipAddress: '192.168.1.1',
             referer: 'https://google.com',
             userAgent: 'TestBot/1.0',
+            hasConsent: true,
         ))->handle($posthog);
 
         expect(ShortLinkHit::where('short_link_id', $this->link->id)->count())->toBe(1);
@@ -48,6 +49,7 @@ describe('RecordShortLinkHit job — hit recording', function () {
 
         (new RecordShortLinkHit(
             shortLinkId: $this->link->id,
+            hasConsent: true,
         ))->handle($posthog);
 
         expect($this->link->fresh()->hit_count)->toBe(1);
@@ -61,6 +63,7 @@ describe('RecordShortLinkHit job — hit recording', function () {
 
         (new RecordShortLinkHit(
             shortLinkId: $this->link->id,
+            hasConsent: true,
         ))->handle($posthog);
 
         expect($this->link->fresh()->last_hit_at)->not->toBeNull();
@@ -73,6 +76,7 @@ describe('RecordShortLinkHit job — hit recording', function () {
         for ($i = 0; $i < 3; $i++) {
             (new RecordShortLinkHit(
                 shortLinkId: $this->link->id,
+                hasConsent: true,
             ))->handle($posthog);
         }
 
@@ -81,7 +85,42 @@ describe('RecordShortLinkHit job — hit recording', function () {
     });
 });
 
-// ── PostHog analytics ──────────────────────────────────
+// ── Consent gating (first-party row always; PostHog gated) ─
+
+describe('RecordShortLinkHit job — consent gating', function () {
+    it('still records the hit row when consent is absent', function () {
+        // The hit row is the link owner's operational data (legitimate interest);
+        // it must be recorded regardless of analytics consent.
+        $posthog = $this->mock(PostHogClient::class);
+        $posthog->shouldNotReceive('capture');
+
+        (new RecordShortLinkHit(
+            shortLinkId: $this->link->id,
+            ipAddress: '192.168.1.1',
+            hasConsent: false,
+        ))->handle($posthog);
+
+        expect(ShortLinkHit::where('short_link_id', $this->link->id)->count())->toBe(1);
+        expect($this->link->fresh()->hit_count)->toBe(1);
+    });
+
+    it('does not capture a PostHog event when consent is absent', function () {
+        $posthog = $this->mock(PostHogClient::class);
+        $posthog->shouldNotReceive('capture');
+
+        (new RecordShortLinkHit(
+            shortLinkId: $this->link->id,
+            hasConsent: false,
+        ))->handle($posthog);
+    });
+
+    it('defaults to no consent (privacy-safe) when omitted', function () {
+        $job = new RecordShortLinkHit(shortLinkId: $this->link->id);
+        expect($job->hasConsent)->toBeFalse();
+    });
+});
+
+// ── PostHog analytics (consent granted) ────────────────
 
 describe('RecordShortLinkHit job — PostHog', function () {
     it('captures a link.hit event with correct properties', function () {
@@ -102,6 +141,7 @@ describe('RecordShortLinkHit job — PostHog', function () {
             ipAddress: '10.0.0.1',
             referer: 'https://example.com/page',
             userAgent: 'Mozilla/5.0',
+            hasConsent: true,
         ))->handle($posthog);
     });
 
@@ -121,6 +161,7 @@ describe('RecordShortLinkHit job — PostHog', function () {
             shortLinkId: $this->link->id,
             ipAddress: $ip,
             userAgent: $ua,
+            hasConsent: true,
         ))->handle($posthog);
     });
 
@@ -135,6 +176,7 @@ describe('RecordShortLinkHit job — PostHog', function () {
         (new RecordShortLinkHit(
             shortLinkId: $this->link->id,
             referer: 'https://google.com/search?q=test',
+            hasConsent: true,
         ))->handle($posthog);
     });
 
@@ -149,6 +191,7 @@ describe('RecordShortLinkHit job — PostHog', function () {
         (new RecordShortLinkHit(
             shortLinkId: $this->link->id,
             referer: null,
+            hasConsent: true,
         ))->handle($posthog);
     });
 });
@@ -163,6 +206,7 @@ describe('RecordShortLinkHit job — error handling', function () {
         // Should not throw
         (new RecordShortLinkHit(
             shortLinkId: $this->link->id,
+            hasConsent: true,
         ))->handle($posthog);
 
         // Hit should still be recorded even when PostHog fails
@@ -179,6 +223,7 @@ describe('RecordShortLinkHit job — error handling', function () {
         // Should not throw
         (new RecordShortLinkHit(
             shortLinkId: $nonExistentId,
+            hasConsent: true,
         ))->handle($posthog);
 
         // No hit should be recorded
@@ -208,6 +253,7 @@ describe('RecordShortLinkHit job — referer sanitization', function () {
         (new RecordShortLinkHit(
             shortLinkId: $this->link->id,
             referer: 'https://google.com/search?q=test&utm_source=mail&uid=12345',
+            hasConsent: true,
         ))->handle($posthog);
 
         $hit = ShortLinkHit::first();
@@ -222,6 +268,7 @@ describe('RecordShortLinkHit job — referer sanitization', function () {
         (new RecordShortLinkHit(
             shortLinkId: $this->link->id,
             referer: 'https://example.com/path/to/page#section',
+            hasConsent: true,
         ))->handle($posthog);
 
         $hit = ShortLinkHit::first();
@@ -236,6 +283,7 @@ describe('RecordShortLinkHit job — referer sanitization', function () {
         (new RecordShortLinkHit(
             shortLinkId: $this->link->id,
             referer: 'not-a-valid-url',
+            hasConsent: true,
         ))->handle($posthog);
 
         $hit = ShortLinkHit::first();
@@ -249,6 +297,7 @@ describe('RecordShortLinkHit job — referer sanitization', function () {
         (new RecordShortLinkHit(
             shortLinkId: $this->link->id,
             referer: null,
+            hasConsent: true,
         ))->handle($posthog);
 
         $hit = ShortLinkHit::first();

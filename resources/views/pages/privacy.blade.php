@@ -113,6 +113,10 @@
                     <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">monitoring</span>
                     <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_cookies_analytics') }}</span>
                 </div>
+                <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">campaign</span>
+                    <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_cookies_marketing') }}</span>
+                </div>
             </div>
             <p class="mt-6 text-on-surface-variant leading-relaxed">{{ __('privacy.content_cookies_control') }}</p>
         </div>

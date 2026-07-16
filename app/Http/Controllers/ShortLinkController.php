@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\RecordShortLinkHit;
 use App\Models\ShortLink;
+use App\Services\PostHogConsentChecker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -119,12 +120,17 @@ class ShortLinkController extends Controller
         }
 
         // ── Dispatch async analytics ───────────────────────────────────
+        // Consent is captured here (request context) and passed to the job,
+        // mirroring EnrichPostHogProfile. The first-party hit row is always
+        // recorded; only the PostHog cross-user event respects consent.
+        $hasConsent = app(PostHogConsentChecker::class)->hasAnalyticsConsent($request);
         try {
             RecordShortLinkHit::dispatch(
                 $link->id,
                 $ip,
                 $request->header('referer'),
                 $request->header('User-Agent'),
+                $hasConsent,
             );
         } catch (\Throwable $e) {
             Log::warning('short_link.redirect.hit_dispatch_failed', [

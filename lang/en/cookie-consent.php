@@ -16,7 +16,7 @@ return [
     'category_analytics_label' => 'Analytics',
     'category_analytics_description' => 'Help us understand how the site is used so we can improve it.',
     'category_marketing_label' => 'Marketing',
-    'category_marketing_description' => 'Used for targeted advertising and measuring campaign effectiveness.',
+    'category_marketing_description' => 'Optional. Lets us send personalized outreach (e.g. email campaigns) and track referrals/shares, and measure campaign effectiveness. Off by default.',
 
     // Footer icon
     'nav_cookie_settings' => 'Cookie Settings',

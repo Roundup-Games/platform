@@ -80,10 +80,12 @@ class PostHogExceptionReporter
                 '$exception_handled' => ExceptionPayloadBuilder::getPrimaryHandled($exceptionList),
                 '$exception_source' => 'php',
                 '$exception_fingerprint' => $fingerprint,
-                // Request context
-                'request_url' => request()->fullUrl(),
-                'request_method' => request()->method(),
+                // Request context — path only. Query strings can carry share
+                // tokens, UTM, or PII, so we deliberately exclude them from
+                // error tracking (legitimate-interest) payloads.
                 'request_path' => request()->path(),
+                'request_method' => request()->method(),
+                'request_is_https' => request()->secure(),
                 // Code location
                 'exception_file' => $e->getFile(),
                 'exception_line' => $e->getLine(),

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Rules\ValidUserName;
+use App\Services\PostHogAnalytics;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -184,6 +185,18 @@ class OAuthController
             'user_id' => $user->id,
             'provider_user_id' => $providerUserId,
         ]);
+
+        // Acquisition funnel: capture the OAuth signup with provider attribution.
+        app(PostHogAnalytics::class)->capture(
+            $user,
+            'user.signed_up',
+            [
+                'signup_method' => 'oauth',
+                'oauth_provider' => $provider,
+                'invite_match_count' => 0,
+                'locale' => app()->getLocale(),
+            ],
+        );
 
         return $this->redirectAfterLogin($user);
     }

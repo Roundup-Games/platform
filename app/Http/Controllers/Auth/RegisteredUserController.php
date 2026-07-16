@@ -8,6 +8,7 @@ use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Rules\ValidUserName;
+use App\Services\PostHogAnalytics;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -60,9 +61,23 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         // Match pending email invitations to the newly registered user
-        $this->matchPendingInvitations($user);
+        $inviteMatches = $this->matchPendingInvitations($user);
 
         Auth::login($user);
+
+        // Acquisition funnel: capture the signup with attribution. Consent-gated
+        // via PostHogAnalytics — non-consenting signups still appear in the users
+        // table but are not server-side tracked. OAuth signups carry their provider.
+        app(PostHogAnalytics::class)->capture(
+            $user,
+            'user.signed_up',
+            [
+                'signup_method' => 'email',
+                'oauth_provider' => null,
+                'invite_match_count' => $inviteMatches,
+                'locale' => app()->getLocale(),
+            ],
+        );
 
         return redirect()->route('onboarding.index');
     }
@@ -72,8 +87,10 @@ class RegisteredUserController extends Controller
      * Queries game_participants and campaign_participants where
      * invitee_email matches the user's email, user_id is null,
      * and status is 'pending'. Populates user_id on match.
+     *
+     * @return int Number of pending invitations matched.
      */
-    private function matchPendingInvitations(User $user): void
+    private function matchPendingInvitations(User $user): int
     {
         $email = strtolower($user->email);
 
@@ -139,5 +156,7 @@ class RegisteredUserController extends Controller
                 'campaign_matches' => $campaignMatches->count(),
             ]);
         }
+
+        return $totalMatches;
     }
 }
