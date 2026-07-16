@@ -270,7 +270,7 @@ class ParticipantLifecycle
         $pendingApplication = $entity->applications()
             ->where('user_id', $participant->getUserId())
             ->where('status', 'pending')
-            ->exists();
+            ->first();
 
         if (! $pendingApplication) {
             return ParticipantResult::fail('common.error_participant_not_applicant');
@@ -294,9 +294,15 @@ class ParticipantLifecycle
         ]);
 
         // Matching-quality funnel: the host approved this application.
+        // time_to_decision measures how quickly hosts respond — a key
+        // supply-side health metric (slow approvals → player attrition).
+        $timeToDecision = $pendingApplication->created_at
+            ? (int) round(now()->diffInSeconds($pendingApplication->created_at) / 3600)
+            : null;
+
         app(PostHogAnalytics::class)->captureParticipantTransition(
             $participant, $entity, 'application.approved',
-            ['approved_by' => $approver->id],
+            ['approved_by' => $approver->id, 'time_to_decision_hours' => $timeToDecision],
         );
 
         // Notify applicant

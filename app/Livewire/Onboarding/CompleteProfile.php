@@ -282,7 +282,17 @@ class CompleteProfile extends Component
     public function nextStep(): void
     {
         $this->validateStep($this->step);
+        $completedStep = $this->step;
         $this->step++;
+
+        // Adoption-phase funnel: capture which step the user completed so
+        // per-step drop-off is measurable. The step number identifies the
+        // friction point (1=location, 2=identity, 3=contact, 4=preferences).
+        app(PostHogAnalytics::class)->capture(
+            authenticatedUser(),
+            'onboarding.step_completed',
+            ['step' => $completedStep],
+        );
     }
 
     public function previousStep(): void

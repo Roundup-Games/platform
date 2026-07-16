@@ -106,6 +106,49 @@ Add `data-ph-mask` to any element displaying PII.
 - `participant.promoted` — bench → approved.
 - `participant.removed` — host-initiated removal (churn signal).
 - `notification.sent` / `notification.failed` — `category`, `channels`. Retention analytics: correlates 'received attendance nudge' with attendance outcomes.
+- `consent.analytics_granted` — captured client-side ONLY when a user actively grants analytics consent via the banner. Makes the consent rate visible in PostHog.
+
+### ⚠️ Event overlap — read before building metrics
+
+A single user action can produce events on **two different timelines**. Do not
+sum across these — they measure different things:
+
+| User action | Owner timeline (community feed) | Applicant timeline (funnel) |
+|---|---|---|
+| Player joins a public game | `game.player_joined` | `application.submitted` (outcome=approved) |
+| Host approves application | `game.player_joined` | `application.approved` |
+| Host removes participant | `game.player_joined` (if was Approved) | `participant.removed` |
+
+- `game.player_joined` (via `ActivityLogObserver` → `PostHogEventBridge`) lands on
+  the **game owner's** timeline — it's a community-feed event ("someone joined
+  your game"). It fires on both participant creation (status=Approved) and
+  status-change-to-Approved.
+- `application.*` / `participant.*` (via `PostHogAnalytics`) land on the
+  **applicant's** timeline — they're funnel events ("I applied / was approved /
+  was removed").
+
+**Correct usage**: build acceptance-rate funnels from `application.*` events
+(applicant timeline). Build "how active is this game/owner" from
+`game.player_joined` (owner timeline). Never sum the two for a "total joins"
+metric — that double-counts every join.
+
+### Signal quality and consent bias
+
+All analytics events represent **only users who granted analytics consent** —
+a self-selected minority who are systematically more engaged than the median
+player. This is structural (opt-in, defaults off) and correct for privacy, but
+it means:
+
+- **Trust the shape, not the absolute rate.** If 40% of consenting users drop
+  off at onboarding step 2, that shape is reliable. But "40% of all users drop
+  off" is an over-estimate — non-consenting users may behave differently.
+- **Calibrate with the consent rate.** The `analytics_consent` column on
+  authenticated users is the authoritative first-party denominator. Compare it
+  to the `consent.analytics_granted` event count for the PostHog-visible rate.
+  A low consent rate means every other metric is more skewed.
+- **Anonymous→identified merge is automatic.** `posthog.identify()` merges the
+  anonymous session into the identified user (PostHog native behavior). Pre-
+  consent browsing is intentionally invisible.
 
 ## Architecture
 

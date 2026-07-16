@@ -146,8 +146,22 @@ function tryInit() {
 tryInit();
 
 // 2. Listen for consent changes (first-time consent or preference updates)
+//    Capture consent.analytics_granted ONLY on the active decision — not on
+//    every page load where consent was pre-existing. This makes the consent
+//    rate visible in PostHog (where analysts look) alongside the first-party
+//    analytics_consent column (authoritative for authenticated users).
+//    Privacy: we capture only the GRANT, never the denial — tracking someone
+//    who just declined tracking would be paradoxical. The event carries no PII.
 document.addEventListener('cookieConsentChanged', (e) => {
-    tryInit();
+    const consent = e.detail?.consent;
+    if (consent && consent.analytics === true) {
+        tryInit();
+        if (posthogInitialized) {
+            posthog.capture('consent.analytics_granted', {
+                also_granted_marketing: consent.marketing === true,
+            });
+        }
+    }
 });
 
 // ── DNT warning (dev only) ──────────────────────────────
