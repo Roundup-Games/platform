@@ -19,6 +19,17 @@ class EventAnnouncement extends Model
     /** @var array<int, string> */
     public array $translatable = ['title', 'content'];
 
+    /**
+     * Per-announcement visibility levels (set by organizers via the admin form).
+     *
+     * @see self::scopeVisibleTo()
+     */
+    public const VISIBILITY_ALL = 'all';
+
+    public const VISIBILITY_REGISTERED = 'registered';
+
+    public const VISIBILITY_PRIVATE = 'private';
+
     protected static function booted(): void
     {
         static::creating(function (self $announcement) {
@@ -73,5 +84,46 @@ class EventAnnouncement extends Model
     public function scopePinned(Builder $query)
     {
         return $query->where('is_pinned', true);
+    }
+
+    /**
+     * Scope to announcements visible to the given viewer within an event.
+     *
+     * Honors the per-announcement visibility column organizers set via the
+     * admin form (AnnouncementsRelationManager). Compose with
+     * {@see scopePublished()} on public read paths:
+     *
+     *  - VISIBILITY_ALL        always shown (even to anonymous visitors);
+     *  - VISIBILITY_REGISTERED only to users with an active (non-cancelled)
+     *                          registration for the event;
+     *  - VISIBILITY_PRIVATE    only to viewers who can manage the event
+     *                          (organizer, Event Admin, or global admin).
+     *
+     * Visibility is context-dependent on the owning event, so the event is a
+     * required parameter rather than inferred from the announcement row.
+     *
+     * @param  Builder<static>  $query
+     * @param  Event  $event  Owning event — used to test registration / manager status.
+     */
+    public function scopeVisibleTo(Builder $query, ?User $viewer, Event $event): void
+    {
+        $levels = [self::VISIBILITY_ALL];
+
+        if ($viewer !== null) {
+            $canManage = $viewer->can('update', $event);
+
+            // Registered-level content is visible to anyone with an active
+            // registration, and to organizers/admins (who manage everything
+            // on their own event even without a registration row).
+            if ($canManage || $event->registrations()->whereBelongsTo($viewer)->whereNull('cancelled_at')->exists()) {
+                $levels[] = self::VISIBILITY_REGISTERED;
+            }
+
+            if ($canManage) {
+                $levels[] = self::VISIBILITY_PRIVATE;
+            }
+        }
+
+        $query->whereIn('visibility', $levels);
     }
 }
