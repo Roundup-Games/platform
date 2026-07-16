@@ -48,11 +48,17 @@ describe('Public Profile page loads', function () {
     it('shows own profile name without action buttons', function () {
         $user = createProfileUser();
 
-        Livewire::actingAs($user)
+        $html = Livewire::actingAs($user)
             ->test(PublicProfile::class, ['user' => $user])
             ->assertSet('isOwnProfile', true)
-            ->assertDontSee('Follow')
-            ->assertDontSee('Block');
+            ->html();
+
+        // Assert against the wire:click directive, not the bare label string:
+        // 'Block' / 'Follow' also appear inside the Livewire snapshot JSON
+        // (hasBlocked / isBlockedBy / isFollowing) and would false-positive.
+        expect($html)
+            ->not->toContain('wire:click="block"')
+            ->not->toContain('wire:click="follow"');
     });
 
 });
