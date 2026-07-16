@@ -78,12 +78,15 @@ class RegisteredUserController extends Controller
         );
 
         // First-touch SEO attribution: the landing page + referer were captured on
-        // the original public-page GET by the CaptureFirstTouch middleware (shared
-        // with the OAuth flow). Fall back to the registration request's own
-        // referer/path only if no prior landing was captured (e.g. direct POST).
+        // the original public-content GET by the CaptureFirstTouch middleware
+        // (shared with the OAuth flow). When no prior landing was captured (e.g. a
+        // direct deep-link to /register), pass null rather than this POST
+        // request's own referer/path — the POST referer is the /register form
+        // itself and would pollute organic attribution. PostHog's frontend
+        // $initial_referrer covers the direct-entry case natively.
         $session = $request->session();
-        $firstTouchReferer = is_string($session->get(CaptureFirstTouch::REFERER_KEY)) ? $session->get(CaptureFirstTouch::REFERER_KEY) : $request->header('referer');
-        $firstTouchPath = is_string($session->get(CaptureFirstTouch::PATH_KEY)) ? $session->get(CaptureFirstTouch::PATH_KEY) : $request->path();
+        $firstTouchReferer = is_string($session->get(CaptureFirstTouch::REFERER_KEY)) ? $session->get(CaptureFirstTouch::REFERER_KEY) : null;
+        $firstTouchPath = is_string($session->get(CaptureFirstTouch::PATH_KEY)) ? $session->get(CaptureFirstTouch::PATH_KEY) : null;
         $session->forget([CaptureFirstTouch::REFERER_KEY, CaptureFirstTouch::PATH_KEY, CaptureFirstTouch::CAPTURED_KEY]);
         $analytics->identifyFirstTouch($user, $firstTouchReferer, $firstTouchPath);
 

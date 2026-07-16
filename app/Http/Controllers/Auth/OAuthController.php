@@ -47,13 +47,11 @@ class OAuthController
             $request->session()->put('oauth_linking', true);
         }
 
-        // Capture the true first-touch BEFORE handing off to the provider. The
-        // callback request's referer/path is the provider's domain (e.g.
-        // google.com) and the /auth/{provider}/callback path — meaningless as
-        // acquisition attribution. Stash the entry referer + path here so the
-        // signup analytics records where the user actually came from.
-        $request->session()->put('oauth.first_touch_referer', $request->header('referer'));
-        $request->session()->put('oauth.first_touch_path', $request->path());
+        // First-touch acquisition context (landing page + referer) is captured
+        // for guests by the CaptureFirstTouch middleware on public-content GETs.
+        // Do NOT capture here: this request's path is the auth redirect endpoint
+        // and its referer is the provider's domain — meaningless as attribution.
+        // The callback reads the persisted first-touch after the OAuth round-trip.
 
         return Socialite::driver($provider)->redirect();
     }
