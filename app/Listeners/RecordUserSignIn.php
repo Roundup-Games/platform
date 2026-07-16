@@ -4,7 +4,6 @@ namespace App\Listeners;
 
 use App\Models\User;
 use App\Services\PostHogAnalytics;
-use App\Services\PostHogClient;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Log;
 
@@ -27,6 +26,9 @@ use Illuminate\Support\Facades\Log;
  *   2. ANALYTICS (consent-gated): forward `user.signed_in` to PostHog via
  *      PostHogAnalytics, which checks the cookie or the persisted
  *      analytics_consent column (the column is authoritative at login time).
+ *      The person-property identify (last/first_login_at) is likewise gated —
+ *      it routes through PostHogAnalytics::identify(), the consent-aware entry
+ *      point, never PostHogClient directly.
  *
  * Pseudonymization: only the opaque user ID reaches PostHog, consistent with
  * the rest of the analytics surface. Never throws — a listener failure must
@@ -39,7 +41,6 @@ class RecordUserSignIn
 {
     public function __construct(
         private readonly PostHogAnalytics $analytics,
-        private readonly PostHogClient $posthog,
     ) {}
 
     public function handle(Login $event): void
@@ -81,22 +82,15 @@ class RecordUserSignIn
         // Person properties for retention cohorts. $set_once first_login_at is
         // set only on the first session ever; last_login_at tracks recency.
         // login_count is NOT duplicated here — it's derivable from the count of
-        // user.signed_in events, and duplicating it would risk drift.
-        if ($this->posthog->isEnabled()) {
-            try {
-                $this->posthog->identify([
-                    'distinctId' => (string) $user->id,
-                    'properties' => [
-                        '$set' => ['last_login_at' => now()->toIso8601String()],
-                        '$set_once' => ['first_login_at' => now()->toIso8601String()],
-                    ],
-                ]);
-            } catch (\Throwable $e) {
-                Log::channel('daily')->warning('posthog.signin_identify_failed', [
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+        // user.signed_in events, and duplicating it would risk drift. Routed
+        // through the consent-aware identify() so person properties never leave
+        // without consent.
+        $this->analytics->identify(
+            $user,
+            [
+                '$set' => ['last_login_at' => now()->toIso8601String()],
+                '$set_once' => ['first_login_at' => now()->toIso8601String()],
+            ],
+        );
     }
 }

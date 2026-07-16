@@ -98,7 +98,10 @@ class PostHogAnalytics
         }
 
         $user = $participant->user ?? User::find($userId);
-        if ($user && ! $this->hasConsent($user)) {
+        // Require a resolvable user AND consent. A null user (soft-deleted /
+        // orphaned id) must not emit an event attributed to the raw id alone —
+        // we can neither verify consent nor enrich the person profile.
+        if ($user === null || ! $this->hasConsent($user)) {
             return;
         }
 
@@ -248,14 +251,52 @@ class PostHogAnalytics
     }
 
     /**
+     * Identify a user with $set/$set_once person properties.
+     *
+     * Consent-gated like {@see capture()} — person properties (last_login_at,
+     * subscription_status, …) are analytics-tier and must never be forwarded
+     * without consent. This is the single consent-aware entry point for
+     * server-side identify; callers must not reach for PostHogClient::identify()
+     * directly. Never throws.
+     *
+     * @param  array{properties?: array<string, mixed>}  $properties  Payload shaped as PostHog SDK identify(): a 'properties' key holding $set / $set_once.
+     */
+    public function identify(User $user, array $properties): void
+    {
+        if (! $this->posthog->isEnabled()) {
+            return;
+        }
+
+        if (! $this->hasConsent($user)) {
+            return;
+        }
+
+        try {
+            $this->posthog->identify([
+                'distinctId' => (string) $user->id,
+                'properties' => $properties,
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('daily')->warning('posthog.analytics.identify_failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Resolve consent for a user across request and webhook/queue contexts.
      *
-     * In a normal browser request, the cookie_consent cookie is the live signal
-     * (checked via PostHogConsentChecker). In webhook/queue contexts (Paddle
-     * server-to-server webhooks, queued jobs) there is no cookie — so we fall
-     * back to the persisted analytics_consent column, which the identify
-     * middleware keeps in sync on every authenticated GET. This is exactly the
-     * use case the persisted column was added for.
+     * Three cookie states, handled distinctly:
+     *  - granted:          cookie present with analytics=true  → allow.
+     *  - explicitly denied: cookie present with analytics=false → deny now, do
+     *                       NOT fall back to the persisted column (an explicit
+     *                       in-session revocation must be honored immediately,
+     *                       even if the column is momentarily stale).
+     *  - absent:           no cookie (webhook / queue / CLI, or no decision yet)
+     *                       → fall back to the persisted analytics_consent
+     *                       column, which the identify middleware keeps in sync
+     *                       on every authenticated GET.
      */
     private function hasConsent(User $user): bool
     {
@@ -263,6 +304,12 @@ class PostHogAnalytics
             return true;
         }
 
+        // Cookie present but analytics explicitly false → honor the denial.
+        if ($this->consentChecker->getConsentState() !== null) {
+            return false;
+        }
+
+        // No cookie at all → persisted column is the authoritative fallback.
         return (bool) $user->analytics_consent;
     }
 

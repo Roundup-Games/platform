@@ -68,9 +68,20 @@ describe('RecordUserSignIn — analytics consent gating', function () {
         expect($signin)->toHaveCount(1);
     });
 
+    it('forwards the person-property identify when consent is granted', function () {
+        $user = User::factory()->create(['analytics_consent' => true, 'last_login_at' => null]);
+
+        dispatchLogin($user);
+
+        $identify = collect($this->posthogClient->identifyCalls)
+            ->filter(fn (array $c) => isset($c['properties']['$set']['last_login_at']));
+        expect($identify)->toHaveCount(1);
+    });
+
     it('skips the PostHog event when consent is absent', function () {
         $deniedChecker = $this->mock(PostHogConsentChecker::class);
         $deniedChecker->shouldReceive('hasAnalyticsConsent')->andReturn(false);
+        $deniedChecker->shouldReceive('getConsentState')->andReturn(null);
         $this->app->instance(PostHogConsentChecker::class, $deniedChecker);
 
         $user = User::factory()->create(['analytics_consent' => false]);
@@ -82,10 +93,28 @@ describe('RecordUserSignIn — analytics consent gating', function () {
         expect($signin)->toHaveCount(0);
     });
 
+    it('skips the person-property identify when consent is absent', function () {
+        // Regression for the consent leak: last_login_at / first_login_at are
+        // analytics-tier person properties and must not reach PostHog without
+        // consent. The DB stamp (first-party) still happens.
+        $deniedChecker = $this->mock(PostHogConsentChecker::class);
+        $deniedChecker->shouldReceive('hasAnalyticsConsent')->andReturn(false);
+        $deniedChecker->shouldReceive('getConsentState')->andReturn(null);
+        $this->app->instance(PostHogConsentChecker::class, $deniedChecker);
+
+        $user = User::factory()->create(['analytics_consent' => false, 'last_login_at' => null]);
+
+        dispatchLogin($user);
+
+        expect($this->posthogClient->identifyCalls)->toHaveCount(0)
+            ->and($user->fresh()->last_login_at)->not->toBeNull();
+    });
+
     it('still stamps last_login_at even when consent is absent', function () {
         // The stamp is first-party operational data, not analytics.
         $deniedChecker = $this->mock(PostHogConsentChecker::class);
         $deniedChecker->shouldReceive('hasAnalyticsConsent')->andReturn(false);
+        $deniedChecker->shouldReceive('getConsentState')->andReturn(null);
         $this->app->instance(PostHogConsentChecker::class, $deniedChecker);
 
         $user = User::factory()->create(['analytics_consent' => false, 'last_login_at' => null]);

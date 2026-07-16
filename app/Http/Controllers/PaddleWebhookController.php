@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\GmRoleService;
 use App\Services\PostHogAnalytics;
-use App\Services\PostHogClient;
 use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
@@ -318,11 +317,11 @@ class PaddleWebhookController extends BaseWebhookController
             app(PostHogAnalytics::class)->capture($user, $event, $properties);
 
             // Keep subscription_status current on the person profile for segmentation.
+            // Routed through the consent-aware identify() so person properties are
+            // never forwarded without consent (the persisted analytics_consent
+            // column is the fallback signal in this cookie-less webhook context).
             if ($identifyProperties !== []) {
-                app(PostHogClient::class)->identify([
-                    'distinctId' => (string) $user->id,
-                    'properties' => $identifyProperties,
-                ]);
+                app(PostHogAnalytics::class)->identify($user, $identifyProperties);
             }
         } catch (\Throwable $e) {
             Log::warning('Paddle webhook: posthog capture failed', [

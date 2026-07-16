@@ -33,10 +33,24 @@ function grantAnalyticsConsent()
     app()->instance(PostHogConsentChecker::class, $checker);
 }
 
+// Cookie ABSENT (webhook / queue / CLI, or no decision yet): hasAnalyticsConsent
+// is false and getConsentState is null, so hasConsent() falls back to the
+// persisted analytics_consent column.
 function denyAnalyticsConsent()
 {
     $checker = test()->mock(PostHogConsentChecker::class);
     $checker->shouldReceive('hasAnalyticsConsent')->andReturn(false);
+    $checker->shouldReceive('getConsentState')->andReturn(null);
+    app()->instance(PostHogConsentChecker::class, $checker);
+}
+
+// Cookie PRESENT but analytics explicitly false: an in-session revocation that
+// hasConsent() must honor immediately, ignoring the (possibly stale) column.
+function explicitlyDenyAnalyticsConsent()
+{
+    $checker = test()->mock(PostHogConsentChecker::class);
+    $checker->shouldReceive('hasAnalyticsConsent')->andReturn(false);
+    $checker->shouldReceive('getConsentState')->andReturn(['analytics' => false]);
     app()->instance(PostHogConsentChecker::class, $checker);
 }
 
@@ -131,6 +145,24 @@ describe('PostHogAnalytics::captureAttendanceOutcome', function () {
             ->filter(fn (array $c) => ($c['event'] ?? null) === 'attendance.recorded');
         expect($attendance)->toHaveCount(0);
     });
+
+    test('skips when the user cannot be resolved (orphaned / soft-deleted id)', function () {
+        // user_id points at no existing user; the old guard emitted an event
+        // attributed to the raw id with no consent verification.
+        $participant = GameParticipant::factory()->create([
+            'user_id' => User::factory()->create()->id,
+        ]);
+        // Detach the relationship and delete the user to simulate an orphaned id.
+        $orphanId = $participant->user_id;
+        $participant->setRelation('user', null);
+        User::whereKey($orphanId)->delete();
+
+        app(PostHogAnalytics::class)->captureAttendanceOutcome($participant, AttendanceStatus::Attended, 'report');
+
+        $attendance = collect($this->posthogClient->capturedCalls)
+            ->filter(fn (array $c) => ($c['event'] ?? null) === 'attendance.recorded');
+        expect($attendance)->toHaveCount(0);
+    });
 });
 
 describe('PostHogAnalytics — webhook consent fallback', function () {
@@ -157,6 +189,49 @@ describe('PostHogAnalytics — webhook consent fallback', function () {
         $sub = collect($this->posthogClient->capturedCalls)
             ->filter(fn (array $c) => ($c['event'] ?? null) === 'subscription.started');
         expect($sub)->toHaveCount(0);
+    });
+
+    test('honors an explicit cookie denial even when the persisted flag is true', function () {
+        // Cookie present but analytics=false is an in-session revocation. It must
+        // override the persisted column (which may be momentarily stale before
+        // the middleware syncs it back to false).
+        explicitlyDenyAnalyticsConsent();
+        $user = User::factory()->create(['analytics_consent' => true]);
+
+        app(PostHogAnalytics::class)->capture($user, 'subscription.started');
+
+        $sub = collect($this->posthogClient->capturedCalls)
+            ->filter(fn (array $c) => ($c['event'] ?? null) === 'subscription.started');
+        expect($sub)->toHaveCount(0);
+    });
+});
+
+describe('PostHogAnalytics::identify — consent gating', function () {
+    test('forwards person properties when consent is granted', function () {
+        $user = User::factory()->create();
+
+        app(PostHogAnalytics::class)->identify($user, ['$set' => ['last_login_at' => '2026-01-01T00:00:00Z']]);
+
+        expect($this->posthogClient->identifyCalls)->toHaveCount(1)
+            ->and($this->posthogClient->identifyCalls[0]['distinctId'])->toBe((string) $user->id);
+    });
+
+    test('skips identify when analytics consent is absent', function () {
+        denyAnalyticsConsent();
+        $user = User::factory()->create(['analytics_consent' => false]);
+
+        app(PostHogAnalytics::class)->identify($user, ['$set' => ['last_login_at' => now()->toIso8601String()]]);
+
+        expect($this->posthogClient->identifyCalls)->toHaveCount(0);
+    });
+
+    test('skips identify when PostHog is disabled', function () {
+        $this->posthogClient->setEnabled(false);
+        $user = User::factory()->create();
+
+        app(PostHogAnalytics::class)->identify($user, ['$set' => ['last_login_at' => now()->toIso8601String()]]);
+
+        expect($this->posthogClient->identifyCalls)->toHaveCount(0);
     });
 });
 
