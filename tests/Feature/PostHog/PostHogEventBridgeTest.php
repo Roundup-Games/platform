@@ -444,7 +444,7 @@ it('tracks user journey: game created → player joined → session scheduled', 
 // ── EnrichPostHogProfile job runs enrichment end-to-end ──
 
 it('enriches user profile via EnrichPostHogProfile job for GameCreated', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['analytics_consent' => true]);
     $gameSystem = GameSystem::factory()->create();
     $game = Game::factory()->create([
         'owner_id' => $user->id,
@@ -479,7 +479,7 @@ it('enriches user profile via EnrichPostHogProfile job for GameCreated', functio
 });
 
 it('enriches user profile via EnrichPostHogProfile job for PlayerJoined', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['analytics_consent' => true]);
     $gameSystem = GameSystem::factory()->create();
     $game = Game::factory()->create([
         'owner_id' => $user->id,
@@ -505,7 +505,7 @@ it('enriches user profile via EnrichPostHogProfile job for PlayerJoined', functi
 });
 
 it('enriches user profile via EnrichPostHogProfile job with first_session_attended_at on SessionScheduled', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['analytics_consent' => true]);
     $gameSystem = GameSystem::factory()->create();
     $game = Game::factory()->create([
         'owner_id' => $user->id,
@@ -528,7 +528,7 @@ it('enriches user profile via EnrichPostHogProfile job with first_session_attend
 });
 
 it('enriches team group via EnrichPostHogProfile job for team member', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['analytics_consent' => true]);
     $team = Team::factory()->create([
         'name' => 'Adventurers Guild',
         'city' => 'Austin',

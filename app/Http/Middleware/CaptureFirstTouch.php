@@ -62,12 +62,16 @@ class CaptureFirstTouch
             return false;
         }
 
-        // Skip API, Livewire round-trips, and auth/login/oauth endpoints —
-        // these are not content landings and would pollute the signal.
+        // Skip API, Livewire round-trips, auth/login/oauth endpoints, and other
+        // non-content GETs — these are not content landings and would pollute
+        // the acquisition signal. Locale switches, sitemaps, short-link redirects,
+        // and invite-opt-out are auxiliary/token-bearing paths, not content pages
+        // a visitor arrives at organically.
         if ($request->is('api/*')
             || $request->header('X-Livewire')
             || $request->is('login', 'logout', 'register', 'password/*', 'auth/*', 'verification/*')
-            || $request->is('*/login', '*/logout', '*/register', '*/auth/*')) {
+            || $request->is('*/login', '*/logout', '*/register', '*/auth/*')
+            || $request->is('locale/*', 'sitemap*', 'link/*', 'invite-optout/*')) {
             return false;
         }
 

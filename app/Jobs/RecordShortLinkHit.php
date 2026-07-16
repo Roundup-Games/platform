@@ -90,9 +90,12 @@ class RecordShortLinkHit implements ShouldQueue
             : 'link:anonymous';
 
         // Hash IP at construction time so raw PII never enters the queue store.
+        // Use HMAC (not plain concatenation hashing): HMAC is the idiomatic MAC,
+        // and app.key acts as the secret. Plain sha256(ip+key) is brute-forceable
+        // on the small IPv4 space if the key ever leaks; HMAC removes that risk.
         $key = config('app.key');
         $this->hashedIpAddress = $ipAddress !== null && is_string($key)
-            ? hash('sha256', $ipAddress.$key)
+            ? hash_hmac('sha256', $ipAddress, $key)
             : null;
 
         // Reduce raw User-Agent PII to a browser family string before it

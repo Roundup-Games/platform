@@ -91,7 +91,7 @@ class PaddleWebhookController extends BaseWebhookController
         $this->captureSubscriptionEvent($payload, 'subscription.started', [
             'status' => $data['status'] ?? null,
             'price_id' => $this->nestedValue($data, 'items.0.price.id'),
-        ], self::asString($data['status'] ?? 'active'));
+        ], self::asString($data['status'] ?? null));
 
         // After Cashier processes the subscription, check if user has a GM profile
         // that should be reactivated. This handles the case where a user previously
@@ -115,7 +115,7 @@ class PaddleWebhookController extends BaseWebhookController
 
         parent::handleSubscriptionUpdated($payload);
 
-        $status = self::asString($data['status'] ?? 'active');
+        $status = self::asString($data['status'] ?? null);
         $this->captureSubscriptionEvent($payload, 'subscription.updated', [
             'status' => $data['status'] ?? null,
         ], $status);
@@ -241,8 +241,15 @@ class PaddleWebhookController extends BaseWebhookController
             // Atomic dedup: lock + check + create inside a transaction to prevent
             // concurrent webhook deliveries from creating duplicate tickets.
             $ticket = DB::transaction(function () use ($transactionId, $user, $department, $metadata) {
+                // TicketPayloadRenderer::paymentFailurePayload() nests the
+                // webhook metadata under a 'context' key, so the transaction id
+                // lives at metadata->context->paddle_transaction_id — NOT at the
+                // top level. Use a scalar JSON-path equality (not whereJsonContains,
+                // which is array-containment and does not match scalar values on
+                // PostgreSQL). The previous query never matched, so every webhook
+                // redelivery created a duplicate billing ticket.
                 $existing = Ticket::where('ticket_type', 'billing_support')
-                    ->whereJsonContains('metadata->paddle_transaction_id', $transactionId)
+                    ->where('metadata->context->paddle_transaction_id', $transactionId)
                     ->lockForUpdate()
                     ->first();
 

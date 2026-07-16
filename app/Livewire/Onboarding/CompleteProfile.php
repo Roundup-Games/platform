@@ -96,8 +96,14 @@ class CompleteProfile extends Component
             return;
         }
 
-        // Onboarding funnel: mark that the user entered the flow.
-        app(PostHogAnalytics::class)->capture($user, 'onboarding.started');
+        // Onboarding funnel: mark that the user entered the flow. Guard with a
+        // session flag so a page reload or re-entry within the same session
+        // does not inflate the funnel-entry metric (mirrors the
+        // posthog_server_identified session-flag pattern).
+        if (! session('onboarding_started_captured')) {
+            session(['onboarding_started_captured' => true]);
+            app(PostHogAnalytics::class)->capture($user, 'onboarding.started');
+        }
 
         // Pre-fill from any existing user data (e.g. from OAuth)
         $this->gender = $user->gender;

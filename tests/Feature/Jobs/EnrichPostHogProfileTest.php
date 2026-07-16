@@ -34,7 +34,7 @@ function createAttendedGame(User $user, GameSystem $system, array $gameAttrs = [
 
 describe('EnrichPostHogProfile — computed decision-grade properties', function () {
     it('sets modality based on participation history', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['analytics_consent' => true]);
         $system = GameSystem::factory()->create();
 
         // 3 online attendances → modality 'online'
@@ -57,7 +57,7 @@ describe('EnrichPostHogProfile — computed decision-grade properties', function
     });
 
     it('classifies mixed modality when both online and in-person', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['analytics_consent' => true]);
         $system = GameSystem::factory()->create();
 
         createAttendedGame($user, $system, ['location' => ['type' => 'online']]);
@@ -79,7 +79,7 @@ describe('EnrichPostHogProfile — computed decision-grade properties', function
     });
 
     it('leaves modality null when fewer than 3 attendances', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['analytics_consent' => true]);
         $system = GameSystem::factory()->create();
 
         createAttendedGame($user, $system, ['location' => ['type' => 'online']]);
@@ -97,7 +97,7 @@ describe('EnrichPostHogProfile — computed decision-grade properties', function
     });
 
     it('sets primary_game_system as the most-attended system', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['analytics_consent' => true]);
         $dnd = GameSystem::factory()->create(['name' => 'D&D 5e']);
         $pathfinder = GameSystem::factory()->create(['name' => 'Pathfinder']);
 
@@ -120,6 +120,7 @@ describe('EnrichPostHogProfile — computed decision-grade properties', function
     it('sets reliability_tier from the cached reliability_score column', function () {
         $user = User::factory()->create([
             'reliability_score' => ['score' => 92.0, 'game_count' => 10, 'tier' => 'reliable'],
+            'analytics_consent' => true,
         ]);
 
         EnrichPostHogProfile::dispatchSync(
@@ -135,7 +136,7 @@ describe('EnrichPostHogProfile — computed decision-grade properties', function
     });
 
     it('still sets the legacy games_joined_count alongside computed properties', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['analytics_consent' => true]);
         $system = GameSystem::factory()->create();
         createAttendedGame($user, $system);
         createAttendedGame($user, $system);
@@ -166,5 +167,25 @@ describe('EnrichPostHogProfile — consent gating', function () {
         );
 
         expect($this->posthogClient->identifyCalls)->toHaveCount(0);
+    });
+
+    it('skips enrichment when consent was revoked between dispatch and processing', function () {
+        // Regression: the job must re-check the authoritative analytics_consent
+        // column at processing time. Consent captured at dispatch (the request
+        // that fired the event) can be revoked before the queue worker runs —
+        // person properties must not leave after a user withdrew consent.
+        $user = User::factory()->create(['analytics_consent' => false]);
+
+        EnrichPostHogProfile::dispatchSync(
+            ActivityType::PlayerJoined->value,
+            (string) $user->id,
+            null,
+            null,
+            true, // consented at dispatch time…
+        );
+
+        // …but the column says consent was since revoked.
+        expect($this->posthogClient->identifyCalls)->toHaveCount(0);
+        expect($this->posthogClient->groupIdentifyCalls)->toHaveCount(0);
     });
 });

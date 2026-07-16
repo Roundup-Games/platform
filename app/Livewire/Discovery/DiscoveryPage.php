@@ -28,8 +28,15 @@ class DiscoveryPage extends Component
     #[Url]
     public string $mode = 'all';
 
+    /**
+     * Number of results shown on the first page of a discovery search.
+     * Also the "is this the first page?" threshold for analytics dedup —
+     * keep the dedup check coupled to this constant rather than a literal.
+     */
+    public const INITIAL_DISPLAY_COUNT = 12;
+
     // Load more
-    public int $displayCount = 12;
+    public int $displayCount = self::INITIAL_DISPLAY_COUNT;
 
     // Page-specific filters
     /** @var array<int, int|string> */
@@ -196,7 +203,7 @@ class DiscoveryPage extends Component
         // search (displayCount === 12 dedupes loadMore expansions) with an active
         // filter set, for authenticated users. Zero-result searches are the
         // highest-value signal: pure unmet demand. Consent-gated via PostHogAnalytics.
-        if ($user && $this->displayCount === 12 && $this->hasActiveFilters()) {
+        if ($user && $this->displayCount === self::INITIAL_DISPLAY_COUNT && $this->hasActiveFilters()) {
             $resultCount = is_countable($results) ? count($results) : 0;
 
             app(PostHogAnalytics::class)->capture(

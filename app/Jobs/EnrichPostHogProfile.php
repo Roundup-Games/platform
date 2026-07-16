@@ -86,14 +86,18 @@ class EnrichPostHogProfile implements ShouldQueue
             return;
         }
 
-        // Consent is captured at dispatch time. If consent was not granted
-        // when the event was fired, skip enrichment entirely.
-        if (! $this->hasConsent) {
+        $user = User::find($this->userId);
+        if (! $user) {
             return;
         }
 
-        $user = User::find($this->userId);
-        if (! $user) {
+        // Consent is re-checked against the authoritative persisted column at
+        // processing time. The dispatch-time flag (set during the consented
+        // request that also synced this column to true) is kept as a
+        // belt-and-braces signal, but a revocation between dispatch and
+        // processing must be honored. The user is already loaded, so the check
+        // is free.
+        if (! $this->hasConsent || ! $user->analytics_consent) {
             return;
         }
 
