@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\GameResource\Pages;
 
 use App\Enums\AttendanceResolutionMethod;
+use App\Enums\GameType;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameResource;
 use App\Models\Game;
@@ -65,6 +66,21 @@ class EditGame extends EditRecord
 
     protected function afterSave(): void
     {
-        app(SeoCacheService::class)->forgetByModel($this->getRecord());
+        /** @var Game $record */
+        $record = $this->getRecord();
+
+        // Sync the single game_system_id picker to the gameSystems pivot.
+        // The model's setGameSystemIdAttribute bridge captures the value, but
+        // only the `creating` event syncs it (fired on create, not update).
+        // For focused sessions edited here, sync manually so the pivot stays
+        // correct. Only applies when the form carried game_system_id (focused
+        // types); the Gathering multi-select is handled by the relationship
+        // field automatically.
+        $systemId = $this->data['game_system_id'] ?? null;
+        if (is_string($systemId) && $systemId !== '' && $record->game_type !== GameType::Gathering) {
+            $record->gameSystems()->sync([$systemId]);
+        }
+
+        app(SeoCacheService::class)->forgetByModel($record);
     }
 }

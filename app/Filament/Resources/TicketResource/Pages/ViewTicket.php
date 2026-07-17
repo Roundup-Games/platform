@@ -37,9 +37,9 @@ use Filament\Forms\Components\TextInput;
 use Filament\Infolists;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Group;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Artisan;
@@ -801,8 +801,15 @@ class ViewTicket extends BaseViewTicket
                     Action::make('bggSearch')
                         ->label('Search')
                         ->icon(Heroicon::OutlinedMagnifyingGlass)
-                        ->action(function (Get $get) {
-                            $query = self::asString($get('bgg_search_query') ?? '');
+                        // Read the modal form state directly via the page's
+                        // mounted-action form — Get $get cannot be injected here
+                        // because modal footer actions are standalone Action
+                        // objects with no schema-component binding, so the
+                        // evaluator throws "makeGetUtility() on null".
+                        ->action(function () {
+                            $rawState = $this->getMountedActionForm()?->getRawState();
+                            $data = $rawState instanceof Arrayable ? $rawState->toArray() : (array) $rawState;
+                            $query = self::asString($data['bgg_search_query'] ?? '');
                             if (! empty(trim($query))) {
                                 $this->performBggSearch($query);
                             }

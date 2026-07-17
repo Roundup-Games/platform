@@ -11,6 +11,7 @@ use App\Filament\Components\SeoFields;
 use App\Filament\Resources\GameResource\Pages;
 use App\Filament\Resources\GameResource\RelationManagers\AttendanceReportsRelationManager;
 use App\Filament\Resources\GameResource\RelationManagers\ParticipantsRelationManager;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use BackedEnum;
@@ -61,27 +62,45 @@ class GameResource extends Resource
                                     ->relationship('owner', 'name')
                                     ->searchable()
                                     ->required(),
+                                Select::make('game_system_id')
+                                    ->label('Game System')
+                                    // Single-system picker for focused sessions
+                                    // (board_game / ttrpg) — mirrors the user-facing
+                                    // CreateGame form. Not a relationship field (no
+                                    // belongsTo); the model's setGameSystemIdAttribute
+                                    // bridge routes it to the gameSystems pivot, and the
+                                    // EditGame page syncs it afterSave.
+                                    ->searchable()
+                                    ->preload()
+                                    ->getSearchResultsUsing(fn (string $search): array => GameSystem::labelOptions($search))
+                                    ->getOptionLabelUsing(fn ($value): ?string => is_string($value) && $value !== '' ? (GameSystem::labelsForIds([$value])[$value] ?? null) : null)
+                                    ->required()
+                                    ->visible(fn ($get): bool => $get('game_type') !== GameType::Gathering->value),
                                 Select::make('gameSystems')
-                                    ->label('Game Systems')
-                                    // Keep ->relationship() for belongsToMany load/sync, but
-                                    // override the option/label closures: the default emits
-                                    // `SELECT DISTINCT game_systems.*` (belongsToMany left join),
-                                    // which throws because game_systems.images is a `json` column
-                                    // with no equality operator. The overrides select only id +
-                                    // name->>'en' (see GameSystem::labelOptions).
+                                    ->label('Game Systems (Gathering)')
+                                    // Multi-system picker for Gatherings — mirrors the
+                                    // user-facing form. Keep ->relationship() for
+                                    // belongsToMany load/sync but override the option/
+                                    // label closures to avoid `SELECT DISTINCT *` on the
+                                    // json-typed images column (see GameSystem::labelOptions).
                                     ->relationship('gameSystems', 'name')
                                     ->multiple()
                                     ->searchable()
                                     ->preload()
                                     ->required()
+                                    ->visible(fn ($get): bool => $get('game_type') === GameType::Gathering->value)
                                     ->getSearchResultsUsing(fn (string $search): array => GameSystem::labelOptions($search))
                                     ->options(fn (): array => GameSystem::labelOptions())
                                     ->getOptionLabelsUsing(fn (array $values): array => GameSystem::labelsForIds($values)),
                                 Select::make('campaign_id')
                                     ->label('Campaign')
-                                    ->relationship('campaign', 'name')
+                                    // campaigns.name is JSONB and campaigns has json-typed
+                                    // columns, so use the labelOptions helper instead of
+                                    // the default relationship pluck.
                                     ->searchable()
-                                    ->preload(),
+                                    ->preload()
+                                    ->getSearchResultsUsing(fn (string $search): array => Campaign::labelOptions($search))
+                                    ->getOptionLabelUsing(fn ($value): ?string => is_string($value) && $value !== '' ? Campaign::labelForId($value) : null),
                                 Select::make('game_type')
                                     ->label('Game Type')
                                     ->options(collect(GameType::cases())->mapWithKeys(fn (GameType $t) => [$t->value => $t->label()]))

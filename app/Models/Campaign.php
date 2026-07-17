@@ -478,4 +478,58 @@ class Campaign extends Model implements HasMedia, TicketSubject
             ->name($location->name)
             ->address($address);
     }
+
+    /**
+     * Build a flat [id => label] option map for Filament selects.
+     *
+     * campaigns.name is a JSONB Spatie-translatable column and campaigns has
+     * `json`-typed columns (safety_rules, vibe_flags), so Filament's default
+     * relationship-option query would either display raw JSON or throw on
+     * `SELECT DISTINCT *`. This selects only `id` + `name->>'en'`.
+     *
+     * @return array<string, string>
+     */
+    public static function labelOptions(?string $search = null, int $limit = 50): array
+    {
+        $rows = static::query()
+            ->when($search !== null && $search !== '', fn (Builder $q) => $q->whereRaw("name->>'en' ILIKE ?", ["%{$search}%"]))
+            ->orderByRaw("name->>'en'")
+            ->limit($limit)
+            ->select('id')
+            ->selectRaw("name->>'en' AS label")
+            ->get();
+
+        $options = [];
+        foreach ($rows as $row) {
+            $data = (array) $row;
+            $id = isset($data['id']) ? (string) $data['id'] : '';
+            $rawLabel = $data['label'] ?? null;
+            $label = is_string($rawLabel) && $rawLabel !== '' ? $rawLabel : $id;
+            if ($id !== '') {
+                $options[$id] = $label;
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Resolve labels for a specific set of ids (Filament getOptionLabelUsing).
+     */
+    public static function labelForId(string $value): ?string
+    {
+        $row = static::query()
+            ->where('id', $value)
+            ->select('id')
+            ->selectRaw("name->>'en' AS label")
+            ->first();
+
+        if ($row === null) {
+            return null;
+        }
+
+        $label = (string) ($row->label ?? $value);
+
+        return $label !== '' ? $label : $value;
+    }
 }
