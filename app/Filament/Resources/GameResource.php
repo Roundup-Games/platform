@@ -12,6 +12,7 @@ use App\Filament\Resources\GameResource\Pages;
 use App\Filament\Resources\GameResource\RelationManagers\AttendanceReportsRelationManager;
 use App\Filament\Resources\GameResource\RelationManagers\ParticipantsRelationManager;
 use App\Models\Game;
+use App\Models\GameSystem;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -62,11 +63,20 @@ class GameResource extends Resource
                                     ->required(),
                                 Select::make('gameSystems')
                                     ->label('Game Systems')
+                                    // Keep ->relationship() for belongsToMany load/sync, but
+                                    // override the option/label closures: the default emits
+                                    // `SELECT DISTINCT game_systems.*` (belongsToMany left join),
+                                    // which throws because game_systems.images is a `json` column
+                                    // with no equality operator. The overrides select only id +
+                                    // name->>'en' (see GameSystem::labelOptions).
                                     ->relationship('gameSystems', 'name')
                                     ->multiple()
                                     ->searchable()
                                     ->preload()
-                                    ->required(),
+                                    ->required()
+                                    ->getSearchResultsUsing(fn (string $search): array => GameSystem::labelOptions($search))
+                                    ->options(fn (): array => GameSystem::labelOptions())
+                                    ->getOptionLabelsUsing(fn (array $values): array => GameSystem::labelsForIds($values)),
                                 Select::make('campaign_id')
                                     ->label('Campaign')
                                     ->relationship('campaign', 'name')

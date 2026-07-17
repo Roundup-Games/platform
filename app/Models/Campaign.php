@@ -183,10 +183,14 @@ class Campaign extends Model implements HasMedia, TicketSubject
      */
     public function gameSystems(): BelongsToMany
     {
-        // orderBy name so the "representative first system" accessors are
+        // orderBy slug so the "representative first system" accessors are
         // deterministic across queries (see Game::gameSystems for rationale).
+        //
+        // NOTE: order by `slug` (a real varchar column), NOT `name` — name is a
+        // JSONB translatable column, and PostgreSQL rejects `ORDER BY name` under
+        // `SELECT DISTINCT` (json/jsonb equality-operator/DISTINCT constraints).
         return $this->belongsToMany(GameSystem::class, 'campaign_game_system')
-            ->orderBy('game_systems.name');
+            ->orderBy('game_systems.slug');
     }
 
     /**

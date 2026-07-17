@@ -141,6 +141,79 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         return $query->where('type', 'boardgame');
     }
 
+    /**
+     * Build a flat [id => label] option map for Filament selects.
+     *
+     * game_systems has a `json`-typed `images` column, so Filament's default
+     * relationship-option query — `SELECT DISTINCT game_systems.*` (with a
+     * belongsToMany left join) — throws "could not identify an equality
+     * operator for type json" because the `json` type has no equality
+     * operator. This selects only `id` and the extracted `name->>'en'` text,
+     * avoiding `*`, the json column, and the DISTINCT altogether.
+     *
+     * @return array<string, string>
+     */
+    public static function labelOptions(?string $search = null, int $limit = 50): array
+    {
+        $rows = static::query()
+            ->when($search !== null && $search !== '', fn (Builder $q) => $q->whereRaw("name->>'en' ILIKE ?", ["%{$search}%"]))
+            ->orderByRaw("name->>'en'")
+            ->limit($limit)
+            ->select('id')
+            ->selectRaw("name->>'en' AS label")
+            ->get();
+
+        $options = [];
+        foreach ($rows as $row) {
+            $data = (array) $row;
+            $id = isset($data['id']) ? (string) $data['id'] : '';
+            $rawLabel = $data['label'] ?? null;
+            $label = is_string($rawLabel) && $rawLabel !== '' ? $rawLabel : $id;
+            if ($id !== '') {
+                $options[$id] = $label;
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Resolve labels for a specific set of ids (Filament getOptionLabelsUsing).
+     *
+     * Same rationale as {@see labelOptions()}: select only the columns we
+     * need so PostgreSQL never DISTINCTs over the `json` images column.
+     *
+     * @param  array<string>  $ids
+     * @return array<string, string>
+     */
+    public static function labelsForIds(array $ids): array
+    {
+        $ids = array_values(array_filter($ids, fn ($v) => filled($v)));
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = static::query()
+            ->whereIn('id', $ids)
+            ->orderByRaw("name->>'en'")
+            ->select('id')
+            ->selectRaw("name->>'en' AS label")
+            ->get();
+
+        $options = [];
+        foreach ($rows as $row) {
+            $data = (array) $row;
+            $id = isset($data['id']) ? (string) $data['id'] : '';
+            $rawLabel = $data['label'] ?? null;
+            $label = is_string($rawLabel) && $rawLabel !== '' ? $rawLabel : $id;
+            if ($id !== '') {
+                $options[$id] = $label;
+            }
+        }
+
+        return $options;
+    }
+
     // ── Accessors ──────────────────────────────────────
 
     public function isTtrpg(): bool

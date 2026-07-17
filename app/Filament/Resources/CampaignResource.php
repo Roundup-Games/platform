@@ -11,6 +11,7 @@ use App\Filament\Components\SeoFields;
 use App\Filament\Resources\CampaignResource\Pages;
 use App\Filament\Resources\CampaignResource\RelationManagers\ParticipantsRelationManager;
 use App\Models\Campaign;
+use App\Models\GameSystem;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -59,10 +60,16 @@ class CampaignResource extends Resource
                                     ->required(),
                                 Select::make('gameSystems')
                                     ->label('Game Systems')
+                                    // See GameResource: override the relationship option/label
+                                    // closures to avoid `SELECT DISTINCT game_systems.*`, which
+                                    // throws on the json-typed images column.
                                     ->relationship('gameSystems', 'name')
                                     ->multiple()
                                     ->searchable()
-                                    ->preload(),
+                                    ->preload()
+                                    ->getSearchResultsUsing(fn (string $search): array => GameSystem::labelOptions($search))
+                                    ->options(fn (): array => GameSystem::labelOptions())
+                                    ->getOptionLabelsUsing(fn (array $values): array => GameSystem::labelsForIds($values)),
                                 Select::make('recurrence')
                                     ->options([
                                         'weekly' => 'Weekly',
