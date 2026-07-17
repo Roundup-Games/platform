@@ -39,7 +39,6 @@ use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Artisan;
@@ -112,6 +111,17 @@ class ViewTicket extends BaseViewTicket
      * @var array<string, mixed>|null
      */
     public ?array $bggPreviewData = null;
+
+    /**
+     * The current BGG search query, synced live from the modal TextInput.
+     *
+     * Stored as a public property (not read from Filament form state) because
+     * the search footer action is a standalone Action with no schema-component
+     * binding — Filament's Get/$data injection doesn't work for modal footer
+     * actions. This mirrors the established pattern used by $bggSearchResults,
+     * $selectedBggId, and $selectedBggName for cross-field communication.
+     */
+    public ?string $bggSearchQuery = null;
 
     /**
      * Override parent infolist to inject a structured metadata section.
@@ -773,10 +783,16 @@ class ViewTicket extends BaseViewTicket
                         ->placeholder('e.g. Ticket to Ride, Catan, Gloomhaven')
                         ->required()
                         ->maxLength(255)
+                        ->live()
+                        ->afterStateUpdated(fn ($state) => $this->bggSearchQuery = $state)
                         ->default(function () use ($ticket) {
                             $service = app(GameSystemRequestService::class);
+                            $name = $service->extractName($ticket);
+                            // Seed the public property so the first Search click
+                            // works without the user re-typing the pre-filled value.
+                            $this->bggSearchQuery = $name;
 
-                            return $service->extractName($ticket);
+                            return $name;
                         }),
                     Placeholder::make('bgg_search_results_display')
                         ->label('Search Results')
@@ -801,15 +817,13 @@ class ViewTicket extends BaseViewTicket
                     Action::make('bggSearch')
                         ->label('Search')
                         ->icon(Heroicon::OutlinedMagnifyingGlass)
-                        // Read the modal form state directly via the page's
-                        // mounted-action form — Get $get cannot be injected here
-                        // because modal footer actions are standalone Action
-                        // objects with no schema-component binding, so the
-                        // evaluator throws "makeGetUtility() on null".
+                        // Read the query from the public $bggSearchQuery property,
+                        // synced live from the TextInput via afterStateUpdated.
+                        // Cannot use Get $get or form state here because modal
+                        // footer actions are standalone Action objects with no
+                        // schema-component binding.
                         ->action(function () {
-                            $rawState = $this->getMountedActionForm()?->getRawState();
-                            $data = $rawState instanceof Arrayable ? $rawState->toArray() : (array) $rawState;
-                            $query = self::asString($data['bgg_search_query'] ?? '');
+                            $query = self::asString($this->bggSearchQuery ?? '');
                             if (! empty(trim($query))) {
                                 $this->performBggSearch($query);
                             }
