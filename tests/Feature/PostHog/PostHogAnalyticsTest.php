@@ -105,7 +105,10 @@ describe('PostHogAnalytics::captureAttendanceOutcome', function () {
             'owner_id' => $user->id,
             'location' => ['type' => 'online'],
         ]);
-        $game->gameSystems()->attach($system->id);
+        // sync() (not attach()): GameFactory::afterCreating already attached a
+        // default system; attach() would leave two, and captureAttendanceOutcome
+        // picks gameSystems->first() (ordered by slug) — non-deterministic.
+        $game->gameSystems()->sync([$system->id]);
         $participant = GameParticipant::factory()->create([
             'game_id' => $game->id,
             'user_id' => $user->id,
@@ -316,7 +319,8 @@ describe('PostHogAnalytics::captureParticipantTransition', function () {
         $user = User::factory()->create();
         $system = GameSystem::factory()->create(['name' => 'Pathfinder']);
         $game = Game::factory()->create(['owner_id' => $user->id]);
-        $game->gameSystems()->attach($system->id);
+        // sync() replaces the factory's default system — see captureAttendanceOutcome test note.
+        $game->gameSystems()->sync([$system->id]);
         $participant = GameParticipant::factory()->create([
             'game_id' => $game->id,
             'user_id' => $user->id,
@@ -339,7 +343,9 @@ describe('PostHogAnalytics::captureParticipantTransition', function () {
         $user = User::factory()->create();
         $system = GameSystem::factory()->create(['name' => 'D&D 5e']);
         $campaign = Campaign::factory()->create(['owner_id' => $user->id]);
-        $campaign->gameSystems()->attach($system->id);
+        // sync() replaces the factory's default system — CampaignFactory::afterCreating
+        // attaches one too; attach() would leave two and make the representative pick non-deterministic.
+        $campaign->gameSystems()->sync([$system->id]);
         $participant = CampaignParticipant::factory()->create([
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
