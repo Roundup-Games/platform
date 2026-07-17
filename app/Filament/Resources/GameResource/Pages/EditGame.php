@@ -64,6 +64,26 @@ class EditGame extends EditRecord
         ];
     }
 
+    /**
+     * Inject the virtual game_system_id into the form data before fill.
+     *
+     * Filament fills the edit form from $record->attributesToArray(), which
+     * excludes accessors not listed in $appends. game_system_id is a virtual
+     * accessor (getGameSystemIdAttribute) backed by the gameSystems pivot, so
+     * without this override the single-system picker renders empty on edit
+     * even though the game has a system attached. The multi-select gameSystems
+     * field hydrates via its relationship loader and needs no help here.
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        /** @var Game $record */
+        $record = $this->getRecord();
+
+        $data['game_system_id'] = $record->gameSystems->first()?->id;
+
+        return $data;
+    }
+
     protected function afterSave(): void
     {
         /** @var Game $record */

@@ -58,6 +58,26 @@ describe('GameResource — JSONB translatable name selects', function () {
             ->assertOk();
     });
 
+    test('the single-system picker is hydrated with the attached system on edit', function () {
+        // Regression: game_system_id is a virtual accessor not in $appends,
+        // so Filament's default attributesToArray() fill left the picker
+        // empty on edit even though the game had a system attached.
+        $owner = User::factory()->create();
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'game_type' => 'board_game',
+        ]);
+        $game->gameSystems()->sync([$system->id]);
+
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(EditGame::class, ['record' => $game->getRouteKey()])
+            ->assertFormSet([
+                'game_system_id' => $system->id,
+            ]);
+    });
+
     test('a focused session shows the single-system picker, not the gathering multi-select', function () {
         $owner = User::factory()->create();
         $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
