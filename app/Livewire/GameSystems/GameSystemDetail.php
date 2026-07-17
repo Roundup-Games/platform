@@ -35,8 +35,12 @@ class GameSystemDetail extends Component
                 'mechanics',
                 'designers',
                 'publishers',
-                'baseGame',
+                // Blank-slug records cannot be linked (route('game-systems.show')
+                // would throw UrlGenerationException), so exclude them from the
+                // related-systems partial.
+                'baseGame' => fn ($q) => $q->where('slug', '!=', ''),
                 'expansions' => fn ($q) => $q
+                    ->where('slug', '!=', '')
                     ->withCount([
                         'games as active_sessions_count' => fn ($q2) => $q2
                             ->where('status', 'scheduled')

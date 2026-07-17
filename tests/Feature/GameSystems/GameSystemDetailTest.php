@@ -63,6 +63,52 @@ describe('GameSystemDetail - eager loaded relationships', function () {
             ->assertSee('Base Game: Expansion 1');
     });
 
+    it('renders when an expansion has a blank slug', function () {
+        $base = GameSystem::factory()->create([
+            'slug' => 'base-with-blank-expansion',
+            'name' => ['en' => 'Base With Blank Expansion'],
+        ]);
+        GameSystem::factory()->create([
+            'name' => ['en' => 'Good Expansion'],
+            'base_game_id' => $base->id,
+            'slug' => 'good-expansion',
+        ]);
+        // A malformed expansion with a blank slug must not break rendering
+        // (route('game-systems.show', '') throws UrlGenerationException).
+        $blank = GameSystem::factory()->create([
+            'name' => ['en' => 'Blank Slug Expansion'],
+            'base_game_id' => $base->id,
+            'slug' => 'temp-blank-expansion',
+        ]);
+        $blank->slug = '';
+        $blank->saveQuietly();
+
+        get("/en/game-systems/{$base->slug}")
+            ->assertOk()
+            ->assertSee('Good Expansion')
+            ->assertDontSee('Blank Slug Expansion');
+    });
+
+    it('renders when the base game has a blank slug', function () {
+        $base = GameSystem::factory()->create([
+            'name' => ['en' => 'Blank Slug Base'],
+            'slug' => 'temp-blank-base',
+        ]);
+        $base->slug = '';
+        $base->saveQuietly();
+
+        $expansion = GameSystem::factory()->create([
+            'name' => ['en' => 'Expansion Of Blank Base'],
+            'base_game_id' => $base->id,
+            'slug' => 'expansion-of-blank-base',
+        ]);
+
+        get("/en/game-systems/{$expansion->slug}")
+            ->assertOk()
+            ->assertSee('Expansion Of Blank Base')
+            ->assertDontSee('Blank Slug Base');
+    });
+
     it('eager loads base game for expansion', function () {
         $base = GameSystem::factory()->create([
             'slug' => 'base-parent',
