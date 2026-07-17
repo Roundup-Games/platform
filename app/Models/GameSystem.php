@@ -187,13 +187,13 @@ class GameSystem extends Model implements HasMedia, TicketSubject
             ->limit($limit)
             ->select('id')
             ->selectRaw("name->>'en' AS label")
+            ->toBase()  // stdClass rows, not hydrated Models
             ->get();
 
         $options = [];
         foreach ($rows as $row) {
-            $data = (array) $row;
-            $id = isset($data['id']) ? (string) $data['id'] : '';
-            $rawLabel = $data['label'] ?? null;
+            $id = isset($row->id) ? (string) $row->id : '';
+            $rawLabel = $row->label ?? null;
             $label = is_string($rawLabel) && $rawLabel !== '' ? $rawLabel : $id;
             if ($id !== '') {
                 $options[$id] = $label;
@@ -224,13 +224,13 @@ class GameSystem extends Model implements HasMedia, TicketSubject
             ->orderByRaw("name->>'en'")
             ->select('id')
             ->selectRaw("name->>'en' AS label")
+            ->toBase()  // stdClass rows, not hydrated Models
             ->get();
 
         $options = [];
         foreach ($rows as $row) {
-            $data = (array) $row;
-            $id = isset($data['id']) ? (string) $data['id'] : '';
-            $rawLabel = $data['label'] ?? null;
+            $id = isset($row->id) ? (string) $row->id : '';
+            $rawLabel = $row->label ?? null;
             $label = is_string($rawLabel) && $rawLabel !== '' ? $rawLabel : $id;
             if ($id !== '') {
                 $options[$id] = $label;

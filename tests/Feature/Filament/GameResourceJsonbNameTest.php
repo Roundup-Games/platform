@@ -78,6 +78,18 @@ describe('GameResource — JSONB translatable name selects', function () {
             ]);
     });
 
+    test('the single-system picker resolves the system name, not the UUID', function () {
+        // Regression: labelsForIds() cast Eloquent Model rows to (array),
+        // which yielded protected property keys — so the label lookup always
+        // failed and Filament showed the raw UUID instead of the name.
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
+
+        expect(GameSystem::labelsForIds([$system->id]))
+            ->toBe([$system->id => 'Catan'])
+            ->and(GameSystem::labelOptions('Cat'))->toHaveKey($system->id)
+            ->and(GameSystem::labelOptions('Cat')[$system->id])->toBe('Catan');
+    });
+
     test('a focused session shows the single-system picker, not the gathering multi-select', function () {
         $owner = User::factory()->create();
         $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);

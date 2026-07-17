@@ -71,8 +71,8 @@ class GameResource extends Resource
                                     // bridge routes it to the gameSystems pivot, and the
                                     // EditGame page syncs it afterSave.
                                     ->searchable()
-                                    ->preload()
                                     ->getSearchResultsUsing(fn (string $search): array => GameSystem::labelOptions($search))
+                                    ->options(fn (): array => GameSystem::labelOptions())
                                     ->getOptionLabelUsing(fn ($value): ?string => is_string($value) && $value !== '' ? (GameSystem::labelsForIds([$value])[$value] ?? null) : null)
                                     ->required()
                                     ->visible(fn ($get): bool => $get('game_type') !== GameType::Gathering->value),
@@ -98,8 +98,8 @@ class GameResource extends Resource
                                     // columns, so use the labelOptions helper instead of
                                     // the default relationship pluck.
                                     ->searchable()
-                                    ->preload()
                                     ->getSearchResultsUsing(fn (string $search): array => Campaign::labelOptions($search))
+                                    ->options(fn (): array => Campaign::labelOptions())
                                     ->getOptionLabelUsing(fn ($value): ?string => is_string($value) && $value !== '' ? Campaign::labelForId($value) : null),
                                 Select::make('game_type')
                                     ->label('Game Type')

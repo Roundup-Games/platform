@@ -497,13 +497,13 @@ class Campaign extends Model implements HasMedia, TicketSubject
             ->limit($limit)
             ->select('id')
             ->selectRaw("name->>'en' AS label")
+            ->toBase()  // stdClass rows, not hydrated Models
             ->get();
 
         $options = [];
         foreach ($rows as $row) {
-            $data = (array) $row;
-            $id = isset($data['id']) ? (string) $data['id'] : '';
-            $rawLabel = $data['label'] ?? null;
+            $id = isset($row->id) ? (string) $row->id : '';
+            $rawLabel = $row->label ?? null;
             $label = is_string($rawLabel) && $rawLabel !== '' ? $rawLabel : $id;
             if ($id !== '') {
                 $options[$id] = $label;
@@ -522,13 +522,14 @@ class Campaign extends Model implements HasMedia, TicketSubject
             ->where('id', $value)
             ->select('id')
             ->selectRaw("name->>'en' AS label")
+            ->toBase()  // stdClass row, not hydrated Model
             ->first();
 
         if ($row === null) {
             return null;
         }
 
-        $label = (string) ($row->label ?? $value);
+        $label = isset($row->label) ? (string) $row->label : $value;
 
         return $label !== '' ? $label : $value;
     }
