@@ -43,10 +43,12 @@ describe('CreateCampaign — game type (R050)', function () {
 
     it('defaults to ttrpg game_type (backward compatible)', function () {
         $owner = createCampaignOwner();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($owner)
             ->test(CreateCampaign::class)
             ->set('name', 'Shadows of Waterdeep')
+            ->set('game_system_id', $system->id)
             ->call('save')
             ->assertHasNoErrors();
 

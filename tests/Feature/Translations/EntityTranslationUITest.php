@@ -12,6 +12,7 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
+use App\Models\GameSystem;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
@@ -451,6 +452,7 @@ describe('Locale Switcher — CreateGame', function () {
             ->assertSet('activeLocale', 'de')
             ->set('pendingTranslations.de.name', 'Deutsches Spiel')
             ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 4)
             ->call('save')
@@ -481,6 +483,8 @@ describe('Locale Switcher — CreateCampaign', function () {
             ->assertSet('activeLocale', 'de')
             ->set('pendingTranslations.de.name', 'Deutsche Kampagne')
             ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
             ->call('save')
@@ -507,6 +511,8 @@ describe('Locale Switcher — CreateCampaign', function () {
             ->set('minimum_requirements', ['min_age' => 18])
             ->call('switchLocale', 'de')
             ->set('pendingTranslations.de.name', 'Sicherheitstest Kampagne')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
             ->call('save')

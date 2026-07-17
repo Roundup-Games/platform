@@ -39,6 +39,7 @@ describe('short link auto-generation on entity creation', function () {
             ->set('game_type', 'board_game')
             ->call('selectType', 'board_game')
             ->set('name', 'Test Game')
+            ->set('game_system_id', $this->gameSystem->id)
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
             ->call('save')

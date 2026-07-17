@@ -366,6 +366,17 @@ class CreateCampaign extends Component
             return;
         }
 
+        // Focused campaigns (board_game / ttrpg) require exactly one game system
+        // via the single-select picker. Without this guard a campaign — and every
+        // session spawned from it via AddSessionToCampaign — would carry no
+        // system, cascading the corruption downstream. See CreateGame for the
+        // identical guard and rationale.
+        if ($this->game_type !== 'gathering' && empty($validated['game_system_id'])) {
+            $this->addError('game_system_id', __('games.error_system_required'));
+
+            return;
+        }
+
         // Extract favorite vibe flags for storage
         $vibeFlags = $this->selectedVibeFlags();
 
@@ -442,6 +453,14 @@ class CreateCampaign extends Component
             // so guard against an empty set (single-system campaigns always have one).
             if (! empty($pivotSystemIds)) {
                 $campaign->gameSystems()->sync($pivotSystemIds);
+            }
+
+            // Defense-in-depth invariant: every campaign must offer at least one
+            // system — otherwise every session spawned from it inherits the gap.
+            // Mirrors CreateGame's assertion. See game 62a41a7e for the
+            // production incident this prevents.
+            if ($campaign->gameSystems()->count() === 0) {
+                throw new \RuntimeException('Campaign created without a game system.');
             }
 
             return $campaign;

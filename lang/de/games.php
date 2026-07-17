@@ -516,6 +516,7 @@ return [
     'error_capacity_reason_required' => 'Bitte gib einen kurzen Grund an, warum die Teilnehmenden auf die Warteliste verschoben werden.',
     'error_capacity_reason_too_long' => 'Der Grund darf höchstens 500 Zeichen lang sein.',
     'error_gathering_requires_system' => 'Bitte wähle mindestens ein Spielsystem für das Gathering aus.',
+    'error_system_required' => 'Bitte wähle ein Spielsystem für die Sitzung aus.',
 
     // Cover image upload (host-uploaded entity covers — S07/T02)
     'field_cover_image' => 'Titelbild',

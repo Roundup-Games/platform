@@ -4,6 +4,7 @@ use App\Livewire\Campaigns\CreateCampaign;
 use App\Livewire\Games\CreateGame;
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
@@ -115,6 +116,7 @@ describe('CreateGame — save with venue bypass', function () {
             ->test(CreateGame::class)
             ->call('selectType', 'board_game')
             ->set('name', 'Public Game at Venue')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 4)
             ->set('location_id', $venue->id)
@@ -138,6 +140,7 @@ describe('CreateGame — save with venue bypass', function () {
             ->test(CreateGame::class)
             ->call('selectType', 'board_game')
             ->set('name', 'Downgraded Game')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 4)
             ->set('location_id', $venue->id)
@@ -160,6 +163,7 @@ describe('CreateGame — save with venue bypass', function () {
             ->test(CreateGame::class)
             ->call('selectType', 'board_game')
             ->set('name', 'Forced Private Game')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 4)
             ->set('location_id', $loc->id)
@@ -237,6 +241,8 @@ describe('CreateCampaign — save with venue bypass', function () {
         Livewire\Livewire::actingAs($user)
             ->test(CreateCampaign::class)
             ->set('name', 'Public Campaign at Venue')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
             ->set('max_players', 5)
@@ -259,6 +265,8 @@ describe('CreateCampaign — save with venue bypass', function () {
         Livewire\Livewire::actingAs($user)
             ->test(CreateCampaign::class)
             ->set('name', 'Downgraded Campaign')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
             ->set('max_players', 5)
@@ -281,6 +289,8 @@ describe('CreateCampaign — save with venue bypass', function () {
         Livewire\Livewire::actingAs($user)
             ->test(CreateCampaign::class)
             ->set('name', 'Forced Protected Campaign')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
             ->set('max_players', 5)

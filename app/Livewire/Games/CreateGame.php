@@ -469,6 +469,19 @@ class CreateGame extends Component
             return;
         }
 
+        // Focused sessions (board_game / ttrpg) require exactly one game system
+        // via the single-select picker. Without this guard, a host can submit
+        // the form without picking a system and a systemless game is persisted —
+        // which breaks discovery ranking, the activity feed, profile listings,
+        // and cover-image resolution, all of which assume at least one offered
+        // system. Enforced here (not as a static rule) because it is conditional
+        // on game_type, mirroring the gathering check above.
+        if ($this->game_type !== 'gathering' && empty($validated['game_system_id'])) {
+            $this->addError('game_system_id', __('games.error_system_required'));
+
+            return;
+        }
+
         // Cross-field validation after individual field validation
         if (
             isset($validated['min_players'], $validated['max_players'])
@@ -559,6 +572,16 @@ class CreateGame extends Component
             // so guard against an empty set (single-system games always have one).
             if (! empty($pivotSystemIds)) {
                 $game->gameSystems()->sync($pivotSystemIds);
+            }
+
+            // Defense-in-depth invariant: every game must offer at least one
+            // system. The validation checks above enforce this, but if a future
+            // change bypasses them (or a new creation path skips this form),
+            // this assertion throws and rolls back the entire transaction
+            // rather than persisting a systemless game — the exact data
+            // corruption discovered in production (game 62a41a7e).
+            if ($game->gameSystems()->count() === 0) {
+                throw new \RuntimeException('Game created without a game system.');
             }
 
             return $game;

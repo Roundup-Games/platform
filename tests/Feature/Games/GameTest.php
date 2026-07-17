@@ -124,11 +124,13 @@ describe('CreateGame Component — Direct Set + Save', function () {
 
     it('creates game with minimum required fields only', function () {
         $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Quick Game')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
             ->call('save')
@@ -146,11 +148,13 @@ describe('CreateGame Component — Direct Set + Save', function () {
     it('stores location_id from LocationPicker', function () {
         $user = gameTestCreateUserWithPermission();
         $location = Location::factory()->create();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Location Test')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('location_id', $location->id)
             ->set('max_players', 6)
@@ -215,11 +219,13 @@ describe('Game Invite Participant — UI State', function () {
 describe('CreateGame — Duration', function () {
     it('defaults to 2.0 hours for board games', function () {
         $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'No Duration')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
             ->call('save');
@@ -263,11 +269,13 @@ describe('CreateGame — Duration', function () {
 describe('CreateGame — Player Counts', function () {
     it('rejects min_players exceeding max_players', function () {
         $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Bad Range')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('min_players', 5)
             ->set('max_players', 3)
@@ -279,11 +287,13 @@ describe('CreateGame — Player Counts', function () {
 describe('CreateGame — Vibe Flags', function () {
     it('stores favorite vibe flags from picker preferences', function () {
         $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Vibey Game')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->call('onVibePreferencesChanged', [
                 'atmospheric' => 'favorite',
@@ -301,11 +311,13 @@ describe('CreateGame — Vibe Flags', function () {
 
     it('filters invalid vibe flag values from preferences', function () {
         $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Test')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->call('onVibePreferencesChanged', [
                 'atmospheric' => 'favorite',
@@ -358,11 +370,13 @@ describe('CreateGame — Full Auto-fill from Game System', function () {
 describe('CreateGame — Visibility Gating', function () {
     it('allows public visibility when user has can_create_public_entries', function () {
         $user = gameTestCreateUserWithPermission(canCreatePublic: true);
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Public Game')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('visibility', 'public')
             ->set('max_players', 6)
@@ -376,11 +390,13 @@ describe('CreateGame — Visibility Gating', function () {
 
     it('demotes public to private when user lacks can_create_public_entries', function () {
         $user = gameTestCreateUserWithPermission(canCreatePublic: false);
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Attempted Public')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('visibility', 'public')
             ->set('max_players', 6)

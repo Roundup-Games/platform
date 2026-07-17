@@ -96,11 +96,13 @@ describe('CreateGame — Type Switching', function () {
 describe('CreateGame — Board Game Creation', function () {
     it('creates board game with comfort notes', function () {
         $user = createGameTestUser();
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->call('selectType', 'board_game')
             ->set('name', 'Board Game Night')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 4)
             ->set('comfort_notes', 'Keep it light and fun')
@@ -110,7 +112,8 @@ describe('CreateGame — Board Game Creation', function () {
         $game = Game::where('name->en', 'Board Game Night')->first();
         expect($game)->not->toBeNull()
             ->and($game->owner_id)->toBe($user->id)
-            ->and($game->game_type->value)->toBe('board_game');
+            ->and($game->game_type->value)->toBe('board_game')
+            ->and($game->gameSystems)->toHaveCount(1);
         expect($game->safety_rules)->toBe(['comfort_notes' => 'Keep it light and fun']);
     })->group('smoke');
 });
@@ -122,11 +125,13 @@ describe('CreateGame — Board Game Creation', function () {
 describe('CreateGame — TTRPG Creation', function () {
     it('creates TTRPG with safety tools and experience level', function () {
         $user = createGameTestUser();
+        $system = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->call('selectType', 'ttrpg')
             ->set('name', 'Dungeon Crawl')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 5)
             ->set('experience_level', 'intermediate')
@@ -168,6 +173,39 @@ describe('CreateGame — Type-Specific Validation', function () {
             ->assertSet('game_type', null)
             ->assertSet('step', 'type');
     });
+
+    it('rejects a board game created without a game system', function () {
+        // Regression for production incident (game 62a41a7e): a focused
+        // session (board_game / ttrpg) submitted without picking a system
+        // was persisted systemless, breaking discovery, feeds, and profiles.
+        createGameTestUser();
+
+        createGameComponent()
+            ->call('selectType', 'board_game')
+            ->set('name', 'Systemless Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 4)
+            ->call('save')
+            ->assertHasErrors(['game_system_id'])
+            ->assertNoRedirect();
+
+        expect(Game::where('name->en', 'Systemless Game')->exists())->toBeFalse();
+    });
+
+    it('rejects a TTRPG created without a game system', function () {
+        createGameTestUser();
+
+        createGameComponent()
+            ->call('selectType', 'ttrpg')
+            ->set('name', 'Systemless TTRPG')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 5)
+            ->call('save')
+            ->assertHasErrors(['game_system_id'])
+            ->assertNoRedirect();
+
+        expect(Game::where('name->en', 'Systemless TTRPG')->exists())->toBeFalse();
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -196,6 +234,7 @@ describe('CreateGame — Analytics', function () {
             ->test(CreateGame::class)
             ->call('selectType', 'board_game')
             ->set('name', 'Analytics Test')
+            ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
             ->call('save');
@@ -335,11 +374,13 @@ describe('CreateGame — Clone Source', function () {
 describe('CreateGame — Translatable Fields', function () {
     it('stores name and description as JSON translations with primary locale', function () {
         $user = createGameTestUser();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->call('selectType', 'board_game')
             ->set('name', 'English Game')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 4)
             ->set('language', 'en')
@@ -353,12 +394,14 @@ describe('CreateGame — Translatable Fields', function () {
 
     it('stores German translation alongside primary English content', function () {
         $user = createGameTestUser();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->call('selectType', 'board_game')
             ->set('name', 'English Game')
             ->set('description', 'English description')
+            ->set('game_system_id', $system->id)
             ->set('pendingTranslations.de.name', 'Deutsches Spiel')
             ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -377,12 +420,14 @@ describe('CreateGame — Translatable Fields', function () {
 
     it('stores name and description for German-primary game with no _de fields needed', function () {
         $user = createGameTestUser();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->call('selectType', 'ttrpg')
             ->set('name', 'Deutsches Abenteuer')
             ->set('description', 'Ein großes Abenteuer')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 5)
             ->set('language', 'de')
@@ -397,9 +442,12 @@ describe('CreateGame — Translatable Fields', function () {
     });
 
     it('accepts valid pendingTranslations.de fields without errors', function () {
+        $system = GameSystem::factory()->create();
+
         createGameComponent()
             ->call('selectType', 'board_game')
             ->set('name', 'Test Game')
+            ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 4)
             ->set('language', 'en')

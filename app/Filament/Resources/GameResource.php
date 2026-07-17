@@ -65,7 +65,8 @@ class GameResource extends Resource
                                     ->relationship('gameSystems', 'name')
                                     ->multiple()
                                     ->searchable()
-                                    ->preload(),
+                                    ->preload()
+                                    ->required(),
                                 Select::make('campaign_id')
                                     ->label('Campaign')
                                     ->relationship('campaign', 'name')

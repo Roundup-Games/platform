@@ -515,6 +515,7 @@ return [
     'error_capacity_reason_required' => 'Please provide a short reason for the players being moved to the waitlist.',
     'error_capacity_reason_too_long' => 'The reason must be 500 characters or fewer.',
     'error_gathering_requires_system' => 'Please select at least one game system for the gathering.',
+    'error_system_required' => 'Please select a game system for the session.',
 
     // Cover image upload (host-uploaded entity covers — S07/T02)
     'field_cover_image' => 'Cover Image',

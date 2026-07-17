@@ -961,6 +961,7 @@ describe('Bench mode toggle matrix', function () {
             ->test(CreateGame::class)
             ->call('selectType', 'ttrpg')
             ->set('name', 'Immutable Bench Game')
+            ->set('game_system_id', $this->gameSystem->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 4)
             ->set('bench_mode', true)

@@ -89,10 +89,13 @@ describe('CreateCampaign Component', function () {
 
     it('creates campaign with minimum required fields', function () {
         $user = campaignTestCreateOwner();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateCampaign::class)
             ->set('name', 'Simple Campaign')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', $system->id)
             ->set('recurrence', 'monthly')
             ->set('time_of_day', '18:00')
             ->call('save')
@@ -105,10 +108,13 @@ describe('CreateCampaign Component', function () {
 
     it('gates public visibility for non-approved users', function () {
         $user = campaignTestCreateOwner();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateCampaign::class)
             ->set('name', 'Gated Campaign')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', $system->id)
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
             ->set('visibility', 'public')
@@ -330,11 +336,14 @@ describe('AddSessionToCampaign — Creation', function () {
 describe('CreateCampaign — Translatable Fields', function () {
     it('stores name and description as JSON translations with primary locale', function () {
         $user = campaignTestCreateOwner();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateCampaign::class)
             ->set('name', 'English Campaign')
             ->set('description', 'English description')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', $system->id)
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
             ->set('language', 'en')
@@ -348,11 +357,14 @@ describe('CreateCampaign — Translatable Fields', function () {
 
     it('stores German translation alongside primary English content', function () {
         $user = campaignTestCreateOwner();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateCampaign::class)
             ->set('name', 'English Campaign')
             ->set('description', 'English description')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', $system->id)
             ->set('pendingTranslations.de.name', 'Deutsche Kampagne')
             ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
             ->set('recurrence', 'weekly')
@@ -370,11 +382,14 @@ describe('CreateCampaign — Translatable Fields', function () {
 
     it('stores name and description for German-primary campaign', function () {
         $user = campaignTestCreateOwner();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateCampaign::class)
             ->set('name', 'Deutsche Kampagne')
             ->set('description', 'Eine großartige Kampagne')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', $system->id)
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
             ->set('language', 'de')
@@ -388,10 +403,13 @@ describe('CreateCampaign — Translatable Fields', function () {
 
     it('accepts valid pendingTranslations.de fields without errors', function () {
         $user = campaignTestCreateOwner();
+        $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateCampaign::class)
             ->set('name', 'Test Campaign')
+            ->set('game_type', 'board_game')
+            ->set('game_system_id', $system->id)
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
             ->set('language', 'en')
