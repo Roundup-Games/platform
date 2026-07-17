@@ -112,16 +112,39 @@ class GameSystem extends Model implements HasMedia, TicketSubject
                 $gameSystem->id = (string) Str::orderedUuid();
             }
             if (empty($gameSystem->slug)) {
-                $name = $gameSystem->getTranslation('name', 'en');
-                $slug = Str::slug(is_string($name) ? $name : '');
-                // Names that slugify to nothing (e.g. non-latin titles) must not
-                // leave a blank slug — it would break route('game-systems.show').
-                $gameSystem->slug = $slug !== '' ? $slug : 'game-system-'.$gameSystem->id;
+                $gameSystem->slug = $gameSystem->resolveFallbackSlug();
             }
             if (empty($gameSystem->type)) {
                 $gameSystem->type = 'boardgame';
             }
         });
+
+        // Defense-in-depth for the blank-slug defect: `slug` is NOT NULL but
+        // the column accepts an empty string, and GameSystemResource exposes it
+        // as a non-required TextInput — so an admin edit can clear it. A blank
+        // slug makes route('game-systems.show') throw UrlGenerationException,
+        // 500-ing any partial that surfaces the record as a base game or
+        // expansion. Re-derive on update if it was blanked.
+        static::updating(function (self $gameSystem) {
+            if (empty($gameSystem->slug)) {
+                $gameSystem->slug = $gameSystem->resolveFallbackSlug();
+            }
+        });
+    }
+
+    /**
+     * Derive a routable slug when none was supplied or it was cleared.
+     *
+     * Names that slugify to nothing (e.g. non-latin BGG titles) must not leave
+     * a blank slug — it would break route('game-systems.show'). Falls back to a
+     * stable, id-based slug so the record is always routable.
+     */
+    protected function resolveFallbackSlug(): string
+    {
+        $name = $this->getTranslation('name', 'en');
+        $slug = Str::slug(is_string($name) ? $name : '');
+
+        return $slug !== '' ? $slug : 'game-system-'.$this->id;
     }
 
     // ── Scopes ─────────────────────────────────────────

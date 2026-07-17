@@ -254,9 +254,13 @@ class BggSyncService
         $baseSlug = Str::slug($name);
 
         // Some BGG titles (e.g. non-latin scripts) slugify to an empty string,
-        // which would produce an unroutable game system. Fall back to the bgg_id.
+        // which would produce an unroutable game system. Fall back to an
+        // id-based slug, then run it through the normal collision check below —
+        // early-returning here would bypass reconciliation and could throw a
+        // unique-constraint violation inside upsertGameSystem() if the fallback
+        // slug already belongs to another record.
         if ($baseSlug === '') {
-            return 'game-system-'.$bggId;
+            $baseSlug = 'game-system-'.$bggId;
         }
 
         $existing = GameSystem::where('slug', $baseSlug)->first();

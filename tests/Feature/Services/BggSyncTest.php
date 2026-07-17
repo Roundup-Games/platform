@@ -293,6 +293,59 @@ it('handles malformed XML by marking item as failed', function () {
     expect($log->error_message)->not->toBeNull();
 });
 
+// ── resolveSlug: blank-slug fallback must still reconcile collisions ───────
+
+it('syncs a non-latin-named system without throwing when the fallback slug collides', function () {
+    // A non-latin BGG title slugifies to ''. The fallback is 'game-system-<bggId>'.
+    // If that fallback slug already belongs to another record, resolveSlug must
+    // disambiguate (append bgg_id) rather than early-return a colliding slug
+    // that would throw a unique-constraint violation inside upsertGameSystem.
+    $nonLatinXml = <<<'XML'
+    <?xml version="1.0" encoding="UTF-8"?>
+    <items termsofuse="https://boardgamegeek.com/xmlapi2/termsofuse">
+      <item type="boardgame" id="99999">
+        <name type="primary" value="棋"/>
+        <description>A non-latin titled game.</description>
+        <yearpublished value="2020"/>
+        <minplayers value="2"/>
+        <maxplayers value="4"/>
+        <maxplaytime value="60"/>
+        <minage value="10"/>
+        <statistics><ratings>
+          <average value="7.00"/>
+          <bayesaverage value="6.50"/>
+          <usersrated value="100"/>
+          <averageweight value="2.50"/>
+          <ranks><rank type="subtype" id="1" name="boardgame" value="50"/></ranks>
+        </ratings></statistics>
+      </item>
+    </items>
+    XML;
+
+    // Pre-existing record that already owns the fallback slug 'game-system-99999'
+    GameSystem::factory()->create([
+        'bgg_id' => 11111,
+        'name' => ['en' => 'Squatting Record'],
+        'slug' => 'game-system-99999',
+    ]);
+
+    Http::fake([
+        'boardgamegeek.com/*' => Http::response($nonLatinXml, 200, ['Content-Type' => 'application/xml']),
+    ]);
+
+    $service = createService();
+    $result = $service->syncGameSystems([99999]);
+
+    expect($result->synced)->toBe(1)
+        ->and($result->failed)->toBe(0);
+
+    $synced = GameSystem::where('bgg_id', 99999)->first();
+    expect($synced)->not->toBeNull()
+        ->and($synced->slug)->not->toBe('')
+        ->and($synced->slug)->not->toBe('game-system-99999')
+        ->and($synced->slug)->toContain('99999');
+});
+
 it('resolves base_game_id for expansion items', function () {
     $expansionXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>

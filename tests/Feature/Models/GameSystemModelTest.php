@@ -205,6 +205,33 @@ describe('GameSystem slug generation', function () {
         expect($system->slug)->not->toBe('')
             ->and($system->slug)->toBe('game-system-'.$system->id);
     });
+
+    it('re-derives a slug when an update clears it', function () {
+        // GameSystemResource exposes slug as a non-required TextInput, so an
+        // admin edit can clear it. The updating hook must restore a routable
+        // slug rather than persist an empty string (which would break
+        // route('game-systems.show')).
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Cleared Slug System'], 'slug' => 'cleared-slug-system']);
+
+        $system->slug = '';
+        $system->save();
+
+        expect($system->fresh()->slug)
+            ->not->toBe('')
+            ->toBe('cleared-slug-system');
+    });
+
+    it('re-derives an id-based slug when an update clears it on a non-latin name', function () {
+        $system = GameSystem::factory()->create([
+            'name' => ['en' => '棋'],
+            'slug' => 'manual-temp-slug',
+        ]);
+
+        $system->slug = '';
+        $system->save();
+
+        expect($system->fresh()->slug)->toBe('game-system-'.$system->id);
+    });
 });
 
 // ═══════════════════════════════════════════════════════════

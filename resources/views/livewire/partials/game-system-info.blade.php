@@ -198,17 +198,23 @@
                 @endif
 
                 {{-- Base game + Expansions --}}
-                @if($system->baseGame || $system->expansions->count())
+                {{-- A blank slug makes route('game-systems.show') throw
+                     UrlGenerationException; the model + backfill migration keep
+                     slugs populated, but guard here as defense-in-depth so the
+                     partial never 500s on a malformed record. --}}
+                @php($linkableBaseGame = $system->baseGame && filled($system->baseGame->slug) ? $system->baseGame : null)
+                @php($linkableExpansions = $system->expansions->filter(fn ($expansion) => filled($expansion->slug)))
+                @if($linkableBaseGame || $linkableExpansions->count())
                     <div class="space-y-2">
-                        @if($system->baseGame)
-                            <a href="{{ route('game-systems.show', $system->baseGame->slug) }}" wire:navigate
+                        @if($linkableBaseGame)
+                            <a href="{{ route('game-systems.show', $linkableBaseGame->slug) }}" wire:navigate
                                class="flex items-center gap-3 p-2.5 bg-surface rounded-lg hover:bg-primary/5 transition-colors group">
-                                @php($baseCover = $system->baseGame->getFirstMediaUrl('cover', 'thumb'))
+                                @php($baseCover = $linkableBaseGame->getFirstMediaUrl('cover', 'thumb'))
                                 <div class="shrink-0 w-8 h-8 rounded-lg overflow-hidden bg-surface-container-high">
                                     @if($baseCover)
-                                        <img src="{{ $baseCover }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover" loading="lazy">
-                                    @elseif($system->baseGame->thumbnail_url)
-                                        <img src="{{ $system->baseGame->thumbnail_url }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover" loading="lazy">
+                                        <img src="{{ $baseCover }}" alt="{{ $linkableBaseGame->name }}" class="w-full h-full object-cover" loading="lazy">
+                                    @elseif($linkableBaseGame->thumbnail_url)
+                                        <img src="{{ $linkableBaseGame->thumbnail_url }}" alt="{{ $linkableBaseGame->name }}" class="w-full h-full object-cover" loading="lazy">
                                     @else
                                         <div class="w-full h-full flex items-center justify-center">
                                             <span class="material-symbols-outlined text-sm text-on-surface-variant" aria-hidden="true">casino</span>
@@ -217,16 +223,16 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <span class="text-xs text-on-surface-variant">{{ __('games.content_base_game') }}</span>
-                                    <p class="text-sm font-medium text-on-surface group-hover:text-primary transition-colors truncate">{{ $system->baseGame->name }}</p>
+                                    <p class="text-sm font-medium text-on-surface group-hover:text-primary transition-colors truncate">{{ $linkableBaseGame->name }}</p>
                                 </div>
                                 <span class="material-symbols-outlined text-sm text-on-surface-variant group-hover:text-primary transition-colors" aria-hidden="true">arrow_forward</span>
                             </a>
                         @endif
-                        @if($system->expansions->count())
+                        @if($linkableExpansions->count())
                             <div>
-                                <span class="text-xs text-on-surface-variant">{{ trans_choice('games.content_expansions_count', $system->expansions->count()) }}</span>
+                                <span class="text-xs text-on-surface-variant">{{ trans_choice('games.content_expansions_count', $linkableExpansions->count()) }}</span>
                                 <div class="mt-1.5 flex flex-wrap gap-1.5">
-                                    @foreach($system->expansions as $expansion)
+                                    @foreach($linkableExpansions as $expansion)
                                         <a href="{{ route('game-systems.show', $expansion->slug) }}" wire:navigate
                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-surface text-on-surface hover:bg-primary/10 hover:text-primary transition-colors">
                                             {{ $expansion->name }}
