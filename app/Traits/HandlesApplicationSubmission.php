@@ -15,6 +15,7 @@ use App\Notifications\PlayerBenched;
 use App\Notifications\WaitlistPlaced;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
+use App\Services\PostHogAnalytics;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -204,6 +205,28 @@ trait HandlesApplicationSubmission
             'benched' => $isPublic && $isFull && $txDecisions->benchMode,
             'waitlisted' => $isPublic && $isFull && ! $txDecisions->benchMode,
         ]);
+
+        // Matching-quality funnel: capture the application outcome. This is the
+        // top of the funnel — intent — which the approve/reject events below
+        // close out. Knowing the split between auto-approved (public) and
+        // host-gated (protected) is essential for acceptance-rate analysis.
+        $outcome = match (true) {
+            $isPublic && ! $isFull => 'approved',
+            $isPublic && $txDecisions->benchMode => 'benched',
+            $isPublic => 'waitlisted',
+            default => 'pending',
+        };
+        app(PostHogAnalytics::class)->capture(
+            authenticatedUser(),
+            'application.submitted',
+            [
+                'entity_type' => $config['entity_type'],
+                'entity_id' => $entity->id,
+                'outcome' => $outcome,
+                'visibility' => $entity->visibility?->value,
+                'is_full' => $isFull,
+            ],
+        );
 
         // Notify owner of new application (protected entities only)
         if (! $isPublic) {

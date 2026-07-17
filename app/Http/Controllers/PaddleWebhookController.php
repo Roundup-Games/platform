@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\GmRoleService;
+use App\Services\PostHogAnalytics;
 use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
@@ -13,6 +14,7 @@ use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Paddle\Http\Controllers\WebhookController as BaseWebhookController;
@@ -31,6 +33,22 @@ class PaddleWebhookController extends BaseWebhookController
         $data = $payload['data'] ?? [];
 
         return is_array($data) ? $data : [];
+    }
+
+    /**
+     * Narrow a mixed value to a non-empty string (level-9 safe).
+     *
+     * Malformed (non-scalar) or empty values collapse to a neutral 'unknown'
+     * marker rather than a privileged status like 'active' — a missing/malformed
+     * Paddle status must never be recorded as an active subscription.
+     */
+    private static function asString(mixed $value): string
+    {
+        if (is_scalar($value) && (string) $value !== '') {
+            return (string) $value;
+        }
+
+        return 'unknown';
     }
 
     /**
@@ -70,6 +88,11 @@ class PaddleWebhookController extends BaseWebhookController
 
         parent::handleSubscriptionCreated($payload);
 
+        $this->captureSubscriptionEvent($payload, 'subscription.started', [
+            'status' => $data['status'] ?? null,
+            'price_id' => $this->nestedValue($data, 'items.0.price.id'),
+        ], self::asString($data['status'] ?? null));
+
         // After Cashier processes the subscription, check if user has a GM profile
         // that should be reactivated. This handles the case where a user previously
         // had GM status but their Paddle subscription lapsed.
@@ -91,6 +114,11 @@ class PaddleWebhookController extends BaseWebhookController
         ]);
 
         parent::handleSubscriptionUpdated($payload);
+
+        $status = self::asString($data['status'] ?? null);
+        $this->captureSubscriptionEvent($payload, 'subscription.updated', [
+            'status' => $data['status'] ?? null,
+        ], $status);
     }
 
     /**
@@ -109,6 +137,11 @@ class PaddleWebhookController extends BaseWebhookController
         ]);
 
         parent::handleSubscriptionCanceled($payload);
+
+        $this->captureSubscriptionEvent($payload, 'subscription.canceled', [
+            'status' => $data['status'] ?? null,
+            'canceled_at' => $data['canceled_at'] ?? null,
+        ], 'canceled');
 
         // Revoke GM role if the user's paid subscription is canceled
         $this->revokeGmRoleFromPayload($payload);
@@ -153,6 +186,13 @@ class PaddleWebhookController extends BaseWebhookController
 
         // Auto-create a billing support ticket for payment failures that need human review
         $this->createPaymentFailureTicket($data);
+
+        // Payment failure is a leading churn signal — capture for retention analytics.
+        $this->captureSubscriptionEvent($payload, 'subscription.payment_failed', [
+            'amount' => $this->nestedValue($data, 'details.totals.total'),
+            'currency' => $data['currency_code'] ?? null,
+            'subscription_id' => $data['subscription_id'] ?? null,
+        ]);
     }
 
     /**
@@ -201,8 +241,15 @@ class PaddleWebhookController extends BaseWebhookController
             // Atomic dedup: lock + check + create inside a transaction to prevent
             // concurrent webhook deliveries from creating duplicate tickets.
             $ticket = DB::transaction(function () use ($transactionId, $user, $department, $metadata) {
+                // TicketPayloadRenderer::paymentFailurePayload() nests the
+                // webhook metadata under a 'context' key, so the transaction id
+                // lives at metadata->context->paddle_transaction_id — NOT at the
+                // top level. Use a scalar JSON-path equality (not whereJsonContains,
+                // which is array-containment and does not match scalar values on
+                // PostgreSQL). The previous query never matched, so every webhook
+                // redelivery created a duplicate billing ticket.
                 $existing = Ticket::where('ticket_type', 'billing_support')
-                    ->whereJsonContains('metadata->paddle_transaction_id', $transactionId)
+                    ->where('metadata->context->paddle_transaction_id', $transactionId)
                     ->lockForUpdate()
                     ->first();
 
@@ -246,6 +293,73 @@ class PaddleWebhookController extends BaseWebhookController
             Log::warning('Failed to create payment failure ticket', [
                 'error' => $e->getMessage(),
                 'customer_id' => $data['customer_id'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Capture a subscription lifecycle event to PostHog for monetization analytics.
+     *
+     * The Paddle webhook is a server-to-server request with no cookie_consent
+     * cookie, so PostHogAnalytics falls back to the persisted analytics_consent
+     * column (kept in sync by the identify middleware). Non-consenting users'
+     * subscription state is still recorded in the DB for financial/legal reasons;
+     * only the analytics forwarding is consent-gated.
+     *
+     * Resolves the user via paddle_id (customer_id). No-op if the user can't be
+     * resolved (e.g. webhook for an unknown customer) or PostHog is disabled.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $properties
+     */
+    private function captureSubscriptionEvent(array $payload, string $event, array $properties = [], ?string $subscriptionStatus = null): void
+    {
+        try {
+            // Paddle delivers webhooks at-least-once and retries on non-2xx; without
+            // dedup the same event is captured into PostHog on every redelivery,
+            // inflating funnel/metrics. Key on the Paddle event_id + event name so
+            // a repeated delivery is a no-op for analytics. (Idempotency of the
+            // underlying DB writes is a separate concern; this guards the analytics
+            // capture specifically.)
+            $eventId = is_string($payload['event_id'] ?? null) ? $payload['event_id'] : null;
+            $dedupKey = "posthog:paddle_event:{$eventId}:{$event}";
+            if ($eventId !== null && Cache::has($dedupKey)) {
+                return;
+            }
+
+            $paddleCustomerId = $this->extractData($payload)['customer_id'] ?? null;
+            if (! $paddleCustomerId) {
+                return;
+            }
+
+            $user = User::where('paddle_id', $paddleCustomerId)->first();
+            if (! $user) {
+                return;
+            }
+
+            $identifyProperties = [];
+            if ($subscriptionStatus !== null) {
+                $identifyProperties['$set'] = ['subscription_status' => $subscriptionStatus];
+            }
+
+            app(PostHogAnalytics::class)->capture($user, $event, $properties);
+
+            // Keep subscription_status current on the person profile for segmentation.
+            // Routed through the consent-aware identify() so person properties are
+            // never forwarded without consent (the persisted analytics_consent
+            // column is the fallback signal in this cookie-less webhook context).
+            if ($identifyProperties !== []) {
+                app(PostHogAnalytics::class)->identify($user, $identifyProperties);
+            }
+
+            if ($eventId !== null) {
+                Cache::put($dedupKey, true, now()->addDays(2));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Paddle webhook: posthog capture failed', [
+                'event' => $event,
+                'customer_id' => $paddleCustomerId ?? null,
+                'error' => $e->getMessage(),
             ]);
         }
     }

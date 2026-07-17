@@ -3496,6 +3496,7 @@ CREATE TABLE public.users (
     remember_token character varying(100),
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
+    last_login_at timestamp(0) without time zone,
     paddle_id character varying(255),
     trial_ends_at timestamp(0) without time zone,
     password_set_at timestamp(0) without time zone,

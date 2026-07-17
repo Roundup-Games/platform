@@ -250,6 +250,12 @@ class AuthenticatedProfile extends Component
     /**
      * Resolve visibility-scoped games: owned + participated, deduplicated.
      *
+     * Owned games are tiered by the viewer's relationship to the profile user
+     * ($scope). Participated games are owned by a THIRD PARTY, so their
+     * visibility must be gated by the viewer's relationship to each game's
+     * actual owner (visibleTo) — otherwise a protected game owned by someone
+     * outside the viewer's circle leaks onto a mutual friend's profile.
+     *
      * @return Collection<int, Game>
      */
     private function resolveVisibleGames()
@@ -259,37 +265,49 @@ class AuthenticatedProfile extends Component
             return new Collection;
         }
 
-        $userId = $this->profileUser->id;
+        $viewer = authenticatedUser();
+        $profileUserId = $this->profileUser->id;
 
-        // Owned games
-        $ownedGameIds = Game::where('owner_id', $userId)
+        // Owned games: tiered by the viewer→profile-user relationship.
+        $ownedGames = Game::where('owner_id', $profileUserId)
             ->whereIn('visibility', $scope)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->pluck('id');
+            ->orderBy('date_time')
+            ->limit(10)
+            ->with(['owner', 'gameSystems'])
+            ->withCount('participants')
+            ->get();
 
-        // Participated games (approved participants only)
+        // Participated games (approved, owned by someone else): gated by
+        // visibleTo($viewer) so the real owner's visibility intent is honored.
         $participatedGameIds = \DB::table('game_participants')
-            ->where('user_id', $userId)
+            ->where('user_id', $profileUserId)
             ->where('status', 'approved')
             ->pluck('game_id');
 
-        // Merge and deduplicate, then load with visibility filter
-        $allGameIds = $ownedGameIds->merge($participatedGameIds)->unique();
-
-        return Game::whereIn('id', $allGameIds)
-            ->whereIn('visibility', $scope)
+        $participatedGames = Game::whereIn('id', $participatedGameIds)
+            ->whereNotIn('id', $ownedGames->modelKeys())
+            ->visibleTo($viewer)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->with(['owner', 'gameSystems'])
-            ->withCount('participants')
             ->orderBy('date_time')
             ->limit(10)
+            ->with(['owner', 'gameSystems'])
+            ->withCount('participants')
             ->get();
+
+        return $ownedGames->merge($participatedGames)
+            ->sortBy('date_time')
+            ->take(10)
+            ->values();
     }
 
     /**
      * Resolve visibility-scoped campaigns: owned + participated, deduplicated.
+     *
+     * Same owned-vs-participated split as {@see resolveVisibleGames()}: third-party
+     * campaigns the profile user plays in are gated by visibleTo($viewer).
      *
      * @return Collection<int, Campaign>
      */
@@ -300,28 +318,36 @@ class AuthenticatedProfile extends Component
             return new Collection;
         }
 
-        $userId = $this->profileUser->id;
+        $viewer = authenticatedUser();
+        $profileUserId = $this->profileUser->id;
 
-        // Owned campaigns
-        $ownedCampaignIds = Campaign::where('owner_id', $userId)
+        // Owned campaigns: tiered by the viewer→profile-user relationship.
+        $ownedCampaigns = Campaign::where('owner_id', $profileUserId)
             ->whereIn('visibility', $scope)
-            ->pluck('id');
+            ->latest('created_at')
+            ->limit(10)
+            ->with(['owner', 'gameSystems'])
+            ->withCount('participants')
+            ->get();
 
-        // Participated campaigns (approved participants only)
+        // Participated campaigns (approved, owned by someone else).
         $participatedCampaignIds = \DB::table('campaign_participants')
-            ->where('user_id', $userId)
+            ->where('user_id', $profileUserId)
             ->where('status', 'approved')
             ->pluck('campaign_id');
 
-        // Merge and deduplicate, then load with visibility filter
-        $allCampaignIds = $ownedCampaignIds->merge($participatedCampaignIds)->unique();
-
-        return Campaign::whereIn('id', $allCampaignIds)
-            ->whereIn('visibility', $scope)
+        $participatedCampaigns = Campaign::whereIn('id', $participatedCampaignIds)
+            ->whereNotIn('id', $ownedCampaigns->modelKeys())
+            ->visibleTo($viewer)
+            ->latest('created_at')
+            ->limit(10)
             ->with(['owner', 'gameSystems'])
             ->withCount('participants')
-            ->latest()
-            ->limit(10)
             ->get();
+
+        return $ownedCampaigns->merge($participatedCampaigns)
+            ->sortByDesc('created_at')
+            ->take(10)
+            ->values();
     }
 }

@@ -16,7 +16,7 @@ return [
     'category_analytics_label' => 'Analytik',
     'category_analytics_description' => 'Helfen Sie uns zu verstehen, wie die Seite genutzt wird, damit wir sie verbessern können.',
     'category_marketing_label' => 'Marketing',
-    'category_marketing_description' => 'Verwendet für gezielte Werbung und zur Messung der Kampagnenwirksamkeit.',
+    'category_marketing_description' => 'Optional. Ermöglicht personalisierte Ansprache (z. B. E-Mail-Kampagnen) und die Verfolgung von Empfehlungen/Teilungen sowie die Messung der Kampagnenwirksamkeit. Standardmäßig deaktiviert.',
 
     // Footer icon
     'nav_cookie_settings' => 'Cookie-Einstellungen',

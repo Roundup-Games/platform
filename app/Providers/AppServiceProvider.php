@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Listeners\DropDemoDomainMail;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
+use App\Listeners\RecordUserSignIn;
 use App\Listeners\SuppressAutomatedTicketStatusNotifications;
 use App\Models\Campaign;
 use App\Models\Event;
@@ -62,6 +63,7 @@ use Escalated\Laravel\Models\TicketStatus;
 use Escalated\Laravel\Models\Webhook;
 use Filament\Facades\Filament;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -203,6 +205,12 @@ class AppServiceProvider extends ServiceProvider
             NotificationSending::class,
             SuppressAutomatedTicketStatusNotifications::class
         );
+
+        // Capture the login/return-visit signal for retention analytics.
+        // Fires on every authentication (credentials, OAuth, signup-context,
+        // remember-me) — the session boundary that makes retention cohorts
+        // measurable. See RecordUserSignIn for the consent/privacy design.
+        EventFacade::listen(Login::class, RecordUserSignIn::class);
 
         // Escalated helpdesk authorization gates
         // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)

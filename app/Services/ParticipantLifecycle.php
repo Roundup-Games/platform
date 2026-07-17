@@ -188,6 +188,17 @@ class ParticipantLifecycle
         // notification pattern used by WaitlistService::notifyPromotion and
         // CapacityService::demote.
         $user = $userId !== null ? User::find($userId) : null;
+
+        // Matching-quality funnel: benched → approved promotion. Routed through
+        // captureParticipantTransition for the same richer entity enrichment
+        // (game_system, visibility, is_online) and consent gating the other
+        // lifecycle transitions use.
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant,
+            $entity,
+            'participant.promoted',
+            ['promoted_by' => $promoterId],
+        );
         if ($user !== null) {
             try {
                 app(NotificationService::class)->send(
@@ -261,7 +272,7 @@ class ParticipantLifecycle
         $pendingApplication = $entity->applications()
             ->where('user_id', $participant->getUserId())
             ->where('status', 'pending')
-            ->exists();
+            ->first();
 
         if (! $pendingApplication) {
             return ParticipantResult::fail('common.error_participant_not_applicant');
@@ -283,6 +294,18 @@ class ParticipantLifecycle
             'user_id' => $participant->getUserId(),
             'approved_by' => $approver->id,
         ]);
+
+        // Matching-quality funnel: the host approved this application.
+        // time_to_decision measures how quickly hosts respond — a key
+        // supply-side health metric (slow approvals → player attrition).
+        $timeToDecision = $pendingApplication->created_at
+            ? (int) round(now()->diffInSeconds($pendingApplication->created_at) / 3600)
+            : null;
+
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant, $entity, 'application.approved',
+            ['approved_by' => $approver->id, 'time_to_decision_hours' => $timeToDecision],
+        );
 
         // Notify applicant
         try {
@@ -336,6 +359,12 @@ class ParticipantLifecycle
             'user_id' => $rejectedUserId,
             'rejected_by' => $rejecter->id,
         ]);
+
+        // Matching-quality funnel: the host rejected this application.
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant, $entity, 'application.rejected',
+            ['rejected_by' => $rejecter->id],
+        );
 
         // Notify applicant
         try {
@@ -391,6 +420,11 @@ class ParticipantLifecycle
         // reliability weight.
         $attendanceStatus = $this->resolveDepartureAttendanceStatus($participant, $entity);
 
+        // Capture the pre-removal status BEFORE the update — $participant->update()
+        // mutates the in-memory model, so reading it afterwards would always
+        // report 'removed' and the churn signal's previous_status would be useless.
+        $previousStatus = $participant->getStatus();
+
         $update = [
             'status' => ParticipantStatus::Removed->value,
             'removed_by' => $remover->id,
@@ -411,6 +445,12 @@ class ParticipantLifecycle
             'user_id' => $removedUserId,
             'removed_by' => $remover->id,
         ]);
+
+        // Churn signal: a host removed this participant.
+        app(PostHogAnalytics::class)->captureParticipantTransition(
+            $participant, $entity, 'participant.removed',
+            ['removed_by' => $remover->id, 'previous_status' => $previousStatus?->value],
+        );
 
         try {
             if ($removedUser) {

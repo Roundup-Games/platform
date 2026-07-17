@@ -6,6 +6,10 @@ use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\ParticipantLifecycle;
+use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
+use Illuminate\Support\Facades\Config;
+use Tests\Helpers\TestablePostHogClient;
 use Tests\Traits\CreatesGameInstances;
 
 uses(CreatesGameInstances::class);
@@ -39,6 +43,23 @@ it('records the participant themselves as remover on self-leave', function () {
     app(ParticipantLifecycle::class)->depart($this->participant->fresh(), $this->player);
 
     expect($this->participant->fresh()->removed_by)->toBe($this->player->id);
+});
+
+it('emits the pre-removal status (not "removed") in the participant.removed analytics event', function () {
+    Config::set('posthog.enabled', true);
+    Config::set('posthog.api_key', 'phc_test_key');
+    $posthog = new TestablePostHogClient;
+    $this->app->instance(PostHogClient::class, $posthog);
+    $checker = $this->mock(PostHogConsentChecker::class);
+    $checker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+    $this->app->instance(PostHogConsentChecker::class, $checker);
+
+    app(ParticipantLifecycle::class)->removeParticipant($this->participant->fresh(), $this->game, $this->owner);
+
+    $removed = collect($posthog->capturedCalls)
+        ->first(fn (array $c) => ($c['event'] ?? null) === 'participant.removed');
+    expect($removed)->not->toBeNull()
+        ->and($removed['properties']['previous_status'])->toBe('approved');
 });
 
 it('nulls removed_by when no remover is supplied (system-initiated)', function () {

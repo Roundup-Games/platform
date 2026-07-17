@@ -24,7 +24,7 @@ class EventDetail extends Component
     public function render(): View
     {
         $this->event->load([
-            'announcements' => fn ($q) => $q->published()->orderByDesc('is_pinned')->orderByDesc('created_at'),
+            'announcements' => fn ($q) => $q->published()->visibleTo(auth()->user(), $this->event)->orderByDesc('is_pinned')->orderByDesc('created_at'),
             'registrations',
         ]);
 

@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Middleware\CaptureFirstTouch;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Rules\ValidUserName;
+use App\Services\PendingInvitationMatcher;
+use App\Services\PostHogAnalytics;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,6 +47,12 @@ class OAuthController
             $request->session()->put('oauth_linking', true);
         }
 
+        // First-touch acquisition context (landing page + referer) is captured
+        // for guests by the CaptureFirstTouch middleware on public-content GETs.
+        // Do NOT capture here: this request's path is the auth redirect endpoint
+        // and its referer is the provider's domain — meaningless as attribution.
+        // The callback reads the persisted first-touch after the OAuth round-trip.
+
         return Socialite::driver($provider)->redirect();
     }
 
@@ -57,6 +66,15 @@ class OAuthController
         if (! in_array($provider, ['google'])) {
             return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unsupported login provider.']);
         }
+
+        // Consume first-touch attribution ONCE at the top of the callback, before
+        // any branching (existing-user login, linking, new registration, error) —
+        // otherwise stale keys could be applied to a later signup. The values
+        // were captured on the original landing page by CaptureFirstTouch.
+        $session = $request->session();
+        $firstTouchReferer = is_string($session->get(CaptureFirstTouch::REFERER_KEY)) ? $session->get(CaptureFirstTouch::REFERER_KEY) : null;
+        $firstTouchPath = is_string($session->get(CaptureFirstTouch::PATH_KEY)) ? $session->get(CaptureFirstTouch::PATH_KEY) : null;
+        $session->forget([CaptureFirstTouch::REFERER_KEY, CaptureFirstTouch::PATH_KEY, CaptureFirstTouch::CAPTURED_KEY]);
 
         try {
             /** @var \Laravel\Socialite\Two\User $socialiteUser */
@@ -184,6 +202,29 @@ class OAuthController
             'user_id' => $user->id,
             'provider_user_id' => $providerUserId,
         ]);
+
+        // Match pending email invitations to the newly registered user — the
+        // same logic the email-registration flow uses, so OAuth signups land on
+        // their invitations and the funnel metric is comparable across methods.
+        $inviteMatches = app(PendingInvitationMatcher::class)->match($user);
+
+        // Acquisition funnel: capture the OAuth signup with provider attribution.
+        $analytics = app(PostHogAnalytics::class);
+        $analytics->capture(
+            $user,
+            'user.signed_up',
+            [
+                'signup_method' => 'oauth',
+                'oauth_provider' => $provider,
+                'invite_match_count' => $inviteMatches,
+                'locale' => app()->getLocale(),
+            ],
+        );
+
+        // First-touch SEO attribution: the landing page + referer captured by
+        // CaptureFirstTouch on the original public-page request. identifyFirstTouch
+        // reduces the referer to a domain and detects content context from the path.
+        $analytics->identifyFirstTouch($user, $firstTouchReferer, $firstTouchPath);
 
         return $this->redirectAfterLogin($user);
     }

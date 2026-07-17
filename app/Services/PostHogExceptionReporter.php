@@ -80,10 +80,16 @@ class PostHogExceptionReporter
                 '$exception_handled' => ExceptionPayloadBuilder::getPrimaryHandled($exceptionList),
                 '$exception_source' => 'php',
                 '$exception_fingerprint' => $fingerprint,
-                // Request context
-                'request_url' => request()->fullUrl(),
+                // Request context — path only. Query strings can carry share
+                // tokens, UTM, or PII, so we deliberately exclude them from
+                // error tracking (legitimate-interest) payloads. Path segments
+                // that ARE secret (short-link codes, password-reset tokens,
+                // email-verification hashes, invite-opt-out email hashes) are
+                // scrubbed to a placeholder so bearer tokens never reach the
+                // error-tracking provider.
+                'request_path' => $this->scrubRequestPath(request()->path()),
                 'request_method' => request()->method(),
-                'request_path' => request()->path(),
+                'request_is_https' => request()->secure(),
                 // Code location
                 'exception_file' => $e->getFile(),
                 'exception_line' => $e->getLine(),
@@ -199,5 +205,30 @@ class PostHogExceptionReporter
     private function buildFingerprint(Throwable $e): string
     {
         return md5(get_class($e).'|'.$e->getFile().'|'.$e->getMessage());
+    }
+
+    /**
+     * Scrub secret path parameters from the request path before forwarding
+     * to the error-tracking provider.
+     *
+     * Several routes carry a bearer-style secret as a path segment rather
+     * than in the query string: short-link codes (`/link/{code}`), password
+     * reset tokens (`reset-password/{token}`), email-verification hashes
+     * (`verify-email/{id}/{hash}`), and invite-opt-out email hashes
+     * (`invite-optout/{emailHash}`). If an exception fires while handling one
+     * of these, the raw path would exfiltrate that secret to PostHog. Each is
+     * collapsed to a stable placeholder that still routes/errors usefully.
+     */
+    private function scrubRequestPath(string $path): string
+    {
+        if (preg_match('#^(link|reset-password|invite-optout)/[^/]+#', $path, $m)) {
+            return $m[1].'/*';
+        }
+
+        if (preg_match('#^verify-email/[^/]+/[^/]+#', $path)) {
+            return 'verify-email/*/*';
+        }
+
+        return $path;
     }
 }

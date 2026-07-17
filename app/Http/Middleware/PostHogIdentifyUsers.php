@@ -125,6 +125,17 @@ class PostHogIdentifyUsers
      * Server-side identify call for user property enrichment and
      * server-side event attribution.
      *
+     * PSEUDONYMIZATION: PostHog receives only the opaque user ID as the
+     * distinctId. Name and email are deliberately NOT sent — the distinctId
+     * already links the session, and PostHog cannot re-identify the person
+     * without this application's database. This keeps analytics genuinely
+     * pseudonymized and matches our public privacy posture.
+     *
+     * Only cheap, non-PII properties are set here (they run inline on the
+     * first GET of a session). Computed/aggregated properties (game-system
+     * cluster, modality tendency, lifetime counts) are set asynchronously by
+     * EnrichPostHogProfile to avoid blocking the request.
+     *
      * Error handling is centralized in PostHogClient::identify().
      * If the SDK throws, PostHogClient catches it and logs a warning.
      */
@@ -141,12 +152,15 @@ class PostHogIdentifyUsers
             'distinctId' => $distinctId,
             'properties' => [
                 '$set' => [
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'locale' => $user->preferred_language ?? app()->getLocale(),
+                    'locale' => $this->coarseLocale($user),
+                    'account_age_days' => $user->created_at?->diffInDays(now()) ?? 0,
+                    'has_completed_onboarding' => (bool) $user->profile_complete,
+                    // Coarse country only (never raw geohash or coordinates).
+                    'country' => $this->coarseCountry($user),
                 ],
                 '$set_once' => [
                     'signup_date' => $user->created_at?->toDateString(),
+                    'signup_cohort_week' => $user->created_at?->format('o-W'),
                 ],
             ],
         ]);
@@ -154,5 +168,32 @@ class PostHogIdentifyUsers
         Log::channel('daily')->debug('posthog.user.identified', [
             'user_id' => $distinctId,
         ]);
+    }
+
+    /**
+     * Resolve a coarse, non-PII locale string from the user's preference.
+     *
+     * preferred_language is cast to a ContentLanguage enum on the model, so we
+     * send its scalar value (e.g. "de") rather than the enum instance.
+     */
+    private function coarseLocale(User $user): string
+    {
+        $preferred = $user->preferred_language;
+
+        return $preferred instanceof \BackedEnum ? (string) $preferred->value : app()->getLocale();
+    }
+
+    /**
+     * Derive a coarse, non-PII country code from the user's linked location.
+     *
+     * Returns null when no location or no country is set. Intentionally coarse —
+     * country-level segmentation is useful; city/coordinates are not sent to
+     * the analytics provider.
+     */
+    private function coarseCountry(User $user): ?string
+    {
+        $country = $user->linkedLocation?->country;
+
+        return $country !== null && $country !== '' ? strtoupper($country) : null;
     }
 }

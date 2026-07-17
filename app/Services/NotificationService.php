@@ -112,6 +112,18 @@ class NotificationService
                 'category' => $categoryValue,
                 'channels' => array_keys($dispatchChannels),
             ]);
+
+            // Retention analytics: capture that a notification was sent to this
+            // user, with its category and channels. Enables correlation of
+            // 'received attendance nudge' with attendance outcomes.
+            app(PostHogAnalytics::class)->capture(
+                $notifiable,
+                'notification.sent',
+                [
+                    'category' => $categoryValue,
+                    'channels' => array_keys($dispatchChannels),
+                ],
+            );
         } catch (\Throwable $e) {
             Log::error('notification.dispatch_failed', [
                 'notifiable_id' => $notifiable->id,
@@ -119,6 +131,14 @@ class NotificationService
                 'category' => $categoryValue,
                 'error' => $e->getMessage(),
             ]);
+
+            // Retention analytics: capture notification dispatch failures for
+            // channel-health monitoring (e.g. push tokens going stale).
+            app(PostHogAnalytics::class)->capture(
+                $notifiable,
+                'notification.failed',
+                ['category' => $categoryValue, 'reason' => 'dispatch_error'],
+            );
         }
     }
 

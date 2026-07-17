@@ -12,6 +12,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class GameActivityFeedService
@@ -40,10 +41,10 @@ class GameActivityFeedService
 
         // Union of activity types, sorted by created_at desc
         $activities = collect()
-            ->merge($this->getGamesCreated($socialCircleIds))
+            ->merge($this->getGamesCreated($socialCircleIds, $viewer))
             ->merge($this->getPlayersJoined($socialCircleIds, $viewer))
-            ->merge($this->getGamesCompleted($socialCircleIds))
-            ->merge($this->getSessionRecaps($socialCircleIds))
+            ->merge($this->getGamesCompleted($socialCircleIds, $viewer))
+            ->merge($this->getSessionRecaps($socialCircleIds, $viewer))
             ->sortByDesc('created_at')
             ->values();
 
@@ -81,10 +82,10 @@ class GameActivityFeedService
         }
 
         $activities = collect()
-            ->merge($this->getCampaignsCreated($socialCircleIds))
+            ->merge($this->getCampaignsCreated($socialCircleIds, $viewer))
             ->merge($this->getCampaignPlayersJoined($socialCircleIds, $viewer))
-            ->merge($this->getCampaignsCompleted($socialCircleIds))
-            ->merge($this->getSessionsScheduled($socialCircleIds))
+            ->merge($this->getCampaignsCompleted($socialCircleIds, $viewer))
+            ->merge($this->getSessionsScheduled($socialCircleIds, $viewer))
             ->sortByDesc('created_at')
             ->values();
 
@@ -120,9 +121,10 @@ class GameActivityFeedService
      *
      * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getGamesCreated(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
+    protected function getGamesCreated(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
         return Game::whereIn('owner_id', $socialCircleIds)
+            ->visibleTo($viewer)
             ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->orderBy('created_at', 'desc')
@@ -166,6 +168,7 @@ class GameActivityFeedService
         $gameIds = $gameIds->diff($viewerGameIds);
 
         return Game::whereIn('id', $gameIds)
+            ->visibleTo($viewer)
             ->with(['owner', 'gameSystems', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', ParticipantRole::Player->value)->where('status', 'approved')])
             ->withCount('participants')
             ->orderBy('updated_at', 'desc')
@@ -194,9 +197,10 @@ class GameActivityFeedService
      *
      * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getGamesCompleted(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
+    protected function getGamesCompleted(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
         return Game::whereIn('owner_id', $socialCircleIds)
+            ->visibleTo($viewer)
             ->where('status', 'completed')
             ->with(['owner', 'gameSystems'])
             ->withCount('participants')
@@ -218,9 +222,10 @@ class GameActivityFeedService
      *
      * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getSessionRecaps(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
+    protected function getSessionRecaps(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
         return Game::whereIn('owner_id', $socialCircleIds)
+            ->visibleTo($viewer)
             ->where('status', 'completed')
             ->whereNotNull('recap')
             ->where('recap', '!=', '')
@@ -244,9 +249,10 @@ class GameActivityFeedService
      *
      * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getCampaignsCreated(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
+    protected function getCampaignsCreated(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
         return Campaign::whereIn('owner_id', $socialCircleIds)
+            ->visibleTo($viewer)
             ->with(['owner', 'gameSystems'])
             ->withCount('participants')
             ->orderBy('created_at', 'desc')
@@ -282,6 +288,7 @@ class GameActivityFeedService
         $campaignIds = $campaignIds->diff($viewerCampaignIds);
 
         return Campaign::whereIn('id', $campaignIds)
+            ->visibleTo($viewer)
             ->with(['owner', 'gameSystems', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', ParticipantRole::Player->value)->where('status', 'approved')])
             ->withCount('participants')
             ->orderBy('updated_at', 'desc')
@@ -308,9 +315,10 @@ class GameActivityFeedService
      *
      * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getCampaignsCompleted(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
+    protected function getCampaignsCompleted(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
         return Campaign::whereIn('owner_id', $socialCircleIds)
+            ->visibleTo($viewer)
             ->where('status', 'completed')
             ->with(['owner', 'gameSystems'])
             ->withCount('participants')
@@ -332,10 +340,16 @@ class GameActivityFeedService
      *
      * @param  array<string, mixed>  $socialCircleIds
      */
-    protected function getSessionsScheduled(array $socialCircleIds): Collection // @phpstan-ignore missingType.generics
+    protected function getSessionsScheduled(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
         return Game::whereNotNull('campaign_id')
-            ->whereHas('campaign', fn ($q) => $q->whereIn('owner_id', $socialCircleIds))
+            ->visibleTo($viewer)
+            // Scope the parent campaign too: a public session must not surface a
+            // private/protected campaign the viewer couldn't see directly.
+            ->whereHas('campaign', function (Builder $q) use ($socialCircleIds, $viewer): void {
+                /** @var Builder<Campaign> $q */
+                $q->whereIn('owner_id', $socialCircleIds)->visibleTo($viewer);
+            })
             ->where('status', 'scheduled')
             ->with(['owner', 'gameSystems', 'campaign'])
             ->withCount('participants')

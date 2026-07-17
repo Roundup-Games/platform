@@ -3,12 +3,12 @@
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Services\PendingInvitationMatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -233,7 +233,6 @@ test('registration logs matched invites', function () {
  */
 function registerUser(string $email): User
 {
-    $controller = new RegisteredUserController;
     $request = Request::create('/register', 'POST', [
         'name' => 'Test User',
         'email' => $email,
@@ -251,10 +250,37 @@ function registerUser(string $email): User
         'profile_complete' => false,
     ]);
 
-    // Call matchPendingInvitations via reflection since it's private
-    $method = new ReflectionMethod($controller, 'matchPendingInvitations');
-    $method->setAccessible(true);
-    $method->invoke($controller, $user);
+    // Claim pending invitations via the shared service (extracted from the
+    // controller so email and OAuth registration flows match identically).
+    app(PendingInvitationMatcher::class)->match($user);
 
     return $user;
 }
+
+// ── Successful-claim counting ─────────────────────────────
+
+it('counts only successfully claimed invitations, not conflicting saves', function () {
+    // A pending invite that will hit a unique-constraint conflict on save must
+    // NOT inflate the returned invite_match_count (the funnel metric).
+    $game = Game::factory()->create();
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => null,
+        'invitee_email' => 'conflict@example.com',
+        'role' => ParticipantRole::Invited->value,
+        'status' => ParticipantStatus::Pending->value,
+        'join_source' => JoinSource::EmailInvite->value,
+    ]);
+
+    // Pre-claim the row with a different user so the matcher's associate+save
+    // is forced to fail (the unique user/game constraint conflicts).
+    $claimer = User::factory()->create();
+    GameParticipant::where('invitee_email', 'conflict@example.com')
+        ->update(['user_id' => $claimer->id]);
+
+    $user = User::factory()->create(['email' => 'conflict@example.com']);
+
+    $count = app(PendingInvitationMatcher::class)->match($user);
+
+    expect($count)->toBe(0, 'a conflicting claim must not be counted as a match');
+});

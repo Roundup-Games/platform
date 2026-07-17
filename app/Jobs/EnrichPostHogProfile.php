@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Models\GameSystem;
 use App\Models\Review;
 use App\Models\Team;
 use App\Models\User;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -84,14 +86,18 @@ class EnrichPostHogProfile implements ShouldQueue
             return;
         }
 
-        // Consent is captured at dispatch time. If consent was not granted
-        // when the event was fired, skip enrichment entirely.
-        if (! $this->hasConsent) {
+        $user = User::find($this->userId);
+        if (! $user) {
             return;
         }
 
-        $user = User::find($this->userId);
-        if (! $user) {
+        // Consent is re-checked against the authoritative persisted column at
+        // processing time. The dispatch-time flag (set during the consented
+        // request that also synced this column to true) is kept as a
+        // belt-and-braces signal, but a revocation between dispatch and
+        // processing must be honored. The user is already loaded, so the check
+        // is free.
+        if (! $this->hasConsent || ! $user->analytics_consent) {
             return;
         }
 
@@ -178,6 +184,94 @@ class EnrichPostHogProfile implements ShouldQueue
     }
 
     /**
+     * Compute non-PII decision-grade person properties from first-party data.
+     *
+     * These turn raw events into queryable segments in PostHog — the
+     * foundational dataset for driving product decisions. All are derived from
+     * already-stored first-party data and contain no PII:
+     *
+     * - modality: online / in_person / mixed tendency, from participation history.
+     *   Null for users with <3 resolved attendances (insufficient signal).
+     * - primary_game_system: the game system the user has most often attended.
+     * - reliability_tier: read from the cached reliability_score column (no query).
+     *
+     * Two efficient grouped queries; safe to run on every enrichment.
+     *
+     * @return array<string, string|null>
+     */
+    private function computeProfileProperties(User $user): array
+    {
+        try {
+            // Modality: online vs in-person participation counts (single grouped query).
+            // location is a JSON column; location->>'type' extracts the type key.
+            $modality = DB::table('game_participants')
+                ->join('games', 'games.id', '=', 'game_participants.game_id')
+                ->where('game_participants.user_id', $user->id)
+                ->whereNotNull('game_participants.attendance_status')
+                ->selectRaw(
+                    "COUNT(*) FILTER (WHERE games.location->>'type' = 'online') AS online_count, ".
+                    "COUNT(*) FILTER (WHERE games.location->>'type' IS DISTINCT FROM 'online') AS in_person_count"
+                )
+                ->first();
+
+            $online = (int) ($modality->online_count ?? 0);
+            $inPerson = (int) ($modality->in_person_count ?? 0);
+            $total = $online + $inPerson;
+
+            $modalityLabel = null;
+            if ($total >= 3) {
+                $onlineRatio = $online / $total;
+                $modalityLabel = match (true) {
+                    $onlineRatio >= 0.75 => 'online',
+                    $onlineRatio <= 0.25 => 'in_person',
+                    default => 'mixed',
+                };
+            }
+
+            // Primary game system: most-attended across participations.
+            // Resolve the ID via a grouped query, then load the model so the
+            // name is localized (the raw column is a JSON translatable blob).
+            $primarySystemRow = DB::table('game_participants')
+                ->join('game_game_system', 'game_game_system.game_id', '=', 'game_participants.game_id')
+                ->where('game_participants.user_id', $user->id)
+                ->whereNotNull('game_participants.attendance_status')
+                ->select('game_game_system.game_system_id')
+                ->selectRaw('COUNT(*) AS attended')
+                ->groupBy('game_game_system.game_system_id')
+                ->orderByDesc('attended')
+                // Tie-breaker so equal attendance counts always resolve to the
+                // same primary system (PostgreSQL returns ties nondeterministically).
+                ->orderBy('game_game_system.game_system_id')
+                ->first();
+
+            $primarySystemName = null;
+            if ($primarySystemRow) {
+                $primarySystem = GameSystem::find($primarySystemRow->game_system_id);
+                $primarySystemName = $primarySystem instanceof GameSystem ? $primarySystem->name : null;
+            }
+
+            // Reliability tier: read from the cached JSON column (no extra query).
+            // data_get handles array/object/null shapes defensively.
+            $tier = is_string(data_get($user->reliability_score, 'tier'))
+                ? (string) data_get($user->reliability_score, 'tier')
+                : null;
+
+            return array_filter([
+                'modality' => $modalityLabel,
+                'primary_game_system' => is_string($primarySystemName) ? $primarySystemName : null,
+                'reliability_tier' => $tier,
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('daily')->debug('posthog.profile_properties.compute_failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
      * Enrich user profile with $set/$set_once properties.
      */
     private function enrichUserProfile(PostHogClient $posthog, ActivityType $type, User $user, ?Model $subject): void
@@ -195,6 +289,10 @@ class EnrichPostHogProfile implements ShouldQueue
 
                 case ActivityType::PlayerJoined:
                     $set['games_joined_count'] = GameParticipant::whereBelongsTo($user)->count();
+                    // Participation changes modality/cluster tendency — refresh the
+                    // computed decision-grade properties (piece 1 of the analytics
+                    // foundation). Cheap grouped queries, runs async.
+                    $set = array_merge($set, $this->computeProfileProperties($user));
                     break;
 
                 case ActivityType::CampaignCreated:
@@ -208,6 +306,8 @@ class EnrichPostHogProfile implements ShouldQueue
 
                 case ActivityType::SessionRecapped:
                     $setOnce['first_session_recapped_at'] = now()->toIso8601String();
+                    // A recap implies the session resolved — reliability tier may have shifted.
+                    $set = array_merge($set, $this->computeProfileProperties($user));
                     break;
 
                 case ActivityType::ReviewReceived:

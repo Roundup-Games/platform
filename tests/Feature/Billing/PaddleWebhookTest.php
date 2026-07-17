@@ -1,11 +1,18 @@
 <?php
 
 use App\Models\User;
+use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Tag;
+use Escalated\Laravel\Models\Ticket;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Subscription;
+use Tests\Helpers\TestablePostHogClient;
 
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\post;
@@ -86,9 +93,44 @@ describe('Webhook — subscription.canceled', function () {
 describe('Webhook — transaction.payment_failed', function () {
     beforeEach(function () {
         config(['cashier.webhook_secret' => null]);
+        // Isolate the ticket-creation path from analytics capture.
+        config(['posthog.enabled' => false]);
+        Cache::flush();
         Log::spy();
+
+        Department::factory()->create(['name' => 'Billing']);
+        Tag::factory()->create(['name' => 'billing-support', 'color' => '#0891B2']);
+        Tag::factory()->create(['name' => 'payment-failure', 'color' => '#DC2626']);
     });
 
+    it('does not create duplicate billing tickets across webhook redeliveries', function () {
+        // Regression: the dedup query previously targeted the wrong JSON path
+        // (metadata->paddle_transaction_id) while TicketPayloadRenderer nests
+        // the value under metadata->context->paddle_transaction_id. The query
+        // never matched, so every Paddle redelivery created a duplicate ticket.
+        $user = webhookCreateUser();
+        $user->forceFill(['paddle_id' => 'ctm_pay_fail'])->save();
+
+        $data = [
+            'id' => 'txn_pay_fail_dedup',
+            'customer_id' => 'ctm_pay_fail',
+            'subscription_id' => 'sub_pay_fail',
+            'currency_code' => 'USD',
+            'status' => 'failed',
+            'details' => [
+                'totals' => ['total' => '19.99'],
+            ],
+        ];
+
+        // Paddle delivers at-least-once and retries on non-2xx; two deliveries
+        // of the same failed transaction must yield exactly one billing ticket.
+        webhookPostEvent('transaction.payment_failed', $data)->assertStatus(200);
+        webhookPostEvent('transaction.payment_failed', $data)->assertStatus(200);
+
+        $tickets = Ticket::where('ticket_type', 'billing_support')->get();
+        expect($tickets)->toHaveCount(1)
+            ->and($tickets->first()->metadata['context']['paddle_transaction_id'])->toBe('txn_pay_fail_dedup');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -115,6 +157,86 @@ function postSignedWebhook(string $uri, string $rawBody, string $signature): Tes
         'HTTP_PADDLE_SIGNATURE' => $signature,
     ], $rawBody);
 }
+
+describe('Webhook — analytics dedup', function () {
+    beforeEach(function () {
+        config(['cashier.webhook_secret' => null]);
+        config(['posthog.enabled' => true]);
+        config(['posthog.api_key' => 'phc_test_key']);
+        Cache::flush();
+
+        $posthog = new TestablePostHogClient;
+        app()->instance(PostHogClient::class, $posthog);
+        test()->testablePostHog = $posthog;
+
+        // Grant consent so the analytics capture is recorded.
+        $checker = test()->mock(PostHogConsentChecker::class);
+        $checker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+        app()->instance(PostHogConsentChecker::class, $checker);
+    });
+
+    it('captures subscription.canceled once per Paddle event_id across redeliveries', function () {
+        $user = webhookCreateUser(['analytics_consent' => true]);
+        $user->forceFill(['paddle_id' => 'ctm_dedup'])->save();
+        webhookCreateCustomer($user, 'ctm_dedup');
+        webhookCreateSubscription($user, [
+            'paddle_id' => 'sub_dedup',
+            'status' => 'active',
+        ]);
+
+        $postBody = [
+            'event_type' => 'subscription.canceled',
+            'event_id' => 'evt_dedup_1',
+            'data' => [
+                'id' => 'sub_dedup',
+                'status' => 'canceled',
+                'canceled_at' => now()->toIso8601String(),
+                'items' => [],
+                'customer_id' => 'ctm_dedup',
+            ],
+        ];
+
+        // First delivery captures; the identical redelivery (same event_id) is a
+        // no-op for analytics, so PostHog metrics aren't inflated by Paddle retries.
+        post('/paddle/webhook', $postBody)->assertStatus(200);
+        post('/paddle/webhook', $postBody)->assertStatus(200);
+
+        $canceled = collect(test()->testablePostHog->capturedCalls)
+            ->filter(fn (array $c) => ($c['event'] ?? null) === 'subscription.canceled');
+        expect($canceled)->toHaveCount(1);
+    });
+
+    it('records subscription_status as unknown, not active, when the webhook omits status', function () {
+        // Regression: a missing/null Paddle status must collapse to 'unknown'
+        // via asString(), never the privileged 'active'. The previous
+        // `?? 'active'` default defeated that guard. (Note: an empty-string
+        // status already hit asString's guard; only null/absent triggered the
+        // bug, so the payload omits status entirely.) The subscription is
+        // pre-created so Cashier's parent handler returns early and the DB is
+        // not asked to persist a null status.
+        $user = webhookCreateUser(['analytics_consent' => true]);
+        $user->forceFill(['paddle_id' => 'ctm_no_status'])->save();
+        webhookCreateCustomer($user, 'ctm_no_status');
+        webhookCreateSubscription($user, ['paddle_id' => 'sub_no_status', 'status' => 'active']);
+
+        post('/paddle/webhook', [
+            'event_type' => 'subscription.created',
+            'event_id' => 'evt_no_status',
+            'data' => [
+                'id' => 'sub_no_status',
+                'items' => [],
+                'customer_id' => 'ctm_no_status',
+                // 'status' deliberately omitted — simulates a malformed webhook.
+            ],
+        ])->assertStatus(200);
+
+        $identify = collect(test()->testablePostHog->identifyCalls)
+            ->filter(fn (array $c) => isset($c['properties']['$set']['subscription_status']))
+            ->last();
+        expect($identify)->not->toBeNull()
+            ->and($identify['properties']['$set']['subscription_status'])->toBe('unknown');
+    });
+});
 
 describe('Webhook — Signature Verification', function () {
     it('accepts webhook with valid signature when webhook_secret is configured', function () {

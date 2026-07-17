@@ -9,6 +9,7 @@ use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
 use App\Models\Location;
 use App\Services\DiscoveryQueryService;
+use App\Services\PostHogAnalytics;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -27,8 +28,15 @@ class DiscoveryPage extends Component
     #[Url]
     public string $mode = 'all';
 
+    /**
+     * Number of results shown on the first page of a discovery search.
+     * Also the "is this the first page?" threshold for analytics dedup —
+     * keep the dedup check coupled to this constant rather than a literal.
+     */
+    public const INITIAL_DISPLAY_COUNT = 12;
+
     // Load more
-    public int $displayCount = 12;
+    public int $displayCount = self::INITIAL_DISPLAY_COUNT;
 
     // Page-specific filters
     /** @var array<int, int|string> */
@@ -190,6 +198,31 @@ class DiscoveryPage extends Component
                 fn (array $r) => $this->usingFallbackRadius = $r['usingFallback'],
             )['results'],
         };
+
+        // Discovery intent analytics. Fired only on the first page of a filtered
+        // search (displayCount === 12 dedupes loadMore expansions) with an active
+        // filter set, for authenticated users. Zero-result searches are the
+        // highest-value signal: pure unmet demand. Consent-gated via PostHogAnalytics.
+        if ($user && $this->displayCount === self::INITIAL_DISPLAY_COUNT && $this->hasActiveFilters()) {
+            $resultCount = is_countable($results) ? count($results) : 0;
+
+            app(PostHogAnalytics::class)->capture(
+                $user,
+                'discovery.search',
+                [
+                    'mode' => $this->mode,
+                    'result_count' => $resultCount,
+                    'zero_results' => $resultCount === 0,
+                    'has_radius' => $this->radius > 0,
+                    'has_game_system' => filled($this->game_system_id),
+                    'has_search_text' => filled($this->search),
+                    'vibe_filter_count' => count($this->vibe_flags),
+                    'category_filter_count' => count($this->category_ids),
+                    'has_experience_level' => filled($this->experience_level),
+                    'has_date' => filled($this->date),
+                ],
+            );
+        }
 
         return view('livewire.discovery.discovery-page', [
             'results' => $results,

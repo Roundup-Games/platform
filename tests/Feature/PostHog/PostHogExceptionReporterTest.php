@@ -58,7 +58,10 @@ describe('5xx exception pipeline', function () {
             ->and($payload['properties'])->toHaveKey('$exception_list')
             ->and($payload['properties']['$exception_source'])->toBe('php')
             ->and($payload['properties'])->toHaveKey('$exception_fingerprint')
-            ->and($payload['properties'])->toHaveKey('request_url')
+            // Request context is path-only — never the full URL/query (privacy).
+            ->and($payload['properties'])->toHaveKey('request_path')
+            ->and($payload['properties'])->toHaveKey('request_method')
+            ->and($payload['properties'])->not->toHaveKey('request_url')
             ->and($payload['properties'])->toHaveKey('exception_file')
             ->and($payload['properties'])->toHaveKey('exception_line');
     });

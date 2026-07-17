@@ -7,6 +7,7 @@ use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\GeocodingService;
+use App\Services\PostHogAnalytics;
 use App\Services\ProfileVisibilityResolver;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
@@ -93,6 +94,15 @@ class CompleteProfile extends Component
             $this->redirect('/'.app()->getLocale().'/dashboard');
 
             return;
+        }
+
+        // Onboarding funnel: mark that the user entered the flow. Guard with a
+        // session flag so a page reload or re-entry within the same session
+        // does not inflate the funnel-entry metric (mirrors the
+        // posthog_server_identified session-flag pattern).
+        if (! session('onboarding_started_captured')) {
+            session(['onboarding_started_captured' => true]);
+            app(PostHogAnalytics::class)->capture($user, 'onboarding.started');
         }
 
         // Pre-fill from any existing user data (e.g. from OAuth)
@@ -278,7 +288,17 @@ class CompleteProfile extends Component
     public function nextStep(): void
     {
         $this->validateStep($this->step);
+        $completedStep = $this->step;
         $this->step++;
+
+        // Adoption-phase funnel: capture which step the user completed so
+        // per-step drop-off is measurable. The step number identifies the
+        // friction point (1=location, 2=identity, 3=contact, 4=preferences).
+        app(PostHogAnalytics::class)->capture(
+            authenticatedUser(),
+            'onboarding.step_completed',
+            ['step' => $completedStep],
+        );
     }
 
     public function previousStep(): void
@@ -356,6 +376,19 @@ class CompleteProfile extends Component
         if ($freshUser && $freshUser->linkedLocation?->latitude && $freshUser->linkedLocation->longitude) {
             UpdateUserDiscoveryCache::dispatch((string) $freshUser->id, 'location_change');
         }
+
+        // Onboarding funnel: mark completion with the profile attributes that
+        // drive activation analysis. Consent-gated via PostHogAnalytics.
+        app(PostHogAnalytics::class)->capture(
+            $user,
+            'onboarding.completed',
+            [
+                'game_systems_selected_count' => count($this->favoriteGameSystemIds),
+                'location_source' => $this->locationSource,
+                'provided_phone' => filled($this->phone),
+                'provided_gender' => filled($this->gender),
+            ],
+        );
 
         // Use explicit locale-prefixed redirect instead of redirectRoute('dashboard').
         // Livewire update requests hit /livewire/update (outside the {locale} route group),

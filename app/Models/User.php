@@ -152,6 +152,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             'anonymized_at' => 'datetime',
             'gender_consent' => 'boolean',
             'analytics_consent' => 'boolean',
+            'last_login_at' => 'datetime',
         ];
     }
 

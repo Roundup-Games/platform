@@ -44,7 +44,7 @@ return [
 
     'heading_data_technical' => 'Technical & Usage Data',
     'content_data_technical_purpose' => 'To maintain security, diagnose issues, and improve the platform.',
-    'content_data_technical_items' => 'IP address, browser type, device type, pages visited, session duration, and error logs.',
+    'content_data_technical_items' => 'IP address, browser type, device type, pages visited, session duration, and error logs. When you grant analytics consent, our analytics provider may also capture interaction events (such as clicks and taps) and form field values you enter, with the exception of sensitive fields (passwords, email, payment data) which are always masked.',
 
     'heading_data_payment' => 'Payment Data',
     'content_data_payment_purpose' => 'To process subscription payments for organizer tools.',
@@ -55,22 +55,23 @@ return [
     'content_legal_intro' => 'As an organization based in Germany, we process your data under the following legal bases:',
     'content_legal_contract' => 'Contract performance: Providing the services you signed up for (account, session management, communication).',
     'content_legal_consent' => 'Consent: Analytics tracking (PostHog) and optional cookie-based features. You can withdraw consent at any time.',
-    'content_legal_legitimate' => 'Legitimate interest: Security, fraud prevention, and platform improvement — always balanced against your privacy rights.',
+    'content_legal_legitimate' => 'Legitimate interest: Security, error monitoring to keep the service stable, fraud prevention, and platform improvement — always balanced against your privacy rights. Unhandled errors may be recorded for stability purposes without analytics consent; these records contain only the request path (not the full URL) and no form data.',
     'content_legal_obligation' => 'Legal obligation: Data retention required by German tax and commercial law (e.g., membership and financial records).',
 
     // ── Cookies & Tracking ─────────────────────────────
     'heading_cookies' => 'Cookies & Tracking',
-    'content_cookies_intro' => 'We use a minimal set of cookies:',
-    'content_cookies_necessary' => 'Necessary cookies: Session authentication, CSRF protection, language preference. These cannot be disabled.',
-    'content_cookies_analytics' => 'Analytics cookies (PostHog): Help us understand how the platform is used so we can improve it. These are optional and only activated with your consent.',
-    'content_cookies_control' => 'You can manage your cookie preferences at any time using the Cookie Settings link in the footer.',
+    'content_cookies_intro' => 'We group cookies and similar technologies into three categories. You control the optional ones at any time via Cookie Settings:',
+    'content_cookies_necessary' => 'Necessary: Session authentication, CSRF protection, and your language preference. These cannot be disabled — the site will not work without them.',
+    'content_cookies_analytics' => 'Analytics (PostHog, opt-in): Help us understand how the platform is used so we can improve it. When enabled, this captures page views, clicks and other interactions, and form field values (except sensitive fields, which are always masked). Analytics data is pseudonymized — events are tied to an opaque internal identifier, and your name and email are never shared with the analytics provider.',
+    'content_cookies_marketing' => 'Marketing (opt-in): Enables personalized outreach such as email campaigns and referral/share tracking, and measures campaign effectiveness. This is the only category under which your contact details may be shared with a provider for outreach. It is off by default.',
+    'content_cookies_control' => 'You can manage your cookie preferences at any time using the Cookie Settings link in the footer. Withdrawing consent does not affect the lawfulness of processing carried out before the withdrawal.',
 
     // ── Third Parties ──────────────────────────────────
     'heading_third_parties' => 'Third-Party Services',
     'content_third_intro' => 'We share data only with service providers who help us operate the platform. Each is bound by data processing agreements:',
 
     'heading_third_posthog' => 'PostHog (Analytics)',
-    'content_third_posthog_body' => 'Self-hosted analytics. We use PostHog to understand feature usage and user flows. Data is pseudonymized where possible. PostHog data is processed within the EU.',
+    'content_third_posthog_body' => 'We use PostHog, hosted on PostHog\'s European cloud (eu.i.posthog.com), as our analytics processor under a data processing agreement. PostHog data is processed within the EU and retained for up to 13 months. Analytics is strictly opt-in: events are captured only after you grant analytics consent, and they are pseudonymized — tied to an opaque internal identifier, never to your name or email address. Your contact details are only shared with a provider when you additionally grant marketing consent (for example, for email campaigns).',
 
     'heading_third_paddle' => 'Paddle (Payments)',
     'content_third_paddle_body' => 'Payment processing for subscriptions. Paddle handles all credit card data — we never see or store it. Paddle is PCI-DSS compliant and processes data in accordance with GDPR. See paddle.com/legal for their privacy policy.',
@@ -99,7 +100,7 @@ return [
     'content_retention_intro' => 'We keep your data only as long as necessary:',
     'content_retention_account' => 'Account data: Retained while your account is active. When you delete your account, your personal data (name, email, profile photo, and other PII) is removed and replaced with anonymized identifiers. Your reviews, game participation history, and campaign contributions are preserved to maintain data integrity for other users. Non-personal operational data may be retained longer where required by law.',
     'content_retention_activity' => 'Activity data: Attendance records and reliability scores are retained for the lifetime of the account to maintain scoring accuracy.',
-    'content_retention_analytics' => 'Analytics data: PostHog data is retained for up to 13 months, then automatically deleted.',
+    'content_retention_analytics' => 'Analytics data: PostHog data is retained for up to 13 months, then automatically deleted. Marketing/outreach data (such as email campaign engagement), when you have opted in, is retained for as long as marketing consent is active and for up to 13 months after you withdraw it.',
     'content_retention_legal' => 'Legal requirements: Financial records and association membership data are retained as required by German law (typically 6–10 years).',
 
     // ── Contact ────────────────────────────────────────
