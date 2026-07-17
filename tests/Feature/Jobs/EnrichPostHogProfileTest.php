@@ -23,7 +23,10 @@ beforeEach(function () {
 function createAttendedGame(User $user, GameSystem $system, array $gameAttrs = [], AttendanceStatus $status = AttendanceStatus::Attended): GameParticipant
 {
     $game = Game::factory()->create(array_merge(['owner_id' => $user->id], $gameAttrs));
-    $game->gameSystems()->attach($system->id);
+    // sync() (not attach()): GameFactory::afterCreating already attached a default
+    // system; attach() would leave two, inflating random systems' attendance counts
+    // under parallel-worker name collisions and making primary_game_system flaky.
+    $game->gameSystems()->sync([$system->id]);
 
     return GameParticipant::factory()->create([
         'game_id' => $game->id,
