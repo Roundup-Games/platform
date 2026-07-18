@@ -30,7 +30,13 @@ class PendingInvitationMatcher
      */
     public function match(User $user): int
     {
-        $email = strtolower($user->email);
+        // Canonicalize so Gmail-family addresses match across dot/"+suffix"
+        // variants and @googlemail.com vs @gmail.com. Pending invites are
+        // stored in canonical form (see ParticipantService::inviteByEmail), so
+        // the registering user's email must be canonicalized the same way or
+        // e.g. "alice.smith@gmail.com" invites would never match a Google
+        // signup that returns "alicesmith@gmail.com".
+        $email = EmailCanonicalizer::canonical($user->email);
 
         // Match game invitations
         $gameMatches = GameParticipant::where('invitee_email', $email)

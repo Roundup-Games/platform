@@ -139,9 +139,14 @@ class ParticipantService
     {
         $meta = $this->entityMeta($entity);
         $normalizedEmail = strtolower(trim($email));
+        // Collapse Gmail-family variants (dots, "+suffix", @googlemail.com) to
+        // one canonical form so dedup, storage, and registration-time matching
+        // all agree — otherwise an invite to "a.b@gmail.com" would neither dedup
+        // against nor be claimable by a Google signup that returns "ab@gmail.com".
+        $normalizedEmail = EmailCanonicalizer::canonical($normalizedEmail);
 
-        // Self-invite check
-        if ($normalizedEmail === strtolower($inviter->email)) {
+        // Self-invite check (compare on canonical form for the same reason).
+        if ($normalizedEmail === EmailCanonicalizer::canonical($inviter->email)) {
             return ParticipantResult::fail('people.error_cannot_invite_self');
         }
 
@@ -152,8 +157,13 @@ class ParticipantService
         }
         RateLimiter::hit($rateLimitKey, 3600);
 
-        // Check if the email belongs to an existing user
-        $existingUser = User::where('email', $normalizedEmail)->first();
+        // Check if the email belongs to an existing user. users.email is not
+        // stored canonically (registrants keep whatever form they signed up
+        // with), so look up both the canonical and raw-lowercased forms to
+        // catch a Gmail account regardless of which variant was registered.
+        $existingUser = User::whereIn('email', array_values(array_filter(
+            array_unique([$normalizedEmail, strtolower(trim($email))])
+        )))->first();
 
         if ($existingUser) {
             return $this->inviteExistingUserByEmail($entity, $inviter, $existingUser, $normalizedEmail, $meta);
