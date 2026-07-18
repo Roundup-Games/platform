@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Stage 1: Build frontend assets
 # Node 24 — current active LTS, pinned in lockstep with CI (.github/workflows/ci.yml),
 # .nvmrc, and package.json engines so every build environment produces
@@ -24,9 +25,14 @@ FROM serversideup/php:8.5-fpm-nginx AS app
 USER root
 RUN install-php-extensions gd intl bcmath exif
 
-# Install postgresql client for DB creation at startup
-RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+# Install postgresql client for DB creation at startup.
+# Cache mounts keep apt's download cache in a BuildKit-managed volume that
+# survives across builds, so re-runs (e.g. after a base-image bump) skip the
+# network fetch. Requires BuildKit (on by default in Docker 23+/buildx);
+# the `# syntax=docker/dockerfile:1` directive at the top pins the frontend.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends postgresql-client
 
 USER www-data
 
@@ -76,14 +82,23 @@ RUN rm /etc/s6-overlay/s6-rc.d/user/contents.d/nginx \
 # These only run on the queue worker — no need to bloat the web container.
 # Covers all 7 optimizers configured in config/media-library.php:
 #   jpegoptim, pngquant, optipng, gifsicle, cwebp (via webp), avifenc (via libavif-bin)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+#
+# Cache mounts persist the apt download cache across builds. This step sits
+# after `FROM app`, so it would otherwise re-download every package on every
+# source change (the worker stage inherits app's cache-busted final layer).
+# The cache mount decouples the expensive network fetch from layer invalidation:
+# the RUN still re-executes (dpkg unpack) but reads packages from the cache.
+# The /var/lib/apt/lists cleanup is dropped — the cache mount holds lists
+# outside the image layer, so they never ship in the final image.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
         jpegoptim \
         pngquant \
         optipng \
         gifsicle \
         webp \
-        libavif-bin \
-    && rm -rf /var/lib/apt/lists/*
+        libavif-bin
 
 # Raise PHP memory limit for image conversion jobs — GD decompresses large
 # images into bitmaps that can exceed the default 256 MB limit.
