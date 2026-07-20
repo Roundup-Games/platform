@@ -1,0 +1,84 @@
+name: Weblate Pint Format
+
+# Auto-formats Weblate-authored PRs with Pint before CI runs, so translation
+# PRs land with clean diffs (no Pint-vs-Weblate formatting noise). Equivalent
+# to the local pre-commit Pint hook, but for bot-authored commits which bypass
+# local hooks.
+#
+# Triggers on any PR targeting main whose head branch is weblate/translations.
+# Uses the automatically-provided GITHUB_TOKEN; no secrets to manage.
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  pint:
+    name: Apply Pint formatting to Weblate changes
+    runs-on: ubuntu-latest
+    # Only run for Weblate-authored PRs. The head_ref check identifies the
+    # branch; the actor check (weblate bot) is a belt-and-braces guard
+    # against someone pushing a non-Weblate branch named weblate/translations.
+    if: |
+      github.event.pull_request.head.ref == 'weblate/translations' &&
+      (github.event.pull_request.user.login == 'weblate' ||
+       github.event.pull_request.user.login == 'hosted-weblate')
+    permissions:
+      # Required to push the formatting commit back to the PR branch.
+      # Scoped to this workflow only; the rest of CI stays contents:read.
+      contents: write
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+
+      - name: Install dependencies
+        # Locked, no-dev is enough for Pint (it's a dev tool already in vendor
+        # via the locked composer.lock).
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run Pint (auto-fix)
+        # No --test flag — Pint applies fixes. Without --dirty it stages them
+        # to the working tree, which we commit below.
+        run: vendor/bin/pint
+
+      - name: Commit formatting changes if any
+        run: |
+          if git diff --quiet; then
+            echo "No Pint changes — Weblate output already conforms."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "style: apply Pint formatting to Weblate translation changes
+
+          Auto-applied by .github/workflows/weblate-pint.yml so Weblate PRs
+          have clean diffs (no Pint-vs-Weblate formatting churn)."
+
+          # Push back to the PR branch. The GITHUB_TOKEN push does NOT
+          # re-trigger workflows (GitHub's default behavior for token-
+          # authored pushes), so there's no recursion risk.
+          git push
+          echo "Pushed Pint formatting commit."
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Weblate Pint Format" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if git log -1 --format='%s' | grep -q "apply Pint formatting"; then
+            echo "✓ Committed Pint formatting changes to ${{ github.event.pull_request.head.ref }}." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "CI will re-run automatically on the formatted commit." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✓ No Pint changes needed — Weblate output already conforms." >> $GITHUB_STEP_SUMMARY
+          fi
