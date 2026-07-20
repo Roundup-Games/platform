@@ -1,7 +1,6 @@
 <?php
-
 return [
-    'action_accept' => 'Annehmen',
+    'action_accept' => 'Zustimmen',
     'action_accept_invitation' => 'Einladung annehmen',
     'action_back' => 'Zurück',
     'action_back_to_entity' => 'Zurück zu :entity',
