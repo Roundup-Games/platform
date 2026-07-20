@@ -316,7 +316,6 @@ describe('write-once enforcement at the model boundary', function () {
             'first_touch_path' => '/en/register',
             'signup_content_type' => 'game',
             'signup_content_slug' => 'my-game',
-            'signup_community_link_id' => 42,
         ]);
 
         $user->update([
@@ -325,7 +324,6 @@ describe('write-once enforcement at the model boundary', function () {
             'first_touch_path' => '/en/games/attacker',
             'signup_content_type' => 'campaign',
             'signup_content_slug' => 'attacker-campaign',
-            'signup_community_link_id' => 9999,
         ]);
 
         $fresh = $user->fresh();
@@ -333,15 +331,13 @@ describe('write-once enforcement at the model boundary', function () {
             ->and($fresh->first_touch_referer_domain)->toBe('google.com')
             ->and($fresh->first_touch_path)->toBe('/en/register')
             ->and($fresh->signup_content_type)->toBe('game')
-            ->and($fresh->signup_content_slug)->toBe('my-game')
-            ->and($fresh->signup_community_link_id)->toBe(42);
+            ->and($fresh->signup_content_slug)->toBe('my-game');
     });
 
     it('allows a null original to be backfilled (legacy users pre-M056)', function () {
         // Legacy user — no attribution columns populated at signup.
         $user = User::factory()->create([
             'signup_oauth_provider' => null,
-            'signup_community_link_id' => null,
         ]);
 
         // A backfill script can still set the value once because the

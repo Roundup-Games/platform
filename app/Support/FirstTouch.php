@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Http\Middleware\CaptureFirstTouch;
 use App\Services\PostHogAnalytics;
+use Illuminate\Http\Request;
 
 /**
  * Pure helpers for reducing signup first-touch attribution signals.
@@ -148,5 +150,44 @@ class FirstTouch
         }
 
         return ['type' => null, 'slug' => null];
+    }
+
+    /**
+     * Consume the first-touch session signals in one call — reads the
+     * CaptureFirstTouch session keys, derives the content context from the
+     * intended path, and forgets the capture keys so they cannot leak into
+     * a later signup.
+     *
+     * Extracted from the duplicated blocks in OAuthController::callback and
+     * RegisteredUserController::store so the two signup paths derive the
+     * same signals and can never drift (CodeRabbit review follow-up).
+     *
+     * @return array{referer: ?string, path: ?string, content_type: ?string, content_slug: ?string}
+     */
+    public static function consume(Request $request): array
+    {
+        $session = $request->session();
+        $referer = is_string($session->get(CaptureFirstTouch::REFERER_KEY))
+            ? $session->get(CaptureFirstTouch::REFERER_KEY)
+            : null;
+        $path = is_string($session->get(CaptureFirstTouch::PATH_KEY))
+            ? $session->get(CaptureFirstTouch::PATH_KEY)
+            : null;
+        $intendedPath = self::extractPath(
+            is_string($session->get('url.intended')) ? $session->get('url.intended') : null
+        );
+        $contentContext = self::detectContentContext($intendedPath ?? $path);
+        $session->forget([
+            CaptureFirstTouch::REFERER_KEY,
+            CaptureFirstTouch::PATH_KEY,
+            CaptureFirstTouch::CAPTURED_KEY,
+        ]);
+
+        return [
+            'referer' => $referer,
+            'path' => $path,
+            'content_type' => $contentContext['type'],
+            'content_slug' => $contentContext['slug'],
+        ];
     }
 }

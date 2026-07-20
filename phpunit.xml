@@ -26,6 +26,9 @@
              fixture state. Tests that exercise the auto-link explicitly opt in
              via config(['share.auto_generate_on_create' => true]). -->
         <env name="SHARE_AUTO_GENERATE_ON_CREATE" value="false"/>
+        <!-- Disable auto-follow-on-join for the same reason. Tests that
+             exercise auto-follow explicitly opt in. -->
+        <env name="COMMUNITY_AUTO_FOLLOW_ON_JOIN" value="false"/>
     </php>
     <testsuites>
         <testsuite name="Unit">

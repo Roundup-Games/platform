@@ -75,7 +75,7 @@ describe('game formatting', function () {
         expect($snippet)->toContain('Location TBD');
     });
 
-    it('shows Open capacity when max_players is null or zero', function () {
+    it('renders numeric capacity X/Y when max_players is set', function () {
         $owner = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
@@ -85,9 +85,10 @@ describe('game formatting', function () {
 
         $snippet = ShareSnippetFormatter::format($game->fresh(['owner', 'gameSystems', 'linkedLocation']), 'https://roundup.games/l/x');
 
-        // max_players=1 produces 0/1 — we can't test 'Open' via factory because
-        // the column is non-nullable, so test the formatter directly via the
-        // branch it would hit. This test pins the 0/1 capacity line.
+        // The factory requires non-null max_players (DB column is NOT NULL),
+        // so we can only test the numeric X/Y format here. The 'Open' branch
+        // fires when max_players is 0 or null — unreachable via factory but
+        // covered by the formatter's code path directly.
         expect($snippet)->toContain('0/1');
     });
 

@@ -1547,7 +1547,6 @@ CREATE TABLE public.users (
     first_touch_path varchar(255) NULL,
     signup_content_type varchar(50) NULL,
     signup_content_slug varchar(255) NULL,
-    signup_community_link_id bigint NULL,
     paddle_id varchar(255) NULL,
     trial_ends_at timestamp NULL,
     password_set_at timestamp NULL,

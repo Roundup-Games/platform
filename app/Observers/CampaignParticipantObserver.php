@@ -3,59 +3,27 @@
 namespace App\Observers;
 
 use App\Models\CampaignParticipant;
-use App\Models\UserRelationship;
-use Illuminate\Support\Facades\Log;
+use App\Support\HostAutoFollow;
 
 /**
  * Observer for CampaignParticipant lifecycle events.
  *
- * Created specifically for S03′ (auto-follow host on join) — campaigns
- * previously had no observer because their lifecycle doesn't touch the
- * dashboard caches the same way GameParticipant does. If future work
- * adds dashboard coupling for campaign joins (e.g. an action-center
- * item), the invalidation hooks belong here, mirroring
- * GameParticipantObserver.
+ * S03′: auto-follows the campaign host on join (config-gated via
+ * community.auto_follow_on_join). Delegates to the shared HostAutoFollow
+ * helper so the guard sequence and follow logic live in one place,
+ * shared with GameParticipantObserver.
  */
 class CampaignParticipantObserver
 {
     public function created(CampaignParticipant $participant): void
     {
-        $this->autoFollowHost($participant);
-    }
-
-    /**
-     * Mirror of GameParticipantObserver::autoFollowHost — see that method's
-     * docblock for the design rationale (light-touch implicit opt-in,
-     * suppresses the NewFollower notification, respects blocks).
-     */
-    private function autoFollowHost(CampaignParticipant $participant): void
-    {
-        $player = $participant->user;
-        $host = $participant->campaign?->owner;
-
-        if (! $player || ! $host) {
-            return;
+        if (config('community.auto_follow_on_join', true)) {
+            HostAutoFollow::followHost(
+                $participant->user,
+                $participant->campaign?->owner,
+                'campaign',
+                $participant->campaign_id,
+            );
         }
-
-        if ($player->is($host)) {
-            return;
-        }
-
-        if ($player->isFollowing($host)) {
-            return;
-        }
-
-        if ($player->isBlockedBy($host) || $player->hasBlocked($host)) {
-            return;
-        }
-
-        UserRelationship::follow($player, $host, notify: false);
-
-        Log::info('community.auto_followed_host_on_join', [
-            'player_id' => $player->getKey(),
-            'host_id' => $host->getKey(),
-            'entity' => 'campaign',
-            'entity_id' => $participant->campaign_id,
-        ]);
     }
 }

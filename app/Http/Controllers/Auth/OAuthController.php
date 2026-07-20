@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Enums\OAuthProvider;
-use App\Http\Middleware\CaptureFirstTouch;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Rules\ValidUserName;
@@ -86,14 +85,10 @@ class OAuthController
             return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unsupported login provider.']);
         }
 
-        // Consume first-touch attribution ONCE at the top of the callback, before
-        // any branching (existing-user login, linking, new registration, error) —
-        // otherwise stale keys could be applied to a later signup. The values
-        // were captured on the original landing page by CaptureFirstTouch.
-        $session = $request->session();
-        $firstTouchReferer = is_string($session->get(CaptureFirstTouch::REFERER_KEY)) ? $session->get(CaptureFirstTouch::REFERER_KEY) : null;
-        $firstTouchPath = is_string($session->get(CaptureFirstTouch::PATH_KEY)) ? $session->get(CaptureFirstTouch::PATH_KEY) : null;
-        $session->forget([CaptureFirstTouch::REFERER_KEY, CaptureFirstTouch::PATH_KEY, CaptureFirstTouch::CAPTURED_KEY]);
+        // Consume first-touch attribution ONCE at the top of the callback,
+        // before any branching. The values were captured on the original
+        // landing page by CaptureFirstTouch.
+        $firstTouch = FirstTouch::consume($request);
 
         try {
             /** @var \Laravel\Socialite\Two\User $socialiteUser */
@@ -224,33 +219,19 @@ class OAuthController
         $rawName = $socialiteUser->getName() ?? Str::before((string) $socialiteUser->getEmail(), '@');
         $sanitizedName = ValidUserName::sanitize($rawName);
 
-        // Persist the five write-once signup-attribution columns at creation
-        // time. These are NEVER updated on subsequent logins — they form a
-        // stable per-signup record consumed by the SignupAttributionReport.
-        // The derivations mirror PostHogAnalytics::identifyFirstTouch exactly
-        // so the persisted signal matches the analytics-tier signal. Provider
-        // is always set; the first-touch/content fields are null when no
-        // landing was captured (e.g. a direct deep-link to the auth flow).
-        $intendedPath = FirstTouch::extractPath(is_string($session->get('url.intended')) ? $session->get('url.intended') : null);
-        $contentContext = FirstTouch::detectContentContext($intendedPath ?? $firstTouchPath);
-
         $user = User::create([
             'name' => $sanitizedName,
             'email' => $socialiteUser->getEmail(),
             'password' => null,
-            // Only mark the roundup-side email_verified_at when the IdP
-            // explicitly verified the email claim. When the IdP reports
-            // unverified (or omits the flag in a way we cannot trust),
-            // leave it null so the standard email-verification flow runs.
             'email_verified_at' => $this->isEmailVerified($socialiteUser) ? now() : null,
             'avatar_url' => $socialiteUser->getAvatar(),
             'profile_complete' => false,
             'slug' => User::generateUniqueSlug($sanitizedName),
             'signup_oauth_provider' => $provider,
-            'first_touch_referer_domain' => FirstTouch::reduceDomain($firstTouchReferer),
-            'first_touch_path' => $firstTouchPath,
-            'signup_content_type' => $contentContext['type'],
-            'signup_content_slug' => $contentContext['slug'],
+            'first_touch_referer_domain' => FirstTouch::reduceDomain($firstTouch['referer']),
+            'first_touch_path' => $firstTouch['path'],
+            'signup_content_type' => $firstTouch['content_type'],
+            'signup_content_slug' => $firstTouch['content_slug'],
         ]);
 
         $this->createLinkedAccount($user, $provider, $socialiteUser, $providerUserId);
@@ -283,7 +264,7 @@ class OAuthController
         // First-touch SEO attribution: the landing page + referer captured by
         // CaptureFirstTouch on the original public-page request. identifyFirstTouch
         // reduces the referer to a domain and detects content context from the path.
-        $analytics->identifyFirstTouch($user, $firstTouchReferer, $firstTouchPath);
+        $analytics->identifyFirstTouch($user, $firstTouch['referer'], $firstTouch['path']);
 
         return $this->redirectAfterLogin($user);
     }

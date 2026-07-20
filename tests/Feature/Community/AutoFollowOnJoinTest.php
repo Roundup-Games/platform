@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
     Notification::fake();
+    config(['community.auto_follow_on_join' => true]);
 });
 
 // ═══════════════════════════════════════════════════════════════════════

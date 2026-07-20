@@ -416,16 +416,14 @@ it('tracks user journey: game created → player joined → session scheduled', 
     // Step 1: Owner creates game
     $service->log(ActivityType::GameCreated, $owner, $game);
 
-    // Step 2: Player joins (saveQuietly to bypass the GameParticipantObserver
-    // — we're testing explicit service calls, not observer-triggered side
-    // effects like the S03′ auto-follow-on-join hook.)
-    $participant = new GameParticipant;
-    $participant->id = Str::uuid()->toString();
-    $participant->game_id = $game->id;
-    $participant->user_id = $player->id;
-    $participant->role = ParticipantRole::Player->value;
-    $participant->join_source = JoinSource::Application;
-    $participant->saveQuietly();
+    // Step 2: Player joins
+    $participant = GameParticipant::create([
+        'id' => Str::uuid()->toString(),
+        'game_id' => $game->id,
+        'user_id' => $player->id,
+        'role' => ParticipantRole::Player->value,
+        'join_source' => JoinSource::Application,
+    ]);
     $service->log(ActivityType::PlayerJoined, $player, $participant);
 
     // Step 3: Session scheduled

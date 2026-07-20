@@ -4,9 +4,9 @@ namespace App\Observers;
 
 use App\Enums\ParticipantStatus;
 use App\Models\GameParticipant;
-use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardModeService;
+use App\Support\HostAutoFollow;
 use Illuminate\Support\Facades\Log;
 
 class GameParticipantObserver
@@ -50,57 +50,14 @@ class GameParticipantObserver
             'game_id' => $participant->game_id,
         ]);
 
-        $this->autoFollowHost($participant);
-    }
-
-    /**
-     * S03′: when a player joins a game, auto-follow the host so their
-     * upcoming games appear in the player's activity feed and discovery
-     * ('friends are going' tag). A follow is reversible with one tap on
-     * the host's profile, so the implicit opt-in is light-touch.
-     *
-     * Skips when:
-     *   - the participant has no user (invitee placeholder)
-     *   - the host is the participant themselves
-     *   - already following (UserRelationship::follow is idempotent but
-     *     the early isFollowing check avoids the SELECT inside follow)
-     *   - either direction has a Block relationship (respects existing
-     *     adversarial state — never auto-follow against a block)
-     *
-     * Passes notify=false to UserRelationship::follow so a host with many
-     * new players per week is not spammed with NewFollower notifications
-     * for a follow they didn't explicitly receive. Manual follows via the
-     * profile Follow button still notify.
-     */
-    private function autoFollowHost(GameParticipant $participant): void
-    {
-        $player = $participant->user;
-        $host = $participant->game?->owner;
-
-        if (! $player || ! $host) {
-            return;
+        if (config('community.auto_follow_on_join', true)) {
+            HostAutoFollow::followHost(
+                $participant->user,
+                $participant->game?->owner,
+                'game',
+                $participant->game_id,
+            );
         }
-
-        if ($player->is($host)) {
-            return;
-        }
-
-        if ($player->isFollowing($host)) {
-            return;
-        }
-
-        if ($player->isBlockedBy($host) || $player->hasBlocked($host)) {
-            return;
-        }
-
-        UserRelationship::follow($player, $host, notify: false);
-
-        Log::info('community.auto_followed_host_on_join', [
-            'player_id' => $player->getKey(),
-            'host_id' => $host->getKey(),
-            'entity' => 'game',
-            'entity_id' => $participant->game_id,
-        ]);
     }
 
     public function updated(GameParticipant $participant): void

@@ -4,6 +4,7 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\ShortLink;
 use App\Models\User;
+use App\Services\ShortLinkService;
 
 // ═══════════════════════════════════════════════════════════════════════
 // S07 — auto-generated share ShortLink on entity create
@@ -79,28 +80,29 @@ describe('auto-generated share ShortLink on entity create', function () {
         expect($link->label)->toBe('Auto-generated share link');
     });
 
-    it('does NOT throw or create an orphan link when the entity has no owner', function () {
-        // Game factory without owner_id produces a game whose owner relation
-        // resolves to null. The observer hook must skip silently — no orphan
-        // ShortLink, no exception.
-        $game = Game::factory()->make();
-        $game->owner_id = null;
-        // owner_id is non-nullable at the column level today, so simulate
-        // 'no owner resolved' by deleting the owner AFTER create. The
-        // observer fires on create so this test exercises the in-process
-        // path: we expect a link to have been created at create-time AND
-        // the observer to have completed without error.
+    it('logs a warning but does not throw when ShortLinkService raises an error', function () {
+        // AutoShareLink resolves ShortLinkService via the container, so we
+        // bind a mock that throws when createLink is called. This actually
+        // exercises the catch block in AutoShareLink::generate() and proves
+        // a ShortLinkService failure never blocks entity creation.
+        $this->mock(ShortLinkService::class, function ($mock) {
+            $mock->shouldReceive('createLink')->andThrow(new Exception('Test service failure'));
+        });
+
         $owner = User::factory()->create();
+
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'date_time' => now()->addDay(),
             'max_players' => 4,
         ]);
 
-        // Sanity: exactly one link auto-created.
+        // Game exists → observer caught the exception and did not propagate.
+        expect(Game::whereKey($game->getKey())->exists())->toBeTrue();
+        // And no ShortLink was created (the mock threw before any insert).
         expect(ShortLink::where('linkable_type', Game::class)
             ->where('linkable_id', $game->getKey())
             ->count()
-        )->toBeGreaterThanOrEqual(1);
+        )->toBe(0);
     });
 });

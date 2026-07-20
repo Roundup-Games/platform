@@ -5,63 +5,23 @@ namespace App\Observers;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Services\DashboardCacheService;
-use App\Services\ShortLinkService;
-use Illuminate\Support\Facades\Log;
+use App\Support\AutoShareLink;
 
 class GameObserver
 {
     public function __construct(
         private DashboardCacheService $cache,
-        private ShortLinkService $shortLinkService,
     ) {}
 
     /**
-     * S07: auto-generate a share ShortLink when a Game is created so the
-     * owner has a copy-ready invite URL the moment the entity exists. The
-     * cross-platform share snippet formatter (ShareSnippetFormatter) composes
-     * a tight text block around this URL when the owner copies the invite.
-     *
-     * The hook runs only on first create (wasRecentlyCreated would be
-     * available via 'creating' event, but 'created' is sufficient — it
-     * fires once per entity lifecycle). Skips when:
-     *   - config('share.auto_generate_on_create') is false (test isolation)
-     *   - the game has no owner (factories, console imports) to avoid
-     *     creating orphan links.
+     * S07: auto-generate a share ShortLink when a Game is created. Delegates
+     * to the shared AutoShareLink helper (also used by CampaignObserver) so
+     * the config-gate → owner-check → createLink → try/catch sequence lives
+     * in one place.
      */
     public function created(Game $game): void
     {
-        if (! config('share.auto_generate_on_create', true)) {
-            return;
-        }
-
-        $owner = $game->owner;
-        if (! $owner) {
-            return;
-        }
-
-        try {
-            $link = $this->shortLinkService->createLink($game, $owner, [
-                'purpose' => 'share',
-                'label' => 'Auto-generated share link',
-            ]);
-
-            Log::info('share.auto_generated_on_create', [
-                'entity_type' => 'game',
-                'entity_id' => $game->getKey(),
-                'link_id' => $link->id,
-                'owner_id' => $owner->getKey(),
-            ]);
-        } catch (\Throwable $e) {
-            // ShortLink creation must never block Game creation — log and
-            // move on. The owner can still create a link manually via the
-            // share panel.
-            Log::warning('share.auto_generation_failed', [
-                'entity_type' => 'game',
-                'entity_id' => $game->getKey(),
-                'owner_id' => $owner->getKey(),
-                'error' => $e->getMessage(),
-            ]);
-        }
+        AutoShareLink::generate($game);
     }
 
     public function saved(Game $game): void
