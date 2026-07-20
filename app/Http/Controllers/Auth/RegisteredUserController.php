@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Rules\ValidUserName;
 use App\Services\PendingInvitationMatcher;
 use App\Services\PostHogAnalytics;
+use App\Support\FirstTouch;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,6 +45,20 @@ class RegisteredUserController extends Controller
         $password = is_string($request->password) ? $request->password : '';
         $sanitizedName = ValidUserName::sanitize($name);
 
+        // Read first-touch attribution BEFORE creating the user so all five
+        // write-once signup-attribution columns land in a single INSERT —
+        // they are NEVER updated on subsequent logins. The derivations mirror
+        // PostHogAnalytics::identifyFirstTouch exactly (same FirstTouch helpers)
+        // so the persisted signal matches the analytics-tier signal. Provider is
+        // always 'email' here; the first-touch/content fields are null when no
+        // landing was captured (e.g. a direct deep-link to /register).
+        $session = $request->session();
+        $firstTouchReferer = is_string($session->get(CaptureFirstTouch::REFERER_KEY)) ? $session->get(CaptureFirstTouch::REFERER_KEY) : null;
+        $firstTouchPath = is_string($session->get(CaptureFirstTouch::PATH_KEY)) ? $session->get(CaptureFirstTouch::PATH_KEY) : null;
+        $intendedPath = FirstTouch::extractPath(is_string($session->get('url.intended')) ? $session->get('url.intended') : null);
+        $contentContext = FirstTouch::detectContentContext($intendedPath ?? $firstTouchPath);
+        $session->forget([CaptureFirstTouch::REFERER_KEY, CaptureFirstTouch::PATH_KEY, CaptureFirstTouch::CAPTURED_KEY]);
+
         $user = User::create([
             'name' => $sanitizedName,
             'email' => $request->email,
@@ -53,6 +68,11 @@ class RegisteredUserController extends Controller
             'slug' => User::generateUniqueSlug($sanitizedName),
             'privacy_policy_accepted_at' => now(),
             'terms_accepted_at' => now(),
+            'signup_oauth_provider' => 'email',
+            'first_touch_referer_domain' => FirstTouch::reduceDomain($firstTouchReferer),
+            'first_touch_path' => $firstTouchPath,
+            'signup_content_type' => $contentContext['type'],
+            'signup_content_slug' => $contentContext['slug'],
         ]);
 
         event(new Registered($user));
@@ -77,17 +97,11 @@ class RegisteredUserController extends Controller
             ],
         );
 
-        // First-touch SEO attribution: the landing page + referer were captured on
-        // the original public-content GET by the CaptureFirstTouch middleware
-        // (shared with the OAuth flow). When no prior landing was captured (e.g. a
-        // direct deep-link to /register), pass null rather than this POST
-        // request's own referer/path — the POST referer is the /register form
-        // itself and would pollute organic attribution. PostHog's frontend
-        // $initial_referrer covers the direct-entry case natively.
-        $session = $request->session();
-        $firstTouchReferer = is_string($session->get(CaptureFirstTouch::REFERER_KEY)) ? $session->get(CaptureFirstTouch::REFERER_KEY) : null;
-        $firstTouchPath = is_string($session->get(CaptureFirstTouch::PATH_KEY)) ? $session->get(CaptureFirstTouch::PATH_KEY) : null;
-        $session->forget([CaptureFirstTouch::REFERER_KEY, CaptureFirstTouch::PATH_KEY, CaptureFirstTouch::CAPTURED_KEY]);
+        // First-touch SEO attribution: re-derive the same signals for the
+        // analytics-tier PostHog identify. The persisted columns above already
+        // hold the write-once record; this call fires the PostHog person-property
+        // $set_once (consent-gated, best-effort). Both consumers use the same
+        // FirstTouch helpers so the two signals cannot drift.
         $analytics->identifyFirstTouch($user, $firstTouchReferer, $firstTouchPath);
 
         return redirect()->route('onboarding.index');

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Rules\ValidUserName;
 use App\Services\PendingInvitationMatcher;
 use App\Services\PostHogAnalytics;
+use App\Support\FirstTouch;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -223,6 +224,16 @@ class OAuthController
         $rawName = $socialiteUser->getName() ?? Str::before((string) $socialiteUser->getEmail(), '@');
         $sanitizedName = ValidUserName::sanitize($rawName);
 
+        // Persist the five write-once signup-attribution columns at creation
+        // time. These are NEVER updated on subsequent logins — they form a
+        // stable per-signup record consumed by the SignupAttributionReport.
+        // The derivations mirror PostHogAnalytics::identifyFirstTouch exactly
+        // so the persisted signal matches the analytics-tier signal. Provider
+        // is always set; the first-touch/content fields are null when no
+        // landing was captured (e.g. a direct deep-link to the auth flow).
+        $intendedPath = FirstTouch::extractPath(is_string($session->get('url.intended')) ? $session->get('url.intended') : null);
+        $contentContext = FirstTouch::detectContentContext($intendedPath ?? $firstTouchPath);
+
         $user = User::create([
             'name' => $sanitizedName,
             'email' => $socialiteUser->getEmail(),
@@ -235,6 +246,11 @@ class OAuthController
             'avatar_url' => $socialiteUser->getAvatar(),
             'profile_complete' => false,
             'slug' => User::generateUniqueSlug($sanitizedName),
+            'signup_oauth_provider' => $provider,
+            'first_touch_referer_domain' => FirstTouch::reduceDomain($firstTouchReferer),
+            'first_touch_path' => $firstTouchPath,
+            'signup_content_type' => $contentContext['type'],
+            'signup_content_slug' => $contentContext['slug'],
         ]);
 
         $this->createLinkedAccount($user, $provider, $socialiteUser, $providerUserId);

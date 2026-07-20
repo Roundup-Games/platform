@@ -3497,6 +3497,12 @@ CREATE TABLE public.users (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     last_login_at timestamp(0) without time zone,
+    signup_oauth_provider character varying(50),
+    first_touch_referer_domain character varying(255),
+    first_touch_path character varying(255),
+    signup_content_type character varying(50),
+    signup_content_slug character varying(255),
+    signup_community_link_id bigint,
     paddle_id character varying(255),
     trial_ends_at timestamp(0) without time zone,
     password_set_at timestamp(0) without time zone,
@@ -6324,6 +6330,13 @@ CREATE INDEX user_vibe_preferences_user_id_preference_type_index ON public.user_
 --
 
 CREATE INDEX users_anonymized_at_index ON public.users USING btree (anonymized_at);
+
+
+--
+-- Name: users_signup_community_link_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX users_signup_community_link_id_index ON public.users USING btree (signup_community_link_id);
 
 
 --

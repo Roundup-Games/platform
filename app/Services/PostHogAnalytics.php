@@ -8,6 +8,7 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Support\FirstTouch;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -164,16 +165,18 @@ class PostHogAnalytics
             return;
         }
 
-        $refererDomain = $referer !== null && $referer !== ''
-            ? (parse_url($referer, PHP_URL_HOST) ?: null)
-            : null;
+        // Reduction logic lives in the pure FirstTouch helper so the same
+        // derivation drives both this PostHog identify and the local
+        // write-once signup-attribution columns persisted in S02/T03 —
+        // keeping the analytics and persisted attribution signals identical.
+        $refererDomain = FirstTouch::reduceDomain($referer);
 
         // SEO conversion: detect which public content page drove the signup.
         // Laravel's auth middleware stores the protected URL a guest was
         // redirected from in session('url.intended'). Parse its path for known
         // public-route patterns (game/campaign/venue detail or apply).
         $intendedPath = $this->extractIntendedPath();
-        $contentContext = $this->detectContentContext($intendedPath ?? $entryPath);
+        $contentContext = FirstTouch::detectContentContext($intendedPath ?? $entryPath);
 
         try {
             $this->posthog->identify([
@@ -197,6 +200,10 @@ class PostHogAnalytics
 
     /**
      * Extract the path from session('url.intended'), if set.
+     *
+     * The path parsing is delegated to {@see FirstTouch::extractPath()} so the
+     * PostHog identify and the persisted write-once signup-attribution columns
+     * derive the SEO content context from one implementation.
      */
     private function extractIntendedPath(): ?string
     {
@@ -206,48 +213,10 @@ class PostHogAnalytics
                 return null;
             }
 
-            $path = parse_url($intended, PHP_URL_PATH);
-
-            return is_string($path) && $path !== '' ? $path : null;
+            return FirstTouch::extractPath($intended);
         } catch (\Throwable) {
             return null;
         }
-    }
-
-    /**
-     * Detect the public content type and slug from a URL path.
-     *
-     * Matches known public-route patterns:
-     *   /{locale}/games/{slug} or /{locale}/games/apply/{slug}
-     *   /{locale}/campaigns/{slug} or /{locale}/campaigns/apply/{slug}
-     *   /{locale}/venues/{slug}
-     *
-     * @return array{type: ?string, slug: ?string}
-     */
-    private function detectContentContext(?string $path): array
-    {
-        if ($path === null || $path === '') {
-            return ['type' => null, 'slug' => null];
-        }
-
-        try {
-            // Strip optional locale prefix: /en/... or en/... (path() omits leading /)
-            $stripped = preg_replace('#^/?[a-z]{2}/#', '', $path);
-
-            if (preg_match('#^games/(?:apply/)?([^/]+)#', (string) $stripped, $m)) {
-                return ['type' => 'game', 'slug' => $m[1]];
-            }
-            if (preg_match('#^campaigns/(?:apply/)?([^/]+)#', (string) $stripped, $m)) {
-                return ['type' => 'campaign', 'slug' => $m[1]];
-            }
-            if (preg_match('#^venues/([^/]+)#', (string) $stripped, $m)) {
-                return ['type' => 'venue', 'slug' => $m[1]];
-            }
-        } catch (\Throwable) {
-            // Fall through to null
-        }
-
-        return ['type' => null, 'slug' => null];
     }
 
     /**
