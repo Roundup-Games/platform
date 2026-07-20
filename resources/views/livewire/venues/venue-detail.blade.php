@@ -101,6 +101,49 @@
                 || $completedCampaigns->isNotEmpty();
         @endphp
 
+        {{-- ── Operational Parameters (M056/S05) ──────────────────────────────}}
+        {{-- Curated by Platform Admin on the venue manager's behalf
+             (LocationResource → venue_metadata). Shown only when at least one
+             of the three whitelisted fields is non-empty, and renders ONLY
+             those keys — never the rest of the venue_metadata envelope
+             (proposed_by_user_id, geocoded_display_name, approved_from_ticket
+             are internal). Mirrors the hasAnyActivity hide-when-empty
+             convention so a venue with no curated params shows nothing. --}}
+        @php
+            $operationalParams = [
+                'overlap_guidance' => __('venue.label_overlap_guidance'),
+                'fee_display' => __('venue.label_fee_display'),
+                'house_rules' => __('venue.label_house_rules'),
+            ];
+            $hasOperationalParams = collect($operationalParams)
+                ->keys()
+                ->contains(fn (string $key): bool => is_string($location->venue_metadata[$key] ?? null)
+                    && trim($location->venue_metadata[$key]) !== '');
+        @endphp
+
+        @if($hasOperationalParams)
+            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6" aria-labelledby="operational-parameters-heading">
+                <h2 id="operational-parameters-heading" class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-xl" aria-hidden="true">tune</span>
+                    {{ __('venue.heading_operational_parameters') }}
+                </h2>
+                <dl class="space-y-4">
+                    @foreach($operationalParams as $paramKey => $paramLabel)
+                        @php
+                            $paramValue = $location->venue_metadata[$paramKey] ?? null;
+                            $hasValue = is_string($paramValue) && trim($paramValue) !== '';
+                        @endphp
+                        @if($hasValue)
+                            <div class="space-y-1">
+                                <dt class="text-sm font-semibold text-on-surface">{{ $paramLabel }}</dt>
+                                <dd class="text-sm text-on-surface-variant whitespace-pre-line">{{ $paramValue }}</dd>
+                            </div>
+                        @endif
+                    @endforeach
+                </dl>
+            </section>
+        @endif
+
         @if(! $hasAnyActivity)
             <div class="text-center py-16">
                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">event_busy</span>

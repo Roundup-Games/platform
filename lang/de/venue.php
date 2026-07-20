@@ -15,7 +15,15 @@ return [
     'action_visit_website' => 'Website besuchen',
     'label_managed_by' => 'Verwaltet von',
 
-    // Activity sections
+    // Operative Parameter (M056/S05/T02) — vom Plattform-Admin im Namen des
+    // Veranstalters kuratiert; auf der öffentlichen Veranstaltungsort-Seite
+    // angezeigt, wenn ausgefüllt.
+    'heading_operational_parameters' => 'Operative Parameter',
+    'label_overlap_guidance' => 'Überschneidungs-Hinweis',
+    'label_fee_display' => 'Gebührenhinweis',
+    'label_house_rules' => 'Hausregeln',
+
+    // Aktivitäts-Abschnitte
     'heading_upcoming_sessions' => 'Anstehende Sitzungen',
     'heading_past_sessions' => 'Vergangene Sitzungen',
     'heading_active_campaigns' => 'Aktive Kampagnen',

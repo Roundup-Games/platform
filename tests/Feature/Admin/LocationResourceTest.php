@@ -93,6 +93,147 @@ describe('CRUD operations', function () {
     });
 });
 
+// ── Operational Parameters (M056/S05) ──────────────
+
+describe('Operational Parameters', function () {
+    test('Platform Admin can create a location with operational parameters', function () {
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(CreateLocation::class)
+            ->fillForm([
+                'name' => 'Operational Venue',
+                'overlap_guidance' => 'Back-to-back slots are allowed.',
+                'fee_display' => '€5 cover',
+                'house_rules' => 'No outside food.',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $location = Location::where('name', 'Operational Venue')->first();
+        expect($location)
+            ->venue_metadata->toBe([
+                'overlap_guidance' => 'Back-to-back slots are allowed.',
+                'fee_display' => '€5 cover',
+                'house_rules' => 'No outside food.',
+            ]);
+    });
+
+    test('create leaves the three operational keys as null when none provided', function () {
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(CreateLocation::class)
+            ->fillForm(['name' => 'No Params Venue'])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $location = Location::where('name', 'No Params Venue')->first();
+        expect($location->venue_metadata)->toBe([
+            'overlap_guidance' => null,
+            'fee_display' => null,
+            'house_rules' => null,
+        ]);
+    });
+
+    test('edit form hydrates operational parameters from venue_metadata', function () {
+        $location = Location::factory()->create([
+            'venue_metadata' => [
+                'overlap_guidance' => 'Existing overlap guidance.',
+                'fee_display' => 'Existing fee.',
+                'house_rules' => 'Existing rules.',
+                'approved_from_ticket' => 'TICKET-XYZ',
+            ],
+        ]);
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(EditLocation::class, ['record' => $location->getRouteKey()])
+            ->assertFormSet([
+                'overlap_guidance' => 'Existing overlap guidance.',
+                'fee_display' => 'Existing fee.',
+                'house_rules' => 'Existing rules.',
+            ]);
+    });
+
+    test('saving operational parameters preserves other venue_metadata keys', function () {
+        $location = Location::factory()->create([
+            'venue_metadata' => [
+                'approved_from_ticket' => 'TICKET-ABC',
+                'proposed_by_user_id' => 'uuid-123',
+            ],
+        ]);
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(EditLocation::class, ['record' => $location->getRouteKey()])
+            ->fillForm([
+                'overlap_guidance' => 'New overlap guidance.',
+                'fee_display' => 'New fee.',
+                'house_rules' => 'New rules.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $metadata = $location->fresh()->venue_metadata;
+        expect($metadata)
+            ->toHaveKey('overlap_guidance', 'New overlap guidance.')
+            ->toHaveKey('fee_display', 'New fee.')
+            ->toHaveKey('house_rules', 'New rules.')
+            ->toHaveKey('approved_from_ticket', 'TICKET-ABC')
+            ->toHaveKey('proposed_by_user_id', 'uuid-123');
+    });
+
+    test('saving with unchanged values round-trips operational parameters', function () {
+        $location = Location::factory()->create([
+            'venue_metadata' => [
+                'overlap_guidance' => 'Stable overlap.',
+                'fee_display' => 'Stable fee.',
+                'house_rules' => 'Stable rules.',
+            ],
+        ]);
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(EditLocation::class, ['record' => $location->getRouteKey()])
+            ->fillForm([
+                'overlap_guidance' => 'Stable overlap.',
+                'fee_display' => 'Stable fee.',
+                'house_rules' => 'Stable rules.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        expect($location->fresh()->venue_metadata)
+            ->overlap_guidance->toBe('Stable overlap.')
+            ->fee_display->toBe('Stable fee.')
+            ->house_rules->toBe('Stable rules.');
+    });
+
+    test('clearing operational parameters persists null and preserves other keys', function () {
+        $location = Location::factory()->create([
+            'venue_metadata' => [
+                'overlap_guidance' => 'Was set.',
+                'fee_display' => 'Was set.',
+                'house_rules' => 'Was set.',
+                'approved_from_ticket' => 'TICKET-KEEP',
+            ],
+        ]);
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(EditLocation::class, ['record' => $location->getRouteKey()])
+            ->fillForm([
+                'overlap_guidance' => '',
+                'fee_display' => '',
+                'house_rules' => '',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $metadata = $location->fresh()->venue_metadata;
+        expect($metadata)
+            ->overlap_guidance->toBeNull()
+            ->fee_display->toBeNull()
+            ->house_rules->toBeNull()
+            ->approved_from_ticket->toBe('TICKET-KEEP');
+    });
+});
+
 // ── Verify Action ───────────────────────────────────
 
 describe('Verify action', function () {
