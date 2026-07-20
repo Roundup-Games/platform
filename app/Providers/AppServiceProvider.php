@@ -8,6 +8,7 @@ use App\Listeners\HandleGameSystemTicketResolved;
 use App\Listeners\RecordUserSignIn;
 use App\Listeners\SuppressAutomatedTicketStatusNotifications;
 use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
@@ -20,6 +21,7 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Notifications\Channels\PushChannel;
 use App\Observers\ActivityLogObserver;
+use App\Observers\CampaignParticipantObserver;
 use App\Observers\GameBulletinObserver;
 use App\Observers\GameObserver;
 use App\Observers\GameParticipantObserver;
@@ -361,6 +363,7 @@ class AppServiceProvider extends ServiceProvider
         // Dashboard cache invalidation observers
         Game::observe(GameObserver::class);
         GameParticipant::observe(GameParticipantObserver::class);
+        CampaignParticipant::observe(CampaignParticipantObserver::class);
         GameBulletin::observe(GameBulletinObserver::class);
         UserRelationship::observe(UserRelationshipObserver::class);
 

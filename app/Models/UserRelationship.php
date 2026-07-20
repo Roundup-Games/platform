@@ -69,8 +69,15 @@ class UserRelationship extends Model
     /**
      * Create a follow relationship from $initiator to $target.
      * Silently no-ops if already following.
+     *
+     * @param  bool  $notify  When true (default), dispatches the NewFollower
+     *                        notification to the target on first-time follows.
+     *                        Pass false for implicit/system-initiated follows
+     *                        (e.g. auto-follow-on-game-join) so popular hosts
+     *                        are not spammed with notifications for actions
+     *                        the player did not explicitly take.
      */
-    public static function follow(User $initiator, User $target): self
+    public static function follow(User $initiator, User $target, bool $notify = true): self
     {
         $initiatorId = (string) $initiator->id;
         $targetId = (string) $target->id;
@@ -79,6 +86,7 @@ class UserRelationship extends Model
             'user_id' => $initiatorId,
             'target_id' => $targetId,
             'action' => 'follow',
+            'notify' => $notify,
         ]);
 
         $rel = static::firstOrCreate(
@@ -95,8 +103,9 @@ class UserRelationship extends Model
 
         // Dashboard feed cache invalidation is handled by UserRelationshipObserver
 
-        // Dispatch NewFollower notification to the target user
-        if ($rel->wasRecentlyCreated) {
+        // Dispatch NewFollower notification to the target user, unless the
+        // caller opted out (system-initiated follows that should not ping).
+        if ($notify && $rel->wasRecentlyCreated) {
             try {
                 app(NotificationService::class)->send(
                     $target,
