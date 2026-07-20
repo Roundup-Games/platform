@@ -1,5 +1,4 @@
 <?php
-
 return [
     // ── Actions ────────────────────────────────────────────────────
     'action_report' => 'Melden',
@@ -8,7 +7,7 @@ return [
     'title_report_content' => ':type melden',
     // ── Content ────────────────────────────────────────────────────
     'content_report_explanation' => 'Warum meldest du diesen Inhalt? Meldungen werden an unser Moderationsteam weitergeleitet.',
-    'content_submitting' => 'Wird gesendet...',
+    'content_submitting' => 'Wird gesendet…',
     // ── Entity type labels ─────────────────────────────────────────
     'entity_user' => 'Benutzer',
     'entity_game' => 'Spiel',
