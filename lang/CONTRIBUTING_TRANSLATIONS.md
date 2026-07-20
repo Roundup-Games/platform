@@ -433,7 +433,7 @@ The push path uses the shared **`weblate` GitHub user** (invited as an outside c
 
 > **Note:** the Hosted Weblate GitHub App is installed on the org but does **not** provide push credentials for the existing components — they were imported with raw HTTPS URLs rather than through the App's import flow. The `weblate` SSH collaborator is the working outbound path. If a future Weblate version exposes an App-binding flow for existing components, switching to it is a one-time change to `common`'s `push` field (set to empty) and removing the `weblate` collaborator.
 
-**Inbound (auto-pull)** is handled by the GitHub App's webhook on push-to-`main` — Weblate ingests new source strings within seconds. The repo being public means inbound worked even before the App was wired, which masked the outbound problem.
+**Inbound (auto-pull)** is handled by a webhook registered on the GitHub repo (`https://hosted.weblate.org/hooks/github/`, push events). When a push lands on `main`, GitHub fires the webhook and Weblate auto-pulls within seconds. The Hosted Weblate GitHub App is installed on the org but is not bound on the Weblate side for existing components (no accessible binding flow for components imported with raw URLs), so the App does not auto-wire the inbound webhook — the manual webhook registration covers this gap. One webhook serves all 32 components; Weblate uses the repo URL in the payload to route.
 
 If you add a **new locale** (e.g. `lang/fr/`), create the corresponding component(s) in Weblate via the UI with the same VCS settings. Link them to `common` so the push/repo config is inherited.
 
