@@ -8,6 +8,7 @@ use App\Enums\ExperienceLevel;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\GmProficiency;
+use App\Enums\OAuthProvider;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
@@ -3650,7 +3651,7 @@ class DemoSeedCommand extends Command
             $batch[] = [
                 'id' => (string) Str::orderedUuid(),
                 'user_id' => $uid,
-                'provider' => 'google',
+                'provider' => OAuthProvider::Google->value,
                 'provider_user_id' => (string) random_int(100000000000, 999999999999),
                 'token' => null,
                 'refresh_token' => null,

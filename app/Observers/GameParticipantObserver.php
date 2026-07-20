@@ -6,6 +6,7 @@ use App\Enums\ParticipantStatus;
 use App\Models\GameParticipant;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardModeService;
+use App\Support\HostAutoFollow;
 use Illuminate\Support\Facades\Log;
 
 class GameParticipantObserver
@@ -48,6 +49,15 @@ class GameParticipantObserver
             'user_id' => $participant->user_id,
             'game_id' => $participant->game_id,
         ]);
+
+        if (config('community.auto_follow_on_join', true)) {
+            HostAutoFollow::followHost(
+                $participant->user,
+                $participant->game?->owner,
+                'game',
+                $participant->game_id,
+            );
+        }
     }
 
     public function updated(GameParticipant $participant): void

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\OAuthProviderCast;
 use Database\Factories\LinkedAccountFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -45,6 +46,7 @@ class LinkedAccount extends Model
             'refresh_token' => 'encrypted',
             'token_expires_at' => 'datetime',
             'provider_meta' => 'array',
+            'provider' => OAuthProviderCast::class,
         ];
     }
 

@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Billable;
 use Laravel\Sanctum\HasApiTokens;
@@ -93,6 +94,13 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'location_id',
     'bio',
     'slug',
+    // Signup attribution — write-once at signup, never overwritten on login.
+    // See 2026_07_18_150000_add_signup_attribution_to_users_table.php.
+    'signup_oauth_provider',
+    'first_touch_referer_domain',
+    'first_touch_path',
+    'signup_content_type',
+    'signup_content_slug',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id', 'gender', 'gender_consent', 'analytics_consent'])]
 class User extends Authenticatable implements FilamentUser, HasLocalePreference, HasMedia, Ticketable, TicketSubject
@@ -125,7 +133,71 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
                 $user->slug = static::generateUniqueSlug($user->name);
             }
         });
+
+        // Enforce the write-once contract on the six signup-attribution
+        // columns (M056/S02 + S03): these are set ONCE at User::create in
+        // the two signup paths (OAuthController::callback,
+        // RegisteredUserController::store) and must NEVER be overwritten on
+        // a subsequent update() — they are the system-of-record for the
+        // Signup Attribution Report and the S04 community-link funnel.
+        //
+        // Defensively: on update, restore the original value for any
+        // dirty write-once key whose original is non-null, and log a
+        // structured warning so the leak is observable. A null original
+        // (legacy users pre-M056, or a signup path that legitimately
+        // omits the field) is left writable so backfill scripts can run
+        // via the normal Eloquent path. Escape hatch for one-off repairs:
+        // raw DB queries (DB::table('users')->where(...)->update([...])).
+        static::updating(function (User $user): void {
+            $dirty = $user->getDirty();
+            foreach (self::WRITE_ONCE_ATTRIBUTION_COLUMNS as $column) {
+                if (! array_key_exists($column, $dirty)) {
+                    continue;
+                }
+
+                $original = $user->getOriginal($column);
+                if ($original === null) {
+                    continue;
+                }
+
+                $attempted = $dirty[$column];
+                Log::warning('user.write_once_attribution_violation', [
+                    // Project-canonical pattern for stringifying a model key
+                    // under PHPStan L9 (see CommunityLinkFunnelService::cacheKey).
+                    'user_id' => is_int($k = $user->getKey()) || is_string($k) ? (string) $k : '',
+                    'column' => $column,
+                    // Coerce non-scalar attempted values to a safe log shape
+                    // (these columns are scalars in practice, but getDirty()
+                    // types as mixed under PHPStan). json_encode keeps the
+                    // value observable without the (string) cast tripping
+                    // PHPStan's strict scalar-rules.
+                    'attempted_value' => is_scalar($attempted) || $attempted === null
+                        ? $attempted
+                        : json_encode($attempted),
+                ]);
+
+                // Restore the original persisted value via setAttribute().
+                // None of these six columns carry a cast (they are plain
+                // string / bigint columns), so setAttribute is type-
+                // preserving. setRawAttribute does not exist; setAttribute is
+                // the public Eloquent API for this.
+                $user->setAttribute($column, $original);
+            }
+        });
     }
+
+    /**
+     * Columns that record signup acquisition provenance and must never be
+     * overwritten after the initial User::create. See the docblocks on the
+     // matching migrations for the data contract.
+     */
+    private const WRITE_ONCE_ATTRIBUTION_COLUMNS = [
+        'signup_oauth_provider',
+        'first_touch_referer_domain',
+        'first_touch_path',
+        'signup_content_type',
+        'signup_content_slug',
+    ];
 
     protected function casts(): array
     {

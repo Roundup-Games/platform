@@ -43,6 +43,7 @@
         "predis/predis": "^3.4",
         "ralphjsmit/laravel-seo": "^1.8",
         "resend/resend-laravel": "^1.3",
+        "socialiteproviders/discord": "^4.2",
         "spatie/laravel-cookie-consent": "^3.4",
         "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-permission": "^8.0",

@@ -327,3 +327,131 @@ describe('VenueDetail managed-by link', function () {
         $response->assertDontSee(__('venue.label_managed_by'));
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// OPERATIONAL PARAMETERS (M056/S05/T02)
+// ═══════════════════════════════════════════════════════════
+
+describe('VenueDetail operational parameters', function () {
+    it('renders the section with all three fields when populated', function () {
+        $venue = createVerifiedVenue([
+            'venue_metadata' => [
+                'overlap_guidance' => 'Back-to-back sessions start on the hour; please arrive 5 minutes early.',
+                'fee_display' => '€5 table fee per player; first drink waived.',
+                'house_rules' => 'Outside food is not permitted. Please order from the café.',
+            ],
+        ]);
+
+        $response = get(route('venues.detail', ['slug' => $venue->slug]));
+        $response->assertOk();
+
+        $response->assertSee(__('venue.heading_operational_parameters'));
+        $response->assertSee(__('venue.label_overlap_guidance'));
+        $response->assertSee(__('venue.label_fee_display'));
+        $response->assertSee(__('venue.label_house_rules'));
+        $response->assertSee('Back-to-back sessions start on the hour');
+        $response->assertSee('€5 table fee per player');
+        $response->assertSee('Outside food is not permitted');
+    });
+
+    it('hides the section entirely when no operational params are set', function () {
+        // Baseline verified venue: no venue_metadata at all.
+        $venue = createVerifiedVenue(['venue_metadata' => null]);
+
+        $response = get(route('venues.detail', ['slug' => $venue->slug]));
+        $response->assertOk();
+
+        $response->assertDontSee(__('venue.heading_operational_parameters'));
+        $response->assertDontSee(__('venue.label_overlap_guidance'));
+        $response->assertDontSee(__('venue.label_fee_display'));
+        $response->assertDontSee(__('venue.label_house_rules'));
+    });
+
+    it('hides the section when all three fields are empty strings', function () {
+        // T01 normalizes empty strings to null on save, but guard against the
+        // case where the envelope was written directly. Trim-only values must
+        // not surface as visible rows.
+        $venue = createVerifiedVenue([
+            'venue_metadata' => [
+                'overlap_guidance' => '   ',
+                'fee_display' => '',
+                'house_rules' => null,
+            ],
+        ]);
+
+        $response = get(route('venues.detail', ['slug' => $venue->slug]));
+        $response->assertOk();
+
+        $response->assertDontSee(__('venue.heading_operational_parameters'));
+    });
+
+    it('renders the section when only a subset of fields is populated', function () {
+        // Only fee_display is set; the other two labels must NOT appear even
+        // though the section itself renders.
+        $venue = createVerifiedVenue([
+            'venue_metadata' => [
+                'overlap_guidance' => null,
+                'fee_display' => 'Free entry; donations welcome.',
+                'house_rules' => null,
+            ],
+        ]);
+
+        $response = get(route('venues.detail', ['slug' => $venue->slug]));
+        $response->assertOk();
+
+        $response->assertSee(__('venue.heading_operational_parameters'));
+        $response->assertSee('Free entry; donations welcome.');
+        $response->assertDontSee(__('venue.label_overlap_guidance'));
+        $response->assertDontSee(__('venue.label_house_rules'));
+    });
+
+    it('renders ONLY the three whitelisted keys and never other venue_metadata sub-keys', function () {
+        // Defense against information disclosure: the envelope carries internal
+        // keys (proposed_by_user_id, geocoded_display_name, approved_from_ticket)
+        // that must never reach the public page, even when an operational
+        // param is set and triggers section rendering.
+        $internalUserId = 4242;
+        $venue = createVerifiedVenue([
+            'venue_metadata' => [
+                'overlap_guidance' => 'Doors open 15 minutes before the first session.',
+                'proposed_by_user_id' => $internalUserId,
+                'geocoded_display_name' => 'Super Secret Internal Geocode String',
+                'approved_from_ticket' => 'TICKET-CONFIDENTIAL-98765',
+            ],
+        ]);
+
+        $response = get(route('venues.detail', ['slug' => $venue->slug]));
+        $response->assertOk();
+
+        // The whitelisted field renders.
+        $response->assertSee('Doors open 15 minutes before the first session.');
+        // Internal keys never leak to the public HTML.
+        $response->assertDontSee('Super Secret Internal Geocode String');
+        $response->assertDontSee('TICKET-CONFIDENTIAL-98765');
+        $response->assertDontSee('proposed_by_user_id');
+        $response->assertDontSee('geocoded_display_name');
+        $response->assertDontSee('approved_from_ticket');
+    });
+
+    it('renders the operational parameters section under the German locale', function () {
+        // Locale coverage: DE carries the four new keys (heading + three labels)
+        // and the curated values still surface on /de/venue/{slug}.
+        $venue = createVerifiedVenue([
+            'venue_metadata' => [
+                'overlap_guidance' => 'Sitzungen beginnen zur vollen Stunde.',
+                'fee_display' => '5 € Tischgebühr pro Spieler.',
+                'house_rules' => 'Bitte bestelle im Café.',
+            ],
+        ]);
+
+        $response = get(route('venues.detail', ['locale' => 'de', 'slug' => $venue->slug]));
+        $response->assertOk();
+
+        $response->assertSee(__('venue.heading_operational_parameters', [], 'de'));
+        $response->assertSee(__('venue.label_overlap_guidance', [], 'de'));
+        $response->assertSee(__('venue.label_fee_display', [], 'de'));
+        $response->assertSee(__('venue.label_house_rules', [], 'de'));
+        $response->assertSee('Sitzungen beginnen zur vollen Stunde.');
+        $response->assertSee('5 € Tischgebühr pro Spieler.');
+    });
+});

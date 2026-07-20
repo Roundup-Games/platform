@@ -5,12 +5,24 @@ namespace App\Observers;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Services\DashboardCacheService;
+use App\Support\AutoShareLink;
 
 class GameObserver
 {
     public function __construct(
         private DashboardCacheService $cache,
     ) {}
+
+    /**
+     * S07: auto-generate a share ShortLink when a Game is created. Delegates
+     * to the shared AutoShareLink helper (also used by CampaignObserver) so
+     * the config-gate → owner-check → createLink → try/catch sequence lives
+     * in one place.
+     */
+    public function created(Game $game): void
+    {
+        AutoShareLink::generate($game);
+    }
 
     public function saved(Game $game): void
     {

@@ -217,6 +217,9 @@ return [
     'gm_social_handle_placeholder' => 'Dein Benutzername',
     'gm_social_handle_placeholder_at' => 'Benutzername',
     'gm_social_instance_label' => 'Instanz (z.B. mastodon.social)',
+    'gm_social_use_my_discord' => 'Mein Discord verwenden',
+    'gm_social_link_discord_first' => 'Verknüpfe zuerst dein Discord-Konto, um deine Discord-ID automatisch einzutragen.',
+    'gm_social_discord_autofilled' => 'Automatisch aus deinem verknüpften Discord-Konto ausgefüllt. Bei Bedarf anpassen oder über die Schaltfläche unten neu übernehmen.',
 
     // Social Links
     'content_find_me_on' => 'Finde mich auf',

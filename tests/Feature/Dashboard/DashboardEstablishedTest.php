@@ -196,7 +196,9 @@ test('community pulse absent when user has fewer than 3 follows', function () {
     $user = createEstablishedUser();
     $this->actingAs($user);
 
-    // Follow only 2 users
+    // Follow only 2 users (auto-follow is disabled in the test env via
+    // COMMUNITY_AUTO_FOLLOW_ON_JOIN=false, so createEstablishedUser's
+    // GameParticipant does not add any follow edges).
     $followed = User::factory()->count(2)->create();
     foreach ($followed as $f) {
         UserRelationship::create([

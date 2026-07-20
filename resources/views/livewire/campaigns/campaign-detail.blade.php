@@ -601,6 +601,7 @@
                         @include('livewire.partials.short-link-display', [
                             'shortLinks' => $shortLinks,
                             'canCreateMoreShortLinks' => $canCreateMoreShortLinks,
+                            'entity' => $campaign,
                         ])
                     </div>
                 @endif

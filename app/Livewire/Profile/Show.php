@@ -3,6 +3,7 @@
 namespace App\Livewire\Profile;
 
 use App\Enums\ContentLanguage;
+use App\Enums\OAuthProvider;
 use App\Enums\VibeFlag;
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
@@ -66,11 +67,26 @@ class Show extends Component
 
     public bool $socialLinksSaved = false;
 
-    /** @var array<int|string, mixed> Per-platform social link data */
+    /** @var array<string, array{handle: string|null, instance?: string|null}> Per-platform social link data */
     public array $socialLinks = [];
 
     /** @var array<int|string, mixed> Platform config for rendering */
     public array $platforms = [];
+
+    /**
+     * Discord user ID (snowflake) from the GM's linked Discord account, or null
+     * when no Discord account is linked. Drives the 'Use my Discord' prefill
+     * button in the GM social-links form (M056 Q1 user decision).
+     */
+    public ?string $discordLinkedUserId = null;
+
+    /**
+     * True when the Discord handle was auto-populated from the linked Discord
+     * account on form mount (M056/S03/T11). The GM's existing GmSocialLink
+     * handle takes precedence; auto-fill only fires for first-mount convenience.
+     * Drives the 'Undo auto-fill' affordance in the social-links form.
+     */
+    public bool $discordAutofilled = false;
 
     public function mount(): void
     {
@@ -108,6 +124,31 @@ class Show extends Component
 
         if ($user->isGM()) {
             $this->loadSocialLinks($user);
+
+            // Resolve the GM's linked Discord account (if any) so the
+            // 'Use my Discord' prefill button can populate the Discord handle
+            // field with their numeric Discord user ID (M056 Q1 user decision).
+            $discordAccount = $user->linkedAccounts()
+                ->where('provider', OAuthProvider::Discord)
+                ->first();
+            if ($discordAccount) {
+                $this->discordLinkedUserId = (string) $discordAccount->provider_user_id;
+
+                // M056/S03/T11: auto-fill the Discord handle on mount when the GM
+                // has a linked Discord account and no existing GmSocialLink handle.
+                // Existing handle takes precedence — the auto-fill is strictly a
+                // first-mount convenience. The 'Use my Discord' button below the
+                // field remains as a re-apply / undo affordance after manual edits.
+                // isset() covers the null + undefined cases; the '' check covers
+                // the empty-string case. No separate null test is needed (and
+                // would be dead code — isset already filtered null out).
+                if (! isset($this->socialLinks['discord']['handle'])
+                    || $this->socialLinks['discord']['handle'] === ''
+                ) {
+                    $this->socialLinks['discord']['handle'] = $this->discordLinkedUserId;
+                    $this->discordAutofilled = true;
+                }
+            }
         }
     }
 
@@ -371,12 +412,34 @@ class Show extends Component
         $existingLinks = $user->gmSocialLinks()->get()->keyBy('platform');
 
         foreach (array_keys($this->platforms) as $key) {
+            if (! is_string($key)) {
+                continue; // platform keys are always strings; skip defensively
+            }
             $link = $existingLinks->get($key);
             $this->socialLinks[$key] = [
                 'handle' => $link !== null ? $link->handle : '',
                 'instance' => $link !== null ? ($link->instance ?? '') : '',
             ];
         }
+    }
+
+    /**
+     * Prefill the Discord social-link handle with the GM's linked Discord user ID
+     * (numeric snowflake). M056 Q1 user decision — one-click profile URL population
+     * for GMs who have already linked their Discord account via OAuth.
+     *
+     * No-op when no Discord LinkedAccount exists; the button is only rendered
+     * in that case, but the guard keeps the method safe against direct calls.
+     */
+    public function useMyDiscord(): void
+    {
+        $user = authenticatedUser();
+
+        if (! $user->isGM() || ! $this->discordLinkedUserId) {
+            return;
+        }
+
+        $this->socialLinks['discord']['handle'] = $this->discordLinkedUserId;
     }
 
     /**

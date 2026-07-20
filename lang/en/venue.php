@@ -15,6 +15,13 @@ return [
     'action_visit_website' => 'Visit website',
     'label_managed_by' => 'Managed by',
 
+    // Operational parameters (M056/S05/T02) — admin-curated on the venue
+    // manager's behalf; rendered on the public venue page when populated.
+    'heading_operational_parameters' => 'Operational Parameters',
+    'label_overlap_guidance' => 'Overlap guidance',
+    'label_fee_display' => 'Fee display',
+    'label_house_rules' => 'House rules',
+
     // Activity sections
     'heading_upcoming_sessions' => 'Upcoming Sessions',
     'heading_past_sessions' => 'Past Sessions',

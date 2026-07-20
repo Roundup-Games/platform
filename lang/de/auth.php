@@ -14,6 +14,7 @@ return [
     'content_sign_up_free' => 'Kostenlos registrieren',
     'content_sign_up_to_host' => 'Registrieren zum Hosten',
     'content_sign_up_with_google' => 'Mit Google registrieren',
+    'content_sign_up_with_discord' => 'Mit Discord registrieren',
     'content_this_is_a_secure_area_please_confirm_your_password' => 'Dies ist ein geschützter Bereich. Bitte bestätige dein Passwort.',
     'content_your_password_is_set_click' => 'Dein Passwort ist festgelegt. Klicke oben auf „Passwort ändern", um es zu aktualisieren.',
     'field_amount_to_register' => ':amount+ zur Anmeldung',

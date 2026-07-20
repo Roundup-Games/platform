@@ -14,6 +14,7 @@ return [
     'content_sign_up_free' => 'Sign Up Free',
     'content_sign_up_to_host' => 'Sign Up to Host',
     'content_sign_up_with_google' => 'Sign up with Google',
+    'content_sign_up_with_discord' => 'Sign up with Discord',
     'content_this_is_a_secure_area_please_confirm_your_password' => 'This is a secure area. Please confirm your password.',
     'content_your_password_is_set_click' => 'Your password is set. Click "Change Password" above to update it.',
     'field_amount_to_register' => ':amount+ to register',

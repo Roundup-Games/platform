@@ -113,11 +113,36 @@ class LocationResource extends Resource
                                     ->rows(3)
                                     ->columnSpanFull(),
                                 Textarea::make('venue_metadata')
+                                    ->label('Venue metadata (raw envelope)')
+                                    ->hint('Read-only. Curate operational fields below; this shows the full JSON envelope including internal keys like approved_from_ticket.')
                                     ->rows(3)
                                     ->columnSpanFull()
                                     ->disabled()
                                     ->formatStateUsing(fn ($state): string => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : ($state ?? '')),
                             ]),
+                    ]),
+
+                Section::make('Operational Parameters')
+                    ->description('Curated on the venue manager\'s behalf (M056/S05 Option A). Renders on the public venue page when at least one field is populated.')
+                    ->schema([
+                        Textarea::make('overlap_guidance')
+                            ->label('Overlap guidance')
+                            ->helperText('How overlapping or back-to-back sessions are handled at this venue.')
+                            ->rows(2)
+                            ->columnSpanFull()
+                            ->maxLength(1000),
+                        Textarea::make('fee_display')
+                            ->label('Fee display')
+                            ->helperText('Cover charge, table fee, or pricing summary shown to attendees.')
+                            ->rows(2)
+                            ->columnSpanFull()
+                            ->maxLength(500),
+                        Textarea::make('house_rules')
+                            ->label('House rules')
+                            ->helperText('Venue-specific rules attendees should know before arriving.')
+                            ->rows(3)
+                            ->columnSpanFull()
+                            ->maxLength(2000),
                     ]),
             ]);
     }
@@ -338,5 +363,68 @@ class LocationResource extends Resource
             'create' => Pages\CreateLocation::route('/create'),
             'edit' => Pages\EditLocation::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * The three operational-parameter virtual fields surfaced in the form
+     * (M056/S05). Stored as sub-keys on the venue_metadata JSON envelope;
+     * these are the only sub-keys that may reach the public venue page
+     * (see the whitelist map in venue-detail.blade.php).
+     */
+    public const OPERATIONAL_PARAMETER_KEYS = [
+        'overlap_guidance',
+        'fee_display',
+        'house_rules',
+    ];
+
+    /**
+     * Normalize a single operational-parameter form value.
+     *
+     * Empty strings are normalized to null so the public venue page's
+     * hide-when-empty check stays simple. Non-string values (null) pass
+     * through unchanged.
+     */
+    public static function normalizeOperationalParameter(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            // Non-string values (null at minimum — callers should never
+            // pass arrays/scalars) normalize to null so the public venue
+            // page hide-when-empty check stays simple.
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * Pack the operational-parameter virtual fields into the venue_metadata
+     * envelope, preserving any pre-existing sub-keys (approved_from_ticket,
+     * proposed_by_user_id, geocoded_display_name, etc.) and dropping the
+     * virtual keys so they never reach the Eloquent model as attribute names.
+     *
+     * Shared by CreateLocation (seed from []) and EditLocation (seed from
+     * the persisted venue_metadata). The two pages previously each had
+     * their own copy of this logic — now consolidated so future changes
+     * (new field, normalization rule change) live in one place.
+     *
+     * @param  array<string, mixed>  $data  Form payload.
+     * @param  array<string, mixed>|null  $existing  Persisted venue_metadata to merge into (null for create).
+     * @return array<string, mixed> The payload with operational keys packed into 'venue_metadata'.
+     */
+    public static function packOperationalParameters(array $data, ?array $existing = null): array
+    {
+        $envelope = is_array($existing) ? $existing : [];
+
+        foreach (self::OPERATIONAL_PARAMETER_KEYS as $key) {
+            $value = array_key_exists($key, $data) ? $data[$key] : ($envelope[$key] ?? null);
+            $envelope[$key] = self::normalizeOperationalParameter($value);
+            unset($data[$key]);
+        }
+
+        $data['venue_metadata'] = $envelope;
+
+        return $data;
     }
 }
