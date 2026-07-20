@@ -22,6 +22,24 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI', config('app.url').'/auth/google/callback'),
+        // Minimal no-approval scope set per M056/D-1. Widening requires an
+        // explicit decision — document the change here so the scope set
+        // stays the application's assertion, not a Socialite default.
+        'scope' => ['openid', 'email', 'profile'],
+    ],
+
+    'discord' => [
+        'client_id' => env('DISCORD_CLIENT_ID'),
+        'client_secret' => env('DISCORD_CLIENT_SECRET'),
+        'redirect' => env('DISCORD_REDIRECT_URI', config('app.url').'/auth/discord/callback'),
+        // Minimal no-approval scope set per M056/D-1: identify + email are
+        // the documented scopes that require no Discord approval cycle and
+        // give roundup everything it needs for login + attribution.
+        // Approval-gated scopes (relationships.read, connections, guilds)
+        // are deliberately NOT requested in Y1. Widening requires an
+        // explicit decision and should be reflected here so the scope set
+        // stays the application's assertion, not a Socialite default.
+        'scope' => ['identify', 'email'],
     ],
 
     'resend' => [

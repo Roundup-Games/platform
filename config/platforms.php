@@ -24,6 +24,15 @@ return [
     |
     */
 
+    'discord' => [
+        'name' => 'Discord',
+        'url_template' => 'https://discord.com/users/{handle}',
+        'handle_pattern' => '/^[0-9]{17,20}$/',
+        'at_prefixed' => false,
+        'icon' => 'groups',
+        'sort_order' => 5,
+    ],
+
     'twitter' => [
         'name' => 'X (Twitter)',
         'url_template' => 'https://x.com/{handle}',

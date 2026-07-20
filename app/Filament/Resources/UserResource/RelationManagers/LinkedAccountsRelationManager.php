@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\UserResource\RelationManagers;
 
+use App\Enums\OAuthProvider;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -29,10 +30,26 @@ class LinkedAccountsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('provider')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'google' => 'success',
-                        'github' => 'gray',
-                        default => 'info',
+                    ->color(function ($state): string {
+                        // provider is enum-cast (OAuthProvider|null via
+                        // OAuthProviderCast), but legacy rows (bgg, pre-enum)
+                        // surface as raw strings. Normalise either form.
+                        $enum = $state instanceof OAuthProvider
+                            ? $state
+                            : (is_string($state) ? OAuthProvider::tryFrom($state) : null);
+
+                        return $enum?->filamentColor() ?? 'info';
+                    })
+                    ->formatStateUsing(function ($state): string {
+                        $enum = $state instanceof OAuthProvider
+                            ? $state
+                            : (is_string($state) ? OAuthProvider::tryFrom($state) : null);
+
+                        if ($enum !== null) {
+                            return $enum->label();
+                        }
+
+                        return is_string($state) ? ucfirst($state) : '—';
                     })
                     ->sortable(),
                 TextColumn::make('provider_user_id')

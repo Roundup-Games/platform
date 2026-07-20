@@ -218,6 +218,9 @@ return [
     'gm_social_handle_placeholder' => 'Your username',
     'gm_social_handle_placeholder_at' => 'username',
     'gm_social_instance_label' => 'Instance (e.g. mastodon.social)',
+    'gm_social_use_my_discord' => 'Use my Discord',
+    'gm_social_link_discord_first' => 'Link your Discord account first to auto-fill your Discord user ID.',
+    'gm_social_discord_autofilled' => 'Auto-filled from your linked Discord account. Edit if needed, or use the button below to re-apply.',
 
     // Data Export
     'title_privacy_and_data' => 'Privacy & Data',

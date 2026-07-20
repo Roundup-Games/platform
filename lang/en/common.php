@@ -19,6 +19,7 @@ return [
     'action_connect' => 'Connect',
     'action_continue' => 'Continue',
     'action_continue_with_google' => 'Continue with Google',
+    'action_continue_with_discord' => 'Continue with Discord',
     'action_create' => 'Create',
     'action_decline' => 'Decline',
     'action_dismiss' => 'Dismiss',

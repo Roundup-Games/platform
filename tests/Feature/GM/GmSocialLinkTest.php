@@ -21,6 +21,7 @@ describe('URL generation', function () {
             : $this->service->generateUrl($platform, $handle);
         expect($result)->toBe($expectedUrl);
     })->with([
+        ['discord', '123456789012345678', null, 'https://discord.com/users/123456789012345678'], // gitleaks:allow — synthetic test snowflake, not a real credential
         ['twitter', 'john_doe', null, 'https://x.com/john_doe'],
         ['instagram', 'janedoe', null, 'https://instagram.com/janedoe'],
         ['youtube', 'MyChannel', null, 'https://youtube.com/@MyChannel'],
@@ -369,7 +370,7 @@ describe('getPlatforms', function () {
     it('returns all platforms sorted by sort_order', function () {
         $platforms = $this->service->getPlatforms();
 
-        expect(count($platforms))->toBe(15);
+        expect(count($platforms))->toBe(16);
 
         $orders = array_values(array_map(fn ($p) => $p['sort_order'], $platforms));
         $sortedOrders = $orders;

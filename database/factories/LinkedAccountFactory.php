@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\OAuthProvider;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -19,7 +20,7 @@ class LinkedAccountFactory extends Factory
         return [
             'id' => (string) Str::orderedUuid(),
             'user_id' => User::factory(),
-            'provider' => 'google',
+            'provider' => OAuthProvider::Google->value,
             'provider_user_id' => (string) Str::uuid(),
             'token' => 'fake-oauth-token-'.Str::random(32),
             'refresh_token' => 'fake-refresh-token-'.Str::random(32),

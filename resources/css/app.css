@@ -134,6 +134,18 @@
   @apply inline-flex items-center justify-center w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant/15 rounded-xl text-sm font-semibold text-on-surface hover:bg-surface-container-low focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
 }
 
+@utility btn-discord {
+  /* Discord OAuth button — Discord Blurple (#5865F2) */
+  @apply inline-flex items-center justify-center w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white hover:brightness-110 focus:outline-hidden focus:ring-2 focus:ring-offset-2 transition ease-in-out duration-150;
+  background-color: #5865F2;
+}
+
+@utility btn-discord-prefill {
+  /* Secondary Discord prefill button for GM social-links form */
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white hover:brightness-110 focus:outline-hidden focus:ring-2 focus:ring-offset-2 transition ease-in-out duration-150;
+  background-color: #5865F2;
+}
+
 @utility editorial-shadow {
   /* Ultra-diffused ambient shadow */
   box-shadow: var(--shadow-ambient);

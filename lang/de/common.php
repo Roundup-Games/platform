@@ -19,6 +19,7 @@ return [
     'action_connect' => 'Verbinden',
     'action_continue' => 'Weiter',
     'action_continue_with_google' => 'Weiter mit Google',
+    'action_continue_with_discord' => 'Weiter mit Discord',
     'action_create' => 'Erstellen',
     'action_decline' => 'Ablehnen',
     'action_dismiss' => 'Ausblenden',

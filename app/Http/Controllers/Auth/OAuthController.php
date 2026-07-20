@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\OAuthProvider;
 use App\Http\Middleware\CaptureFirstTouch;
 use App\Models\LinkedAccount;
 use App\Models\User;
@@ -38,7 +39,7 @@ class OAuthController
      */
     public function redirect(Request $request, string $provider)
     {
-        if (! in_array($provider, ['google'])) {
+        if (! OAuthProvider::tryFrom($provider)) {
             return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unsupported login provider.']);
         }
 
@@ -53,7 +54,24 @@ class OAuthController
         // and its referer is the provider's domain — meaningless as attribution.
         // The callback reads the persisted first-touch after the OAuth round-trip.
 
-        return Socialite::driver($provider)->redirect();
+        // Explicitly assert scopes from config so the application owns the
+        // scope set rather than relying on provider defaults (which could
+        // drift if socialiteproviders/* changes its out-of-the-box scope
+        // list). The config block is the documented source of truth per
+        // M056/D-1 — widening must be a conscious decision there.
+        $scopes = config("services.{$provider}.scope", []);
+        $scopes = is_array($scopes) ? array_values(array_filter($scopes, 'is_string')) : [];
+
+        $driver = Socialite::driver($provider);
+        if ($scopes !== []) {
+            // Socialite's contracts\Provider interface does not declare
+            // scopes(); the concrete Two\AbstractProvider does. Both
+            // Google and Discord go through the OAuth2 two-step provider,
+            // which exposes the fluent scopes() method.
+            $driver = $driver->scopes($scopes); // @phpstan-ignore method.notFound
+        }
+
+        return $driver->redirect();
     }
 
     /**
@@ -63,7 +81,7 @@ class OAuthController
      */
     public function callback(Request $request, string $provider)
     {
-        if (! in_array($provider, ['google'])) {
+        if (! OAuthProvider::tryFrom($provider)) {
             return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unsupported login provider.']);
         }
 
@@ -159,10 +177,31 @@ class OAuthController
             return $this->redirectAfterLogin($user);
         }
 
-        // No linked account — try matching by email
+        // No linked account — try matching by email.
+        //
+        // SECURITY: only honour the email-match login path when the IdP
+        // has explicitly verified the email claim. Without this gate, an
+        // attacker controlling an IdP account whose email matches a
+        // roundup user's would be logged in as that user with no password
+        // challenge (account-takeover via email reuse — relevant now that
+        // Discord widens the IdP surface). Google surfaces the flag as
+        // `email_verified` and Discord as `verified` on their raw userinfo
+        // payload; isEmailVerified() honours either key. An absent claim
+        // defaults to verified to preserve backward compatibility with
+        // legacy mocks and any provider that does not surface the flag.
         $user = User::where('email', $socialiteUser->getEmail())->first();
 
         if ($user) {
+            if (! $this->isEmailVerified($socialiteUser)) {
+                Log::warning('OAuth email-match login rejected — IdP reports email unverified', [
+                    'provider' => $provider,
+                    'user_id' => $user->id,
+                    'provider_user_id' => $providerUserId,
+                ]);
+
+                return redirect($this->localeUrl('login'))->withErrors(['oauth' => ucfirst($provider).' reports this email as unverified. Please verify it with '.ucfirst($provider).' or sign in another way.']);
+            }
+
             // Existing user by email — create linked account
             $this->createLinkedAccount($user, $provider, $socialiteUser, $providerUserId);
 
@@ -188,7 +227,11 @@ class OAuthController
             'name' => $sanitizedName,
             'email' => $socialiteUser->getEmail(),
             'password' => null,
-            'email_verified_at' => now(),
+            // Only mark the roundup-side email_verified_at when the IdP
+            // explicitly verified the email claim. When the IdP reports
+            // unverified (or omits the flag in a way we cannot trust),
+            // leave it null so the standard email-verification flow runs.
+            'email_verified_at' => $this->isEmailVerified($socialiteUser) ? now() : null,
             'avatar_url' => $socialiteUser->getAvatar(),
             'profile_complete' => false,
             'slug' => User::generateUniqueSlug($sanitizedName),
@@ -293,6 +336,19 @@ class OAuthController
             'provider_user_id' => $providerUserId,
         ]);
 
+        // S06: prefill the user's avatar from the IdP if they don't have one.
+        // Linking Discord (or Google) is the natural moment to surface the
+        // IdP avatar — the user has just confirmed they own that identity,
+        // so the avatar is genuinely theirs. Only fills when no avatar is
+        // set (never overwrites an explicit upload).
+        if ($socialiteUser->getAvatar() && ! $user->avatar_url) {
+            $user->update(['avatar_url' => $socialiteUser->getAvatar()]);
+            Log::info('OAuth link prefilled avatar', [
+                'provider' => $provider,
+                'user_id' => $user->id,
+            ]);
+        }
+
         return redirect($this->localeUrl('profile/view'))
             ->with('status', ucfirst($provider).' account linked successfully.');
     }
@@ -328,5 +384,47 @@ class OAuthController
         }
 
         return redirect()->intended('/'.$locale.'/dashboard');
+    }
+
+    /**
+     * Did the OAuth IdP explicitly verify the user's email claim?
+     *
+     * IdPs surface this flag under different keys on their raw userinfo
+     * payload (accessible via `$socialiteUser->user`):
+     *   - Google: `email_verified` (per OpenID Connect spec)
+     *   - Discord: `verified` (per Discord USER resource)
+     *
+     * We honour either key. We treat an absent claim as verified so legacy
+     * mocks and any provider that does not surface the flag continue to
+     * work — but when the IdP explicitly reports `false` under either key,
+     * the email-match login path is rejected and the new-user path skips
+     * auto-verifying the roundup-side email.
+     *
+     * This is the load-bearing gate that prevents account-takeover via
+     * email reuse: an attacker controlling an IdP account whose email
+     * matches a roundup user's gets rejected unless the IdP has confirmed
+     * control of that email.
+     */
+    private function isEmailVerified(\Laravel\Socialite\Two\User $socialiteUser): bool
+    {
+        // The Socialite AbstractUser declares `@var array` on $user but
+        // legacy mocks and edge-case providers may leave it null. Read it
+        // as mixed so the runtime is_array() guard is honoured.
+        /** @var mixed $payload */
+        $payload = $socialiteUser->user;
+
+        if (! is_array($payload)) {
+            return true;
+        }
+
+        // Google: email_verified. Discord: verified. Honour whichever the
+        // IdP surfaces. An absent key defaults to true (legacy-compat).
+        foreach (['email_verified', 'verified'] as $key) {
+            if (array_key_exists($key, $payload)) {
+                return (bool) $payload[$key];
+            }
+        }
+
+        return true;
     }
 }

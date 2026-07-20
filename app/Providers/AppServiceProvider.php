@@ -85,6 +85,8 @@ use RalphJSmit\Laravel\SEO\Facades\SEOManager;
 use RalphJSmit\Laravel\SEO\Support\AlternateTag;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 use RalphJSmit\Laravel\SEO\TagManager;
+use SocialiteProviders\Discord\DiscordExtendSocialite;
+use SocialiteProviders\Manager\SocialiteWasCalled;
 use Spatie\Translatable\Facades\Translatable;
 
 class AppServiceProvider extends ServiceProvider
@@ -187,6 +189,12 @@ class AppServiceProvider extends ServiceProvider
             fallbackLocale: 'en',
             fallbackAny: true,
         );
+
+        // Register the Discord OAuth2 provider with Socialite.
+        // socialiteproviders/manager fires SocialiteWasCalled on app->booted();
+        // the listener extends the Socialite factory so `Socialite::driver('discord')`
+        // resolves to our Discord provider (identify+email scopes per D-1).
+        EventFacade::listen(SocialiteWasCalled::class, DiscordExtendSocialite::class);
 
         // Escalated ticket event listeners for game system requests
         EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
