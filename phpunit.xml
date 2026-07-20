@@ -22,6 +22,10 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Disable auto-share-link generation in tests so it does not pollute
+             fixture state. Tests that exercise the auto-link explicitly opt in
+             via config(['share.auto_generate_on_create' => true]). -->
+        <env name="SHARE_AUTO_GENERATE_ON_CREATE" value="false"/>
     </php>
     <testsuites>
         <testsuite name="Unit">

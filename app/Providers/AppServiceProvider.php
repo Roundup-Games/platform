@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Notifications\Channels\PushChannel;
 use App\Observers\ActivityLogObserver;
+use App\Observers\CampaignObserver;
 use App\Observers\CampaignParticipantObserver;
 use App\Observers\GameBulletinObserver;
 use App\Observers\GameObserver;
@@ -362,6 +363,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Dashboard cache invalidation observers
         Game::observe(GameObserver::class);
+        Campaign::observe(CampaignObserver::class);
         GameParticipant::observe(GameParticipantObserver::class);
         CampaignParticipant::observe(CampaignParticipantObserver::class);
         GameBulletin::observe(GameBulletinObserver::class);

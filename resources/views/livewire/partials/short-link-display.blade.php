@@ -86,6 +86,41 @@
         <p class="text-sm text-on-surface-variant mb-3">{{ __('common.description_share_link') }}</p>
     @endif
 
+    {{-- S07: cross-platform invite snippet. Renders when at least one share --}}
+    {{-- ShortLink exists (the auto-generated one always does for new entities).--}}
+    {{-- The snippet is a tight plain-text block that reads correctly on     --}}
+    {{-- Discord, Twitter/X, Mastodon, email, and chat apps — no markdown.   --}}
+    @if($shortLinks->count() && isset($entity) && method_exists($entity, 'owner'))
+        @php
+            $shareLink = $shortLinks->firstWhere('purpose', 'share') ?? $shortLinks->first();
+            $inviteSnippet = \App\Support\ShareSnippetFormatter::format(
+                $entity->load(['owner', 'gameSystems', 'linkedLocation']),
+                url('/link/'.$shareLink->code),
+            );
+        @endphp
+        <div class="mt-5 pt-4 border-t border-outline-variant/40">
+            <h4 class="text-sm font-semibold text-on-surface mb-2 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base" aria-hidden="true">share</span>
+                {{ __('common.title_invite_snippet') }}
+            </h4>
+            <p class="text-xs text-on-surface-variant mb-2 leading-relaxed">{{ __('common.description_invite_snippet') }}</p>
+            <div class="relative">
+                <pre x-data="{ copiedInvite: false, copyingInvite: false, copyInvite(text) { if (this.copyingInvite) return; this.copyingInvite = true; window.navigator.clipboard.writeText(text).then(() => { this.copiedInvite = true; setTimeout(() => { this.copiedInvite = false; this.copyingInvite = false; }, 2000); }).catch(() => { this.copyingInvite = false; }); } }" class="bg-surface-container-low rounded-lg p-3 pr-12 text-xs font-mono text-on-surface-variant whitespace-pre-wrap break-words leading-relaxed">{{ $inviteSnippet }}</pre>
+                <button
+                    type="button"
+                    @click="copyInvite(@js($inviteSnippet))"
+                    class="absolute top-2 right-2 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+                    :class="copiedInvite ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                    :title="copiedInvite ? @js(__('common.status_copied')) : @js(__('common.action_copy_invite'))"
+                    aria-label="{{ __('common.action_copy_invite') }}"
+                >
+                    <span class="material-symbols-outlined text-sm" aria-hidden="true" x-show="!copiedInvite">content_copy</span>
+                    <span class="material-symbols-outlined text-sm" aria-hidden="true" x-show="copiedInvite">check</span>
+                </button>
+            </div>
+        </div>
+    @endif
+
     {{-- Create new link --}}
     @if($canCreateMoreShortLinks)
         <div class="mt-4 space-y-2">

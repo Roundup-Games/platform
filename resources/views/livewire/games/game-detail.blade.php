@@ -217,6 +217,7 @@
                     @include('livewire.partials.short-link-display', [
                         'shortLinks' => $shortLinks,
                         'canCreateMoreShortLinks' => $canCreateMoreShortLinks,
+                        'entity' => $game,
                     ])
                 </div>
             @endif

@@ -196,16 +196,17 @@ test('community pulse absent when user has fewer than 3 follows', function () {
     $user = createEstablishedUser();
     $this->actingAs($user);
 
-    // Follow only 2 users
-    $followed = User::factory()->count(2)->create();
-    foreach ($followed as $f) {
-        UserRelationship::create([
-            'id' => (string) Str::uuid(),
-            'user_id' => $user->id,
-            'related_user_id' => $f->id,
-            'type' => RelationshipType::Follow->value,
-        ]);
-    }
+    // createEstablishedUser() creates a GameParticipant which now auto-follows
+    // the host (S03′). The user therefore starts with 1 follow edge.
+    // To stay below the community-pulse threshold (3), follow only 1 more
+    // user explicitly — total 2, still under the threshold.
+    $extra = User::factory()->create();
+    UserRelationship::create([
+        'id' => (string) Str::uuid(),
+        'user_id' => $user->id,
+        'related_user_id' => $extra->id,
+        'type' => RelationshipType::Follow->value,
+    ]);
 
     $component = Livewire::test(Dashboard::class);
     expect($component->viewData('dashboard')->established->shouldShowCommunityPulse)->toBeFalse();
