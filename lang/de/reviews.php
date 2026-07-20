@@ -16,7 +16,6 @@ return [
     'action_back_to_campaign' => 'Zurück zur Kampagne',
     'action_go_back' => 'Zurück',
     'content_submitting' => 'Wird gesendet…',
-
     // Validation
     'validation_rating_required' => 'Bitte wähle eine Bewertung aus.',
     'validation_rating_min' => 'Die Bewertung muss mindestens 1 sein.',
@@ -24,22 +23,17 @@ return [
     'validation_body_max' => 'Der Bewertungstext darf 2000 Zeichen nicht überschreiten.',
     'validation_tags_max' => 'Du kannst maximal 3 Stärken auswählen.',
     'validation_tags_invalid' => 'Ungültige Stärke ausgewählt.',
-
     // Errors
     'error_not_found' => 'Das Element, das du bewerten möchtest, konnte nicht gefunden werden.',
     'error_not_eligible' => 'Du bist nicht berechtigt, dieses Element zu bewerten.',
-
     // Flash
     'flash_review_submitted' => 'Deine Bewertung wurde gesendet. Vielen Dank!',
-
     // Review section headings
     'title_reviews' => 'Bewertungen',
     'title_gm_reviews' => 'GM-Bewertungen',
     'content_no_reviews_yet' => 'Noch keine Bewertungen.',
-
     // Review count
     'content_review_count' => ':count Bewertung|:count Bewertungen',
-
     // Report
     'action_report' => 'Melden',
     'title_report_review' => 'Bewertung melden',

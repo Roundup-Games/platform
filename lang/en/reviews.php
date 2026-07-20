@@ -16,7 +16,6 @@ return [
     'action_back_to_campaign' => 'Back to Campaign',
     'action_go_back' => 'Go back',
     'content_submitting' => 'Submitting…',
-
     // Validation
     'validation_rating_required' => 'Please select a rating.',
     'validation_rating_min' => 'Rating must be at least 1.',
@@ -24,22 +23,17 @@ return [
     'validation_body_max' => 'Review text cannot exceed 2000 characters.',
     'validation_tags_max' => 'You can select at most 3 strengths.',
     'validation_tags_invalid' => 'Invalid strength selected.',
-
     // Errors
     'error_not_found' => 'The item you are trying to review could not be found.',
     'error_not_eligible' => 'You are not eligible to review this item.',
-
     // Flash
     'flash_review_submitted' => 'Your review has been submitted. Thank you!',
-
     // Review section headings
     'title_reviews' => 'Reviews',
     'title_gm_reviews' => 'GM Reviews',
     'content_no_reviews_yet' => 'No reviews yet.',
-
     // Review count
     'content_review_count' => ':count review|:count reviews',
-
     // Report
     'action_report' => 'Report',
     'title_report_review' => 'Report Review',

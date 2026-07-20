@@ -46,7 +46,6 @@ return [
     'content_tactical' => 'Taktisch',
     'content_type' => 'Art *',
     'content_type_word_to_confirm' => 'Tippe :word zur Bestätigung',
-
     'content_what_s_happening_near_you' => 'Was passiert in deiner Nähe?',
     'field_any_date' => 'Jedes Datum',
     'field_any_distance' => 'Jede Entfernung',
@@ -62,7 +61,6 @@ return [
     'action_find_games_and_campaigns_that_match_your_vibe' => 'Finde Spiele und Kampagnen, die zu deinem Style passen.',
     'content_tone_atmosphere' => 'Stimmung & Atmosphäre',
     'content_social' => 'Sozial',
-
     'content_sandbox' => 'Sandbox / Open World',
     'content_rule_of_cool' => 'Rule of Cool',
     'content_dungeon_crawl' => 'Dungeon-Crawl',
@@ -74,7 +72,6 @@ return [
     'content_organized_play' => 'Organisiertes Spiel',
     'content_west_marches' => 'West Marches',
     'content_format' => 'Format',
-
     // ── Game System Categories (top 15 by count) ───────────────────
     'cat_card-game' => 'Kartenspiel',
     'cat_medieval' => 'Mittelalter',
@@ -91,7 +88,6 @@ return [
     'cat_wargame' => 'Kriegsspiel',
     'cat_dice' => 'Würfel',
     'cat_adventure' => 'Abenteuer',
-
     // ── Game System Mechanics (top 15 by count) ─────────────────────
     'mech_hand-management' => 'Handverwaltung',
     'mech_open-drafting' => 'Offenes Drafting',
@@ -108,7 +104,6 @@ return [
     'mech_simultaneous-action-selection' => 'Gleichzeitige Aktionswahl',
     'mech_cooperative-game' => 'Kooperatives Spiel',
     'mech_team-based-game' => 'Teamspiel',
-
     // TTRPG / Adventures discovery
     'content_genre_categories' => 'Genre-Kategorien',
     'content_play_styles' => 'Spielstile',
@@ -122,21 +117,18 @@ return [
     'play_style_tone' => 'Tonfall',
     'play_style_rules' => 'Regeln',
     'play_style_format' => 'Format',
-
     // PlayStyle enum labels
     'playstyle_narrative_first' => 'Narrativ',
     'playstyle_tactical' => 'Taktisch',
     'playstyle_osr' => 'OSR',
     'playstyle_sandbox' => 'Sandbox',
     'playstyle_horror' => 'Horror',
-
     // PlayStyle enum descriptions
     'playstyle_narrative_first_desc' => 'Story und Charakterentwicklung stehen im Mittelpunkt. Regeln dienen der Erzählung.',
     'playstyle_tactical_desc' => 'Strategische Tiefe, detaillierter Kampf und komplexe Mechaniken. Jede Entscheidung zählt.',
     'playstyle_osr_desc' => 'Old-School-Herausforderung, Spielerfindungsreichtum und Urteile über Regeln. Die Würfel sind grausam, aber fair.',
     'playstyle_sandbox_desc' => 'Offene Weltfreiheit ohne feste Handlung. Geh wohin du willst, tu was du willst, trage die Konsequenzen.',
     'playstyle_horror_desc' => 'Spannung, Grauen und Überleben gegen überwältigende Widrigkeiten. Hoffnung ist eine begrenzte Ressource.',
-
     // ── Discovery Portal ────────────────────────────────────────
     'field_what_are_you_in_the_mood_for' => 'Worauf hast du Lust?',
     'content_choose_your_adventure' => 'Wähle dein Abenteuer.',
@@ -145,7 +137,6 @@ return [
     'field_tabletop_adventures' => 'Tabletop-Abenteuer',
     'content_join_campaigns_oneshots' => 'Kampagnen, One-Shots und alles dazwischen.',
     'content_looking_for_players' => 'suchen Spieler',
-
     // SEO
     'seo_title_discover' => 'Entdecken',
     'seo_description_discover' => 'Finde Brett- und Tabletop-RPG-Sessions in deiner Nähe. Durchsuche Spiele, Kampagnen und Events.',

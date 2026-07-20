@@ -1,40 +1,29 @@
 <?php
 
 return [
-
     'action_join_roundup_games_today' => 'Join :brand today',
     'content_about' => 'About',
-
     'content_about_heading_vision' => 'Bringing People Together, One Table at a Time',
-
     'content_about_intro' => ':brand is a non-profit built on a simple premise: the people who organize your games, handle your data, and set community standards should be accountable to you — not to investors. We work in the open because trust can\'t be claimed. It has to be verifiable. And we focus on local, in-person play because that\'s where the deepest connections happen.',
-
     'content_about_what_drives_us' => 'What Drives Us',
     'content_all_rights_reserved' => 'All rights reserved.',
     'content_built_for_real_connection' => 'Built for real connection',
     'content_community' => 'Community',
-
     'content_contact' => 'Contact',
     'content_contact_us' => 'Contact Us',
     'content_even_if_you_never_use' => 'Even if you never use it, knowing it\'s there gives everyone permission to speak up. Place a card with an "X" on the table and explain how it works.',
     'content_every_table_has_room_for' => 'Every table has room for one more. Find players and hosts who make you feel at home.',
-
     'content_how_it_works' => 'How It Works',
     'content_no_subscriptions_required_no_credit' => 'Getting started is free — no credit card needed. Create an account, set up your session, and let the players come to you. Advanced tools for organizers are available via subscription.',
     'content_organizer_profiles_are_public_you' => 'Organizer profiles are public. You can read about your host, see their session history, and check community feedback before joining.',
-
     'content_see_how_it_works' => 'See How It Works',
     'content_sign_up_for_a_free' => 'Sign up for a free account, then click "Create Event" from your dashboard or the events page.',
-
     'content_we_believe_everyone_deserves_a' => 'We believe everyone deserves a seat at the table. Here\'s how we make that happen — no experience required.',
-
     'content_we_take_trust_seriously_here' => 'We take trust seriously. Here\'s how we keep the community safe and transparent.',
     'content_what_s_included' => 'What\'s Included',
-
     'field_send_us_a_message' => 'Send Us a Message',
     'field_start_hosting_it_s_free' => 'Start Hosting — It\'s Free',
     'field_your_next_adventure_starts_here' => 'Your next adventure starts here',
-
     'seo_description_about' => ':brand is a non-profit, open-source platform dedicated to local, in-person tabletop gaming. Built on transparency, safety, and community.',
     'seo_description_contact' => 'Have questions, feedback, or partnership ideas? Get in touch with the :brand team — we\'re a non-profit built by and for tabletop gamers.',
     'seo_description_for_organizers' => 'Schedule sessions, manage players, and grow your tabletop gaming community. Free event tools and subscriptions for board game and RPG organizers.',
@@ -45,7 +34,6 @@ return [
     'seo_title_for_organizers' => 'Game Organizer Tools — Host Board Game & RPG Sessions',
     'seo_title_home' => 'Find Tabletop Games & RPG Sessions Near You',
     'seo_title_how_it_works' => 'How to Find & Join Local Board Game & RPG Groups',
-
     // ── Our Pledge ─────────────────────────────────────
     'seo_title_our_pledge' => 'Our Pledge — Non-Profit, Open Source Gaming Community',
     'seo_description_our_pledge' => 'Our commitment to transparency, open-source code, and community investment. :brand is a non-profit, mission-locked platform for tabletop gaming.',
@@ -61,7 +49,6 @@ return [
     'content_pledge_open_heading' => 'Open by Default',
     'content_pledge_open_body' => 'Our code is public on GitHub. Our issue tracker is public. Our roadmap is public. We don\'t hide behind closed doors — if you want to know how something works, you can find out. And if you think it should work differently, you can say so.',
     'content_pledge_open_github' => 'View on GitHub',
-
     'content_pledge_investment_heading' => 'Community Investment',
     'content_pledge_investment_body' => 'Where does the money go? Right back into making tabletop gaming better for everyone.',
     'content_pledge_investment_events' => 'Local Events & Meetups',
@@ -84,7 +71,6 @@ return [
     'content_pledge_card_operations_title' => 'Operations & Policies',
     'content_pledge_card_operations_body' => 'Our policies, moderation guidelines, and operational decisions are open for review.',
     'content_pledge_coming_soon' => 'Coming Soon',
-
     // ── Algorithms Transparency Page (M043 S02) ──
     'content_pledge_algo_hero_subtitle' => 'Every algorithm that shapes your experience is documented here — in plain language, with the actual formulas, and direct links to the source code.',
     'content_pledge_algo_intro_1' => 'When an algorithm decides who sees your profile, how your reliability is scored, or which sessions appear in your feed — those decisions affect real-world interactions. A late-cancel penalty isn\'t just a number; it\'s the difference between a full table and a canceled game night.',
@@ -94,7 +80,6 @@ return [
     'content_pledge_algo_formula_heading' => 'How It Works',
     'content_pledge_algo_tier_heading' => 'Tier Classification',
     'content_pledge_algo_design_heading' => 'Design Decisions',
-
     // Section headings
     'heading_pledge_algo_reliability' => 'Player Reliability Score',
     'heading_pledge_algo_attendance' => 'Attendance Resolution',
@@ -105,14 +90,12 @@ return [
     'heading_pledge_algo_disclosure' => 'Location Disclosure & Privacy',
     'heading_pledge_algo_trending' => 'Trending & Popular',
     'heading_pledge_algo_platform' => 'Platform Score',
-
     // Reliability Score
     'content_pledge_algo_reliability_explanation' => 'The Player Reliability Score is an attendance-based metric that reflects your actual track record at game tables — not your popularity, not your social connections, just whether you show up when you say you will.',
     'content_pledge_algo_reliability_design_1' => 'Hosts face steeper penalties for late cancellations and no-shows because they affect every participant signed up for that game, not just themselves.',
     'content_pledge_algo_reliability_design_2' => 'Grief resistance: attendance is settled by a weighted consensus of reports (see Attendance Resolution), so no single reporter can decide a status — a participation threshold and a majority must agree before any penalty applies.',
     'content_pledge_algo_reliability_design_3' => 'Scores are fully recomputed on every attendance change (not delta-based) to guarantee correctness and prevent drift.',
     'content_pledge_algo_source_reliability' => 'View ReliabilityScoreService.php',
-
     // Attendance Resolution (consensus engine)
     'content_pledge_algo_attendance_explanation' => 'When a game ends, the host and participants can each file an attendance report for the same player — and they don\'t always agree. Attendance Resolution reconciles those reports into a single resolved status that feeds the Player Reliability Score. It is a consensus system with a deliberate default-to-attended bias: an absence has to be proven by a majority, never assumed.',
     'content_pledge_algo_attendance_methods_heading' => 'Resolution Methods',
@@ -136,14 +119,12 @@ return [
     'content_pledge_algo_attendance_design_2' => 'The host can excuse, but only the consensus can mark a no-show — host authority is deliberately limited.',
     'content_pledge_algo_attendance_design_3' => 'Reports are weighted, so low-reliability reporters carry less influence. The exact abuse-defense thresholds are intentionally not published.',
     'content_pledge_algo_source_attendance' => 'View AttendanceResolutionService.php',
-
     // GM Ratings & Reviews
     'content_pledge_algo_gm_explanation' => 'GM Ratings aggregate community feedback for game masters into an average score and review count. Only published reviews contribute to the aggregate — reported or hidden reviews are excluded entirely.',
     'content_pledge_algo_gm_formula_note' => 'Only reviews with status "published" are included. Reviews that are reported or hidden are excluded from all calculations.',
     'content_pledge_algo_gm_design_1' => 'Only published reviews count toward the average. Reported or hidden reviews are excluded to prevent manipulation and ensure fairness.',
     'content_pledge_algo_gm_design_2' => 'Aggregates are recomputed when a review is created or deleted, and whenever a review changes status (for example, when a reported review is hidden or restored). This keeps the displayed score in sync with the current published set.',
     'content_pledge_algo_source_gm' => 'View ReviewAggregateService.php',
-
     // People Discovery
     'content_pledge_algo_people_explanation' => 'People Discovery suggests nearby players based on taste compatibility and social overlap. It uses your game system preferences, vibe preferences, team memberships, and social connections to find people you\'d enjoy playing with. Results are precomputed by a background job and served from cache for fast page loads.',
     'content_pledge_algo_people_pipeline_1' => 'Phase 1: Geohash Tile Expansion',
@@ -161,7 +142,6 @@ return [
     'content_pledge_algo_people_design_3' => 'When all signals are hidden (only location visible), the candidate appears with "Nearby" as the sole match reason, so the UI still shows something meaningful.',
     'content_pledge_algo_source_people' => 'View PeopleDiscoveryService.php',
     'content_pledge_algo_source_visibility' => 'View ProfileVisibilityResolver.php',
-
     // Session Recommendations
     'content_pledge_algo_session_explanation' => 'Session Recommendations suggest games and campaigns matched to your preferences. It uses a two-tier approach to surface the best matches first without penalizing users who haven\'t set vibe preferences.',
     'content_pledge_algo_session_query_boosted' => 'Boosted Query (Primary)',
@@ -174,11 +154,9 @@ return [
     'content_pledge_algo_session_design_3' => 'Vibe mutual exclusivity: favoriting one vibe auto-avoids its partner (e.g., "Competitive" auto-avoids "Cooperative").',
     'content_pledge_algo_source_discovery' => 'View DiscoveryQueryService.php',
     'content_pledge_algo_source_preferences' => 'View UserPreferenceResolver.php',
-
     // Gatherings (multi-system sessions)
     'content_pledge_algo_session_gatherings_heading' => 'Gatherings',
     'content_pledge_algo_session_gatherings_body' => 'A Gathering is a lighter, multi-system session like a board-game night. In discovery feeds, gatherings are capped at roughly one per page and ranked just below focused single-system games on the same date, so they never crowd out specific games. In your recommendations, a gathering appears whenever any of its offered systems matches your favorites — treated like any other game.',
-
     // Proximity Engine
     'content_pledge_algo_proximity_explanation' => 'The Proximity Engine powers geographic queries for finding nearby sessions, players, and venue hubs. It uses a two-phase approach: a fast bounding-box filter followed by precise Haversine distance calculation.',
     'content_pledge_algo_proximity_phase_1' => 'Phase 1: Bounding Box Pre-filter',
@@ -190,7 +168,6 @@ return [
     'content_pledge_algo_proximity_design_1' => 'The bounding box is the minimal rectangle enclosing the search circle (its corners extend past the circle). The Haversine formula then filters to the precise radius — this two-phase approach uses the B-tree index for speed.',
     'content_pledge_algo_source_proximity' => 'View ProximityQuery.php',
     'content_pledge_algo_source_geohash' => 'View Geohash.php',
-
     // Location Disclosure & Privacy
     'content_pledge_algo_disclosure_explanation' => 'Every address and distance you see — on a game, campaign, or venue page — is decided by a single service. Location Disclosure graduates how much of a location is revealed based on the nature of the place and your relationship to the host. Privacy is the default, not the exception.',
     'content_pledge_algo_disclosure_rungs_heading' => 'Address Rungs',
@@ -219,7 +196,6 @@ return [
     'content_pledge_algo_disclosure_design_2' => 'Precise distances are reserved for verified public venues. Private locations always get a grid-snapped distance to prevent triangulation.',
     'content_pledge_algo_disclosure_design_3' => 'A public venue page requires a commercial type that is verified or admin-managed. “Other” and untyped locations never qualify.',
     'content_pledge_algo_source_disclosure' => 'View LocationDisclosureService.php',
-
     // Trending
     'content_pledge_algo_trending_explanation' => 'Trending Near You shows location-scoped game sessions based on participant engagement within your geographic area.',
     'content_pledge_algo_trending_criteria' => 'Selection Criteria',
@@ -227,19 +203,16 @@ return [
     'content_pledge_algo_trending_design_2' => 'Geohash-4 scoping (~20km × 20km) keeps results genuinely local rather than surfacing popular games from the other side of the city.',
     'content_pledge_algo_source_dashboard_cache' => 'View DashboardCacheService.php',
     'content_pledge_algo_source_warm_trending' => 'View WarmTrendingNearby.php',
-
     // Platform Score
     'content_pledge_algo_platform_explanation' => 'The Platform Score ranks game systems by community engagement using a weighted formula that accounts for favorites, total games, campaigns, and active (scheduled) sessions.',
     'content_pledge_algo_platform_design_1' => 'Board games weight active sessions highest (20 pts) because a currently-scheduled game is the strongest signal of community engagement.',
     'content_pledge_algo_platform_design_2' => 'TTRPGs weight campaigns highest (15 pts) because ongoing campaign play is the primary activity metric for tabletop roleplaying groups.',
     'content_pledge_algo_source_platform' => 'View PlatformScoreService.php',
-
     // CTA
     'content_pledge_algo_cta_heading' => 'Read the Code Yourself',
     'content_pledge_algo_cta_body' => 'Every algorithm documented here runs from our open-source repository. Clone it, audit it, open an issue — it\'s all yours.',
     'content_pledge_algo_cta_github' => 'Browse the Repository',
     'content_pledge_algo_cta_join' => 'Join the Community',
-
     // ── Trust Badge Row (M043 S03 T01) ────────────────
     'content_trust_badge_in_person_title' => 'In-Person by Design',
     'content_trust_badge_in_person_text' => 'Built for real tables, not screens',
@@ -249,7 +222,6 @@ return [
     'content_trust_badge_opensource_text' => 'Every algorithm inspectable',
     'content_trust_badge_safety_title' => 'Safety Built In',
     'content_trust_badge_safety_text' => 'Tools, transparency, and accountability',
-
     // ── Values: 3 cards (M043 S03 T06) ──────────────
     'content_about_value_community_first_title' => 'Community First',
     'content_about_value_community_first_body' => 'Every table has room for one more. We\'re a non-profit because the communities we serve come first — not shareholders. We reinvest in local events, organizer education, and programs that make tabletop gaming more welcoming, accessible, and open to everyone.',
@@ -257,7 +229,6 @@ return [
     'content_about_value_safe_by_design_body' => 'Showing up to meet new people requires trust. We earn it with built-in safety tools, transparent algorithms you can inspect yourself, public organizer profiles, and reliability scores that reflect real behavior. Nothing hidden, nothing you can\'t understand.',
     'content_about_value_open_by_default_title' => 'Open by Default',
     'content_about_value_open_by_default_body' => 'Our code is public on GitHub. Our scoring and matching algorithms are documented and explainable. Our roadmap is visible. We believe you should be able to inspect everything — not take our word for it.',
-
     // ── Commitments section (M043 S03 T06) ───────────
     'content_about_commitments_heading' => 'Our Commitments',
     'content_about_commitments_subtitle' => 'Transparency isn\'t a buzzword — it\'s how we operate. Dive deeper into each area.',
@@ -273,22 +244,18 @@ return [
     'content_about_commitment_operations_title' => 'Operations & Policies',
     'content_about_commitment_operations_body' => 'Our policies, moderation guidelines, and operational decisions are open for review.',
     'content_about_commitment_operations_status' => 'Coming Soon',
-
     // ── Why Local Matters (M043 S03 T05) ─────────────
     'content_about_why_local_heading' => 'Why Local Matters',
     'content_about_why_local_p1' => 'The best gaming experiences happen in person. When you sit across a table from someone — rolling dice, solving puzzles together, navigating a story as a team — you learn things about them that no video call can reveal.',
     'content_about_why_local_p2' => 'These are the moments that turn strangers into friends and friends into a community. But they only happen when people feel safe enough to show up.',
     'content_about_why_local_p3' => 'That\'s why :brand is built around local, in-person play. Not because we\'re opposed to digital gaming — but because we believe the tabletop is where the deepest connections are forged. Our platform exists to make those connections easier to find, safer to pursue, and open to everyone.',
-
     // ── How It Works: Safety bridge sentence (M043 S04 T02) ──
     'content_safety_bridge_trust' => 'Everything above exists for one reason: to make it safe to meet new people in person. When you can see who\'s hosting, read their history, and know the community holds organizers accountable, showing up to a table with strangers starts to feel a lot less strange.',
     'content_safety_bridge_nonprofit' => 'As a non-profit, our incentives are aligned with yours — we have no reason to compromise on safety for growth metrics.',
     'action_learn_about_our_pledge' => 'Learn about our pledge →',
-
     // ── Safe Spaces card (M043 S03 T03) ────────────────
     'content_safe_spaces_trust' => 'Meeting strangers in person requires trust. Our platform is built to earn it — transparent safety tools, public organizer profiles, and community accountability, so showing up to your first session feels safe.',
     'content_safe_spaces_pledge_link' => 'Read our pledge',
-
     // ── Algorithms detail page: table headers & labels ──
     'content_pledge_algo_table_status' => 'Status',
     'content_pledge_algo_table_player_weight' => 'Player Weight',
@@ -346,7 +313,6 @@ return [
     'content_pledge_algo_signal_total_games' => 'Total Games',
     'content_pledge_algo_signal_campaigns' => 'Campaigns',
     'content_pledge_algo_signal_active_games' => 'Active Games (scheduled)',
-
     // ── Algorithms detail page: formula descriptions & sr-only captions ──
     'content_pledge_algo_reliability_formula_clamped' => 'Clamped to range [0%, 100%]',
     'content_pledge_algo_reliability_caption' => 'Attendance status weights',
@@ -354,10 +320,8 @@ return [
     'content_pledge_algo_gm_formula_count' => 'Review Count = COUNT(*) WHERE status = \'published\'',
     'content_pledge_algo_gm_formula_badges' => 'Proficiency Badges = TOP 3 tags by frequency across published reviews',
     'content_pledge_algo_people_formula_taste' => 'Taste: J(A, B) = |A ∩ B| / |A ∪ B|',
-
     'content_pledge_algo_people_formula_social' => 'Social: (team overlap + mutual follow) / components',
     'content_pledge_algo_people_formula_composite' => 'Composite:',
-
     'content_pledge_algo_people_caption' => 'Scoring component weights',
     'content_pledge_algo_session_formula_allowed' => 'allowed = (favorites + implied_favorites) − avoided',
     'content_pledge_algo_session_formula_boosted' => 'Boosted: allowed AND favorite_vibes',

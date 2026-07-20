@@ -18,7 +18,6 @@ return [
     'content_try_adjusting_filters' => 'Versuche, deine Suche oder Filter anzupassen.',
     'action_load_more' => 'Mehr laden',
     'content_showing_of_total' => ':shown von :total Game Mastern angezeigt',
-
     // SEO
     'seo_title_gm_directory' => 'Game-Master-Verzeichnis',
     'seo_description_gm_directory' => 'Durchsuche und verbinde dich mit erfahrenen Game Mastern für deine Tabletop-RPG-Sessions. Finde GMs nach Spezialisierung, Bewertung und Spielsystem.',

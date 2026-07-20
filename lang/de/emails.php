@@ -29,7 +29,6 @@ return [
     'field_or_sign_up_with_email' => 'oder mit E-Mail registrieren',
     'field_resend_verification_email' => 'Bestätigungsmail erneut senden',
     'field_verify_email' => 'E-Mail bestätigen',
-
     // Entity invitation email (email invites to non-users)
     'action_create_account_to_join' => 'Konto erstellen und beitreten',
     'content_invitation_sent_to_email' => 'Diese Einladung wurde an :email gesendet. Falls du diese nicht erwartet hast, kannst du diese E-Mail einfach ignorieren.',

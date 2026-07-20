@@ -72,12 +72,9 @@ return [
     'action_neutral' => 'Neutral',
     'action_favorite' => 'Favorit',
     'action_avoid' => 'vermeiden',
-
     // Gast-Nudge-Schlüssel
     'guest_nudge_profile' => 'Erstelle ein kostenloses Konto, um dich mit Brettspielern zu verbinden.',
-
     // Dashboard-Karten
-
     // GM-Proficiency-Labels
     'gm_proficiency_creativity' => 'Kreativer Improvisator',
     'gm_proficiency_inclusive' => 'Inklusiver Moderator',
@@ -89,7 +86,6 @@ return [
     'gm_proficiency_visual_aid' => 'Visueller Erzähler',
     'gm_proficiency_voices' => 'Charakter-Stimmen',
     'gm_proficiency_world_builder' => 'Weltenbauer',
-
     // GM-Proficiency-Beschreibungen
     'gm_proficiency_creativity_desc' => 'Blüht beim Unerwarteten auf und fädelt Spieler-Ideen spontan in die Erzählung ein.',
     'gm_proficiency_inclusive_desc' => 'Sorgt dafür, dass jeder Spieler seinen Moment hat und sich willkommen fühlt.',
@@ -101,7 +97,6 @@ return [
     'gm_proficiency_visual_aid_desc' => 'Nutzt Karten, Handouts, Marker und visuelle Requisiten, um Szenen zum Leben zu erwecken.',
     'gm_proficiency_voices_desc' => 'Erweckt NSCs mit eigenen Stimmen, Akzenten und Manierismen zum Leben.',
     'gm_proficiency_world_builder_desc' => 'Erschafft reiche, detaillierte Settings mit tiefer Lore und verbundenen Fraktionen.',
-
     // GM-Badge & Profilbereich
     'gm_badge_label' => 'Game Master',
     'gm_profile_section_title' => 'Game Master Profil',
@@ -109,17 +104,12 @@ return [
     'gm_profile_bio' => 'Über mich',
     'gm_profile_reviews' => ':count Bewertung|:count Bewertungen',
     'gm_profile_no_reviews' => 'Noch keine Bewertungen',
-
     // GM-Navigation
     'nav_gm_directory' => 'GM Verzeichnis',
     'nav_gm_workspace' => 'GM Arbeitsbereich',
-
     // Dashboard-Karten - GM
-
     // Dashboard-Statistikbeschriftungen
-
     'dashboard_stats_unread_notifications' => 'Ungelesen',
-
     // Community Feed
     'dashboard_feed_heading' => 'Was passiert',
     'dashboard_feed_empty_title' => 'Folge Spielern, um Aktivität zu sehen',
@@ -137,16 +127,13 @@ return [
     'dashboard_feed_spots_left' => ':count Platz frei|:count Plätze frei',
     'dashboard_feed_players' => ':current/:max Spieler',
     'dashboard_feed_trending_badge' => 'Beliebt',
-
     // Smart-Prompt-Aktionen (auch in DashboardSmartPromptService verwendet)
     'dashboard_prompt_view_invitations' => 'Einladungen ansehen',
     'dashboard_prompt_view_details' => 'Details ansehen',
     'dashboard_prompt_write_recap' => 'Zusammenfassung schreiben',
-
     'dashboard_prompt_find_game' => 'Spiel finden',
     'dashboard_prompt_view_profile' => 'Profil ansehen',
     'dashboard_prompt_view_schedule' => 'Zeitplan ansehen',
-
     // Smart-Prompt-Nachrichten
     'dashboard_prompt_msg_invited_single' => ':name hat dich zu :game eingeladen',
     'dashboard_prompt_msg_invited_multiple' => 'Du hast :count ausstehende Einladung|Du hast :count ausstehende Einladungen',
@@ -166,16 +153,13 @@ return [
     'dashboard_prompt_msg_time_morning' => 'Morgen',
     'dashboard_prompt_msg_time_afternoon' => 'Tag',
     'dashboard_prompt_msg_time_evening' => 'Abend',
-
     // Spiele in der Nähe
     'dashboard_opportunities_heading' => 'Spiele, die dir gefallen könnten',
     'dashboard_opportunities_empty' => 'Aktuell keine Spiele, die zu deinen Präferenzen passen',
     'dashboard_opportunities_create_cta' => 'Spiel erstellen',
-
     'dashboard_opportunities_spots_available' => ':count Platz frei|:count Plätze frei',
     'dashboard_opportunities_recurring' => 'Wiederkehrend',
     'dashboard_opportunities_km_away' => ':count km entfernt',
-
     // Deine Beiträge
     'dashboard_contributions_heading' => 'Deine Beiträge',
     'dashboard_contributions_hosted' => 'Du hast :count Spiel geleitet|Du hast :count Spiele geleitet',
@@ -188,17 +172,14 @@ return [
     'dashboard_contributions_reviews' => 'Du hast :count Bewertung geschrieben|Du hast :count Bewertungen geschrieben',
     'dashboard_contributions_followers' => 'Du hast :count Follower|Du hast :count Follower',
     'dashboard_contributions_gm_rating' => 'Deine GM-Bewertung: :rating / 5',
-
     // Schnellaktionen
     'dashboard_quick_actions_heading' => 'Schnellaktionen',
-
     // Deine-Woche-Sektion
     'dashboard_hosting_indicator' => 'Gastgeber',
     'dashboard_your_week' => 'Deine Woche',
     'dashboard_your_week_empty' => 'Keine Spiele diese Woche. Zeit, was Neues zu finden!',
     'dashboard_your_week_find_game' => 'Spiel finden',
     'dashboard_your_week_today' => 'Heute',
-
     // Zuverlässigkeitsstufen
     'label_reliability_tier_reliable' => 'Zuverlässig',
     'label_reliability_tier_active' => 'Aktiv',
@@ -207,7 +188,6 @@ return [
     'label_reliability_games_played' => 'Spiele',
     'content_reliability_stats' => 'Zuverlässigkeitsstatistiken',
     'content_who_can_see_your_reliability_stats' => 'Wer deine detaillierte Anwesenheitsrate und Spielanzahl sehen kann. Deine Statistiken sind immer sichtbar, wenn jemand eine Spielsession oder Kampagne ansieht, die du organisierst',
-
     // GM Social Links
     'field_gm_profile' => 'GM-Profil',
     'gm_social_links_title' => 'Social-Media-Links',
@@ -220,10 +200,8 @@ return [
     'gm_social_use_my_discord' => 'Mein Discord verwenden',
     'gm_social_link_discord_first' => 'Verknüpfe zuerst dein Discord-Konto, um deine Discord-ID automatisch einzutragen.',
     'gm_social_discord_autofilled' => 'Automatisch aus deinem verknüpften Discord-Konto ausgefüllt. Bei Bedarf anpassen oder über die Schaltfläche unten neu übernehmen.',
-
     // Social Links
     'content_find_me_on' => 'Finde mich auf',
-
     // Data Export
     'title_privacy_and_data' => 'Privatsphäre & Daten',
     'content_request_your_data_description' => 'Du hast das Recht, eine Kopie aller deiner persönlichen Daten anzufordern, die wir über dich speichern. Wir werden einen Export vorbereiten und dich benachrichtigen, wenn er zum Download bereitsteht.',
@@ -232,21 +210,17 @@ return [
     'flash_data_export_requested' => 'Deine Anfrage wurde eingereicht. Du wirst benachrichtigt, wenn deine Daten bereitstehen.',
     'error_data_export_request_pending' => 'Du hast bereits eine ausstehende Datenexport-Anfrage.',
     'error_data_export_request_failed' => 'Etwas ist schiefgelaufen. Bitte versuche es erneut oder kontaktiere den Support.',
-
     // Account Deletion
     'error_account_deletion_failed' => 'Beim Löschen deines Kontos ist ein Fehler aufgetreten. Bitte versuche es erneut oder kontaktiere den Support.',
-
     // Support Tickets
     'title_support_tickets' => 'Support',
     'title_your_tickets' => 'Deine Tickets',
     'action_new_ticket' => 'Neues Ticket',
     'action_view_all_tickets' => 'Alle Tickets anzeigen',
     'content_no_support_tickets' => 'Du hast noch keine Support-Tickets eingereicht.',
-
     // Dashboard-Modus
     'dashboard_mode_newcomer' => 'Neu',
     'dashboard_mode_established' => 'Etabliert',
-
     // Newcomer-Dashboard
     'dashboard_newcomer_welcome' => 'Willkommen, :name!',
     'dashboard_newcomer_matching_games' => '{1} :count passendes Spiel in deiner Nähe|[2,*] :count passende Spiele in deiner Nähe',
@@ -274,7 +248,6 @@ return [
     'dashboard_newcomer_nearby_people' => 'Wer spielt in der Nähe',
     'dashboard_newcomer_nearby_people_heading' => 'Wer spielt in der Nähe',
     'dashboard_newcomer_shared_systems' => '{1} :count gemeinsames System|[2,*] :count gemeinsame Systeme',
-
     // Action Center
     'dashboard_action_center_heading' => 'Aktionscenter',
     'dashboard_action_center_all_clear' => 'Alles erledigt — nichts braucht deine Aufmerksamkeit',
@@ -286,7 +259,6 @@ return [
     'dashboard_action_center_item_count' => '{1} :count Eintrag braucht deine Aufmerksamkeit|[2,*] :count Einträge brauchen deine Aufmerksamkeit',
     'dashboard_action_center_all_clear_next' => 'Deine nächste Runde ist :name am :date',
     'dashboard_action_center_all_clear_no_upcoming' => 'Nichts geplant — finde dein nächstes Spiel',
-
     // Action Center items
     'dashboard_action_waitlist_title' => 'Bestätige deinen Platz: :game',
     'dashboard_action_waitlist_desc' => 'Dein Wartelistenplatz läuft bald ab',
@@ -326,7 +298,6 @@ return [
     'dashboard_action_recurrence_action' => 'Nächste Sitzung planen',
     'dashboard_action_expires_in_hm' => 'Läuft ab in :h Std. :m Min.',
     'dashboard_action_expires_in_m' => 'Läuft ab in :m Min.',
-
     // Action Center - additional task-plan keys
     'dashboard_action_expires_in' => 'Läuft ab in :time',
     'dashboard_action_waitlist_confirm' => 'Bestätige deinen Platz: :game',
@@ -340,7 +311,6 @@ return [
     'dashboard_action_new_follower' => ':name folgt dir jetzt — ihr teilt :systems',
     'dashboard_action_campaign_session' => 'Neue Sitzung zu :campaign hinzugefügt',
     'dashboard_action_host_bulletin' => 'Host-Update für :game',
-
     // Etabliertes Dashboard - Zeitplan
     'dashboard_schedule_heading' => 'Dein Zeitplan',
     'dashboard_schedule_today' => 'Heute',
@@ -349,7 +319,6 @@ return [
     'dashboard_schedule_nothing_scheduled' => 'Nichts geplant — finde dein nächstes Spiel',
     'dashboard_schedule_host_again' => 'Nochmal hosten',
     'dashboard_schedule_host_again_desc' => 'Dein letztes Spiel ":game" war ein Hit — bereit für eine neue Runde?',
-
     // Etabliertes Dashboard - In der Nähe & Bemerkenswert
     'dashboard_nearby_heading' => 'In der Nähe & Bemerkenswert',
     'dashboard_nearby_be_first' => 'Sei der Erste, der in deiner Nähe hostet',
@@ -361,10 +330,8 @@ return [
     'dashboard_nearby_filling_fast' => 'Füllt sich schnell',
     'dashboard_nearby_starting_soon' => 'Startet bald',
     'dashboard_nearby_friends_going' => 'Freunde gehen hin',
-
     // Etabliertes Dashboard - Community-Puls
     'dashboard_pulse_heading' => 'Community-Puls',
-
     // Etabliertes Dashboard - Deine Geschichte
     'dashboard_story_heading' => 'Deine Geschichte',
     'dashboard_story_new_badge' => 'Neu',
@@ -378,7 +345,6 @@ return [
     'dashboard_story_trusted_voice_desc' => 'Du hast :count Bewertungen geschrieben, die anderen helfen, tolle Spiele zu finden.',
     'dashboard_story_explorer' => 'Entdecker',
     'dashboard_story_explorer_desc' => 'Du hast :count verschiedene Spielsysteme gespielt — immer bereit für Neues.',
-
     // Etabliertes Dashboard - Schnellaktionen
     'dashboard_quick_discover' => 'Spiele entdecken',
     'dashboard_quick_my_games' => 'Meine Spiele',
@@ -387,7 +353,6 @@ return [
     'dashboard_quick_manage_team' => 'Team verwalten',
     'dashboard_quick_my_campaigns' => 'Meine Kampagnen',
     'dashboard_quick_find_campaigns' => 'Kampagnen finden',
-
     // Dashboard - Relative Zeitformatierung
     'dashboard_relative_today' => 'Heute um :time',
     'dashboard_relative_tomorrow' => 'Morgen um :time',

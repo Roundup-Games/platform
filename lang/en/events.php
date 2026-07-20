@@ -31,7 +31,6 @@ return [
     'content_automatic_player_matching' => 'Automatic player matching',
     'content_back_to_event' => '← Back to Event',
     'content_browse_events_discover_upcoming_tournaments' => '**Browse events** — Discover upcoming tournaments and game sessions near you.',
-
     'content_can_i_register_a_team' => 'Can I register a team?',
     'content_cancel_this_event_this_will' => 'Cancel this event? This will notify registered participants.',
     'content_check_back_soon_for_upcoming_events' => 'Check back soon for upcoming events!',
@@ -45,7 +44,6 @@ return [
     'content_event_registration' => 'Event Registration',
     'content_event_type' => 'Event Type *',
     'content_events' => 'Events',
-
     'content_find_your_people_discover_new' => 'Find tabletop games and campaigns happening near you. Meet new people, discover new games, and build real-world connections — one session at a time.',
     'content_from_weekly_board_game_nights' => 'From weekly board game nights to epic multi-year RPG campaigns, organizers on Roundup are building the gaming communities they always wished existed. Your table is next.',
     'content_how_do_i_create_an_event' => 'How do I create an event?',
@@ -60,7 +58,6 @@ return [
     'content_no_events_found' => 'No events found',
     'content_no_registrations_found' => 'No registrations found.',
     'content_optional_add_competitive_divisions_to_your_event' => 'Optional — add competitive divisions to your event.',
-
     'content_participants' => 'Participants',
     'content_public_event' => 'Public Event',
     'content_registration' => 'Registration',
@@ -78,7 +75,6 @@ return [
     'label_registration_type' => 'Registration type',
     'content_registration_window' => 'Registration Window',
     'content_reject_this_registration' => 'Reject this registration?',
-
     'content_select_the_games_you_enjoy' => 'Select the games you enjoy — we\'ll use this to recommend sessions and events.',
     'content_team_only' => 'Team Only',
     'content_team' => 'Team',
@@ -94,19 +90,15 @@ return [
     'field_team_size_min_max_players' => 'Team size: :min–:max players',
     'content_thanks_for_joining_roundup_games' => 'Thanks for joining **:brand** — your hub for organizing and participating in tabletop gaming events, campaigns, and tournaments.',
     'content_thanks_for_supporting_roundup_games' => 'Thanks for supporting :brand!',
-
     'content_this_event_is_now_full' => 'This event is now full.',
-
     'content_welcome_back_to_roundup_games' => 'Welcome back to :brand',
     'content_welcome_to_roundup_games' => 'Welcome to :brand!',
-
     'content_write_your_announcement' => 'Write your announcement...',
     'content_yes_many_events_support_team' => 'Yes! Many events support team registration. Create a team, invite your members, and register together.',
     'content_you_are_already_a_participant' => 'You are already a participant or have a pending invite.',
     'content_already_participant_or_pending_game' => 'You are already a participant or have a pending invite/application for this game.',
     'content_you_are_already_registered_for_this_event' => 'You are already registered for this event.',
     'content_you_re_all_set_for_event' => 'You\'re all set for **:event**!',
-
     'error_cannot_cancel_event_from_status_from' => 'Cannot cancel event from status ":from".',
     'error_cannot_change_event_status_from_from_to_to' => 'Cannot change event status from ":from" to ":to".',
     'error_cannot_close_registration_from_status_from' => 'Cannot close registration from status ":from".',
@@ -138,7 +130,6 @@ return [
     'status_cancelled' => 'Cancelled',
     'status_confirmed' => 'Confirmed',
     'status_registered' => 'Registered',
-
     // New keys for entity domain migration
     'field_content_language' => 'Content Language *',
     'placeholder_one_liner_for_listings' => 'One-liner for listings and cards...',

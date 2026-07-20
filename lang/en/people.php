@@ -7,7 +7,6 @@ return [
     'content_followers' => 'Followers',
     'content_following' => 'Following',
     'content_friends' => 'Friends',
-
     'content_no_followers_yet' => 'No followers yet.',
     'content_no_friends_found' => 'No friends found matching your search.',
     'content_not_following_anyone_yet' => 'You\'re not following anyone yet.',
@@ -15,7 +14,6 @@ return [
     'content_you_have_been_invited' => 'You\'ve been invited to join this event.',
     'content_you_haven_t_blocked_anyone' => 'You haven\'t blocked anyone.',
     'content_blocked_tab' => 'Blocked',
-
     'error_invitation_no_longer_valid' => 'This invitation is no longer valid.',
     'error_no_valid_friends_to_invite' => 'None of the selected users could be invited. They may already be participants or not on your friend list.',
     'error_not_your_invitation' => 'This invitation is not yours to accept.',
@@ -30,7 +28,6 @@ return [
     'flash_friends_invited' => '{1} :count friend invited.|[2,*] :count friends invited.',
     'flash_invitation_accepted' => 'Invitation accepted! You\'re now a participant.',
     'flash_email_invite_sent' => 'Invitation sent!',
-
     // Nearby tab
     'tab_nearby' => 'Nearby',
     'nearby_in_your_area' => 'In your area',
@@ -53,19 +50,16 @@ return [
     'nearby_searching_hint' => 'Results will appear here automatically.',
     'action_load_more' => 'Load more',
     'content_showing_of_total' => 'Showing :shown of :total players',
-
     // Email invitations
     'field_invite_by_email' => 'Invite by email',
     'placeholder_enter_email_address' => 'Enter email address',
     'action_send_invite' => 'Send Invite',
     'content_pending_account_creation' => 'Pending account creation',
-
     // Invite section hints
     'content_invite_section_hint' => 'Add players to your session using one of the methods below.',
     'content_invite_from_friends' => 'Search Your Friends',
     'content_invite_friends_hint' => 'Select people you already follow. They\'ll get an in-app notification.',
     'content_invite_email_hint' => 'Enter an email to invite someone new. They\'ll receive an email with a link to join.',
-
     'flash_email_invite_waitlisted' => 'Game is full — invitee added to waitlist.',
     'flash_email_invite_benched' => 'Session is full — invitee added to bench.',
     'flash_accepted_waitlisted' => 'Game is full — you\'ve been added to the waitlist and will be notified when a spot opens.',

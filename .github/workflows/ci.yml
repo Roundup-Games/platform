@@ -106,6 +106,39 @@ jobs:
       - name: Run Larastan
         run: vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
+  i18n:
+    name: Translation Integrity (i18n:check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+
+      - name: Install dependencies
+        # --no-dev would skip nothing here (no dev-only i18n deps), but
+        # locked keeps CI reproducible against composer.lock.
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        # i18n:check bootstraps Laravel to parse lang files; some of them
+        # call config() inline (terms.php, privacy.php, impressum.php),
+        # which needs a bootstrapped config + app key.
+        run: php artisan key:generate
+
+      - name: Check translation parity and integrity
+        # Fails CI if Weblate (or a dev) ships a PR with missing/extra
+        # keys, duplicate keys, untranslated values, or convention
+        # violations across locales. Uses the existing App\Console\Commands\
+        # I18nCheckCommand. See lang/CONTRIBUTING_TRANSLATIONS.md → Weblate.
+        run: php artisan i18n:check
+
   test:
     name: Tests (Pest)
     runs-on: ubuntu-latest

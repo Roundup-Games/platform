@@ -2,7 +2,6 @@
 
 return [
     'content_public_unlocked_by_verified_venue' => 'Public visibility unlocked by verified venue',
-
     // ── Venue Picker ────────────────────────────────────────────────
     'action_search_venues' => 'Find a Venue',
     'action_search_address' => 'Or enter an address',
@@ -17,7 +16,6 @@ return [
     'placeholder_location_instructions' => 'Ring buzzer 3, back entrance via parking lot...',
     'hint_location_instructions' => 'Helps participants find the exact spot. Shown only to confirmed participants.',
     'error_venue_not_found' => 'Venue not found. It may have been removed.',
-
     // ── Edit Modal (compact) ────────────────────────────────
     'label_venue' => 'Venue',
     'label_address' => 'Address',

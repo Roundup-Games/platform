@@ -39,7 +39,6 @@ return [
     'placeholder_neighborhood_optional' => 'Neighborhood or district (optional)',
     'hint_neighborhood_profile' => 'Helps players find games nearby. Not shown to others unless you share it.',
     'field_address_optional' => 'Address (optional)',
-
     // ── Venue Proposals ──────────────────────────────────────────
     'heading_propose_venue' => 'Propose a Venue',
     'content_propose_venue_subtitle' => 'Know a great place for tabletop gaming? Let us know and we\'ll add it to our directory.',
@@ -64,10 +63,8 @@ return [
     'type_convention' => 'Convention / Convention Center',
     'type_bar' => 'Bar / Pub',
     'type_other' => 'Other',
-
     // Errors
     'error_proposal_submission_failed' => 'Failed to submit venue proposal. Please try again later.',
-
     // ── Organizer disclosure-consequence preview (T08) ──────────────────────
     'content_preview_exact' => 'Players will see the full address: :address',
     'content_preview_area' => 'Players will see only "In your area" until they join.',

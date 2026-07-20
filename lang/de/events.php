@@ -31,7 +31,6 @@ return [
     'content_automatic_player_matching' => 'Automatische Spielermatchmaking',
     'content_back_to_event' => '← Zurück zur Veranstaltung',
     'content_browse_events_discover_upcoming_tournaments' => '**Durchstöbere Veranstaltungen** — Entdecke anstehende Turniere und Spielsessions in deiner Nähe.',
-
     'content_can_i_register_a_team' => 'Kann ich mich als Team anmelden?',
     'content_cancel_this_event_this_will' => 'Diese Veranstaltung absagen? Registrierte Teilnehmer werden benachrichtigt.',
     'content_check_back_soon_for_upcoming_events' => 'Schau bald wieder vorbei für kommende Veranstaltungen!',
@@ -45,7 +44,6 @@ return [
     'content_event_registration' => 'Veranstaltungsanmeldung',
     'content_event_type' => 'Veranstaltungsart *',
     'content_events' => 'Veranstaltungen',
-
     'content_find_your_people_discover_new' => 'Finde deine Leute. Entdecke neue Welten. Erzähle Geschichten am Tisch, über die ihr noch Jahre sprecht.',
     'content_from_weekly_board_game_nights' => 'Von wöchentlichen Brettspielabenden bis hin zu epischen mehrjährigen RPG-Kampagnen — Organisatoren auf Roundup bauen die Gaming-Communitys, die sie sich immer gewünscht haben. Dein Tisch ist der nächste.',
     'content_how_do_i_create_an_event' => 'Wie erstelle ich eine Veranstaltung?',
@@ -60,7 +58,6 @@ return [
     'content_no_events_found' => 'Keine Veranstaltungen gefunden',
     'content_no_registrations_found' => 'Keine Anmeldungen gefunden.',
     'content_optional_add_competitive_divisions_to_your_event' => 'Optional — füge Wettbewerbsdivisionen zu deiner Veranstaltung hinzu.',
-
     'content_participants' => 'Teilnehmer',
     'content_public_event' => 'Öffentliche Veranstaltung',
     'content_registration' => 'Anmeldung',
@@ -78,7 +75,6 @@ return [
     'label_registration_type' => 'Anmeldungsart',
     'content_registration_window' => 'Anmeldezeitraum',
     'content_reject_this_registration' => 'Diese Anmeldung ablehnen?',
-
     'content_select_the_games_you_enjoy' => 'Wähle die Spiele, die dir gefallen — wir nutzen dies, um dir Sessions und Veranstaltungen zu empfehlen.',
     'content_team_only' => 'Nur Team',
     'content_team' => 'Team',
@@ -94,19 +90,15 @@ return [
     'field_team_size_min_max_players' => 'Teamgröße: :min–:max Spieler',
     'content_thanks_for_joining_roundup_games' => 'Danke, dass du bei **:brand** mitmachst — deinem Hub für die Organisation und Teilnahme an Brettspiel-Events, Kampagnen und Turnieren.',
     'content_thanks_for_supporting_roundup_games' => 'Danke, dass du :brand unterstützt!',
-
     'content_this_event_is_now_full' => 'Diese Veranstaltung ist ausgebucht.',
-
     'content_welcome_back_to_roundup_games' => 'Willkommen zurück bei :brand',
     'content_welcome_to_roundup_games' => 'Willkommen bei :brand!',
-
     'content_write_your_announcement' => 'Schreibe deine Ankündigung...',
     'content_yes_many_events_support_team' => 'Ja! Viele Veranstaltungen unterstützen Team-Anmeldungen. Erstelle ein Team, lade deine Mitglieder ein und meldet euch gemeinsam an.',
     'content_you_are_already_a_participant' => 'Du bist bereits Teilnehmer oder hast eine ausstehende Einladung.',
     'content_already_participant_or_pending_game' => 'Du bist bereits Teilnehmer oder hast eine ausstehende Einladung/Bewerbung für dieses Spiel.',
     'content_you_are_already_registered_for_this_event' => 'Du bist bereits für diese Veranstaltung angemeldet.',
     'content_you_re_all_set_for_event' => 'Du bist dabei: **:event**!',
-
     'error_cannot_cancel_event_from_status_from' => 'Veranstaltung kann nicht aus dem Status ":from" abgesagt werden.',
     'error_cannot_change_event_status_from_from_to_to' => 'Veranstaltungsstatus kann nicht von ":from" zu ":to" geändert werden.',
     'error_cannot_close_registration_from_status_from' => 'Anmeldung kann nicht aus dem Status ":from" geschlossen werden.',
@@ -138,7 +130,6 @@ return [
     'status_cancelled' => 'Abgesagt',
     'status_confirmed' => 'Bestätigt',
     'status_registered' => 'Angemeldet',
-
     // New keys for entity domain migration
     'field_content_language' => 'Inhaltssprache *',
     'placeholder_one_liner_for_listings' => 'Kurzbeschreibung für Listen und Karten...',

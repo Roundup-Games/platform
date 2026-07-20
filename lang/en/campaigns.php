@@ -79,7 +79,6 @@ return [
     'field_session_name' => 'Session Name',
     'field_start_your_first_session_it_s_free' => 'Start your first session — it\'s free',
     'flash_campaign_name_created_successfully' => 'Campaign ":name" created successfully!',
-
     // New keys for entity domain migration
     'action_add_session' => 'Add Session',
     'action_add_session_to_campaign' => 'Add Session to Campaign',
@@ -112,31 +111,24 @@ return [
     'content_bench' => 'Bench',
     'content_bench_description' => 'These players are on the bench. Promote them when a spot opens up.',
     'action_promote_from_bench' => 'Promote',
-
     'content_campaign_full_join_waitlist' => 'This campaign is full. Join the waitlist to be notified when a spot opens up.',
     'content_waitlist_position' => 'You are #:position on the waitlist.',
     'content_waitlist_management' => 'Waitlist',
     'content_added_to_waitlist' => 'You have been added to the waitlist.',
-
     'action_join_waitlist' => 'Join Waitlist',
     'action_leave_waitlist' => 'Leave Waitlist',
     'action_manual_promote' => 'Promote',
-
     'content_application_submitted_the_campaign_owner' => 'Application submitted! The campaign owner will review it.',
     'content_application_pending' => 'Application Pending',
     'content_waiting_for_host_approval' => 'Waiting for the host to review your application.',
-
     // Errors
     'error_this_campaign_does_not_accept_applications' => 'This campaign does not accept applications.',
     'error_you_cannot_apply_to_your_own_campaign' => 'You cannot apply to your own campaign.',
-
     // Guest nudge keys
     'guest_nudge_join_campaign' => 'Sign up to join this campaign!',
     'guest_nudge_campaign_detail' => 'Create a free account to join campaigns near you.',
-
     // Guest navigation
     'action_back_to_discover' => 'Back to Discover',
-
     // CampaignsPage - My Campaigns section
     'heading_my_campaigns' => 'My Campaigns',
     'action_cancel_campaign' => 'Cancel Campaign',
@@ -149,18 +141,15 @@ return [
     'error_campaign_not_active' => 'Only active campaigns can be modified.',
     'confirm_cancel_campaign' => 'Are you sure you want to cancel this campaign?',
     'content_no_owned_campaigns' => 'You haven\'t created any campaigns yet.',
-
     // CampaignsPage — priority board sections
     'heading_active_hosting' => 'Active — you\'re organizing',
     'heading_active_playing' => 'Active — you\'re playing',
     'content_empty_no_campaigns_title' => 'No campaigns yet',
     'content_empty_no_campaigns_body' => 'Find a recurring game to join, or start your own campaign.',
     'action_empty_find_adventures' => 'Find adventures',
-
     // CampaignsPage — Campaigns I'm In section
     'heading_campaigns_im_in' => 'Campaigns I\'m In',
     'content_no_campaigns_joined' => 'You haven\'t joined any campaigns yet.',
-
     // CampaignsPage — Open Invitations section
     'heading_open_invitations' => 'Open Invitations',
     'action_accept_invitation' => 'Accept',
@@ -171,7 +160,6 @@ return [
     'error_invitation_invalid' => 'This invitation is no longer valid.',
     'error_campaign_full' => 'This campaign is already full.',
     'content_no_pending_invitations' => 'No pending invitations.',
-
     // CampaignsPage — Community section
     'heading_community' => 'Community',
     'content_no_community_campaigns' => 'No community campaigns available right now.',
@@ -182,21 +170,16 @@ return [
     'activity_completed_campaign' => 'completed a campaign',
     'activity_scheduled_session_for' => 'scheduled a new session for',
     'activity_scheduled_session' => 'scheduled a new session',
-
     // Edit campaign
     'action_edit_campaign' => 'Edit',
     'heading_edit_campaign' => 'Edit Campaign',
     'flash_campaign_updated' => 'Campaign updated successfully.',
-
     // Bench mode
-
     'content_bench_mode_requires_gm' => 'Only Game Masters can enable bench mode.',
     'content_bench_mode_description' => 'Overflow players are placed on a bench instead of a waitlist.',
-
     // SEO
     'seo_title_my_campaigns' => 'My Campaigns',
     'seo_description_my_campaigns' => 'View and manage your campaigns, invitations, and activity feed on :brand.',
-
     // Leave campaign
     'action_leave_campaign' => 'Leave Campaign',
     'confirm_leave_campaign' => 'Are you sure you want to leave this campaign? Your spot will be released.',
@@ -205,7 +188,6 @@ return [
     'flash_you_left_the_campaign' => 'You have left the campaign.',
     'content_leave_hint' => 'Changed your mind?',
     'content_gathering_campaign_hint' => 'A recurring board game night or casual meet-up. Sessions inherit this type.',
-
     // Type-selection step (mirrors CreateGame's card picker)
     'content_what_are_you_setting_up' => 'What are you setting up?',
     'content_pick_the_type_for_your_recurring_event' => 'Pick the type for your recurring event. You can change it anytime.',

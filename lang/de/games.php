@@ -50,7 +50,6 @@ return [
     'content_no_game_systems_found' => 'Keine Spielsysteme gefunden.',
     'content_no_games_found' => 'Keine Spiele gefunden',
     'content_optional_useful_for_game_night_coordination' => 'Optional — hilfreich für die Koordination von Spieleabenden.',
-
     'content_pick_your_game_set_the' => 'Wähle dein Spiel, setze Datum und Ort, lege die Spielerzahl fest. Das dauert etwa dreißig Sekunden — schneller als ein Kartendeck zu mischen.',
     'content_running_a_multi_session_campaign' => 'Leitest du eine Multi-Session-Kampagne? Gruppiere deine Sessions, verfolge die Teilnahme und halte deine Gruppe zwischen den Spielen verbunden. Deine Spieler wissen immer, wann die nächste Session stattfindet.',
     'content_schedule_a_new_game_session_for_players_to_join' => 'Plane eine neue Spielsitzung, an der Spieler teilnehmen können.',
@@ -58,12 +57,10 @@ return [
     'content_share_your_location_to_see' => 'Teile deinen Standort, um Spielsitzungen und Kampagnen in deiner Nähe zu sehen, die diese Woche stattfinden.',
     'content_start_a_campaign_organize_a' => '**Starte eine Kampagne** — Organisiere ein wiederkehrendes Spiel mit deiner Gruppe.',
     'content_step_outside_your_comfort_zone' => 'Verlass deine Komfortzone. Probier ein neues System aus, schließ dich einer anderen Gruppe an oder verliebe dich in ein Spiel, von dem du nie gehört hast.',
-
     'content_this_is_a_protected_game' => 'Dies ist ein Spiel nur für Verbindungen. Deine Anmeldung wird vom Besitzer geprüft, bevor du beitreten kannst.',
     'content_three_steps_to_your_next_game_night' => 'Drei Schritte zu deinem nächsten Spieleabend',
     'content_unlimited_games' => 'Unbegrenzte Spiele',
     'content_use_stars_wishes_or_a' => 'Nutze Sterne & Wünsche oder ein Debriefing nach Sitzungen. Regelmäßige Check-ins bauen eine Vertrauenskultur auf und verbessern deine Spiele mit der Zeit.',
-
     'content_you_have_already_applied_to_this_game' => 'Du hast dich bereits für dieses Spiel beworben.',
     'content_you_have_joined_the_game' => 'Du bist dem Spiel beigetreten!',
     'content_you_have_been_placed_on_the_bench' => 'Die Sitzung ist voll — du wurdest auf die Bank gesetzt.',
@@ -82,7 +79,6 @@ return [
     'error_clone_own_only' => 'Du kannst nur deine eigenen Spielsitzungen klonen.',
     'error_select_game_type' => 'Bitte wähle eine Spielart bevor du erstellst.',
     'error_you_cannot_apply_to_your_own_game' => 'Du kannst dich nicht auf dein eigenes Spiel bewerben.',
-
     'field_max_players' => 'Max. Spieler',
     'field_game_type' => 'Spieltyp',
     'content_max_players_venue_hint' => 'Denke an die Ortgröße — wie viele passen bequem hinein?',
@@ -90,10 +86,8 @@ return [
     'field_min_players' => 'Min. Spieler',
     'field_minimum_complexity' => 'Minimale Komplexität',
     'flash_game_name_created_successfully' => 'Spiel ":name" erfolgreich erstellt!',
-
     // New keys for entity domain migration
     'content_part_of_campaign_name' => 'Teil der Kampagne: :name',
-
     // New keys for entity domain migration
     // Moved from events domain — game-specific
     'action_apply_to_join' => 'Beitritt beantragen',
@@ -125,14 +119,11 @@ return [
     'error_no_favorite_game_systems_selected_yet' => 'Noch keine Lieblings-Spielsysteme ausgewählt.',
     'placeholder_search_game_systems_to_add_as_favorites' => 'Spielsysteme als Favoriten suchen...',
     'placeholder_search_game_systems_to_avoid' => 'Spielsysteme zum Meiden suchen...',
-
     // Gast-Nudge-Schlüssel
     'guest_nudge_join_game' => 'Melde dich an, um an dieser Spielsitzung teilzunehmen!',
     'guest_nudge_game_detail' => 'Erstelle ein kostenloses Konto, um an Spielsitzungen in deiner Nähe teilzunehmen.',
-
     // Gast-Navigation
     'action_back_to_discover' => 'Zurück zur Entdeckungsseite',
-
     // GamesPage - Meine Spiele
     'heading_my_games' => 'Meine Spiele',
     'action_cancel_game' => 'Spiel absagen',
@@ -144,7 +135,6 @@ return [
     'flash_game_completed' => 'Spiel als abgeschlossen markiert.',
     'error_game_not_scheduled' => 'Nur geplante Spiele können geändert werden.',
     'confirm_cancel_game' => 'Bist du sicher, dass du dieses Spiel absagen möchtest?',
-
     // GamesPage — priorisierte Bereiche
     'heading_needs_your_attention' => 'Braucht deine Aufmerksamkeit',
     'heading_upcoming_hosting' => 'Anstehend — du leitest',
@@ -156,9 +146,7 @@ return [
     'action_empty_discover' => 'Sitzungen finden',
     'action_empty_plan' => 'Sitzung planen',
     'content_needs_attention_hint' => 'Die folgenden Punkte benötigen deine Aktion, bevor sie sich verschärfen.',
-
     // GamesPage — Spiele, an denen ich teilnehme
-
     // GamesPage — Offene Einladungen
     'heading_open_invitations' => 'Offene Einladungen',
     'action_accept_invitation' => 'Annehmen',
@@ -175,7 +163,6 @@ return [
     'activity_created_game' => 'hat ein neues Spiel erstellt',
     'activity_joined_game' => 'hat sich einem Spiel angeschlossen',
     'activity_completed_game' => 'hat ein Spiel abgeschlossen',
-
     // Spielsysteme-Wissensdatenbank
     'action_explore_game_systems' => 'Spielsysteme entdecken',
     'content_game_systems_knowledge_base_subtitle' => 'Durchsuche die komplette Bibliothek an Brettspielen, Kartenspielen und RPGs. Filtere nach Kategorie, Mechaniken, Spielerzahl und Komplexität, um dein nächstes Lieblingsspiel zu finden.',
@@ -220,12 +207,10 @@ return [
     'content_min' => 'Min.',
     'heading_about_this_game' => 'Über dieses Spiel',
     'heading_game_details' => 'Spieldetails',
-
     // Typ-Registerkarten
     'action_type_all' => 'Alle',
     'action_type_boardgame' => 'Brettspiele',
     'action_type_ttrpg' => 'Tabletop-Abenteuer',
-
     // TTRPG-Detailseite
     'heading_how_to_play' => 'Spielanleitung',
     'heading_faq' => 'Häufig gestellte Fragen',
@@ -236,7 +221,6 @@ return [
     'field_designer' => 'Designer|Designer',
     'content_sp_rating' => 'Community-Bewertung',
     'link_type_purchase' => 'Kaufen',
-
     // Spielart-Bezeichnungen
     'type_board_game' => 'Brettspiel',
     'type_ttrpg' => 'TTRPG',
@@ -259,7 +243,6 @@ return [
     'placeholder_game_description' => 'Beschreibe die Sitzung...',
     'placeholder_game_name' => 'z.B. Spieleabend',
     'placeholder_comfort_notes' => 'Komforthinweise für Spieler?',
-
     // Spiel bearbeiten
     'action_edit_game' => 'Bearbeiten',
     'heading_edit_game' => 'Spiel bearbeiten',
@@ -269,7 +252,6 @@ return [
     'field_location' => 'Ort',
     'field_visibility' => 'Sichtbarkeit',
     'flash_game_updated' => 'Spiel erfolgreich aktualisiert.',
-
     // Game-System-Info-Karte (shared partial)
     'action_show_game_system_details' => 'Game-System-Details anzeigen',
     'action_view_full_details' => 'Alle Details ansehen',
@@ -278,7 +260,6 @@ return [
     'action_visit' => 'Besuchen',
     'field_year' => 'Jahr',
     'content_expansions_count' => '{1}Eine Erweiterung|[2,*]:count Erweiterungen',
-
     // Spielsystem-Anfrageformular
     'heading_request_game_system' => 'Spielsystem anfragen',
     'content_request_game_system_subtitle' => 'Du findest das gesuchte Spielsystem nicht? Sende uns eine Anfrage und wir fügen es hinzu.',
@@ -298,7 +279,6 @@ return [
     'request_success' => 'Deine Anfrage wurde eingereicht! Wir werden sie prüfen und das Spielsystem bald hinzufügen.',
     'request_error_duplicate' => 'Du hast bereits eine ausstehende Anfrage für dieses Spielsystem.',
     'request_error_rate_limit' => 'Du hast das tägliche Limit von 3 Anfragen erreicht. Bitte versuche es in :hours Stunden erneut.',
-
     // Meine Anfragen-Seite
     'heading_my_requests' => 'Meine Anfragen',
     'content_my_requests_subtitle' => 'Verfolge den Status deiner Spielsystem-Anfragen.',
@@ -309,11 +289,9 @@ return [
     'request_status_approved' => 'Genehmigt',
     'request_status_rejected' => 'Abgelehnt',
     'request_status_duplicate' => 'Duplikat',
-
     // Anfrage-CTA (Katalog- und Spielsystemseiten)
     'request_cta_link' => 'Spielsystem anfragen',
     'request_cta_catalog_header' => 'Du findest nicht, was du suchst?',
-
     // Zuverlässigkeitspräferenz / Anwesenheitstoleranz
     'field_attendance_tolerance' => 'Anwesenheitstoleranz',
     'hint_attendance_tolerance' => 'Wie streng soll die Anwesenheit für diese Session sein? Dies ist eine weiche Präferenz, kein harter Filter.',
@@ -324,7 +302,6 @@ return [
     'field_reliability_preference' => 'Anwesenheitspräferenz',
     'hint_reliability_preference' => 'Wie streng soll die Anwesenheit für diese Session sein? Dies ist eine weiche Präferenz, kein harter Filter.',
     'content_host_prefers_attendance' => 'Host bevorzugt ≥:percent% Anwesenheit',
-
     // Nachbericht
     'title_host_recap' => 'Host-Nachbericht',
     'content_recap_by' => 'Geschrieben von :host',
@@ -338,9 +315,7 @@ return [
     'title_write_recap' => 'Nachbericht verfassen',
     'content_write_recap_description' => 'Teile mit, was in dieser Sitzung passiert ist.',
     'label_recap_placeholder' => 'Teile mit, was in dieser Sitzung passiert ist…',
-
     'action_recap_submit' => 'Nachbericht veröffentlichen',
-
     // Debriefing
     'title_debriefing_responses' => 'Debriefing-Antworten',
     'title_debriefing_submit' => 'Sitzungs-Debriefing',
@@ -363,22 +338,18 @@ return [
     'content_debriefing_prompt_safety_concerns' => 'Sicherheitsbedenken?',
     'content_debriefing_prompt_star' => 'Vergib einen Stern — etwas Positives über die Sitzung',
     'content_debriefing_prompt_wish' => 'Ein Wunsch — etwas für das nächste Mal',
-
     // Waitlist
     'action_join_waitlist' => 'Warteliste beitreten',
     'content_game_full_join_waitlist' => 'Dieses Spiel ist voll. Tritt der Warteliste bei, um benachrichtigt zu werden, wenn ein Platz frei wird.',
     'content_waitlist_position' => 'Du bist #:position auf der Warteliste.',
-
     'content_spot_opened_confirm' => 'Ein Platz ist frei! Bitte bestätige innerhalb von :deadline.',
     'action_confirm_spot' => 'Platz bestätigen',
     'action_decline_spot' => 'Platz ablehnen',
     'action_manual_promote' => 'Befördern',
     'content_waitlist_management' => 'Warteliste',
-
     'content_waitlist_spot_confirmed' => 'Du hast deinen Platz bestätigt!',
     'content_waitlist_spot_declined' => 'Du hast den Platz abgelehnt.',
     'content_added_to_waitlist' => 'Du wurdest zur Warteliste hinzugefügt.',
-
     'flash_manual_promote_success' => 'Spieler wurde von der Warteliste befördert.',
     'action_leave_waitlist' => 'Warteliste verlassen',
     'action_leave_bench' => 'Bank verlassen',
@@ -388,34 +359,27 @@ return [
     'flash_confirm_leave_bench' => 'Bist du sicher, dass du die Bank verlassen möchtest?',
     'content_waitlisted_count' => '{0} |{1} auf Warteliste|[2,*] auf Warteliste',
     'content_benched_count' => '{0} |{1} auf der Bank|[2,*] auf der Bank',
-
     // Sichtbarkeitsbezeichnungen
-
     // Teilnehmerrollenbezeichnungen
     'field_role_owner' => 'Organisator',
     'field_role_player' => 'Spieler',
     'field_role_invited' => 'Eingeladen',
     'field_role_applicant' => 'Bewerber',
-
     // Teilnehmerstatusbezeichnungen
     'status_approved' => 'Bestätigt',
     'status_pending' => 'Ausstehend',
     'status_rejected' => 'Abgelehnt',
     'status_waitlisted' => 'Warteliste',
     'status_accepted' => 'Angenommen',
-
     // Erfahrungsniveau
     'content_experience_beginner' => 'Anfänger',
     'content_experience_intermediate' => 'Fortgeschritten',
     'content_experience_advanced' => 'Experte',
     'content_experience_all' => 'Alle Niveaus',
-
     'content_spots_available' => '{0} Keine Plätze verfügbar (voll)|{1} 1 Platz verfügbar von :max|[2,*] :count Plätze verfügbar von :max',
-
     // SEO
     'seo_title_my_games' => 'Meine Spiele',
     'seo_description_my_games' => 'Verwalte deine Spiele, Einladungen und den Aktivitäts-Feed auf :brand.',
-
     // Bulletin Board
     'title_bulletin_board' => 'Host-Updates',
     'heading_bulletin_board' => 'Host-Updates',
@@ -433,12 +397,10 @@ return [
     'content_bulletin_expires_at' => 'Läuft ab :time',
     'push_bulletin_title' => 'Update von :host',
     'push_bulletin_body' => ':game — :content',
-
     // Spot availability
     'content_full' => 'Voll',
     'content_spots_left_short' => '{1} 1 Platz frei|[2,*] :count Plätze frei',
     'content_availability' => 'Verfügbarkeit',
-
     // Leave game
     'action_leave_game' => 'Spiel verlassen',
     'confirm_leave_game' => 'Möchtest du dieses Spiel wirklich verlassen? Dein Platz wird freigegeben.',
@@ -446,7 +408,6 @@ return [
     'error_not_a_participant' => 'Du bist kein Teilnehmer in diesem Spiel.',
     'flash_you_left_the_game' => 'Du hast das Spiel verlassen.',
     'content_leave_hint' => 'Dir haben sich die Pläne geändert?',
-
     // Attendance reporting
     'title_attendance_report' => 'Anwesenheit melden',
     'content_attendance_report_description' => 'Markiere jeden Teilnehmer als anwesend, nicht erschienen oder entschuldigt.',
@@ -464,7 +425,6 @@ return [
     'error_dispute_reason_min' => 'Der Grund muss mindestens 10 Zeichen lang sein.',
     'error_dispute_reason_max' => 'Der Grund darf 1000 Zeichen nicht überschreiten.',
     'label_host' => 'Host',
-
     // Three-state attendance UI
     'title_submit_attendance' => 'Anwesenheitsbericht einreichen',
     'title_attendance_submitted' => 'Dein Bericht wurde eingereicht',
@@ -487,7 +447,6 @@ return [
     'label_votes_attended' => 'Anwesend (:count)',
     'label_votes_no_show' => 'Nicht erschienen (:count)',
     'label_votes_excused' => 'Entschuldigt (:count)',
-
     // Kapazitätseditor (Host-Aktion, GameDetail)
     'title_capacity' => 'Kapazität',
     'action_edit_capacity' => 'Kapazität bearbeiten',
@@ -517,7 +476,6 @@ return [
     'error_capacity_reason_too_long' => 'Der Grund darf höchstens 500 Zeichen lang sein.',
     'error_gathering_requires_system' => 'Bitte wähle mindestens ein Spielsystem für das Gathering aus.',
     'error_system_required' => 'Bitte wähle ein Spielsystem für die Sitzung aus.',
-
     // Cover image upload (host-uploaded entity covers — S07/T02)
     'field_cover_image' => 'Titelbild',
     'content_cover_image_hint' => 'Lade ein Titelbild hoch (JPEG, PNG oder WebP, max. 5 MB). Optional — wir verwenden das Cover des Spielsystems, wenn du keines angibst.',

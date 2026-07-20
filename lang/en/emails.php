@@ -29,7 +29,6 @@ return [
     'field_or_sign_up_with_email' => 'or sign up with email',
     'field_resend_verification_email' => 'Resend Verification Email',
     'field_verify_email' => 'Verify Email',
-
     // Entity invitation email (email invites to non-users)
     'action_create_account_to_join' => 'Create Account to Join',
     'content_invitation_sent_to_email' => 'This invitation was sent to :email. If you weren\'t expecting this, you can safely ignore this email.',

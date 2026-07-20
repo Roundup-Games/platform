@@ -15,6 +15,9 @@ This guide explains how Roundup Games translations are structured and maintained
 9. [Testing Translations](#testing-translations)
 10. [File Format Reference](#file-format-reference)
 11. [Quick Reference](#quick-reference)
+12. [Weblate Workflow](#weblate-workflow)
+13. [CI Parity Gate](#ci-parity-gate)
+14. [Appendix: Running wlc via Docker](#appendix-running-wlc-via-docker)
 
 ---
 
@@ -45,7 +48,7 @@ lang/
 
 Each domain file returns a **flat associative array** mapping `prefix_slug` → translated string. In Blade/PHP, keys are referenced as `__('domain.prefix_slug')`.
 
-**Key stats:** 13 domain files per locale, ~1,071 keys per locale, full EN/DE parity.
+**Key stats:** 32 domain files per locale, ~3,160 keys per locale, full EN/DE parity (enforced by `php artisan i18n:check` in CI).
 
 ---
 
@@ -351,3 +354,167 @@ return [
 | Sort keys alphabetically | Within each file, for clean diffs |
 | Grep before removing | Check `app/` and `resources/` before deleting a key |
 | Register new locales in config | `config/app.php` → `available_locales` |
+
+---
+
+## Weblate Workflow
+
+[Hosted Weblate](https://hosted.weblate.org/) is the primary source for **translations** (the values in `lang/{locale}/*.php` for non-English locales). Translators work in Weblate's UI; finished translations flow back to this repository as pull requests.
+
+The repository remains the source of truth for **keys and English source strings** (`lang/en/*.php`), because Blade references keys as `__('domain.key')` and the app must resolve them at runtime regardless of Weblate's state.
+
+### Roles
+
+| Artifact | Source of truth | Owner |
+|----------|----------------|-------|
+| Translation keys (`'some_key' =>`) | This repo (`lang/en/`) | Developers |
+| English source values | This repo (`lang/en/`) | Developers |
+| Translated values (`lang/de/`, future `lang/fr/`…) | Weblate | Translators |
+
+### How changes flow
+
+**Developers add or change English strings** (steps in [Adding New Translation Keys](#adding-new-translation-keys) above):
+
+1. Add the key + English value to `lang/en/{domain}.php`.
+2. Add a placeholder value (English copy is fine) to `lang/de/{domain}.php` so `i18n:check` parity holds locally and in CI.
+3. Commit and push. The Hosted Weblate GitHub App auto-pulls the change into Weblate within seconds, so translators see the new string immediately.
+
+**Translators work in Weblate:**
+
+- They never edit files in the repo directly.
+- On commit, Weblate pushes to the `weblate/translations` branch and opens a PR against `main`.
+- The PR's CI run includes the `i18n:check` job (see [CI Parity Gate](#ci-parity-gate)) — if a translation drops a placeholder, duplicates a key, or breaks a convention, CI fails and the PR cannot merge until fixed.
+
+### Reviewing translation PRs
+
+Translation PRs look like any other PR but typically touch only `lang/{locale}/*.php` files. Review checklist:
+
+- [ ] CI `i18n` job is green (parity, placeholders, conventions).
+- [ ] Spot-check a few strings for the `:placeholder` names matching the English source.
+- [ ] No keys were added or removed (Weblate should only change values).
+
+Merge with a regular merge commit (Weblate is configured for `merge_style: merge` to preserve translator attributions).
+
+### Locking translations during big merges
+
+If you're doing a large refactor that touches many lang files at once, lock the affected components in Weblate first so translators don't work against a moving target:
+
+```bash
+# Via Docker (no native install needed). See "Appendix: Running wlc via Docker"
+# in this document for token setup and the full command reference.
+docker run --rm \
+  --env WLC_URL=https://hosted.weblate.org/api/ \
+  --env WLC_KEY="$WEBLATE_API_TOKEN" \
+  weblate/wlc:2.1.0 lock roundup-games-platform/common
+
+# ... do your refactor, push, let Weblate pull ...
+
+docker run --rm \
+  --env WLC_URL=https://hosted.weblate.org/api/ \
+  --env WLC_KEY="$WEBLATE_API_TOKEN" \
+  weblate/wlc:2.1.0 unlock roundup-games-platform/common
+```
+
+### Initial / one-time setup
+
+The Weblate project is configured for **GitHub pull-request delivery** with these effective settings (verified via the REST API):
+
+| Setting | Value |
+|---------|-------|
+| VCS backend | `github` (opens PRs, doesn't push directly to `main`) |
+| Source repo | `https://github.com/Roundup-Games/platform.git` (HTTPS; public, anonymous read) |
+| Push URL | `git@github.com:Roundup-Games/platform.git` (SSH via the hosted `weblate` GitHub user) |
+| Push branch | `weblate/translations` |
+| Merge style | `rebase` |
+| `push_on_commit` | `true` |
+| Linked components | All 32 code components are linked to `common`; changing `common` propagates to all of them |
+
+The push path uses the shared **`weblate` GitHub user** (invited as an outside collaborator with Write access on `Roundup-Games/platform`). Hosted Weblate maintains SSH keys for this user; no deploy keys or embedded PATs to manage.
+
+> **Note:** the Hosted Weblate GitHub App is installed on the org but does **not** provide push credentials for the existing components — they were imported with raw HTTPS URLs rather than through the App's import flow. The `weblate` SSH collaborator is the working outbound path. If a future Weblate version exposes an App-binding flow for existing components, switching to it is a one-time change to `common`'s `push` field (set to empty) and removing the `weblate` collaborator.
+
+**Inbound (auto-pull)** is handled by the GitHub App's webhook on push-to-`main` — Weblate ingests new source strings within seconds. The repo being public means inbound worked even before the App was wired, which masked the outbound problem.
+
+If you add a **new locale** (e.g. `lang/fr/`), create the corresponding component(s) in Weblate via the UI with the same VCS settings. Link them to `common` so the push/repo config is inherited.
+
+---
+
+## CI Parity Gate
+
+Every pull request runs `php artisan i18n:check` as a dedicated CI job (see the `i18n` job in `.github/workflows/ci.yml`). This is what makes Weblate translation PRs safe to merge without manual review of every file.
+
+The check enforces:
+
+- **File parity** — every locale has the same set of domain files as `en/`.
+- **Key parity** — every key in `lang/en/{domain}.php` exists in every other locale, and vice versa (no missing, no extra).
+- **Duplicate keys** — no PHP array key collisions (which silently overwrite).
+- **Untranslated values** — flags non-primary values identical to English (with a configured exemption list in `config/i18n.php` for factual strings like units, URLs, proper nouns).
+- **Convention** — keys use the prefix + snake_case rules in [Key Prefix Reference](#key-prefix-reference).
+
+Run it locally before pushing:
+
+```bash
+php artisan i18n:check
+
+# JSON output for scripting:
+php artisan i18n:check --json
+
+# Skip convention checks (useful when deliberately adding keys that need a prefix exception):
+php artisan i18n:check --no-convention
+```
+
+If the check fails on a Weblate PR, the fix belongs in Weblate (re-translate or fix the placeholder), not in the repo. If it fails on a developer PR, sync the missing/extra keys into the affected locale files before pushing.
+
+Related commands:
+
+```bash
+php artisan i18n:missing       # keys referenced in code but missing from lang files
+php artisan i18n:dead-strings  # keys in lang files never referenced in code
+```
+
+---
+
+## Appendix: Running `wlc` via Docker
+
+The [`wlc` CLI](https://github.com/WeblateOrg/wlc) is useful for ad-hoc Weblate operations the UI doesn't surface cleanly: `lock`/`unlock` every component during a big merge, force `commit`/`push`, inspect `repo` status, `download` a single translation file. You don't need to install it natively — the official Docker image works with no setup beyond having the API token.
+
+### Token
+
+Generate a token at <https://hosted.weblate.org/profile/#api> and persist it outside the repo (`~/.weblate.env`, not committed):
+
+```bash
+# Contains: WEBLATE_API_TOKEN=wlu_XXXXXXXXXXXXXXXX
+chmod 600 ~/.weblate.env
+
+# Load before running wlc:
+set -a; source ~/.weblate.env; set +a
+```
+
+Treat the token like a password. It is never committed to the repo.
+
+### Recipe
+
+```bash
+IMAGE=weblate/wlc:2.1.0   # pin the version; current stable
+PROJECT=roundup-games-platform
+
+docker run --rm \
+  --env WLC_URL=https://hosted.weblate.org/api/ \
+  --env WLC_KEY="$WEBLATE_API_TOKEN" \
+  "$IMAGE" show "$PROJECT/common"
+```
+
+### Common commands
+
+| Command | What it does |
+|---------|--------------|
+| `wlc ls "$PROJECT"` | List all components in the project |
+| `wlc lock "$PROJECT/common"` | Lock a component (e.g. before a big repo-side merge) |
+| `wlc unlock "$PROJECT/common"` | Unlock it again |
+| `wlc commit "$PROJECT/common"` | Flush pending Weblate changes to its internal git |
+| `wlc push "$PROJECT/common"` | Push committed changes (opens a PR to `weblate/translations`) |
+| `wlc pull "$PROJECT/common"` | Pull upstream into Weblate (the webhook does this automatically) |
+| `wlc repo "$PROJECT/common"` | Show repo status (pending commits, conflicts) |
+| `wlc stats "$PROJECT/common"` | Translation progress per language |
+
+See available image tags at <https://hub.docker.com/r/weblate/wlc/tags>. Bump the tag to upgrade.

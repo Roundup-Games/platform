@@ -27,10 +27,8 @@ return [
     'action_edit' => 'Edit',
     'action_enter_amount_in_cents_e_g_500_5_00' => 'enter amount in cents (e.g. 500 = $5.00 / 5,00 €)',
     'action_join_count_organizers_who_bring_people_together' => '{1} Join :count organizer who brings people together|[2,*] Join :count organizers who bring people together',
-
     'action_manage' => 'Manage',
     'action_next' => 'Next →',
-
     'action_publish' => 'Publish',
     'action_publish_immediately' => 'Publish immediately',
     'action_loading' => 'Loading...',
@@ -74,7 +72,6 @@ return [
     'content_created_by_beau_j_gr_sheldon' => 'Created by Beau Jágr Sheldon.',
     'content_created_by_john_stavropoulos_learn_more_at' => 'Created by John Stavropoulos. Learn more at',
     'content_creating' => 'Creating...',
-
     'content_custom' => 'Custom',
     'content_danger_zone' => 'Danger Zone',
     'content_deleting' => 'Deleting...',
@@ -86,7 +83,6 @@ return [
     'content_either' => 'Either',
     'content_est' => 'Est.',
     'content_every_2_weeks' => 'Every 2 weeks',
-
     'content_female' => 'Female',
     'content_filters' => 'Filters:',
     'content_for_general_inquiries_and_support' => 'For general inquiries and support.',
@@ -107,7 +103,6 @@ return [
     'content_in_cents' => 'in cents',
     'content_in_progress' => 'In Progress',
     'content_in_progress_badge' => '● In Progress',
-
     'content_individual' => 'Individual',
     'content_individual_only' => 'Individual Only',
     'content_internal_notes_visible_only_to_organizers' => 'Internal notes (visible only to organizers)...',
@@ -140,7 +135,6 @@ return [
     'content_opens_at' => 'Opens At',
     'content_optional' => '(optional)',
     'content_order_summary' => 'Order Summary',
-
     'content_other' => 'Other',
     'content_other_ways_to_reach_us' => 'Other Ways to Reach Us',
     'content_owner' => 'Owner',
@@ -180,7 +174,6 @@ return [
     'content_sending' => 'Sending...',
     'content_she_her' => 'She/Her',
     'content_show_up_and_play' => 'Show up and play',
-
     'content_skip_to_content' => 'Skip to content',
     'aria_toggle_navigation_menu' => 'Toggle navigation menu',
     'aria_main_navigation' => 'Main navigation',
@@ -189,14 +182,12 @@ return [
     'content_subject' => 'Subject',
     'content_subscribe' => 'Subscribe',
     'content_substitute' => 'Substitute',
-
     'content_tabletop_gaming_is_about_more' => 'Tabletop gaming is about more than rules. It\'s about the people you share the table with.',
     'content_tell_the_host_why_you_d_like_to_join' => 'Tell the host why you\'d like to join...',
     'content_tell_us_about_yourself' => 'Tell us about yourself',
     'content_thank_you_for_your_message' => 'Thank you for your message! We\'ll get back to you soon.',
     'content_the_digital_parlor_for_tabletop_enthusiasts' => 'Bringing tabletop gamers together, one table at a time.',
     'content_there_s_a_seat_waiting_for_you' => 'There\'s a seat waiting for you.',
-
     'content_they_them' => 'They/Them',
     'content_this_helps_us_personalize_your_experience' => 'This helps us personalize your experience.',
     'content_this_month' => 'This Month',
@@ -218,7 +209,6 @@ return [
     'content_n_waitlisted' => '{1} :count waitlisted|[2,*] :count waitlisted',
     'content_n_on_bench' => '{1} :count on bench|[2,*] :count on bench',
     'content_we_typically_respond_within_24' => 'We typically respond within 24–48 hours during business days.',
-
     'content_you' => '(you)',
     'content_your_favorites' => 'Your Favorites',
     'error_cannot_remove_the_entity_owner' => 'Cannot remove the :entity owner.',
@@ -288,7 +278,6 @@ return [
     'status_following' => 'following',
     'status_pending' => 'Pending',
     'status_published' => 'Published',
-
     // Shared by ManageParticipants trait (games + campaigns)
     'flash_participant_removed' => 'Participant removed.',
     'flash_waitlist_promoted' => 'Player promoted from waitlist.',
@@ -303,7 +292,6 @@ return [
     'flash_follower_removed' => 'You removed :name from your followers.',
     'flash_user_blocked' => 'You blocked :name.',
     'flash_user_unblocked' => 'You unblocked :name.',
-
     // Share link management
     'flash_share_link_generated' => 'Share link generated.',
     'flash_share_link_revoked' => 'Share link revoked.',
@@ -324,35 +312,28 @@ return [
     'content_hits' => '{1} :count hit|[2,*] :count hits',
     'placeholder_link_label' => 'Label (optional)',
     'error_max_links_reached' => 'Maximum number of short links reached for this entity.',
-
     // Shared entity concepts (events, games, campaigns)
     'content_participants' => 'Participants',
     'content_count_participants' => '{1} :count participant|[2,*] :count participants',
     'content_no_participants_yet' => 'No participants yet.',
     'content_applications' => 'Applications',
-
     'action_no_let_me_search' => 'No, let me search',
     'content_searching' => 'Searching...',
     'content_yes_that_s_right' => 'Yes, that\'s right',
     'action_remove_name' => 'Remove :name',
-
     // Theme toggle
     'content_light' => 'Light',
     'content_dark' => 'Dark',
     'content_system' => 'System',
-
     // Activity feed
     'activity_and_others' => 'and :count others',
-
     // Onboarding
     'content_this_step_is_optional' => 'This step is optional — you can always update your preferences later.',
     'content_step_optional_badge' => 'Optional',
     'content_inactive' => 'Inactive',
-
     // Authorization
     'status_not_authorized' => 'Not Authorized',
     'price_free' => 'Free',
-
     // Activity types
     'activity_type_game_created' => 'Game Created',
     'activity_type_game_completed' => 'Game Completed',
@@ -370,28 +351,21 @@ return [
     'activity_type_campaign_updated' => 'Campaign Updated',
     'activity_type_session_recapped' => 'Session Recapped',
     'activity_type_debriefing_submitted' => 'Submitted a session debriefing',
-
     // Dashboard activity timeline
-
     // Languages
     'label_language_en' => 'English',
     'label_language_de' => 'German',
-
     // Email invitations
     'content_or' => 'or',
-
     // Overflow indicators
-
     // ── Navigation ──────────────────────────────────────
     'nav_our_pledge' => 'Our Pledge',
-
     // ── Footer ──────────────────────────────────────────
     'content_community_and_trust' => 'Community & Trust',
     'nav_privacy' => 'Privacy Policy',
     'nav_terms' => 'Terms of Use',
     'nav_impressum' => 'Impressum',
     'nav_cookie_settings' => 'Cookie Settings',
-
     // ── Participant source display ──────────────────────
     'content_joined_via_link' => 'Joined via: :label',
     'content_source_share_link' => 'Share Link',
@@ -399,26 +373,21 @@ return [
     'content_source_application' => 'Application',
     'content_source_email_invite' => 'Email Invite',
     'content_source_short_link' => 'Short Link',
-
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice
     |--------------------------------------------------------------------------
     */
-
     'heading_policy_update' => 'Policy Update',
     'content_policy_update_body' => 'We have updated our Privacy Policy and Terms of Use.',
     'content_policy_update_privacy_link' => 'Privacy Policy',
     'content_policy_update_terms_link' => 'Terms of Use',
-
     /*
     |--------------------------------------------------------------------------
     | Legal Text Draft Notice
     |--------------------------------------------------------------------------
     */
-
     'content_legal_draft_notice' => 'This document was last updated on :date and is pending review by legal counsel. It should not be considered final legal advice.',
-
     // Participant statuses
     'status_approved' => 'Approved',
     'status_rejected' => 'Rejected',
@@ -427,7 +396,6 @@ return [
     'status_removed' => 'Removed',
     'status_cancelled' => 'Cancelled',
     'content_updating_results' => 'Updating results…',
-
     // Units
     'label_unit_km' => 'km',
     'label_unit_min' => 'min',

@@ -30,7 +30,6 @@ return [
     'label_active' => 'Aktiv',
     'label_archived' => 'Archiviert',
     'action_view' => 'Ansehen',
-
     // Share-Link-Analytik
     'heading_share_link_analytics' => 'Share-Link-Analytik',
     'heading_top_links' => 'Top-Links',

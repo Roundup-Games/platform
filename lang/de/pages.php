@@ -1,40 +1,29 @@
 <?php
 
 return [
-
     'action_join_roundup_games_today' => 'Noch heute bei :brand anmelden',
     'content_about' => 'Über uns',
-
     'content_about_heading_vision' => 'Menschen zusammenbringen, einen Tisch nach dem anderen',
-
     'content_about_intro' => ':brand ist eine gemeinnützige Organisation, die sich der Schaffung persönlicher Verbindungen durch Brett- und Tabletop-Spiele verschrieben hat. Wir glauben, dass Würfel werfen, Geschichten teilen und der direkte Austausch am Tisch Bindungen aufbaut, die Bildschirme nie erreichen können.',
-
     'content_about_what_drives_us' => 'Was uns antreibt',
     'content_all_rights_reserved' => 'Alle Rechte vorbehalten.',
     'content_built_for_real_connection' => 'Gebaut für echte Verbindung',
     'content_community' => 'Community',
-
     'content_contact' => 'Kontakt',
     'content_contact_us' => 'Kontakt',
     'content_even_if_you_never_use' => 'Auch wenn du sie nie benutzt — allein ihre Anwesenheit gibt allen die Erlaubnis, sich zu melden. Lege eine Karte mit einem „X" auf den Tisch und erkläre, wie sie funktioniert.',
     'content_every_table_has_room_for' => 'An jedem Tisch ist Platz für einen mehr. Finde Spieler und Gastgeber, bei denen du dich willkommen fühlst.',
-
     'content_how_it_works' => 'So funktioniert\'s',
     'content_no_subscriptions_required_no_credit' => 'Der Einstieg ist kostenlos — keine Kreditkarte nötig. Erstelle einen Account, richte deine Session ein und lass die Spieler zu dir kommen. Erweiterte Werkzeuge für Organisatoren sind per Abonnement verfügbar.',
     'content_organizer_profiles_are_public_you' => 'Organisatoren-Profile sind öffentlich. Du kannst über deinen Gastgeber lesen, seine Sitzungshistorie einsehen und Community-Feedback prüfen, bevor du beitrittst.',
-
     'content_see_how_it_works' => 'So funktioniert\'s ansehen',
     'content_sign_up_for_a_free' => 'Registriere dich kostenlos und klicke dann auf „Veranstaltung erstellen" in deinem Dashboard oder auf der Veranstaltungsseite.',
-
     'content_we_believe_everyone_deserves_a' => 'Wir glauben, dass jeder einen Platz am Tisch verdient. So machen wir das möglich — ohne Vorkenntnisse.',
-
     'content_we_take_trust_seriously_here' => 'Wir nehmen Vertrauen ernst. So halten wir die Community sicher und transparent.',
     'content_what_s_included' => 'Was inklusive ist',
-
     'field_send_us_a_message' => 'Sende uns eine Nachricht',
     'field_start_hosting_it_s_free' => 'Jetzt anfangen — kostenlos',
     'field_your_next_adventure_starts_here' => 'Dein nächstes Abenteuer beginnt hier',
-
     'seo_description_about' => ':brand ist eine gemeinnützige Organisation für persönliche Verbindungen durch Brett- und Tabletop-Spiele. Erfahre mehr über Transparenz, Sicherheit, Inklusivität und Community.',
     'seo_description_contact' => 'Nimm Kontakt mit dem :brand Team auf. Wir freuen uns auf deine Nachricht.',
     'seo_description_for_organizers' => 'Werkzeuge und Funktionen für Spielorganisatoren — plane Sessions, verwalte Spieler und baue deine Tabletop-Community auf.',
@@ -45,7 +34,6 @@ return [
     'seo_title_for_organizers' => 'Für Organisatoren',
     'seo_title_home' => 'Tabletop-Spiele & RPG-Sessions entdecken',
     'seo_title_how_it_works' => 'So funktioniert\'s',
-
     // ── Our Pledge ─────────────────────────────────────
     'seo_title_our_pledge' => 'Unser Versprechen an die Community',
     'seo_description_our_pledge' => 'Unser Versprechen zu Transparenz, Community-Investitionen und Open Source. :brand ist eine gemeinnützige, missionsgebundene Organisation für die Tabletop-Spiele-Community.',
@@ -61,7 +49,6 @@ return [
     'content_pledge_open_heading' => 'Offen vom Grundsatz her',
     'content_pledge_open_body' => 'Unser Code ist öffentlich auf GitHub. Unser Issue-Tracker ist öffentlich. Unsere Roadmap ist öffentlich. Wir verstecken uns nicht hinter verschlossenen Türen — wenn du wissen möchtest, wie etwas funktioniert, kannst du es herausfinden. Und wenn du denkst, dass es anders funktionieren sollte, kannst du das sagen.',
     'content_pledge_open_github' => 'Auf GitHub ansehen',
-
     'content_pledge_investment_heading' => 'Community-Investitionen',
     'content_pledge_investment_body' => 'Wohin fließt das Geld? Direkt zurück in die Verbesserung von Tabletop-Spielen für alle.',
     'content_pledge_investment_events' => 'Lokale Events & Meetups',
@@ -84,7 +71,6 @@ return [
     'content_pledge_card_operations_title' => 'Abläufe & Richtlinien',
     'content_pledge_card_operations_body' => 'Unsere Richtlinien, Moderationsleitlinien und operativen Entscheidungen sind offen zur Einsicht.',
     'content_pledge_coming_soon' => 'Demnächst',
-
     // ── Algorithms Transparency Page (M043 S02) ──
     'content_pledge_algo_hero_subtitle' => 'Jeder Algorithmus, der dein Erlebnis beeinflusst, ist hier dokumentiert — in verständlicher Sprache, mit den tatsächlichen Formeln und direkten Links zum Quellcode.',
     'content_pledge_algo_intro_1' => 'Wenn ein Algorithmus entscheidet, wer dein Profil sieht, wie deine Zuverlässigkeit bewertet wird oder welche Sessions in deinem Feed erscheinen — diese Entscheidungen beeinflussen reale Begegnungen. Eine Strafe für späte Absagen ist nicht nur eine Zahl; sie ist der Unterschied zwischen einem vollen Tisch und einem abgesagten Spieleabend.',
@@ -94,7 +80,6 @@ return [
     'content_pledge_algo_formula_heading' => 'So funktioniert\'s',
     'content_pledge_algo_tier_heading' => 'Stufen-Klassifikation',
     'content_pledge_algo_design_heading' => 'Design-Entscheidungen',
-
     // Section headings
     'heading_pledge_algo_reliability' => 'Spieler-Zuverlässigkeitswert',
     'heading_pledge_algo_attendance' => 'Anwesenheits-Auflösung',
@@ -105,14 +90,12 @@ return [
     'heading_pledge_algo_disclosure' => 'Standort-Offenlegung & Datenschutz',
     'heading_pledge_algo_trending' => 'Trending & Beliebt',
     'heading_pledge_algo_platform' => 'Plattform-Score',
-
     // Reliability Score
     'content_pledge_algo_reliability_explanation' => 'Der Spieler-Zuverlässigkeitswert ist eine auf Teilnahme basierende Kennzahl, die deine tatsächliche Historie an Spieltischen widerspiegelt — nicht deine Beliebtheit, nicht deine sozialen Verbindungen, nur ob du auftauchst, wenn du es sagst.',
     'content_pledge_algo_reliability_design_1' => 'Gastgeber erhalten strengere Strafen für späte Absagen und Nichterscheinen, da sie jeden angemeldeten Teilnehmer dieses Spiels betreffen, nicht nur sich selbst.',
     'content_pledge_algo_reliability_design_2' => 'Troll-Resistenz: Die Anwesenheit wird durch einen gewichteten Konsens der Meldungen geklärt (siehe Anwesenheits-Auflösung) — ein einzelner Melder kann also keinen Status festlegen. Erst eine Teilnahme-Schwelle und eine Mehrheit müssen zustimmen, bevor eine Strafe greift.',
     'content_pledge_algo_reliability_design_3' => 'Werte werden bei jeder Anwesenheitsänderung vollständig neu berechnet (nicht delta-basiert), um Korrektheit zu garantieren und Drift zu verhindern.',
     'content_pledge_algo_source_reliability' => 'ReliabilityScoreService.php ansehen',
-
     // Anwesenheits-Auflösung (Konsens-Engine)
     'content_pledge_algo_attendance_explanation' => 'Wenn ein Spiel endet, können Gastgeber und Teilnehmer jeweils einen Anwesenheitsbericht für dieselbe Person abgeben — und sie sind sich nicht immer einig. Die Anwesenheits-Auflösung führt diese Berichte in einem einzigen, verbindlichen Status zusammen, der in den Spieler-Zuverlässigkeitswert einfließt. Es ist ein Konsens-System mit einer bewussten Tendenz zu „Teilgenommen": eine Abwesenheit muss durch eine Mehrheit bewiesen werden, nie einfach angenommen.',
     'content_pledge_algo_attendance_methods_heading' => 'Auflösungsmethoden',
@@ -136,14 +119,12 @@ return [
     'content_pledge_algo_attendance_design_2' => 'Der Gastgeber kann entschuldigen, aber nur der Konsens kann ein „Nicht erschienen" festlegen — die Gastgeber-Befugnis ist bewusst begrenzt.',
     'content_pledge_algo_attendance_design_3' => 'Berichte werden gewichtet, sodass unzuverlässige Melder weniger Einfluss haben. Die genauen Schwellen zum Missbrauchsschutz werden bewusst nicht veröffentlicht.',
     'content_pledge_algo_source_attendance' => 'AttendanceResolutionService.php ansehen',
-
     // GM Ratings & Reviews
     'content_pledge_algo_gm_explanation' => 'SL-Bewertungen aggregieren Community-Feedback für Spielleiter in einen Durchschnittswert und eine Rezensionsanzahl. Nur veröffentlichte Rezensionen fließen in die Aggregation ein — gemeldete oder versteckte Rezensionen werden vollständig ausgeschlossen.',
     'content_pledge_algo_gm_formula_note' => 'Nur Rezensionen mit Status „veröffentlicht" sind eingeschlossen. Gemeldete oder versteckte Rezensionen werden von allen Berechnungen ausgeschlossen.',
     'content_pledge_algo_gm_design_1' => 'Nur veröffentlichte Rezensionen zählen für den Durchschnitt. Gemeldete oder versteckte Rezensionen werden ausgeschlossen, um Manipulation zu verhindern und Fairness zu gewährleisten.',
     'content_pledge_algo_gm_design_2' => 'Aggregate werden neu berechnet, wenn eine Rezension erstellt oder gelöscht wird oder ihren Status ändert (z. B. wenn eine gemeldete Rezension versteckt oder wiederhergestellt wird). So bleibt der angezeigte Wert mit dem aktuellen veröffentlichten Bestand synchron.',
     'content_pledge_algo_source_gm' => 'ReviewAggregateService.php ansehen',
-
     // People Discovery
     'content_pledge_algo_people_explanation' => 'Die Spieler-Entdeckung schlägt dir nahegelegene Spieler basierend auf Geschmackskompatibilität und sozialer Überschneidung vor. Sie nutzt deine Spielsystem-Präferenzen, Vibe-Präferenzen, Team-Mitgliedschaften und sozialen Verbindungen, um Leute zu finden, mit denen du gerne spielst. Die Ergebnisse werden von einem Hintergrund-Job vorberechnet und aus dem Cache geliefert für schnelle Ladezeiten.',
     'content_pledge_algo_people_pipeline_1' => 'Phase 1: Geohash-Kachel-Expansion',
@@ -161,7 +142,6 @@ return [
     'content_pledge_algo_people_design_3' => 'Wenn alle Signale versteckt sind (nur Standort sichtbar), erscheint der Kandidat mit „In der Nähe" als einzigem Treffergrund, damit die UI trotzdem etwas Sinnvolles anzeigt.',
     'content_pledge_algo_source_people' => 'PeopleDiscoveryService.php ansehen',
     'content_pledge_algo_source_visibility' => 'ProfileVisibilityResolver.php ansehen',
-
     // Session Recommendations
     'content_pledge_algo_session_explanation' => 'Session-Empfehlungen schlagen dir Spiele und Kampagnen vor, die zu deinen Präferenzen passen. Sie nutzen einen zweistufigen Ansatz, um die besten Treffer zuerst anzuzeigen, ohne Nutzer zu benachteiligen, die keine Vibe-Präferenzen festgelegt haben.',
     'content_pledge_algo_session_query_boosted' => 'Erweiterte Abfrage (Primär)',
@@ -174,11 +154,9 @@ return [
     'content_pledge_algo_session_design_3' => 'Vibe-Gegenseitigkeit: Einen Vibe zu favorisieren meidet automatisch seinen Partner (z. B. „Kompetitiv" meidet automatisch „Kooperativ").',
     'content_pledge_algo_source_discovery' => 'DiscoveryQueryService.php ansehen',
     'content_pledge_algo_source_preferences' => 'UserPreferenceResolver.php ansehen',
-
     // Treffen (systemübergreifende Sessions)
     'content_pledge_algo_session_gatherings_heading' => 'Treffen',
     'content_pledge_algo_session_gatherings_body' => 'Ein Treffen (Gathering) ist eine leichtere, systemübergreifende Session wie ein Brettspiel-Abend. In den Entdeckungs-Feeds sind Treffen auf etwa eines pro Seite begrenzt und werden bei gleichem Datum knapp unter fokussierten Einzelsystem-Spielen eingeordnet, damit sie nie spezifische Spiele verdrängen. In deinen Empfehlungen erscheint ein Treffen, sobald eines der angebotenen Systeme deinen Favoriten entspricht — behandelt wie jedes andere Spiel.',
-
     // Proximity Engine
     'content_pledge_algo_proximity_explanation' => 'Die Näherungs-Engine betreibt geografische Abfragen zum Finden nahegelegener Sessions, Spieler und Veranstaltungsorte. Sie nutzt einen zweiphasigen Ansatz: einen schnellen Bounding-Box-Filter gefolgt von präziser Haversine-Abstandsberechnung.',
     'content_pledge_algo_proximity_phase_1' => 'Phase 1: Bounding-Box-Vorfilter',
@@ -190,7 +168,6 @@ return [
     'content_pledge_algo_proximity_design_1' => 'Die Bounding-Box ist das kleinste Rechteck, das den Suchkreis umschließt (ihre Ecken ragen über den Kreis hinaus). Die Haversine-Formel filtert dann auf den genauen Radius — dieser zweiphasige Ansatz nutzt den B-Baum-Index für Geschwindigkeit.',
     'content_pledge_algo_source_proximity' => 'ProximityQuery.php ansehen',
     'content_pledge_algo_source_geohash' => 'Geohash.php ansehen',
-
     // Standort-Offenlegung & Datenschutz
     'content_pledge_algo_disclosure_explanation' => 'Jede Adresse und Entfernung, die du siehst — auf einer Spiel-, Kampagnen- oder Veranstalterseite — wird von einem einzigen Service entschieden. Die Standort-Offenlegung staffelt, wie viel von einem Ort sichtbar wird, basierend auf der Art des Ortes und deinem Verhältnis zum Gastgeber. Datenschutz ist der Standard, nicht die Ausnahme.',
     'content_pledge_algo_disclosure_rungs_heading' => 'Adress-Stufen',
@@ -219,7 +196,6 @@ return [
     'content_pledge_algo_disclosure_design_2' => 'Genaue Entfernungen sind verifizierten öffentlichen Orten vorbehalten. Private Orte erhalten immer eine gerasterte Entfernung, um Trilateration zu verhindern.',
     'content_pledge_algo_disclosure_design_3' => 'Eine öffentliche Veranstalterseite erfordert einen gewerblichen Typ, der verifiziert oder admin-verwaltet ist. „Sonstige" und typenlose Orte kommen nie infrage.',
     'content_pledge_algo_source_disclosure' => 'LocationDisclosureService.php ansehen',
-
     // Trending Near You
     'content_pledge_algo_trending_explanation' => 'Trending in deiner Nähe zeigt standortbezogene Spiele-Sessions basierend auf der Teilnehmerbeteiligung in deinem geografischen Bereich.',
     'content_pledge_algo_trending_criteria' => 'Auswahlkriterien',
@@ -227,19 +203,16 @@ return [
     'content_pledge_algo_trending_design_2' => 'Geohash-4-Begrenzung (~20 km × 20 km) hält die Ergebnisse echt lokal, statt beliebte Spiele von der anderen Seite der Stadt anzuzeigen.',
     'content_pledge_algo_source_dashboard_cache' => 'DashboardCacheService.php ansehen',
     'content_pledge_algo_source_warm_trending' => 'WarmTrendingNearby.php ansehen',
-
     // Platform Score
     'content_pledge_algo_platform_explanation' => 'Der Plattform-Score rangiert Spielsysteme nach Community-Engagement mittels einer gewichteten Formel, die Favoriten, Spiele gesamt, Kampagnen und aktive (geplante) Sessions berücksichtigt.',
     'content_pledge_algo_platform_design_1' => 'Brettspiele gewichten aktive Sessions am höchsten (20 Punkte), da ein aktuell geplantes Spiel das stärkste Signal für Community-Engagement ist.',
     'content_pledge_algo_platform_design_2' => 'TTRPGs gewichten Kampagnen am höchsten (15 Punkte), da laufendes Kampagnenspiel die primäre Aktivitätskennzahl für Tabletop-Rollenspielgruppen ist.',
     'content_pledge_algo_source_platform' => 'PlatformScoreService.php ansehen',
-
     // CTA
     'content_pledge_algo_cta_heading' => 'Lies den Code selbst',
     'content_pledge_algo_cta_body' => 'Jeder hier dokumentierte Algorithmus läuft aus unserem Open-Source-Repository. Klone es, prüfe es, eröffne ein Issue — es gehört dir.',
     'content_pledge_algo_cta_github' => 'Repository durchsuchen',
     'content_pledge_algo_cta_join' => 'Der Community beitreten',
-
     // ── Trust Badge Row (M043 S03) ──
     'content_trust_badge_in_person_title' => 'Persönlich vom Design her',
     'content_trust_badge_in_person_text' => 'Gebaut für echte Tische, nicht Bildschirme',
@@ -249,22 +222,18 @@ return [
     'content_trust_badge_opensource_text' => 'Jeder Algorithmus einsehbar',
     'content_trust_badge_safety_title' => 'Sicherheit eingebaut',
     'content_trust_badge_safety_text' => 'Werkzeuge, Transparenz und Verantwortung',
-
     // ── How It Works: Safety bridge sentence (M043 S04) ──
     'content_safety_bridge_trust' => 'Alles oben existiert aus einem Grund: um es sicher zu machen, neue Leute persönlich zu treffen. Wenn du sehen kannst, wer Gastgeber ist, seine Historie lesen kannst und weißt, dass die Community Organisatoren zur Verantwortung zieht, fühlt sich der Besuch bei einem Tisch mit Fremden deutlich weniger fremd an.',
     'content_safety_bridge_nonprofit' => 'Als Gemeinnützige sind unsere Anreize mit deinen ausgerichtet — wir haben keinen Grund, Sicherheit für Wachstumskennzahlen zu kompromittieren.',
     'action_learn_about_our_pledge' => 'Erfahre mehr über unser Versprechen →',
-
     // ── Safe Spaces card (M043 S03) ──
     'content_safe_spaces_trust' => 'Fremde persönlich zu treffen erfordert Vertrauen. Unsere Plattform ist gebaut, um es zu verdienen — transparente Sicherheitswerkzeuge, öffentliche Organisatoren-Profile und Community-Verantwortung, damit sich dein erster Spieleabend sicher anfühlt.',
     'content_safe_spaces_pledge_link' => 'Unser Versprechen lesen',
-
     // ── Why Local Matters (M043 S03) ──
     'content_about_why_local_heading' => 'Warum lokal wichtig ist',
     'content_about_why_local_p1' => 'Die besten Spielerlebnisse passieren persönlich. Wenn du jemandem gegenübersitzt — gemeinsam Würfel wirfst, Rätsel löst, als Team eine Geschichte navigierst — lernst du Dinge über diese Person, die kein Videoanruf je enthüllen könnte.',
     'content_about_why_local_p2' => 'Das sind die Momente, die Fremde zu Freunden und Freunde zu einer Community machen. Aber sie passieren nur, wenn Menschen sich sicher genug fühlen aufzutauchen.',
     'content_about_why_local_p3' => 'Deshalb ist :brand um lokales, persönliches Spielen herum aufgebaut. Nicht weil wir gegen digitales Spielen sind — sondern weil wir glauben, dass am Tabletop die tiefsten Verbindungen geschmiedet werden. Unsere Plattform existiert, um diese Verbindungen leichter findbar, sicherer verfolgbar und für alle offen zu machen.',
-
     // ── Values: 3 cards (M043 S03) ──
     'content_about_value_community_first_title' => 'Community zuerst',
     'content_about_value_community_first_body' => 'An jedem Tisch ist Platz für einen mehr. Wir sind eine Gemeinnützige, weil die Communities, denen wir dienen, an erster Stelle stehen — nicht Aktionäre. Wir reinvestieren in lokale Events, Organisatoren-Ausbildung und Programme, die Tabletop-Spiele einladender, zugänglicher und offener für alle machen.',
@@ -272,7 +241,6 @@ return [
     'content_about_value_safe_by_design_body' => 'Sich zu treffen, um neue Leute kennenzulernen, erfordert Vertrauen. Wir verdienen es mit eingebauten Sicherheitswerkzeugen, transparenten Algorithmen, die du selbst einsehen kannst, öffentlichen Organisatoren-Profilen und Zuverlässigkeitswerten, die echtes Verhalten widerspiegeln. Nichts versteckt, nichts, das du nicht verstehen kannst.',
     'content_about_value_open_by_default_title' => 'Offen vom Grundsatz her',
     'content_about_value_open_by_default_body' => 'Unser Code ist öffentlich auf GitHub. Unsere Bewertungs- und Matching-Algorithmen sind dokumentiert und erklärbar. Unsere Roadmap ist sichtbar. Wir glauben, dass du alles einsehen können solltest — nicht unser Wort darauf nehmen musst.',
-
     // ── Commitments section (M043 S03) ──
     'content_about_commitments_heading' => 'Unsere Versprechen',
     'content_about_commitments_subtitle' => 'Transparenz ist kein Buzzword — so arbeiten wir. Tauche tiefer in jeden Bereich ein.',
@@ -288,7 +256,6 @@ return [
     'content_about_commitment_operations_title' => 'Abläufe & Richtlinien',
     'content_about_commitment_operations_body' => 'Unsere Richtlinien, Moderationsleitlinien und operativen Entscheidungen sind offen zur Einsicht.',
     'content_about_commitment_operations_status' => 'Demnächst',
-
     // ── Algorithms detail page: table headers & labels ──
     'content_pledge_algo_table_status' => 'Status',
     'content_pledge_algo_table_player_weight' => 'Spieler-Gewichtung',
@@ -346,7 +313,6 @@ return [
     'content_pledge_algo_signal_total_games' => 'Spiele gesamt',
     'content_pledge_algo_signal_campaigns' => 'Kampagnen',
     'content_pledge_algo_signal_active_games' => 'Aktive Spiele (geplant)',
-
     // ── Algorithms detail page: formula descriptions & sr-only captions ──
     'content_pledge_algo_reliability_formula_clamped' => 'Begrenzt auf Bereich [0%, 100%]',
     'content_pledge_algo_reliability_caption' => 'Gewichtung der Anwesenheitsstatus',
@@ -354,10 +320,8 @@ return [
     'content_pledge_algo_gm_formula_count' => 'Anzahl Bewertungen = COUNT(*) WHERE status = \'published\'',
     'content_pledge_algo_gm_formula_badges' => 'Kompetenzabzeichen = TOP 3 Tags nach Häufigkeit in veröffentlichten Bewertungen',
     'content_pledge_algo_people_formula_taste' => 'Geschmack: J(A, B) = |A ∩ B| / |A ∪ B|',
-
     'content_pledge_algo_people_formula_social' => 'Sozial: (Team-Überschneidung + gegenseitiges Folgen) / Komponenten',
     'content_pledge_algo_people_formula_composite' => 'Zusammengesetzt:',
-
     'content_pledge_algo_people_caption' => 'Gewichtung der Bewertungskomponenten',
     'content_pledge_algo_session_formula_allowed' => 'erlaubt = (Favoriten + implizierte_Favoriten) − vermiedene',
     'content_pledge_algo_session_formula_boosted' => 'Boosted: erlaubt UND Lieblingsvibes',

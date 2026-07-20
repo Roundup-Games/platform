@@ -50,7 +50,6 @@ return [
     'content_no_game_systems_found' => 'No game systems found.',
     'content_no_games_found' => 'No games found',
     'content_optional_useful_for_game_night_coordination' => 'Optional — useful for game night coordination.',
-
     'content_pick_your_game_set_the' => 'Pick your game, set the date and location, choose how many players you want. It takes about thirty seconds — faster than shuffling a deck.',
     'content_running_a_multi_session_campaign' => 'Running a multi-session campaign? Group your sessions, track attendance, and keep your party connected between games. Your players always know when the next session is.',
     'content_schedule_a_new_game_session_for_players_to_join' => 'Schedule a new game session for players to join.',
@@ -58,12 +57,10 @@ return [
     'content_share_your_location_to_see' => 'Share your location to see game sessions and campaigns happening this week in your area.',
     'content_start_a_campaign_organize_a' => '**Start a campaign** — Organize a recurring game with your group.',
     'content_step_outside_your_comfort_zone' => 'Step outside your comfort zone. Try a new system, join a different group, or fall in love with a game you\'d never heard of.',
-
     'content_this_is_a_protected_game' => 'This is a connections-only game. Your application will be reviewed by the game owner before you can join.',
     'content_three_steps_to_your_next_game_night' => 'Three steps to your next game night',
     'content_unlimited_games' => 'Unlimited Games',
     'content_use_stars_wishes_or_a' => 'Use Stars & Wishes or a debrief after sessions. Regular check-ins build a culture of trust and make your games better over time.',
-
     'content_you_have_already_applied_to_this_game' => 'You have already applied to this game.',
     'content_you_have_joined_the_game' => 'You have joined the game!',
     'content_you_have_been_placed_on_the_bench' => 'The session is full — you\'ve been placed on the bench.',
@@ -89,7 +86,6 @@ return [
     'error_clone_own_only' => 'You can only clone your own game sessions.',
     'error_select_game_type' => 'Please select a game type before creating.',
     'error_you_cannot_apply_to_your_own_game' => 'You cannot apply to your own game.',
-
     'field_max_players' => 'Max Players',
     'field_game_type' => 'Game Type',
     'content_max_players_venue_hint' => 'Think venue size — how many can comfortably fit?',
@@ -97,10 +93,8 @@ return [
     'field_min_players' => 'Min Players',
     'field_minimum_complexity' => 'Minimum complexity',
     'flash_game_name_created_successfully' => 'Game ":name" created successfully!',
-
     // New keys for entity domain migration
     'content_part_of_campaign_name' => 'Part of Campaign: :name',
-
     // Moved from events domain — game-specific
     'action_apply_to_join' => 'Apply to Join',
     'action_join_via_share_link' => 'Join via Link',
@@ -131,14 +125,11 @@ return [
     'error_name_is_in_your_favorites_the_avoid_preference' => ':name is in your favorites. The avoid preference will take priority.',
     'error_name_s_base_game_base_name_is_in_your_avoid_list' => ':name\'s base game (:baseName) is in your avoid list. You cannot favorite an expansion of an avoided base game.',
     'error_name_s_base_game_base_name_is_in_your_favorites' => ':name\'s base game (:baseName) is in your favorites. The avoid preference will take priority.',
-
     // Guest nudge keys
     'guest_nudge_join_game' => 'Sign up to join this game session!',
     'guest_nudge_game_detail' => 'Create a free account to join game sessions near you.',
-
     // Guest navigation
     'action_back_to_discover' => 'Back to Discover',
-
     // GamesPage - My Games section
     'heading_my_games' => 'My Games',
     'action_cancel_game' => 'Cancel Game',
@@ -150,7 +141,6 @@ return [
     'flash_game_completed' => 'Game marked as completed.',
     'error_game_not_scheduled' => 'Only scheduled games can be modified.',
     'confirm_cancel_game' => 'Are you sure you want to cancel this game?',
-
     // GamesPage — priority board sections
     'heading_needs_your_attention' => 'Needs your attention',
     'heading_upcoming_hosting' => 'Upcoming — you\'re hosting',
@@ -162,9 +152,7 @@ return [
     'action_empty_discover' => 'Find sessions',
     'action_empty_plan' => 'Plan a session',
     'content_needs_attention_hint' => 'Items below need your action before they escalate.',
-
     // GamesPage — Games I'm In section
-
     // GamesPage — Open Invitations section
     'heading_open_invitations' => 'Open Invitations',
     'action_accept_invitation' => 'Accept',
@@ -181,7 +169,6 @@ return [
     'activity_created_game' => 'created a new game',
     'activity_joined_game' => 'joined a game',
     'activity_completed_game' => 'completed a game',
-
     // Game Systems Knowledge Base
     'action_explore_game_systems' => 'Explore Game Systems',
     'content_game_systems_knowledge_base_subtitle' => 'Browse the complete library of board games, card games, and RPGs. Filter by category, mechanics, player count, and complexity to find your next favorite.',
@@ -226,12 +213,10 @@ return [
     'content_min' => 'min',
     'heading_about_this_game' => 'About this Game',
     'heading_game_details' => 'Game Details',
-
     // Type tabs
     'action_type_all' => 'All',
     'action_type_boardgame' => 'Board Games',
     'action_type_ttrpg' => 'Tabletop Adventures',
-
     // TTRPG detail page
     'heading_how_to_play' => 'How to Play',
     'heading_faq' => 'Frequently Asked Questions',
@@ -242,7 +227,6 @@ return [
     'field_designer' => 'Designer|Designers',
     'content_sp_rating' => 'Community Rating',
     'link_type_purchase' => 'Purchase',
-
     // Game type labels
     'type_board_game' => 'Board Game',
     'type_ttrpg' => 'TTRPG',
@@ -265,7 +249,6 @@ return [
     'placeholder_game_description' => 'Describe the session...',
     'placeholder_game_name' => 'e.g. Dungeon Crawl Night',
     'placeholder_comfort_notes' => 'Any comfort notes for players?',
-
     // Edit game
     'action_edit_game' => 'Edit',
     'heading_edit_game' => 'Edit Game',
@@ -275,7 +258,6 @@ return [
     'field_location' => 'Location',
     'field_visibility' => 'Visibility',
     'flash_game_updated' => 'Game updated successfully.',
-
     // Game system info card (shared partial)
     'action_show_game_system_details' => 'Show game system details',
     'action_view_full_details' => 'View full details',
@@ -284,7 +266,6 @@ return [
     'action_visit' => 'Visit',
     'field_year' => 'Year',
     'content_expansions_count' => '{1}One expansion|[2,*]:count expansions',
-
     // Game System Request Form
     'heading_request_game_system' => 'Request a Game System',
     'content_request_game_system_subtitle' => 'Can\'t find the game system you\'re looking for? Submit a request and we\'ll add it.',
@@ -304,7 +285,6 @@ return [
     'request_success' => 'Your request has been submitted! We\'ll review it and add the game system soon.',
     'request_error_duplicate' => 'You already have a pending request for this game system.',
     'request_error_rate_limit' => 'You\'ve reached the daily limit of 3 requests. Please try again in :hours hours.',
-
     // My Requests page
     'heading_my_requests' => 'My Requests',
     'content_my_requests_subtitle' => 'Track the status of your game system requests.',
@@ -315,29 +295,23 @@ return [
     'request_status_approved' => 'Approved',
     'request_status_rejected' => 'Rejected',
     'request_status_duplicate' => 'Duplicate',
-
     // Request CTA (used in catalog and game-systems pages)
     'request_cta_link' => 'Request a game system',
     'request_cta_catalog_header' => 'Can\'t find what you\'re looking for?',
-
     // Waitlist
     'action_join_waitlist' => 'Join Waitlist',
     'action_leave_waitlist' => 'Leave Waitlist',
     'content_game_full_join_waitlist' => 'This game is full. Join the waitlist to be notified when a spot opens up.',
     'content_waitlist_position' => 'You are #:position on the waitlist.',
-
     'content_spot_opened_confirm' => 'A spot opened up! Confirm your participation before :deadline.',
     'action_confirm_spot' => 'Confirm Spot',
     'action_decline_spot' => 'Decline Spot',
     'action_manual_promote' => 'Promote',
     'content_waitlist_management' => 'Waitlist',
-
     'content_waitlist_spot_confirmed' => 'You have confirmed your spot!',
     'content_waitlist_spot_declined' => 'You have declined the spot.',
     'content_added_to_waitlist' => 'You have been added to the waitlist.',
-
     'flash_manual_promote_success' => 'Player has been promoted from the waitlist.',
-
     // Reliability preference / attendance tolerance
     'field_attendance_tolerance' => 'Attendance Tolerance',
     'hint_attendance_tolerance' => 'How strict should attendance be for this session? This is a soft preference, not a hard filter.',
@@ -348,7 +322,6 @@ return [
     'field_reliability_preference' => 'Attendance Preference',
     'hint_reliability_preference' => 'How strict should attendance be for this session? This is a soft preference, not a hard filter.',
     'content_host_prefers_attendance' => 'Host prefers ≥:percent% attendance',
-
     // Recap
     'title_host_recap' => 'Host Recap',
     'content_recap_by' => 'Written by :host',
@@ -362,9 +335,7 @@ return [
     'title_write_recap' => 'Write a Recap',
     'content_write_recap_description' => 'Share what happened in this session with your players.',
     'label_recap_placeholder' => 'Share what happened in this session…',
-
     'action_recap_submit' => 'Publish Recap',
-
     // Debriefing
     'title_debriefing_responses' => 'Debriefing Responses',
     'title_debriefing_submit' => 'Session Debriefing',
@@ -387,34 +358,27 @@ return [
     'content_debriefing_prompt_safety_concerns' => 'Any safety concerns?',
     'content_debriefing_prompt_star' => 'Give a star — something positive about the session',
     'content_debriefing_prompt_wish' => 'A wish — something for next time',
-
     // Visibility labels
-
     // Participant role labels
     'field_role_owner' => 'Owner',
     'field_role_player' => 'Player',
     'field_role_invited' => 'Invited',
     'field_role_applicant' => 'Applicant',
-
     // Participant status labels
     'status_approved' => 'Approved',
     'status_pending' => 'Pending',
     'status_rejected' => 'Rejected',
     'status_waitlisted' => 'Waitlisted',
     'status_accepted' => 'Accepted',
-
     // Experience levels
     'content_experience_beginner' => 'Beginner',
     'content_experience_intermediate' => 'Intermediate',
     'content_experience_advanced' => 'Advanced',
     'content_experience_all' => 'All Levels',
-
     'content_spots_available' => '{0} No spots available (full)|{1} 1 spot available out of :max|[2,*] :count spots available out of :max',
-
     // SEO
     'seo_title_my_games' => 'My Games',
     'seo_description_my_games' => 'View and manage your games, invitations, and activity feed on :brand.',
-
     // Bulletin Board
     'title_bulletin_board' => 'Host Updates',
     'heading_bulletin_board' => 'Host Updates',
@@ -432,12 +396,10 @@ return [
     'content_bulletin_expires_at' => 'Expires :time',
     'push_bulletin_title' => 'Update from :host',
     'push_bulletin_body' => ':game — :content',
-
     // Spot availability
     'content_full' => 'Full',
     'content_spots_left_short' => '{1} 1 spot left|[2,*] :count spots left',
     'content_availability' => 'Availability',
-
     // Leave game
     'action_leave_game' => 'Leave Game',
     'confirm_leave_game' => 'Are you sure you want to leave this game? Your spot will be released.',
@@ -445,7 +407,6 @@ return [
     'error_not_a_participant' => 'You are not a participant in this game.',
     'flash_you_left_the_game' => 'You have left the game.',
     'content_leave_hint' => 'Changed your mind?',
-
     // Attendance reporting
     'title_attendance_report' => 'Report Attendance',
     'content_attendance_report_description' => 'Mark each participant as attended, no-show, or excused.',
@@ -463,7 +424,6 @@ return [
     'error_dispute_reason_min' => 'The reason must be at least 10 characters.',
     'error_dispute_reason_max' => 'The reason must not exceed 1000 characters.',
     'label_host' => 'Host',
-
     // Three-state attendance UI
     'title_submit_attendance' => 'Submit Attendance Report',
     'title_attendance_submitted' => 'Your report has been submitted',
@@ -486,7 +446,6 @@ return [
     'label_votes_attended' => 'Attended (:count)',
     'label_votes_no_show' => 'No Show (:count)',
     'label_votes_excused' => 'Excused (:count)',
-
     // Capacity editor (host affordance, GameDetail)
     'title_capacity' => 'Capacity',
     'action_edit_capacity' => 'Edit Capacity',
@@ -516,7 +475,6 @@ return [
     'error_capacity_reason_too_long' => 'The reason must be 500 characters or fewer.',
     'error_gathering_requires_system' => 'Please select at least one game system for the gathering.',
     'error_system_required' => 'Please select a game system for the session.',
-
     // Cover image upload (host-uploaded entity covers — S07/T02)
     'field_cover_image' => 'Cover Image',
     'content_cover_image_hint' => 'Upload a cover image (JPEG, PNG, or WebP, max 5 MB). Optional — we\'ll use the game system\'s cover if you don\'t provide one.',

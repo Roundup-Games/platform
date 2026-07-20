@@ -78,7 +78,6 @@ return [
     'field_session_name' => 'Sitzungsname',
     'field_start_your_first_session_it_s_free' => 'Starte deine erste Session — kostenlos',
     'flash_campaign_name_created_successfully' => 'Kampagne ":name" erfolgreich erstellt!',
-
     // New keys for entity domain migration
     'action_add_session' => 'Session hinzufügen',
     'action_add_session_to_campaign' => 'Session zur Kampagne hinzufügen',
@@ -110,32 +109,25 @@ return [
     'content_bench' => 'Bank',
     'content_bench_description' => 'Diese Spieler sitzen auf der Bank. Befördere sie, wenn ein Platz frei wird.',
     'action_promote_from_bench' => 'Befördern',
-
     'content_campaign_full_join_waitlist' => 'Diese Kampagne ist voll. Tritt der Warteliste bei, um benachrichtigt zu werden, wenn ein Platz frei wird.',
     'content_waitlist_position' => 'Du bist #:position auf der Warteliste.',
     'content_waitlist_management' => 'Warteliste',
     'content_added_to_waitlist' => 'Du wurdest zur Warteliste hinzugefügt.',
     'content_you_have_been_placed_on_the_waitlist' => 'Die Kampagne ist voll — du wurdest auf die Warteliste gesetzt.',
-
     'action_join_waitlist' => 'Warteliste beitreten',
     'action_leave_waitlist' => 'Warteliste verlassen',
     'action_manual_promote' => 'Befördern',
-
     'content_application_submitted_the_campaign_owner' => 'Bewerbung eingereicht! Der Kampagnenbesitzer wird sie prüfen.',
     'content_application_pending' => 'Bewerbung ausstehend',
     'content_waiting_for_host_approval' => 'Warte auf die Bestätigung durch den Host.',
-
     // Errors
     'error_this_campaign_does_not_accept_applications' => 'Diese Kampagne nimmt keine Bewerbungen an.',
     'error_you_cannot_apply_to_your_own_campaign' => 'Du kannst dich nicht auf deine eigene Kampagne bewerben.',
-
     // Gast-Nudge-Schlüssel
     'guest_nudge_join_campaign' => 'Melde dich an, um dieser Kampagne beizutreten!',
     'guest_nudge_campaign_detail' => 'Erstelle ein kostenloses Konto, um an Kampagnen in deiner Nähe teilzunehmen.',
-
     // Gast-Navigation
     'action_back_to_discover' => 'Zurück zur Entdeckungsseite',
-
     // CampaignsPage — Meine Kampagnen
     'heading_my_campaigns' => 'Meine Kampagnen',
     'action_cancel_campaign' => 'Kampagne abbrechen',
@@ -148,18 +140,15 @@ return [
     'error_campaign_not_active' => 'Nur aktive Kampagnen können geändert werden.',
     'confirm_cancel_campaign' => 'Bist du sicher, dass du diese Kampagne abbrechen möchtest?',
     'content_no_owned_campaigns' => 'Du hast noch keine Kampagnen erstellt.',
-
     // CampaignsPage — priorisierte Bereiche
     'heading_active_hosting' => 'Aktiv — du organisierst',
     'heading_active_playing' => 'Aktiv — du spielst mit',
     'content_empty_no_campaigns_title' => 'Noch keine Kampagnen',
     'content_empty_no_campaigns_body' => 'Finde eine wiederkehrende Gruppe zum Beitreten, oder starte deine eigene Kampagne.',
     'action_empty_find_adventures' => 'Abenteuer finden',
-
     // CampaignsPage — Kampagnen, an denen ich teilnehme
     'heading_campaigns_im_in' => 'Kampagnen, an denen ich teilnehme',
     'content_no_campaigns_joined' => 'Du hast noch keine Kampagnen beigetreten.',
-
     // CampaignsPage — Offene Einladungen
     'heading_open_invitations' => 'Offene Einladungen',
     'action_accept_invitation' => 'Annehmen',
@@ -170,7 +159,6 @@ return [
     'error_invitation_invalid' => 'Diese Einladung ist nicht mehr gültig.',
     'error_campaign_full' => 'Diese Kampagne ist bereits voll.',
     'content_no_pending_invitations' => 'Keine ausstehenden Einladungen.',
-
     // CampaignsPage — Community
     'heading_community' => 'Community',
     'content_no_community_campaigns' => 'Derzeit keine Community-Kampagnen verfügbar.',
@@ -181,23 +169,17 @@ return [
     'activity_completed_campaign' => 'hat eine Kampagne abgeschlossen',
     'activity_scheduled_session_for' => 'hat eine neue Sitzung geplant für',
     'activity_scheduled_session' => 'hat eine neue Sitzung geplant',
-
     // Kampagne bearbeiten
     'action_edit_campaign' => 'Bearbeiten',
     'heading_edit_campaign' => 'Kampagne bearbeiten',
     'flash_campaign_updated' => 'Kampagne erfolgreich aktualisiert.',
-
     // Bankmodus
-
     'content_bench_mode_requires_gm' => 'Nur Spielleiter können den Bankmodus aktivieren.',
     'content_bench_mode_description' => 'Überschüssige Spieler werden auf die Bank gesetzt statt auf die Warteliste.',
-
     'content_spots_available' => '{0} Keine Plätze verfügbar (voll)|{1} 1 Platz verfügbar von :max|[2,*] :count Plätze verfügbar von :max',
-
     // SEO
     'seo_title_my_campaigns' => 'Meine Kampagnen',
     'seo_description_my_campaigns' => 'Verwalte deine Kampagnen, Einladungen und den Aktivitäts-Feed auf :brand.',
-
     // Leave campaign
     'action_leave_campaign' => 'Kampagne verlassen',
     'confirm_leave_campaign' => 'Möchtest du diese Kampagne wirklich verlassen? Dein Platz wird freigegeben.',
@@ -206,7 +188,6 @@ return [
     'flash_you_left_the_campaign' => 'Du hast die Kampagne verlassen.',
     'content_leave_hint' => 'Dir haben sich die Pläne geändert?',
     'content_gathering_campaign_hint' => 'Ein regelmäßiger Brettspielabend oder lockeres Treffen. Sitzungen erben diesen Typ.',
-
     // Type-selection step (mirrors CreateGame's card picker)
     'content_what_are_you_setting_up' => 'Was möchtest du erstellen?',
     'content_pick_the_type_for_your_recurring_event' => 'Wähle den Typ für dein wiederkehrendes Event. Du kannst ihn jederzeit ändern.',

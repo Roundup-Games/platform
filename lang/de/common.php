@@ -27,10 +27,8 @@ return [
     'action_edit' => 'Bearbeiten',
     'action_enter_amount_in_cents_e_g_500_5_00' => 'Betrag in Cent eingeben (z.B. 500 = 5,00 € / $5.00)',
     'action_join_count_organizers_who_bring_people_together' => '{1} Schließe dich :count Organisator an, der Menschen zusammenbringt|[2,*] Schließe dich :count Organisatoren an, die Menschen zusammenbringen',
-
     'action_manage' => 'Verwalten',
     'action_next' => 'Weiter →',
-
     'action_publish' => 'Veröffentlichen',
     'action_publish_immediately' => 'Sofort veröffentlichen',
     'action_loading' => 'Laden...',
@@ -74,7 +72,6 @@ return [
     'content_created_by_beau_j_gr_sheldon' => 'Erstellt von Beau Jágr Sheldon.',
     'content_created_by_john_stavropoulos_learn_more_at' => 'Erstellt von John Stavropoulos. Mehr unter',
     'content_creating' => 'Wird erstellt...',
-
     'content_custom' => 'Benutzerdefiniert',
     'content_danger_zone' => 'Gefahrenzone',
     'content_deleting' => 'Löschen...',
@@ -86,7 +83,6 @@ return [
     'content_either' => 'Beliebig',
     'content_est' => 'Gegr.',
     'content_every_2_weeks' => 'Alle 2 Wochen',
-
     'content_female' => 'Weiblich',
     'content_filters' => 'Filter:',
     'content_for_general_inquiries_and_support' => 'Für allgemeine Anfragen und Support.',
@@ -107,7 +103,6 @@ return [
     'content_in_cents' => 'in Cent',
     'content_in_progress' => 'Laufend',
     'content_in_progress_badge' => '● Laufend',
-
     'content_individual' => 'Einzelperson',
     'content_individual_only' => 'Nur Einzelperson',
     'content_internal_notes_visible_only_to_organizers' => 'Interne Notizen (nur für Organisatoren sichtbar)...',
@@ -139,7 +134,6 @@ return [
     'content_opens_at' => 'Eröffnet am',
     'content_optional' => '(optional)',
     'content_order_summary' => 'Bestellübersicht',
-
     'content_other' => 'Sonstige',
     'content_other_ways_to_reach_us' => 'Andere Wege, uns zu erreichen',
     'content_owner' => 'Besitzer',
@@ -179,7 +173,6 @@ return [
     'content_sending' => 'Wird gesendet...',
     'content_she_her' => 'Sie/Ihr',
     'content_show_up_and_play' => 'Komm vorbei und spiel',
-
     'content_skip_to_content' => 'Zum Inhalt springen',
     'aria_toggle_navigation_menu' => 'Navigationsmenü umschalten',
     'aria_main_navigation' => 'Hauptnavigation',
@@ -188,14 +181,12 @@ return [
     'content_subject' => 'Betreff',
     'content_subscribe' => 'Abonnieren',
     'content_substitute' => 'Ersatzspieler',
-
     'content_tabletop_gaming_is_about_more' => 'Brettspiele sind mehr als Regeln. Es geht um die Menschen, mit denen du am Tisch sitzt.',
     'content_tell_the_host_why_you_d_like_to_join' => 'Erzähle dem Veranstalter, warum du beitreten möchtest...',
     'content_tell_us_about_yourself' => 'Erzähl uns von dir',
     'content_thank_you_for_your_message' => 'Vielen Dank für deine Nachricht! Wir melden uns in Kürze bei dir.',
     'content_the_digital_parlor_for_tabletop_enthusiasts' => 'Tabletop-Spieler zusammenbringen, einen Tisch nach dem anderen.',
     'content_there_s_a_seat_waiting_for_you' => 'Es wartet ein Platz auf dich.',
-
     'content_they_them' => 'Sie/Ihnen',
     'content_this_helps_us_personalize_your_experience' => 'Das hilft uns, dein Erlebnis zu personalisieren.',
     'content_this_month' => 'Dieser Monat',
@@ -217,7 +208,6 @@ return [
     'content_n_waitlisted' => '{1} :count auf Warteliste|[2,*] :count auf Warteliste',
     'content_n_on_bench' => '{1} :count auf der Bank|[2,*] :count auf der Bank',
     'content_we_typically_respond_within_24' => 'Wir antworten in der Regel innerhalb von 24–48 Stunden an Werktagen.',
-
     'content_you' => '(du)',
     'content_your_favorites' => 'Deine Favoriten',
     'error_cannot_remove_the_entity_owner' => 'Der :entity-Besitzer kann nicht entfernt werden.',
@@ -287,7 +277,6 @@ return [
     'status_following' => 'folge ich',
     'status_pending' => 'Ausstehend',
     'status_published' => 'Veröffentlicht',
-
     // Shared by ManageParticipants trait (games + campaigns)
     'flash_participant_removed' => 'Teilnehmer entfernt.',
     'flash_waitlist_promoted' => 'Spieler von der Warteliste befördert.',
@@ -302,7 +291,6 @@ return [
     'flash_follower_removed' => 'Du hast :name aus deinen Followern entfernt.',
     'flash_user_blocked' => 'Du hast :name blockiert.',
     'flash_user_unblocked' => 'Du hast :name entblockiert.',
-
     // Share-Link-Verwaltung
     'flash_share_link_generated' => 'Share-Link erstellt.',
     'flash_share_link_revoked' => 'Share-Link widerrufen.',
@@ -321,35 +309,28 @@ return [
     'content_hits' => '{1} :count Aufruf|[2,*] :count Aufrufe',
     'placeholder_link_label' => 'Bezeichnung (optional)',
     'error_max_links_reached' => 'Maximale Anzahl an Short Links für diese Entität erreicht.',
-
     // Shared entity concepts (events, games, campaigns)
     'content_participants' => 'Teilnehmer',
     'content_count_participants' => '{1} :count Teilnehmer|[2,*] :count Teilnehmer',
     'content_no_participants_yet' => 'Noch keine Teilnehmer.',
     'content_applications' => 'Bewerbungen',
-
     'action_no_let_me_search' => 'Nein, selbst suchen',
     'action_remove_name' => ':name entfernen',
     'content_searching' => 'Suche läuft...',
     'content_yes_that_s_right' => 'Ja, das stimmt',
-
     // Theme toggle
     'content_light' => 'Hell',
     'content_dark' => 'Dunkel',
     'content_system' => 'System',
-
     // Activity feed
     'activity_and_others' => 'und :count andere',
-
     // Onboarding
     'content_this_step_is_optional' => 'Dieser Schritt ist optional — du kannst deine Präferenzen jederzeit später anpassen.',
     'content_step_optional_badge' => 'Optional',
     'content_inactive' => 'Inaktiv',
-
     // Authorization
     'status_not_authorized' => 'Keine Berechtigung',
     'price_free' => 'Kostenlos',
-
     // Activity types
     'activity_type_game_created' => 'Spiel erstellt',
     'activity_type_game_completed' => 'Spiel abgeschlossen',
@@ -367,28 +348,21 @@ return [
     'activity_type_campaign_updated' => 'Kampagne aktualisiert',
     'activity_type_session_recapped' => 'Sitzungsnachbericht',
     'activity_type_debriefing_submitted' => 'Hat ein Sitzungs-Feedback eingereicht',
-
     // Dashboard-Aktivitätszeitlinie
-
     // Sprachen
     'label_language_en' => 'Englisch',
     'label_language_de' => 'Deutsch',
-
     // E-Mail-Einladungen
     'content_or' => 'oder',
-
     // Discovery card overflow indicators
-
     // ── Navigation ──────────────────────────────────────
     'nav_our_pledge' => 'Unser Versprechen',
-
     // ── Footer ──────────────────────────────────────────
     'content_community_and_trust' => 'Community & Vertrauen',
     'nav_privacy' => 'Datenschutzerklärung',
     'nav_terms' => 'Nutzungsbedingungen',
     'nav_impressum' => 'Impressum',
     'nav_cookie_settings' => 'Cookie-Einstellungen',
-
     // ── Teilnehmerquelle-Anzeige ────────────────────────
     'content_joined_via_link' => 'Beigetreten über: :label',
     'content_source_share_link' => 'Freigabelink',
@@ -396,25 +370,20 @@ return [
     'content_source_application' => 'Bewerbung',
     'content_source_email_invite' => 'E-Mail-Einladung',
     'content_source_short_link' => 'Kurzlink',
-
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice
     |--------------------------------------------------------------------------
     */
-
     'heading_policy_update' => 'Aktualisierung der Richtlinien',
     'content_policy_update_body' => 'Wir haben unsere Datenschutzrichtlinie und Nutzungsbedingungen aktualisiert.',
     'content_policy_update_privacy_link' => 'Datenschutzrichtlinie',
     'content_policy_update_terms_link' => 'Nutzungsbedingungen',
-
     'content_legal_draft_notice' => 'Dieses Dokument wurde zuletzt am :date aktualisiert und wartet auf die Überprüfung durch den Rechtsbeistand. Es stellt keine endgültige Rechtsberatung dar.',
-
     // ── Locale Switcher / Translations ─────────────────
     'content_translations' => 'Übersetzungen',
     'action_copy_from_baseline' => ':field aus Primärsprache kopieren',
     'action_copy_from_baseline_short' => 'Aus Primärsprache kopieren',
-
     // Participant statuses
     'status_approved' => 'Bestätigt',
     'status_rejected' => 'Abgelehnt',
@@ -423,7 +392,6 @@ return [
     'status_removed' => 'Entfernt',
     'status_cancelled' => 'Abgesagt',
     'content_updating_results' => 'Ergebnisse werden aktualisiert…',
-
     // Einheiten
     'label_unit_km' => 'km',
     'label_unit_min' => 'Min.',

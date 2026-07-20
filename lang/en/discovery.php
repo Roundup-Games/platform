@@ -46,7 +46,6 @@ return [
     'content_tactical' => 'Tactical',
     'content_type' => 'Type *',
     'content_type_word_to_confirm' => 'Type :word to confirm',
-
     'content_what_s_happening_near_you' => 'What\'s happening near you?',
     'field_any_date' => 'Any Date',
     'field_any_distance' => 'Any Distance',
@@ -62,7 +61,6 @@ return [
     'action_find_games_and_campaigns_that_match_your_vibe' => 'Find games and campaigns that match your vibe.',
     'content_tone_atmosphere' => 'Tone & Atmosphere',
     'content_social' => 'Social',
-
     'content_sandbox' => 'Sandbox / Open World',
     'content_rule_of_cool' => 'Rule of Cool',
     'content_dungeon_crawl' => 'Dungeon Crawl',
@@ -74,7 +72,6 @@ return [
     'content_organized_play' => 'Organized Play',
     'content_west_marches' => 'West Marches',
     'content_format' => 'Format',
-
     // ── Game System Categories (top 15 by count) ───────────────────
     'cat_card-game' => 'Card Game',
     'cat_medieval' => 'Medieval',
@@ -91,7 +88,6 @@ return [
     'cat_wargame' => 'Wargame',
     'cat_dice' => 'Dice',
     'cat_adventure' => 'Adventure',
-
     // ── Game System Mechanics (top 15 by count) ─────────────────────
     'mech_hand-management' => 'Hand Management',
     'mech_open-drafting' => 'Open Drafting',
@@ -108,7 +104,6 @@ return [
     'mech_simultaneous-action-selection' => 'Simultaneous Action Selection',
     'mech_cooperative-game' => 'Cooperative Game',
     'mech_team-based-game' => 'Team-Based Game',
-
     // TTRPG / Adventures discovery
     'content_genre_categories' => 'Genre Categories',
     'content_play_styles' => 'Play Styles',
@@ -122,21 +117,18 @@ return [
     'play_style_tone' => 'Tone',
     'play_style_rules' => 'Rules',
     'play_style_format' => 'Format',
-
     // PlayStyle enum labels
     'playstyle_narrative_first' => 'Narrative-First',
     'playstyle_tactical' => 'Tactical',
     'playstyle_osr' => 'OSR',
     'playstyle_sandbox' => 'Sandbox',
     'playstyle_horror' => 'Horror',
-
     // PlayStyle enum descriptions
     'playstyle_narrative_first_desc' => 'Story and character development take center stage. Rules serve the narrative.',
     'playstyle_tactical_desc' => 'Strategic depth, detailed combat, and crunchy mechanics. Every decision matters.',
     'playstyle_osr_desc' => 'Old-school challenge, player ingenuity, and rulings over rules. The dice are cruel but fair.',
     'playstyle_sandbox_desc' => 'Open-world freedom with no fixed plot. Go anywhere, do anything, face the consequences.',
     'playstyle_horror_desc' => 'Tension, dread, and survival against overwhelming odds. Hope is a limited resource.',
-
     // ── Discovery Portal ────────────────────────────────────────
     'field_what_are_you_in_the_mood_for' => 'What are you in the mood for?',
     'content_choose_your_adventure' => 'Choose your adventure.',
@@ -145,7 +137,6 @@ return [
     'field_tabletop_adventures' => 'Tabletop Adventures',
     'content_join_campaigns_oneshots' => 'Join campaigns, one-shots, and everything in between.',
     'content_looking_for_players' => 'looking for players',
-
     // SEO
     'seo_title_discover' => 'Discover',
     'seo_description_discover' => 'Find board games and tabletop RPG sessions near you. Browse games, campaigns, and events in your area.',

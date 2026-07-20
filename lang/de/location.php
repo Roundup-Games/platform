@@ -39,7 +39,6 @@ return [
     'placeholder_neighborhood_optional' => 'Stadtteil oder Viertel (optional)',
     'hint_neighborhood_profile' => 'Hilft Spielern, Spiele in der Nähe zu finden. Wird nicht anderen angezeigt, es sei denn, du teilst es.',
     'field_address_optional' => 'Adresse (optional)',
-
     // ── Venue Proposals ──────────────────────────────────────────
     'heading_propose_venue' => 'Veranstaltungsort vorschlagen',
     'content_propose_venue_subtitle' => 'Kennst du einen tollen Ort für Brettspiele? Lass es uns wissen und wir nehmen ihn ins Verzeichnis auf.',
@@ -64,10 +63,8 @@ return [
     'type_convention' => 'Convention / Messegelände',
     'type_bar' => 'Bar / Pub',
     'type_other' => 'Sonstiges',
-
     // Errors
     'error_proposal_submission_failed' => 'Vorschlag konnte nicht gesendet werden. Bitte versuche es später erneut.',
-
     // ── Organizer disclosure-consequence preview (T08) ──────────────────────
     'content_preview_exact' => 'Spieler sehen die vollständige Adresse: :address',
     'content_preview_area' => 'Spieler sehen bis zum Beitritt nur „In deinem Umkreis“.',

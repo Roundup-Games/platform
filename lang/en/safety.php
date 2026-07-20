@@ -1,14 +1,12 @@
 <?php
 
 return [
-
     'content_custom_safety_note' => 'Custom Safety Note',
     'content_everyone_deserves_to_feel_safe' => 'Everyone deserves to feel safe and comfortable at the table. Safety tools are simple practices that help groups communicate boundaries and keep the focus on fun.',
     'content_for_rpg_campaigns_we_encourage' => 'For RPG campaigns, we encourage session zero — a pre-game conversation about expectations, boundaries, and play style. It sets the tone for a great experience.',
     'content_have_an_x_card_on_the_table' => 'Have an X-Card on the Table',
     'content_learn_more_about_safety_tools' => 'Learn more about safety tools',
     'content_lines_veils_details' => 'Lines & Veils Details',
-
     'content_safety_tools' => 'Safety Tools',
     'content_session_zero_support' => 'Session Zero',
     'content_the_single_most_impactful_thing' => 'The single most impactful thing you can do. Set aside time before your first game to discuss expectations, themes, and boundaries as a group.',
@@ -20,12 +18,10 @@ return [
     'content_your_safety_built_in' => 'Your safety, built in',
     'field_safety_tools_for_tabletop_gaming' => 'Safety Tools for Tabletop Gaming',
     'field_start_with_session_zero' => 'Start with Session Zero',
-
     // ── Safety Tool Categories ──────────────────────────────────────
     'category_before' => 'Before the Game',
     'category_during' => 'During the Game',
     'category_after' => 'After the Game',
-
     // ── Safety Tool Labels ──────────────────────────────────────────
     'tool_session_zero' => 'Session Zero',
     'tool_lines_and_veils' => 'Lines & Veils',
@@ -36,7 +32,6 @@ return [
     'tool_breaks' => 'Breaks',
     'tool_stars_and_wishes' => 'Stars & Wishes',
     'tool_debriefing' => 'Debriefing',
-
     // ── Safety Tool Short Descriptions ──────────────────────────────
     'tool_session_zero_short' => 'A pre-game session to set expectations, discuss boundaries, and build trust.',
     'tool_lines_and_veils_short' => 'Define hard limits (lines) and fade-to-black topics (veils) before play.',
@@ -47,7 +42,6 @@ return [
     'tool_breaks_short' => 'Scheduled or on-demand breaks for decompression during play.',
     'tool_stars_and_wishes_short' => 'Highlight what worked (stars) and suggest changes (wishes) after a session.',
     'tool_debriefing_short' => 'A structured post-game conversation about emotional impact and experience.',
-
     // ── Safety Tool Full Descriptions ───────────────────────────────
     'tool_session_zero_full' => 'A dedicated session before gameplay begins where the group discusses the game\'s tone, themes, boundaries, and expectations. It establishes a foundation of trust and ensures everyone is comfortable with the direction of the game. Session Zero is widely considered the single most impactful safety practice in tabletop roleplaying.',
     'tool_lines_and_veils_full' => 'A tool for establishing content boundaries before and during play. "Lines" are topics that will not appear in the game at all (hard limits). "Veils" are topics that may happen but only off-screen or with a fade-to-black (soft limits). This framework allows players to communicate their comfort levels clearly without having to explain why.',
@@ -58,10 +52,8 @@ return [
     'tool_breaks_full' => 'Regular breaks during gameplay provide space for players to decompress, process emotions, and reset. Breaks can be scheduled at set intervals or called by any player at any time. They are especially important during intense or emotionally heavy scenes, and work well alongside other safety tools.',
     'tool_stars_and_wishes_full' => 'A reflective tool for the end of a session or campaign. Each player shares "Stars" — moments they particularly enjoyed or appreciated — and "Wishes" — things they\'d like to see changed or explored in future sessions. This builds a positive feedback loop and helps the group calibrate ongoing play.',
     'tool_debriefing_full' => 'A structured post-game conversation that goes beyond casual feedback. Players discuss the emotional impact of the session, check in on each other\'s well-being, and address any lingering feelings from intense scenes. Debriefing is especially valuable after emotionally heavy gameplay and helps prevent negative experiences from compounding over time.',
-
     // ── Safety Tool Placeholders ────────────────────────────────────
     'tool_lines_and_veils_placeholder' => 'e.g. No spiders, fade-to-black for romance',
-
     // SEO
     'seo_title_safety_tools' => 'Tabletop RPG Safety Tools — X-Card, Lines & Veils & More',
     'seo_description_safety_tools' => 'Essential safety tools for tabletop RPG sessions: X-Card, Lines & Veils, Session Zero questionnaires, and more. Built for trust at every table.',

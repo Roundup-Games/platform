@@ -1,14 +1,12 @@
 <?php
 
 return [
-
     'content_custom_safety_note' => 'Eigener Sicherheitshinweis',
     'content_everyone_deserves_to_feel_safe' => 'Jeder verdient es, sich am Tisch sicher und wohl zu fühlen. Sicherheitstools sind einfache Methoden, die Gruppen helfen, Grenzen zu kommunizieren und den Spaß im Fokus zu behalten.',
     'content_for_rpg_campaigns_we_encourage' => 'Für RPG-Kampagnen empfehlen wir Session Zero — ein Vorgespräch über Erwartungen, Grenzen und Spielstil. Es setzt den Rahmen für ein großartiges Erlebnis.',
     'content_have_an_x_card_on_the_table' => 'Lege eine X-Karte auf den Tisch',
     'content_learn_more_about_safety_tools' => 'Mehr über Sicherheitstools erfahren',
     'content_lines_veils_details' => 'Linien & Schleier Details',
-
     'content_safety_tools' => 'Sicherheitstools',
     'content_session_zero_support' => 'Session Zero',
     'content_the_single_most_impactful_thing' => 'Das Wirksamste, was du tun kannst. Nimm dir vor deinem ersten Spiel Zeit, um als Gruppe Erwartungen, Themen und Grenzen zu besprechen.',
@@ -20,12 +18,10 @@ return [
     'content_your_safety_built_in' => 'Deine Sicherheit, eingebaut',
     'field_safety_tools_for_tabletop_gaming' => 'Sicherheitstools für Tabletop-Spiele',
     'field_start_with_session_zero' => 'Beginne mit Session Zero',
-
     // ── Safety Tool Categories ──────────────────────────────────────
     'category_before' => 'Vor dem Spiel',
     'category_during' => 'Während des Spiels',
     'category_after' => 'Nach dem Spiel',
-
     // ── Safety Tool Labels ──────────────────────────────────────────
     'tool_session_zero' => 'Session Zero',
     'tool_lines_and_veils' => 'Linien & Schleier',
@@ -36,7 +32,6 @@ return [
     'tool_breaks' => 'Pausen',
     'tool_stars_and_wishes' => 'Sterne & Wünsche',
     'tool_debriefing' => 'Nachbesprechung',
-
     // ── Safety Tool Short Descriptions ──────────────────────────────
     'tool_session_zero_short' => 'Eine Vorsitzung, um Erwartungen zu klären, Grenzen zu besprechen und Vertrauen aufzubauen.',
     'tool_lines_and_veils_short' => 'Definiere harte Grenzen (Linien) und Ausblenden-Themen (Schleier) vor dem Spiel.',
@@ -47,7 +42,6 @@ return [
     'tool_breaks_short' => 'Geplante oder spontane Pausen zum Durchatmen während des Spiels.',
     'tool_stars_and_wishes_short' => 'Hebe hervor, was funktionierte (Sterne), und schlage Änderungen vor (Wünsche) nach einer Session.',
     'tool_debriefing_short' => 'Ein strukturiertes Gespräch nach dem Spiel über emotionale Auswirkungen und Erlebnisse.',
-
     // ── Safety Tool Full Descriptions ───────────────────────────────
     'tool_session_zero_full' => 'Eine eigene Sitzung vor Beginn des Spiels, in der die Gruppe den Ton, die Themen, Grenzen und Erwartungen des Spiels bespricht. Sie schafft eine Grundlage des Vertrauens und stellt sicher, dass alle mit der Richtung des Spiels einverstanden sind. Session Zero gilt weithin als die wichtigste Sicherheitspraxis beim Tabletop-Rollenspiel.',
     'tool_lines_and_veils_full' => 'Ein Werkzeug zur Festlegung von Inhalts Grenzen vor und während des Spiels. „Linien" sind Themen, die im Spiel gar nicht vorkommen (harte Grenzen). „Schleier" sind Themen, die nur abseits der Bühne oder mit Ausblenden stattfinden (weiche Grenzen). Dieses Framework ermöglicht es Spieler:innen, ihre Komfortzone klar mitzuteilen, ohne erklären zu müssen, warum.',
@@ -58,10 +52,8 @@ return [
     'tool_breaks_full' => 'Regelmäßige Pausen während des Spiels bieten Raum zum Durchatmen, Emotionen zu verarbeiten und sich zu erholen. Pausen können in festen Abständen geplant oder von jeder Spieler:in jederzeit gefordert werden. Sie sind besonders wichtig bei intensiven oder emotional aufgeladenen Szenen und funktionieren gut zusammen mit anderen Sicherheitstools.',
     'tool_stars_and_wishes_full' => 'Ein reflektierendes Werkzeug für das Ende einer Session oder Kampagne. Jede:r teilt „Sterne" — Momente, die besonders genossen wurden — und „Wünsche" — Dinge, die in zukünftigen Sitzungen geändert oder erkundet werden sollen. Das schafft eine positive Rückmeldungsschleife und hilft der Gruppe, das laufende Spiel zu kalibrieren.',
     'tool_debriefing_full' => 'Ein strukturiertes Gespräch nach dem Spiel, das über normales Feedback hinausgeht. Spieler:innen besprechen die emotionale Auswirkung der Session, checken das Befinden der anderen und klären verbleibende Gefühle aus intensiven Szenen. Nachbesprechungen sind besonders wertvoll nach emotional schwerem Spiel und verhindern, dass negative Erlebnisse sich über die Zeit aufstauen.',
-
     // ── Safety Tool Placeholders ────────────────────────────────────
     'tool_lines_and_veils_placeholder' => 'z.B. Keine Spinnen, Ausblenden bei Romantik',
-
     // SEO
     'seo_title_safety_tools' => 'Safety-Tools',
     'seo_description_safety_tools' => 'Entdecke Safety-Tools für Tabletop-RPGs, die ein angenehmes und respektvolles Spielerlebnis für alle gewährleisten.',

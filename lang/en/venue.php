@@ -5,37 +5,30 @@
 return [
     // Back / nav
     'action_back_to_discover' => 'Back to Discover',
-
     // Link affordance (M053/S02/T03 <x-venue-link>). The visible text is the
     // venue name itself; this labels the link affordance for assistive tech.
     'action_view_venue' => 'View venue: :name',
-
     // Header
     'label_venue_type' => 'Venue type',
     'action_visit_website' => 'Visit website',
     'label_managed_by' => 'Managed by',
-
     // Operational parameters (M056/S05/T02) — admin-curated on the venue
     // manager's behalf; rendered on the public venue page when populated.
     'heading_operational_parameters' => 'Operational Parameters',
     'label_overlap_guidance' => 'Overlap guidance',
     'label_fee_display' => 'Fee display',
     'label_house_rules' => 'House rules',
-
     // Activity sections
     'heading_upcoming_sessions' => 'Upcoming Sessions',
     'heading_past_sessions' => 'Past Sessions',
     'heading_active_campaigns' => 'Active Campaigns',
     'heading_completed_campaigns' => 'Past Campaigns',
-
     // Empty state — shown once when the venue has no activity at all.
     // Per-section "No X" boxes are hidden; only this single fallback renders.
     'content_no_activity_yet' => 'No sessions listed at this venue yet — check back soon.',
-
     // Reviews (S03 hook)
     'heading_reviews' => 'Reviews',
     'content_reviews_soon' => 'Reviews for this venue are coming soon.',
-
     // Reviews surface (M053/S03/T04 VenueReviews component)
     'content_no_reviews' => 'No reviews for this venue yet.',
     'label_reviews_count' => ':count review|:count reviews',
@@ -46,7 +39,6 @@ return [
     'flash_venue_review_submitted' => 'Your venue review has been submitted. Thank you!',
     'validation_venue_rating_required' => 'Please select a rating.',
     'validation_venue_body_max' => 'Review text cannot exceed 2000 characters.',
-
     // ── Claim a venue (M053/S04/T04) ─────────────────────────────────────────
     'heading_claim_venue' => 'Claim this Venue',
     'content_claim_subtitle' => 'Tell us why you should manage ":name" and our team will review your claim.',
@@ -65,7 +57,6 @@ return [
     'error_claim_duplicate' => 'You already have a pending claim for this venue.',
     'error_claim_rate_limit' => 'You\'ve submitted too many claims. Please try again in :hours hours.',
     'error_claim_submission_failed' => 'Failed to submit venue claim. Please try again later.',
-
     // ── Venue types (internationalized via VenueType::label()) ───────────────
     'type_cafe' => 'Café',
     'type_flgs' => 'FLGS (Friendly Local Game Store)',
@@ -74,7 +65,6 @@ return [
     'type_convention' => 'Convention / Convention Center',
     'type_bar' => 'Bar / Pub',
     'type_other' => 'Other',
-
     // ── Venue directory (/{locale}/venues) ───────────────────────────────────
     'nav_venue_directory' => 'Venue Directory',
     'heading_directory' => 'Find a place to play',

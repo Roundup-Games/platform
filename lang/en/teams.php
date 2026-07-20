@@ -22,12 +22,10 @@ return [
     'content_invite_member' => 'Invite Member',
     'content_invite_player' => 'Invite Player',
     'content_member_removed_from_team' => 'Member removed from team.',
-
     'content_most_members' => 'Most Members',
     'content_no_teams_found' => 'No teams found',
     'content_non_captain' => 'Non-captain',
     'content_only_the_team_captain_can_register_a_team' => 'Only the team captain can register a team.',
-
     'content_please_select_a_team' => 'Please select a team.',
     'content_roster' => 'Roster',
     'content_team_information' => 'Team Information',

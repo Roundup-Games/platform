@@ -30,7 +30,6 @@ return [
     'label_active' => 'Active',
     'label_archived' => 'Archived',
     'action_view' => 'View',
-
     // Share Link Analytics
     'heading_share_link_analytics' => 'Share Link Analytics',
     'heading_top_links' => 'Top Links',

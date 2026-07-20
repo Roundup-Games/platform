@@ -72,12 +72,9 @@ return [
     'action_neutral' => 'Neutral',
     'action_favorite' => 'favorite',
     'action_avoid' => 'avoid',
-
     // Guest nudge keys
     'guest_nudge_profile' => 'Create a free account to connect with tabletop gamers.',
-
     // Dashboard cards
-
     // GM Proficiency labels
     'gm_proficiency_creativity' => 'Creative Improviser',
     'gm_proficiency_inclusive' => 'Inclusive Facilitator',
@@ -89,7 +86,6 @@ return [
     'gm_proficiency_visual_aid' => 'Visual Storyteller',
     'gm_proficiency_voices' => 'Character Voices',
     'gm_proficiency_world_builder' => 'World Builder',
-
     // GM Proficiency descriptions
     'gm_proficiency_creativity_desc' => 'Thrives on the unexpected, weaving player ideas into the narrative on the fly.',
     'gm_proficiency_inclusive_desc' => 'Ensures every player has a moment to shine and feels welcome at the table.',
@@ -101,7 +97,6 @@ return [
     'gm_proficiency_visual_aid_desc' => 'Uses maps, handouts, tokens, and visual props to bring scenes to life.',
     'gm_proficiency_voices_desc' => 'Brings NPCs to life with distinct voices, accents, and mannerisms.',
     'gm_proficiency_world_builder_desc' => 'Creates rich, detailed settings with deep lore and interconnected factions.',
-
     // GM Badge & Profile Section
     'gm_badge_label' => 'Game Master',
     'gm_profile_section_title' => 'Game Master Profile',
@@ -110,17 +105,12 @@ return [
     'gm_profile_reviews' => ':count review|:count reviews',
     'gm_profile_no_reviews' => 'No reviews yet',
     'content_find_me_on' => 'Find me on',
-
     // GM Navigation
     'nav_gm_directory' => 'GM Directory',
     'nav_gm_workspace' => 'GM Workspace',
-
     // Dashboard cards - GM
-
     // Dashboard stat labels
-
     'dashboard_stats_unread_notifications' => 'Unread',
-
     // Community Feed
     'dashboard_feed_heading' => 'What\'s happening',
     'dashboard_feed_empty_title' => 'Follow players to see their activity',
@@ -138,16 +128,13 @@ return [
     'dashboard_feed_spots_left' => ':count spot left|:count spots left',
     'dashboard_feed_players' => ':current/:max players',
     'dashboard_feed_trending_badge' => 'Trending',
-
     // Smart prompt action labels (also used by DashboardSmartPromptService)
     'dashboard_prompt_view_invitations' => 'View invitations',
     'dashboard_prompt_view_details' => 'View details',
     'dashboard_prompt_write_recap' => 'Write recap',
-
     'dashboard_prompt_find_game' => 'Find a game',
     'dashboard_prompt_view_profile' => 'View profile',
     'dashboard_prompt_view_schedule' => 'View schedule',
-
     // Smart prompt messages
     'dashboard_prompt_msg_invited_single' => ':name invited you to :game',
     'dashboard_prompt_msg_invited_multiple' => 'You have :count pending invitation|You have :count pending invitations',
@@ -167,16 +154,13 @@ return [
     'dashboard_prompt_msg_time_morning' => 'morning',
     'dashboard_prompt_msg_time_afternoon' => 'afternoon',
     'dashboard_prompt_msg_time_evening' => 'evening',
-
     // Opportunities section
     'dashboard_opportunities_heading' => 'Games you might like',
     'dashboard_opportunities_empty' => 'No games matching your preferences right now',
     'dashboard_opportunities_create_cta' => 'Create a game',
-
     'dashboard_opportunities_spots_available' => ':count spot available|:count spots available',
     'dashboard_opportunities_recurring' => 'Recurring',
     'dashboard_opportunities_km_away' => ':count km',
-
     // Contributions section
     'dashboard_contributions_heading' => 'Your contributions',
     'dashboard_contributions_hosted' => 'You\'ve hosted :count game|You\'ve hosted :count games',
@@ -189,17 +173,14 @@ return [
     'dashboard_contributions_reviews' => 'You\'ve given :count review|You\'ve given :count reviews',
     'dashboard_contributions_followers' => 'You have :count follower|You have :count followers',
     'dashboard_contributions_gm_rating' => 'Your GM rating: :rating / 5',
-
     // Quick Actions
     'dashboard_quick_actions_heading' => 'Quick Actions',
-
     // Your Week section
     'dashboard_hosting_indicator' => 'Hosting',
     'dashboard_your_week' => 'Your Week',
     'dashboard_your_week_empty' => 'No games this week. Time to find your next adventure!',
     'dashboard_your_week_find_game' => 'Find Your Next Game',
     'dashboard_your_week_today' => 'Today',
-
     // Reliability tier labels
     'label_reliability_tier_reliable' => 'Reliable',
     'label_reliability_tier_active' => 'Active',
@@ -208,7 +189,6 @@ return [
     'label_reliability_games_played' => 'games',
     'content_reliability_stats' => 'Reliability Stats',
     'content_who_can_see_your_reliability_stats' => 'Who can see your detailed attendance rate and game count. Your stats are always visible to anyone viewing a game session or campaign you organize',
-
     // GM Social Links
     'field_gm_profile' => 'GM Profile',
     'gm_social_links_title' => 'Social Links',
@@ -221,7 +201,6 @@ return [
     'gm_social_use_my_discord' => 'Use my Discord',
     'gm_social_link_discord_first' => 'Link your Discord account first to auto-fill your Discord user ID.',
     'gm_social_discord_autofilled' => 'Auto-filled from your linked Discord account. Edit if needed, or use the button below to re-apply.',
-
     // Data Export
     'title_privacy_and_data' => 'Privacy & Data',
     'content_request_your_data_description' => 'You have the right to request a copy of all personal data we hold about you. We will prepare an export and notify you when it is ready to download.',
@@ -230,21 +209,17 @@ return [
     'flash_data_export_requested' => 'Your request has been submitted. You will be notified when your data is ready.',
     'error_data_export_request_pending' => 'You already have a pending data export request.',
     'error_data_export_request_failed' => 'Something went wrong. Please try again or contact support.',
-
     // Account Deletion
     'error_account_deletion_failed' => 'Something went wrong while deleting your account. Please try again or contact support.',
-
     // Support Tickets
     'title_support_tickets' => 'Support',
     'title_your_tickets' => 'Your Tickets',
     'action_new_ticket' => 'New Ticket',
     'action_view_all_tickets' => 'View all tickets',
     'content_no_support_tickets' => 'You haven\'t submitted any support tickets yet.',
-
     // Dashboard mode
     'dashboard_mode_newcomer' => 'Newcomer',
     'dashboard_mode_established' => 'Established',
-
     // Newcomer dashboard
     'dashboard_newcomer_welcome' => 'Welcome, :name!',
     'dashboard_newcomer_matching_games' => '{1} :count game matching your taste nearby|[2,*] :count games matching your taste nearby',
@@ -272,7 +247,6 @@ return [
     'dashboard_newcomer_nearby_people' => "Who's Playing Nearby",
     'dashboard_newcomer_nearby_people_heading' => "Who's Playing Nearby",
     'dashboard_newcomer_shared_systems' => '{1} :count shared system|[2,*] :count shared systems',
-
     // Action Center
     'dashboard_action_center_heading' => 'Action Center',
     'dashboard_action_center_all_clear' => 'All clear — nothing needs your attention',
@@ -281,7 +255,6 @@ return [
     'dashboard_action_center_view_session' => 'View session',
     'dashboard_action_center_find_game' => 'Find your next game',
     'dashboard_action_center_view_all' => '{1} View :count more item in My Games|[2,*] View :count more items in My Games',
-
     // Action Center items
     'dashboard_action_waitlist_title' => 'Confirm your spot: :game',
     'dashboard_action_waitlist_desc' => 'Your waitlist spot is about to expire',
@@ -321,7 +294,6 @@ return [
     'dashboard_action_recurrence_action' => 'Plan next session',
     'dashboard_action_expires_in_hm' => 'Expires in :h hour :m min',
     'dashboard_action_expires_in_m' => 'Expires in :m min',
-
     // Action Center - additional task-plan keys
     'dashboard_action_center_item_count' => '{1} :count item needs your attention|[2,*] :count items need your attention',
     'dashboard_action_center_all_clear_next' => 'Your next session is :name on :date',
@@ -338,7 +310,6 @@ return [
     'dashboard_action_new_follower' => ':name started following you — you share :systems',
     'dashboard_action_campaign_session' => 'New session added to :campaign',
     'dashboard_action_host_bulletin' => 'Host update for :game',
-
     // Established Dashboard - Schedule
     'dashboard_schedule_heading' => 'Your Schedule',
     'dashboard_schedule_today' => 'Today',
@@ -347,7 +318,6 @@ return [
     'dashboard_schedule_nothing_scheduled' => 'Nothing scheduled — find your next game',
     'dashboard_schedule_host_again' => 'Host again',
     'dashboard_schedule_host_again_desc' => 'Your last game ":game" was a hit — ready for another round?',
-
     // Established Dashboard - Nearby & Noteworthy
     'dashboard_nearby_heading' => 'Nearby and Noteworthy',
     'dashboard_nearby_be_first' => 'Be the first to host in your area',
@@ -359,10 +329,8 @@ return [
     'dashboard_nearby_filling_fast' => 'Filling fast',
     'dashboard_nearby_starting_soon' => 'Starting soon',
     'dashboard_nearby_friends_going' => 'Friends going',
-
     // Established Dashboard - Community Pulse
     'dashboard_pulse_heading' => 'Community Pulse',
-
     // Established Dashboard - Your Story
     'dashboard_story_heading' => 'Your Story',
     'dashboard_story_new_badge' => 'New',
@@ -376,7 +344,6 @@ return [
     'dashboard_story_trusted_voice_desc' => 'You\'ve written :count reviews that help others find great games.',
     'dashboard_story_explorer' => 'Explorer',
     'dashboard_story_explorer_desc' => 'You\'ve played :count different game systems — always trying something new.',
-
     // Established Dashboard - Quick Actions
     'dashboard_quick_discover' => 'Discover Games',
     'dashboard_quick_my_games' => 'My Games',
@@ -385,7 +352,6 @@ return [
     'dashboard_quick_manage_team' => 'Manage Team',
     'dashboard_quick_my_campaigns' => 'My Campaigns',
     'dashboard_quick_find_campaigns' => 'Find Campaigns',
-
     // Dashboard - Relative time formatting
     'dashboard_relative_today' => 'Today at :time',
     'dashboard_relative_tomorrow' => 'Tomorrow at :time',
