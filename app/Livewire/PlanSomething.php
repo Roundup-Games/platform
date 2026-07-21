@@ -21,14 +21,22 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 class PlanSomething extends Component
 {
     /**
-     * Redirect to one-shot game creation with the chosen type pre-selected.
+     * Redirect to one-shot game creation.
      *
-     * The type is passed via the ?type= query param, which CreateGame::mount()
-     * consumes to skip the type-selector step and apply smart defaults.
+     * No ?type= query param is passed: a one-time session can be any of the
+     * three GameType values (board game night, TTRPG one-shot, or a casual
+     * gathering — see lang/en/plan.php 'content_one_time_desc'), so we let
+     * CreateGame render its type-selector cards and the host picks one.
+     * Smart defaults still apply when they pick, via selectType() →
+     * applySmartDefaults().
+     *
+     * (CreateGame::mount() still consumes ?type= if a caller ever needs to
+     * deep-link with a pre-selected type — e.g. a future 'Start a TTRPG'
+     * CTA on a marketing page — but that is not this flow.)
      */
-    public function planOneShot(string $type = 'board_game'): void
+    public function planOneShot(): void
     {
-        $this->redirect(route('games.create', ['type' => $type]), navigate: true);
+        $this->redirect(route('games.create'), navigate: true);
     }
 
     /**
