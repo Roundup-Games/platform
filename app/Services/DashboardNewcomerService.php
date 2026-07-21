@@ -379,6 +379,7 @@ class DashboardNewcomerService
             return [
                 'id' => $candidate->id,
                 'name' => $candidate->name,
+                'slug' => $candidate->slug,
                 'avatar_url' => $candidate->avatar_url,
                 'top_system_name' => $topSystemName,
                 'reliability_score' => $candidate->reliability_score,
@@ -396,6 +397,7 @@ class DashboardNewcomerService
         $peopleResults = $topPeople->map(fn ($p) => [
             'id' => $p['id'],
             'name' => $p['name'],
+            'slug' => $p['slug'],
             'avatar_url' => $p['avatar_url'],
             'top_system_name' => $p['top_system_name'],
             'reliability_score' => $p['reliability_score'],

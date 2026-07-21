@@ -259,7 +259,7 @@
     {{-- Horizontal scrollable people row --}}
     <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list" aria-label="{{ __('profile.dashboard_newcomer_nearby_people_heading') }}">
         @foreach($people['people'] as $person)
-            <a href="{{ route('profile.show', $person['id']) }}" wire:navigate
+            <a href="{{ route('profile.public', ['locale' => app()->getLocale(), 'user' => $person['slug']]) }}" wire:navigate
                class="shrink-0 w-32 sm:w-36 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-3 group text-center"
                role="listitem">
                 {{-- Avatar --}}
