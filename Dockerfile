@@ -15,26 +15,53 @@ COPY resources/ resources/
 
 RUN npm run build
 
-# Stage 2: Production image
+# Stage 2: Shared base — all apt installs live here, BEFORE any source COPY.
+# This is the key to layer caching: because neither `app` nor `worker` copy
+# application source at this point, this stage's layers are keyed only to the
+# base image and the apt command itself. BuildKit reuses them across every
+# source commit. (Previously the optimizer install lived in the worker stage,
+# which is `FROM app` — and `app`'s `COPY . .` cache-busts on every commit,
+# invalidating the entire worker lineage and re-running apt every build.)
+#
 # serversideup/php:8.5-fpm-nginx — PHP-FPM + Nginx + S6 Overlay
 # Laravel extensions pre-installed, runs as www-data on port 80
 # https://github.com/serversideup/docker-php
-FROM serversideup/php:8.5-fpm-nginx AS app
+FROM serversideup/php:8.5-fpm-nginx AS base
 
 # Additional PHP extensions needed beyond the Laravel defaults
 USER root
 RUN install-php-extensions gd intl bcmath exif
 
-# Install postgresql client for DB creation at startup.
-# Cache mounts keep apt's download cache in a BuildKit-managed volume that
-# survives across builds, so re-runs (e.g. after a base-image bump) skip the
-# network fetch. Requires BuildKit (on by default in Docker 23+/buildx);
-# the `# syntax=docker/dockerfile:1` directive at the top pins the frontend.
+# Install ALL apt packages in one stable layer:
+#   - postgresql-client: DB creation at startup (app + worker)
+#   - jpegoptim/pngquant/optipng/gifsicle/webp/libavif-bin: image optimizers
+#     used by Spatie MediaLibrary conversions on the queue worker
+#     (config/media-library.php).
+# The optimizers ship in both images even though only the worker uses them —
+# ~10-15MB of unused CLI tools in the web image buys a ~120s build-speedup
+# on every commit, which is the right tradeoff. Cache mounts persist the
+# apt download cache across builds (useful on a base-image bump) and require
+# BuildKit, on by default in Docker 23+/buildx and pinned by the syntax
+# directive at the top of this file. The /var/lib/apt/lists cleanup is
+# dropped: with the cache mount the lists live in the cache volume, not the
+# image layer, so they never ship in the final image.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends postgresql-client
+    apt-get update && apt-get install -y --no-install-recommends \
+        postgresql-client \
+        jpegoptim \
+        pngquant \
+        optipng \
+        gifsicle \
+        webp \
+        libavif-bin
 
 USER www-data
+
+# Stage 3: Production image (web/app)
+# Source is copied here and below — these layers cache-bust on every commit,
+# which is fine because everything expensive (apt, PHP exts) is already in `base`.
+FROM base AS app
 
 # Copy composer files first for better layer caching
 COPY --chown=www-data:www-data composer.json composer.lock ./
@@ -68,8 +95,10 @@ USER root
 COPY --chmod=755 docker/s6/99-laravel-init /etc/cont-init.d/99-laravel-init
 USER www-data
 
-# Stage 3: Worker image — queue worker + scheduler (no nginx/fpm)
-# Reuses the app stage but replaces S6 services
+# Stage 4: Worker image — queue worker + scheduler (no nginx/fpm)
+# Extends `app` (which has source, vendor, and the s6 init). No apt here —
+# the optimizers already live in `base`, so this stage's layers are all cheap
+# (rm, COPY ini/service definitions, touch) and the ~120s apt step is gone.
 FROM app AS worker
 
 USER root
@@ -77,28 +106,6 @@ USER root
 # Remove nginx and php-fpm from the user bundle
 RUN rm /etc/s6-overlay/s6-rc.d/user/contents.d/nginx \
    && rm /etc/s6-overlay/s6-rc.d/user/contents.d/php-fpm
-
-# Install image optimizer binaries for Spatie MediaLibrary conversions
-# These only run on the queue worker — no need to bloat the web container.
-# Covers all 7 optimizers configured in config/media-library.php:
-#   jpegoptim, pngquant, optipng, gifsicle, cwebp (via webp), avifenc (via libavif-bin)
-#
-# Cache mounts persist the apt download cache across builds. This step sits
-# after `FROM app`, so it would otherwise re-download every package on every
-# source change (the worker stage inherits app's cache-busted final layer).
-# The cache mount decouples the expensive network fetch from layer invalidation:
-# the RUN still re-executes (dpkg unpack) but reads packages from the cache.
-# The /var/lib/apt/lists cleanup is dropped — the cache mount holds lists
-# outside the image layer, so they never ship in the final image.
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-        jpegoptim \
-        pngquant \
-        optipng \
-        gifsicle \
-        webp \
-        libavif-bin
 
 # Raise PHP memory limit for image conversion jobs — GD decompresses large
 # images into bitmaps that can exceed the default 256 MB limit.
