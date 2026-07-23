@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Models;
 
+use App\Enums\DiscordCardStatus;
+use App\Enums\DiscordModerationMode;
 use App\Models\DiscordCardMessage;
 use App\Models\DiscordGuild;
 use App\Models\DiscordGuildOrganizer;
@@ -9,6 +11,7 @@ use App\Models\Game;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class DiscordGuildModelTest extends TestCase
@@ -58,7 +61,7 @@ class DiscordGuildModelTest extends TestCase
         $guild = DiscordGuild::factory()->create();
 
         $this->assertFalse($guild->paused);
-        $this->assertSame('open', $guild->moderation_mode);
+        $this->assertSame(DiscordModerationMode::Open, $guild->moderation_mode);
         $this->assertNull($guild->calendar_channel_id);
         $this->assertNull($guild->games_channel_id);
     }
@@ -368,5 +371,262 @@ class DiscordGuildModelTest extends TestCase
 
         $this->assertFalse($organizer->fresh()->publish_enabled);
         $this->assertEquals($firstOptIn, $organizer->fresh()->opted_in_at);
+    }
+
+    // ── M057/S07: moderation-flex enums ──────────────────────
+
+    public function test_discord_moderation_mode_enum_values(): void
+    {
+        $this->assertSame('open', DiscordModerationMode::Open->value);
+        $this->assertSame('review', DiscordModerationMode::Review->value);
+        $this->assertSame(['open', 'review'], DiscordModerationMode::values());
+    }
+
+    public function test_discord_card_status_enum_values(): void
+    {
+        $this->assertSame('posted', DiscordCardStatus::Posted->value);
+        $this->assertSame('pending', DiscordCardStatus::Pending->value);
+        $this->assertSame('rejected', DiscordCardStatus::Rejected->value);
+        $this->assertSame('expired', DiscordCardStatus::Expired->value);
+        $this->assertSame(
+            ['posted', 'pending', 'rejected', 'expired'],
+            DiscordCardStatus::values(),
+        );
+    }
+
+    // ── M057/S07: DiscordGuild moderation_mode cast ──────────
+
+    public function test_moderation_mode_is_cast_to_enum(): void
+    {
+        $guild = DiscordGuild::factory()->create();
+
+        $this->assertInstanceOf(DiscordModerationMode::class, $guild->moderation_mode);
+        $this->assertSame(DiscordModerationMode::Open, $guild->moderation_mode);
+    }
+
+    public function test_moderation_mode_round_trips_through_database_as_string(): void
+    {
+        // The column is a plain string; the cast serializes the enum value.
+        $guild = DiscordGuild::factory()->create(['moderation_mode' => DiscordModerationMode::Review]);
+
+        $this->assertSame(DiscordModerationMode::Review, $guild->fresh()->moderation_mode);
+        $this->assertDatabaseHas('discord_guilds', [
+            'id' => $guild->id,
+            'moderation_mode' => 'review',
+        ]);
+    }
+
+    public function test_moderation_mode_assignable_from_string_value(): void
+    {
+        $guild = DiscordGuild::factory()->create(['moderation_mode' => 'review']);
+
+        $this->assertSame(DiscordModerationMode::Review, $guild->fresh()->moderation_mode);
+    }
+
+    public function test_guild_factory_review_state_sets_review_mode(): void
+    {
+        $guild = DiscordGuild::factory()->review()->create();
+
+        $this->assertSame(DiscordModerationMode::Review, $guild->moderation_mode);
+    }
+
+    // ── M057/S07: DiscordCardMessage lifecycle ───────────────
+
+    public function test_card_message_status_casts_to_posted_by_default(): void
+    {
+        $card = DiscordCardMessage::create([
+            'game_id' => Game::factory()->create()->id,
+            'guild_id' => DiscordGuild::factory()->create()->id,
+            'channel_id' => '1',
+            'message_id' => '2',
+        ]);
+
+        // No status passed: DB default 'posted' applies, cast resolves to enum.
+        $fresh = $card->fresh();
+        $this->assertInstanceOf(DiscordCardStatus::class, $fresh->status);
+        $this->assertSame(DiscordCardStatus::Posted, $fresh->status);
+    }
+
+    public function test_card_message_lifecycle_columns_default_to_null(): void
+    {
+        $card = DiscordCardMessage::create([
+            'game_id' => Game::factory()->create()->id,
+            'guild_id' => DiscordGuild::factory()->create()->id,
+            'channel_id' => '1',
+            'message_id' => '2',
+        ]);
+
+        $fresh = $card->fresh();
+        $this->assertNull($fresh->moderator_user_id);
+        $this->assertNull($fresh->moderated_at);
+        $this->assertNull($fresh->expires_at);
+    }
+
+    public function test_card_message_status_is_mass_assignable(): void
+    {
+        $card = DiscordCardMessage::factory()->create([
+            'status' => DiscordCardStatus::Pending,
+        ]);
+
+        $this->assertSame(DiscordCardStatus::Pending, $card->fresh()->status);
+        $this->assertDatabaseHas('discord_card_messages', [
+            'id' => $card->id,
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_card_message_belongs_to_moderator_user(): void
+    {
+        $moderator = User::factory()->create();
+        $card = DiscordCardMessage::factory()->create([
+            'moderator_user_id' => $moderator->id,
+        ]);
+
+        $this->assertTrue($card->moderator->is($moderator));
+    }
+
+    public function test_card_message_moderator_relation_is_null_by_default(): void
+    {
+        $card = DiscordCardMessage::factory()->create();
+
+        $this->assertNull($card->moderator);
+    }
+
+    // ── M057/S07: factory states ─────────────────────────────
+
+    public function test_card_message_factory_defaults_to_posted_with_message_id(): void
+    {
+        $card = DiscordCardMessage::factory()->create();
+
+        $this->assertSame(DiscordCardStatus::Posted, $card->status);
+        $this->assertNotNull($card->message_id);
+    }
+
+    public function test_card_message_factory_pending_state_sets_pending_and_null_message_id(): void
+    {
+        $card = DiscordCardMessage::factory()->pending()->create();
+
+        $this->assertSame(DiscordCardStatus::Pending, $card->status);
+        $this->assertNull($card->message_id);
+        $this->assertNotNull($card->expires_at);
+    }
+
+    // ── M057/S07: migration shape (schema introspection) ─────
+
+    public function test_migration_makes_message_id_nullable(): void
+    {
+        $column = $this->column('discord_card_messages', 'message_id');
+
+        $this->assertTrue($column['nullable'], 'message_id should be nullable after the S07 migration');
+    }
+
+    public function test_migration_adds_status_column_defaulted_to_posted(): void
+    {
+        $column = $this->column('discord_card_messages', 'status');
+
+        $this->assertNotNull($column, 'status column should exist');
+        // DBAL may quote string defaults ('posted') depending on driver; normalize.
+        $this->assertSame('posted', $this->normalizeDefault($column['default']), "status column should default to 'posted'");
+    }
+
+    public function test_migration_adds_nullable_lifecycle_columns(): void
+    {
+        foreach (['moderator_user_id', 'moderated_at', 'expires_at'] as $name) {
+            $column = $this->column('discord_card_messages', $name);
+
+            $this->assertNotNull($column, "{$name} column should exist");
+            $this->assertTrue($column['nullable'], "{$name} should be nullable");
+            $this->assertNull($column['default'], "{$name} should have no default (NULL in v1)");
+        }
+    }
+
+    public function test_migration_adds_moderator_user_id_foreign_key_to_users(): void
+    {
+        $toUsers = collect(Schema::getForeignKeys('discord_card_messages'))
+            ->firstWhere('columns', ['moderator_user_id']);
+
+        $this->assertNotNull($toUsers, 'moderator_user_id should have a foreign key');
+        $this->assertSame(['id'], $toUsers['foreign_columns']);
+        $this->assertSame('users', $toUsers['foreign_table']);
+        $this->assertSame('set null', $toUsers['on_delete']);
+    }
+
+    public function test_migration_preserves_unique_game_guild_index(): void
+    {
+        $indexes = Schema::getIndexes('discord_card_messages');
+        $uniquePair = collect($indexes)->first(fn ($i) => ($i['type'] === 'unique' || ! empty($i['unique']))
+            && $i['columns'] === ['game_id', 'guild_id']);
+
+        $this->assertNotNull(
+            $uniquePair,
+            'unique(game_id, guild_id) index must be preserved — it keys the per-(game,guild) card slot',
+        );
+    }
+
+    /**
+     * Backfill-safety: a card created with only the S01 columns lands at the
+     * v1 default state (status=posted, lifecycle NULL) without losing message_id.
+     */
+    public function test_backfill_safe_open_path_row_has_posted_status_and_message_id(): void
+    {
+        $card = DiscordCardMessage::create([
+            'game_id' => Game::factory()->create()->id,
+            'guild_id' => DiscordGuild::factory()->create()->id,
+            'channel_id' => '111',
+            'message_id' => '222',
+        ]);
+
+        $row = $card->fresh();
+        $this->assertSame(DiscordCardStatus::Posted, $row->status);
+        $this->assertSame('222', $row->message_id);
+        $this->assertNull($row->moderator_user_id);
+        $this->assertNull($row->moderated_at);
+        $this->assertNull($row->expires_at);
+    }
+
+    // ── M057/S07: negative — moderator_user_id cascade nullOnDelete ──
+
+    public function test_deleting_moderator_nulls_card_moderator_user_id(): void
+    {
+        $moderator = User::factory()->create();
+        $card = DiscordCardMessage::factory()->create([
+            'moderator_user_id' => $moderator->id,
+        ]);
+
+        $moderator->delete();
+
+        $this->assertNull($card->fresh()->moderator_user_id);
+    }
+
+    /**
+     * @return array{name: string, type: string, nullable: bool, default: mixed}
+     */
+    private function column(string $table, string $name): array
+    {
+        return collect(Schema::getColumns($table))->firstWhere('name', $name);
+    }
+
+    /**
+     * Normalize a DBAL column default to its bare value.
+     *
+     * Postgres casts string defaults like 'posted'::character varying (quoted
+     * value + a ::type suffix); other drivers return the bare quoted value.
+     * Strip the cast suffix first, then the surrounding quotes.
+     */
+    private function normalizeDefault(mixed $default): ?string
+    {
+        if ($default === null) {
+            return null;
+        }
+
+        $default = (string) $default;
+
+        // Postgres casts string defaults like 'posted'::character varying —
+        // drop the ::type suffix before stripping surrounding quotes.
+        if (str_contains($default, '::')) {
+            $default = explode('::', $default, 2)[0];
+        }
+
+        return trim($default, "'\"");
     }
 }

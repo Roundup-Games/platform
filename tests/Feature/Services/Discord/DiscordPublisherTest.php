@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Services\Discord;
 
+use App\Enums\DiscordCardStatus;
+use App\Enums\DiscordModerationMode;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Exceptions\DiscordApiException;
@@ -126,6 +128,10 @@ class DiscordPublisherTest extends TestCase
         $this->assertNotNull($card, 'discord_card_messages row was persisted');
         $this->assertSame(self::MESSAGE_ID, $card->message_id);
         $this->assertSame($guild->games_channel_id, $card->channel_id);
+
+        // S07 lifecycle invariant: the open-path card row lands at status=Posted
+        // (the cast round-trips the enum the publisher now passes explicitly).
+        $this->assertSame(DiscordCardStatus::Posted, $card->status);
 
         // Exactly one POST to the games channel. The factory generates a
         // random games_channel_id, so assert against the guild's actual id.
@@ -561,5 +567,84 @@ class DiscordPublisherTest extends TestCase
 
         Http::assertNothingSent();
         $this->assertSame(0, DiscordCardMessage::where('game_id', $game->id)->count());
+    }
+
+    // ════════════════════════════════════════════════════
+    //  MODERATION SEAM (S07 — open-by-default, defer on demand)
+    //  Every real v1 guild is Open, so the open path is byte-identical to S01.
+    //  Review mode is only reachable via factory in v1 (no landlord UI); these
+    //  tests prove the seam routes correctly without shipping the queue.
+    // ════════════════════════════════════════════════════
+
+    #[Test]
+    public function review_mode_guild_is_deferred_without_posting_or_persisting_a_card()
+    {
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+        // Flip to Review via the factory state (the only v1 path to a
+        // non-Open guild — no landlord UI ships this in S07).
+        $guild->update(['moderation_mode' => DiscordModerationMode::Review->value]);
+
+        Http::fake(); // No Discord call must be made.
+
+        // Capture MessageLogged events directly rather than Log::spy(). The
+        // spy's shouldNotHaveReceived()+withArgs(closure) matcher degenerates to
+        // <Any Arguments> and counts every info() call — a known Mockery
+        // fragility — so filter the captured events with PHPUnit instead.
+        $logged = [];
+        Log::listen(function ($event) use (&$logged) {
+            $logged[] = $event;
+        });
+
+        $this->makePublisher()->publish($game);
+
+        // No card row created — the deferred card is NOT persisted in v1
+        // (enqueueing the pending row is the future Review-mode slice's job).
+        Http::assertNothingSent();
+        $this->assertSame(0, DiscordCardMessage::where('game_id', $game->id)->count());
+
+        // The seam emits its one structured-log event with the v1 contract shape.
+        $deferred = collect($logged)->firstWhere('message', 'discord_publisher.moderation_deferred');
+        $this->assertNotNull($deferred, 'moderation_deferred event was logged');
+        $this->assertSame($game->id, $deferred->context['game_id']);
+        $this->assertSame($guild->id, $deferred->context['guild_id']);
+        $this->assertSame('review', $deferred->context['mode']);
+        $this->assertSame('deferred', $deferred->context['status']);
+
+        // And the seam must NOT have been followed by a card_posted event.
+        $this->assertNull(
+            collect($logged)->firstWhere('message', 'discord_publisher.card_posted'),
+            'card_posted must not fire for a deferred review-mode guild'
+        );
+    }
+
+    #[Test]
+    public function open_mode_guild_never_emits_moderation_deferred_event()
+    {
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+        // Default factory state is Open — assert it explicitly to pin the
+        // invariant that keeps v1 behavior identical to S01.
+        $this->assertSame(DiscordModerationMode::Open, $guild->moderation_mode);
+
+        $this->fakePostSuccess();
+
+        $logged = [];
+        Log::listen(function ($event) use (&$logged) {
+            $logged[] = $event;
+        });
+
+        $this->makePublisher()->publish($game);
+
+        // The defer event must never fire for an Open guild (v1 invariant).
+        $this->assertNull(
+            collect($logged)->firstWhere('message', 'discord_publisher.moderation_deferred'),
+            'moderation_deferred must never fire for an Open-mode guild'
+        );
+
+        // And the normal posted path ran to completion.
+        $this->assertSame(1, DiscordCardMessage::where('game_id', $game->id)->count());
+        $this->assertNotNull(
+            collect($logged)->firstWhere('message', 'discord_publisher.card_posted'),
+            'card_posted fires for the Open path'
+        );
     }
 }

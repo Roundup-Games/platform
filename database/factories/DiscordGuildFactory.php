@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\DiscordModerationMode;
 use App\Models\DiscordGuild;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -26,7 +27,7 @@ class DiscordGuildFactory extends Factory
             'games_channel_id' => null,
             'locale' => 'en-US',
             'paused' => false,
-            'moderation_mode' => 'open',
+            'moderation_mode' => DiscordModerationMode::Open->value,
         ];
     }
 
@@ -47,5 +48,16 @@ class DiscordGuildFactory extends Factory
     public function paused(): static
     {
         return $this->state(['paused' => true]);
+    }
+
+    /**
+     * Guild in Review moderation mode (future; not reachable via UI in v1).
+     *
+     * Only constructable via factory — used by the publisher seam test to prove
+     * the moderation branch routes correctly without shipping the queue.
+     */
+    public function review(): static
+    {
+        return $this->state(['moderation_mode' => DiscordModerationMode::Review->value]);
     }
 }

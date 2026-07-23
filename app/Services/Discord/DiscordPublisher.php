@@ -2,6 +2,8 @@
 
 namespace App\Services\Discord;
 
+use App\Enums\DiscordCardStatus;
+use App\Enums\DiscordModerationMode;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Exceptions\DiscordApiException;
@@ -133,27 +135,29 @@ class DiscordPublisher
         }
 
         foreach ($cards as $card) {
-            try {
-                $this->client->deleteMessage($card->channel_id, $card->message_id);
+            if ($card->message_id !== null) {
+                try {
+                    $this->client->deleteMessage($card->channel_id, $card->message_id);
 
-                Log::info('discord_publisher.card_deleted', [
-                    'game_id' => $game->id,
-                    'guild_id' => $card->guild_id,
-                    'channel_id' => $card->channel_id,
-                    'message_id' => $card->message_id,
-                    'status' => 'deleted',
-                ]);
-            } catch (DiscordApiException $e) {
-                // Message may already be gone (manual delete, channel removed).
-                // Log and drop the tracking row so we don't retry forever.
-                Log::warning('discord_publisher.delete_failed', [
-                    'game_id' => $game->id,
-                    'guild_id' => $card->guild_id,
-                    'channel_id' => $card->channel_id,
-                    'message_id' => $card->message_id,
-                    'status' => 'delete_failed',
-                    'error' => $e->getMessage(),
-                ]);
+                    Log::info('discord_publisher.card_deleted', [
+                        'game_id' => $game->id,
+                        'guild_id' => $card->guild_id,
+                        'channel_id' => $card->channel_id,
+                        'message_id' => $card->message_id,
+                        'status' => 'deleted',
+                    ]);
+                } catch (DiscordApiException $e) {
+                    // Message may already be gone (manual delete, channel removed).
+                    // Log and drop the tracking row so we don't retry forever.
+                    Log::warning('discord_publisher.delete_failed', [
+                        'game_id' => $game->id,
+                        'guild_id' => $card->guild_id,
+                        'channel_id' => $card->channel_id,
+                        'message_id' => $card->message_id,
+                        'status' => 'delete_failed',
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             $card->delete();
@@ -165,21 +169,57 @@ class DiscordPublisher
     /**
      * Render + post (or edit-in-place) the card for one guild.
      *
-     * @param  array{guild: DiscordGuild, organizer: DiscordGuildOrganizer}  unused $organizer param kept for logging
-     *
      * @throws DiscordApiException when the post/edit/delete terminally fails
      */
     private function publishToGuild(Game $game, DiscordGuild $guild, DiscordGuildOrganizer $organizer): void
     {
+        // ── Moderation seam (M057/S07) ──────────────────────
+        // v1 ships the Open path only: every real guild auto-posts, byte-
+        // identical to S01, so this branch is never taken for real guilds.
+        // A future Review-mode slice will swap this early-return for enqueueing
+        // a pending DiscordCardMessage — the schema (nullable message_id,
+        // status lifecycle, moderator delegation) is already in place, so no
+        // publisher refactor will be needed. Per MEM273 compare the cast enum
+        // to the enum constant, never to the raw string 'open'.
+        if ($this->requiresModeration($guild)) {
+            Log::info('discord_publisher.moderation_deferred', [
+                'game_id' => $game->id,
+                'guild_id' => $guild->id,
+                'mode' => $guild->moderation_mode->value,
+                'status' => 'deferred',
+            ]);
+
+            return;
+        }
+
         $context = $this->buildContext($game, $guild);
         $card = $this->renderer->render($game, $context);
         $payload = $card->toPayload();
         $channelId = $guild->games_channel_id;
 
+        if ($channelId === null) {
+            // targetGuilds() filters to configured guilds, so this is a
+            // defensive guard keeping the webhook-client contract (string
+            // channel) honest rather than an expected runtime path.
+            Log::warning('discord_publisher.no_games_channel', [
+                'game_id' => $game->id,
+                'guild_id' => $guild->id,
+            ]);
+
+            return;
+        }
+
         /** @var DiscordCardMessage|null $existing */
         $existing = DiscordCardMessage::where('game_id', $game->id)
             ->where('guild_id', $guild->id)
             ->first();
+
+        // Existing posted cards always carry a message id; pending moderation
+        // cards (null message_id) are filtered by the requiresModeration
+        // early-return above, so this guard keeps the type honest.
+        if ($existing !== null && $existing->message_id === null) {
+            return;
+        }
 
         try {
             if ($existing && $existing->channel_id === $channelId) {
@@ -207,6 +247,7 @@ class DiscordPublisher
                     'guild_id' => $guild->id,
                     'channel_id' => $channelId,
                     'message_id' => $messageId,
+                    'status' => DiscordCardStatus::Posted,
                 ]);
             }
         } catch (DiscordApiException $e) {
@@ -230,6 +271,23 @@ class DiscordPublisher
             'status' => $status,
             'organizer_id' => $organizer->user_id,
         ]);
+    }
+
+    /**
+     * Whether the guild requires moderator approval before posting (M057/S07).
+     *
+     * v1 ships Open only, so this returns false for every real guild and the
+     * Open path is byte-identical to S01. The seam exists so a future
+     * Review-mode slice can flip this to true for Review guilds and the
+     * publisher will defer (log + return) instead of posting — without a
+     * refactor, because the pending-row schema is already in place.
+     *
+     * Kept as a dedicated method (not an inline check) so the moderation policy
+     * has one named chokepoint and one place for the future queue to swap in.
+     */
+    private function requiresModeration(DiscordGuild $guild): bool
+    {
+        return $guild->moderation_mode !== DiscordModerationMode::Open;
     }
 
     // ── Target resolution ───────────────────────────────
@@ -326,10 +384,14 @@ class DiscordPublisher
             ->groupBy('status')
             ->pluck('n', 'status');
 
+        $approved = $rows[ParticipantStatus::Approved->value] ?? 0;
+        $waitlisted = $rows[ParticipantStatus::Waitlisted->value] ?? 0;
+        $benched = $rows[ParticipantStatus::Benched->value] ?? 0;
+
         return [
-            'approved' => (int) ($rows[ParticipantStatus::Approved->value] ?? 0),
-            'waitlisted' => (int) ($rows[ParticipantStatus::Waitlisted->value] ?? 0),
-            'benched' => (int) ($rows[ParticipantStatus::Benched->value] ?? 0),
+            'approved' => is_numeric($approved) ? (int) $approved : 0,
+            'waitlisted' => is_numeric($waitlisted) ? (int) $waitlisted : 0,
+            'benched' => is_numeric($benched) ? (int) $benched : 0,
         ];
     }
 

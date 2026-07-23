@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DiscordModerationMode;
 use Database\Factories\DiscordGuildFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +25,7 @@ use Illuminate\Support\Str;
  * @property string|null $games_channel_id
  * @property string|null $locale
  * @property bool $paused
- * @property string $moderation_mode
+ * @property DiscordModerationMode $moderation_mode
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -55,6 +56,7 @@ class DiscordGuild extends Model
     {
         return [
             'paused' => 'boolean',
+            'moderation_mode' => DiscordModerationMode::class,
         ];
     }
 

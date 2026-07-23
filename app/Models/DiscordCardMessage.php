@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\DiscordCardStatus;
+use Database\Factories\DiscordCardMessageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,12 +20,17 @@ use Illuminate\Support\Str;
  * @property string $game_id roundup Game id
  * @property string $guild_id roundup DiscordGuild id
  * @property string $channel_id Discord channel snowflake
- * @property string $message_id Discord message snowflake
+ * @property string|null $message_id Discord message snowflake (NULL while a pending card awaits approval)
+ * @property DiscordCardStatus $status card lifecycle (posted default in v1)
+ * @property string|null $moderator_user_id roundup User who moderated the card (NULL in v1)
+ * @property Carbon|null $moderated_at when a moderator acted (NULL in v1)
+ * @property Carbon|null $expires_at pending-window expiry (NULL in v1)
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
 class DiscordCardMessage extends Model
 {
+    /** @use HasFactory<DiscordCardMessageFactory> */
     use HasFactory;
 
     public $incrementing = false;
@@ -35,7 +42,20 @@ class DiscordCardMessage extends Model
         'guild_id',
         'channel_id',
         'message_id',
+        'status',
+        'moderator_user_id',
+        'moderated_at',
+        'expires_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'status' => DiscordCardStatus::class,
+            'moderated_at' => 'datetime',
+            'expires_at' => 'datetime',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -66,5 +86,16 @@ class DiscordCardMessage extends Model
     public function guild(): BelongsTo
     {
         return $this->belongsTo(DiscordGuild::class, 'guild_id');
+    }
+
+    /**
+     * The roundup User who moderated this card (NULL in v1; populated only by
+     * the future Review-mode approval flow).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function moderator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'moderator_user_id');
     }
 }
