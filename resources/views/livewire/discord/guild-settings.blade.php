@@ -151,7 +151,7 @@
                 </div>
                 <div>
                     <dt class="text-on-surface-variant">Moderation</dt>
-                    <dd class="text-on-surface">{{ ucfirst($guild->moderation_mode) }}</dd>
+                    <dd class="text-on-surface">{{ $guild->moderation_mode->label() }}</dd>
                 </div>
                 @if($guild->locale)
                     <div>
