@@ -45,4 +45,9 @@ class DiscordApiException extends \RuntimeException
     {
         return new self("Discord API response from {$endpoint} did not contain a message id.");
     }
+
+    public static function missingChannelId(string $endpoint): self
+    {
+        return new self("Discord API response from {$endpoint} did not contain a channel id.");
+    }
 }

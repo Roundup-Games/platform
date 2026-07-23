@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\User;
+use App\Notifications\Channels\DiscordChannel;
 use App\Notifications\Channels\PushChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -51,11 +52,17 @@ abstract class BaseNotification extends Notification implements ShouldQueue
      * 30+ toPush() implementations reachable without each subclass repeating
      * the channel declaration.
      *
+     * Discord (D118) is unconditionally supported: its payload is auto-derived
+     * from toDatabase() (which every notification has), so every notification
+     * type gains a Discord surface gated only by the user's preference and
+     * linked-account presence at send time (DiscordChannel is a graceful no-op
+     * when unlinked). No per-class toDiscord() opt-in is required.
+     *
      * @return array<int, string>
      */
     protected function supportedChannels(): array
     {
-        $channels = [DatabaseChannel::class, MailChannel::class];
+        $channels = [DatabaseChannel::class, MailChannel::class, DiscordChannel::class];
 
         if (method_exists($this, 'toPush')) {
             $channels[] = PushChannel::class;

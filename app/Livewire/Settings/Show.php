@@ -42,6 +42,15 @@ class Show extends Component
 
     public int $pushSubscriptionCount = 0;
 
+    /**
+     * Whether the member has linked a Discord account — gates the Discord
+     * column in the notification preferences matrix (D118). Unlinked members
+     * never see the toggle (it would be meaningless and confusing); the discord
+     * key is still carried in the data model so a future link picks up the
+     * category default at read time (MEM856).
+     */
+    public bool $hasDiscordLinked = false;
+
     // Password fields
     public string $current_password = '';
 
@@ -92,8 +101,13 @@ class Show extends Component
                 'database' => (bool) ($storedNotifications[$key]['database'] ?? $defaults[$key]['database']),
                 'mail' => (bool) ($storedNotifications[$key]['mail'] ?? $defaults[$key]['mail']),
                 'push' => (bool) ($storedNotifications[$key]['push'] ?? ($defaults[$key]['push'] ?? false)),
+                'discord' => (bool) ($storedNotifications[$key]['discord'] ?? ($defaults[$key]['discord'] ?? false)),
             ];
         }
+
+        // Gate the Discord column on a linked account (D118). Computed once at
+        // mount; the column is rendered conditionally in the Blade partial.
+        $this->hasDiscordLinked = $user->discordLinkedAccount() !== null;
 
         // Count existing push subscriptions for the subscribe/unsubscribe UI
         $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
@@ -254,12 +268,14 @@ class Show extends Component
             return;
         }
 
-        // Determine majority state across the group's categories
+        // Determine majority state across the group's categories. Discord is
+        // always part of the data model (carried even when the column is hidden
+        // for unlinked members), so the master switch toggles all four channels.
         $categoryValues = array_keys($grouped[$groupKey]['options']);
         $onCount = 0;
-        $totalChannels = count($categoryValues) * 3;
+        $totalChannels = count($categoryValues) * 4;
         foreach ($categoryValues as $key) {
-            foreach (['database', 'mail', 'push'] as $channel) {
+            foreach (['database', 'mail', 'push', 'discord'] as $channel) {
                 if (! empty($this->notificationSettings[$key][$channel])) {
                     $onCount++;
                 }
@@ -271,6 +287,7 @@ class Show extends Component
             $this->notificationSettings[$key]['database'] = $newState;
             $this->notificationSettings[$key]['mail'] = $newState;
             $this->notificationSettings[$key]['push'] = $newState;
+            $this->notificationSettings[$key]['discord'] = $newState;
         }
     }
 
@@ -284,17 +301,22 @@ class Show extends Component
             'notificationSettings.*.database' => ['required', 'boolean'],
             'notificationSettings.*.mail' => ['required', 'boolean'],
             'notificationSettings.*.push' => ['nullable', 'boolean'],
+            'notificationSettings.*.discord' => ['nullable', 'boolean'],
         ]);
 
-        // Ensure every known category is present with all three channels
+        // Ensure every known category is present with all four channels. The
+        // discord key MUST be rebuilt here or a save round-trip silently drops
+        // it (research §10 gotcha) — existing rows without it fall back at read
+        // time, but a linked member's explicit toggle would be lost on save.
         $settings = [];
         $allValues = NotificationCategory::values();
         foreach ($allValues as $categoryValue) {
-            $entry = $validated['notificationSettings'][$categoryValue] ?? ['database' => true, 'mail' => false, 'push' => false];
+            $entry = $validated['notificationSettings'][$categoryValue] ?? ['database' => true, 'mail' => false, 'push' => false, 'discord' => false];
             $settings[$categoryValue] = [
                 'database' => (bool) ($entry['database'] ?? true),
                 'mail' => (bool) ($entry['mail'] ?? false),
                 'push' => (bool) ($entry['push'] ?? false),
+                'discord' => (bool) ($entry['discord'] ?? false),
             ];
         }
 

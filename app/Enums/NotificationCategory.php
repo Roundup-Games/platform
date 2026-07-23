@@ -256,10 +256,30 @@ enum NotificationCategory: string
     }
 
     /**
-     * Build the default notification preference matrix.
-     * Each category maps to database (in-app), mail, and push channel booleans.
+     * Whether Discord DM is enabled by default for this category.
      *
-     * @return array<string, array{database: bool, mail: bool, push: bool}>
+     * Discord is a free, push-like channel that requires the member to have
+     * explicitly linked a Discord account, so it inherits the push defaults:
+     * on for every actionable category (where a DM alongside the in-app
+     * notification is valuable to a linked user), off for pure ambient noise
+     * (followers, completions, review queue) where a DM would feel like spam.
+     * Linked members get value immediately; unlinked members never see the
+     * column (T04) and the channel is a graceful no-op (T02).
+     */
+    public function defaultDiscordEnabled(): bool
+    {
+        return $this->defaultPushEnabled();
+    }
+
+    /**
+     * Build the default notification preference matrix.
+     * Each category maps to database (in-app), mail, push, and discord booleans.
+     *
+     * A missing discord key in a stored row falls back to
+     * defaultDiscordEnabled() at read time (NotificationService::resolveChannels),
+     * so no data migration is required for existing users (MEM856).
+     *
+     * @return array<string, array{database: bool, mail: bool, push: bool, discord: bool}>
      */
     public static function defaultSettings(): array
     {
@@ -269,6 +289,7 @@ enum NotificationCategory: string
                 'database' => true,
                 'mail' => $category->defaultMailEnabled(),
                 'push' => $category->defaultPushEnabled(),
+                'discord' => $category->defaultDiscordEnabled(),
             ];
         }
 

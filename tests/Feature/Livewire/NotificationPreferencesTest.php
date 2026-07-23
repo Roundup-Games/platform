@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\NotificationCategory;
+use App\Enums\OAuthProvider;
 use App\Livewire\Settings\Show;
+use App\Models\LinkedAccount;
 use App\Models\PushSubscription;
 use App\Models\User;
 use Livewire\Livewire;
@@ -105,4 +107,140 @@ describe('notification preferences section', function () {
             ->assertSee(__('notifications.flash_notification_preferences_saved'));
     });
 
+});
+
+describe('discord column gating (D118)', function () {
+    it('hides the discord column when the member has no linked Discord account', function () {
+        // The gating flag is the actual unit behaviour; the bare word "Discord"
+        // also appears in the Linked Accounts section, so assert the unique
+        // master-toggle aria-label (only emitted when the column renders).
+        Livewire::test(Show::class)
+            ->assertSet('hasDiscordLinked', false)
+            ->assertDontSee(__('notifications.aria_master_toggle_all_discord'));
+    });
+
+    it('shows the discord column when the member has linked a Discord account', function () {
+        LinkedAccount::factory()->create([
+            'user_id' => $this->user->id,
+            'provider' => OAuthProvider::Discord->value,
+            'provider_user_id' => '999001122',
+        ]);
+
+        Livewire::test(Show::class)
+            ->assertSet('hasDiscordLinked', true)
+            ->assertSee(__('notifications.channel_discord'));
+    });
+
+    it('does not gate the column on a non-discord linked account', function () {
+        LinkedAccount::factory()->create([
+            'user_id' => $this->user->id,
+            'provider' => OAuthProvider::Google->value,
+        ]);
+
+        Livewire::test(Show::class)
+            ->assertSet('hasDiscordLinked', false)
+            ->assertDontSee(__('notifications.aria_master_toggle_all_discord'));
+    });
+});
+
+describe('discord channel persistence', function () {
+    it('initializes the discord key from the category default for a fresh user', function () {
+        $defaults = NotificationCategory::defaultSettings();
+
+        Livewire::test(Show::class)
+            ->assertSet('notificationSettings.waitlist_promoted.discord', $defaults['waitlist_promoted']['discord'])
+            ->assertSet('notificationSettings.new_follower.discord', $defaults['new_follower']['discord']);
+    });
+
+    it('initializes the discord key from a stored preference when present', function () {
+        $this->user->update([
+            'notification_settings' => [
+                'waitlist_promoted' => ['database' => true, 'mail' => false, 'discord' => false],
+            ],
+        ]);
+
+        Livewire::test(Show::class)
+            ->assertSet('notificationSettings.waitlist_promoted.discord', false);
+    });
+
+    it('falls back to the discord default when a legacy row omits the key', function () {
+        $defaults = NotificationCategory::defaultSettings();
+        // Legacy row shaped before D118 — no discord key at all.
+        $this->user->update([
+            'notification_settings' => [
+                'waitlist_promoted' => ['database' => true, 'mail' => false],
+            ],
+        ]);
+
+        Livewire::test(Show::class)
+            ->assertSet(
+                'notificationSettings.waitlist_promoted.discord',
+                $defaults['waitlist_promoted']['discord'],
+            );
+    });
+
+    it('persists the discord key on save without dropping it (research §10 gotcha)', function () {
+        // Seed a stored discord=true so mount() loads it; save() must round-trip it.
+        $this->user->update([
+            'notification_settings' => [
+                'waitlist_promoted' => ['database' => true, 'mail' => false, 'discord' => true],
+                'new_follower' => ['database' => true, 'mail' => false, 'discord' => false],
+            ],
+        ]);
+
+        Livewire::test(Show::class)
+            ->call('saveNotificationSettings')
+            ->assertSet('notificationSaved', true);
+
+        $this->user->refresh();
+        expect($this->user->notification_settings['waitlist_promoted'])->toHaveKey('discord')
+            ->and($this->user->notification_settings['waitlist_promoted']['discord'])->toBeTrue()
+            ->and($this->user->notification_settings['new_follower'])->toHaveKey('discord')
+            ->and($this->user->notification_settings['new_follower']['discord'])->toBeFalse();
+    })->group('smoke');
+
+    it('writes the discord key for every category on save', function () {
+        Livewire::test(Show::class)
+            ->call('saveNotificationSettings');
+
+        $this->user->refresh();
+        foreach (NotificationCategory::values() as $categoryValue) {
+            expect($this->user->notification_settings[$categoryValue])->toHaveKey('discord');
+        }
+    });
+});
+
+describe('discord master toggles', function () {
+    it('toggles the discord channel across all categories via toggleChannelGlobally', function () {
+        // Start from defaults so the majority direction is deterministic.
+        $component = Livewire::test(Show::class);
+
+        $onCount = collect(NotificationCategory::values())
+            ->filter(fn ($k) => ! empty($component->get('notificationSettings')[$k]['discord']))
+            ->count();
+        $expectedNewState = $onCount <= count(NotificationCategory::values()) / 2;
+
+        $component->call('toggleChannelGlobally', 'discord');
+
+        foreach (NotificationCategory::values() as $categoryValue) {
+            expect($component->get('notificationSettings')[$categoryValue]['discord'])->toBe($expectedNewState);
+        }
+    });
+
+    it('toggles all four channels within a group via toggleGroup', function () {
+        $grouped = NotificationCategory::grouped();
+        $groupKey = array_key_first($grouped);
+        $categoryValues = array_keys($grouped[$groupKey]['options']);
+
+        Livewire::test(Show::class)
+            ->call('toggleGroup', $groupKey)
+            ->call('toggleGroup', $groupKey); // double-toggle returns to the starting majority state
+
+        $component = Livewire::test(Show::class);
+        foreach ($categoryValues as $categoryValue) {
+            foreach (['database', 'mail', 'push', 'discord'] as $channel) {
+                expect($component->get('notificationSettings')[$categoryValue])->toHaveKey($channel);
+            }
+        }
+    });
 });

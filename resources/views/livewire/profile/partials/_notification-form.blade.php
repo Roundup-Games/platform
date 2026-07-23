@@ -15,14 +15,22 @@
     </div>
 @endif
 
+{-- Discord column (D118): rendered only when the member has linked a Discord account ($hasDiscordLinked, computed in Show::mount). Unlinked members see the existing 3-column grid (database/mail/push); the discord key is still carried in the data model so a future link picks up the category default. Tailwind v4 JIT scans this source file, so both literal grid-cols values below are compiled. --}
+@php
+    $gridCols = $hasDiscordLinked
+        ? 'sm:grid-cols-[1fr_repeat(4,minmax(0,80px))]'
+        : 'sm:grid-cols-[1fr_repeat(3,minmax(0,80px))]';
+@endphp
+
 {{-- Channel master switches: one click toggles all categories for that channel --}}
-<div class="hidden sm:grid sm:grid-cols-[1fr_repeat(3,minmax(0,80px))] gap-2 px-4">
+<div @class(['hidden', 'sm:grid', 'gap-2', 'px-4', $gridCols])>
     <span></span>
     @php
         $allValues = \App\Enums\NotificationCategory::values();
         $allDbOn = collect($allValues)->every(fn ($k) => !empty($notificationSettings[$k]['database']));
         $allMailOn = collect($allValues)->every(fn ($k) => !empty($notificationSettings[$k]['mail']));
         $allPushOn = collect($allValues)->every(fn ($k) => !empty($notificationSettings[$k]['push']));
+        $allDiscordOn = collect($allValues)->every(fn ($k) => !empty($notificationSettings[$k]['discord']));
     @endphp
     <button type="button" wire:click="toggleChannelGlobally('database')" class="text-xs font-medium text-center transition-colors hover:text-primary"
             aria-label="{{ __('notifications.aria_master_toggle_all_in_app') }}">
@@ -36,6 +44,12 @@
             aria-label="{{ __('notifications.aria_master_toggle_all_push') }}">
         <span @class(['text-primary' => $allPushOn, 'text-on-surface-variant' => !$allPushOn])>{{ __('notifications.channel_push') }}</span>
     </button>
+    @if($hasDiscordLinked)
+        <button type="button" wire:click="toggleChannelGlobally('discord')" class="text-xs font-medium text-center transition-colors hover:text-primary"
+                aria-label="{{ __('notifications.aria_master_toggle_all_discord') }}">
+            <span @class(['text-primary' => $allDiscordOn, 'text-on-surface-variant' => !$allDiscordOn])>{{ __('notifications.channel_discord') }}</span>
+        </button>
+    @endif
 </div>
 
 {{-- Mobile channel master switches --}}
@@ -43,6 +57,9 @@
     <button type="button" wire:click="toggleChannelGlobally('database')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_in_app') }}</button>
     <button type="button" wire:click="toggleChannelGlobally('mail')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_email') }}</button>
     <button type="button" wire:click="toggleChannelGlobally('push')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_push') }}</button>
+    @if($hasDiscordLinked)
+        <button type="button" wire:click="toggleChannelGlobally('discord')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_discord') }}</button>
+    @endif
 </div>
 
 @foreach(\App\Enums\NotificationCategory::grouped() as $groupKey => $group)
@@ -60,6 +77,7 @@
                     $db = $notificationSettings[$categoryValue]['database'] ?? true;
                     $mail = $notificationSettings[$categoryValue]['mail'] ?? false;
                     $push = $notificationSettings[$categoryValue]['push'] ?? false;
+                    $discord = $notificationSettings[$categoryValue]['discord'] ?? false;
                 @endphp
                 <div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg gap-2 sm:gap-3">
                     <span class="text-sm font-medium text-on-surface min-w-0 truncate">{{ $categoryLabel }}</span>
@@ -117,6 +135,26 @@
                                 'translate-x-1' => !$push,
                             ])></span>
                         </button>
+
+                        {{-- Discord toggle (D118): only shown to members who linked a Discord account --}}
+                        @if($hasDiscordLinked)
+                            <button type="button"
+                                    wire:click="$toggle('notificationSettings.{{ $categoryValue }}.discord')"
+                                    @class([
+                                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0',
+                                        'bg-primary' => $discord,
+                                        'bg-surface-container-highest' => !$discord,
+                                    ])
+                                    role="switch"
+                                    aria-label="{{ $categoryLabel }} — {{ __('notifications.channel_discord') }}"
+                                    :aria-checked="{{ $discord ? 'true' : 'false' }}">
+                                <span @class([
+                                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
+                                    'translate-x-6' => $discord,
+                                    'translate-x-1' => !$discord,
+                                ])></span>
+                            </button>
+                        @endif
                     </div>
                 </div>
             @endforeach

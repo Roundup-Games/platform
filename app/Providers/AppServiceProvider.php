@@ -19,6 +19,7 @@ use App\Models\Review;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Notifications\Channels\DiscordChannel;
 use App\Notifications\Channels\PushChannel;
 use App\Observers\ActivityLogObserver;
 use App\Observers\CampaignObserver;
@@ -338,6 +339,15 @@ class AppServiceProvider extends ServiceProvider
         // Register custom notification channels
         Notification::extend('push', function ($app) {
             return $app->make(PushChannel::class);
+        });
+
+        // Discord DM channel (D118) — mirrors PushChannel registration.
+        // The container resolves DiscordWebhookClient from its own
+        // configuration (no explicit binding needed: its constructor reads
+        // services.discord.* via config()). DiscordChannel tolerates a null
+        // client (graceful no-op) when Discord is unconfigured.
+        Notification::extend('discord', function ($app) {
+            return $app->make(DiscordChannel::class);
         });
 
         // Persist missing translation log on request termination

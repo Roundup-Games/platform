@@ -147,6 +147,139 @@ class DiscordWebhookClientTest extends TestCase
         );
     }
 
+    // ── createDmChannel ─────────────────────────────────
+
+    private const DM_CHANNEL_ID = '808182838485868788';
+
+    private const RECIPIENT_SNOWFLAKE = '909192939495969798';
+
+    #[Test]
+    public function create_dm_channel_returns_channel_id_from_discord_response()
+    {
+        Http::fake([
+            'discord.test/api/v10/users/@me/channels' => Http::response([
+                'id' => self::DM_CHANNEL_ID,
+                'type' => 1, // DM channel type
+                'recipients' => [],
+            ], 200),
+        ]);
+
+        $id = $this->makeClient()->createDmChannel(self::RECIPIENT_SNOWFLAKE);
+
+        $this->assertSame(self::DM_CHANNEL_ID, $id);
+    }
+
+    #[Test]
+    public function create_dm_channel_posts_recipient_id_body_with_bot_authorization_header()
+    {
+        $captured = [];
+
+        Http::fake(function (Request $request) use (&$captured) {
+            $captured['headers'] = $request->headers();
+            $captured['body'] = $request->data();
+            $captured['method'] = $request->method();
+            $captured['url'] = $request->url();
+
+            return Http::response(['id' => self::DM_CHANNEL_ID], 200);
+        });
+
+        $this->makeClient()->createDmChannel(self::RECIPIENT_SNOWFLAKE);
+
+        $this->assertSame('POST', $captured['method']);
+        $this->assertStringEndsWith('/users/@me/channels', $captured['url']);
+        // Bot scheme — NOT Bearer (Discord rejects Bearer for bot endpoints).
+        $this->assertSame('Bot test-bot-token', $captured['headers']['Authorization'][0] ?? null);
+        // Body carries the recipient snowflake, exactly as Discord's DM-create spec requires.
+        $this->assertSame(
+            ['recipient_id' => self::RECIPIENT_SNOWFLAKE],
+            $captured['body'],
+        );
+    }
+
+    #[Test]
+    public function create_dm_channel_throws_when_response_lacks_channel_id()
+    {
+        Http::fake([
+            'discord.test/*' => Http::response(['foo' => 'bar'], 200),
+        ]);
+
+        $this->expectException(DiscordApiException::class);
+        $this->expectExceptionMessageMatches('/did not contain a channel id/');
+
+        $this->makeClient()->createDmChannel(self::RECIPIENT_SNOWFLAKE);
+    }
+
+    #[Test]
+    public function create_dm_channel_throws_when_response_id_is_empty_string()
+    {
+        Http::fake([
+            'discord.test/*' => Http::response(['id' => ''], 200),
+        ]);
+
+        $this->expectException(DiscordApiException::class);
+        $this->expectExceptionMessageMatches('/did not contain a channel id/');
+
+        $this->makeClient()->createDmChannel(self::RECIPIENT_SNOWFLAKE);
+    }
+
+    /**
+     * The shared-guild 403 is the highest-risk DM-delivery path (research §10):
+     * a user who linked Discord but never joined a roundup guild gets
+     * `403 Cannot send messages to this user`. createDmChannel surfaces it as a
+     * non-retryable DiscordApiException (requestFailed) so the channel layer
+     * (T02) can catch + degrade gracefully. This test pins that contract.
+     */
+    #[Test]
+    public function create_dm_channel_surfaces_shared_guild_403_as_non_retryable_failure()
+    {
+        $calls = 0;
+
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            return Http::response([
+                'message' => 'Cannot send messages to this user',
+                'code' => 40007,
+            ], 403);
+        });
+
+        try {
+            $this->makeClient(maxAttempts: 3)->createDmChannel(self::RECIPIENT_SNOWFLAKE);
+            $this->fail('Expected DiscordApiException for shared-guild 403.');
+        } catch (DiscordApiException $e) {
+            $this->assertMatchesRegularExpression(
+                '/failed with status 403/',
+                $e->getMessage(),
+            );
+            $this->assertSame(1, $calls, '4xx must NOT retry — surfaces immediately so T02 can degrade');
+        }
+    }
+
+    #[Test]
+    public function create_dm_channel_client_error_logs_structured_error_before_throwing()
+    {
+        Log::spy();
+
+        Http::fake([
+            'discord.test/*' => Http::response(['message' => 'Unauthorized', 'code' => 0], 401),
+        ]);
+
+        try {
+            $this->makeClient()->createDmChannel(self::RECIPIENT_SNOWFLAKE);
+        } catch (DiscordApiException $e) {
+            // expected
+        }
+
+        Log::shouldHaveReceived('error')
+            ->withArgs(function (string $message, array $context) {
+                return $message === 'Discord API client error'
+                    && ($context['endpoint'] ?? null) === 'users/@me/channels'
+                    && ($context['status'] ?? null) === 401;
+            })
+            ->atLeast()
+            ->once();
+    }
+
     // ── 429 rate-limit backoff ──────────────────────────
 
     #[Test]

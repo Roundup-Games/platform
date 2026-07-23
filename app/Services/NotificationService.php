@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\NotificationCategory;
 use App\Models\User;
 use App\Notifications\BaseNotification;
+use App\Notifications\Channels\DiscordChannel;
 use App\Notifications\Channels\PushChannel;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -244,7 +245,7 @@ class NotificationService
         $categoryKey = $category->value;
         $defaults = NotificationCategory::defaultSettings();
 
-        $categoryDefaults = $defaults[$categoryKey] ?? ['database' => true, 'mail' => false, 'push' => false];
+        $categoryDefaults = $defaults[$categoryKey] ?? ['database' => true, 'mail' => false, 'push' => false, 'discord' => false];
 
         // Resolve the stored per-category settings. $stored stays null when the
         // settings blob is null, the category is absent, or its value is malformed
@@ -263,11 +264,15 @@ class NotificationService
             }
         }
 
-        // Map enabled booleans to channel class strings.
+        // Map enabled booleans to channel class strings. Discord (D118) joins
+        // the matrix as a fourth channel — its payload is auto-derived from
+        // toDatabase() by DiscordChannel, so it routes through the same
+        // enabled/supported intersection as the other channels.
         $channelMap = [
             'database' => DatabaseChannel::class,
             'mail' => MailChannel::class,
             'push' => PushChannel::class,
+            'discord' => DiscordChannel::class,
         ];
 
         // Per-channel resolution: use the stored value when the channel key is

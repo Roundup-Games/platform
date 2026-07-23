@@ -157,6 +157,46 @@ class DiscordWebhookClient
         $this->request('PATCH', $path, $payload->toArray(), authenticated: false);
     }
 
+    /**
+     * Create (or resolve) a one-to-one DM channel with a recipient — the
+     * first half of Discord DM delivery (D118). Discord DMs are two-step:
+     * create a DM channel (this call), then post a message to it via
+     * {@see postMessage()} with the returned channel id.
+     *
+     * Hits `POST /users/@me/channels` with `{recipient_id: <snowflake>}` and
+     * the standard `Authorization: Bot {token}` header. The endpoint is
+     * idempotent for a given recipient: repeated calls for the same user
+     * return the same DM channel id, so callers do not need to cache.
+     *
+     * The recipient snowflake is `LinkedAccount::provider_user_id` for a
+     * Discord-linked member (MEM875). Discord requires the bot and the
+     * recipient to share at least one guild; a user who linked but never
+     * joined a roundup guild gets a 403 ("Cannot send messages to this
+     * user"). That surfaces here as a {@see DiscordApiException::requestFailed()}
+     * (non-retryable 4xx) — the channel layer (T02) is responsible for
+     * catching it and treating it as a graceful no-op rather than letting
+     * the exception abort the parallel in-app/mail/push dispatch.
+     *
+     * @param  string  $recipientId  The recipient's Discord snowflake
+     * @return string The DM channel snowflake id
+     *
+     * @throws DiscordApiException on non-retryable failure or exhausted retries
+     */
+    public function createDmChannel(string $recipientId): string
+    {
+        $path = 'users/@me/channels';
+
+        $response = $this->request('POST', $path, ['recipient_id' => $recipientId]);
+
+        $id = $response->json('id');
+
+        if (! is_string($id) || $id === '') {
+            throw DiscordApiException::missingChannelId($path);
+        }
+
+        return $id;
+    }
+
     // ── HTTP lifecycle ──────────────────────────────────
 
     /**

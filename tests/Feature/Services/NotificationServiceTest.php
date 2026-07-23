@@ -59,7 +59,7 @@ describe('NotificationService', function () {
         it('returns empty array when every channel is explicitly disabled', function () {
             $user = User::factory()->create([
                 'notification_settings' => [
-                    'game_invitation' => ['database' => false, 'mail' => false, 'push' => false],
+                    'game_invitation' => ['database' => false, 'mail' => false, 'push' => false, 'discord' => false],
                 ],
             ]);
 
@@ -90,11 +90,12 @@ describe('NotificationService', function () {
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            // GameInvitation defaults: database=true, mail=true, push=true
-            expect($channels)->toHaveCount(3);
+            // GameInvitation defaults: database=true, mail=true, push=true, discord=true
+            expect($channels)->toHaveCount(4);
             expect($channels)->toHaveKey('database');
             expect($channels)->toHaveKey('mail');
             expect($channels)->toHaveKey('push');
+            expect($channels)->toHaveKey('discord');
         });
 
         it('falls back to defaults when category key is missing from settings', function () {
@@ -107,9 +108,10 @@ describe('NotificationService', function () {
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            // Falls back to GameInvitation defaults: database=true, mail=true, push=true
-            expect($channels)->toHaveCount(3);
+            // Falls back to GameInvitation defaults: database=true, mail=true, push=true, discord=true
+            expect($channels)->toHaveCount(4);
             expect($channels)->toHaveKey('push');
+            expect($channels)->toHaveKey('discord');
         });
 
         it('falls back to defaults when category value is malformed', function () {
@@ -124,8 +126,9 @@ describe('NotificationService', function () {
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
             // Should fall back to defaults and log a warning
-            expect($channels)->toHaveCount(3);
+            expect($channels)->toHaveCount(4);
             expect($channels)->toHaveKey('push');
+            expect($channels)->toHaveKey('discord');
         });
 
         it('uses correct defaults for categories where mail defaults to false', function () {
@@ -141,7 +144,8 @@ describe('NotificationService', function () {
         it('handles push channel based on settings', function (bool $pushEnabled, int $expectedCount) {
             $user = User::factory()->create([
                 'notification_settings' => [
-                    'game_invitation' => ['database' => true, 'mail' => true, 'push' => $pushEnabled],
+                    // Pin discord off so the count isolates the push variable.
+                    'game_invitation' => ['database' => true, 'mail' => true, 'push' => $pushEnabled, 'discord' => false],
                 ],
             ]);
 
@@ -183,7 +187,7 @@ describe('NotificationService', function () {
 
             $user = User::factory()->create([
                 'notification_settings' => [
-                    'game_invitation' => ['database' => false, 'mail' => false, 'push' => false],
+                    'game_invitation' => ['database' => false, 'mail' => false, 'push' => false, 'discord' => false],
                 ],
             ]);
 
