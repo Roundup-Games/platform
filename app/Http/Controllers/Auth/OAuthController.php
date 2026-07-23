@@ -13,6 +13,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -139,10 +140,7 @@ class OAuthController
                     ? \Crypt::encryptString($socialiteUser->refreshToken)
                     : null,
                 'token_expires_at' => null,
-                'provider_meta' => json_encode([
-                    'nickname' => $socialiteUser->getNickname(),
-                    'avatar' => $socialiteUser->getAvatar(),
-                ]),
+                'provider_meta' => json_encode($this->providerMetaFor($provider, $socialiteUser)),
                 'updated_at' => now(),
             ]);
 
@@ -306,10 +304,7 @@ class OAuthController
                 'token' => $socialiteUser->token,
                 'refresh_token' => $socialiteUser->refreshToken,
                 'token_expires_at' => null,
-                'provider_meta' => [
-                    'nickname' => $socialiteUser->getNickname(),
-                    'avatar' => $socialiteUser->getAvatar(),
-                ],
+                'provider_meta' => $this->providerMetaFor($provider, $socialiteUser),
             ]);
         } catch (QueryException $e) {
             // Unique constraint violation — another request beat us to it
@@ -361,11 +356,91 @@ class OAuthController
             'token' => $socialiteUser->token,
             'refresh_token' => $socialiteUser->refreshToken,
             'token_expires_at' => null,
-            'provider_meta' => [
-                'nickname' => $socialiteUser->getNickname(),
-                'avatar' => $socialiteUser->getAvatar(),
-            ],
+            'provider_meta' => $this->providerMetaFor($provider, $socialiteUser),
         ]);
+    }
+
+    /**
+     * Build the provider_meta payload persisted on the linked account.
+     *
+     * Carries nickname + avatar for all providers. For Discord, additionally
+     * embeds the user's guild membership (M057/D119) so the discovery surface
+     * can intersect it with discord_guilds without a second API call. Guild
+     * data is best-effort: a failed fetch is omitted, never fatal — login or
+     * linking must never be blocked by a guild-read error.
+     *
+     * @return array<string, mixed>
+     */
+    private function providerMetaFor(string $provider, \Laravel\Socialite\Two\User $socialiteUser): array
+    {
+        $meta = [
+            'nickname' => $socialiteUser->getNickname(),
+            'avatar' => $socialiteUser->getAvatar(),
+        ];
+
+        if ($provider === OAuthProvider::Discord->value) {
+            $guilds = $this->fetchDiscordGuilds((string) ($socialiteUser->token ?? ''));
+            if ($guilds !== null) {
+                $meta['guilds'] = $guilds;
+            }
+        }
+
+        return $meta;
+    }
+
+    /**
+     * Fetch the Discord guilds the linked user is a member of.
+     *
+     * Uses the user OAuth token (Bearer) against Discord's REST API — the
+     * same surface the Socialite Discord provider hits for @me. The `guilds`
+     * OAuth scope (M057/D119) authorizes this read.
+     *
+     * Best-effort: returns null on any failure (timeout, malformed response,
+     * non-2xx, connection loss). The discovery surface (T07) simply shows
+     * nothing until a later token refresh repopulates the list.
+     *
+     * @return list<array{id: string|null, name: string|null, icon: string|null}>|null
+     */
+    private function fetchDiscordGuilds(string $token): ?array
+    {
+        if ($token === '') {
+            return null;
+        }
+
+        try {
+            $response = Http::withToken($token)
+                ->timeout(10)
+                ->get('https://discord.com/api/users/@me/guilds');
+
+            if (! $response->successful()) {
+                Log::warning('Discord guild list fetch returned non-2xx', [
+                    'status' => $response->status(),
+                ]);
+
+                return null;
+            }
+
+            $guilds = $response->json();
+            if (! is_array($guilds)) {
+                return null;
+            }
+
+            // Reduce to the fields roundup persists long-term. The @me/guilds
+            // payload also carries owner/permissions flags we do not need; a
+            // trimmed projection keeps provider_meta small and stable.
+            return array_values(array_map(fn ($guild) => [
+                'id' => isset($guild['id']) ? (string) $guild['id'] : null,
+                'name' => $guild['name'] ?? null,
+                'icon' => $guild['icon'] ?? null,
+            ], $guilds));
+        } catch (\Throwable $e) {
+            report($e);
+            Log::warning('Discord guild list fetch failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     /**

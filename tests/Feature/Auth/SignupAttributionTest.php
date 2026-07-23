@@ -3,7 +3,18 @@
 use App\Http\Middleware\CaptureFirstTouch;
 use App\Models\LinkedAccount;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
+
+// T02 (M057/D119): the Discord OAuth callback now also fetches the user's
+// guild list via the Http facade. Stub it so these signup-attribution tests
+// never make a real network call. Inert for the non-Discord (Google/email)
+// scenarios.
+beforeEach(function () {
+    Http::fake([
+        'https://discord.com/api/users/@me/guilds' => Http::response([]),
+    ]);
+});
 
 // Write-once signup-attribution persistence (S02/T03).
 //

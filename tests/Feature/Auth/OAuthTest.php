@@ -9,8 +9,20 @@ use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
+use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
 use Tests\Helpers\TestablePostHogClient;
+
+// T02 (M057/D119) widened the Discord OAuth callback to also fetch the user's
+// guild membership list via the Http facade. Stub that endpoint here so the
+// existing Discord tests below never make a real network call. Inert for
+// non-Discord flows (Google tests never hit the URL). Focused guilds-scope
+// assertions live in DiscordGuildsScopeTest.php.
+beforeEach(function () {
+    Http::fake([
+        'https://discord.com/api/users/@me/guilds' => Http::response([]),
+    ]);
+});
 
 // ── New user registration via OAuth ─────────────────────
 
