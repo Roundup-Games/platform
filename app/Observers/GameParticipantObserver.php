@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Enums\ParticipantStatus;
+use App\Jobs\RefreshDiscordCard;
 use App\Models\GameParticipant;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardModeService;
@@ -58,6 +59,11 @@ class GameParticipantObserver
                 $participant->game_id,
             );
         }
+
+        // M057/S04/T02: a new participant (a join) changes the game's card
+        // roster state — dispatch the debounced card refresh. Gated behind
+        // publishing_enabled (MEM918); best-effort, never blocks the write.
+        $this->maybeDispatchCardRefresh($participant);
     }
 
     public function updated(GameParticipant $participant): void
@@ -69,6 +75,12 @@ class GameParticipantObserver
                 (string) $participant->user_id,
                 $participant->game_id,
             );
+
+            // M057/S04/T02: a status change (waitlisted->approved,
+            // approved->benched) changes the game's card roster state —
+            // dispatch the debounced card refresh. Gated behind
+            // publishing_enabled (MEM918); best-effort, never blocks the write.
+            $this->maybeDispatchCardRefresh($participant);
         }
 
         // Attendance reporting affects the unreported-attendance item
@@ -97,5 +109,46 @@ class GameParticipantObserver
             'user_id' => $participant->user_id,
             'game_id' => $participant->game_id,
         ]);
+
+        // M057/S04/T02: a participant leaving (a drop) changes the game's card
+        // roster state — dispatch the debounced card refresh. Gated behind
+        // publishing_enabled (MEM918); best-effort, never blocks the write.
+        $this->maybeDispatchCardRefresh($participant);
+    }
+
+    /**
+     * M057/S04/T02: dispatch the debounced RefreshDiscordCard job when roster
+     * churn changes a game's card roster state (a join in created(), a status
+     * change like waitlisted->approved / approved->benched in updated(), or a
+     * drop in deleted()). Roster churn never re-saves the Game, so
+     * GameObserver::saved() (which dispatches PublishGameToDiscord on material
+     * change) never fires for churn — this hook closes that gap. The job is
+     * ShouldBeUnique keyed on gameId, so rapid churn within the debounce window
+     * coalesces to a single edit-in-place PATCH per game.
+     *
+     * Gated behind the publishing_enabled master switch (MEM918) so the
+     * existing sync-queue test suite is unaffected. Best-effort: a dispatch
+     * infrastructure failure is swallowed and logged so it never blocks the
+     * participant write (mirrors GameObserver::maybeDispatchDiscordPublish).
+     */
+    private function maybeDispatchCardRefresh(GameParticipant $participant): void
+    {
+        if (! config('services.discord.publishing_enabled', false)) {
+            return;
+        }
+
+        try {
+            RefreshDiscordCard::dispatch((string) $participant->game_id);
+
+            Log::info('discord_publisher.card_refresh_dispatched', [
+                'game_id' => $participant->game_id,
+            ]);
+        } catch (\Throwable $e) {
+            // Never block the participant write on dispatch infrastructure.
+            Log::warning('discord_publisher.card_refresh_dispatch_failed', [
+                'game_id' => $participant->game_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

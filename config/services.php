@@ -78,6 +78,20 @@ return [
         // the dispatch path fully off until M057 ships. Enable per-test via
         // config(['services.discord.publishing_enabled' => true]).
         'publishing_enabled' => env('DISCORD_PUBLISHING_ENABLED', false),
+        // S04: debounce window (seconds) for the RefreshDiscordCard card-refresh
+        // job. Roster churn (a join / drop / waitlist promotion / bench demote)
+        // never re-saves the Game, so GameObserver::saved() (which dispatches
+        // PublishGameToDiscord) never fires and the card goes stale.
+        // RefreshDiscordCard closes that gap: ShouldBeUnique keyed on gameId + a
+        // delay equal to this window coalesces rapid roster churn into a single
+        // edit-in-place refresh per game (the lock is held while the job is
+        // delayed, so a burst of joins/drops produces one PATCH, not N). 15s
+        // is short enough that a roster change is visible on the card within a
+        // request cycle yet long enough to absorb a host importing several
+        // players at once. Override per-env; the existing sync-queue test suite
+        // is unaffected because the observer dispatch is itself gated behind
+        // publishing_enabled above.
+        'card_refresh_debounce_seconds' => env('DISCORD_CARD_REFRESH_DEBOUNCE_SECONDS', 15),
         // Discord OAuth scopes asserted by OAuthController::redirect().
         //   - identify + email: login + attribution (no Discord approval cycle).
         //   - guilds: added by M057/D119 to power organizer auto-discovery —
