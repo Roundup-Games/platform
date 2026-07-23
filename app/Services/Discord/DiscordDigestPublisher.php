@@ -113,6 +113,14 @@ class DiscordDigestPublisher
         $eventCount = $games->count();
         $embedCount = is_array($payload->embeds) ? count($payload->embeds) : 0;
 
+        if ($channelId === null) {
+            Log::warning('discord_digest.no_calendar_channel', [
+                'guild_id' => $guild->id,
+            ]);
+
+            return;
+        }
+
         $messageId = '';
         $created = false;
 
@@ -285,7 +293,7 @@ class DiscordDigestPublisher
 
         $counts = [];
         foreach ($rows as $gameId => $n) {
-            $counts[(string) $gameId] = (int) $n;
+            $counts[(string) $gameId] = is_numeric($n) ? (int) $n : 0;
         }
 
         return $counts;

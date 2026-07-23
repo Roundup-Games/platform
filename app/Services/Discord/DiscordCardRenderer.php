@@ -125,9 +125,7 @@ class DiscordCardRenderer
         }
 
         $roster = $this->rosterField($game, $context);
-        if ($roster !== null) {
-            $fields[] = $roster;
-        }
+        $fields[] = $roster;
 
         $systems = $this->systemsField($game);
         if ($systems !== null) {
@@ -168,8 +166,10 @@ class DiscordCardRenderer
             return null;
         }
 
-        $locale = $context->locale;
-        $carbon = $locale ? $date->copy()->locale($locale) : $date;
+        $carbon = $date->copy();
+        if ($context->locale !== null && $context->locale !== '') {
+            $carbon->locale($context->locale);
+        }
         $value = $carbon->translatedFormat('D j M Y · H:i');
 
         $duration = $this->duration($game);
@@ -181,9 +181,9 @@ class DiscordCardRenderer
     }
 
     /**
-     * @return array{name: string, value: string, inline: bool}|null
+     * @return array{name: string, value: string, inline: bool}
      */
-    private function rosterField(Game $game, DiscordCardContext $context): ?array
+    private function rosterField(Game $game, DiscordCardContext $context): array
     {
         $approved = $context->approvedCount;
         $max = $this->intOrNull($game->max_players);
@@ -254,9 +254,12 @@ class DiscordCardRenderer
             return null;
         }
 
-        $tier = is_string($score['tier'] ?? null) ? $score['tier'] : 'newcomer';
-        $games = isset($score['game_count']) ? (int) $score['game_count'] : null;
-        $pct = isset($score['score']) ? (int) round((float) $score['score']) : null;
+        $tierRaw = $score['tier'] ?? null;
+        $tier = is_string($tierRaw) ? $tierRaw : 'newcomer';
+        $gamesRaw = $score['game_count'] ?? null;
+        $games = is_int($gamesRaw) ? $gamesRaw : null;
+        $scoreRaw = $score['score'] ?? null;
+        $pct = is_numeric($scoreRaw) ? (int) round((float) $scoreRaw) : null;
 
         $badge = match ($tier) {
             'reliable' => '🟢 Reliable',
@@ -405,7 +408,7 @@ class DiscordCardRenderer
     }
 
     /**
-     * @return array{name: string, url: string|null, icon_url: string|null}
+     * @return array{name: string, url?: string, icon_url?: string}
      */
     private function author(User $owner, DiscordCardContext $context): array
     {
@@ -513,15 +516,18 @@ class DiscordCardRenderer
         $metadata = is_array($location->venue_metadata) ? $location->venue_metadata : [];
 
         $parts = [];
-        $fee = trim((string) ($metadata['fee_display'] ?? ''));
+        $feeRaw = $metadata['fee_display'] ?? '';
+        $fee = is_string($feeRaw) ? trim($feeRaw) : '';
         if ($fee !== '') {
             $parts[] = "🎟️ {$fee}";
         }
-        $overlap = trim((string) ($metadata['overlap_guidance'] ?? ''));
+        $overlapRaw = $metadata['overlap_guidance'] ?? '';
+        $overlap = is_string($overlapRaw) ? trim($overlapRaw) : '';
         if ($overlap !== '') {
             $parts[] = '⚠️ '.Str::limit($overlap, 120);
         }
-        $rules = trim((string) ($metadata['house_rules'] ?? ''));
+        $rulesRaw = $metadata['house_rules'] ?? '';
+        $rules = is_string($rulesRaw) ? trim($rulesRaw) : '';
         if ($rules !== '') {
             $parts[] = '📜 '.Str::limit($rules, 120);
         }
@@ -574,7 +580,7 @@ class DiscordCardRenderer
     {
         $url = $context->appUrl ?? (is_string(config('app.url')) ? config('app.url') : null);
 
-        return $url && $url !== '' ? $url : 'http://localhost';
+        return $url !== null && $url !== '' ? $url : 'http://localhost';
     }
 
     private function urlOrNull(mixed $value): ?string
@@ -588,7 +594,7 @@ class DiscordCardRenderer
 
     private function intOrNull(mixed $value): ?int
     {
-        if ($value === null) {
+        if (! is_numeric($value)) {
             return null;
         }
 
@@ -599,7 +605,7 @@ class DiscordCardRenderer
 
     private function floatOrNull(mixed $value): ?float
     {
-        if ($value === null) {
+        if (! is_numeric($value)) {
             return null;
         }
 

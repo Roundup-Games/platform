@@ -153,6 +153,8 @@ class RefreshDiscordCard implements ShouldBeUnique, ShouldQueue
      */
     private function debounceSeconds(): int
     {
-        return (int) config('services.discord.card_refresh_debounce_seconds', 15);
+        $seconds = config('services.discord.card_refresh_debounce_seconds', 15);
+
+        return is_numeric($seconds) ? (int) $seconds : 15;
     }
 }

@@ -34,8 +34,8 @@ class VerifyDiscordInteractionSignature
 
     public function handle(Request $request, Closure $next): Response
     {
-        $signature = $request->headers->get('X-Signature-Ed25519', '');
-        $timestamp = $request->headers->get('X-Signature-Timestamp', '');
+        $signature = (string) $request->headers->get('X-Signature-Ed25519');
+        $timestamp = (string) $request->headers->get('X-Signature-Timestamp');
         $rawBody = $request->getContent();
 
         if (! $this->verifier->verify($rawBody, $signature, $timestamp)) {

@@ -57,6 +57,6 @@ final class DiscordDigestContext
 
         $count = $this->approvedCounts[$gameId];
 
-        return is_int($count) && $count >= 0 ? $count : null;
+        return $count >= 0 ? $count : null;
     }
 }

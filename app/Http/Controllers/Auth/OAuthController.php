@@ -379,7 +379,7 @@ class OAuthController
         ];
 
         if ($provider === OAuthProvider::Discord->value) {
-            $guilds = $this->fetchDiscordGuilds((string) ($socialiteUser->token ?? ''));
+            $guilds = $this->fetchDiscordGuilds($socialiteUser->token);
             if ($guilds !== null) {
                 $meta['guilds'] = $guilds;
             }
@@ -428,11 +428,21 @@ class OAuthController
             // Reduce to the fields roundup persists long-term. The @me/guilds
             // payload also carries owner/permissions flags we do not need; a
             // trimmed projection keeps provider_meta small and stable.
-            return array_values(array_map(fn ($guild) => [
-                'id' => isset($guild['id']) ? (string) $guild['id'] : null,
-                'name' => $guild['name'] ?? null,
-                'icon' => $guild['icon'] ?? null,
-            ], $guilds));
+            return array_values(array_map(function (mixed $guild): array {
+                if (! is_array($guild)) {
+                    return ['id' => null, 'name' => null, 'icon' => null];
+                }
+
+                $id = $guild['id'] ?? null;
+                $name = $guild['name'] ?? null;
+                $icon = $guild['icon'] ?? null;
+
+                return [
+                    'id' => is_string($id) ? $id : null,
+                    'name' => is_string($name) ? $name : null,
+                    'icon' => is_string($icon) ? $icon : null,
+                ];
+            }, $guilds));
         } catch (\Throwable $e) {
             report($e);
             Log::warning('Discord guild list fetch failed', [

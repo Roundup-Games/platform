@@ -79,7 +79,7 @@ class DiscordGuildDiscoveryService
 
             $surfaced[] = new SurfacedGuild(
                 guild: $guild,
-                publishEnabled: (bool) ($optIn?->publish_enabled ?? false),
+                publishEnabled: (bool) ($optIn?->publish_enabled),
                 optedInAt: $optIn?->opted_in_at,
             );
 
@@ -87,7 +87,7 @@ class DiscordGuildDiscoveryService
                 'organizer_id' => $organizer->id,
                 'guild_id' => $guild->guild_id,
                 'status' => 'surfaced',
-                'publish_enabled' => (bool) ($optIn?->publish_enabled ?? false),
+                'publish_enabled' => (bool) ($optIn?->publish_enabled),
             ]);
         }
 
@@ -114,7 +114,7 @@ class DiscordGuildDiscoveryService
             [
                 'publish_enabled' => true,
                 // Preserve the first-consent timestamp; only stamp the initial opt-in.
-                'opted_in_at' => $existing?->opted_in_at ?? Carbon::now(),
+                'opted_in_at' => $existing !== null ? ($existing->opted_in_at ?? Carbon::now()) : Carbon::now(),
             ],
         );
 

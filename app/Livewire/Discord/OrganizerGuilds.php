@@ -3,6 +3,7 @@
 namespace App\Livewire\Discord;
 
 use App\Models\DiscordGuild;
+use App\Models\User;
 use App\Services\Discord\DiscordGuildDiscoveryService;
 use App\Services\Discord\DiscordPublisher;
 use App\Services\Discord\SurfacedGuild;
@@ -140,7 +141,7 @@ class OrganizerGuilds extends Component
      * The authenticated organizer. Centralized so the surface never mutates
      * anyone else's opt-in rows.
      */
-    private function organizer()
+    private function organizer(): User
     {
         return authenticatedUser();
     }

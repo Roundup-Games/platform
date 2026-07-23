@@ -45,7 +45,7 @@ class GuildSettings extends Component
     #[Locked]
     public string $guildSnowflake;
 
-    /** @var array<string, mixed> The guild row's editable config */
+    /** The guild row's editable config (calendar channel snowflake) */
     public ?string $calendar_channel_id = null;
 
     public ?string $games_channel_id = null;
@@ -61,7 +61,7 @@ class GuildSettings extends Component
 
     public bool $pausedChanged = false;
 
-    /** @var array<string> Guild names per channel type, for option labels */
+    /** True when the channels API call failed (drives the retry UI) */
     public bool $channelsLoadFailed = false;
 
     /**

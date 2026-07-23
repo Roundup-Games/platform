@@ -221,6 +221,7 @@ class DiscordDigestRenderer
         return mb_strlen($title) + mb_strlen(self::FOOTER_TEXT);
     }
 
+    /** @return array<string, mixed> */
     private function overflowNoteEmbed(int $shownGames): array
     {
         $noun = $shownGames === 1 ? 'game' : 'games';
@@ -369,8 +370,6 @@ class DiscordDigestRenderer
      * Joined system labels for the one-liner. Systems within a line are
      * comma-separated to read as one segment, distinct from the `·` segment
      * separators.
-     *
-     * @return Collection<int, GameSystem>
      */
     private function systemLabels(Game $game): string
     {
@@ -423,7 +422,7 @@ class DiscordDigestRenderer
     {
         $url = $context->appUrl ?? (is_string(config('app.url')) ? config('app.url') : null);
 
-        return $url && $url !== '' ? $url : 'http://localhost';
+        return $url !== null && $url !== '' ? $url : 'http://localhost';
     }
 
     // ── Grouping & date headings ─────────────────────────
@@ -468,8 +467,10 @@ class DiscordDigestRenderer
             return 'Undated';
         }
 
-        $locale = $context->locale;
-        $carbon = $locale !== null && $locale !== '' ? $date->copy()->locale($locale) : $date;
+        $carbon = $date->copy();
+        if ($context->locale !== null && $context->locale !== '') {
+            $carbon->locale($context->locale);
+        }
 
         return $carbon->translatedFormat('l j M');
     }
@@ -559,7 +560,7 @@ class DiscordDigestRenderer
 
     private function intOrNull(mixed $value): ?int
     {
-        if ($value === null) {
+        if (! is_numeric($value)) {
             return null;
         }
 

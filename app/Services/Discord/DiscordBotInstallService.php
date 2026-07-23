@@ -60,28 +60,19 @@ class DiscordBotInstallService
 
     private string $redirectUri;
 
-    /** @var \Closure(float): void */
-    private \Closure $sleep;
-
     public function __construct(
         ?string $baseUrl = null,
         ?string $botToken = null,
         ?string $clientId = null,
         ?string $clientSecret = null,
         ?string $redirectUri = null,
-        ?\Closure $sleep = null,
     ) {
         $configured = is_string($u = config('services.discord.api_base_url')) ? $u : 'https://discord.com/api/v10';
         $this->baseUrl = rtrim($baseUrl ?? $configured, '/');
-        $this->botToken = is_string($t = config('services.discord.bot_token')) ? $t : '';
+        $this->botToken = $botToken ?? (is_string($t = config('services.discord.bot_token')) ? $t : '');
         $this->clientId = $clientId ?? (is_string($c = config('services.discord.bot_client_id')) ? $c : '');
         $this->clientSecret = $clientSecret ?? (is_string($s = config('services.discord.bot_client_secret')) ? $s : '');
         $this->redirectUri = $redirectUri ?? (is_string($r = config('services.discord.bot_redirect_uri')) ? $r : '');
-        $this->sleep = $sleep ?? static function (float $seconds): void {
-            if ($seconds > 0) {
-                usleep((int) ($seconds * 1_000_000));
-            }
-        };
     }
 
     /**
@@ -193,7 +184,11 @@ class DiscordBotInstallService
 
         $list = [];
         foreach ($channels as $channel) {
-            $id = isset($channel['id']) ? (string) $channel['id'] : null;
+            if (! is_array($channel)) {
+                continue;
+            }
+
+            $id = $channel['id'] ?? null;
             $name = $channel['name'] ?? null;
             $type = $channel['type'] ?? null;
 
@@ -246,7 +241,7 @@ class DiscordBotInstallService
         }
 
         $body = $response->json();
-        $guildId = is_array($body) && isset($body['guild_id']) ? (string) $body['guild_id'] : null;
+        $guildId = is_array($body) && is_string($body['guild_id'] ?? null) ? $body['guild_id'] : null;
 
         if (! is_string($guildId) || $guildId === '') {
             // Discord's bot install flow always returns guild_id; its absence

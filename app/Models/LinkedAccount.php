@@ -95,7 +95,7 @@ class LinkedAccount extends Model
         $ids = [];
 
         foreach ($this->discordGuilds() as $guild) {
-            if (isset($guild['id']) && $guild['id'] !== null) {
+            if (isset($guild['id'])) {
                 $ids[] = (string) $guild['id'];
             }
         }
