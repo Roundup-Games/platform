@@ -15,7 +15,7 @@
     </div>
 @endif
 
-{-- Discord column (D118): rendered only when the member has linked a Discord account ($hasDiscordLinked, computed in Show::mount). Unlinked members see the existing 3-column grid (database/mail/push); the discord key is still carried in the data model so a future link picks up the category default. Tailwind v4 JIT scans this source file, so both literal grid-cols values below are compiled. --}
+{{-- Discord column (D118): rendered only when the member has linked a Discord account ($hasDiscordLinked, computed in Show::mount). Unlinked members see the existing 3-column grid (database/mail/push); the discord key is still carried in the data model so a future link picks up the category default. Tailwind v4 JIT scans this source file, so both literal grid-cols values below are compiled. --}}
 @php
     $gridCols = $hasDiscordLinked
         ? 'sm:grid-cols-[1fr_repeat(4,minmax(0,80px))]'

@@ -3,6 +3,7 @@
 namespace App\Livewire\Settings;
 
 use App\Enums\NotificationCategory;
+use App\Models\DiscordGuild;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Services\ProfileVisibilityResolver;
@@ -507,6 +508,13 @@ class Show extends Component
         return view('livewire.settings.show', [
             'linkedAccounts' => $user->linkedAccounts()->get(),
             'tickets' => $tickets,
+            // Guilds the current user installed the roundup bot into (landlord).
+            // Gates the Discord Servers section in the Account tab — empty for
+            // non-landlords. owner_user_id is a non-conventional FK, so use the
+            // relation-name overload of whereBelongsTo rather than the raw column.
+            'discordGuilds' => DiscordGuild::whereBelongsTo($user, 'owner')
+                ->orderBy('name')
+                ->get(['id', 'guild_id', 'name', 'paused']),
         ]);
     }
 }

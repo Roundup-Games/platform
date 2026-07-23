@@ -18,4 +18,11 @@ return [
     'calendar_feed_revoke_confirm' => 'This will permanently disable your calendar feed. Any calendar app using this URL will stop updating. You can generate a new feed anytime. Continue?',
     'calendar_feed_generated_flash' => 'Your calendar feed URL has been generated. Add it to your calendar app to see upcoming games.',
     'calendar_feed_revoked_flash' => 'Your calendar feed has been revoked and is no longer accessible.',
+
+    // Discord Servers (landlord surface — guilds the user installed the bot into)
+    'discord_servers_title' => 'Discord Servers',
+    'discord_servers_description' => 'Servers where you have installed the roundup bot. Manage channels, posting, and the moderation mode for each.',
+    'discord_servers_status_active' => 'Active',
+    'discord_servers_status_paused' => 'Paused',
+    'discord_servers_configure' => 'Configure',
 ];
