@@ -27,6 +27,11 @@ class DiscordBotInstallException extends \RuntimeException
         return new self("Discord bot install: OAuth code exchange failed with status {$status}.{$snippet}");
     }
 
+    public static function missingGuildId(): self
+    {
+        return new self('Discord bot install: missing guild_id in the callback. Discord always returns it for a bot install — a missing value means a malformed or tampered callback.');
+    }
+
     public static function guildFetchFailed(string $guildId, int $status): self
     {
         return new self("Discord bot install: could not fetch guild {$guildId} (status {$status}). Is the bot actually installed there?");

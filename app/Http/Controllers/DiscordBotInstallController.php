@@ -71,9 +71,10 @@ class DiscordBotInstallController
         }
 
         $code = $request->string('code')->toString();
+        $guildId = $request->string('guild_id')->toString();
 
         try {
-            $guild = $installService->completeInstall($user, $code);
+            $guild = $installService->completeInstall($user, $code, $guildId);
         } catch (\Throwable $e) {
             Log::error('discord_bot_install.failed', [
                 'user_id' => $user->id,

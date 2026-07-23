@@ -107,13 +107,32 @@ class DiscordBotInstallService
      *
      * @param  User  $landlord  The roundup user who clicked install; recorded
      *                          as discord_guilds.owner_user_id.
+     * @param  string  $guildId  The guild snowflake Discord returned in the
+     *                           callback URL query string (`?guild_id=...`).
+     *                           Discord's standard bot-install flow carries it
+     *                           on the redirect, NOT in the access-token
+     *                           response body (that only happens for the
+     *                           preselected-guild flow roundup does not use).
      * @return DiscordGuild The created-or-updated guild mapping.
      *
-     * @throws DiscordBotInstallException on token-exchange or guild-fetch failure
+     * @throws DiscordBotInstallException on a missing guild_id, a failed code
+     *                                    exchange, or a guild-fetch failure
      */
-    public function completeInstall(User $landlord, string $code): DiscordGuild
+    public function completeInstall(User $landlord, string $code, string $guildId): DiscordGuild
     {
-        $guildSnowflake = $this->exchangeCodeForGuildId($code);
+        if ($guildId === '') {
+            throw DiscordBotInstallException::missingGuildId();
+        }
+
+        // Validate the OAuth code is genuine (Discord actually issued it).
+        // The exchanged access token is NOT used downstream — roundup
+        // authenticates all REST (guild detail, channel list, card posts) with
+        // the static bot token from config. The exchange exists to prove the
+        // landlord really authorized via Discord, since the install URL carries
+        // no OAuth `state` CSRF token.
+        $this->exchangeCode($code);
+
+        $guildSnowflake = $guildId;
 
         $detail = $this->fetchGuildDetail($guildSnowflake);
 
@@ -208,15 +227,19 @@ class DiscordBotInstallService
     // ── OAuth2 code exchange ───────────────────────────
 
     /**
-     * Exchange the authorization code for a bot access token and extract the
-     * guild id the install landed in.
+     * Exchange the authorization code for a bot access token.
      *
-     * Discord returns the chosen `guild_id` in the access-token response for
-     * a bot install. The code is single-use.
+     * Validates the code is genuine (Discord issued it). The returned access
+     * token is NOT used by roundup — all downstream REST uses the static bot
+     * token from config — so only the exchange's success/failure matters
+     * here. The code is single-use; a replay (e.g. a browser refresh on the
+     * callback URL) 400s with `invalid_grant`.
      *
-     * @throws DiscordBotInstallException on exchange failure or missing guild id
+     * @return array<string, mixed> The token response body (unused beyond success).
+     *
+     * @throws DiscordBotInstallException on exchange failure
      */
-    private function exchangeCodeForGuildId(string $code): string
+    private function exchangeCode(string $code): array
     {
         if ($code === '') {
             throw DiscordBotInstallException::tokenExchangeFailed(0, 'empty authorization code');
@@ -241,15 +264,8 @@ class DiscordBotInstallService
         }
 
         $body = $response->json();
-        $guildId = is_array($body) && is_string($body['guild_id'] ?? null) ? $body['guild_id'] : null;
 
-        if (! is_string($guildId) || $guildId === '') {
-            // Discord's bot install flow always returns guild_id; its absence
-            // means the response shape was unexpected (API drift / wrong scope).
-            throw DiscordBotInstallException::tokenExchangeFailed($response->status(), 'missing guild_id in token response');
-        }
-
-        return $guildId;
+        return is_array($body) ? $body : [];
     }
 
     /**
