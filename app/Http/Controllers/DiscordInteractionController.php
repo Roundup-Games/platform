@@ -167,7 +167,10 @@ class DiscordInteractionController extends Controller
 
             // DEFERRED ack so Discord sees a valid response within the 3s
             // window. The job resolves the interaction later via @original.
-            return response()->json(['type' => self::TYPE_DEFERRED], 202);
+            // Discord requires HTTP 200 for ALL interaction responses — a 202
+            // causes Discord to not register the deferred interaction, so the
+            // @original webhook is never created and the follow-up PATCH 404s.
+            return response()->json(['type' => self::TYPE_DEFERRED], 200);
         }
 
         // UNLINKED: ephemeral deep-link to RSVP on roundup web. No participant
@@ -258,7 +261,7 @@ class DiscordInteractionController extends Controller
             'type' => $type,
         ]);
 
-        return response()->json(['type' => self::TYPE_DEFERRED], 202);
+        return response()->json(['type' => self::TYPE_DEFERRED], 200);
     }
 
     // ── Payload extraction (narrows mixed request input) ──

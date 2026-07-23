@@ -245,7 +245,7 @@ class DiscordInteractionEndpointTest extends TestCase
 
         $response = $this->postSigned($body);
 
-        $response->assertStatus(202);
+        $response->assertStatus(200);
         $response->assertJson(['type' => 5]);
     }
 
@@ -259,7 +259,7 @@ class DiscordInteractionEndpointTest extends TestCase
 
         $response = $this->postSigned($body);
 
-        $response->assertStatus(202);
+        $response->assertStatus(200);
         $response->assertJson(['type' => 5]);
     }
 
@@ -350,7 +350,7 @@ class DiscordInteractionEndpointTest extends TestCase
 
         $response = $this->postSigned($body);
 
-        $response->assertStatus(202);
+        $response->assertStatus(200);
         $response->assertJson(['type' => 5]);
 
         // The job is dispatched with the exact primitives the deferred path needs.
@@ -383,7 +383,7 @@ class DiscordInteractionEndpointTest extends TestCase
         $gameId = (string) Game::factory()->create()->id;
         $body = $this->componentBody("roundup:rsvp:{$gameId}", $snowflake);
 
-        $this->postSigned($body)->assertStatus(202);
+        $this->postSigned($body)->assertStatus(200);
 
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $gameId,
@@ -412,7 +412,7 @@ class DiscordInteractionEndpointTest extends TestCase
         $body = $this->componentBody("roundup:rsvp:{$gameId}", $snowflake, $guildId);
 
         $log = Log::spy();
-        $this->postSigned($body)->assertStatus(202);
+        $this->postSigned($body)->assertStatus(200);
 
         $log->shouldHaveReceived('info')
             ->with('discord_interaction.rsvp_dispatched', \Mockery::on(function ($context) use ($gameId, $user, $guildId) {
@@ -559,7 +559,7 @@ class DiscordInteractionEndpointTest extends TestCase
 
         $response = $this->postSigned($body);
 
-        $response->assertStatus(202);
+        $response->assertStatus(200);
         $response->assertJson(['type' => 5]);
 
         Queue::assertPushed(ProcessDiscordRsvp::class, function (ProcessDiscordRsvp $job) use ($gameId, $user) {
