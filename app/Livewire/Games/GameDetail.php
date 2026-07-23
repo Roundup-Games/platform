@@ -1012,7 +1012,7 @@ class GameDetail extends Component
                     $baseData['status'] = $overflow->statusValue();
                     $baseData[$overflow->timestampColumn] = now();
 
-                    GameParticipant::create($baseData);
+                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
 
                     $overflowFlash = app(OverflowRouter::class)->flashResult($game);
 
@@ -1031,7 +1031,7 @@ class GameDetail extends Component
                     // Approved transition). Mirrors WaitlistService::confirmPromotion.
                     $baseData['approved_at'] = now();
 
-                    GameParticipant::create($baseData);
+                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
 
                     Log::info('Player joined via share link', [
                         'game_id' => $game->id,

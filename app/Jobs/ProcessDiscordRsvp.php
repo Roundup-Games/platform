@@ -16,6 +16,7 @@ use App\Services\Discord\DiscordPublisher;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\Discord\DiscordWebhookPayload;
 use App\Services\OverflowRouter;
+use App\Services\ParticipantLifecycle;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -269,7 +270,7 @@ class ProcessDiscordRsvp implements ShouldQueue
                 $baseData['status'] = $overflow->statusValue();
                 $baseData[$overflow->timestampColumn] = now();
 
-                GameParticipant::create($baseData);
+                $this->createOrReactivate($baseData);
 
                 Log::info('Player '.$overflow->statusValue().' via Discord button (game full)', [
                     'game_id' => $locked->id,
@@ -289,7 +290,7 @@ class ProcessDiscordRsvp implements ShouldQueue
             // demotion. Mirrors joinViaShareLink + WaitlistService::confirmPromotion.
             $baseData['approved_at'] = now();
 
-            GameParticipant::create($baseData);
+            $this->createOrReactivate($baseData);
 
             Log::info('Player joined via Discord button', [
                 'game_id' => $locked->id,
@@ -299,6 +300,18 @@ class ProcessDiscordRsvp implements ShouldQueue
 
             return DiscordRsvpOutcome::Approved;
         });
+    }
+
+    /**
+     * Create a new participant OR reactivate an existing departed row via the
+     * shared {@see ParticipantLifecycle::createOrReactivate()} — one source of
+     * truth shared with the web join path.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function createOrReactivate(array $attributes): GameParticipant
+    {
+        return app(ParticipantLifecycle::class)->createOrReactivate($attributes);
     }
 
     // ── (2) Best-effort card roster refresh ──────────────────────────────

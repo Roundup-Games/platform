@@ -12,6 +12,7 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\SuppressedInviteEmail;
 use App\Models\User;
 use App\Notifications\ApplicationApproved;
@@ -50,6 +51,33 @@ use Illuminate\Support\Facades\Log;
  */
 class ParticipantLifecycle
 {
+    /**
+     * Create a participant OR reactivate an existing departed row.
+     *
+     * The symmetrical counterpart to {@see depart()}: depart() sets status to
+     * Rejected but keeps the row (audit/attendance); a later rejoin must UPDATE
+     * that row back to active rather than INSERT a duplicate, which would
+     * violate the unique (game_id, user_id) constraint. updateOrCreate makes
+     * this race-safe for double-clicks.
+     *
+     * The single source of truth for every user-initiated join (web share-link,
+     * Discord button, application approval). Overflow/bench/waitlist creations
+     * are always new rows behind a capacity check, so they don't route here.
+     *
+     * @param  array<string, mixed>  $attributes  Full participant data:
+     *                                            game_id, user_id, role, status, join_source, approved_at, etc.
+     */
+    public function createOrReactivate(array $attributes): GameParticipant
+    {
+        return GameParticipant::updateOrCreate(
+            [
+                'game_id' => $attributes['game_id'],
+                'user_id' => $attributes['user_id'],
+            ],
+            $attributes,
+        );
+    }
+
     /**
      * Transition a participant to Rejected and record the departure.
      *
