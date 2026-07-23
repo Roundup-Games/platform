@@ -36,6 +36,22 @@ return [
         // (D118). Used by DiscordWebhookClient for all REST push (card posts,
         // edits, deletes) — NO gateway, NO webhook URL (D117 thin push+REST).
         'bot_token' => env('DISCORD_BOT_TOKEN'),
+        // ── Interactions endpoint (S03/T01) ─────────────────────────────
+        // Ed25519 public key (hex) from the Discord Developer Portal →
+        // General Information → "Public Key". Used by
+        // DiscordInteractionVerifier to verify the X-Signature-Ed25519 header
+        // Discord signs every interaction with, over (timestamp + raw body).
+        // Rotatable in the portal — read from env, never hardcode. If unset or
+        // invalid the verifier fails CLOSED: every request 401s. There is no
+        // bypass path — Discord revokes the interactions URL on repeated bad
+        // probes, so verification must run on every request.
+        'bot_public_key' => env('DISCORD_BOT_PUBLIC_KEY'),
+        // The bot's application id (snowflake) from the Developer Portal →
+        // General Information → "Application ID". Needed (S03/T03) to build
+        // the @original / follow-up PATCH URLs for deferred responses. Stored
+        // here alongside the public key so the Interactions config sits in
+        // one block.
+        'bot_application_id' => env('DISCORD_BOT_APPLICATION_ID'),
         // Discord REST base URL. Pinned to the stable v10 API.
         'api_base_url' => env('DISCORD_API_BASE_URL', 'https://discord.com/api/v10'),
         // ── Bot install credentials (T06) ──────────────────────────────

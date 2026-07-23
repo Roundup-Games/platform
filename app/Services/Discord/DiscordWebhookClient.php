@@ -124,6 +124,39 @@ class DiscordWebhookClient
         $this->request('DELETE', "channels/{$channelId}/messages/{$messageId}");
     }
 
+    /**
+     * PATCH the @original interaction response — the deferred-response surface
+     * {@see ProcessDiscordRsvp} uses to resolve a DEFERRED interaction with the
+     * ephemeral confirmation after the participant write completes (M057/S03/T03).
+     *
+     * Unlike {@see postMessage}/{@see editMessage} (channel-message endpoints
+     * addressed by channel+message snowflakes and authenticated with the bot
+     * token), this hits the INTERACTION webhook URL
+     * `/webhooks/{application_id}/{interaction_token}/messages/@original`, which
+     * is authenticated SOLELY by the interaction token in the path — Discord
+     * issues one token per interaction (valid 15 min) and the @original sentinel
+     * addresses the initial "Bot is thinking…" response the controller returned.
+     * No `Authorization: Bot {token}` header is sent (token-authenticated), so
+     * this path is independent of bot-token config and works even if the bot
+     * token is rotated after the interaction was acked.
+     *
+     * @param  string  $applicationId  The bot application id (snowflake) from
+     *                                 config('services.discord.bot_application_id').
+     * @param  string  $interactionToken  The per-interaction token the controller
+     *                                    captured (valid 15 min from ack).
+     *
+     * @throws DiscordApiException on non-retryable failure or exhausted retries
+     */
+    public function patchOriginalInteractionResponse(
+        string $applicationId,
+        string $interactionToken,
+        DiscordWebhookPayload $payload,
+    ): void {
+        $path = "webhooks/{$applicationId}/{$interactionToken}/messages/@original";
+
+        $this->request('PATCH', $path, $payload->toArray(), authenticated: false);
+    }
+
     // ── HTTP lifecycle ──────────────────────────────────
 
     /**
@@ -135,7 +168,7 @@ class DiscordWebhookClient
      *
      * @throws DiscordApiException on non-retryable failure or exhausted retries
      */
-    private function request(string $method, string $path, ?array $payload = null): Response
+    private function request(string $method, string $path, ?array $payload = null, bool $authenticated = true): Response
     {
         $url = $this->baseUrl.'/'.$path;
         $attempt = 0;
@@ -144,7 +177,7 @@ class DiscordWebhookClient
             $attempt++;
 
             try {
-                $response = $this->send($method, $url, $payload);
+                $response = $this->send($method, $url, $payload, $authenticated);
             } catch (ConnectionException $e) {
                 if ($attempt >= $this->maxAttempts) {
                     throw DiscordApiException::connection($path, $e);
@@ -205,10 +238,16 @@ class DiscordWebhookClient
      *
      * @throws ConnectionException on network/timeout failure
      */
-    private function send(string $method, string $url, ?array $payload): Response
+    private function send(string $method, string $url, ?array $payload, bool $authenticated = true): Response
     {
-        $request = Http::timeout($this->timeout)
-            ->withHeaders(['Authorization' => 'Bot '.$this->botToken]);
+        $http = Http::timeout($this->timeout);
+
+        // Channel-message endpoints (post/edit/delete) are bot-token
+        // authenticated; interaction webhook endpoints (@original followup) are
+        // token-authenticated by the URL alone and send no Authorization header.
+        $request = $authenticated
+            ? $http->withHeaders(['Authorization' => 'Bot '.$this->botToken])
+            : $http;
 
         return match (strtoupper($method)) {
             'POST' => $request->asJson()->post($url, $payload ?? []),

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\DiscordBotInstallController;
+use App\Http\Controllers\DiscordInteractionController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Controllers\InviteOptoutController;
 use App\Http\Controllers\LocaleController;
@@ -90,6 +91,17 @@ Route::get('/link/{code}', [ShortLinkController::class, 'redirect'])
 
 Route::post('paddle/webhook', PaddleWebhookController::class)
     ->name('cashier.webhook');
+
+// ── Discord HTTP Interactions endpoint (M057/S03) ─────
+// Public, stateless surface called by Discord (NOT a browser form POST).
+// CSRF-excluded in bootstrap/app.php (Paddle precedent). Authenticity is
+// enforced by the discord.signature middleware: Ed25519 verification over
+// (timestamp + raw body) — fail closed, no bypass. Rides the standard web
+// middleware stack like the Paddle webhook; the global middleware gracefully
+// no-ops on unauthenticated/session-less requests.
+Route::post('discord/interactions', DiscordInteractionController::class)
+    ->middleware('discord.signature')
+    ->name('discord.interactions');
 
 // ── OAuth ──────────────────────────────────────────────
 
