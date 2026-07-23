@@ -19,6 +19,8 @@ use Illuminate\Support\Str;
  * @property string|null $icon
  * @property string $owner_user_id roundup User who installed the bot
  * @property string|null $calendar_channel_id
+ * @property string|null $digest_message_id current digest's Discord message snowflake (M057/S02)
+ * @property string|null $digest_channel_id channel the current digest was posted to (reconfig detection)
  * @property string|null $games_channel_id
  * @property string|null $locale
  * @property bool $paused
@@ -41,6 +43,8 @@ class DiscordGuild extends Model
         'icon',
         'owner_user_id',
         'calendar_channel_id',
+        'digest_message_id',
+        'digest_channel_id',
         'games_channel_id',
         'locale',
         'paused',

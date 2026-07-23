@@ -359,6 +359,21 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     }
 
     /**
+     * D119 opt-in rows where this user is the organizer (M057/S02).
+     *
+     * The daily digest eligibility query traverses `owner.discordGuildOrganizers`
+     * to find games whose owner has a row with publish_enabled=true for a given
+     * guild — the set-based form of the card publisher's per-owner opt-in gate.
+     * FK is `discord_guild_organizers.user_id` → users.id (cascade-on-delete).
+     *
+     * @return HasMany<DiscordGuildOrganizer, $this>
+     */
+    public function discordGuildOrganizers(): HasMany
+    {
+        return $this->hasMany(DiscordGuildOrganizer::class, 'user_id');
+    }
+
+    /**
      * @return BelongsToMany<Game, $this, GameParticipant>
      */
     public function gameParticipations()

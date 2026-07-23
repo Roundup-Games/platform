@@ -145,6 +145,11 @@ Schedule::command('pwa:prune-visits')->monthly()->onOneServer();
 // dozens of per-category emails. Monday 04:00 to avoid the Sunday maintenance window.
 Schedule::command('notifications:weekly-digest')->weekly()->mondays()->at('04:00')->onOneServer();
 
+// Discord calendar digest — one edited message per guild rewritten daily, listing
+// the next two weeks of public events. Daily 06:00 (morning check-in window);
+// onOneServer prevents duplicate dispatches when multiple schedulers run.
+Schedule::command('discord:publish-digest')->dailyAt('06:00')->onOneServer();
+
 // Escalated helpdesk — auto-escalation, SLA enforcement, ticket lifecycle
 Schedule::command('escalated:evaluate-escalations')->everyFiveMinutes()->onOneServer();
 Schedule::command('escalated:run-automations')->everyMinute()->onOneServer();

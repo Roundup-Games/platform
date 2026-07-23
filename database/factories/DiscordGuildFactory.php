@@ -21,6 +21,8 @@ class DiscordGuildFactory extends Factory
             'icon' => null,
             'owner_user_id' => User::factory(),
             'calendar_channel_id' => null,
+            'digest_message_id' => null,
+            'digest_channel_id' => null,
             'games_channel_id' => null,
             'locale' => 'en-US',
             'paused' => false,

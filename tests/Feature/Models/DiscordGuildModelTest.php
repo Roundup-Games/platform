@@ -71,6 +71,43 @@ class DiscordGuildModelTest extends TestCase
         $this->assertNotNull($guild->games_channel_id);
     }
 
+    // ── DiscordGuild digest tracking (M057/S02) ──────────────
+
+    public function test_digest_tracking_columns_default_to_null(): void
+    {
+        $guild = DiscordGuild::factory()->create();
+
+        $this->assertNull($guild->digest_message_id);
+        $this->assertNull($guild->digest_channel_id);
+    }
+
+    public function test_digest_tracking_columns_are_mass_assignable(): void
+    {
+        $guild = DiscordGuild::factory()->create([
+            'digest_message_id' => '999000111222333444',
+            'digest_channel_id' => '555666777888',
+        ]);
+
+        $fresh = $guild->fresh();
+        $this->assertSame('999000111222333444', $fresh->digest_message_id);
+        $this->assertSame('555666777888', $fresh->digest_channel_id);
+    }
+
+    public function test_digest_message_id_can_be_updated_in_place(): void
+    {
+        $guild = DiscordGuild::factory()->create();
+        $this->assertNull($guild->digest_message_id);
+
+        $guild->update([
+            'digest_message_id' => '123456789012345678',
+            'digest_channel_id' => '876543210987654321',
+        ]);
+
+        $fresh = $guild->fresh();
+        $this->assertSame('123456789012345678', $fresh->digest_message_id);
+        $this->assertSame('876543210987654321', $fresh->digest_channel_id);
+    }
+
     // ── DiscordGuild relationships ───────────────────────────
 
     public function test_guild_belongs_to_owner_user(): void
@@ -104,6 +141,55 @@ class DiscordGuildModelTest extends TestCase
         ]);
 
         $this->assertTrue($guild->cardMessages->contains($card));
+    }
+
+    // ── User->discordGuildOrganizers relation (M057/S02) ─────
+
+    public function test_user_has_many_discord_guild_organizer_rows(): void
+    {
+        $user = User::factory()->create();
+        $guild = DiscordGuild::factory()->create();
+        $organizer = DiscordGuildOrganizer::factory()
+            ->for($guild, 'guild')
+            ->for($user)
+            ->create();
+
+        $this->assertTrue($user->discordGuildOrganizers->contains($organizer));
+        $this->assertCount(1, $user->discordGuildOrganizers);
+    }
+
+    public function test_user_discord_guild_organizers_scoped_to_the_user_only(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $guild = DiscordGuild::factory()->create();
+        DiscordGuildOrganizer::factory()->for($guild, 'guild')->for($owner)->create();
+        DiscordGuildOrganizer::factory()->for($guild, 'guild')->for($other)->create();
+
+        $this->assertCount(1, $owner->fresh()->discordGuildOrganizers);
+        $this->assertCount(1, $other->fresh()->discordGuildOrganizers);
+    }
+
+    public function test_digest_eligibility_wherehas_traverses_owner_organizers(): void
+    {
+        // Mirrors the digest publisher's eligibility query shape:
+        // games whose owner has a publish_enabled=true row for THIS guild.
+        $guild = DiscordGuild::factory()->create();
+        $optedInOwner = User::factory()->create();
+        $optedOutOwner = User::factory()->create();
+        DiscordGuildOrganizer::factory()->optedIn()->for($guild, 'guild')->for($optedInOwner)->create();
+        DiscordGuildOrganizer::factory()->optedOut()->for($guild, 'guild')->for($optedOutOwner)->create();
+        $eligibleGame = Game::factory()->create(['owner_id' => $optedInOwner->id]);
+        $ineligibleGame = Game::factory()->create(['owner_id' => $optedOutOwner->id]);
+
+        $found = Game::query()
+            ->whereHas('owner.discordGuildOrganizers', fn ($q) => $q
+                ->where('guild_id', $guild->id)
+                ->where('publish_enabled', true))
+            ->pluck('id');
+
+        $this->assertContains($eligibleGame->id, $found);
+        $this->assertNotContains($ineligibleGame->id, $found);
     }
 
     // ── DiscordGuildOrganizer basics + relationships ─────────
