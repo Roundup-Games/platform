@@ -68,6 +68,9 @@
                 {{-- Capacity editor (host affordance) --}}
                 @include('livewire.games.partials._capacity-editor')
 
+                {{-- Custom reminders (host affordance — decision D125) --}}
+                @include('livewire.games.partials._custom-reminders')
+
                 {{-- Host Bulletin Board --}}
                 <livewire:games.game-bulletin-board :game="$game" />
 

@@ -44,6 +44,7 @@ use Spatie\Translatable\HasTranslations;
 
 /**
  * @property Carbon|null $date_time
+ * @property Carbon|null $signup_cutoff_at
  * @property Carbon|null $reminder_sent_at
  * @property Carbon|null $reminder_24h_sent_at
  * @property Carbon|null $share_token_expires_at
@@ -138,6 +139,7 @@ class Game extends Model implements HasMedia, TicketSubject
         'share_token', 'share_token_expires_at', 'bench_mode',
         'attendance_window_opens_at', 'attendance_window_closes_at',
         'attendance_resolved_at', 'attendance_resolution_method',
+        'signup_cutoff_at',
         // Bridge: the dropped game_system_id / game_systems columns are captured
         // by setGameSystemIdAttribute / setGameSystemsAttribute and synced to
         // the gameSystems pivot. Kept fillable so legacy mass-assignment
@@ -172,6 +174,7 @@ class Game extends Model implements HasMedia, TicketSubject
             'attendance_window_closes_at' => 'datetime',
             'attendance_resolved_at' => 'datetime',
             'attendance_resolution_method' => 'string',
+            'signup_cutoff_at' => 'datetime',
         ];
     }
 
@@ -386,6 +389,20 @@ class Game extends Model implements HasMedia, TicketSubject
     public function bulletins(): HasMany
     {
         return $this->hasMany(GameBulletin::class);
+    }
+
+    /**
+     * Organizer-authored custom session reminders (decision D125 hybrid model).
+     *
+     * Up to 5 per game (enforced in the organizer UI — T06). The two built-in
+     * reminders (24h / 1h) live as timestamp columns above; this relation holds
+     * the extra rows the SendSessionReminders custom sweep (T06) dispatches.
+     *
+     * @return HasMany<GameReminder, $this>
+     */
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(GameReminder::class);
     }
 
     public function activeSessionZeroSurvey(): ?SessionZeroSurvey
@@ -647,6 +664,28 @@ class Game extends Model implements HasMedia, TicketSubject
 
         // Standalone games: read from own column
         return (bool) $this->bench_mode;
+    }
+
+    // ── Signup Cutoff ─────────────────────────────────
+
+    /**
+     * Whether new signups for this game are blocked by an organizer-set cutoff.
+     *
+     * Centralizes the past-cutoff check (decision D124) so the three
+     * participant-write entry points — web apply (HandlesApplicationSubmission),
+     * share-link join (GameDetail::joinViaShareLink), and Discord button
+     * (ProcessDiscordRsvp) — all call one predicate instead of each
+     * re-implementing it. A NULL or future `signup_cutoff_at` preserves the
+     * current behavior (signups open).
+     *
+     * IMPORTANT: this gates NEW signups only. Waitlist auto-promotion on a
+     * capacity increase (CapacityService::increase → WaitlistService::promote)
+     * is intentionally NOT gated here — a promotion is not a new signup, and
+     * the organizer can still grow the table after the cutoff.
+     */
+    public function signupHasClosed(): bool
+    {
+        return $this->signup_cutoff_at !== null && $this->signup_cutoff_at->isPast();
     }
 
     // ── SEO ────────────────────────────────────────────

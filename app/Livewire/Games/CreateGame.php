@@ -71,6 +71,14 @@ class CreateGame extends Component
 
     public string $date_time = '';
 
+    /**
+     * Optional per-game signup cutoff (M057/S05 — decision D124). When this
+     * time passes, new signups are blocked at all three participant-write
+     * paths. Nullable string from a datetime-local input; cast to datetime on
+     * the Game model. Empty = no cutoff (preserves current behavior).
+     */
+    public ?string $signup_cutoff_at = null;
+
     public string $description = '';
 
     public ?string $expected_duration = '';
@@ -127,6 +135,7 @@ class CreateGame extends Component
             'game_systems.*' => 'required|uuid|exists:game_systems,id',
             'host_note' => 'nullable|string|max:1000',
             'date_time' => 'required|date',
+            'signup_cutoff_at' => 'nullable|date',
             'description' => 'nullable|string|max:5000',
             'expected_duration' => 'nullable|numeric|min:0.5|max:24',
             'price' => 'nullable|numeric|min:0',
@@ -545,6 +554,7 @@ class CreateGame extends Component
                 'name' => $translatable['name'],
                 'game_type' => $validated['game_type'],
                 'date_time' => $validated['date_time'],
+                'signup_cutoff_at' => $validated['signup_cutoff_at'] ?: null,
                 'description' => $translatable['description'],
                 'expected_duration' => $validated['expected_duration'] ?: 2,
                 'price' => $validated['price'] ?: 0,

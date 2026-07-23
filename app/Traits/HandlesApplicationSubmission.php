@@ -75,6 +75,20 @@ trait HandlesApplicationSubmission
             return;
         }
 
+        // Signup cutoff (Game only — decision D124). A past organizer-set cutoff
+        // blocks NEW signups at all three participant-write entry points. Checked
+        // here on the web-apply path before the heavy transaction, mirroring the
+        // status guard above. Campaigns have no cutoff column, so the instanceof
+        // Game guard skips them. Waitlist auto-promotion is intentionally NOT
+        // gated — a promotion is not a new signup (it flows through
+        // CapacityService::increase, not this path).
+        if ($entity instanceof Game && $entity->signupHasClosed()) {
+            session()->flash('error', __('games.error_signup_closed'));
+            $this->redirect(route($config['show_route'], $entity), navigate: true);
+
+            return;
+        }
+
         // Owner cannot apply to their own entity
         if ($entity->owner_id === Auth::id()) {
             $this->addError('message', __($config['translations']['own_entity_error']));

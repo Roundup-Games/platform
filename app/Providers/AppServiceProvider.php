@@ -37,6 +37,7 @@ use App\SEO\BreadcrumbBuilder;
 use App\Services\AttendanceService;
 use App\Services\BenchService;
 use App\Services\EscalatedBladeRenderer;
+use App\Services\ICal\ICalFeedRenderer;
 use App\Services\PostHogClient;
 use App\Services\PostHogFeatureFlag;
 use App\Services\ReliabilityScoreService;
@@ -133,6 +134,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(BenchService::class);
 
         $this->app->singleton(AttendanceService::class);
+
+        // iCal feed renderer — pure mapping of Game → VEVENT (eluceo/ical v2.x).
+        // Singleton: stateless and reused across requests.
+        $this->app->singleton(ICalFeedRenderer::class);
 
         // Escalated customer portal: use Blade renderer instead of default Inertia.
         $this->app->singleton(EscalatedUiRenderer::class, EscalatedBladeRenderer::class);

@@ -200,6 +200,79 @@
             <div class="space-y-6">
                 @include('livewire.profile.partials._linked-accounts')
 
+                {{-- Calendar Feed (per-user iCal token — D123) --}}
+                <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-2 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">calendar_add_on</span>
+                        {{ __('settings.calendar_feed_title') }}
+                    </h2>
+                    <p class="text-sm text-on-surface-variant mb-4">
+                        {{ __('settings.calendar_feed_description') }}
+                    </p>
+
+                    @if(session()->has('calendar_feed_generated'))
+                        <div class="rounded-lg bg-secondary-container p-4 mb-4" role="status" aria-live="polite">
+                            <p class="text-sm text-on-secondary-container flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">check_circle</span>
+                                {{ session('calendar_feed_generated') }}
+                            </p>
+                        </div>
+                    @endif
+
+                    @if(session()->has('calendar_feed_revoked'))
+                        <div class="rounded-lg bg-secondary-container p-4 mb-4" role="status" aria-live="polite">
+                            <p class="text-sm text-on-secondary-container flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">check_circle</span>
+                                {{ session('calendar_feed_revoked') }}
+                            </p>
+                        </div>
+                    @endif
+
+                    @if($calendarFeedUrl)
+                        <div class="rounded-lg border border-outline-variant p-4 mb-4" x-data="{ copied: false, copy() { navigator.clipboard.writeText($refs.urlInput.value); } }">
+                            <label for="calendar-feed-url" class="block text-xs font-medium text-on-surface-variant mb-1.5">
+                                {{ __('settings.calendar_feed_url_label') }}
+                            </label>
+                            <div class="flex items-stretch gap-2">
+                                <input id="calendar-feed-url" x-ref="urlInput" type="text" readonly
+                                       value="{{ $calendarFeedUrl }}"
+                                       class="flex-1 min-w-0 rounded-lg border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface font-mono" />
+                                <button type="button" @click="copy(); copied = true; setTimeout(() => copied = false, 1500)"
+                                        class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container transition-colors text-sm font-medium whitespace-nowrap">
+                                    <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
+                                    <span x-show="!copied">{{ __('settings.calendar_feed_copy') }}</span>
+                                    <span x-show="copied" x-cloak>{{ __('settings.calendar_feed_copied') }}</span>
+                                </button>
+                            </div>
+                            <p class="mt-2 text-xs text-on-surface-variant">
+                                {{ __('settings.calendar_feed_url_help') }}
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <button wire:click="generateCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.calendar_feed_regenerate_confirm') }}"
+                                    class="inline-flex items-center gap-2 px-4 py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="generateCalendarFeedToken">refresh</span>
+                                <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="generateCalendarFeedToken" role="status">progress_activity</span>
+                                <span>{{ __('settings.calendar_feed_regenerate') }}</span>
+                            </button>
+                            <button wire:click="revokeCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.calendar_feed_revoke_confirm') }}"
+                                    class="inline-flex items-center gap-2 px-4 py-2.5 border border-error/40 text-error rounded-lg hover:bg-error-container/50 transition-colors text-sm font-medium">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="revokeCalendarFeedToken">link_off</span>
+                                <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="revokeCalendarFeedToken" role="status">progress_activity</span>
+                                <span>{{ __('settings.calendar_feed_revoke') }}</span>
+                            </button>
+                        </div>
+                    @else
+                        <button wire:click="generateCalendarFeedToken" wire:loading.attr="disabled"
+                                class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="generateCalendarFeedToken">add</span>
+                            <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="generateCalendarFeedToken" role="status">progress_activity</span>
+                            <span>{{ __('settings.calendar_feed_generate') }}</span>
+                        </button>
+                    @endif
+                </section>
+
                 {{-- Privacy & Data: Data Export Request --}}
                 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                     <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-2 flex items-center gap-2">

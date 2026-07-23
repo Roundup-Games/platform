@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\DiscordBotInstallController;
 use App\Http\Controllers\DiscordInteractionController;
 use App\Http\Controllers\ExportDownloadController;
+use App\Http\Controllers\ICalFeedController;
 use App\Http\Controllers\InviteOptoutController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NotificationController;
@@ -84,6 +85,16 @@ Route::get('/', function () {
 
 Route::get('/link/{code}', [ShortLinkController::class, 'redirect'])
     ->name('short-link.redirect')
+    ->middleware('throttle:short-link')
+    ->where('code', '[a-zA-Z0-9\-]{7,36}');
+
+// ── iCal Feed (per-user, tokenized, locale-agnostic — D123) ──
+// Lives OUTSIDE the {locale} group because calendar clients (Google/Apple)
+// poll a raw URL with no locale prefix and no session/cookies. The token is
+// a ShortLink code (linkable=User, purpose='ical'); the controller resolves
+// locale from the user's preferred_language. Unknown/expired tokens → 404.
+Route::get('/calendar/{code}', [ICalFeedController::class, 'show'])
+    ->name('ical.feed')
     ->middleware('throttle:short-link')
     ->where('code', '[a-zA-Z0-9\-]{7,36}');
 

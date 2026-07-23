@@ -109,6 +109,12 @@ class GameResource extends Resource
                                 DateTimePicker::make('date_time')
                                     ->label('Date & Time')
                                     ->required(),
+                                DateTimePicker::make('signup_cutoff_at')
+                                    ->label('Signup Cutoff')
+                                    // M057/S05 (D124): optional absolute time after which new
+                                    // signups are blocked across all three participant-write paths.
+                                    // Nullable = no cutoff. Mirrors the user-facing CreateGame field.
+                                    ->nullable(),
                                 TextInput::make('expected_duration')
                                     ->label('Duration (hours)')
                                     ->numeric()

@@ -3,8 +3,10 @@
 namespace App\Livewire\Settings;
 
 use App\Enums\NotificationCategory;
+use App\Models\ShortLink;
 use App\Models\User;
 use App\Services\ProfileVisibilityResolver;
+use App\Services\ShortLinkService;
 use App\Services\TicketPayloadRenderer;
 use App\Services\UserAnonymizationService;
 use Escalated\Laravel\Enums\TicketChannel;
@@ -62,6 +64,10 @@ class Show extends Component
     #[Locked]
     public bool $userHasPassword;
 
+    /** Absolute URL of the member's active iCal feed token (D123), or null when none exists. */
+    #[Locked]
+    public ?string $calendarFeedUrl = null;
+
     public function mount(): void
     {
         $user = authenticatedUser();
@@ -100,6 +106,86 @@ class Show extends Component
             ->where('ticket_type', 'data_export_request')
             ->open()
             ->exists();
+
+        // Resolve the member's active iCal feed URL (D123), if a token exists.
+        $activeToken = $this->activeCalendarToken($user);
+        $this->calendarFeedUrl = $activeToken !== null
+            ? route('ical.feed', $activeToken->code)
+            : null;
+    }
+
+    /**
+     * Generate (or rotate) the member's personal iCal feed token (D123).
+     *
+     * Rotates: revokes any existing active token first so there is at most one
+     * active feed URL per user — pressing Generate is always safe (it
+     * invalidates a leaked URL and issues a fresh code). Reuses the ShortLink
+     * tokenization (linkable=User, purpose='ical') consumed by ICalFeedController.
+     */
+    public function generateCalendarFeedToken(): void
+    {
+        $user = authenticatedUser();
+        $service = app(ShortLinkService::class);
+
+        if ($existing = $this->activeCalendarToken($user)) {
+            $service->revokeLink($existing);
+        }
+
+        $code = $service->generateUniqueCode();
+
+        $link = $service->createLink($user, $user, [
+            'code' => $code,
+            'url' => route('ical.feed', $code),
+            'purpose' => 'ical',
+        ]);
+
+        $this->calendarFeedUrl = route('ical.feed', $link->code);
+
+        Log::info('ical_feed.token_generated', [
+            'user_id' => $user->id,
+            'link_id' => $link->id,
+            'code_prefix' => substr($link->code, 0, 3).'…',
+        ]);
+
+        session()->flash('calendar_feed_generated', __('settings.calendar_feed_generated_flash'));
+    }
+
+    /**
+     * Revoke the member's active iCal feed token (D123).
+     *
+     * Safe no-op when no token exists. Soft-deletes the token so the feed
+     * (GET /calendar/{code}) starts returning 404 immediately.
+     */
+    public function revokeCalendarFeedToken(): void
+    {
+        $user = authenticatedUser();
+
+        if (! $existing = $this->activeCalendarToken($user)) {
+            return;
+        }
+
+        app(ShortLinkService::class)->revokeLink($existing);
+
+        $this->calendarFeedUrl = null;
+
+        Log::info('ical_feed.token_revoked', [
+            'user_id' => $user->id,
+            'link_id' => $existing->id,
+        ]);
+
+        session()->flash('calendar_feed_revoked', __('settings.calendar_feed_revoked_flash'));
+    }
+
+    /**
+     * The member's currently-active iCal token, or null when none exists.
+     * SoftDeletes excludes revoked (soft-deleted) tokens automatically.
+     */
+    private function activeCalendarToken(User $user): ?ShortLink
+    {
+        return ShortLink::where('linkable_type', User::class)
+            ->where('linkable_id', $user->id)
+            ->where('purpose', 'ical')
+            ->first();
     }
 
     public function savePrivacySettings(): void

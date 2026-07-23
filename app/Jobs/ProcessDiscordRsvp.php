@@ -218,6 +218,24 @@ class ProcessDiscordRsvp implements ShouldQueue
                 return DiscordRsvpOutcome::Refused;
             }
 
+            // Signup cutoff (decision D124). A Discord button RSVP is subject
+            // to the SAME cutoff as a web RSVP — one source of truth — so a
+            // clicker cannot bypass a closed signup via Discord. Checked under
+            // the lock (on the fresh $locked row) mirroring the owner / game-
+            // status guards above. The 'signup_closed' reason key parallels the
+            // existing 'owner' / 'game_status:*' keys. Waitlist auto-promotion
+            // (CapacityService::increase) is intentionally NOT gated and never
+            // reaches this path.
+            if ($locked->signupHasClosed()) {
+                Log::info('discord_rsvp.refused', [
+                    'game_id' => $locked->id,
+                    'user_id' => $user->id,
+                    'reason' => 'signup_closed',
+                ]);
+
+                return DiscordRsvpOutcome::Refused;
+            }
+
             // Already an active participant (Approved/Pending/Waitlisted/
             // Benched) → idempotent: resolve to the already-on-roster
             // confirmation rather than writing a duplicate row. Checked under

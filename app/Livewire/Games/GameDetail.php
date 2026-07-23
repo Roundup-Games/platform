@@ -31,6 +31,7 @@ use App\Traits\ManagesParticipants;
 use App\Traits\ManagesShortLinks;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
@@ -86,6 +87,21 @@ class GameDetail extends Component
 
     /** @var int|null Host-edited max_players input (wire:model target). */
     public ?int $capacityNewMax = null;
+
+    // ── Custom reminders (organizer-authored, decision D125) ──
+
+    /** @var string|null New/edit reminder send_at (datetime-local wire:model target). */
+    public ?string $reminderSendAt = null;
+
+    /** @var string|null New/edit reminder custom message (optional organizer copy). */
+    public ?string $reminderMessage = null;
+
+    /** @var string|null Editing reminder id (null = adding a new reminder). */
+    #[Locked]
+    public ?string $editingReminderId = null;
+
+    /** Maximum number of custom reminders per game (enforced by addReminder/editReminder). */
+    public const MAX_CUSTOM_REMINDERS = 5;
 
     public function mount(string $id): void
     {
@@ -564,6 +580,210 @@ class GameDetail extends Component
         $this->clearCapacityConfirmState();
     }
 
+    // ── Custom reminders management (host affordance — decision D125) ──
+
+    /**
+     * Begin editing an existing reminder (loads its values into the form).
+     */
+    public function editReminder(string $reminderId): void
+    {
+        $this->authorize('update', $this->game);
+
+        $reminder = $this->game->reminders()->whereKey($reminderId)->first();
+
+        if (! $reminder) {
+            session()->flash('error', __('games.error_reminder_not_found'));
+
+            return;
+        }
+
+        $this->editingReminderId = $reminder->id;
+        $this->reminderSendAt = $reminder->send_at->format('Y-m-d\TH:i');
+        $this->reminderMessage = $reminder->message;
+    }
+
+    /**
+     * Reset the reminder form back to the add-new state.
+     */
+    public function cancelReminderForm(): void
+    {
+        $this->clearReminderFormState();
+    }
+
+    /**
+     * Save (create or update) a custom reminder.
+     *
+     * Validates send_at + message, enforces the 5-reminder cap on create, and
+     * persists through the Game::reminders() relation (offset_minutes left null
+     * — the scheduler only consults send_at). Logs the host action for audit.
+     */
+    public function saveReminder(): void
+    {
+        $this->authorize('update', $this->game);
+
+        $validated = $this->validateReminderInput();
+        if ($validated === null) {
+            return;
+        }
+
+        $editing = $this->editingReminderId !== null
+            ? $this->game->reminders()->whereKey($this->editingReminderId)->first()
+            : null;
+
+        if ($this->editingReminderId !== null && $editing === null) {
+            session()->flash('error', __('games.error_reminder_not_found'));
+            $this->clearReminderFormState();
+
+            return;
+        }
+
+        if ($editing !== null) {
+            $editing->update([
+                'send_at' => $validated['send_at'],
+                'message' => $validated['message'],
+            ]);
+
+            Log::info('Custom reminder updated', [
+                'game_id' => $this->game->id,
+                'game_reminder_id' => $editing->id,
+                'user_id' => Auth::id(),
+            ]);
+
+            $flashKey = 'games.flash_reminder_updated';
+        } else {
+            // Enforce the per-game cap on create only (edits don't add a row).
+            if ($this->game->reminders()->count() >= self::MAX_CUSTOM_REMINDERS) {
+                $this->addError('reminderSendAt', __('games.error_reminder_limit'));
+
+                return;
+            }
+
+            $created = $this->game->reminders()->create([
+                'send_at' => $validated['send_at'],
+                'message' => $validated['message'],
+            ]);
+
+            Log::info('Custom reminder added', [
+                'game_id' => $this->game->id,
+                'game_reminder_id' => $created->id,
+                'user_id' => Auth::id(),
+            ]);
+
+            $flashKey = 'games.flash_reminder_added';
+        }
+
+        $this->clearReminderFormState();
+        $this->game->load('reminders');
+        session()->flash('success', __($flashKey));
+    }
+
+    /**
+     * Remove a custom reminder (hard delete — the scheduler sweep then skips it).
+     */
+    public function removeReminder(string $reminderId): void
+    {
+        $this->authorize('update', $this->game);
+
+        $reminder = $this->game->reminders()->whereKey($reminderId)->first();
+
+        if (! $reminder) {
+            session()->flash('error', __('games.error_reminder_not_found'));
+
+            return;
+        }
+
+        $reminder->delete();
+
+        Log::info('Custom reminder removed', [
+            'game_id' => $this->game->id,
+            'game_reminder_id' => $reminderId,
+            'user_id' => Auth::id(),
+        ]);
+
+        // Clear the form if the host was editing the reminder they just removed.
+        if ($this->editingReminderId === $reminderId) {
+            $this->clearReminderFormState();
+        }
+        $this->game->load('reminders');
+        session()->flash('success', __('games.flash_reminder_removed'));
+    }
+
+    /**
+     * Validate the reminder form input (send_at required + valid datetime-local;
+     * message optional, capped at 500 chars parity with capacity reasons).
+     *
+     * @return array{send_at: string, message: string|null}|null
+     */
+    private function validateReminderInput(): ?array
+    {
+        $validator = Validator::make(
+            [
+                'reminderSendAt' => $this->reminderSendAt,
+                'reminderMessage' => $this->reminderMessage,
+            ],
+            [
+                'reminderSendAt' => ['required', 'string'],
+                'reminderMessage' => ['nullable', 'string', 'max:500'],
+            ],
+            [
+                'reminderSendAt.required' => __('games.error_reminder_send_at_required'),
+                'reminderMessage.max' => __('games.error_reminder_message_too_long'),
+            ],
+        );
+
+        // Validate that the datetime-local value parses to a real date.
+        $validator->after(function (\Illuminate\Validation\Validator $v): void {
+            $raw = $this->reminderSendAt;
+            if ($raw === null || $raw === '') {
+                return;
+            }
+            try {
+                Carbon::createFromFormat('Y-m-d\TH:i', $raw);
+            } catch (\Throwable) {
+                $v->errors()->add('reminderSendAt', __('games.error_reminder_send_at_invalid'));
+            }
+        });
+
+        if ($validator->fails()) {
+            // Map each error to its own property key (reminderSendAt /
+            // reminderMessage) so Livewire's assertHasErrors(['reminderMessage'])
+            // resolves — dumping every message under one key hides per-field
+            // errors from the @error() Blade directives.
+            foreach ($validator->errors()->keys() as $field) {
+                foreach ($validator->errors()->get($field) as $message) {
+                    $this->addError($field, $message);
+                }
+            }
+
+            return null;
+        }
+
+        $message = $this->reminderMessage !== null && trim($this->reminderMessage) !== ''
+            ? trim($this->reminderMessage)
+            : null;
+
+        $sendAt = $this->reminderSendAt;
+        if (! is_string($sendAt)) {
+            return null;
+        }
+
+        return [
+            'send_at' => $sendAt,
+            'message' => $message,
+        ];
+    }
+
+    /**
+     * Reset the reminder form (add/edit) state.
+     */
+    private function clearReminderFormState(): void
+    {
+        $this->editingReminderId = null;
+        $this->reminderSendAt = null;
+        $this->reminderMessage = null;
+        $this->resetErrorBag(['reminderSendAt', 'reminderMessage']);
+    }
+
     private function clearCapacityConfirmState(): void
     {
         $this->confirmingCapacityDecrease = null;
@@ -713,6 +933,17 @@ class GameDetail extends Component
     public function joinViaShareLink(): void
     {
         $viewer = authenticatedUser();
+
+        // Signup cutoff (decision D124). Surface the specific message rather
+        // than the generic not-authorized flash so a member hitting a closed
+        // signup knows why. Mirrors the web-apply gate; re-checked implicitly
+        // via canJoinViaShareLink (which also returns false once the cutoff
+        // passes) so the Join button is hidden as well.
+        if ($this->game->signupHasClosed()) {
+            session()->flash('error', __('games.error_signup_closed'));
+
+            return;
+        }
 
         if (! $this->canJoinViaShareLink()) {
             session()->flash('error', __('common.error_not_authorized'));
@@ -876,6 +1107,13 @@ class GameDetail extends Component
 
         // Game must not be completed or canceled
         if (in_array($this->game->status?->value, [GameStatus::Completed->value, GameStatus::Canceled->value])) {
+            return false;
+        }
+
+        // Signup cutoff (decision D124) — hide the Join button once an
+        // organizer-set cutoff has passed. The action method re-checks with a
+        // specific message; this keeps the affordance consistent.
+        if ($this->game->signupHasClosed()) {
             return false;
         }
 
@@ -1146,6 +1384,11 @@ class GameDetail extends Component
                     ? app(CapacityService::class)->previewDemotion($this->game, $this->pendingNewMax)
                     : null,
             'pendingNewMax' => $this->pendingNewMax,
+            'customReminders' => $this->game->reminders()
+                ->orderBy('send_at')
+                ->get(),
+            'reminderLimitReached' => $this->game->reminders()->count() >= self::MAX_CUSTOM_REMINDERS,
+            'maxCustomReminders' => self::MAX_CUSTOM_REMINDERS,
         ]);
     }
 }

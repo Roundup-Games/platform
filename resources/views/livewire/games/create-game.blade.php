@@ -230,6 +230,17 @@
                                 </div>
                             </div>
                         @endif
+
+                        {{-- Signup Cutoff (M057/S05 — D124). Optional: when this time passes,
+                             new signups are blocked across web apply, share-link join, and
+                             the Discord RSVP button. Empty = no cutoff. --}}
+                        <div>
+                            <label for="game-signup-cutoff" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.label_signup_cutoff') }}</label>
+                            <input type="datetime-local" id="game-signup-cutoff" wire:model="signup_cutoff_at"
+                                   class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                            <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_signup_cutoff') }}</p>
+                            @error('signup_cutoff_at') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                        </div>
                     </div>
                 </section>
 
