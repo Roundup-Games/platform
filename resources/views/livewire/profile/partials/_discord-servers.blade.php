@@ -10,7 +10,7 @@ then stranded the landlord with no way back. --}}
 @if($discordGuilds->isNotEmpty())
     <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
         <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-2 flex items-center gap-2">
-            <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">dns</span>
+            <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">groups</span>
             {{ __('settings.discord_servers_title') }}
         </h2>
         <p class="text-sm text-on-surface-variant mb-4">

@@ -203,7 +203,7 @@
                 {{-- Calendar Feed (per-user iCal token — D123) --}}
                 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                     <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-2 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">calendar</span>
+                        <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">calendar_today</span>
                         {{ __('settings.calendar_feed_title') }}
                     </h2>
                     <p class="text-sm text-on-surface-variant mb-4">

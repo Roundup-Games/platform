@@ -2,7 +2,7 @@
     {{-- Section header --}}
     <div>
         <div class="flex items-center gap-2 mb-1">
-            <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">hub</span>
+            <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">groups</span>
             <h2 class="text-lg font-heading font-semibold text-on-surface">Discord servers</h2>
         </div>
         <p class="text-sm text-on-surface-variant">
