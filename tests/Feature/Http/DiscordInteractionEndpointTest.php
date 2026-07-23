@@ -3,6 +3,7 @@
 namespace Tests\Feature\Http;
 
 use App\Enums\OAuthProvider;
+use App\Jobs\ProcessDiscordLeave;
 use App\Jobs\ProcessDiscordRsvp;
 use App\Models\Game;
 use App\Models\LinkedAccount;
@@ -346,7 +347,7 @@ class DiscordInteractionEndpointTest extends TestCase
         ]);
 
         $gameId = (string) Game::factory()->create()->id;
-        $body = $this->componentBody("roundup:rsvp:{$gameId}", $snowflake, $guildId, 'tok-123');
+        $body = $this->componentBody("roundup:join:{$gameId}", $snowflake, $guildId, 'tok-123');
 
         $response = $this->postSigned($body);
 
@@ -381,7 +382,7 @@ class DiscordInteractionEndpointTest extends TestCase
         ]);
 
         $gameId = (string) Game::factory()->create()->id;
-        $body = $this->componentBody("roundup:rsvp:{$gameId}", $snowflake);
+        $body = $this->componentBody("roundup:join:{$gameId}", $snowflake);
 
         $this->postSigned($body)->assertStatus(200);
 
@@ -394,7 +395,7 @@ class DiscordInteractionEndpointTest extends TestCase
     #[Test]
     public function a_linked_clicker_logs_the_rsvp_dispatched_event()
     {
-        // discord_interaction.rsvp_dispatched {game_id, user_id, guild_id} is
+        // discord_interaction.join_dispatched {game_id, user_id, guild_id} is
         // the trending signal that the endpoint dispatched a deferred RSVP.
         Queue::fake();
 
@@ -409,13 +410,13 @@ class DiscordInteractionEndpointTest extends TestCase
         ]);
 
         $gameId = (string) Game::factory()->create()->id;
-        $body = $this->componentBody("roundup:rsvp:{$gameId}", $snowflake, $guildId);
+        $body = $this->componentBody("roundup:join:{$gameId}", $snowflake, $guildId);
 
         $log = Log::spy();
         $this->postSigned($body)->assertStatus(200);
 
         $log->shouldHaveReceived('info')
-            ->with('discord_interaction.rsvp_dispatched', \Mockery::on(function ($context) use ($gameId, $user, $guildId) {
+            ->with('discord_interaction.join_dispatched', \Mockery::on(function ($context) use ($gameId, $user, $guildId) {
                 return is_array($context)
                     && ($context['game_id'] ?? null) === $gameId
                     && ($context['user_id'] ?? null) === $user->id
@@ -435,7 +436,7 @@ class DiscordInteractionEndpointTest extends TestCase
 
         $gameId = (string) Game::factory()->create()->id;
         // A snowflake with no linked account.
-        $body = $this->componentBody("roundup:rsvp:{$gameId}", '999999999999999999');
+        $body = $this->componentBody("roundup:join:{$gameId}", '999999999999999999');
 
         $response = $this->postSigned($body);
 
@@ -456,7 +457,7 @@ class DiscordInteractionEndpointTest extends TestCase
 
         $gameId = (string) Game::factory()->create()->id;
         $guildId = '444555666777888999';
-        $body = $this->componentBody("roundup:rsvp:{$gameId}", '888777666555444333', $guildId);
+        $body = $this->componentBody("roundup:join:{$gameId}", '888777666555444333', $guildId);
 
         $log = Log::spy();
         $this->postSigned($body)->assertOk();
@@ -474,7 +475,7 @@ class DiscordInteractionEndpointTest extends TestCase
     #[Test]
     public function a_malformed_custom_id_responds_ephemeral_and_never_dispatches()
     {
-        // An unknown button custom_id (not roundup:rsvp:*) must never dispatch
+        // An unknown button custom_id (not roundup:join:*) must never dispatch
         // a job. Respond gracefully (ephemeral type 4) so Discord sees a valid
         // ACK and the clicker gets a helpful message.
         Queue::fake();
@@ -520,7 +521,7 @@ class DiscordInteractionEndpointTest extends TestCase
         // it — malformed, must not dispatch.
         Queue::fake();
 
-        $body = $this->componentBody('roundup:rsvp:', '111222333444555666');
+        $body = $this->componentBody('roundup:join:', '111222333444555666');
 
         $response = $this->postSigned($body);
 
@@ -552,7 +553,7 @@ class DiscordInteractionEndpointTest extends TestCase
         $body = json_encode([
             'type' => 3,
             'token' => 'dm-tok',
-            'data' => ['custom_id' => "roundup:rsvp:{$gameId}", 'component_type' => 2],
+            'data' => ['custom_id' => "roundup:join:{$gameId}", 'component_type' => 2],
             // DM context: no `member`, user carried at top level.
             'user' => ['id' => $snowflake],
         ]);
@@ -575,5 +576,79 @@ class DiscordInteractionEndpointTest extends TestCase
         $url = config('app.url');
 
         return is_string($url) ? rtrim($url, '/') : '';
+    }
+
+    // ── RSVP menu + Leave (per-user menu follow-up) ─────
+
+    /**
+     * The card's "My seat" button (roundup:rsvp:{gameId}) returns an immediate
+     * ephemeral menu showing the clicker's current state — NOT a deferred join.
+     * This is the per-user menu; a non-participant sees a Join button.
+     */
+    #[Test]
+    public function a_menu_request_returns_an_ephemeral_menu_with_join_button_for_a_non_participant()
+    {
+        Queue::fake();
+
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'max_players' => 4,
+            'status' => 'scheduled',
+            'visibility' => 'public',
+        ]);
+
+        $clicker = User::factory()->create();
+        LinkedAccount::create([
+            'user_id' => $clicker->id,
+            'provider' => OAuthProvider::Discord,
+            'provider_user_id' => $snowflake = '777666555444333222',
+            'token' => 'dummy',
+        ]);
+
+        $body = $this->componentBody("roundup:rsvp:{$game->id}", $snowflake);
+        $response = $this->postSigned($body);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('type', 4); // CHANNEL_MESSAGE
+        $response->assertJsonPath('data.flags', 64); // EPHEMERAL
+
+        // The menu content includes seat info, and a Join button is present.
+        $json = $response->json();
+        $this->assertStringContainsString('seats', $json['data']['content']);
+
+        // No job dispatched — the menu is a state read, not a write.
+        Queue::assertNotPushed(ProcessDiscordRsvp::class);
+        Queue::assertNotPushed(ProcessDiscordLeave::class);
+    }
+
+    /**
+     * The menu's Leave button (roundup:leave:{gameId}) dispatches the
+     * ProcessDiscordLeave job + DEFERRED ack, mirroring the join path.
+     */
+    #[Test]
+    public function a_leave_click_dispatches_the_leave_job_and_returns_deferred()
+    {
+        Queue::fake();
+
+        $user = User::factory()->create();
+        LinkedAccount::create([
+            'user_id' => $user->id,
+            'provider' => OAuthProvider::Discord,
+            'provider_user_id' => $snowflake = '666555444333222111',
+            'token' => 'dummy',
+        ]);
+        $gameId = '11111111-2222-3333-4444-555555555555';
+
+        $body = $this->componentBody("roundup:leave:{$gameId}", $snowflake, '999888777666555444', 'leave-token-xyz');
+        $response = $this->postSigned($body);
+
+        $response->assertStatus(200);
+        $response->assertJson(['type' => 5]); // DEFERRED
+
+        Queue::assertPushed(ProcessDiscordLeave::class, function (ProcessDiscordLeave $job) use ($gameId, $user) {
+            return $job->gameId === $gameId && $job->userId === (string) $user->id;
+        });
     }
 }

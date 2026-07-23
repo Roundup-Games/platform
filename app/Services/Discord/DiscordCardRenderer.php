@@ -366,7 +366,7 @@ class DiscordCardRenderer
             [
                 'type' => 2, // BUTTON
                 'style' => 1, // PRIMARY (blurple)
-                'label' => '🎟️ RSVP',
+                'label' => '🎟️ My seat',
                 // custom_id carries the game_id so the stateless Interactions
                 // endpoint (D117) can resolve the target game. Namespaced so
                 // roundup interactions never collide with another bot's.

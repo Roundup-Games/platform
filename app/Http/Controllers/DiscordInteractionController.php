@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ParticipantStatus;
 use App\Http\Middleware\VerifyDiscordInteractionSignature;
+use App\Jobs\ProcessDiscordLeave;
 use App\Jobs\ProcessDiscordRsvp;
+use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\User;
-use App\Services\Discord\DiscordCardRenderer;
 use App\Services\Discord\DiscordIdentityResolver;
+use App\Services\Discord\DiscordRsvpMenuContext;
+use App\Services\Discord\DiscordRsvpMenuRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,58 +20,60 @@ use Illuminate\Support\Facades\Log;
  * Receives Discord HTTP Interactions at POST /discord/interactions.
  *
  * Discord's stateless interactions model: every request is signed with
- * Ed25519 (verified by {@see VerifyDiscordInteractionSignature}
- * before this controller runs) and must be acknowledged within 3 seconds.
+ * Ed25519 (verified by {@see VerifyDiscordInteractionSignature} before this
+ * controller runs) and must be acknowledged within 3 seconds.
  *
- * Interaction types (S03-relevant):
+ * Interaction types:
  *   1 PING             — Discord's handshake probe; required to register the
- *                        interactions URL in the Developer Portal. Ack with
- *                        {type: 1}. (T01)
- *   3 MESSAGE_COMPONENT — a button click (custom_id roundup:rsvp:{gameId}).
- *                         (T02) Resolve identity → linked clickers get a
- *                         DEFERRED ack + a queued RSVP job through the same
- *                         participant pipeline as a web RSVP; unlinked
- *                         clickers get an ephemeral deep-link to RSVP on
- *                         roundup web. Malformed/unknown custom_ids get a
- *                         graceful ephemeral message and NEVER dispatch a job.
+ *                        interactions URL. Ack with {type: 1}.
+ *   3 MESSAGE_COMPONENT — a button click. Three custom_id actions:
+ *      roundup:rsvp:{gameId}  → the card's "My seat" button: an immediate
+ *                               per-clicker ephemeral menu showing the
+ *                               clicker's current roster state + the relevant
+ *                               action (Join / Leave). A state read — fast,
+ *                               returns inline (type 4, no defer).
+ *      roundup:join:{gameId}  → the menu's Join button: DEFERRED + the queued
+ *                               join job (ProcessDiscordRsvp — the same
+ *                               participant pipeline as a web RSVP).
+ *      roundup:leave:{gameId} → the menu's Leave button: DEFERRED + the queued
+ *                               leave job (ProcessDiscordLeave — mirrors the
+ *                               web leaveGame path).
  *
- * The 3-second ACK deadline is strict: this controller MUST return a response
- * synchronously. Anything that could exceed the window (participant writes,
- * Discord REST calls) is deferred to {@see ProcessDiscordRsvp} — never
- * attempted inline. The only inline DB read is the identity lookup, which is
- * a single indexed query well inside the deadline.
+ * The 3-second ACK deadline is strict. The RSVP menu is a single fast query
+ * (Game + participants) and returns inline; the join/leave writes are deferred
+ * (they touch the participant pipeline, which is too slow for the window).
+ *
+ * Unlinked clickers always get an ephemeral deep-link to RSVP on roundup web —
+ * the per-user menu is meaningless without a linked identity.
  */
 class DiscordInteractionController extends Controller
 {
     /**
-     * Button custom_id prefix the roundup RSVP button uses. Namespaced so
+     * Shared custom_id prefix for all roundup Discord buttons. Namespaced so
      * roundup interactions never collide with another bot's component ids.
-     * Mirrors {@see DiscordCardRenderer::buildComponents()}.
+     * Format: roundup:{action}:{gameId}. Mirrors DiscordCardRenderer /
+     * DiscordRsvpMenuRenderer button builders.
      */
-    private const RSVP_CUSTOM_ID_PREFIX = 'roundup:rsvp:';
+    private const CUSTOM_ID_PREFIX = 'roundup:';
 
     /**
-     * Response type 4: CHANNEL_MESSAGE_WITH_SOURCE — a new message shown only
-     * to the clicker when combined with the ephemeral flag.
+     * The action verbs carried in custom_ids, routed to their handlers.
      */
+    private const ACTION_MENU = 'rsvp';
+
+    private const ACTION_JOIN = 'join';
+
+    private const ACTION_LEAVE = 'leave';
+
     private const TYPE_CHANNEL_MESSAGE = 4;
 
-    /**
-     * Response type 5: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE — acks the
-     * interaction immediately ("Bot is thinking…") so Discord sees a valid
-     * response within the 3s window; the job resolves it later.
-     */
     private const TYPE_DEFERRED = 5;
 
-    /**
-     * Discord ephemeral flag (1 << 6): the message is visible only to the
-     * clicker, not the whole channel. Used for the unlinked deep-link and
-     * every graceful "we couldn't process that" response.
-     */
     private const FLAG_EPHEMERAL = 64;
 
     public function __construct(
         private readonly DiscordIdentityResolver $identityResolver,
+        private readonly DiscordRsvpMenuRenderer $menuRenderer,
     ) {}
 
     /**
@@ -77,28 +84,17 @@ class DiscordInteractionController extends Controller
         $type = $this->interactionType($request);
 
         return match ($type) {
-            // PING (type 1): Discord's registration handshake. Ack with {type:1}.
             1 => $this->handlePing(),
-            // MESSAGE_COMPONENT (type 3): a button click. Resolve identity and
-            // fork into deferred-RSVP (linked) or ephemeral deep-link (unlinked).
             3 => $this->handleMessageComponent($request),
-            // Other interaction types are not part of S03's surface. Ack with
-            // DEFERRED so Discord does not time out within the 3s window.
             default => $this->handleUnknown($request, $type),
         };
     }
 
     // ── PING ────────────────────────────────────────────
 
-    /**
-     * Acknowledge a PING: respond {type: 1}.
-     */
     private function handlePing(): JsonResponse
     {
-        Log::info('discord_interaction.ping', [
-            // PING carries no payload beyond type=1; the structured event is the
-            // trending signal that the endpoint is alive and Discord is probing it.
-        ]);
+        Log::info('discord_interaction.ping');
 
         return response()->json(['type' => 1]);
     }
@@ -106,27 +102,16 @@ class DiscordInteractionController extends Controller
     // ── MESSAGE_COMPONENT (button click) ────────────────
 
     /**
-     * Handle a MESSAGE_COMPONENT interaction (a button click).
-     *
-     * Within the 3s deadline: parse the button custom_id, resolve the
-     * clicker's identity, and fork:
-     *   - LINKED clicker   → DEFERRED ack + dispatch the RSVP job (the job
-     *                        writes through the SAME participant pipeline as
-     *                        a web RSVP — one source of truth).
-     *   - UNLINKED clicker → ephemeral deep-link to RSVP on roundup web (no
-     *                        participant write; value-framed, non-blocking).
-     *
-     * A malformed or unknown custom_id gets a graceful ephemeral message and
-     * NEVER dispatches a job. No inline DB write beyond the identity read.
+     * Parse the button's custom_id, resolve the clicker's identity, and route
+     * to the action handler. Malformed/unknown custom_ids get a graceful
+     * ephemeral message and never dispatch a job.
      */
     private function handleMessageComponent(Request $request): JsonResponse
     {
         $customId = $this->customId($request);
-        $gameId = $this->gameIdFromCustomId($customId);
+        $parsed = $this->parseCustomId($customId);
 
-        // Malformed or unknown button → graceful ephemeral, no dispatch.
-        // Never 500; never dispatch a job for a request we can't route.
-        if ($gameId === null) {
+        if ($parsed === null) {
             Log::info('discord_interaction.malformed_custom_id', [
                 'has_custom_id' => $customId !== null,
             ]);
@@ -136,61 +121,182 @@ class DiscordInteractionController extends Controller
             );
         }
 
+        ['action' => $action, 'gameId' => $gameId] = $parsed;
+
         $guildId = $this->guildId($request);
         $user = $this->identityResolver->resolveBySnowflake(
             $this->memberSnowflake($request)
         );
 
-        // LINKED: defer + dispatch the RSVP job. The job carries primitives
-        // (ids + the interaction token) per the queued-job convention so it
-        // serializes cleanly and re-fetches models in handle().
-        if ($user instanceof User) {
-            $interactionToken = $this->interactionToken($request);
+        return match ($action) {
+            self::ACTION_MENU => $this->handleMenuRequest($gameId, $user, $guildId),
+            self::ACTION_JOIN => $this->handleDeferredAction(
+                $gameId, $user, $guildId, $this->interactionToken($request), ProcessDiscordRsvp::class, 'join_dispatched'
+            ),
+            self::ACTION_LEAVE => $this->handleDeferredAction(
+                $gameId, $user, $guildId, $this->interactionToken($request), ProcessDiscordLeave::class, 'leave_dispatched'
+            ),
+            default => $this->ephemeralMessage(
+                "This button couldn't be processed. Try RSVPing on roundup, or tap the game's link for the latest details."
+            ),
+        };
+    }
 
-            // Pass the User's PK (a UUID string id), NOT its route key: the
-            // User model's getRouteKey() yields its slug, but the job contract
-            // and game_participants.user_id both reference the UUID id, not
-            // the slug. The deferred job's User::find()/GameParticipant::create()
-            // downstream key on id.
-            ProcessDiscordRsvp::dispatch(
-                $gameId,
-                (string) $user->id,
-                $guildId,
-                $interactionToken,
-            );
+    // ── RSVP menu (the card's "My seat" button) ─────────
 
-            Log::info('discord_interaction.rsvp_dispatched', [
+    /**
+     * Return the per-clicker ephemeral RSVP menu — the clicker's current roster
+     * state + the action relevant to them. This is a fast state read (one
+     * Game + participants query), so it returns inline within the 3s window
+     * rather than deferring.
+     *
+     * Unlinked clickers get the ephemeral deep-link (the menu is meaningless
+     * without a linked identity).
+     */
+    private function handleMenuRequest(string $gameId, ?User $user, string $guildId): JsonResponse
+    {
+        if (! $user instanceof User) {
+            Log::info('discord_interaction.unlinked_deep_link', [
                 'game_id' => $gameId,
-                'user_id' => $user->id,
                 'guild_id' => $guildId,
             ]);
 
-            // DEFERRED ack so Discord sees a valid response within the 3s
-            // window. The job resolves the interaction later via @original.
-            // Discord requires HTTP 200 for ALL interaction responses — a 202
-            // causes Discord to not register the deferred interaction, so the
-            // @original webhook is never created and the follow-up PATCH 404s.
-            return response()->json(['type' => self::TYPE_DEFERRED], 200);
+            return $this->unlinkedDeepLink($gameId);
         }
 
-        // UNLINKED: ephemeral deep-link to RSVP on roundup web. No participant
-        // write — the clicker needs a roundup account first. Value-framed and
-        // non-blocking so the card stays a low-friction surface.
-        Log::info('discord_interaction.unlinked_deep_link', [
+        $game = Game::with('participants')->find($gameId);
+
+        if (! $game instanceof Game) {
+            return $this->ephemeralMessage(
+                "This game couldn't be found — it may have been removed."
+            );
+        }
+
+        $context = $this->buildMenuContext($game, $user);
+        $menu = $this->menuRenderer->render($game, $context);
+
+        Log::info('discord_interaction.menu_shown', [
             'game_id' => $gameId,
-            'guild_id' => $guildId,
+            'user_id' => $user->id,
+            'is_owner' => $context->isOwner,
+            'current_status' => $context->currentStatus?->value,
         ]);
 
-        return $this->unlinkedDeepLink($gameId);
+        return response()->json($menu->toResponse($context->appUrl, $gameId));
     }
 
     /**
-     * Build the ephemeral deep-link response for an unlinked clicker.
+     * Resolve the clicker's current roster state from the pre-loaded Game.
+     */
+    private function buildMenuContext(Game $game, User $user): DiscordRsvpMenuContext
+    {
+        $isOwner = (string) $game->owner_id === (string) $user->id;
+
+        // The clicker's participant row (if any), filtering to ACTIVE statuses.
+        // Removed/Rejected are treated as "not on the roster" — the menu offers Join.
+        $participant = $game->participants->firstWhere('user_id', $user->id);
+
+        return new DiscordRsvpMenuContext(
+            isOwner: $isOwner,
+            currentStatus: $contextStatus = $this->resolveActiveStatus($participant),
+            waitlistPosition: $contextStatus === ParticipantStatus::Waitlisted
+                ? $this->waitlistPosition($game, $user)
+                : null,
+            approvedCount: $game->participants->where('status', ParticipantStatus::Approved)->count(),
+            maxPlayers: $game->max_players,
+            appUrl: is_string(config('app.url')) ? config('app.url') : null,
+        );
+    }
+
+    /**
+     * The clicker's active participant status, or null if they are not on the
+     * active roster (Removed/Rejected/no row → null → the menu offers Join).
+     */
+    private function resolveActiveStatus(?GameParticipant $participant): ?ParticipantStatus
+    {
+        if (! $participant) {
+            return null;
+        }
+
+        $status = $participant->status;
+
+        return in_array($status, [
+            ParticipantStatus::Approved,
+            ParticipantStatus::Waitlisted,
+            ParticipantStatus::Benched,
+            ParticipantStatus::Pending,
+        ], true) ? $status : null;
+    }
+
+    /**
+     * 1-based waitlist position for a waitlisted clicker (ordered by
+     * waitlisted_at ascending). Null when not waitlisted or indeterminate.
+     */
+    private function waitlistPosition(Game $game, User $user): ?int
+    {
+        $waitlisted = $game->participants
+            ->where('status', ParticipantStatus::Waitlisted)
+            ->sortBy('waitlisted_at')
+            ->values();
+
+        foreach ($waitlisted as $i => $p) {
+            if ($p->user_id === $user->id) {
+                return $i + 1;
+            }
+        }
+
+        return null;
+    }
+
+    // ── Deferred join/leave (the menu's action buttons) ──
+
+    /**
+     * Defer a join or leave action: unlinked → deep-link; linked → dispatch the
+     * job + DEFERRED ack. The job resolves the interaction later via @original.
      *
-     * A single LINK button to the public game page (the SAME target the card's
-     * "View on roundup" button uses) plus value-framed copy explaining that
-     * linking once unlocks in-Discord RSVP. Ephemeral so it's private to the
-     * clicker and never clutters the channel.
+     * @param  class-string  $jobClass  ProcessDiscordRsvp::class or ProcessDiscordLeave::class
+     * @param  string  $logKey  'join_dispatched' or 'leave_dispatched'
+     */
+    private function handleDeferredAction(
+        string $gameId,
+        ?User $user,
+        string $guildId,
+        string $interactionToken,
+        string $jobClass,
+        string $logKey,
+    ): JsonResponse {
+        if (! $user instanceof User) {
+            Log::info('discord_interaction.unlinked_deep_link', [
+                'game_id' => $gameId,
+                'guild_id' => $guildId,
+            ]);
+
+            return $this->unlinkedDeepLink($gameId);
+        }
+
+        $jobClass::dispatch(
+            $gameId,
+            (string) $user->id,
+            $guildId,
+            $interactionToken,
+        );
+
+        Log::info("discord_interaction.{$logKey}", [
+            'game_id' => $gameId,
+            'user_id' => $user->id,
+            'guild_id' => $guildId,
+        ]);
+
+        // Discord requires HTTP 200 for ALL interaction responses (a 202
+        // causes the @original webhook to never be created → PATCH 404s).
+        return response()->json(['type' => self::TYPE_DEFERRED], 200);
+    }
+
+    // ── Unlinked deep-link ──────────────────────────────
+
+    /**
+     * Build the ephemeral deep-link response for an unlinked clicker: a LINK
+     * button to the game page + value-framed copy. Ephemeral so it's private.
      */
     private function unlinkedDeepLink(string $gameId): JsonResponse
     {
@@ -203,10 +309,10 @@ class DiscordInteractionController extends Controller
                 'content' => "You're almost on the roster. RSVP on roundup to grab your seat — link your Discord account there once and this button RSVPs you straight from Discord next time.",
                 'components' => [
                     [
-                        'type' => 1, // ACTION_ROW
+                        'type' => 1,
                         'components' => [
                             [
-                                'type' => 2, // BUTTON
+                                'type' => 2,
                                 'style' => 5, // LINK
                                 'label' => 'RSVP on roundup',
                                 'url' => $url,
@@ -218,13 +324,6 @@ class DiscordInteractionController extends Controller
         ]);
     }
 
-    /**
-     * The public roundup game page URL for a deep-link button.
-     *
-     * Matches the card renderer's deep-link shape ({appUrl}/games/{id}); the
-     * bare path 302-redirects to the visitor's preferred locale via the
-     * catch-all route, so one URL serves every locale.
-     */
     private function gameDeepLinkUrl(string $gameId): string
     {
         $baseUrl = is_string(config('app.url')) ? rtrim(config('app.url'), '/') : '';
@@ -232,10 +331,6 @@ class DiscordInteractionController extends Controller
         return $baseUrl.'/games/'.$gameId;
     }
 
-    /**
-     * A minimal ephemeral message response (type 4, flags 64) with text only.
-     * Used for graceful failure handling where there is no deep-link to show.
-     */
     private function ephemeralMessage(string $content): JsonResponse
     {
         return response()->json([
@@ -249,12 +344,6 @@ class DiscordInteractionController extends Controller
 
     // ── Safe-default for unhandled interaction types ────
 
-    /**
-     * Safe-default acknowledgment for interaction types S03 does not handle.
-     *
-     * Returns a DEFERRED response (type 5) so Discord sees a valid ACK within
-     * the 3s window and does not mark the interaction as failed.
-     */
     private function handleUnknown(Request $request, int $type): JsonResponse
     {
         Log::info('discord_interaction.unhandled_type', [
@@ -264,14 +353,8 @@ class DiscordInteractionController extends Controller
         return response()->json(['type' => self::TYPE_DEFERRED], 200);
     }
 
-    // ── Payload extraction (narrows mixed request input) ──
+    // ── Payload extraction ──────────────────────────────
 
-    /**
-     * Extract the interaction type from the payload, narrowing the mixed input.
-     *
-     * Returns 0 (unhandled) for malformed/missing type so the match falls
-     * through to the safe-default ack rather than throwing.
-     */
     private function interactionType(Request $request): int
     {
         $type = $request->input('type');
@@ -279,9 +362,6 @@ class DiscordInteractionController extends Controller
         return is_int($type) ? $type : 0;
     }
 
-    /**
-     * The button custom_id from a MESSAGE_COMPONENT interaction, or null.
-     */
     private function customId(Request $request): ?string
     {
         $customId = $request->input('data.custom_id');
@@ -290,36 +370,36 @@ class DiscordInteractionController extends Controller
     }
 
     /**
-     * Parse a roundup RSVP custom_id (`roundup:rsvp:{gameId}`) into the game id,
-     * or null when the custom_id is malformed or doesn't carry an RSVP.
+     * Parse a roundup custom_id (`roundup:{action}:{gameId}`) into its action
+     * + game id, or null when malformed or the action is unknown.
      *
-     * The game id is the roundup Game string PK (a UUID); we return it as-is
-     * for the job/identity lookups and never validate it exists inline (the
-     * deferred job re-fetches the Game and handles missing/invalid ids).
+     * @return array{action: string, gameId: string}|null
      */
-    private function gameIdFromCustomId(?string $customId): ?string
+    private function parseCustomId(?string $customId): ?array
     {
         if ($customId === null) {
             return null;
         }
 
-        if (! str_starts_with($customId, self::RSVP_CUSTOM_ID_PREFIX)) {
+        if (! str_starts_with($customId, self::CUSTOM_ID_PREFIX)) {
             return null;
         }
 
-        $gameId = substr($customId, strlen(self::RSVP_CUSTOM_ID_PREFIX));
+        $rest = substr($customId, strlen(self::CUSTOM_ID_PREFIX));
 
-        return $gameId === '' ? null : $gameId;
+        if (! str_contains($rest, ':')) {
+            return null;
+        }
+
+        [$action, $gameId] = explode(':', $rest, 2);
+
+        if (! in_array($action, [self::ACTION_MENU, self::ACTION_JOIN, self::ACTION_LEAVE], true)) {
+            return null;
+        }
+
+        return $gameId === '' ? null : ['action' => $action, 'gameId' => $gameId];
     }
 
-    /**
-     * The clicker's Discord user snowflake from the interaction member.
-     *
-     * Guild interactions carry the member under `member.user.id`; DM
-     * interactions carry it directly under `user.id`. We honour both so the
-     * resolver works in either context (cards are guild-channel posts, but
-     * the resolver should not assume the only delivery surface).
-     */
     private function memberSnowflake(Request $request): string
     {
         $memberUserId = $request->input('member.user.id');
@@ -332,9 +412,6 @@ class DiscordInteractionController extends Controller
         return is_string($dmUserId) && $dmUserId !== '' ? $dmUserId : '';
     }
 
-    /**
-     * The guild id the interaction originated in, or empty string for a DM.
-     */
     private function guildId(Request $request): string
     {
         $guildId = $request->input('guild_id');
@@ -342,11 +419,6 @@ class DiscordInteractionController extends Controller
         return is_string($guildId) && $guildId !== '' ? $guildId : '';
     }
 
-    /**
-     * The interaction token (webhook URL credential). Required by the deferred
-     * job to PATCH the @original response. Discord issues one per interaction,
-     * valid for 15 minutes.
-     */
     private function interactionToken(Request $request): string
     {
         $token = $request->input('token');
