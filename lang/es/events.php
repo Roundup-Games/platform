@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_add_competitive_divisions_for_your_event' => '',
     'action_add_division' => '',

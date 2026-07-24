@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_back_to_teams' => '',
     'action_browse_teams' => '',

@@ -1,4 +1,5 @@
 <?php
+
 return [
     // Manifest
     'manifest_name' => '',

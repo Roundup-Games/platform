@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_back_to_game' => '',
     'action_choose_specific_game_or_expansion' => '',

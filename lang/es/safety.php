@@ -1,4 +1,5 @@
 <?php
+
 return [
     'content_custom_safety_note' => '',
     'content_everyone_deserves_to_feel_safe' => '',

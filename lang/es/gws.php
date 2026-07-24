@@ -1,4 +1,5 @@
 <?php
+
 return [
     'title_gm_workspace' => '',
     'description_your_gm_command_center' => '',

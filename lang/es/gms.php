@@ -1,4 +1,5 @@
 <?php
+
 return [
     'title_game_master_directory' => '',
     'description_find_your_perfect_gm' => '',

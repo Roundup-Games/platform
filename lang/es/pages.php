@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_join_roundup_games_today' => '',
     'content_about' => '',

@@ -1,4 +1,5 @@
 <?php
+
 return [
     'title_create_session_zero' => '',
     'title_survey_created' => '',

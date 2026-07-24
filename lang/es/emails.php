@@ -1,4 +1,5 @@
 <?php
+
 return [
     'content_a_new_verification_link_has' => '',
     'content_contact_the_organizer_at_email' => '',
@@ -36,6 +37,6 @@ return [
     'content_you_re_invited_to_a_campaign' => '',
     'content_you_re_invited_to_a_game' => '',
     'entity_invitation_subject' => '',
-    'content_dont_want_invitations' => "",
+    'content_dont_want_invitations' => '',
     'action_optout_invite_emails' => '',
 ];

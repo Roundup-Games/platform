@@ -1,4 +1,5 @@
 <?php
+
 return [
     // Venue *page* keys (M053/S02). Kept separate from venues.php (the picker)
     // so the public detail page owns its own surface. T03 extends this file.
@@ -93,7 +94,7 @@ return [
     'content_directory_showing_near_you' => '',
     'action_directory_clear_location' => '',
     'empty_directory_title' => '',
-    'empty_directory_body' => "",
+    'empty_directory_body' => '',
     'action_directory_cta_propose' => '',
     'action_directory_cta_sign_up_propose' => '',
     'heading_directory_footer_cta' => '',

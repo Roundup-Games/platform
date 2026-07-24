@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_browse' => '',
     'action_clear_search' => '',

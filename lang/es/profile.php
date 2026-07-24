@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_log_in_to_follow' => '',
     'action_back_to_dashboard' => '',
@@ -243,8 +244,8 @@ return [
     'dashboard_newcomer_step_find_game' => '',
     'dashboard_newcomer_step_attend_session' => '',
     'dashboard_newcomer_step_current' => '',
-    'dashboard_newcomer_nearby_people' => "",
-    'dashboard_newcomer_nearby_people_heading' => "",
+    'dashboard_newcomer_nearby_people' => '',
+    'dashboard_newcomer_nearby_people_heading' => '',
     'dashboard_newcomer_shared_systems' => '',
     // Action Center
     'dashboard_action_center_heading' => '',

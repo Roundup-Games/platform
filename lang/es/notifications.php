@@ -1,4 +1,5 @@
 <?php
+
 return [
     // Category labels
     'category_new_follower' => '',

@@ -1,4 +1,5 @@
 <?php
+
 return [
     'content_public_unlocked_by_verified_venue' => '',
     // ── Venue Picker ────────────────────────────────────────────────

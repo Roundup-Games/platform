@@ -1,4 +1,5 @@
 <?php
+
 return [
     'heading_title' => '',
     // ── Company Details ────────────────────────────────

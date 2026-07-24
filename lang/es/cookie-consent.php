@@ -1,4 +1,5 @@
 <?php
+
 return [
     // Banner
     'content_banner_message' => '',

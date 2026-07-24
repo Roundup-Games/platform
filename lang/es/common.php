@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_accept' => '',
     'action_accept_invitation' => '',
