@@ -92,6 +92,16 @@ return [
         // is unaffected because the observer dispatch is itself gated behind
         // publishing_enabled above.
         'card_refresh_debounce_seconds' => env('DISCORD_CARD_REFRESH_DEBOUNCE_SECONDS', 15),
+        // Whether the bot opens a per-session thread on each posted card
+        // (D116 follow-up). On first publish the bot creates a public thread
+        // anchored on the card message — one conversation space per session —
+        // tracked on discord_card_messages.thread_id so re-publishes never
+        // spawn a second thread. On unpublish the thread is locked (not
+        // deleted), preserving its conversation. Best-effort: a guild that
+        // hasn't granted the bot Create Public Threads / Send in Threads gets
+        // no thread, but the card still posts. No pings — members rely on
+        // Discord's own thread/channel notifications.
+        'session_threads_enabled' => env('DISCORD_SESSION_THREADS_ENABLED', false),
         // Discord OAuth scopes asserted by OAuthController::redirect().
         //   - identify + email: login + attribution (no Discord approval cycle).
         //   - guilds: added by M057/D119 to power organizer auto-discovery —

@@ -204,10 +204,10 @@
                 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                     <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-2 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">calendar_today</span>
-                        {{ __('settings.calendar_feed_title') }}
+                        {{ __('settings.title_calendar_feed') }}
                     </h2>
                     <p class="text-sm text-on-surface-variant mb-4">
-                        {{ __('settings.calendar_feed_description') }}
+                        {{ __('settings.description_calendar_feed') }}
                     </p>
 
                     @if(session()->has('calendar_feed_generated'))
@@ -231,7 +231,7 @@
                     @if($calendarFeedUrl)
                         <div class="rounded-lg border border-outline-variant p-4 mb-4" x-data="{ copied: false, copy() { navigator.clipboard.writeText($refs.urlInput.value); } }">
                             <label for="calendar-feed-url" class="block text-xs font-medium text-on-surface-variant mb-1.5">
-                                {{ __('settings.calendar_feed_url_label') }}
+                                {{ __('settings.label_calendar_feed_url') }}
                             </label>
                             <div class="flex items-stretch gap-2">
                                 <input id="calendar-feed-url" x-ref="urlInput" type="text" readonly
@@ -240,27 +240,27 @@
                                 <button type="button" @click="copy(); copied = true; setTimeout(() => copied = false, 1500)"
                                         class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container transition-colors text-sm font-medium whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
-                                    <span x-show="!copied">{{ __('settings.calendar_feed_copy') }}</span>
-                                    <span x-show="copied" x-cloak>{{ __('settings.calendar_feed_copied') }}</span>
+                                    <span x-show="!copied">{{ __('settings.action_calendar_feed_copy') }}</span>
+                                    <span x-show="copied" x-cloak>{{ __('settings.status_calendar_feed_copied') }}</span>
                                 </button>
                             </div>
                             <p class="mt-2 text-xs text-on-surface-variant">
-                                {{ __('settings.calendar_feed_url_help') }}
+                                {{ __('settings.hint_calendar_feed_url') }}
                             </p>
                         </div>
 
                         <div class="flex flex-wrap gap-3">
-                            <button wire:click="generateCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.calendar_feed_regenerate_confirm') }}"
+                            <button wire:click="generateCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_action_calendar_feed_regenerate') }}"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="generateCalendarFeedToken">refresh</span>
                                 <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="generateCalendarFeedToken" role="status">progress_activity</span>
-                                <span>{{ __('settings.calendar_feed_regenerate') }}</span>
+                                <span>{{ __('settings.action_calendar_feed_regenerate') }}</span>
                             </button>
-                            <button wire:click="revokeCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.calendar_feed_revoke_confirm') }}"
+                            <button wire:click="revokeCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_action_calendar_feed_revoke') }}"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 border border-error/40 text-error rounded-lg hover:bg-error-container/50 transition-colors text-sm font-medium">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="revokeCalendarFeedToken">link_off</span>
                                 <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="revokeCalendarFeedToken" role="status">progress_activity</span>
-                                <span>{{ __('settings.calendar_feed_revoke') }}</span>
+                                <span>{{ __('settings.action_calendar_feed_revoke') }}</span>
                             </button>
                         </div>
                     @else
@@ -268,7 +268,7 @@
                                 class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium">
                             <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="generateCalendarFeedToken">add</span>
                             <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="generateCalendarFeedToken" role="status">progress_activity</span>
-                            <span>{{ __('settings.calendar_feed_generate') }}</span>
+                            <span>{{ __('settings.action_calendar_feed_generate') }}</span>
                         </button>
                     @endif
                 </section>

@@ -11,10 +11,10 @@ then stranded the landlord with no way back. --}}
     <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
         <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-2 flex items-center gap-2">
             <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">groups</span>
-            {{ __('settings.discord_servers_title') }}
+            {{ __('settings.title_discord_servers') }}
         </h2>
         <p class="text-sm text-on-surface-variant mb-4">
-            {{ __('settings.discord_servers_description') }}
+            {{ __('settings.description_discord_servers') }}
         </p>
 
         <ul class="divide-y divide-outline-variant/30">
@@ -26,9 +26,9 @@ then stranded the landlord with no way back. --}}
                             <p class="text-sm font-medium text-on-surface truncate">{{ $guild->name }}</p>
                             <p class="text-xs {{ $guild->paused ? 'text-error' : 'text-on-surface-variant' }}">
                                 @if($guild->paused)
-                                    {{ __('settings.discord_servers_status_paused') }}
+                                    {{ __('settings.status_discord_servers_paused') }}
                                 @else
-                                    {{ __('settings.discord_servers_status_active') }}
+                                    {{ __('settings.status_discord_servers_active') }}
                                 @endif
                             </p>
                         </div>
@@ -36,7 +36,7 @@ then stranded the landlord with no way back. --}}
                     <a href="{{ route('discord.guild.settings', $guild->guild_id) }}"
                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors whitespace-nowrap">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">settings</span>
-                        {{ __('settings.discord_servers_configure') }}
+                        {{ __('settings.action_discord_servers_configure') }}
                     </a>
                 </li>
             @endforeach

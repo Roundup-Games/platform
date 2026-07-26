@@ -241,8 +241,8 @@ class ProcessDiscordRsvp implements ShouldQueue
             // Benched) → idempotent: resolve to the already-on-roster
             // confirmation rather than writing a duplicate row. Checked under
             // the lock so concurrent re-dispatches converge.
-            $alreadyParticipant = GameParticipant::where('game_id', $locked->id)
-                ->where('user_id', $user->id)
+            $alreadyParticipant = GameParticipant::whereBelongsTo($locked)
+                ->whereBelongsTo($user)
                 ->whereIn('status', [
                     ParticipantStatus::Approved->value,
                     ParticipantStatus::Pending->value,

@@ -27,7 +27,7 @@ describe('calendar feed token — initial state', function () {
         Livewire::actingAs($user)
             ->test(SettingsShow::class)
             ->assertSet('calendarFeedUrl', null)
-            ->assertSee(__('settings.calendar_feed_generate'))
+            ->assertSee(__('settings.action_calendar_feed_generate'))
             ->assertDontSee('calendar-feed-url');
     });
 
@@ -106,7 +106,7 @@ describe('calendar feed token — generate', function () {
         Livewire::actingAs($user)
             ->test(SettingsShow::class)
             ->call('generateCalendarFeedToken')
-            ->assertSee(__('settings.calendar_feed_generated_flash'));
+            ->assertSee(__('settings.flash_calendar_feed_generated'));
     });
 
     it('generates a token that works with the iCal feed endpoint (integration)', function () {
@@ -180,7 +180,7 @@ describe('calendar feed token — revoke', function () {
             ->test(SettingsShow::class)
             ->call('generateCalendarFeedToken')
             ->call('revokeCalendarFeedToken')
-            ->assertSee(__('settings.calendar_feed_revoked_flash'));
+            ->assertSee(__('settings.flash_calendar_feed_revoked'));
     });
 
     it('is a safe no-op when no token exists', function () {

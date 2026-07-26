@@ -391,6 +391,18 @@ class Game extends Model implements HasMedia, TicketSubject
         return $this->hasMany(GameBulletin::class);
     }
 
+    /**
+     * The Discord card messages posted for this game (one per opted-in guild).
+     * Enables create-through-relation so the publisher never plumbs
+     * game_id manually (Eloquent best-practice R2).
+     *
+     * @return HasMany<DiscordCardMessage, $this>
+     */
+    public function discordCardMessages(): HasMany
+    {
+        return $this->hasMany(DiscordCardMessage::class);
+    }
+
     public function activeSessionZeroSurvey(): ?SessionZeroSurvey
     {
         return $this->sessionZeroSurveys()->where('status', 'active')->first();

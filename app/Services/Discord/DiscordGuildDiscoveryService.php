@@ -68,7 +68,7 @@ class DiscordGuildDiscoveryService
             return [];
         }
 
-        $optIns = DiscordGuildOrganizer::where('user_id', $organizer->id)
+        $optIns = DiscordGuildOrganizer::whereBelongsTo($organizer)
             ->whereIn('guild_id', $guilds->modelKeys())
             ->get()
             ->keyBy('guild_id');
@@ -106,7 +106,7 @@ class DiscordGuildDiscoveryService
     public function optIn(User $organizer, DiscordGuild $guild): DiscordGuildOrganizer
     {
         $existing = DiscordGuildOrganizer::where('guild_id', $guild->id)
-            ->where('user_id', $organizer->id)
+            ->whereBelongsTo($organizer)
             ->first();
 
         $optIn = DiscordGuildOrganizer::updateOrCreate(
@@ -138,7 +138,7 @@ class DiscordGuildDiscoveryService
     public function optOut(User $organizer, DiscordGuild $guild): ?DiscordGuildOrganizer
     {
         $optIn = DiscordGuildOrganizer::where('guild_id', $guild->id)
-            ->where('user_id', $organizer->id)
+            ->whereBelongsTo($organizer)
             ->first();
 
         if (! $optIn instanceof DiscordGuildOrganizer) {

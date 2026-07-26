@@ -21,6 +21,7 @@ use Illuminate\Support\Str;
  * @property string $guild_id roundup DiscordGuild id
  * @property string $channel_id Discord channel snowflake
  * @property string|null $message_id Discord message snowflake (NULL while a pending card awaits approval)
+ * @property string|null $thread_id Discord thread snowflake anchored on the card message (NULL until a session thread is created on first publish)
  * @property DiscordCardStatus $status card lifecycle (posted default in v1)
  * @property string|null $moderator_user_id roundup User who moderated the card (NULL in v1)
  * @property Carbon|null $moderated_at when a moderator acted (NULL in v1)
@@ -42,6 +43,7 @@ class DiscordCardMessage extends Model
         'guild_id',
         'channel_id',
         'message_id',
+        'thread_id',
         'status',
         'moderator_user_id',
         'moderated_at',

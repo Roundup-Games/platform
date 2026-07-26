@@ -120,6 +120,22 @@ class DiscordPublisherTest extends TestCase
         ]);
     }
 
+    /**
+     * Http::fake stub for a successful card POST + per-session thread create
+     * (Slice B). Patterns are ordered most-specific first so the thread create
+     * (channels/…/messages/…/threads) is matched before the generic message
+     * and lock endpoints.
+     */
+    private function fakePostAndThreadSuccess(string $threadId = 'thread-1'): void
+    {
+        Http::fake([
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => $threadId, 'type' => 11], 200),
+            self::BASE_URL.'/channels/*/messages/*' => Http::response(['id' => self::MESSAGE_ID], 200), // edit (PATCH)
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => self::MESSAGE_ID, 'channel_id' => self::GAMES_CHANNEL], 200),
+            self::BASE_URL.'/channels/*' => Http::response([], 204), // delete message / lock thread
+        ]);
+    }
+
     // ════════════════════════════════════════════════════
     //  CONTRACT: public event by opted-in organizer posts
     // ════════════════════════════════════════════════════
@@ -728,5 +744,120 @@ class DiscordPublisherTest extends TestCase
             collect($logged)->firstWhere('message', 'discord_publisher.card_posted'),
             'card_posted fires for the Open path'
         );
+    }
+
+    // ════════════════════════════════════════════════════
+    //  SESSION THREADS (Slice B: thread-per-card, no ping)
+    // ════════════════════════════════════════════════════
+
+    #[Test]
+    public function first_publish_creates_a_session_thread_and_persists_thread_id()
+    {
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+        config(['services.discord.session_threads_enabled' => true]);
+        $this->fakePostAndThreadSuccess('thread-1');
+
+        $this->makePublisher()->publish($game);
+
+        $card = DiscordCardMessage::where('game_id', $game->id)->where('guild_id', $guild->id)->first();
+        $this->assertNotNull($card);
+        $this->assertSame('thread-1', $card->thread_id, 'thread id is persisted for idempotency');
+
+        // One message POST + one thread-create POST.
+        Http::assertSent(function (Request $request): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), '/messages/'.self::MESSAGE_ID.'/threads');
+        });
+    }
+
+    #[Test]
+    public function republish_edits_in_place_without_creating_a_second_thread()
+    {
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+        config(['services.discord.session_threads_enabled' => true]);
+        $this->fakePostAndThreadSuccess('thread-1');
+
+        $publisher = $this->makePublisher();
+        $publisher->publish($game);   // first publish → POST + thread create
+        $publisher->publish($game);   // re-publish → edit-in-place, no second thread
+
+        $card = DiscordCardMessage::where('game_id', $game->id)->where('guild_id', $guild->id)->first();
+        $this->assertSame('thread-1', $card->thread_id, 'thread id unchanged on re-publish');
+
+        // Exactly one thread-create POST across both publishes.
+        $threadCreates = 0;
+        Http::assertSent(function (Request $request) use (&$threadCreates): bool {
+            if ($request->method() === 'POST' && str_contains($request->url(), '/threads')) {
+                $threadCreates++;
+            }
+
+            return true;
+        });
+        $this->assertSame(1, $threadCreates, 'edit-in-place must not spawn a second thread');
+    }
+
+    #[Test]
+    public function thread_creation_403_is_skipped_gracefully_and_card_still_posts()
+    {
+        // Guild hasn't granted the bot Create Public Threads → 403. The card
+        // must still post and persist; thread_id stays null; no throw.
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+        config(['services.discord.session_threads_enabled' => true]);
+        Http::fake([
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['message' => 'Missing Access'], 403),
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => self::MESSAGE_ID, 'channel_id' => self::GAMES_CHANNEL], 200),
+        ]);
+
+        $this->makePublisher()->publish($game);
+
+        $card = DiscordCardMessage::where('game_id', $game->id)->where('guild_id', $guild->id)->first();
+        $this->assertNotNull($card, 'card persisted despite thread 403');
+        $this->assertSame(self::MESSAGE_ID, $card->message_id);
+        $this->assertNull($card->thread_id, 'no thread created');
+    }
+
+    #[Test]
+    public function session_threads_disabled_creates_no_thread()
+    {
+        [$game] = $this->publicGameInOptedInGuild();
+        config(['services.discord.session_threads_enabled' => false]);
+        $this->fakePostSuccess();
+
+        $this->makePublisher()->publish($game);
+
+        Http::assertNotSent(function (Request $request): bool {
+            return str_contains($request->url(), '/threads');
+        });
+    }
+
+    #[Test]
+    public function unpublish_locks_the_session_thread_instead_of_deleting_it()
+    {
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+
+        DiscordCardMessage::create([
+            'game_id' => $game->id,
+            'guild_id' => $guild->id,
+            'channel_id' => $guild->games_channel_id,
+            'message_id' => self::MESSAGE_ID,
+            'thread_id' => 'thread-1',
+            'status' => DiscordCardStatus::Posted,
+        ]);
+
+        $this->fakePostAndThreadSuccess(); // 204s cover delete + lock
+
+        $this->makePublisher()->unpublish($game);
+
+        // The thread is PATCHed archived+locked (not deleted), preserving its
+        // conversation read-only.
+        Http::assertSent(function (Request $request): bool {
+            return $request->method() === 'PATCH'
+                && str_ends_with($request->url(), '/channels/thread-1')
+                && ($request->data()['archived'] ?? null) === true
+                && ($request->data()['locked'] ?? null) === true;
+        });
+
+        // The card row is gone either way.
+        $this->assertSame(0, DiscordCardMessage::where('game_id', $game->id)->count());
     }
 }

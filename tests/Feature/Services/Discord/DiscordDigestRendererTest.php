@@ -156,7 +156,11 @@ class DiscordDigestRendererTest extends TestCase
         $line = $this->lineFor($game, $this->context());
 
         $this->assertStringContainsString('open', $line);
-        $this->assertStringNotContainsString('/0', $line);
+        // The roster is the last segment of the digest line. Assert the line
+        // ends with 'open' rather than checking for '/0' on the whole line —
+        // the deep-link URL (/games/<uuid>) contains '/0' whenever the UUID
+        // starts with '0', which would falsely trip a whole-line check.
+        $this->assertStringEndsWith('open', $line);
     }
 
     #[Test]

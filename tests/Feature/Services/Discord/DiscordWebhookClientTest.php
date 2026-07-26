@@ -18,6 +18,8 @@ class DiscordWebhookClientTest extends TestCase
 
     private const MESSAGE_ID = '555666777888999000';
 
+    private const THREAD_ID = '444555666777888999';
+
     private function makeClient(
         int $maxAttempts = 3,
         ?\Closure $sleep = null,
@@ -125,7 +127,6 @@ class DiscordWebhookClientTest extends TestCase
     }
 
     // ── deleteMessage ───────────────────────────────────
-
     #[Test]
     public function delete_message_deletes_by_channel_and_message_id()
     {
@@ -542,5 +543,100 @@ class DiscordWebhookClientTest extends TestCase
         $this->assertArrayNotHasKey('flags', $captured['body']);
         $this->assertArrayNotHasKey('allowed_mentions', $captured['body']);
         $this->assertArrayNotHasKey('tts', $captured['body']);
+    }
+
+    // ── createThreadFromMessage ────────────────────────
+
+    #[Test]
+    public function create_thread_from_message_returns_thread_id()
+    {
+        Http::fake([
+            'discord.test/api/v10/channels/'.self::CHANNEL.'/messages/'.self::MESSAGE_ID.'/threads' => Http::response([
+                'id' => self::THREAD_ID,
+                'type' => 11, // public thread
+            ], 200),
+        ]);
+
+        $id = $this->makeClient()->createThreadFromMessage(self::CHANNEL, self::MESSAGE_ID, 'Catan Night');
+
+        $this->assertSame(self::THREAD_ID, $id);
+    }
+
+    #[Test]
+    public function create_thread_from_message_sends_name_and_archive_duration_to_threads_endpoint()
+    {
+        $captured = [];
+
+        Http::fake(function (Request $request) use (&$captured) {
+            $captured = [
+                'url' => $request->url(),
+                'method' => $request->method(),
+                'body' => $request->data(),
+            ];
+
+            return Http::response(['id' => self::THREAD_ID], 200);
+        });
+
+        $this->makeClient()->createThreadFromMessage(self::CHANNEL, self::MESSAGE_ID, 'Catan · 3 Aug', 4320);
+
+        $this->assertSame('POST', $captured['method']);
+        $this->assertSame(
+            'https://discord.test/api/v10/channels/'.self::CHANNEL.'/messages/'.self::MESSAGE_ID.'/threads',
+            $captured['url'],
+        );
+        $this->assertSame('Catan · 3 Aug', $captured['body']['name']);
+        $this->assertSame(4320, $captured['body']['auto_archive_duration']);
+    }
+
+    #[Test]
+    public function create_thread_from_message_throws_when_response_lacks_id()
+    {
+        Http::fake([
+            'discord.test/api/v10/channels/'.self::CHANNEL.'/messages/'.self::MESSAGE_ID.'/threads' => Http::response(['type' => 11], 200),
+        ]);
+
+        $this->expectException(DiscordApiException::class);
+        $this->makeClient()->createThreadFromMessage(self::CHANNEL, self::MESSAGE_ID, 'x');
+    }
+
+    #[Test]
+    public function create_thread_defaults_to_seven_day_archive_duration()
+    {
+        $captured = [];
+
+        Http::fake(function (Request $request) use (&$captured) {
+            $captured['body'] = $request->data();
+
+            return Http::response(['id' => self::THREAD_ID], 200);
+        });
+
+        $this->makeClient()->createThreadFromMessage(self::CHANNEL, self::MESSAGE_ID, 'x');
+
+        $this->assertSame(10080, $captured['body']['auto_archive_duration']);
+    }
+
+    // ── lockThread ───────────────────────────────────────
+
+    #[Test]
+    public function lock_thread_patches_archived_and_locked_on_thread_channel()
+    {
+        $captured = [];
+
+        Http::fake(function (Request $request) use (&$captured) {
+            $captured = [
+                'url' => $request->url(),
+                'method' => $request->method(),
+                'body' => $request->data(),
+            ];
+
+            return Http::response([], 204);
+        });
+
+        $this->makeClient()->lockThread(self::THREAD_ID);
+
+        $this->assertSame('PATCH', $captured['method']);
+        $this->assertSame('https://discord.test/api/v10/channels/'.self::THREAD_ID, $captured['url']);
+        $this->assertTrue($captured['body']['archived']);
+        $this->assertTrue($captured['body']['locked']);
     }
 }

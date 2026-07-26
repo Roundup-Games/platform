@@ -31,6 +31,7 @@ return [
         // hex colors, proper nouns, and acronyms that have no German form.
         'common' => [
             'label_unit_km',
+            'content_source_discord',
         ],
         'games' => [
             'label_host',
@@ -49,6 +50,9 @@ return [
         'venue' => [
             'placeholder_claim_website',
             'type_cafe',
+        ],
+        'notifications' => [
+            'channel_discord',
         ],
     ],
 

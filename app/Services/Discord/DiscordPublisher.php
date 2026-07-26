@@ -17,6 +17,7 @@ use App\Models\LinkedAccount;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * The single chokepoint through which all Discord card posting flows (T05).
@@ -145,13 +146,21 @@ class DiscordPublisher
      */
     public function unpublish(Game $game): void
     {
-        $cards = DiscordCardMessage::where('game_id', $game->id)->get();
+        $cards = DiscordCardMessage::whereBelongsTo($game)->get();
 
         if ($cards->isEmpty()) {
             return;
         }
 
         foreach ($cards as $card) {
+            if ($card->thread_id !== null) {
+                // Lock the per-session thread read-only rather than deleting
+                // it, so a session's planning conversation survives the card
+                // coming down. Best-effort — a 404 (thread already gone) or a
+                // permissions gap is swallowed; the card still gets pulled.
+                $this->lockThreadQuietly($card->thread_id);
+            }
+
             if ($card->message_id !== null) {
                 try {
                     $this->client->deleteMessage($card->channel_id, $card->message_id);
@@ -227,7 +236,7 @@ class DiscordPublisher
         }
 
         /** @var DiscordCardMessage|null $existing */
-        $existing = DiscordCardMessage::where('game_id', $game->id)
+        $existing = DiscordCardMessage::whereBelongsTo($game)
             ->where('guild_id', $guild->id)
             ->first();
 
@@ -244,6 +253,7 @@ class DiscordPublisher
                 // venue / status refresh). No duplicate. A 404 (the message was
                 // deleted out-of-band by a moderator) self-heals into a re-POST
                 // so the card does not stay bricked on a dead message id.
+                $reposted = false;
                 try {
                     $messageId = $this->client->editMessage($existing->channel_id, $existing->message_id, $payload);
                 } catch (DiscordApiException $e) {
@@ -251,27 +261,41 @@ class DiscordPublisher
                         throw $e;
                     }
                     $messageId = $this->client->postMessage($channelId, $payload);
+                    // The starter message is gone, so the old thread (if any) is
+                    // orphaned from the new message — clear thread_id so
+                    // ensureThread re-creates one on the fresh message.
+                    $reposted = true;
                 }
                 $status = 'edited';
-                $existing->update(['message_id' => $messageId]);
+                $existing->update($reposted
+                    ? ['message_id' => $messageId, 'thread_id' => null]
+                    : ['message_id' => $messageId]);
+                $cardRow = $existing;
             } elseif ($existing) {
                 // Guild reconfigured its games channel after the card was
                 // posted. Delete the stale message (best-effort — a 404 is
                 // expected if it is already gone), then post to the new one.
                 $this->deleteQuietly($existing->channel_id, $existing->message_id);
+                if ($existing->thread_id !== null) {
+                    // The old thread lived in the old channel; lock it read-only
+                    // so its conversation survives the channel move.
+                    $this->lockThreadQuietly($existing->thread_id);
+                }
                 $messageId = $this->client->postMessage($channelId, $payload);
                 $status = 'posted';
                 $existing->update([
                     'channel_id' => $channelId,
                     'message_id' => $messageId,
+                    'thread_id' => null,
                 ]);
+                $cardRow = $existing;
             } else {
                 // First publish for this (game, guild) → POST + track.
                 $messageId = $this->client->postMessage($channelId, $payload);
                 $status = 'posted';
+                $cardRow = null;
                 try {
-                    DiscordCardMessage::create([
-                        'game_id' => $game->id,
+                    $cardRow = $game->discordCardMessages()->create([
                         'guild_id' => $guild->id,
                         'channel_id' => $channelId,
                         'message_id' => $messageId,
@@ -302,6 +326,9 @@ class DiscordPublisher
 
             throw $e;
         }
+
+        // Open a per-session thread on the card (once, idempotent, best-effort).
+        $this->ensureThread($cardRow ?? null, $channelId, (string) $messageId, $game);
 
         Log::info('discord_publisher.card_posted', [
             'game_id' => $game->id,
@@ -345,7 +372,7 @@ class DiscordPublisher
             return [];
         }
 
-        $optIns = DiscordGuildOrganizer::where('user_id', $owner->id)
+        $optIns = DiscordGuildOrganizer::whereBelongsTo($owner)
             ->where('publish_enabled', true)
             ->with('guild')
             ->get();
@@ -561,5 +588,93 @@ class DiscordPublisher
     private function publishingEnabled(): bool
     {
         return (bool) config('services.discord.publishing_enabled', false);
+    }
+
+    /**
+     * Whether the bot opens a per-session thread on each posted card.
+     * Separate from the publishing master switch so threads can be turned off
+     * independently (some guilds may not want a thread per session).
+     */
+    private function sessionThreadsEnabled(): bool
+    {
+        return (bool) config('services.discord.session_threads_enabled', true);
+    }
+
+    /**
+     * The per-session thread title: the game name plus a short date, capped at
+     * Discord's 100-char thread-name limit.
+     */
+    private function threadName(Game $game): string
+    {
+        $name = trim((string) $game->name);
+
+        if ($game->date_time) {
+            $name .= ' · '.$game->date_time->format('j M Y');
+        }
+
+        return Str::limit($name, 100);
+    }
+
+    /**
+     * Create the per-session thread on a freshly-posted card, once.
+     *
+     * Idempotent: skipped when the card already has a thread_id (edit-in-place
+     * re-publishes never spawn a second thread) and when the feature is off.
+     * Best-effort: a Discord failure (most commonly 403 — the bot lacks Create
+     * Public Threads in this channel) is logged and swallowed so the card post
+     * itself never fails over the thread. thread_id stays NULL on failure, so a
+     * later publish (a roster-churn refresh) retries via this same path.
+     */
+    private function ensureThread(?DiscordCardMessage $card, string $channelId, string $messageId, Game $game): void
+    {
+        if ($card === null || $card->thread_id !== null) {
+            return;
+        }
+
+        if (! $this->sessionThreadsEnabled()) {
+            return;
+        }
+
+        try {
+            $threadId = $this->client->createThreadFromMessage($channelId, $messageId, $this->threadName($game));
+            $card->update(['thread_id' => $threadId]);
+
+            Log::info('discord_publisher.thread_created', [
+                'game_id' => $game->id,
+                'guild_id' => $card->guild_id,
+                'channel_id' => $channelId,
+                'thread_id' => $threadId,
+            ]);
+        } catch (DiscordApiException $e) {
+            // The thread is a best-effort enhancement — never fail the card
+            // post over it. thread_id stays NULL so a subsequent publish
+            // retries the create.
+            Log::warning('discord_publisher.thread_create_failed', [
+                'game_id' => $game->id,
+                'guild_id' => $card->guild_id,
+                'channel_id' => $channelId,
+                'status_code' => $e->statusCode(),
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Best-effort thread lock (archive + lock) that swallows any Discord
+     * failure. Used on unpublish / channel-reconfigure so a session's
+     * conversation is preserved read-only rather than destroyed; a missing
+     * thread or a permissions gap is harmless here.
+     */
+    private function lockThreadQuietly(string $threadId): void
+    {
+        try {
+            $this->client->lockThread($threadId);
+        } catch (DiscordApiException $e) {
+            Log::warning('discord_publisher.thread_lock_failed', [
+                'thread_id' => $threadId,
+                'status_code' => $e->statusCode(),
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

@@ -125,6 +125,72 @@ class DiscordWebhookClient
     }
 
     /**
+     * Create a public thread anchored on a channel message — the per-session
+     * conversation space the bot opens on first publish of a card (D116
+     * follow-up). Discord addresses a thread as a channel of type 11; it is
+     * attached to the starter message via
+     * `POST /channels/{channel}/messages/{message}/threads`.
+     *
+     * The bot needs the Create Public Threads permission in the channel; a
+     * guild that hasn't granted it surfaces here as a non-retryable 4xx
+     * (typically 403), which the publisher treats as a graceful skip rather
+     * than failing the card post. Returns the new thread's channel snowflake
+     * (persisted on discord_card_messages.thread_id) so re-publishes never
+     * create a second thread.
+     *
+     * @param  int  $autoArchiveDuration  Minutes of inactivity before Discord
+     *                                    auto-archives the thread (60/1440/4320/10080). Defaults to the max
+     *                                    (7 days) so a session scheduled days out stays open through quiet
+     *                                    spells; a roster change re-publishing the card does not keep the
+     *                                    thread alive (only messages IN the thread do).
+     *
+     * @throws DiscordApiException on non-retryable failure or exhausted retries
+     */
+    public function createThreadFromMessage(
+        string $channelId,
+        string $messageId,
+        string $name,
+        int $autoArchiveDuration = 10080,
+    ): string {
+        $path = "channels/{$channelId}/messages/{$messageId}/threads";
+
+        $response = $this->request('POST', $path, [
+            'name' => $name,
+            'auto_archive_duration' => $autoArchiveDuration,
+        ]);
+
+        $id = $response->json('id');
+        if (! is_string($id) || $id === '') {
+            // A thread IS a Discord channel, so the missing-channel-id contract
+            // (createDmChannel uses the same guard) applies verbatim.
+            throw DiscordApiException::missingChannelId($path);
+        }
+
+        return $id;
+    }
+
+    /**
+     * Archive + lock a thread — the unpublish path (visibility downgrade /
+     * game delete). Locking leaves the conversation read-only rather than
+     * deleting it, so a session's planning chatter isn't destroyed when the
+     * card comes down. Discord models this as a channel modify:
+     * `PATCH /channels/{thread}` with `archived` + `locked` true. A 404 (the
+     * thread was already removed) is surfaced as the usual non-retryable 4xx
+     * and the caller swallows it.
+     *
+     * @param  string  $threadId  The thread's channel snowflake
+     *
+     * @throws DiscordApiException on non-retryable failure or exhausted retries
+     */
+    public function lockThread(string $threadId): void
+    {
+        $this->request('PATCH', "channels/{$threadId}", [
+            'archived' => true,
+            'locked' => true,
+        ]);
+    }
+
+    /**
      * PATCH the @original interaction response — the deferred-response surface
      * {@see ProcessDiscordRsvp} uses to resolve a DEFERRED interaction with the
      * ephemeral confirmation after the participant write completes (M057/S03/T03).

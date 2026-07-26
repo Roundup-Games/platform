@@ -162,7 +162,7 @@ class Show extends Component
             'code_prefix' => substr($link->code, 0, 3).'…',
         ]);
 
-        session()->flash('calendar_feed_generated', __('settings.calendar_feed_generated_flash'));
+        session()->flash('calendar_feed_generated', __('settings.flash_calendar_feed_generated'));
     }
 
     /**
@@ -188,7 +188,7 @@ class Show extends Component
             'link_id' => $existing->id,
         ]);
 
-        session()->flash('calendar_feed_revoked', __('settings.calendar_feed_revoked_flash'));
+        session()->flash('calendar_feed_revoked', __('settings.flash_calendar_feed_revoked'));
     }
 
     /**
