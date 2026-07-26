@@ -64,9 +64,11 @@ return [
     'action_weekly_digest' => 'View All Notifications',
     'body_weekly_digest_settings' => 'You can change your notification preferences in your settings.',
     'channel_push' => 'Push',
+    'channel_discord' => 'Discord',
     'aria_master_toggle_all_in_app' => 'Toggle all in-app notifications',
     'aria_master_toggle_all_email' => 'Toggle all email notifications',
     'aria_master_toggle_all_push' => 'Toggle all push notifications',
+    'aria_master_toggle_all_discord' => 'Toggle all Discord notifications',
     'aria_master_toggle_group' => 'Toggle all :group notifications',
     // Push subscription management
     'push_devices_heading' => 'Push Devices',
