@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Services\Discord;
 
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\Discord\DiscordCardContext;
 use App\Services\Discord\DiscordCardRenderer;
+use App\Services\Discord\DiscordRosterMember;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -228,6 +230,127 @@ class DiscordCardRendererTest extends TestCase
         $this->assertStringContainsString('7 joined · open roster', $players);
         $this->assertStringContainsString('min 2', $players);
         $this->assertStringNotContainsString('/0', $players);
+    }
+
+    // ── Roster name lines (Discord profile links + "+x from roundup") ──
+
+    #[Test]
+    public function roster_renders_discord_profile_links_for_linked_participants()
+    {
+        $game = $this->makeGame(['max_players' => 6]);
+        $context = new DiscordCardContext(
+            approvedCount: 4,
+            rosterMembers: [
+                new DiscordRosterMember(ParticipantStatus::Approved, '111', 'alice'),
+                new DiscordRosterMember(ParticipantStatus::Approved, '222', 'bob'),
+                new DiscordRosterMember(ParticipantStatus::Approved, '333', 'carol'),
+            ],
+        );
+
+        $embed = $this->renderer->render($game, $context)->embed;
+        $players = $this->field($embed, 'Players');
+
+        // Count line unchanged.
+        $this->assertStringContainsString('4/6', $players);
+        // Each linked member → a non-pinging Discord profile link.
+        $this->assertStringContainsString('[@alice](https://discord.com/users/111)', $players);
+        $this->assertStringContainsString('[@bob](https://discord.com/users/222)', $players);
+        $this->assertStringContainsString('[@carol](https://discord.com/users/333)', $players);
+        // 1 unlinked participant (4 approved − 3 linked) folds into the tail.
+        $this->assertStringContainsString('+1 from roundup', $players);
+        // Block layout when names are present.
+        foreach ($embed['fields'] as $f) {
+            if ($f['name'] === 'Players') {
+                $this->assertFalse($f['inline']);
+            }
+        }
+    }
+
+    #[Test]
+    public function roster_renders_all_three_groups_with_names()
+    {
+        $game = $this->makeGame(['max_players' => 3]);
+        $context = new DiscordCardContext(
+            approvedCount: 3,
+            waitlistCount: 2,
+            benchedCount: 1,
+            rosterMembers: [
+                new DiscordRosterMember(ParticipantStatus::Approved, '111', 'alice'),
+                new DiscordRosterMember(ParticipantStatus::Waitlisted, '222', 'bob'),
+                new DiscordRosterMember(ParticipantStatus::Benched, '333', 'carol'),
+            ],
+        );
+
+        $players = $this->field($this->renderer->render($game, $context)->embed, 'Players');
+
+        $this->assertStringContainsString('**In:**', $players);
+        $this->assertStringContainsString('[@alice](https://discord.com/users/111)', $players);
+        $this->assertStringContainsString('**Waitlist (2):**', $players);
+        $this->assertStringContainsString('[@bob](https://discord.com/users/222)', $players);
+        $this->assertStringContainsString('**Bench (1):**', $players);
+        $this->assertStringContainsString('[@carol](https://discord.com/users/333)', $players);
+        // Per-roster roundup remainders: approved 3−1=2, waitlist 2−1=1, bench 1−1=0.
+        $this->assertStringContainsString('+2 from roundup', $players);
+        $this->assertStringContainsString('+1 from roundup', $players);
+    }
+
+    #[Test]
+    public function roster_omits_name_lines_when_no_members()
+    {
+        // Backward-compat: empty rosterMembers → count-only, compact inline field.
+        $game = $this->makeGame(['max_players' => 6]);
+        $context = new DiscordCardContext(approvedCount: 4);
+
+        $embed = $this->renderer->render($game, $context)->embed;
+        $players = $this->field($embed, 'Players');
+
+        $this->assertStringContainsString('4/6', $players);
+        $this->assertStringNotContainsString('from roundup', $players);
+        $this->assertStringNotContainsString('https://discord.com/users', $players);
+        foreach ($embed['fields'] as $f) {
+            if ($f['name'] === 'Players') {
+                $this->assertTrue($f['inline']);
+            }
+        }
+    }
+
+    #[Test]
+    public function roster_caps_shown_names_to_fit_field_limit()
+    {
+        // 20 approved linked members (no roundup). At cap 12 the 13th+ fold
+        // into "+8 more"; the field stays within Discord's 1024-char limit.
+        $game = $this->makeGame(['max_players' => 20]);
+        $members = [];
+        foreach (range(1, 20) as $i) {
+            $members[] = new DiscordRosterMember(ParticipantStatus::Approved, (string) $i, 'user'.$i);
+        }
+        $context = new DiscordCardContext(approvedCount: 20, rosterMembers: $members);
+
+        $players = $this->field($this->renderer->render($game, $context)->embed, 'Players');
+
+        $this->assertStringContainsString('+8 more', $players);
+        $this->assertStringContainsString('[@user12]', $players); // last shown at cap 12
+        $this->assertStringNotContainsString('[@user13]', $players); // first folded
+        $this->assertStringNotContainsString('from roundup', $players); // all linked
+        $this->assertLessThan(1024, strlen($players));
+    }
+
+    #[Test]
+    public function roster_strips_unsafe_characters_from_nickname_label()
+    {
+        // A nickname containing markdown-link-breaking chars must not corrupt
+        // the [@label](url) rendering.
+        $game = $this->makeGame(['max_players' => 2]);
+        $context = new DiscordCardContext(
+            approvedCount: 1,
+            rosterMembers: [
+                new DiscordRosterMember(ParticipantStatus::Approved, '111', 'ev]il'),
+            ],
+        );
+
+        $players = $this->field($this->renderer->render($game, $context)->embed, 'Players');
+
+        $this->assertStringContainsString('[@evil](https://discord.com/users/111)', $players);
     }
 
     #[Test]

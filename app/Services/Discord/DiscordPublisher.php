@@ -4,6 +4,7 @@ namespace App\Services\Discord;
 
 use App\Enums\DiscordCardStatus;
 use App\Enums\DiscordModerationMode;
+use App\Enums\OAuthProvider;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Exceptions\DiscordApiException;
@@ -11,8 +12,10 @@ use App\Models\DiscordCardMessage;
 use App\Models\DiscordGuild;
 use App\Models\DiscordGuildOrganizer;
 use App\Models\Game;
+use App\Models\GameParticipant;
+use App\Models\LinkedAccount;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -389,12 +392,13 @@ class DiscordPublisher
      */
     private function buildContext(Game $game, DiscordGuild $guild): DiscordCardContext
     {
-        $counts = $this->rosterCounts($game);
+        $roster = $this->rosterState($game);
 
         return new DiscordCardContext(
-            approvedCount: $counts['approved'],
-            waitlistCount: $counts['waitlisted'],
-            benchedCount: $counts['benched'],
+            approvedCount: $roster['approved'],
+            waitlistCount: $roster['waitlisted'],
+            benchedCount: $roster['benched'],
+            rosterMembers: $roster['members'],
             crossCommunityAttendeeCount: $this->crossCommunityCount($game, $guild),
             appUrl: is_string(config('app.url')) ? config('app.url') : null,
             locale: $guild->locale,
@@ -404,31 +408,88 @@ class DiscordPublisher
     }
 
     /**
-     * Approved / waitlisted / benched participant counts for the roster field.
+     * Roster counts AND the Discord-linked members of each roster, for the
+     * card's per-roster name lines.
      *
-     * @return array{approved: int, waitlisted: int, benched: int}
+     * One Eloquent fetch (participants → user → linked accounts) replaces the
+     * prior grouped COUNT: the three totals are derived from the rows, and the
+     * linked members feed the renderer's `[@nickname](profile)` lines. A
+     * participant is represented as a {@see DiscordRosterMember} only when they
+     * have a linked Discord account with a stored nickname; otherwise they are
+     * counted normally and the renderer folds them into "+x from roundup".
+     *
+     * @return array{approved: int, waitlisted: int, benched: int, members: list<DiscordRosterMember>}
      */
-    private function rosterCounts(Game $game): array
+    private function rosterState(Game $game): array
     {
-        $rows = DB::table('game_participants')
-            ->where('game_id', $game->id)
+        $statusOrder = sprintf(
+            "CASE status WHEN '%s' THEN 1 WHEN '%s' THEN 2 WHEN '%s' THEN 3 ELSE 4 END",
+            ParticipantStatus::Approved->value,
+            ParticipantStatus::Waitlisted->value,
+            ParticipantStatus::Benched->value,
+        );
+
+        /** @var Collection<int, GameParticipant> $rows */
+        $rows = $game->participants()
             ->whereIn('status', [
                 ParticipantStatus::Approved->value,
                 ParticipantStatus::Waitlisted->value,
                 ParticipantStatus::Benched->value,
             ])
-            ->select('status', DB::raw('count(*) as n'))
-            ->groupBy('status')
-            ->pluck('n', 'status');
+            ->with(['user:id', 'user.linkedAccounts:user_id,provider,provider_user_id,provider_meta'])
+            ->orderByRaw($statusOrder)
+            ->orderBy('created_at')
+            ->get();
 
-        $approved = $rows[ParticipantStatus::Approved->value] ?? 0;
-        $waitlisted = $rows[ParticipantStatus::Waitlisted->value] ?? 0;
-        $benched = $rows[ParticipantStatus::Benched->value] ?? 0;
+        $approved = 0;
+        $waitlisted = 0;
+        $benched = 0;
+        $members = [];
+
+        foreach ($rows as $participant) {
+            $status = $participant->status;
+            if (! $status instanceof ParticipantStatus) {
+                continue;
+            }
+
+            match ($status) {
+                ParticipantStatus::Approved => $approved++,
+                ParticipantStatus::Waitlisted => $waitlisted++,
+                ParticipantStatus::Benched => $benched++,
+                default => null,
+            };
+
+            $user = $participant->user;
+            if (! $user) {
+                continue;
+            }
+
+            $linked = $user->linkedAccounts
+                ->first(fn (LinkedAccount $account) => $account->provider === OAuthProvider::Discord);
+            if (! $linked) {
+                continue;
+            }
+
+            $meta = is_array($linked->provider_meta) ? $linked->provider_meta : [];
+            $nickname = is_string($meta['nickname'] ?? null) ? trim($meta['nickname']) : '';
+            if ($nickname === '') {
+                // Linked but no stored nickname → nothing displayable; the
+                // renderer counts this participant in "+x from roundup".
+                continue;
+            }
+
+            $members[] = new DiscordRosterMember(
+                status: $status,
+                snowflake: (string) $linked->provider_user_id,
+                label: $nickname,
+            );
+        }
 
         return [
-            'approved' => is_numeric($approved) ? (int) $approved : 0,
-            'waitlisted' => is_numeric($waitlisted) ? (int) $waitlisted : 0,
-            'benched' => is_numeric($benched) ? (int) $benched : 0,
+            'approved' => $approved,
+            'waitlisted' => $waitlisted,
+            'benched' => $benched,
+            'members' => $members,
         ];
     }
 

@@ -3,6 +3,7 @@
 namespace App\Services\Discord;
 
 use App\Enums\GameStatus;
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
@@ -188,14 +189,16 @@ class DiscordCardRenderer
         $approved = $context->approvedCount;
         $max = $this->intOrNull($game->max_players);
 
+        // Count line — unchanged semantics: approved/capacity, full marker,
+        // overflow models, optional min for open rosters.
         if ($max !== null && $max > 0) {
-            $value = "{$approved}/{$max}";
+            $countLine = "{$approved}/{$max}";
             if ($approved >= $max) {
-                $value .= ' — **Full**';
+                $countLine .= ' — **Full**';
             }
         } else {
             // Unlimited capacity (max_players null or 0 — see HasCapacity).
-            $value = "{$approved} joined · open roster";
+            $countLine = "{$approved} joined · open roster";
         }
 
         $overflows = [];
@@ -206,15 +209,144 @@ class DiscordCardRenderer
             $overflows[] = "{$context->benchedCount} bench";
         }
         if ($overflows !== []) {
-            $value .= ' ('.implode(' · ', $overflows).')';
+            $countLine .= ' ('.implode(' · ', $overflows).')';
         }
 
         $min = $this->intOrNull($game->min_players);
         if ($min !== null && $min > 0 && ($max === null || $max === 0)) {
-            $value .= " · min {$min}";
+            $countLine .= " · min {$min}";
         }
 
-        return ['name' => 'Players', 'value' => $value, 'inline' => true];
+        // Name lines (only when Discord-linked members are supplied). Listed
+        // grouped by roster so a reader can see WHO is in at a glance, with the
+        // unlinked remainder folded into "+x from roundup" per roster.
+        $names = $this->rosterNameLines($context);
+
+        return [
+            'name' => 'Players',
+            'value' => $names === '' ? $countLine : $countLine."\n".$names,
+            // Block layout when we list names (they need the width); compact
+            // inline when only a count is shown.
+            'inline' => $names === '',
+        ];
+    }
+
+    /**
+     * The per-roster name lines, joined with newlines, or '' when no Discord
+     * members were supplied.
+     *
+     * Members are grouped by status (approved → waitlisted → benched).
+     * Each group renders its members as non-pinging Discord profile links and
+     * appends a "+x from roundup" tail for the participants in that roster who
+     * have no displayable Discord name. The number of names shown per group is
+     * iteratively capped so the whole field stays within Discord's 1024-char
+     * field-value limit — a too-long field makes Discord reject the embed,
+     * which would break card posting. Overflow beyond the cap folds into
+     * "+y more".
+     *
+     * @return string '' when no members, else the grouped lines.
+     */
+    private function rosterNameLines(DiscordCardContext $context): string
+    {
+        if ($context->rosterMembers === []) {
+            return '';
+        }
+
+        // Preserve publisher-supplied order within each status group.
+        $byStatus = [
+            ParticipantStatus::Approved->value => [],
+            ParticipantStatus::Waitlisted->value => [],
+            ParticipantStatus::Benched->value => [],
+        ];
+        foreach ($context->rosterMembers as $member) {
+            $key = $member->status->value;
+            if (isset($byStatus[$key])) {
+                $byStatus[$key][] = $member;
+            }
+        }
+
+        // Lower the per-group cap until the combined field fits. Caps step
+        // 12 → 8 → 5 → 3 → 1 → 0; at 0 only the roundup tails remain (short),
+        // which always fits.
+        foreach ([12, 8, 5, 3, 1, 0] as $cap) {
+            $lines = [
+                $this->rosterGroupLine('In', $byStatus[ParticipantStatus::Approved->value], $context->approvedCount, $cap),
+            ];
+            if ($context->waitlistCount > 0) {
+                $lines[] = $this->rosterGroupLine(
+                    "Waitlist ({$context->waitlistCount})",
+                    $byStatus[ParticipantStatus::Waitlisted->value],
+                    $context->waitlistCount,
+                    $cap,
+                );
+            }
+            if ($context->benchedCount > 0) {
+                $lines[] = $this->rosterGroupLine(
+                    "Bench ({$context->benchedCount})",
+                    $byStatus[ParticipantStatus::Benched->value],
+                    $context->benchedCount,
+                    $cap,
+                );
+            }
+            $joined = trim(implode("\n", array_filter($lines, fn ($l) => $l !== '')));
+            if ($joined === '' || strlen($joined) <= 1000 || $cap === 0) {
+                return $joined;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * One roster group line: `**Header:** @name, @name · +y more · +x from roundup`.
+     *
+     * @param  list<DiscordRosterMember>  $members  Discord-linked members of this roster (publisher-ordered).
+     * @param  int  $totalCount  Total participants in this roster (linked + unlinked).
+     * @param  int  $cap  Max linked names to render (overflow folds to "+y more").
+     */
+    private function rosterGroupLine(string $header, array $members, int $totalCount, int $cap): string
+    {
+        if ($totalCount <= 0 && $members === []) {
+            return '';
+        }
+
+        $parts = [];
+        $shown = array_slice($members, 0, $cap);
+        foreach ($shown as $member) {
+            $label = $this->sanitizeNameLabel($member->label);
+            $parts[] = "[@{$label}](https://discord.com/users/{$member->snowflake})";
+        }
+
+        $moreLinked = count($members) - count($shown);
+        if ($moreLinked > 0) {
+            $parts[] = "+{$moreLinked} more";
+        }
+
+        $roundupOnly = max(0, $totalCount - count($members));
+        if ($roundupOnly > 0) {
+            $parts[] = "+{$roundupOnly} from roundup";
+        }
+
+        if ($parts === []) {
+            return '';
+        }
+
+        return "**{$header}:** ".implode(' · ', $parts);
+    }
+
+    /**
+     * Make a Discord nickname safe to embed inside a markdown link label.
+     *
+     * Strips the characters that would break `[@label](url)` parsing
+     * (`[`, `]`, `(`, `)`, backslash, backtick) and caps length so a long
+     * nickname cannot blow the field-value budget. Discord nicknames are
+     * already capped at 32 chars server-side, so this is defense-in-depth.
+     */
+    private function sanitizeNameLabel(string $label): string
+    {
+        $clean = str_replace(['[', ']', '(', ')', '\\', '`'], '', $label);
+
+        return Str::limit(trim($clean), 32, '');
     }
 
     /**

@@ -33,6 +33,20 @@ final class DiscordCardContext
          */
         public readonly int $benchedCount = 0,
         /**
+         * Discord-linked roster members, each tagged with their participant
+         * status, that the renderer shows as clickable Discord profile links
+         * grouped by roster. The remainder of each roster (participants
+         * without a displayable Discord name) folds into the renderer's
+         * "+x from roundup" tail, derived per-roster from the counts above.
+         *
+         * Empty by default so a card rendered without it degrades to the
+         * compact count-only line — the renderer adds name lines only when
+         * members are supplied.
+         *
+         * @var list<DiscordRosterMember>
+         */
+        public readonly array $rosterMembers = [],
+        /**
          * Number of approved attendees who are NOT members of the target
          * Discord guild — the cross-community indicator. When zero, the
          * renderer omits the indicator entirely (the verify contract).

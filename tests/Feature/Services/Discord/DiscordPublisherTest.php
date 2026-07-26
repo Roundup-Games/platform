@@ -4,6 +4,7 @@ namespace Tests\Feature\Services\Discord;
 
 use App\Enums\DiscordCardStatus;
 use App\Enums\DiscordModerationMode;
+use App\Enums\OAuthProvider;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Exceptions\DiscordApiException;
@@ -12,6 +13,7 @@ use App\Models\DiscordGuild;
 use App\Models\DiscordGuildOrganizer;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Services\Discord\DiscordCardRenderer;
 use App\Services\Discord\DiscordPublisher;
@@ -150,6 +152,76 @@ class DiscordPublisherTest extends TestCase
         Http::assertSent(function (Request $request) use ($expectedChannel): bool {
             return $request->method() === 'POST'
                 && str_contains($request->url(), '/channels/'.$expectedChannel.'/messages');
+        });
+    }
+
+    #[Test]
+    public function card_includes_discord_profile_links_for_linked_participants_and_roundup_tail_for_the_rest()
+    {
+        // Slice A: the publisher wires participants' linked Discord accounts
+        // into the card's roster name lines. Two approved participants link
+        // Discord (nicknames stored on provider_meta) → clickable profile
+        // links; one unlinked → "+1 from roundup".
+        [$game] = $this->publicGameInOptedInGuild();
+
+        // publishing_enabled is ON (setUp). Creating participants with it on
+        // would fire the debounced RefreshDiscordCard job inline (sync queue)
+        // mid-insert; flip it off for fixture setup, back on for the publish.
+        config(['services.discord.publishing_enabled' => false]);
+
+        $alice = User::factory()->create();
+        LinkedAccount::factory()->create([
+            'user_id' => $alice->id,
+            'provider' => OAuthProvider::Discord->value,
+            'provider_user_id' => '111',
+            'provider_meta' => ['nickname' => 'alice', 'avatar' => null],
+        ]);
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $alice->id,
+            'status' => ParticipantStatus::Approved,
+        ]);
+
+        $bob = User::factory()->create();
+        LinkedAccount::factory()->create([
+            'user_id' => $bob->id,
+            'provider' => OAuthProvider::Discord->value,
+            'provider_user_id' => '222',
+            'provider_meta' => ['nickname' => 'bob', 'avatar' => null],
+        ]);
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $bob->id,
+            'status' => ParticipantStatus::Approved,
+        ]);
+
+        // Unlinked participant — folds into "+1 from roundup".
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'status' => ParticipantStatus::Approved,
+        ]);
+
+        config(['services.discord.publishing_enabled' => true]);
+        $this->fakePostSuccess();
+
+        $this->makePublisher()->publish($game);
+
+        Http::assertSent(function (Request $request): bool {
+            // Walk the decoded payload (json_encode escapes slashes, so search
+            // the actual field value rather than a json_encode'd string).
+            $fields = $request->data()['embeds'][0]['fields'] ?? [];
+            foreach ($fields as $field) {
+                if (($field['name'] ?? '') === 'Players') {
+                    $value = $field['value'];
+
+                    return str_contains($value, '[@alice](https://discord.com/users/111)')
+                        && str_contains($value, '[@bob](https://discord.com/users/222)')
+                        && str_contains($value, '+1 from roundup');
+                }
+            }
+
+            return false;
         });
     }
 
