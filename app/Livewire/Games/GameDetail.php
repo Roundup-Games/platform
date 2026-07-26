@@ -714,6 +714,17 @@ class GameDetail extends Component
     {
         $viewer = authenticatedUser();
 
+        // Signup cutoff (decision D124). Surface the specific message rather
+        // than the generic not-authorized flash so a member hitting a closed
+        // signup knows why. Mirrors the web-apply gate; re-checked implicitly
+        // via canJoinViaShareLink (which also returns false once the cutoff
+        // passes) so the Join button is hidden as well.
+        if ($this->game->signupHasClosed()) {
+            session()->flash('error', __('games.error_signup_closed'));
+
+            return;
+        }
+
         if (! $this->canJoinViaShareLink()) {
             session()->flash('error', __('common.error_not_authorized'));
 
@@ -781,7 +792,7 @@ class GameDetail extends Component
                     $baseData['status'] = $overflow->statusValue();
                     $baseData[$overflow->timestampColumn] = now();
 
-                    GameParticipant::create($baseData);
+                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
 
                     $overflowFlash = app(OverflowRouter::class)->flashResult($game);
 
@@ -800,7 +811,7 @@ class GameDetail extends Component
                     // Approved transition). Mirrors WaitlistService::confirmPromotion.
                     $baseData['approved_at'] = now();
 
-                    GameParticipant::create($baseData);
+                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
 
                     Log::info('Player joined via share link', [
                         'game_id' => $game->id,
@@ -868,6 +879,12 @@ class GameDetail extends Component
                     ParticipantStatus::Pending->value,
                     ParticipantStatus::Waitlisted->value,
                     ParticipantStatus::Benched->value,
+                    // A host-removed participant (Removed) cannot self-rejoin via
+                    // the share link — host removal is a moderation action and
+                    // the unique constraint is what historically enforced the
+                    // block (see removeParticipant() docblock). Without this the
+                    // reactivation path would silently flip Removed → Approved.
+                    ParticipantStatus::Removed->value,
                 ]));
 
         if ($existingParticipant) {
@@ -876,6 +893,13 @@ class GameDetail extends Component
 
         // Game must not be completed or canceled
         if (in_array($this->game->status?->value, [GameStatus::Completed->value, GameStatus::Canceled->value])) {
+            return false;
+        }
+
+        // Signup cutoff (decision D124) — hide the Join button once an
+        // organizer-set cutoff has passed. The action method re-checks with a
+        // specific message; this keeps the affordance consistent.
+        if ($this->game->signupHasClosed()) {
             return false;
         }
 
