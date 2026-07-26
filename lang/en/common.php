@@ -373,6 +373,7 @@ return [
     'content_source_application' => 'Application',
     'content_source_email_invite' => 'Email Invite',
     'content_source_short_link' => 'Short Link',
+    'content_source_discord' => 'Discord',
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice

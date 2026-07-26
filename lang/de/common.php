@@ -370,6 +370,7 @@ return [
     'content_source_application' => 'Bewerbung',
     'content_source_email_invite' => 'E-Mail-Einladung',
     'content_source_short_link' => 'Kurzlink',
+    'content_source_discord' => 'Discord',
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice
