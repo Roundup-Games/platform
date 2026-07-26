@@ -9,6 +9,7 @@ use App\Http\Middleware\PostHogIdentifyUsers;
 use App\Http\Middleware\ProcessShareIntent;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackAppVisit;
+use App\Http\Middleware\VerifyDiscordInteractionSignature;
 use App\Services\PostHogExceptionReporter;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -29,6 +30,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->validateCsrfTokens(except: [
             'paddle/webhook',
+            // Discord HTTP Interactions endpoint (M057/S03): a stateless
+            // public surface called by Discord, not a browser form POST.
+            // CSRF protection is N/A — authenticity is enforced by the
+            // VerifyDiscordInteractionSignature middleware (Ed25519 over
+            // timestamp + raw body). Mirrors the Paddle webhook precedent.
+            'discord/interactions',
         ]);
 
         $middleware->append(EnsureUserNotDisabled::class);
@@ -44,11 +51,20 @@ return Application::configure(basePath: dirname(__DIR__))
             'profile.complete' => EnsureProfileComplete::class,
             'not.disabled' => EnsureUserNotDisabled::class,
             'set.locale' => SetLocale::class,
+            // Verifies the Discord Interactions Ed25519 signature. Route-scoped
+            // to POST /discord/interactions (M057/S03) — the only public surface
+            // that should accept Discord-signed requests.
+            'discord.signature' => VerifyDiscordInteractionSignature::class,
         ]);
 
         // SetLocale must run before SubstituteBindings so that
         // URL::defaults() is set before route model binding occurs.
+        // VerifyDiscordInteractionSignature runs BEFORE the global stack
+        // (StartSession, etc.) so a flood of forged interactions is rejected at
+        // the cheapest possible point and never pays session-store I/O per
+        // request — it is a no-op on every other route.
         $middleware->priority([
+            VerifyDiscordInteractionSignature::class,
             SetLocale::class,
             SubstituteBindings::class,
         ]);
