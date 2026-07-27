@@ -3,6 +3,7 @@
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\VenueType;
+use App\Filament\Resources\TicketResource\Pages\ViewTicket;
 use App\Livewire\Reviews\ReportReview;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -15,12 +16,14 @@ use App\Notifications\ReviewReported;
 use App\Services\ReviewAggregateService;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Events\TicketAssigned;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\EscalationRule;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Services\EscalationService;
 use Escalated\Laravel\Services\TicketService;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -136,15 +139,12 @@ function assertTicketMetadataComplete(Ticket $ticket, Review $review, User $revi
 /** Scenario 3: dismiss closes the ticket and restores the review to published, body untouched. */
 function dismissReportAndAssert(Ticket $ticket, Review $review, User $agent, string $expectedBody): void
 {
-    // Refresh review model — it was modified inside the Livewire sub-request
-    $review->refresh();
-    expect($review->status)->toBe('reported');
-
-    // Simulate dismiss: close ticket, restore review to published
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $agent, 'Report dismissed by admin');
-    $ticketService->close($ticket, $agent);
-    $review->update(['status' => 'published']);
+    // Drive the REAL moderation action (performDismissReport) — the same code
+    // the Filament button runs — instead of manually mutating the review.
+    // This exercises restoreReviewStatus(), the internal note, the close,
+    // and the structured log within a single DB::transaction.
+    auth()->login($agent);
+    invokeModerationAction('performDismissReport', $ticket);
 
     $ticket->refresh();
     $review->refresh();
@@ -155,13 +155,12 @@ function dismissReportAndAssert(Ticket $ticket, Review $review, User $agent, str
 }
 
 /** Scenario 4: remove closes the ticket and hides the review. */
-function removeReviewAndAssert(Ticket $ticket, Review $review, User $agent): void
+function removeReviewReportAndAssert(Ticket $ticket, Review $review, User $agent): void
 {
-    // Simulate remove: close ticket, hide review
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $agent, 'Review removed by admin');
-    $ticketService->close($ticket, $agent);
-    $review->update(['status' => 'hidden']);
+    // Drive the REAL moderation action (performRemoveReview) — verifies the
+    // full hide-review + note + close transaction, not a manual status flip.
+    auth()->login($agent);
+    invokeModerationAction('performRemoveReview', $ticket);
 
     $ticket->refresh();
     $review->refresh();
@@ -170,23 +169,47 @@ function removeReviewAndAssert(Ticket $ticket, Review $review, User $agent): voi
     expect($review->status)->toBe('hidden');
 }
 
-/** Scenario 5: escalate bumps priority to Urgent, reassigns, leaves ticket Open + review reported. */
-function escalateReportAndAssert(Ticket $ticket, Review $review, User $agent, User $platformAdmin): void
+/** Scenario 5: escalate bumps priority to Urgent, reassigns via real assign(), leaves ticket Open + review reported. */
+function escalateReviewReportAndAssert(Ticket $ticket, Review $review, User $agent, User $platformAdmin): void
 {
-    // Simulate escalate: add note, change priority, reassign
-    $ticketService = app(TicketService::class);
-    $ticketService->addNote($ticket, $agent, "Escalated by {$agent->name}");
-    $ticketService->changePriority($ticket, TicketPriority::Urgent, $agent);
-    $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
+    // Drive the REAL moderation action (performEscalateReport) — verifies the
+    // note, priority change, and Platform Admin reassignment via Ticket::assign()
+    // (which fires TicketAssigned inside DB::afterCommit). The old helper used
+    // updateQuietly which suppressed the event — see MEM517.
+    auth()->login($agent);
+    invokeModerationAction('performEscalateReport', $ticket);
 
     $ticket->refresh();
 
     expect($ticket->priority)->toBe(TicketPriority::Urgent);
     expect($ticket->assigned_to)->toBe($platformAdmin->id);
-    expect($ticket->status)->toBe(TicketStatus::Open); // still open, not closed
+    expect($ticket->status)->toBe(TicketStatus::Open); // escalation doesn't close
 
     // Review should remain in reported status (escalation doesn't change review)
     expect($review->fresh()->status)->toBe('reported');
+}
+
+/**
+ * Invoke a protected perform* method on the ViewTicket page via reflection —
+ * the same pattern as ContentModerationTest/CoverImageTakedownTest. Drives the
+ * REAL moderation code (the same code the Filament action runs) instead of
+ * stubbing it with manual TicketService calls.
+ *
+ * The caller is responsible for auth()->login(...) first — every perform*
+ * method reads auth()->user() and bails out if there is none.
+ *
+ * Guarded with function_exists() so this file can coexist with
+ * ContentModerationTest.php and CoverImageTakedownTest.php (which define the
+ * same helper) in a single Pest suite run.
+ */
+if (! function_exists('invokeModerationAction')) {
+    function invokeModerationAction(string $method, mixed ...$args): void
+    {
+        $page = new ViewTicket;
+        $reflection = new ReflectionMethod($page, $method);
+        $reflection->setAccessible(true);
+        $reflection->invoke($page, ...$args);
+    }
 }
 
 /** Scenario 6: ReviewReported notification fires for the global admin. */
@@ -389,7 +412,7 @@ describe('game review reports', function () {
 
         $ticket = reportReviewAndGetTicket($review, $reporter);
 
-        removeReviewAndAssert($ticket, $review, $this->agent);
+        removeReviewReportAndAssert($ticket, $review, $this->agent);
     });
 
     it('escalate report reassigns ticket and increases priority to urgent', function () {
@@ -398,7 +421,46 @@ describe('game review reports', function () {
 
         $ticket = reportReviewAndGetTicket($review, $reporter);
 
-        escalateReportAndAssert($ticket, $review, $this->agent, $this->platformAdmin);
+        escalateReviewReportAndAssert($ticket, $review, $this->agent, $this->platformAdmin);
+    });
+
+    it('escalate report fires the TicketAssigned event after commit', function () {
+        // Regression guard matching ContentModerationTest::escalate_action_fires_TicketAssigned_event_after_commit:
+        // performEscalateReport must call Ticket::assign() (deferred via DB::afterCommit)
+        // so the TicketAssigned event fires — not updateQuietly, which suppressed it.
+        ['review' => $review] = createGameReviewSetup();
+        $reporter = User::factory()->create(['profile_complete' => true]);
+
+        $ticket = reportReviewAndGetTicket($review, $reporter);
+
+        auth()->login($this->agent);
+        Event::fake([TicketAssigned::class]);
+        invokeModerationAction('performEscalateReport', $ticket);
+
+        Event::assertDispatched(TicketAssigned::class, function (TicketAssigned $e) use ($ticket) {
+            return $e->ticket->is($ticket)
+                && $e->agentId === $this->platformAdmin->id;
+        });
+    });
+
+    it('remove review handles a missing review gracefully — ticket stays open, no crash', function () {
+        // The review was deleted after reporting. performRemoveReview's
+        // restoreReviewStatus() throws a RuntimeException (caught by the
+        // outer try/catch) so the ticket stays Open and no status flips.
+        ['review' => $review] = createGameReviewSetup();
+        $reporter = User::factory()->create(['profile_complete' => true]);
+
+        $ticket = reportReviewAndGetTicket($review, $reporter);
+
+        // Delete the review so Review::find() in restoreReviewStatus() returns null.
+        $review->delete();
+
+        auth()->login($this->agent);
+        invokeModerationAction('performRemoveReview', $ticket);
+
+        $ticket->refresh();
+        // The exception is caught — ticket stays Open, no partial state change.
+        expect($ticket->status)->toBe(TicketStatus::Open);
     });
 
     it('sends ReviewReported notification to global admins when review is reported', function () {
