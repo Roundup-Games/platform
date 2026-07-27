@@ -322,7 +322,9 @@ class DiscordGuildDiscoveryTest extends TestCase
 
         $service->optOut($organizer, $guild);
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $ctx) => ($ctx['status'] ?? null) === 'unclaimed')
+            ->withArgs(fn (string $message, array $ctx) => ($ctx['status'] ?? null) === 'unclaimed'
+                && ($ctx['organizer_id'] ?? null) === $organizer->id
+                && ($ctx['guild_id'] ?? null) === self::GUILD_SNOWFLAKE_A)
             ->atLeast()
             ->once();
     }

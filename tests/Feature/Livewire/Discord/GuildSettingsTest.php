@@ -388,7 +388,8 @@ class GuildSettingsTest extends TestCase
             ->call('togglePaused');
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $ctx) => ($ctx['action'] ?? null) === 'paused')
+            ->withArgs(fn (string $message, array $ctx) => ($ctx['action'] ?? null) === 'paused'
+                && ($ctx['guild_id'] ?? null) === self::GUILD_SNOWFLAKE)
             ->atLeast()
             ->once();
     }

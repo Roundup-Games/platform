@@ -247,7 +247,8 @@ class PublishDiscordDigestCommandTest extends TestCase
         $this->artisan('discord:publish-digest')->assertSuccessful();
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => ($ctx['dry_run'] ?? null) === false)
+            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.command.started'
+                && ($ctx['dry_run'] ?? null) === false)
             ->atLeast()
             ->once();
         Log::shouldHaveReceived('info')

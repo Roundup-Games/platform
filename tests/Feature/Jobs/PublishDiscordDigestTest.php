@@ -141,8 +141,12 @@ class PublishDiscordDigestTest extends TestCase
 
         // No Discord call for a non-existent guild.
         Http::assertNothingSent();
+        // guild_missing is distinguishable from the job.started log (which
+        // also carries guild_id) only by its message — restored per the
+        // identical-context exception. (CodeRabbit review.)
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $missingId)
+            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.job.guild_missing'
+                && ($ctx['guild_id'] ?? null) === $missingId)
             ->atLeast()
             ->once();
     }
@@ -160,12 +164,18 @@ class PublishDiscordDigestTest extends TestCase
 
         (new PublishDiscordDigest($guild->id))->handle(app(DiscordDigestPublisher::class));
 
+        // Exception to P3's message-loosening policy: job.started and
+        // job.completed carry IDENTICAL context ({guild_id} only), so the
+        // message string is the only distinguisher. Restoring the message pin
+        // here while keeping the guild_id check (stronger than the original).
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
+            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.job.started'
+                && ($ctx['guild_id'] ?? null) === $guild->id)
             ->atLeast()
             ->once();
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
+            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.job.completed'
+                && ($ctx['guild_id'] ?? null) === $guild->id)
             ->atLeast()
             ->once();
     }
@@ -193,8 +203,12 @@ class PublishDiscordDigestTest extends TestCase
 
         (new PublishDiscordDigest($guild->id))->handle(app(DiscordDigestPublisher::class));
 
+        // The posted pulse is distinguishable from the job's started/completed
+        // logs (which also carry guild_id) by its status field — only the
+        // publisher's posted/edited logs include status. (CodeRabbit review.)
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id
+                && ($ctx['status'] ?? null) === 'posted')
             ->atLeast()
             ->once();
     }

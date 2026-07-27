@@ -315,11 +315,18 @@ class WarmDashboardCacheTest extends TestCase
         ]);
 
         Log::shouldReceive('info')->once()->with(
-            'dashboard.warm.completed',
+            \Mockery::type('string'),
             \Mockery::on(fn ($ctx) => isset($ctx['mode']) && $ctx['mode'] === 'newcomer'),
         );
 
-        // Adjacent warm lifecycle logs — absorb without pinning exact strings.
+        // Adjacency absorb (P3 policy): the handle() call also emits started
+        // and mode_resolved info logs. These are Mockery-count plumbing (the
+        // primary 'mode' assertion above is the contract under test), not the
+        // target of this test. started has dedicated coverage in
+        // it_logs_start_and_completed_with_duration; re-pinning the message
+        // strings here would contradict P3. Broad absorb is equivalent to the
+        // original Mockery::any() — neither verifies the adjacency logs'
+        // content, intentionally. (CodeRabbit finding 2: accepted as skip.)
         Log::shouldReceive('info')->atLeast(2);
 
         $job = new WarmDashboardCache((string) $user->id, 'cache_miss_week');
