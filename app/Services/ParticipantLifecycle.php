@@ -12,6 +12,7 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\SuppressedInviteEmail;
 use App\Models\User;
 use App\Notifications\ApplicationApproved;
@@ -50,6 +51,70 @@ use Illuminate\Support\Facades\Log;
  */
 class ParticipantLifecycle
 {
+    /**
+     * Create a participant OR reactivate an existing departed row.
+     *
+     * The symmetrical counterpart to {@see depart()}: depart() sets status to
+     * Rejected but keeps the row (audit/attendance); a later rejoin must UPDATE
+     * that row back to active rather than INSERT a duplicate, which would
+     * violate the unique (game_id, user_id) constraint. updateOrCreate makes
+     * this race-safe for double-clicks.
+     *
+     * The single source of truth for every user-initiated join (web share-link,
+     * Discord button, application approval). Overflow/bench/waitlist creations
+     * are always new rows behind a capacity check, so they don't route here.
+     *
+     * Reactivation resets the departure / overflow / attendance fields so a
+     * rejoin after a self-leave starts clean: a participant who departed near
+     * game time was stamped with attendance_status (LateCancel/CancelledEarly)
+     * and removed_at/removed_by, and those MUST NOT persist onto the
+     * reactivated row (they would double-count against the reliability score
+     * for a departure the user reversed, and leave a stale "removed" audit
+     * trail on an active participant). Callers' explicit attributes override
+     * the reset base.
+     *
+     * @param  array<string, mixed>  $attributes  Full participant data:
+     *                                            game_id, user_id, role, status, join_source, approved_at, etc.
+     */
+    public function createOrReactivate(array $attributes): GameParticipant
+    {
+        return GameParticipant::updateOrCreate(
+            [
+                'game_id' => $attributes['game_id'],
+                'user_id' => $attributes['user_id'],
+            ],
+            array_merge($this->reactivationResetBase(), $attributes),
+        );
+    }
+
+    /**
+     * The departure / overflow / attendance fields reset on every reactivation,
+     * applied as the base layer under caller-supplied attributes.
+     *
+     * These are all the columns {@see depart()} and {@see removeParticipant()}
+     * set when a participant leaves; leaving them at their stale values on a
+     * reactivated row would either mis-score reliability (attendance_status) or
+     * corrupt the audit trail (removed_at/removed_by) of an active participant.
+     *
+     * @return array<string, mixed>
+     */
+    private function reactivationResetBase(): array
+    {
+        return [
+            'removed_at' => null,
+            'removed_by' => null,
+            'attendance_status' => null,
+            'attendance_reported_by' => null,
+            'attendance_reported_at' => null,
+            'attendance_disputed_at' => null,
+            'attendance_weight' => null,
+            'benched_at' => null,
+            'waitlisted_at' => null,
+            'confirmation_expires_at' => null,
+            'confirmation_attempts' => 0,
+        ];
+    }
+
     /**
      * Transition a participant to Rejected and record the departure.
      *

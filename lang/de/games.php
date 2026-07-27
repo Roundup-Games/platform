@@ -481,4 +481,10 @@ return [
     'content_cover_image_hint' => 'Lade ein Titelbild hoch (JPEG, PNG oder WebP, max. 5 MB). Optional — wir verwenden das Cover des Spielsystems, wenn du keines angibst.',
     'error_cover_image_too_large' => 'Das Titelbild darf maximal 5 MB groß sein.',
     'action_remove_cover_image' => 'Titelbild entfernen',
+
+    // Signup cutoff (D124)
+    'error_signup_closed' => 'Anmeldungen für dieses Spiel sind geschlossen.',
+    'label_signup_cutoff' => 'Anmeldeschluss',
+    'hint_signup_cutoff' => 'Optional. Wenn dieser Zeitpunkt verstreicht, werden neue Anmeldungen blockiert (bestehende Teilnehmende und Wartelisten-Beförderungen sind nicht betroffen).',
+    'placeholder_signup_cutoff' => 'z. B. 1 Stunde vor Beginn',
 ];

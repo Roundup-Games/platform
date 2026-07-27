@@ -9,6 +9,7 @@ enum JoinSource: string
     case Application = 'application';
     case EmailInvite = 'email_invite';
     case ShortLink = 'short_link';
+    case Discord = 'discord';
 
     /**
      * @return string[]
@@ -26,6 +27,7 @@ enum JoinSource: string
             self::Application => __('common.content_source_application'),
             self::EmailInvite => __('common.content_source_email_invite'),
             self::ShortLink => __('common.content_source_short_link'),
+            self::Discord => __('common.content_source_discord'),
         };
     }
 }

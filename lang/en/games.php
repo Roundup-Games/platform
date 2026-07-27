@@ -86,6 +86,12 @@ return [
     'error_clone_own_only' => 'You can only clone your own game sessions.',
     'error_select_game_type' => 'Please select a game type before creating.',
     'error_you_cannot_apply_to_your_own_game' => 'You cannot apply to your own game.',
+    // Signup cutoff (M057/S05) — used by the three participant-write gate paths
+    // (HandlesApplicationSubmission, GameDetail::joinViaShareLink, ProcessDiscordRsvp).
+    'error_signup_closed' => 'Signups for this game are closed.',
+    'label_signup_cutoff' => 'Signup Cutoff',
+    'hint_signup_cutoff' => 'Optional. When this time passes, new signups are blocked (existing participants and waitlist promotions are unaffected).',
+    'placeholder_signup_cutoff' => 'e.g. 1 hour before start',
     'field_max_players' => 'Max Players',
     'field_game_type' => 'Game Type',
     'content_max_players_venue_hint' => 'Think venue size — how many can comfortably fit?',

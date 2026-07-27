@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\ContentLanguage;
+use App\Enums\OAuthProvider;
 use App\Enums\RelationshipType;
+use App\Notifications\Channels\DiscordChannel;
 use App\Services\Geohash;
 use App\Services\ProfileVisibilityResolver;
 use App\Services\ScopedRoleService;
@@ -63,6 +65,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
  * @property Collection<int, UserVibePreference>|null $vibePreferences
  * @property Carbon|null $privacy_policy_accepted_at
  * @property Carbon|null $terms_accepted_at
+ * @property array<string, mixed>|null $reliability_score
  */
 #[Fillable([
     'name',
@@ -260,6 +263,21 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     }
 
     /**
+     * The user's linked Discord account, if any.
+     *
+     * Used by {@see DiscordChannel} to resolve
+     * the recipient snowflake (provider_user_id) for DM delivery (D118).
+     * Returns null when the user has not linked a Discord account — the
+     * channel treats that as a graceful no-op.
+     */
+    public function discordLinkedAccount(): ?LinkedAccount
+    {
+        return $this->linkedAccounts()
+            ->where('provider', OAuthProvider::Discord)
+            ->first();
+    }
+
+    /**
      * @return HasMany<ActivityLog, $this>
      */
     public function activityLogs()
@@ -356,6 +374,21 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function ownedGames(): HasMany
     {
         return $this->hasMany(Game::class, 'owner_id');
+    }
+
+    /**
+     * D119 opt-in rows where this user is the organizer (M057/S02).
+     *
+     * The daily digest eligibility query traverses `owner.discordGuildOrganizers`
+     * to find games whose owner has a row with publish_enabled=true for a given
+     * guild — the set-based form of the card publisher's per-owner opt-in gate.
+     * FK is `discord_guild_organizers.user_id` → users.id (cascade-on-delete).
+     *
+     * @return HasMany<DiscordGuildOrganizer, $this>
+     */
+    public function discordGuildOrganizers(): HasMany
+    {
+        return $this->hasMany(DiscordGuildOrganizer::class, 'user_id');
     }
 
     /**

@@ -3,8 +3,11 @@
 namespace App\Livewire\Settings;
 
 use App\Enums\NotificationCategory;
+use App\Models\DiscordGuild;
+use App\Models\ShortLink;
 use App\Models\User;
 use App\Services\ProfileVisibilityResolver;
+use App\Services\ShortLinkService;
 use App\Services\TicketPayloadRenderer;
 use App\Services\UserAnonymizationService;
 use Escalated\Laravel\Enums\TicketChannel;
@@ -40,6 +43,15 @@ class Show extends Component
 
     public int $pushSubscriptionCount = 0;
 
+    /**
+     * Whether the member has linked a Discord account — gates the Discord
+     * column in the notification preferences matrix (D118). Unlinked members
+     * never see the toggle (it would be meaningless and confusing); the discord
+     * key is still carried in the data model so a future link picks up the
+     * category default at read time (MEM856).
+     */
+    public bool $hasDiscordLinked = false;
+
     // Password fields
     public string $current_password = '';
 
@@ -61,6 +73,10 @@ class Show extends Component
 
     #[Locked]
     public bool $userHasPassword;
+
+    /** Absolute URL of the member's active iCal feed token (D123), or null when none exists. */
+    #[Locked]
+    public ?string $calendarFeedUrl = null;
 
     public function mount(): void
     {
@@ -86,8 +102,13 @@ class Show extends Component
                 'database' => (bool) ($storedNotifications[$key]['database'] ?? $defaults[$key]['database']),
                 'mail' => (bool) ($storedNotifications[$key]['mail'] ?? $defaults[$key]['mail']),
                 'push' => (bool) ($storedNotifications[$key]['push'] ?? ($defaults[$key]['push'] ?? false)),
+                'discord' => (bool) ($storedNotifications[$key]['discord'] ?? ($defaults[$key]['discord'] ?? false)),
             ];
         }
+
+        // Gate the Discord column on a linked account (D118). Computed once at
+        // mount; the column is rendered conditionally in the Blade partial.
+        $this->hasDiscordLinked = $user->discordLinkedAccount() !== null;
 
         // Count existing push subscriptions for the subscribe/unsubscribe UI
         $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
@@ -100,6 +121,86 @@ class Show extends Component
             ->where('ticket_type', 'data_export_request')
             ->open()
             ->exists();
+
+        // Resolve the member's active iCal feed URL (D123), if a token exists.
+        $activeToken = $this->activeCalendarToken($user);
+        $this->calendarFeedUrl = $activeToken !== null
+            ? route('ical.feed', $activeToken->code)
+            : null;
+    }
+
+    /**
+     * Generate (or rotate) the member's personal iCal feed token (D123).
+     *
+     * Rotates: revokes any existing active token first so there is at most one
+     * active feed URL per user — pressing Generate is always safe (it
+     * invalidates a leaked URL and issues a fresh code). Reuses the ShortLink
+     * tokenization (linkable=User, purpose='ical') consumed by ICalFeedController.
+     */
+    public function generateCalendarFeedToken(): void
+    {
+        $user = authenticatedUser();
+        $service = app(ShortLinkService::class);
+
+        if ($existing = $this->activeCalendarToken($user)) {
+            $service->revokeLink($existing);
+        }
+
+        $code = $service->generateUniqueCode();
+
+        $link = $service->createLink($user, $user, [
+            'code' => $code,
+            'url' => route('ical.feed', $code),
+            'purpose' => 'ical',
+        ]);
+
+        $this->calendarFeedUrl = route('ical.feed', $link->code);
+
+        Log::info('ical_feed.token_generated', [
+            'user_id' => $user->id,
+            'link_id' => $link->id,
+            'code_prefix' => substr($link->code, 0, 3).'…',
+        ]);
+
+        session()->flash('calendar_feed_generated', __('settings.flash_calendar_feed_generated'));
+    }
+
+    /**
+     * Revoke the member's active iCal feed token (D123).
+     *
+     * Safe no-op when no token exists. Soft-deletes the token so the feed
+     * (GET /calendar/{code}) starts returning 404 immediately.
+     */
+    public function revokeCalendarFeedToken(): void
+    {
+        $user = authenticatedUser();
+
+        if (! $existing = $this->activeCalendarToken($user)) {
+            return;
+        }
+
+        app(ShortLinkService::class)->revokeLink($existing);
+
+        $this->calendarFeedUrl = null;
+
+        Log::info('ical_feed.token_revoked', [
+            'user_id' => $user->id,
+            'link_id' => $existing->id,
+        ]);
+
+        session()->flash('calendar_feed_revoked', __('settings.flash_calendar_feed_revoked'));
+    }
+
+    /**
+     * The member's currently-active iCal token, or null when none exists.
+     * SoftDeletes excludes revoked (soft-deleted) tokens automatically.
+     */
+    private function activeCalendarToken(User $user): ?ShortLink
+    {
+        return ShortLink::where('linkable_type', User::class)
+            ->where('linkable_id', $user->id)
+            ->where('purpose', 'ical')
+            ->first();
     }
 
     public function savePrivacySettings(): void
@@ -168,12 +269,14 @@ class Show extends Component
             return;
         }
 
-        // Determine majority state across the group's categories
+        // Determine majority state across the group's categories. Discord is
+        // always part of the data model (carried even when the column is hidden
+        // for unlinked members), so the master switch toggles all four channels.
         $categoryValues = array_keys($grouped[$groupKey]['options']);
         $onCount = 0;
-        $totalChannels = count($categoryValues) * 3;
+        $totalChannels = count($categoryValues) * 4;
         foreach ($categoryValues as $key) {
-            foreach (['database', 'mail', 'push'] as $channel) {
+            foreach (['database', 'mail', 'push', 'discord'] as $channel) {
                 if (! empty($this->notificationSettings[$key][$channel])) {
                     $onCount++;
                 }
@@ -185,6 +288,7 @@ class Show extends Component
             $this->notificationSettings[$key]['database'] = $newState;
             $this->notificationSettings[$key]['mail'] = $newState;
             $this->notificationSettings[$key]['push'] = $newState;
+            $this->notificationSettings[$key]['discord'] = $newState;
         }
     }
 
@@ -198,17 +302,22 @@ class Show extends Component
             'notificationSettings.*.database' => ['required', 'boolean'],
             'notificationSettings.*.mail' => ['required', 'boolean'],
             'notificationSettings.*.push' => ['nullable', 'boolean'],
+            'notificationSettings.*.discord' => ['nullable', 'boolean'],
         ]);
 
-        // Ensure every known category is present with all three channels
+        // Ensure every known category is present with all four channels. The
+        // discord key MUST be rebuilt here or a save round-trip silently drops
+        // it (research §10 gotcha) — existing rows without it fall back at read
+        // time, but a linked member's explicit toggle would be lost on save.
         $settings = [];
         $allValues = NotificationCategory::values();
         foreach ($allValues as $categoryValue) {
-            $entry = $validated['notificationSettings'][$categoryValue] ?? ['database' => true, 'mail' => false, 'push' => false];
+            $entry = $validated['notificationSettings'][$categoryValue] ?? ['database' => true, 'mail' => false, 'push' => false, 'discord' => false];
             $settings[$categoryValue] = [
                 'database' => (bool) ($entry['database'] ?? true),
                 'mail' => (bool) ($entry['mail'] ?? false),
                 'push' => (bool) ($entry['push'] ?? false),
+                'discord' => (bool) ($entry['discord'] ?? false),
             ];
         }
 
@@ -399,6 +508,13 @@ class Show extends Component
         return view('livewire.settings.show', [
             'linkedAccounts' => $user->linkedAccounts()->get(),
             'tickets' => $tickets,
+            // Guilds the current user installed the roundup bot into (landlord).
+            // Gates the Discord Servers section in the Account tab — empty for
+            // non-landlords. owner_user_id is a non-conventional FK, so use the
+            // relation-name overload of whereBelongsTo rather than the raw column.
+            'discordGuilds' => DiscordGuild::whereBelongsTo($user, 'owner')
+                ->orderBy('name')
+                ->get(['id', 'guild_id', 'name', 'paused']),
         ]);
     }
 }

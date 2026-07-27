@@ -233,10 +233,15 @@ describe('basic consensus scenarios', function () {
 
         expect(getAttendanceStatus($resolved, $host))->toBe(AttendanceStatus::NoShow);
 
+        // Target the HOST's attendance event specifically. captureAttendanceOutcome
+        // may emit attendance.recorded for multiple participants; `->first()` would
+        // grab whichever landed first (order-dependent, flaky under parallel).
+        // Filtering to the host's distinctId targets the exact event under test
+        // and still fails (null) if the host's no-show was never captured.
         $attendance = collect($posthog->capturedCalls)
-            ->first(fn (array $c) => ($c['event'] ?? null) === 'attendance.recorded');
+            ->first(fn (array $c) => ($c['event'] ?? null) === 'attendance.recorded'
+                && ($c['distinctId'] ?? null) === (string) $host->id);
         expect($attendance)->not->toBeNull()
-            ->and($attendance['distinctId'])->toBe((string) $host->id)
             ->and($attendance['properties']['attendance_status'])->toBe('no_show');
     });
 

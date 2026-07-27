@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\Auth\OAuthController;
+use App\Http\Controllers\DiscordBotInstallController;
+use App\Http\Controllers\DiscordInteractionController;
 use App\Http\Controllers\ExportDownloadController;
+use App\Http\Controllers\ICalFeedController;
 use App\Http\Controllers\InviteOptoutController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NotificationController;
@@ -20,6 +23,8 @@ use App\Livewire\Campaigns\CampaignsPage;
 use App\Livewire\Campaigns\CreateCampaign;
 use App\Livewire\Campaigns\PublicCampaignDetail;
 use App\Livewire\Dashboard;
+use App\Livewire\Discord\GuildSettings;
+use App\Livewire\Discord\OrganizerGuilds;
 use App\Livewire\Discovery\AdventuresDiscovery;
 use App\Livewire\Discovery\BoardGamesDiscovery;
 use App\Livewire\Discovery\DiscoveryPortal;
@@ -83,10 +88,31 @@ Route::get('/link/{code}', [ShortLinkController::class, 'redirect'])
     ->middleware('throttle:short-link')
     ->where('code', '[a-zA-Z0-9\-]{7,36}');
 
+// ── iCal Feed (per-user, tokenized, locale-agnostic — D123) ──
+// Lives OUTSIDE the {locale} group because calendar clients (Google/Apple)
+// poll a raw URL with no locale prefix and no session/cookies. The token is
+// a ShortLink code (linkable=User, purpose='ical'); the controller resolves
+// locale from the user's preferred_language. Unknown/expired tokens → 404.
+Route::get('/calendar/{code}', [ICalFeedController::class, 'show'])
+    ->name('ical.feed')
+    ->middleware('throttle:short-link')
+    ->where('code', '[a-zA-Z0-9\-]{7,36}');
+
 // ── Paddle Webhook (no auth — called by Paddle) ──────
 
 Route::post('paddle/webhook', PaddleWebhookController::class)
     ->name('cashier.webhook');
+
+// ── Discord HTTP Interactions endpoint (M057/S03) ─────
+// Public, stateless surface called by Discord (NOT a browser form POST).
+// CSRF-excluded in bootstrap/app.php (Paddle precedent). Authenticity is
+// enforced by the discord.signature middleware: Ed25519 verification over
+// (timestamp + raw body) — fail closed, no bypass. Rides the standard web
+// middleware stack like the Paddle webhook; the global middleware gracefully
+// no-ops on unauthenticated/session-less requests.
+Route::post('discord/interactions', DiscordInteractionController::class)
+    ->middleware('discord.signature')
+    ->name('discord.interactions');
 
 // ── OAuth ──────────────────────────────────────────────
 
@@ -96,6 +122,19 @@ Route::get('auth/{provider}/redirect', [OAuthController::class, 'redirect'])
 Route::get('auth/{provider}/callback', [OAuthController::class, 'callback'])
     ->middleware('throttle:10,1')
     ->name('oauth.callback');
+
+// ── Discord Bot Install (M057/T06) ────────────────────
+// Top-level (outside the locale prefix) because Discord redirects back to a
+// fixed callback URL — mirrors the login OAuth routes above. The landlord is
+// already roundup-authenticated; this is the bot-add round-trip, not login.
+
+Route::get('discord/install', [DiscordBotInstallController::class, 'redirect'])
+    ->middleware(['auth', 'verified'])
+    ->name('discord.install.redirect');
+
+Route::get('discord/install/callback', [DiscordBotInstallController::class, 'callback'])
+    ->middleware(['auth', 'verified', 'throttle:10,1'])
+    ->name('discord.install.callback');
 
 // ── Locale Switch ──────────────────────────────────────
 
@@ -203,6 +242,23 @@ Route::prefix('{locale}')
 
             // Notifications page (full paginated history)
             Route::get('/notifications', NotificationsPage::class)->name('notifications.index');
+
+            // ── Discord Bot Guild Settings (M057/T06) ───────────
+            // Landlord channel picker + pause switch. Gated to the roundup
+            // user who installed the bot (owner_user_id) inside the Livewire
+            // component via abort(403). The {guild} param is the Discord guild
+            // snowflake (numeric string).
+            Route::get('/discord/guilds/{guild}', GuildSettings::class)
+                ->where('guild', '[0-9]+')
+                ->name('discord.guild.settings');
+
+            // ── Discord Organizer Auto-Discovery (M057/T07, D119) ────
+            // Surfaces roundup-enabled servers the organizer is a member of
+            // with a per-guild publish-here prompt. Auth + profile.complete
+            // at the group level; the GM-role gate lives in GmWorkspace (this
+            // surface is reachable standalone but targets organizers).
+            Route::get('/discord/organizer-guilds', OrganizerGuilds::class)
+                ->name('discord.organizer.guilds');
         });
 
         // ── Public Profile ────────────────────────────

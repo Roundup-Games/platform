@@ -53,6 +53,7 @@ class SessionReminder extends BaseNotification
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
             'date_time' => $this->game->date_time?->toIso8601String(),
+            'window' => $this->window,
             'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
         ];
     }

@@ -331,4 +331,8 @@ return [
     'body_bulletin_content' => '":content"',
     'push_title_bulletin_posted' => 'Spiel-Update',
     'push_body_bulletin_posted' => ':host hat ein Update für :game veröffentlicht',
+
+    // Discord-Kanal (D118)
+    'channel_discord' => 'Discord',
+    'aria_master_toggle_all_discord' => 'Alle Discord-Benachrichtigungen umschalten',
 ];

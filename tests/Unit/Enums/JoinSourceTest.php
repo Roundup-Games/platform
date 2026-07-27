@@ -9,12 +9,13 @@ describe('JoinSource enum', function () {
         expect(JoinSource::Application->value)->toBe('application');
         expect(JoinSource::EmailInvite->value)->toBe('email_invite');
         expect(JoinSource::ShortLink->value)->toBe('short_link');
+        expect(JoinSource::Discord->value)->toBe('discord');
     });
 
     it('returns all values via values()', function () {
         $values = JoinSource::values();
 
-        expect($values)->toBe(['friend_invite', 'share_link', 'application', 'email_invite', 'short_link']);
+        expect($values)->toBe(['friend_invite', 'share_link', 'application', 'email_invite', 'short_link', 'discord']);
     });
 
     it('can be created from string value', function () {
@@ -23,5 +24,6 @@ describe('JoinSource enum', function () {
         expect(JoinSource::from('application'))->toBe(JoinSource::Application);
         expect(JoinSource::from('email_invite'))->toBe(JoinSource::EmailInvite);
         expect(JoinSource::from('short_link'))->toBe(JoinSource::ShortLink);
+        expect(JoinSource::from('discord'))->toBe(JoinSource::Discord);
     });
 });
