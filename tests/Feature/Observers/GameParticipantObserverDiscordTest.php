@@ -9,7 +9,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Observers\GameObserver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
@@ -44,7 +44,7 @@ use Tests\TestCase;
  */
 class GameParticipantObserverDiscordTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {

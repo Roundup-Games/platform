@@ -6,7 +6,7 @@ use App\Enums\OAuthProvider;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Services\Discord\DiscordIdentityResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -21,7 +21,7 @@ use Tests\TestCase;
  */
 class DiscordIdentityResolverTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private DiscordIdentityResolver $resolver;
 

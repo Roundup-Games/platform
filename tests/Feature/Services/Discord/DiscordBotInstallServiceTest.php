@@ -6,7 +6,7 @@ use App\Exceptions\DiscordBotInstallException;
 use App\Models\DiscordGuild;
 use App\Models\User;
 use App\Services\Discord\DiscordBotInstallService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -29,7 +29,7 @@ use Tests\TestCase;
  */
 class DiscordBotInstallServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private const TOKEN_URL = 'https://discord.com/api/oauth2/token';
 

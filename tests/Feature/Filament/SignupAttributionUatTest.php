@@ -57,6 +57,24 @@ beforeEach(function () {
     $this->platformAdmin->assignRole('Platform Admin');
     $this->platformAdmin->unsetRelations();
 
+    // Under `pest --parallel` the shared test DB can carry NULL-provider users
+    // leaked from sibling tests, which would inflate the report's "Unknown"
+    // bucket and break STEP 2's absolute counts. Snapshot the per-provider
+    // user counts BEFORE seeding (mirroring SignupAttributionReport's grouping)
+    // so STEP 2 can assert the DELTA the seeder added (robust to leaked prior
+    // data) rather than fragile absolute totals.
+    $this->baselineProviders = [
+        'Google' => User::where('signup_oauth_provider', 'google')->count(),
+        'Discord' => User::where('signup_oauth_provider', 'discord')->count(),
+        'Email' => User::where('signup_oauth_provider', 'email')->count(),
+        // "Unknown" = the provider key is NULL OR not one of the labelled set,
+        // matching the report's own Unknown-bucket logic.
+        'Unknown' => User::where(function ($q): void {
+            $q->whereNull('signup_oauth_provider')
+                ->orWhereNotIn('signup_oauth_provider', ['google', 'discord', 'email']);
+        })->count(),
+    ];
+
     // Seed the production-shaped dataset once per test. The seeder is
     // deterministic (fixed providers/domains/content/dates) so expected counts
     // are stable and the raw-SQL reconciliation has fixed targets.
@@ -218,15 +236,21 @@ describe('UAT — realistic dataset end-to-end', function () {
         $report = Livewire\Livewire::test(SignupAttributionReport::class)->instance();
         $providers = $report->providerBreakdown();
 
-        // Realistic dataset: google=8, discord=7, email=6, Unknown=4 (3 NULL + 1 admin).
-        // Participants reuse attribution users (no extra NULL-provider rows),
-        // so the Unknown bucket is exactly the 3 NULL-provider attribution
-        // users + the beforeEach admin.
-        expect($providers['Google'])->toBe(8)
-            ->and($providers['Discord'])->toBe(7)
-            ->and($providers['Email'])->toBe(6)
-            ->and($providers['Unknown'])->toBe(4)
-            ->and(array_sum($providers))->toBe(25); // 24 attribution users + admin
+        // Assert the DELTA the seeder added (current − baseline captured in
+        // beforeEach). Robust to NULL-provider users leaked from sibling tests
+        // under `pest --parallel`; verifies the report counts the seeded
+        // distribution correctly without depending on a pristine DB.
+        $baseline = $this->baselineProviders;
+        $delta = fn ($label) => ($providers[$label] ?? 0) - ($baseline[$label] ?? 0);
+
+        // Realistic dataset delta (current − baseline): google=8, discord=7,
+        // email=6, Unknown=3 (the 3 seeded NULL-provider users). The beforeEach
+        // admin is captured in the baseline, so it is NOT in the delta — only
+        // the seeder's contribution is asserted.
+        expect($delta('Google'))->toBe(8)
+            ->and($delta('Discord'))->toBe(7)
+            ->and($delta('Email'))->toBe(6)
+            ->and($delta('Unknown'))->toBe(3);
     });
 
     test('STEP 3: Top Referer Domains widget shows top 5 with NULLs excluded', function () {

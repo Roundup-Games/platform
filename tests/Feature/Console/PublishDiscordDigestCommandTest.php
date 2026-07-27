@@ -4,7 +4,7 @@ namespace Tests\Feature\Console;
 
 use App\Jobs\PublishDiscordDigest;
 use App\Models\DiscordGuild;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -30,7 +30,7 @@ use Tests\TestCase;
  */
 class PublishDiscordDigestCommandTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {

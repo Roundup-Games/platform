@@ -14,7 +14,7 @@ use App\Services\Discord\DiscordDigestPublisher;
 use App\Services\Discord\DiscordDigestRenderer;
 use App\Services\Discord\DiscordPublishException;
 use App\Services\Discord\DiscordWebhookClient;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -41,7 +41,7 @@ use Tests\TestCase;
  */
 class DiscordDigestPublisherTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private const BASE_URL = 'https://discord.test/api/v10';
 

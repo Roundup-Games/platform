@@ -8,7 +8,7 @@ use App\Jobs\ProcessDiscordRsvp;
 use App\Models\Game;
 use App\Models\LinkedAccount;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Testing\TestResponse;
@@ -26,7 +26,7 @@ use Tests\TestCase;
  */
 class DiscordInteractionEndpointTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private string $secretKey;
 

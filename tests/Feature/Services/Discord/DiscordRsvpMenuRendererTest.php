@@ -7,7 +7,7 @@ use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Services\Discord\DiscordRsvpMenuContext;
 use App\Services\Discord\DiscordRsvpMenuRenderer;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
@@ -21,7 +21,7 @@ use Tests\TestCase;
  */
 class DiscordRsvpMenuRendererTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private const GAME_ID = 'game-menu-001';
 

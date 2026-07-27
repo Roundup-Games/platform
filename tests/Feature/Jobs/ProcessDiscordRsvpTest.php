@@ -16,7 +16,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\Discord\DiscordPublisher;
 use App\Services\Discord\DiscordWebhookClient;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -48,7 +48,7 @@ use Tests\TestCase;
  */
 class ProcessDiscordRsvpTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private const BASE_URL = 'https://discord.test/api/v10';
 

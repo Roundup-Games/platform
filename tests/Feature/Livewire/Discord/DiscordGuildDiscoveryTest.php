@@ -8,7 +8,7 @@ use App\Models\DiscordGuildOrganizer;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Services\Discord\DiscordGuildDiscoveryService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
@@ -31,7 +31,7 @@ use Tests\TestCase;
  */
 class DiscordGuildDiscoveryTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private const GUILD_SNOWFLAKE_A = '111000111000111000';
 

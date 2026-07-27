@@ -14,7 +14,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use App\Notifications\EntityCancelled;
 use App\Notifications\EntityUpdated;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -51,7 +51,7 @@ use Tests\TestCase;
  */
 class CardUpdatePipelineTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private const BASE_URL = 'https://discord.test/api/v10';
 

@@ -5,7 +5,7 @@ namespace Tests\Feature\Livewire\Discord;
 use App\Livewire\Discord\GuildSettings;
 use App\Models\DiscordGuild;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -32,7 +32,7 @@ use Tests\TestCase;
  */
 class GuildSettingsTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private const BASE_URL = 'https://discord.com/api/v10';
 

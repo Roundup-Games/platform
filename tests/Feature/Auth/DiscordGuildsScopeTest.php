@@ -22,8 +22,12 @@ use Laravel\Socialite\Facades\Socialite;
 //
 
 // Helper: build a mocked Socialite Discord user carrying a Bearer token.
-function discordSocialiteUser(string $id, string $email = 'member@discord.com', string $name = 'Member'): object
+// Email defaults to a per-ID value so two tests in this file that omit the
+// email cannot collide on users_email_unique when the shared test DB runs
+// under `pest --parallel` (each worker reuses one Postgres instance).
+function discordSocialiteUser(string $id, ?string $email = null, string $name = 'Member'): object
 {
+    $email = $email ?? "{$id}@discord.com";
     $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn($id);
     $socialiteUser->shouldReceive('getEmail')->andReturn($email);
@@ -87,7 +91,10 @@ it('fetches and stores the Discord guild list on new-user registration', functio
 
     $this->get('/auth/discord/callback');
 
-    $account = LinkedAccount::where('provider', 'discord')->first();
+    // Query by the specific snowflake so a stale linked account from another
+    // test in the same worker can never be grabbed here.
+    $account = LinkedAccount::where('provider', 'discord')
+        ->where('provider_user_id', '123456789012345670')->first();
     expect($account)->not->toBeNull();
 
     $meta = $account->provider_meta;
@@ -175,7 +182,8 @@ it('still records nickname and avatar alongside the guild list', function () {
 
     $this->get('/auth/discord/callback');
 
-    $account = LinkedAccount::where('provider', 'discord')->first();
+    $account = LinkedAccount::where('provider', 'discord')
+        ->where('provider_user_id', '123456789012345671')->first();
     expect($account->provider_meta['nickname'])->toBe('bothtag')
         ->and($account->provider_meta['avatar'])->toBe('https://cdn.discordapp.com/avatars/x/y.png')
         ->and($account->provider_meta)->toHaveKey('guilds');
@@ -199,7 +207,8 @@ it('omits guilds from provider_meta when the guild fetch returns a non-2xx error
     $this->get('/auth/discord/callback');
 
     // Login still succeeded.
-    $account = LinkedAccount::where('provider', 'discord')->first();
+    $account = LinkedAccount::where('provider', 'discord')
+        ->where('provider_user_id', '123456789012345672')->first();
     expect($account)->not->toBeNull();
     expect($account->provider_meta)->not->toHaveKey('guilds');
     expect($account->provider_meta)->toHaveKeys(['nickname', 'avatar']);
@@ -217,7 +226,8 @@ it('omits guilds when the guild fetch returns an empty guild list', function () 
 
     $this->get('/auth/discord/callback');
 
-    $account = LinkedAccount::where('provider', 'discord')->first();
+    $account = LinkedAccount::where('provider', 'discord')
+        ->where('provider_user_id', '123456789012345673')->first();
     expect($account->provider_meta)->toHaveKey('guilds');
     expect($account->provider_meta['guilds'])->toBe([]);
 });
@@ -236,7 +246,8 @@ it('omits guilds when the guild fetch throws a connection exception', function (
 
     $this->get('/auth/discord/callback');
 
-    $account = LinkedAccount::where('provider', 'discord')->first();
+    $account = LinkedAccount::where('provider', 'discord')
+        ->where('provider_user_id', '123456789012345674')->first();
     expect($account)->not->toBeNull();
     expect($account->provider_meta)->not->toHaveKey('guilds');
 });
@@ -251,7 +262,8 @@ it('omits guilds when the guild fetch returns a non-array (malformed) body', fun
 
     $this->get('/auth/discord/callback');
 
-    $account = LinkedAccount::where('provider', 'discord')->first();
+    $account = LinkedAccount::where('provider', 'discord')
+        ->where('provider_user_id', '123456789012345675')->first();
     expect($account->provider_meta)->not->toHaveKey('guilds');
 });
 

@@ -420,11 +420,13 @@ describe('UserAnonymizationService integration', function () {
         );
         $userId = $user->id;
 
-        // Tier 1: linked account
+        // Tier 1: linked account — provider_user_id derived from the user id so
+        // it can never collide with another test's linked account under the
+        // shared parallel test database.
         LinkedAccount::create([
             'user_id' => $userId,
             'provider' => 'google',
-            'provider_user_id' => 'google-123',
+            'provider_user_id' => 'google-'.$userId,
             'token' => 'secret-google-token',
         ]);
 
