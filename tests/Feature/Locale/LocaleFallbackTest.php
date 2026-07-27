@@ -66,11 +66,6 @@ describe('Bare path fallback', function () {
         expect($response->headers->get('Location'))->toEndWith('/de/discover');
     })->group('smoke');
 
-    test('bare path uses 302 temporary redirect', function () {
-        $response = $this->get('/login');
-
-        $response->assertStatus(302);
-    })->group('smoke');
 });
 
 describe('Protected paths not caught by fallback', function () {

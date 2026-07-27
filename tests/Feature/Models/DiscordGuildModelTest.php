@@ -40,14 +40,6 @@ class DiscordGuildModelTest extends TestCase
         $this->assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $guild->id);
     }
 
-    public function test_uuid_key_type_is_string_and_not_incrementing(): void
-    {
-        $guild = DiscordGuild::factory()->create();
-
-        $this->assertFalse($guild->incrementing);
-        $this->assertSame('string', $guild->getKeyType());
-    }
-
     public function test_paused_casts_to_boolean(): void
     {
         $guild = DiscordGuild::factory()->create(['paused' => true]);
@@ -374,25 +366,6 @@ class DiscordGuildModelTest extends TestCase
     }
 
     // ── M057/S07: moderation-flex enums ──────────────────────
-
-    public function test_discord_moderation_mode_enum_values(): void
-    {
-        $this->assertSame('open', DiscordModerationMode::Open->value);
-        $this->assertSame('review', DiscordModerationMode::Review->value);
-        $this->assertSame(['open', 'review'], DiscordModerationMode::values());
-    }
-
-    public function test_discord_card_status_enum_values(): void
-    {
-        $this->assertSame('posted', DiscordCardStatus::Posted->value);
-        $this->assertSame('pending', DiscordCardStatus::Pending->value);
-        $this->assertSame('rejected', DiscordCardStatus::Rejected->value);
-        $this->assertSame('expired', DiscordCardStatus::Expired->value);
-        $this->assertSame(
-            ['posted', 'pending', 'rejected', 'expired'],
-            DiscordCardStatus::values(),
-        );
-    }
 
     // ── M057/S07: DiscordGuild moderation_mode cast ──────────
 

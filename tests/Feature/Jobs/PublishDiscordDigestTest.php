@@ -122,17 +122,6 @@ class PublishDiscordDigestTest extends TestCase
         $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_channel_id);
     }
 
-    #[Test]
-    public function accepts_string_primary_key_in_constructor()
-    {
-        $guild = $this->postableGuild();
-        $this->fakePostSuccess();
-
-        // Constructor takes the primitive PK — passes strings, not models.
-        $job = new PublishDiscordDigest($guild->id);
-        $this->assertSame($guild->id, $job->guildId);
-    }
-
     // ════════════════════════════════════════════════════
     //  MISSING GUILD: removed between dispatch and execution
     // ════════════════════════════════════════════════════

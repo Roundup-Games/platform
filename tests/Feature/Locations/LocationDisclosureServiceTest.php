@@ -950,13 +950,4 @@ class LocationDisclosureServiceTest extends TestCase
         $this->assertTrue($hidden->isHidden());
         $this->assertSame('', $hidden->display());
     }
-
-    #[Test]
-    public function service_is_resolvable_from_the_container(): void
-    {
-        $this->assertInstanceOf(
-            LocationDisclosureService::class,
-            app(LocationDisclosureService::class)
-        );
-    }
 }

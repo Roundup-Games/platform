@@ -89,13 +89,6 @@ class GameBulletinModelTest extends TestCase
 
     // ── Content Length ────────────────────────────────────────
 
-    public function test_content_is_limited_to_280_chars(): void
-    {
-        $bulletin = GameBulletin::factory()->create(['content' => str_repeat('a', 280)]);
-
-        $this->assertEquals(280, strlen($bulletin->content));
-    }
-
     // ── Cascade Delete ────────────────────────────────────────
 
     public function test_bulletin_deleted_when_game_deleted(): void

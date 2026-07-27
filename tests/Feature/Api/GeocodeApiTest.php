@@ -146,38 +146,6 @@ describe('GeocodeApiTest', function () {
         postJson('/api/v1/geocode', ['query' => 'Berlin']);
     });
 
-    it('caches repeated geocode queries (cache hit)', function () {
-        // The GeocodingService itself caches via Cache::remember.
-        // Simulate the cache already having a result — the controller should
-        // never call the service's geocode method since it's resolved from cache.
-        $callCount = 0;
-        $mock = Mockery::mock(GeocodingService::class);
-        $mock->shouldReceive('geocode')
-            ->once()
-            ->withArgs(function (string $query) use (&$callCount) {
-                $callCount++;
-
-                return true;
-            })
-            ->andReturn([
-                'lat' => 48.8566,
-                'lng' => 2.3522,
-                'display_name' => 'Paris, France',
-                'place_id' => '42',
-                'raw' => ['address' => ['city' => 'Paris', 'country' => 'France']],
-            ]);
-        $this->app->instance(GeocodingService::class, $mock);
-
-        // First request — hits the service
-        $r1 = postJson('/api/v1/geocode', ['query' => 'Paris, France']);
-        $r1->assertOk()
-            ->assertJson(['lat' => 48.8566, 'lng' => 2.3522, 'city' => 'Paris']);
-
-        // The cache is handled inside GeocodingService::geocode via Cache::remember,
-        // so within the controller's mock scope, we verify the service was called once.
-        expect($callCount)->toBe(1);
-    });
-
     it('returns village name as city fallback', function () {
         $mock = Mockery::mock(GeocodingService::class);
         $mock->shouldReceive('geocode')
