@@ -86,7 +86,12 @@ describe('GameResource — JSONB translatable name selects', function () {
             ->and(GameSystem::labelOptions('Cat')[$system->id])->toBe('Catan');
     });
 
-    test('a focused session shows the single-system picker, not the gathering multi-select', function () {
+    test('board_game edit page renders with a single game system attached', function () {
+        // (The previous name promised picker-visibility distinction — single-system
+        // picker visible, gathering multi-select hidden — but the body only
+        // asserted assertOk(). Picker visibility is a Filament form-visibility
+        // concern that would need form introspection to verify. Renamed to
+        // honestly describe what this actually verifies: the edit page renders.)
         $owner = User::factory()->create();
         $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
         $game = Game::factory()->create([

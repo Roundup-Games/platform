@@ -84,8 +84,11 @@ class GmRoleServiceTest extends TestCase
 
     // ── Logging Events ─────────────────────────────────
 
-    public function test_revoke_gm_role_logs_info(): void
+    public function test_revoke_gm_role_removes_role_and_deactivates_profile(): void
     {
+        // (The previous name claimed to verify logging, but the body tests
+        // role revocation + profile deactivation. Logging is not asserted
+        // anywhere — renamed to match the actual coverage, which is valuable.)
         $user = $this->createSubscribedUser();
         $this->service->assignGMRole($user);
 
@@ -97,8 +100,10 @@ class GmRoleServiceTest extends TestCase
         $this->assertFalse($user->gmProfile->fresh()->is_active);
     }
 
-    public function test_subscription_lapse_logs_start_and_complete(): void
+    public function test_handle_subscription_lapse_removes_role_and_deactivates_profile(): void
     {
+        // (The previous name claimed to verify start/complete logging, but the
+        // body tests role revocation + profile deactivation. Renamed to match.)
         $user = $this->createSubscribedUser();
         $this->service->assignGMRole($user);
 

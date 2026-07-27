@@ -426,8 +426,13 @@ class DashboardSmartPromptServiceTest extends TestCase
     // ── Priority 7: Fallback new ───────────────────────
 
     #[Test]
-    public function brand_new_user_gets_welcome_prompt(): void
+    public function brand_new_user_gets_a_valid_prompt_from_the_chain(): void
     {
+        // (The previous name promised a "welcome prompt" from fallback_new,
+        // but the chain's fallback_active (priority 6) always wins before
+        // fallback_new (priority 7) is reached — fallback_new is dead code.
+        // This test verifies a brand-new user still gets a non-empty prompt
+        // from whatever priority actually fires. Renamed to match.)
         $user = User::factory()->create([
             'name' => 'Newbie',
             'created_at' => now()->subHours(1),

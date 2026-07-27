@@ -75,7 +75,13 @@ describe('Community Feed — friends activity', function () {
         expect($hasFriendActivity)->toBeTrue();
     });
 
-    test('feed items show player count and spots left via cache service', function () {
+    test('feed includes games created by followed friends', function () {
+        // (The previous name promised "player count and spots left" but the
+        // body only asserted items non-empty. The feed's cached shape doesn't
+        // expose participantCount/maxPlayers as top-level keys — those live on
+        // the entity model, not the ActivityFeedItem DTO. Renamed to honestly
+        // describe what this verifies: the end-to-end feed pipeline includes
+        // a friend's game that has approved participants.)
         $friend = User::factory()->create(['name' => 'Mike']);
         UserRelationship::create([
             'user_id' => $this->user->id,
@@ -218,7 +224,10 @@ describe('Community Feed — empty state', function () {
         $component->assertDontSee(__('profile.dashboard_pulse_heading'));
     });
 
-    test('people discovery is available via quick actions', function () {
+    test('dashboard renders successfully for the established user', function () {
+        // (The previous name promised "people discovery via quick actions" but
+        // the body only asserted assertStatus(200) — a pure mount smoke test.
+        // Renamed to match what it actually verifies.)
         // The dashboard provides ways to find people via the newcomer or established templates
         $component = Livewire::test(Dashboard::class);
         // The component should render without error
@@ -323,7 +332,10 @@ describe('Community Feed — trending subsection', function () {
         expect($component->viewData('dashboard')->established->communityFeed->showTrending)->toBeFalse();
     });
 
-    test('trending items show fire icon for visual distinction', function () {
+    test('trending items are populated when the trending cache has data', function () {
+        // (The previous name promised a "fire icon" assertion but the body
+        // only asserted trending items non-empty — the icon is a template
+        // concern. Renamed to honestly describe the data-level contract.)
         $friend = User::factory()->create(['name' => 'TrendFriend']);
         UserRelationship::create([
             'user_id' => $this->user->id,
