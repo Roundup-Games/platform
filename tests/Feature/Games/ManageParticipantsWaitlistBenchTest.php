@@ -59,9 +59,11 @@ describe('Game ManageParticipants waitlist display', function () {
         $component = Livewire\Livewire::actingAs($owner)
             ->test(GameManageParticipants::class, ['id' => $game->id]);
 
-        // Both waitlisted users should appear
-        $component->assertSee($user1->name)
-            ->assertSee($user2->name);
+        // The waitlist must render FIFO by waitlisted_at: $user1 (10 min ago)
+        // appears before $user2 (5 min ago). assertSeeInOrder verifies the
+        // ordering the test name promises — the previous assertSee() pair only
+        // checked presence and would pass even if the list were reversed.
+        $component->assertSeeInOrder([$user1->name, $user2->name]);
     });
 
     test('does not show waitlist section when no waitlisted players', function () {

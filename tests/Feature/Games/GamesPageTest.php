@@ -581,15 +581,16 @@ describe('GamesPage — Community Activity Feed', function () {
             'status' => ParticipantStatus::Approved->value,
         ]);
 
-        // The game_created activity should still show (friend didn't create it — viewer did)
-        // But the player_joined activity should NOT show because viewer already owns it
-        $response = actingAs($user)->get('/en/games');
-        $content = $response->getContent();
+        // Inspect the activity feed directly (instead of grepping the rendered
+        // HTML for a heading). GameActivityFeedService::getPlayersJoined()
+        // excludes viewer-owned/participated games via $gameIds->diff($viewerGameIds)
+        // — the feed must contain NO item referencing this game.
+        $feed = Livewire\Livewire::actingAs($user)
+            ->test(GamesPage::class)
+            ->viewData('activityFeed');
 
-        // The game name appears in My Games section, not in the feed
-        $heading = __('games.heading_community');
-        $pos = strpos($content, $heading);
-        expect($pos)->not->toBeFalse();
+        $ownGameInFeed = $feed->first(fn ($item) => $item->entityId === (string) $game->id);
+        expect($ownGameInFeed)->toBeNull("Viewer-owned game {$game->id} must not appear in the community activity feed.");
     });
 
     it('paginates activity feed at 15 per page', function () {

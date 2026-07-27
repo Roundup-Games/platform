@@ -151,7 +151,12 @@ it('handles empty expansion discovery', function () {
     expect($result['expansions_failed'])->toBe(0);
 });
 
-it('reports failures in exit code', function () {
+it('propagates BGG API failures as BggApiException', function () {
+    // (The previous name claimed to verify the command's exit code, but the
+    // body calls the service directly and asserts exception propagation —
+    // exit code is never involved. Renamed to match what it actually tests.
+    // The artisan exit-code contract for bgg:seed-top500 is a separate
+    // command-level test.)
     Http::fake([
         'boardgamegeek.com/*' => Http::response('Server Error', 500),
     ]);
@@ -163,7 +168,10 @@ it('reports failures in exit code', function () {
         ->toThrow(BggApiException::class);
 });
 
-it('runs bgg:seed-top500 command end-to-end', function () {
+it('seeds top-500 games via the service (XML parse + persistence + expansion link)', function () {
+    // (The previous name claimed an end-to-end command run, but the body calls
+    // the service directly — the artisan command is never invoked. Renamed to
+    // match what it actually exercises: the service-level seeding pipeline.)
     $baseXml = $this->gloomhavenXml;
     $expansionXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
