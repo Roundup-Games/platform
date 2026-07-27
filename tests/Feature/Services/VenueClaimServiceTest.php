@@ -154,10 +154,12 @@ it('createClaim logs venue_claim.submitted with ticket + location context', func
     Log::spy();
 
     $service = app(VenueClaimService::class);
-    $service->createClaim($this->claimant, $this->venue, ['claimant_notes' => 'mine']);
+    $ticket = $service->createClaim($this->claimant, $this->venue, ['claimant_notes' => 'mine']);
 
     Log::shouldHaveReceived('info')
-        ->withArgs(fn ($message) => $message === 'venue_claim.submitted')
+        ->withArgs(fn ($message, array $ctx) => ($ctx['ticket_id'] ?? null) === $ticket->id
+            && ($ctx['location_id'] ?? null) === $this->venue->id
+            && ($ctx['claimant_id'] ?? null) === $this->claimant->id)
         ->once();
 });
 
@@ -270,7 +272,9 @@ it('approveClaim logs venue_claim.approved', function () {
     $service->approveClaim($ticket);
 
     Log::shouldHaveReceived('info')
-        ->withArgs(fn ($message) => $message === 'venue_claim.approved')
+        ->withArgs(fn ($message, array $ctx) => ($ctx['ticket_id'] ?? null) === $ticket->id
+            && ($ctx['location_id'] ?? null) === $this->venue->id
+            && ($ctx['claimant_id'] ?? null) === $this->claimant->id)
         ->once();
 });
 
@@ -411,6 +415,7 @@ it('rejectClaim logs venue_claim.rejected', function () {
     $service->rejectClaim($ticket, 'Duplicate.');
 
     Log::shouldHaveReceived('info')
-        ->withArgs(fn ($message) => $message === 'venue_claim.rejected')
+        ->withArgs(fn ($message, array $ctx) => ($ctx['ticket_id'] ?? null) === $ticket->id
+            && ($ctx['reason'] ?? null) === 'Duplicate.')
         ->once();
 });

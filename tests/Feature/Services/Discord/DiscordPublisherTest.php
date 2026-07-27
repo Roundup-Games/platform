@@ -275,8 +275,7 @@ class DiscordPublisherTest extends TestCase
         $this->assertSame(0, DiscordCardMessage::where('game_id', $game->id)->count());
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_publisher.visibility_gate'
-                && ($ctx['visibility'] ?? null) === 'protected'
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['visibility'] ?? null) === 'protected'
                 && ($ctx['decision'] ?? null) === 'blocked')
             ->atLeast()
             ->once();

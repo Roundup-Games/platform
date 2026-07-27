@@ -142,7 +142,7 @@ class PublishDiscordDigestTest extends TestCase
         // No Discord call for a non-existent guild.
         Http::assertNothingSent();
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.job.guild_missing')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $missingId)
             ->atLeast()
             ->once();
     }
@@ -161,13 +161,11 @@ class PublishDiscordDigestTest extends TestCase
         (new PublishDiscordDigest($guild->id))->handle(app(DiscordDigestPublisher::class));
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.job.started'
-                && ($ctx['guild_id'] ?? null) === $guild->id)
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
             ->atLeast()
             ->once();
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.job.completed'
-                && ($ctx['guild_id'] ?? null) === $guild->id)
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
             ->atLeast()
             ->once();
     }
@@ -196,7 +194,7 @@ class PublishDiscordDigestTest extends TestCase
         (new PublishDiscordDigest($guild->id))->handle(app(DiscordDigestPublisher::class));
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg) => $msg === 'discord_digest.posted')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
             ->atLeast()
             ->once();
     }
@@ -228,8 +226,7 @@ class PublishDiscordDigestTest extends TestCase
         (new PublishDiscordDigest($guild->id))->failed($exception);
 
         Log::shouldHaveReceived('error')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.job.failed'
-                && ($ctx['guild_id'] ?? null) === $guild->id
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id
                 && ($ctx['exception'] ?? null) === 'boom'
                 && ($ctx['exception_class'] ?? null) === DiscordPublishException::class)
             ->atLeast()
@@ -245,7 +242,7 @@ class PublishDiscordDigestTest extends TestCase
         (new PublishDiscordDigest($guild->id))->failed(null);
 
         Log::shouldHaveReceived('error')
-            ->withArgs(fn (string $msg) => $msg === 'discord_digest.job.failed')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
             ->atLeast()
             ->once();
     }

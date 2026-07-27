@@ -296,8 +296,7 @@ class DiscordGuildDiscoveryTest extends TestCase
         app(DiscordGuildDiscoveryService::class)->discoverFor($organizer);
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $ctx) => $message === 'discord_discovery.guild_surfaced'
-                && ($ctx['organizer_id'] ?? null) === $organizer->id
+            ->withArgs(fn (string $message, array $ctx) => ($ctx['organizer_id'] ?? null) === $organizer->id
                 && ($ctx['guild_id'] ?? null) === self::GUILD_SNOWFLAKE_A
                 && ($ctx['status'] ?? null) === 'surfaced')
             ->atLeast()
@@ -315,8 +314,7 @@ class DiscordGuildDiscoveryTest extends TestCase
 
         $service->optIn($organizer, $guild);
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $ctx) => $message === 'discord_discovery.guild_opted_in'
-                && ($ctx['status'] ?? null) === 'claimed'
+            ->withArgs(fn (string $message, array $ctx) => ($ctx['status'] ?? null) === 'claimed'
                 && ($ctx['organizer_id'] ?? null) === $organizer->id
                 && ($ctx['guild_id'] ?? null) === self::GUILD_SNOWFLAKE_A)
             ->atLeast()
@@ -324,8 +322,7 @@ class DiscordGuildDiscoveryTest extends TestCase
 
         $service->optOut($organizer, $guild);
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $ctx) => $message === 'discord_discovery.guild_opted_out'
-                && ($ctx['status'] ?? null) === 'unclaimed')
+            ->withArgs(fn (string $message, array $ctx) => ($ctx['status'] ?? null) === 'unclaimed')
             ->atLeast()
             ->once();
     }

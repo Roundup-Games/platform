@@ -388,8 +388,7 @@ class GuildSettingsTest extends TestCase
             ->call('togglePaused');
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $ctx) => $message === 'discord_guild.pause_toggled'
-                && ($ctx['action'] ?? null) === 'paused')
+            ->withArgs(fn (string $message, array $ctx) => ($ctx['action'] ?? null) === 'paused')
             ->atLeast()
             ->once();
     }

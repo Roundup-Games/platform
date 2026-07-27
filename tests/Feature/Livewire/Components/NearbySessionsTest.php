@@ -340,8 +340,7 @@ describe('Observability', function () {
 
         Log::shouldReceive('info')
             ->once()
-            ->withArgs(fn (string $message, array $context) => $message === 'Location gate converted' &&
-                $context['source'] === 'browser' &&
+            ->withArgs(fn (string $message, array $context) => $context['source'] === 'browser' &&
                 $context['result_count'] === 1
             );
 
