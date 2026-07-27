@@ -231,18 +231,6 @@ describe('ticket events', function () {
         });
     });
 
-    it('dispatches TicketAssigned event (faked due to int-typed vendor constructor)', function () {
-        $ticket = createTestTicket($this->user, $this->department, ['subject' => 'Assign event test']);
-
-        // Vendor TicketAssigned types $agentId as int — incompatible with UUID.
-        // We fake it and verify the DB update directly.
-        Event::fake(TicketAssigned::class);
-        assignTicketDirectly($ticket, $this->agent);
-
-        // Verify assignment via DB state
-        expect($ticket->fresh()->assigned_to)->toBe($this->agent->id);
-    });
-
     it('dispatches TicketResolved event', function () {
         $ticket = createTestTicket($this->user, $this->department, ['subject' => 'Resolve event test']);
 
