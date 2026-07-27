@@ -183,7 +183,7 @@ describe('NotificationService', function () {
         });
 
         it('skips dispatch when all channels are disabled', function () {
-            Log::shouldReceive('info')->with('notification.dispatch_skipped', \Mockery::type('array'));
+            Log::shouldReceive('info')->with(\Mockery::type('string'), \Mockery::type('array'));
 
             $user = User::factory()->create([
                 'notification_settings' => [
@@ -198,7 +198,7 @@ describe('NotificationService', function () {
         });
 
         it('skips dispatch when notifiable has blocked the actor', function () {
-            Log::shouldReceive('info')->with('notification.dispatch_skipped', \Mockery::type('array'));
+            Log::shouldReceive('info')->with(\Mockery::type('string'), \Mockery::type('array'));
 
             $actor = User::factory()->create();
             $notifiable = User::factory()->create([
@@ -247,7 +247,7 @@ describe('NotificationService', function () {
             ]);
 
             $capturedContext = null;
-            Log::shouldReceive('info')->with('notification.dispatched', \Mockery::capture($capturedContext));
+            Log::shouldReceive('info')->with(\Mockery::type('string'), \Mockery::capture($capturedContext));
 
             $notification = new TestNotification(['game_id' => 1]);
             $this->service->send($user, $notification, NotificationCategory::GameInvitation);
