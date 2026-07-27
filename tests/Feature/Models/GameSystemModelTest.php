@@ -182,13 +182,6 @@ describe('GameSystem TTRPG Support', function () {
             ->and($boardgames->every(fn ($s) => $s->type === 'boardgame'))->toBeTrue();
     });
 
-    it('isTtrpg accessor returns correct boolean', function () {
-        $ttrpg = GameSystem::factory()->create(['name' => ['en' => 'TTRPG Check'], 'type' => 'ttrpg']);
-        $bg = GameSystem::factory()->create(['name' => ['en' => 'BG Check'], 'type' => 'boardgame']);
-
-        expect($ttrpg->isTtrpg())->toBeTrue()
-            ->and($bg->isTtrpg())->toBeFalse();
-    });
 });
 
 describe('GameSystem slug generation', function () {

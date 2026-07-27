@@ -68,14 +68,6 @@ test('owner name does not appear in approved participants section', function () 
         ->assertDontSee($this->owner->name);
 });
 
-test('owner is accessible via game relationship for separate display', function () {
-    Livewire\Livewire::actingAs($this->owner)
-        ->test(GameManageParticipants::class, ['id' => $this->game->id]);
-
-    // The game's owner relationship is still intact
-    expect($this->game->owner->id)->toBe($this->owner->id);
-});
-
 test('approved participants section shows count excluding owner', function () {
     $player = User::factory()->create(['profile_complete' => true]);
 

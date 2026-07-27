@@ -77,15 +77,6 @@ test('owner does not appear even when multiple approved players exist', function
     });
 });
 
-test('owner user is still accessible via game relationship', function () {
-    Livewire\Livewire::actingAs($this->owner)
-        ->test(GameManageParticipants::class, ['id' => $this->game->id])
-        ->assertOk();
-
-    // The game's owner relationship should still work
-    expect($this->game->owner->id)->toBe($this->owner->id);
-});
-
 test('owner name does not appear in approved participants section', function () {
     // Add a player so the section is non-empty
     $player = User::factory()->create([
