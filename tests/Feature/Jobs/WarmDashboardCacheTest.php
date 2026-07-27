@@ -118,7 +118,7 @@ class WarmDashboardCacheTest extends TestCase
         Log::shouldReceive('info')->atLeast(1);
         Log::shouldReceive('warning')->once()->with(
             \Mockery::type('string'),
-            \Mockery::on(fn ($ctx) => $ctx['user_id'] === $fakeId),
+            \Mockery::on(fn ($ctx) => ($ctx['user_id'] ?? null) === $fakeId),
         );
 
         $job = new WarmDashboardCache($fakeId, 'cache_miss_week');
@@ -136,13 +136,13 @@ class WarmDashboardCacheTest extends TestCase
 
         Log::shouldReceive('info')->once()->with(
             \Mockery::type('string'),
-            \Mockery::on(fn ($ctx) => $ctx['user_id'] === (string) $user->id
-                && $ctx['trigger_type'] === 'cache_miss_week',
+            \Mockery::on(fn ($ctx) => ($ctx['user_id'] ?? null) === (string) $user->id
+                && ($ctx['trigger_type'] ?? null) === 'cache_miss_week',
             ));
 
         Log::shouldReceive('info')->once()->with(
             \Mockery::type('string'),
-            \Mockery::on(fn ($ctx) => $ctx['user_id'] === (string) $user->id
+            \Mockery::on(fn ($ctx) => ($ctx['user_id'] ?? null) === (string) $user->id
                 && isset($ctx['duration_ms'])
                 && isset($ctx['item_counts'])
                 && isset($ctx['mode']),
@@ -159,8 +159,8 @@ class WarmDashboardCacheTest extends TestCase
 
         Log::shouldReceive('error')->once()->with(
             \Mockery::type('string'),
-            \Mockery::on(fn ($ctx) => $ctx['user_id'] === $userId
-                && $ctx['trigger_type'] === 'sweep'
+            \Mockery::on(fn ($ctx) => ($ctx['user_id'] ?? null) === $userId
+                && ($ctx['trigger_type'] ?? null) === 'sweep'
                 && isset($ctx['exception']),
             ),
         );

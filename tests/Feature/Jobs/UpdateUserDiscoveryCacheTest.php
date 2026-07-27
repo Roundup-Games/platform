@@ -104,8 +104,8 @@ class UpdateUserDiscoveryCacheTest extends TestCase
     {
         $fakeUuid = Str::uuid()->toString();
         Log::shouldReceive('error')->once()->with(\Mockery::type('string'), \Mockery::on(function ($context) use ($fakeUuid) {
-            return $context['user_id'] === $fakeUuid
-                && $context['trigger_type'] === 'sweep'
+            return ($context['user_id'] ?? null) === $fakeUuid
+                && ($context['trigger_type'] ?? null) === 'sweep'
                 && isset($context['exception']);
         }));
 

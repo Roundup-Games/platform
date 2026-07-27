@@ -271,8 +271,12 @@ it('approveClaim logs venue_claim.approved', function () {
     $ticket = $service->createClaim($this->claimant, $this->venue, ['claimant_notes' => 'mine']);
     $service->approveClaim($ticket);
 
+    // approved carries IDENTICAL context to the submitted log emitted by
+    // createClaim above (same ticket_id/location_id/claimant_id), so the
+    // message string is the only distinguisher. (CodeRabbit review + CI fix.)
     Log::shouldHaveReceived('info')
-        ->withArgs(fn ($message, array $ctx) => ($ctx['ticket_id'] ?? null) === $ticket->id
+        ->withArgs(fn ($message, array $ctx) => $message === 'venue_claim.approved'
+            && ($ctx['ticket_id'] ?? null) === $ticket->id
             && ($ctx['location_id'] ?? null) === $this->venue->id
             && ($ctx['claimant_id'] ?? null) === $this->claimant->id)
         ->once();
