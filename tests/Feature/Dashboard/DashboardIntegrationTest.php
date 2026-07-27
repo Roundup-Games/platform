@@ -152,30 +152,35 @@ describe('Cache lifecycle', function () {
     test('warm cache: second visit reads from cache without recomputation', function () {
         Queue::fake();
 
-        // First visit — populates cache
+        // Cold visit — populate cache and count the queries it issues.
+        DB::enableQueryLog();
         Livewire::test(Dashboard::class);
+        $coldQueryCount = count(DB::getQueryLog());
+        DB::disableQueryLog();
 
         // Verify cache was populated
         $weekKey = now()->startOfWeek()->format('Y-m-d');
         $cacheKey = "dashboard:week:{$this->user->id}:{$weekKey}";
         expect(Cache::get($cacheKey))->not->toBeNull();
 
-        // Count query log for second visit
-        $queryCountBefore = DB::getQueryLog() ? count(DB::getQueryLog()) : 0;
-
-        // Second visit — should use cache
+        // Warm visit — weekData must be served from cache, so this visit issues
+        // strictly fewer queries than the cold one. This is the actual contract
+        // the test name promises; the previous version enabled the query log
+        // but never asserted on it.
+        //
+        // DB::getQueryLog() accumulates across enable/disable cycles, so we
+        // flush between measurements to isolate the warm-visit query set.
+        DB::flushQueryLog();
         DB::enableQueryLog();
         $component = Livewire::test(Dashboard::class);
-        $queries = DB::getQueryLog();
+        $warmQueryCount = count(DB::getQueryLog());
         DB::disableQueryLog();
 
-        // Week data should still be present
+        expect($warmQueryCount)->toBeLessThan($coldQueryCount);
+
+        // And the cached weekData is still returned intact.
         $weekData = $component->viewData('dashboard')->shared->weekData;
         expect($weekData)->toHaveKey('days');
-
-        // Verify cache hit occurred (fewer queries than cold visit)
-        // The key point: data is returned from cache, not recomputed
-        expect(Cache::get($cacheKey))->not->toBeNull();
     });
 });
 

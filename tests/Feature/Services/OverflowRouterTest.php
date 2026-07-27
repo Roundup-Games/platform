@@ -155,29 +155,29 @@ it('returns the benched flash key for bench-mode entities', function () {
     expect($result->messageKey)->toBe('people.flash_email_invite_benched');
 });
 
-// ── Consistency: share-link vs email-invite produce the same status ──
+// ── OverflowRouter::resolve — expected status per mode ──
 
-it('produces the same overflow status for share-link apply and email-invite on a full game', function () {
-    // The validation audit flagged that GameDetail's share-link apply path
-    // reimplemented the bench-mode branch inline, bypassing the service.
-    // OverflowRouter::resolve() is now the single decision point — both the
-    // service placement (placeAcceptedInvitee) and the GameDetail inline
-    // branch route through it. This test proves they agree.
+it('returns the expected overflow status for a full game in both bench and waitlist modes', function () {
+    // Pins OverflowRouter::resolve() as the single decision point: it must
+    // return Benched (benched_at) when the game is in bench mode and
+    // Waitlisted (waitlisted_at) otherwise.
+    //
+    // (The previous name claimed to verify share-link vs email-invite parity,
+    // but the body never exercised either path — only resolve() itself.
+    // Cross-path parity is an integration concern covered by the apply/invite
+    // feature tests; this is the unit contract on the router.)
     $owner = User::factory()->create();
 
     foreach ([false, true] as $benchMode) {
         $game = createFullGame($owner, $this->gameSystem, benchMode: $benchMode);
 
-        // What the service would assign
-        $serviceStatus = app(OverflowRouter::class)->resolve($game);
+        $status = app(OverflowRouter::class)->resolve($game);
 
-        // What GameDetail's rewritten share-link branch would assign
-        // (it calls the same resolve() — verifying the routing is consistent)
-        expect($serviceStatus->statusValue())
+        expect($status->statusValue())
             ->toBe($benchMode
                 ? ParticipantStatus::Benched->value
                 : ParticipantStatus::Waitlisted->value)
-            ->and($serviceStatus->timestampColumn)
+            ->and($status->timestampColumn)
             ->toBe($benchMode ? 'benched_at' : 'waitlisted_at');
     }
 });
