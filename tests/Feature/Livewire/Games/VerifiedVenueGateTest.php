@@ -55,56 +55,73 @@ function nonVerifiedLocation(): Location
 // CREATE GAME — canCreatePublic COMPUTED
 // ═══════════════════════════════════════════════════════════
 
-describe('CreateGame — canCreatePublic gate', function () {
-    it('returns true for GM user regardless of location', function () {
+// ═══════════════════════════════════════════════════════════
+// VENUE GATE — canCreatePublic (CreateGame + CreateCampaign share
+// the same gate logic; previously mirrored test-for-test across two
+// describe blocks. Collapsed to a data provider in audit P5.)
+// ═══════════════════════════════════════════════════════════
+
+dataset('venue-gate-components', [
+    'CreateGame' => CreateGame::class,
+    'CreateCampaign' => CreateCampaign::class,
+]);
+
+describe('canCreatePublic gate (CreateGame + CreateCampaign)', function () {
+    it('returns true for GM user at verified and unverified locations', function (string $component, bool $verified) {
         $gm = venueGateGmUser();
+        $location = $verified ? verifiedLocation() : nonVerifiedLocation();
 
         Livewire\Livewire::actingAs($gm)
-            ->test(CreateGame::class)
+            ->test($component)
+            ->set('location_id', $location->id)
             ->assertSet('canCreatePublic', true);
-    });
+    })->with('venue-gate-components')->with(['verified' => true, 'unverified' => false]);
 
-    it('returns true for GM user even without a location', function () {
+    it('returns true for GM user even without a location', function (string $component) {
         $gm = venueGateGmUser();
 
         Livewire\Livewire::actingAs($gm)
-            ->test(CreateGame::class)
+            ->test($component)
             ->set('location_id', null)
             ->assertSet('canCreatePublic', true);
-    });
+    })->with('venue-gate-components');
 
-    it('returns true for non-GM user at a verified venue', function () {
+    it('returns true for non-GM user at a verified venue', function (string $component) {
         $user = venueGateNonGmUser();
         $venue = verifiedLocation();
 
         Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
+            ->test($component)
             ->set('location_id', $venue->id)
             ->assertSet('canCreatePublic', true);
-    });
+    })->with('venue-gate-components');
 
-    it('returns false for non-GM user at a non-verified location', function () {
+    it('returns false for non-GM user at a non-verified location', function (string $component) {
         $user = venueGateNonGmUser();
         $loc = nonVerifiedLocation();
 
         Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
+            ->test($component)
             ->set('location_id', $loc->id)
             ->assertSet('canCreatePublic', false);
-    });
+    })->with('venue-gate-components');
 
-    it('returns false for non-GM user with no location', function () {
+    it('returns false for non-GM user with no location', function (string $component) {
         $user = venueGateNonGmUser();
 
         Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
+            ->test($component)
             ->set('location_id', null)
             ->assertSet('canCreatePublic', false);
-    });
+    })->with('venue-gate-components');
 });
 
 // ═══════════════════════════════════════════════════════════
 // CREATE GAME — SAVE WITH VERIFIED VENUE BYPASS
+// (Game and Campaign save tests are kept separate — their form-field
+// setups differ materially: date_time/max_players vs recurrence/
+// time_of_day. A data provider would need conditional field-setting
+// uglier than the duplication.)
 // ═══════════════════════════════════════════════════════════
 
 describe('CreateGame — save with venue bypass', function () {
@@ -181,56 +198,11 @@ describe('CreateGame — save with venue bypass', function () {
 // CREATE CAMPAIGN — canCreatePublic COMPUTED
 // ═══════════════════════════════════════════════════════════
 
-describe('CreateCampaign — canCreatePublic gate', function () {
-    it('returns true for GM user regardless of location', function () {
-        $gm = venueGateGmUser();
-
-        Livewire\Livewire::actingAs($gm)
-            ->test(CreateCampaign::class)
-            ->assertSet('canCreatePublic', true);
-    });
-
-    it('returns true for GM user even without a location', function () {
-        $gm = venueGateGmUser();
-
-        Livewire\Livewire::actingAs($gm)
-            ->test(CreateCampaign::class)
-            ->set('location_id', null)
-            ->assertSet('canCreatePublic', true);
-    });
-
-    it('returns true for non-GM user at a verified venue', function () {
-        $user = venueGateNonGmUser();
-        $venue = verifiedLocation();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateCampaign::class)
-            ->set('location_id', $venue->id)
-            ->assertSet('canCreatePublic', true);
-    });
-
-    it('returns false for non-GM user at a non-verified location', function () {
-        $user = venueGateNonGmUser();
-        $loc = nonVerifiedLocation();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateCampaign::class)
-            ->set('location_id', $loc->id)
-            ->assertSet('canCreatePublic', false);
-    });
-
-    it('returns false for non-GM user with no location', function () {
-        $user = venueGateNonGmUser();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateCampaign::class)
-            ->set('location_id', null)
-            ->assertSet('canCreatePublic', false);
-    });
-});
-
 // ═══════════════════════════════════════════════════════════
 // CREATE CAMPAIGN — SAVE WITH VERIFIED VENUE BYPASS
+// (Gate tests for CreateCampaign are covered by the shared data-provider
+// describe above. Only the save tests — with their campaign-specific form
+// fields — live here.)
 // ═══════════════════════════════════════════════════════════
 
 describe('CreateCampaign — save with venue bypass', function () {
