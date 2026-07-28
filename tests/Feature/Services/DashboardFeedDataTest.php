@@ -275,21 +275,26 @@ class DashboardFeedDataTest extends TestCase
             'longitude' => 13.3777,
         ]);
 
-        Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
+            'visibility' => 'public',
             'location_id' => $location->id,
             'location' => ['type' => 'offline'],
             'date_time' => now()->addDays(3),
         ]);
 
-        $geohash4 = Geohash::tilePrefix(52.5163, 13.3777, 4);
+        // Read the PG-trigger-computed geohash_4 so the tile is guaranteed to
+        // contain this location (recomputing it from lat/lng risked a boundary
+        // mismatch, which is why the prior version hedged "may or may not").
+        $geohash4 = $location->fresh()->geohash_4;
 
+        $this->service->warmTrendingNearby($geohash4);
         $result = $this->service->getTrendingNearby($geohash4);
 
         $this->assertArrayHasKey('games', $result);
-        // May or may not include the game depending on tile boundaries
-        $this->assertIsArray($result['games']);
+        $ids = array_column($result['games'], 'id');
+        $this->assertContains($game->id, $ids, 'game in the tile must appear in trending results');
     }
 
     #[Test]
@@ -301,35 +306,50 @@ class DashboardFeedDataTest extends TestCase
             'longitude' => 13.3777,
         ]);
 
-        // New game with participants — should score higher
+        // Popular game: 2 approved participants, recently created.
         $popularGame = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
+            'visibility' => 'public',
             'location_id' => $location->id,
             'location' => ['type' => 'offline'],
             'date_time' => now()->addDays(3),
             'created_at' => now()->subDay(),
             'name' => ['en' => 'Popular Game'],
         ]);
-        GameParticipant::factory()->create([
+        GameParticipant::factory()->count(2)->create([
             'game_id' => $popularGame->id,
-            'user_id' => User::factory()->create()->id,
             'status' => ParticipantStatus::Approved,
         ]);
 
-        $geohash4 = Geohash::tilePrefix(52.5163, 13.3777, 4);
+        // Less-popular game: no participants, older — must rank below.
+        $quietGame = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'status' => GameStatus::Scheduled,
+            'visibility' => 'public',
+            'location_id' => $location->id,
+            'location' => ['type' => 'offline'],
+            'date_time' => now()->addDays(5),
+            'created_at' => now()->subDays(10),
+            'name' => ['en' => 'Quiet Game'],
+        ]);
+
+        $geohash4 = $location->fresh()->geohash_4;
         $count = $this->service->warmTrendingNearby($geohash4);
 
         $cached = Cache::get("dashboard:trending:{$geohash4}");
         $this->assertNotNull($cached);
+        $this->assertGreaterThanOrEqual(2, $count, 'both games should be warmed');
 
-        // If the game is in this tile, verify its data shape
-        foreach ($cached['games'] as $game) {
-            $this->assertArrayHasKey('id', $game);
-            $this->assertArrayHasKey('name', $game);
-            $this->assertArrayHasKey('participant_count', $game);
-            $this->assertArrayHasKey('max_players', $game);
-        }
+        // Order is participant_count DESC, created_at DESC: popular ranks first.
+        $byId = collect($cached['games'])->keyBy('id');
+        $this->assertTrue($byId->has($popularGame->id) && $byId->has($quietGame->id));
+        $this->assertSame(2, $byId[$popularGame->id]['participant_count']);
+        $this->assertSame(0, $byId[$quietGame->id]['participant_count']);
+
+        $popularPos = collect($cached['games'])->search(fn ($g) => $g['id'] === $popularGame->id);
+        $quietPos = collect($cached['games'])->search(fn ($g) => $g['id'] === $quietGame->id);
+        $this->assertLessThan($quietPos, $popularPos, 'popular game must rank above the quiet game');
     }
 
     // ── Feed invalidation on follow/unfollow ───────────────────

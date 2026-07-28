@@ -177,6 +177,9 @@ describe('GameDetail share links', function () {
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
             ->call('generateShareLink');
+
+        // Behavioral backstop: the token was actually generated.
+        expect($game->fresh()->share_token)->not->toBeNull();
     });
 });
 
@@ -315,5 +318,8 @@ describe('CampaignDetail share links', function () {
         Livewire::actingAs($this->owner)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
             ->call('generateShareLink');
+
+        // Behavioral backstop: the token was actually generated.
+        expect($campaign->fresh()->share_token)->not->toBeNull();
     });
 });

@@ -143,7 +143,7 @@ describe('GeocodeApiTest', function () {
         ]);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/v1/geocode', ['query' => 'Berlin']);
+        postJson('/api/v1/geocode', ['query' => 'Berlin'])->assertOk();
     });
 
     it('returns village name as city fallback', function () {

@@ -297,6 +297,9 @@ class RequestGameSystemPageTest extends TestCase
                 && ($context['user_id'] ?? null) === $this->user->id
                 && ($context['name'] ?? null) === 'Wingspan';
         });
+
+        // Behavioral backstop: the duplicate was rejected (no new ticket).
+        $this->assertEquals(1, Ticket::where('ticket_type', 'game_system_request')->count());
     }
 
     public function test_rate_limit_hit_is_logged(): void
@@ -324,6 +327,9 @@ class RequestGameSystemPageTest extends TestCase
             return str_contains($message, 'rate limit')
                 && ($context['user_id'] ?? null) === $this->user->id;
         });
+
+        // Behavioral backstop: the rate-limited submit was rejected (no 4th ticket).
+        $this->assertEquals(3, Ticket::where('ticket_type', 'game_system_request')->count());
     }
 
     public function test_successful_submission_is_logged(): void
@@ -340,5 +346,8 @@ class RequestGameSystemPageTest extends TestCase
                 && ($context['user_id'] ?? null) === $this->user->id
                 && ($context['name'] ?? null) === 'Wingspan';
         });
+
+        // Behavioral backstop: the ticket was actually created.
+        $this->assertEquals(1, Ticket::where('ticket_type', 'game_system_request')->count());
     }
 }

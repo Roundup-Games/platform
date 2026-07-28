@@ -76,9 +76,11 @@ describe('Dashboard — community feed uses semantic list structure', function (
         $html = Livewire::test(Dashboard::class)
             ->html();
 
-        // Feed items list uses ul/li
-        expect($html)->toContain('<ul class="space-y-1" role="list">');
-        expect($html)->toContain('<li>');
+        // Feed items list uses ul/li with an a11y role. Class strings are
+        // intentionally not pinned — they are a CSS-implementation detail.
+        expect($html)->toContain('<ul')
+            ->and($html)->toContain('role="list"')
+            ->and($html)->toContain('<li>');
     });
 
     test('feed timestamps use time element with datetime attribute', function () {
@@ -118,8 +120,8 @@ describe('Dashboard — community feed uses semantic list structure', function (
             ->html();
 
         // Timestamps should use <time> with datetime attribute
-        expect($html)->toContain('<time class="text-[10px] text-on-surface-variant shrink-0"');
-        expect($html)->toContain('datetime="');
+        expect($html)->toContain('<time')
+            ->and($html)->toContain('datetime="');
     });
 });
 
@@ -128,9 +130,9 @@ describe('Dashboard — quick actions use nav with aria-label', function () {
         $html = Livewire::test(Dashboard::class)
             ->html();
 
-        // Quick actions should use <nav> with aria-label
-        expect($html)->toContain('<nav class="flex flex-wrap gap-3"');
-        expect($html)->toContain('aria-label="Quick Actions"');
+        // Quick actions should use <nav> with aria-label (class string not pinned)
+        expect($html)->toContain('<nav')
+            ->and($html)->toContain('aria-label="Quick Actions"');
     });
 });
 
@@ -139,8 +141,8 @@ describe('Dashboard — heading hierarchy is correct', function () {
         $html = Livewire::test(Dashboard::class)
             ->html();
 
-        // Main section headings should use h3
-        expect($html)->toContain('<h3 class="font-heading text-lg font-semibold text-on-surface flex items-center gap-2 mb-4">');
+        // Main section headings should use h3 (class string not pinned)
+        expect($html)->toContain('<h3');
     });
 });
 

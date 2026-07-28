@@ -212,6 +212,9 @@ describe('observability', function () {
         Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         $this->service->increase($game, 5);
+
+        // Behavioral backstop: the capacity actually changed.
+        expect($game->fresh()->max_players)->toBe(5);
     });
 
     it('emits a capacity.decrease structured log with displaced_count=0', function () {
@@ -231,6 +234,9 @@ describe('observability', function () {
         Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         $this->service->decrease($game, 3);
+
+        // Behavioral backstop: the capacity actually changed.
+        expect($game->fresh()->max_players)->toBe(3);
     });
 });
 

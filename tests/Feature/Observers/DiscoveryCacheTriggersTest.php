@@ -4,6 +4,7 @@ namespace Tests\Feature\Observers;
 
 use App\Enums\VibeFlag;
 use App\Jobs\UpdateUserDiscoveryCache;
+use App\Livewire\Onboarding\CompleteProfile;
 use App\Livewire\People\PeoplePage;
 use App\Livewire\Profile\Show;
 use App\Models\GameSystem;
@@ -11,6 +12,7 @@ use App\Models\Location;
 use App\Models\NearbyDiscoveryView;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Services\GeocodingService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
@@ -323,21 +325,36 @@ class DiscoveryCacheTriggersTest extends TestCase
         Queue::fake();
 
         $user = User::factory()->create(['profile_complete' => false]);
-        $location = Location::factory()->create(['latitude' => 52.52, 'longitude' => 13.405]);
 
-        // Simulate what onboarding complete() does: update user with location, then dispatch
-        $user->update([
-            'location_id' => $location->id,
-            'profile_complete' => true,
-        ]);
+        // The real CompleteProfile::complete() geocodes the chosen city to build
+        // the Location record. That is an external boundary, so the geocoder is
+        // stubbed (mirrors Http::fake() for HTTP APIs). The form coords still
+        // persist onto the Location, which is what gates the dispatch.
+        $geocoder = \Mockery::mock(GeocodingService::class);
+        $geocoder->shouldReceive('geocode')->andReturn(null);
+        $this->app->instance(GeocodingService::class, $geocoder);
 
-        $freshUser = $user->fresh();
-        if ($freshUser->linkedLocation?->latitude && $freshUser->linkedLocation?->longitude) {
-            UpdateUserDiscoveryCache::dispatch($freshUser->id, 'location_change');
-        }
+        // Drive the REAL onboarding completion flow end-to-end. The previous
+        // version manually re-ran the update() + guard + dispatch() and so only
+        // exercised the test's own paraphrase — a regression that removed the
+        // dispatch from complete() would have passed silently.
+        Livewire::actingAs($user)
+            ->test(CompleteProfile::class)
+            // Step 1 — location
+            ->set('city', 'Berlin')
+            ->set('lat', 52.52)
+            ->set('lng', 13.405)
+            ->set('locationConfirmed', true)
+            // Step 2 — identity
+            ->set('gender', 'non-binary')
+            ->set('gender_consent', true)
+            ->set('pronouns', 'they/them')
+            // Step 3 — phone (optional)
+            ->set('phone', '')
+            ->call('complete');
 
         Queue::assertPushedOn('discovery', UpdateUserDiscoveryCache::class, function ($job) use ($user) {
-            return $job->userId === $user->id && $job->triggerType === 'location_change';
+            return $job->userId === (string) $user->id && $job->triggerType === 'location_change';
         });
     }
 

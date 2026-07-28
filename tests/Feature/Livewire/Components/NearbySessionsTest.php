@@ -344,8 +344,12 @@ describe('Observability', function () {
                 $context['result_count'] === 1
             );
 
-        Livewire::test(NearbySessions::class)
+        $component = Livewire::test(NearbySessions::class)
             ->call('onGuestLocationUpdated', $this->centerLat, $this->centerLng, 'browser');
+
+        // Behavioral backstop: the guest coordinates were actually applied.
+        expect($component->get('guestLat'))->toBe($this->centerLat)
+            ->and($component->get('guestLng'))->toBe($this->centerLng);
     });
 });
 

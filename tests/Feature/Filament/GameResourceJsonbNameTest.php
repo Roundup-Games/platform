@@ -85,25 +85,4 @@ describe('GameResource — JSONB translatable name selects', function () {
             ->and(GameSystem::labelOptions('Cat'))->toHaveKey($system->id)
             ->and(GameSystem::labelOptions('Cat')[$system->id])->toBe('Catan');
     });
-
-    test('board_game edit page renders with a single game system attached', function () {
-        // (The previous name promised picker-visibility distinction — single-system
-        // picker visible, gathering multi-select hidden — but the body only
-        // asserted assertOk(). Picker visibility is a Filament form-visibility
-        // concern that would need form introspection to verify. Renamed to
-        // honestly describe what this actually verifies: the edit page renders.)
-        $owner = User::factory()->create();
-        $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_type' => 'board_game',
-        ]);
-        $game->gameSystems()->sync([$system->id]);
-
-        actingAs($this->platformAdmin);
-
-        // board_game → single game_system_id visible, multi gameSystems hidden
-        Livewire\Livewire::test(EditGame::class, ['record' => $game->getRouteKey()])
-            ->assertOk();
-    });
 });

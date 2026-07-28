@@ -250,6 +250,12 @@ class ViewSessionZeroTest extends TestCase
         Livewire::actingAs($user)
             ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->call('confirm');
+
+        // Behavioral backstop: the confirmation was actually persisted.
+        $this->assertDatabaseHas('session_zero_confirmations', [
+            'session_zero_survey_id' => $this->survey->id,
+            'user_id' => $user->id,
+        ]);
     }
 
     // ── Edge Cases ───────────────────────────────────────

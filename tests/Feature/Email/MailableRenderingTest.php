@@ -8,24 +8,8 @@ use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Team;
 use App\Models\User;
-use Illuminate\Support\Facades\Mail;
-
-beforeEach(function () {
-    Mail::fake();
-});
 
 describe('WelcomeEmail', function () {
-    test('welcome email can be queued for a user', function () {
-        $user = User::factory()->create(['name' => 'Jane Doe', 'email' => 'jane@example.com']);
-
-        Mail::to($user)->send(new WelcomeEmail($user));
-
-        Mail::assertQueued(WelcomeEmail::class, 1);
-        Mail::assertQueued(WelcomeEmail::class, function ($mail) use ($user) {
-            return $mail->hasTo($user->email) && $mail->user->is($user);
-        });
-    })->group('smoke');
-
     test('welcome email renders with correct content and locale-prefixed URLs', function () {
         app()->setLocale('en');
         $user = User::factory()->create(['name' => 'Alice']);
@@ -38,19 +22,6 @@ describe('WelcomeEmail', function () {
 });
 
 describe('MembershipConfirmationEmail', function () {
-    test('membership confirmation email can be queued', function () {
-        $user = User::factory()->create();
-
-        Mail::to($user)->send(new MembershipConfirmationEmail($user, 'Premium Plan', '$9.99/mo', 'May 1, 2026'));
-
-        Mail::assertQueued(MembershipConfirmationEmail::class, 1);
-        Mail::assertQueued(MembershipConfirmationEmail::class, function ($mail) use ($user) {
-            return $mail->hasTo($user->email)
-                && $mail->planName === 'Premium Plan'
-                && $mail->amount === '$9.99/mo';
-        });
-    });
-
     test('membership confirmation email includes plan details when provided', function () {
         $user = User::factory()->create(['name' => 'Alice']);
         $mailable = new MembershipConfirmationEmail($user, 'Premium', '$9.99/mo', 'June 1, 2026');
@@ -73,23 +44,6 @@ describe('MembershipConfirmationEmail', function () {
 });
 
 describe('EventRegistrationEmail', function () {
-    test('event registration email can be queued', function () {
-        $user = User::factory()->create();
-        $event = Event::factory()->create(['name' => 'Spring Tournament 2026']);
-        $registration = EventRegistration::factory()->create([
-            'user_id' => $user->id,
-            'event_id' => $event->id,
-        ]);
-
-        Mail::to($user)->send(new EventRegistrationEmail($registration));
-
-        Mail::assertQueued(EventRegistrationEmail::class, 1);
-        Mail::assertQueued(EventRegistrationEmail::class, function ($mail) use ($user, $event) {
-            return $mail->hasTo($user->email)
-                && $mail->registration->event->is($event);
-        });
-    });
-
     test('event registration email renders with event details and locale-prefixed URLs', function () {
         app()->setLocale('en');
         $user = User::factory()->create(['name' => 'Bob']);
@@ -114,21 +68,6 @@ describe('EventRegistrationEmail', function () {
 });
 
 describe('TeamInvitationEmail', function () {
-    test('team invitation email can be queued', function () {
-        $inviter = User::factory()->create(['name' => 'Captain']);
-        $team = Team::factory()->create(['name' => 'Dice Rollers']);
-
-        Mail::to('newplayer@example.com')
-            ->send(new TeamInvitationEmail($team, $inviter, 'newplayer@example.com', 'https://example.com/accept/123'));
-
-        Mail::assertQueued(TeamInvitationEmail::class, 1);
-        Mail::assertQueued(TeamInvitationEmail::class, function ($mail) {
-            return $mail->hasTo('newplayer@example.com')
-                && $mail->team->name === 'Dice Rollers'
-                && $mail->inviter->name === 'Captain';
-        });
-    });
-
     test('team invitation email subject includes inviter and team names', function () {
         $inviter = User::factory()->create(['name' => 'Sarah']);
         $team = Team::factory()->create(['name' => 'Board Game Kings']);

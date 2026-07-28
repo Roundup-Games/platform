@@ -9,17 +9,20 @@ beforeEach(function () {
     URL::defaults(['locale' => 'en']);
 });
 
-describe('Session Replay configuration', function () {
-    test('session replay defaults to enabled with 50% sample rate', function () {
-        $config = include config_path('posthog.php');
+/*
+|--------------------------------------------------------------------------
+| Session Replay rendering
+|--------------------------------------------------------------------------
+|
+| Tests the real behaviour: that the PostHog meta partial renders (or
+| suppresses) the session-replay tag based on config + request context.
+| The previous version also pinned raw config() literals and the full config
+| key structure — pure change-detectors over config/posthog.php that only fail
+| on a legitimate config edit. Those are dropped; the rendering contract below
+| is what actually guards regressions.
+*/
 
-        expect($config['session_replay']['enabled'])->toBeTrue()
-            ->and($config['session_replay']['sample_rate'])->toBe(0.5);
-    });
-
-});
-
-describe('Session Replay disabled state', function () {
+describe('Session Replay rendering', function () {
     test('no replay meta tag is rendered when PostHog is globally disabled', function () {
         Config::set('posthog.enabled', false);
         Config::set('posthog.api_key', 'phc_test');
@@ -53,33 +56,5 @@ describe('Session Replay disabled state', function () {
 
         expect($html)->not->toContain('posthog-api-key')
             ->and($html)->not->toContain('posthog-api-host');
-    });
-});
-
-describe('Survey configuration', function () {
-    test('surveys config defaults to enabled', function () {
-        $config = include config_path('posthog.php');
-
-        expect($config['surveys']['enabled'])->toBeTrue();
-    });
-
-});
-
-describe('Full stack config integration', function () {
-    test('complete PostHog config structure is valid', function () {
-        $config = include config_path('posthog.php');
-
-        expect($config)->toHaveKeys([
-            'api_key',
-            'host',
-            'enabled',
-            'session_replay',
-            'surveys',
-            'feature_flags',
-        ]);
-
-        expect($config['session_replay'])->toHaveKeys(['enabled', 'sample_rate']);
-        expect($config['surveys'])->toHaveKeys(['enabled']);
-        expect($config['feature_flags'])->toHaveKeys(['enabled']);
     });
 });

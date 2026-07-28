@@ -43,5 +43,18 @@ describe('MembershipType Policy', function () {
             expect(Gate::allows('update', $this->activeMembership))->toBeTrue();
             expect(Gate::allows('delete', $this->activeMembership))->toBeTrue();
         })->group('smoke');
+
+        test('regular user without permission cannot create, update, or delete', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('create', MembershipType::class))->toBeFalse();
+            expect(Gate::allows('update', $this->activeMembership))->toBeFalse();
+            expect(Gate::allows('delete', $this->activeMembership))->toBeFalse();
+        });
+
+        test('guest cannot create, update, or delete', function () {
+            expect(Gate::allows('create', MembershipType::class))->toBeFalse();
+            expect(Gate::allows('update', $this->activeMembership))->toBeFalse();
+            expect(Gate::allows('delete', $this->activeMembership))->toBeFalse();
+        });
     });
 });

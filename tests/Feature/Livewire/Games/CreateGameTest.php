@@ -237,7 +237,11 @@ describe('CreateGame — Analytics', function () {
             ->set('game_system_id', GameSystem::factory()->create()->id)
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
-            ->call('save');
+            ->call('save')
+            ->assertRedirect();
+
+        // Behavioral backstop: the game was actually created.
+        expect(Game::where('owner_id', $user->id)->count())->toBe(1);
     });
 });
 

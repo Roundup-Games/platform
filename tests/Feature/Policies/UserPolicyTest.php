@@ -73,6 +73,11 @@ describe('User Policy', function () {
             $this->actingAs($this->regularUser);
             expect(Gate::allows('view', $this->otherUser))->toBeTrue();
         });
+
+        test('user without permission cannot view another user', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('view', $this->otherUser))->toBeFalse();
+        });
     });
 
     describe('update', function () {
@@ -88,6 +93,11 @@ describe('User Policy', function () {
 
             $this->actingAs($this->regularUser);
             expect(Gate::allows('update', $this->otherUser))->toBeTrue();
+        });
+
+        test('user without permission cannot update another user', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('update', $this->otherUser))->toBeFalse();
         });
     });
 

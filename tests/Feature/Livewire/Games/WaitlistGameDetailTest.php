@@ -362,13 +362,21 @@ describe('removeParticipant (host-initiated)', function () {
         $game = $this->createFullGame($this->owner, $this->gameSystem);
 
         // Owner now has an explicit participant record under the explicit owner model.
-        // The service should reject removal of the owner participant.
         $ownerParticipant = $game->participants()
             ->where('user_id', $this->owner->id)
             ->first();
-
         expect($ownerParticipant)->not->toBeNull('Owner should have a participant record');
         expect($ownerParticipant->role)->toBe(ParticipantRole::Owner);
+
+        // The service should reject removal of the owner participant — invoke the
+        // real Livewire action and assert the owner is left intact.
+        Livewire::actingAs($this->owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('removeParticipant', $ownerParticipant->id)
+            ->assertHasNoErrors();
+
+        expect($ownerParticipant->fresh()->status)->toBe(ParticipantStatus::Approved)
+            ->and($ownerParticipant->fresh()->role)->toBe(ParticipantRole::Owner);
     });
 });
 

@@ -412,5 +412,8 @@ describe('logging', function () {
             ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'This is a test bulletin!')
             ->call('create');
+
+        // Behavioral backstop: the bulletin was actually persisted.
+        expect(GameBulletin::where('game_id', $this->game->id)->count())->toBe(1);
     });
 });
