@@ -72,7 +72,20 @@ describe('Ticket visibility', function () {
 // ── Admin-only resources (escalated-admin gate) ────────────────────────────
 
 describe('Admin-only resource visibility', function () {
-    $adminOnlyModels = [
+    it('requires escalated-admin gate', function (string $model) {
+        $admin = User::factory()->create();
+        $admin->assignRole('Platform Admin');
+        $nonAdmin = User::factory()->create();
+        $nonAdmin->assignRole('Service Admin');
+
+        // Platform Admin (escalated-admin) can view; Service Admin cannot.
+        // Per-role discrimination is exhaustively covered by the
+        // 'Visibility matrix' block below — this test only proves the
+        // model is wired to EscalatedAdminPolicy (not accidentally
+        // exposed via a missing policy or a permissive vendor default).
+        expect(Gate::forUser($admin)->allows('viewAny', $model))->toBeTrue()
+            ->and(Gate::forUser($nonAdmin)->allows('viewAny', $model))->toBeFalse();
+    })->with([
         'Department' => Department::class,
         'Tag' => Tag::class,
         'SLA Policy' => SlaPolicy::class,
@@ -89,24 +102,7 @@ describe('Admin-only resource visibility', function () {
         'Article' => Article::class,
         'Article Category' => ArticleCategory::class,
         'Audit Log' => AuditLog::class,
-    ];
-
-    foreach ($adminOnlyModels as $label => $model) {
-        test("{$label} requires escalated-admin gate", function () use ($model) {
-            $admin = User::factory()->create();
-            $admin->assignRole('Platform Admin');
-            $nonAdmin = User::factory()->create();
-            $nonAdmin->assignRole('Service Admin');
-
-            // Platform Admin (escalated-admin) can view; Service Admin cannot.
-            // Per-role discrimination is exhaustively covered by the
-            // 'Visibility matrix' block below — this test only proves the
-            // model is wired to EscalatedAdminPolicy (not accidentally
-            // exposed via a missing policy or a permissive vendor default).
-            expect(Gate::forUser($admin)->allows('viewAny', $model))->toBeTrue()
-                ->and(Gate::forUser($nonAdmin)->allows('viewAny', $model))->toBeFalse();
-        });
-    }
+    ]);
 });
 
 // ── Page visibility ─────────────────────────────────────────────────────────
