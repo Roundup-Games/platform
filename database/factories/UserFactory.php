@@ -26,7 +26,20 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->firstName().' '.fake()->lastName(),
-            'email' => fake()->unique()->safeEmail(),
+            'email' => static function () {
+                // Parallel-safe unique email. Faker's unique() pool is per-process,
+                // so under `pest --parallel` each worker starts from the same
+                // sequence and generates colliding emails → users_email_unique
+                // violations. Combining the parallel worker token (TEST_TOKEN)
+                // and a UUID-4 makes the email globally unique across workers
+                // without relying on the per-process faker pool. The .test TLD
+                // is reserved (RFC 6761) so these never route to real mailboxes.
+                // Str::uuid() (UUID v4) is collision-resistant by construction —
+                // uniqid('', true) is time-based and weaker under load.
+                $token = getenv('TEST_TOKEN') ?: '0';
+
+                return 'user-'.$token.'-'.Str::uuid()->toString().'@test.test';
+            },
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
