@@ -260,3 +260,64 @@ describe('handleCampaignCancellation', function () {
         expect($ownerParticipant->status)->toBe(ParticipantStatus::Approved);
     });
 });
+
+// ── Coverage ported from CampaignWaitlistTest (deleted in audit P5).
+// These three scenarios were the unique value in the now-removed file —
+// bench_mode routing, FIFO ordering across multiple waitlisted users, and
+// the promote→confirm→still-waitlisted chain. The duplicate add/promote/
+// confirm/cancel tests lived in the describe blocks above. ──
+
+describe('bench_mode and FIFO coverage (ported from CampaignWaitlistTest)', function () {
+    it('throws when adding to a bench-mode campaign', function () {
+        ['campaign' => $campaign] = createFullCampaign(overrides: ['bench_mode' => true]);
+        $user = User::factory()->create();
+
+        expect(fn () => $this->service->addToWaitlist($campaign, $user))
+            ->toThrow(LogicException::class, 'Waitlist is not available for this campaign (bench mode is enabled).');
+    });
+
+    it('maintains FIFO ordering across three waitlisted campaign participants', function () {
+        ['campaign' => $campaign] = createFullCampaign(maxPlayers: 2);
+
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+        $user3 = User::factory()->create();
+
+        $p1 = $this->service->addToWaitlist($campaign, $user1);
+        $this->travelTo(now()->addSecond());
+        $p2 = $this->service->addToWaitlist($campaign, $user2);
+        $this->travelTo(now()->addSecond());
+        $p3 = $this->service->addToWaitlist($campaign, $user3);
+
+        expect($this->service->getWaitlistPosition($p1))->toBe(1);
+        expect($this->service->getWaitlistPosition($p2))->toBe(2);
+        expect($this->service->getWaitlistPosition($p3))->toBe(3);
+    });
+
+    it('promotes user1 before user2 and leaves user2 waitlisted after confirmation (FIFO chain)', function () {
+        ['campaign' => $campaign] = createFullCampaign(maxPlayers: 2);
+
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+        $this->service->addToWaitlist($campaign, $user1);
+        $this->travelTo(now()->addSecond());
+        $this->service->addToWaitlist($campaign, $user2);
+
+        openCampaignSlot($campaign);
+
+        // user1 promoted first (FIFO)
+        $promoted = $this->service->promoteNext($campaign);
+        expect($promoted->user_id)->toBe($user1->id);
+        expect($promoted->status)->toBe(ParticipantStatus::Pending);
+
+        // Confirm user1 → approved
+        $this->service->confirmPromotion($promoted);
+        expect($promoted->fresh()->status)->toBe(ParticipantStatus::Approved);
+
+        // user2 must still be waitlisted (no second slot opened)
+        $user2Participant = CampaignParticipant::where('campaign_id', $campaign->id)
+            ->where('user_id', $user2->id)
+            ->first();
+        expect($user2Participant->status)->toBe(ParticipantStatus::Waitlisted);
+    });
+});
