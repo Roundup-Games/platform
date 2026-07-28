@@ -90,8 +90,14 @@ describe('GuestLocation trait integration', function () {
     });
 });
 
-describe('Cross-component location persistence', function () {
-    it('location persists across Livewire component instances', function () {
+describe('Guest-location-updated event handler', function () {
+    // (The previous describe name was "Cross-component location persistence"
+    // but Livewire::test() creates isolated instances with no shared state —
+    // the tests prove the event handler sets lat/lng/source correctly, not
+    // that location persists across instances. Renamed to match the actual
+    // contract: each component independently handles the dispatch.)
+
+    it('component applies guest-location-updated event from browser', function () {
         $component1 = Livewire\Livewire::test(DiscoveryPage::class)
             ->dispatch('guest-location-updated', lat: 40.7128, lng: -74.006, source: 'browser');
 
@@ -106,7 +112,7 @@ describe('Cross-component location persistence', function () {
             ->assertSet('guestLng', -74.006);
     });
 
-    it('location can change between component instances', function () {
+    it('component applies updated coordinates from a second dispatch', function () {
         Livewire\Livewire::test(DiscoveryPage::class)
             ->dispatch('guest-location-updated', lat: 52.52, lng: 13.405, source: 'browser');
 
@@ -180,7 +186,7 @@ describe('End-to-end guest location flow', function () {
         expect($component->instance()->hasGuestLocation())->toBeTrue();
     });
 
-    it('multiple components share location via JS bridge simulation', function () {
+    it('multiple independent components each handle the same dispatch', function () {
         $coords = ['lat' => 51.5074, 'lng' => -0.1278, 'source' => 'browser'];
 
         $comp1 = Livewire\Livewire::test(DiscoveryPage::class)
