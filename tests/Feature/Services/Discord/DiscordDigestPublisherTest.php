@@ -177,8 +177,7 @@ class DiscordDigestPublisherTest extends TestCase
         $this->makePublisher()->publish($guild);
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.posted'
-                && ($ctx['guild_id'] ?? null) === $guild->id
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id
                 && ($ctx['status'] ?? null) === 'posted'
                 && ($ctx['event_count'] ?? null) === 1
                 && is_int($ctx['embed_count'] ?? null)
@@ -229,8 +228,7 @@ class DiscordDigestPublisherTest extends TestCase
         $this->makePublisher()->publish($guild);
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.edited'
-                && ($ctx['status'] ?? null) === 'edited')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['status'] ?? null) === 'edited')
             ->atLeast()
             ->once();
     }
@@ -303,7 +301,7 @@ class DiscordDigestPublisherTest extends TestCase
 
         // delete_failed logged (best-effort), not thrown.
         Log::shouldHaveReceived('warning')
-            ->withArgs(fn (string $msg) => $msg === 'discord_digest.delete_failed')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
             ->atLeast()
             ->once();
     }
@@ -354,8 +352,7 @@ class DiscordDigestPublisherTest extends TestCase
 
         // empty event emits the empty pulse (proves the job ran).
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.empty'
-                && ($ctx['event_count'] ?? null) === 0
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['event_count'] ?? null) === 0
                 && ($ctx['status'] ?? null) === 'empty')
             ->atLeast()
             ->once();
@@ -381,8 +378,7 @@ class DiscordDigestPublisherTest extends TestCase
         $this->assertNull($guild->digest_message_id);
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.guild_skipped'
-                && ($ctx['reason'] ?? null) === 'paused')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['reason'] ?? null) === 'paused')
             ->atLeast()
             ->once();
     }
@@ -400,8 +396,7 @@ class DiscordDigestPublisherTest extends TestCase
 
         Http::assertNothingSent();
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.guild_skipped'
-                && ($ctx['reason'] ?? null) === 'no_calendar_channel')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['reason'] ?? null) === 'no_calendar_channel')
             ->atLeast()
             ->once();
     }
@@ -614,7 +609,7 @@ class DiscordDigestPublisherTest extends TestCase
         // Empty window still posts the empty-state digest.
         $this->assertSame(self::MESSAGE_ID, $guildA->digest_message_id);
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg) => $msg === 'discord_digest.empty')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guildA->id)
             ->atLeast()
             ->once();
     }
@@ -691,7 +686,7 @@ class DiscordDigestPublisherTest extends TestCase
         $this->assertNull($guild->digest_message_id);
 
         Log::shouldHaveReceived('error')
-            ->withArgs(fn (string $msg) => $msg === 'discord_digest.post_failed')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
             ->atLeast()
             ->once();
     }

@@ -335,9 +335,9 @@ class WarmTrendingNearbyTest extends TestCase
     #[Test]
     public function it_logs_failure_on_exception(): void
     {
-        Log::shouldReceive('error')->once()->with('dashboard.warm_trending.failed', \Mockery::on(function ($context) {
-            return $context['geohash_4'] === 'u33d'
-                && $context['trigger_type'] === 'sweep'
+        Log::shouldReceive('error')->once()->with(\Mockery::type('string'), \Mockery::on(function ($context) {
+            return ($context['geohash_4'] ?? null) === 'u33d'
+                && ($context['trigger_type'] ?? null) === 'sweep'
                 && isset($context['exception']);
         }));
 

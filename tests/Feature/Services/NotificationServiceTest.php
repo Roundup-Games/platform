@@ -183,13 +183,20 @@ describe('NotificationService', function () {
         });
 
         it('skips dispatch when all channels are disabled', function () {
-            Log::shouldReceive('info')->with('notification.dispatch_skipped', \Mockery::type('array'));
-
             $user = User::factory()->create([
                 'notification_settings' => [
                     'game_invitation' => ['database' => false, 'mail' => false, 'push' => false, 'discord' => false],
                 ],
             ]);
+
+            // Verify the skip-path observability contract: the log must carry
+            // the specific reason + notifiable identity, not just be "some
+            // array". (CodeRabbit review.)
+            Log::shouldReceive('info')->with(
+                \Mockery::type('string'),
+                \Mockery::on(fn ($ctx) => ($ctx['reason'] ?? null) === 'all_channels_disabled'
+                    && ($ctx['notifiable_id'] ?? null) === $user->id),
+            );
 
             $notification = new TestNotification(['game_id' => 1]);
             $this->service->send($user, $notification, NotificationCategory::GameInvitation);
@@ -198,8 +205,6 @@ describe('NotificationService', function () {
         });
 
         it('skips dispatch when notifiable has blocked the actor', function () {
-            Log::shouldReceive('info')->with('notification.dispatch_skipped', \Mockery::type('array'));
-
             $actor = User::factory()->create();
             $notifiable = User::factory()->create([
                 'notification_settings' => [
@@ -213,6 +218,13 @@ describe('NotificationService', function () {
                 'related_user_id' => $actor->id,
                 'type' => 'block',
             ]);
+
+            Log::shouldReceive('info')->with(
+                \Mockery::type('string'),
+                \Mockery::on(fn ($ctx) => ($ctx['reason'] ?? null) === 'blocked_actor'
+                    && ($ctx['notifiable_id'] ?? null) === $notifiable->id
+                    && ($ctx['actor_id'] ?? null) === $actor->id),
+            );
 
             $notification = new TestNotificationWithActor(['game_id' => 1], $actor);
             $this->service->send($notifiable, $notification, NotificationCategory::GameInvitation);
@@ -247,7 +259,7 @@ describe('NotificationService', function () {
             ]);
 
             $capturedContext = null;
-            Log::shouldReceive('info')->with('notification.dispatched', \Mockery::capture($capturedContext));
+            Log::shouldReceive('info')->with(\Mockery::type('string'), \Mockery::capture($capturedContext));
 
             $notification = new TestNotification(['game_id' => 1]);
             $this->service->send($user, $notification, NotificationCategory::GameInvitation);

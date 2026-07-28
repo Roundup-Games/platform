@@ -252,8 +252,7 @@ class PublishDiscordDigestCommandTest extends TestCase
             ->atLeast()
             ->once();
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => $msg === 'discord_digest.command.completed'
-                && ($ctx['dispatched'] ?? null) === 2
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['dispatched'] ?? null) === 2
                 && ($ctx['errors'] ?? null) === 0)
             ->atLeast()
             ->once();

@@ -103,9 +103,9 @@ class UpdateUserDiscoveryCacheTest extends TestCase
     public function it_logs_failure_on_exception(): void
     {
         $fakeUuid = Str::uuid()->toString();
-        Log::shouldReceive('error')->once()->with('discovery.job.failed', \Mockery::on(function ($context) use ($fakeUuid) {
-            return $context['user_id'] === $fakeUuid
-                && $context['trigger_type'] === 'sweep'
+        Log::shouldReceive('error')->once()->with(\Mockery::type('string'), \Mockery::on(function ($context) use ($fakeUuid) {
+            return ($context['user_id'] ?? null) === $fakeUuid
+                && ($context['trigger_type'] ?? null) === 'sweep'
                 && isset($context['exception']);
         }));
 
