@@ -7,13 +7,14 @@ use App\Rules\ValidUserName;
  * Edge-case tests for the complete user profile system:
  * name validation, slug generation, profile routing, and bio operations.
  *
- * Core validation tests are in tests/Feature/ValidUserNameTest.php
- * and tests/Feature/Rules/ValidUserNameTest.php.
- * Slug generation tests are in tests/Feature/UserSlugTest.php.
+ * Core validation tests are in tests/Unit/Rules/ValidUserNameTest.php.
+ * Slug generation tests are in tests/Feature/Users/UserSlugTest.php.
  * Routing tests are in tests/Feature/Livewire/SlugRoutingTest.php.
- * Bio tests are in tests/Feature/UserSlugAndBioTest.php and tests/Feature/ProfileManagementTest.php.
  *
- * This file covers additional edge cases and cross-cutting scenarios.
+ * This file covers ADDITIONAL edge cases not in the canonical files:
+ * security boundaries (SQL/XSS injection), specific emoji detection,
+ * sanitize() output checks, and cross-cutting profile scenarios.
+ * Pure duplicates of canonical tests were removed (audit P5).
  */
 
 // ═══════════════════════════════════════════════════════════
@@ -35,17 +36,6 @@ describe('ValidUserName: boundary and mixed-content cases', function () {
         expect($failMessage)->toContain('6 non-space characters');
     });
 
-    it('accepts a name with exactly 6 non-space characters no spaces', function () {
-        $rule = new ValidUserName;
-
-        $passed = true;
-        $rule->validate('name', 'ABCDEF', function () use (&$passed) {
-            $passed = false;
-        });
-
-        expect($passed)->toBeTrue();
-    });
-
     it('accepts names with apostrophes (legitimate in real names)', function () {
         // Apostrophes appear in real names: O'Brien, D'Amore. The rule
         // preserves them so factory-generated Faker names never flake.
@@ -57,56 +47,6 @@ describe('ValidUserName: boundary and mixed-content cases', function () {
         });
 
         expect($passed)->toBeTrue();
-    });
-
-    it('rejects a name that is all emojis', function () {
-        $rule = new ValidUserName;
-
-        $failed = false;
-        $failMessage = null;
-        $rule->validate('name', '😀🎮🎲🎯🎪🎭', function ($message) use (&$failed, &$failMessage) {
-            $failed = true;
-            $failMessage = $message;
-        });
-
-        expect($failed)->toBeTrue();
-        expect($failMessage)->toContain('emojis');
-    });
-
-    it('rejects a name with mixed valid text and emojis', function () {
-        $rule = new ValidUserName;
-
-        $failed = false;
-        $failMessage = null;
-        $rule->validate('name', 'John 🎮 Doe Smith', function ($message) use (&$failed, &$failMessage) {
-            $failed = true;
-            $failMessage = $message;
-        });
-
-        expect($failed)->toBeTrue();
-        expect($failMessage)->toContain('emojis');
-    });
-
-    it('accepts a name with digits interspersed', function () {
-        $rule = new ValidUserName;
-
-        $passed = true;
-        $rule->validate('name', 'John123 Doe', function () use (&$passed) {
-            $passed = false;
-        });
-
-        expect($passed)->toBeTrue();
-    });
-
-    it('rejects a name with angle brackets (HTML injection attempt)', function () {
-        $rule = new ValidUserName;
-
-        $failed = false;
-        $rule->validate('name', 'John <script>alert("xss")</script> Doe', function () use (&$failed) {
-            $failed = true;
-        });
-
-        expect($failed)->toBeTrue();
     });
 
     it('rejects a name with semicolons and quotes (SQL injection attempt)', function () {
