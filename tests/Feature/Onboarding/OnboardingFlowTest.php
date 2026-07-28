@@ -727,9 +727,10 @@ it('reuses existing Location record when place_id matches during completion', fu
 });
 
 // ── Onboarding step helper ─────────────────────────────
-// 19 tests advance past step 1 (location) before testing step 2+ behavior.
+// 18 tests advance past step 1 (location) before testing step 2+ behavior.
 // This helper standardizes the step-1 completion block (Berlin coords +
-// locationConfirmed → nextStep) to eliminate ~114 lines of copy-paste.
+// locationConfirmed → nextStep), replacing 18 identical 6-line blocks
+// (108 lines) with one-line calls. Net file reduction: 91 lines.
 function startAtStep2(User $user)
 {
     return Livewire::actingAs($user)
