@@ -326,6 +326,9 @@ describe('AddSessionToCampaign — Creation', function () {
             ->set('name', 'Boardgame System Session')
             ->set('date_time', now()->addMonths(4)->format('Y-m-d H:i'))
             ->call('save');
+
+        // Behavioral backstop: the session game was actually created.
+        expect(Game::where('campaign_id', $campaign->id)->count())->toBe(1);
     });
 });
 

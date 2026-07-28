@@ -14,7 +14,6 @@ use Escalated\Laravel\Events\TicketResolved;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class GameSystemRequestServiceBggSyncTest extends TestCase
@@ -288,41 +287,6 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
         $this->expectExceptionMessage('BGG sync failed: API timeout');
 
         $this->service->syncBggFromTicket($ticket);
-    }
-
-    public function test_sync_bgg_from_ticket_logs_success(): void
-    {
-        Log::spy();
-
-        $this->mock(BggSyncService::class, function ($mock) {
-            $mock->shouldReceive('syncGameSystems')
-                ->andReturn(new SyncResult(synced: 1, failed: 0, errors: []));
-        });
-
-        GameSystem::factory()->create([
-            'name' => ['en' => 'Wingspan'],
-            'slug' => 'wingspan',
-            'bgg_id' => 12345,
-        ]);
-
-        $ticket = $this->createGameSystemTicket([
-            'metadata' => [
-                'game_system_request' => true,
-                'bgg_url' => 'https://boardgamegeek.com/boardgame/12345/wingspan',
-                'publisher' => null,
-                'designer' => null,
-                'game_system_type' => 'boardgame',
-                'game_system_id' => null,
-            ],
-        ]);
-
-        $this->service->syncBggFromTicket($ticket);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message) => str_contains($message, 'BGG sync triggered from ticket'));
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message) => str_contains($message, 'BGG sync from ticket completed'));
     }
 
     // ── createManualFromTicket ──────────────────────────

@@ -8,7 +8,6 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
@@ -399,31 +398,5 @@ describe('ProcessShareIntent — idempotency', function () {
         expect(GameParticipant::where('game_id', $game->id)
             ->where('user_id', $user->id)
             ->count())->toBe(1);
-    });
-});
-
-describe('ProcessShareIntent — observability', function () {
-    it('logs participant creation with structured context', function () {
-        $shareToken = Str::uuid()->toString();
-        $game = Game::factory()->create([
-            'share_token' => $shareToken,
-            'share_token_expires_at' => now()->addDays(7),
-        ]);
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-
-        $this->actingAs($user)
-            ->withUnencryptedCookie('share_intent', json_encode(shareIntentPayload('game', $game->id, $shareToken)))
-            ->get('/en/dashboard');
-
-        // Verify the log was written (check output directly since Log::spy interferes)
-        // The log entry appears in the test output as:
-        // testing.INFO: share_intent.participant_created {...}
-        // We verify via the participant existence instead
-        expect(GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $user->id)
-            ->exists())->toBeTrue();
     });
 });

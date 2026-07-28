@@ -223,6 +223,12 @@ test('registration logs matched invites', function () {
                 && $context['campaign_matches'] === 0;
         })
         ->once();
+
+    // Behavioral backstop: the matched invite actually linked the new user
+    // to the pending game participant row.
+    expect(GameParticipant::where('game_id', $game->id)
+        ->where('user_id', $user->id)
+        ->exists())->toBeTrue();
 });
 
 // ── Helper ────────────────────────────────────────────────

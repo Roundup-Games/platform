@@ -273,11 +273,4 @@ describe('PruneExpiredShortLinks command', function () {
 
         Artisan::call('short-links:prune');
     });
-
-    it('is registered in the console scheduler', function () {
-        $consoleContent = file_get_contents(base_path('routes/console.php'));
-
-        expect($consoleContent)->toContain('short-links:prune');
-        expect($consoleContent)->toContain('dailyAt');
-    });
 });

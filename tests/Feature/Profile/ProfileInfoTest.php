@@ -94,6 +94,9 @@ it('logs profile update event', function () {
         ->test(Show::class)
         ->set('name', 'New Name')
         ->call('saveProfile');
+
+    // Behavioral backstop: the profile was actually updated.
+    expect($user->fresh()->name)->toBe('New Name');
 });
 
 // ── Language Display ──────────────────────────────────

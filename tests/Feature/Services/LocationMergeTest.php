@@ -94,6 +94,9 @@ describe('logging', function () {
 
         $this->service->merge($this->source, $this->target);
 
+        // Behavioral backstop: the merge actually ran (source deleted).
+        expect(Location::find($this->source->id))->toBeNull();
+
         Log::shouldHaveReceived('info')
             ->with('Location merge completed', Mockery::on(function ($context) {
                 return $context['source_id'] === $this->source->id

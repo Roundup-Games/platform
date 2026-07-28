@@ -135,7 +135,10 @@ describe('handle validation', function () {
     it('logs a warning for invalid handles', function () {
         Log::shouldReceive('info')->once();
 
-        $this->service->validateHandle('twitter', 'invalid!chars');
+        $result = $this->service->validateHandle('twitter', 'invalid!chars');
+
+        // Behavioral backstop: the invalid handle was actually rejected.
+        expect($result['valid'])->toBeFalse();
     });
 });
 
