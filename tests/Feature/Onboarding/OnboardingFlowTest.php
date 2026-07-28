@@ -47,13 +47,7 @@ it('redirects profiled user on mount', function () {
 it('advances to step 2 (Identity) with confirmed location', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->assertSet('step', 2)
         ->assertSee('Tell us about yourself');
 });
@@ -84,13 +78,7 @@ it('validates location must be confirmed on step 1', function () {
 it('advances to step 3 (Contact) from step 2 with valid gender and pronouns', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->assertSet('step', 2)
         ->set('gender', 'non-binary')
         ->set('pronouns', 'they/them')
@@ -102,13 +90,7 @@ it('advances to step 3 (Contact) from step 2 with valid gender and pronouns', fu
 it('validates gender is optional on step 2', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', '')
         ->set('pronouns', 'they/them')
         ->call('nextStep')
@@ -119,13 +101,7 @@ it('validates gender is optional on step 2', function () {
 it('stores gender as null when consent is not given during onboarding', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'female')
         ->set('gender_consent', false)
         ->set('pronouns', 'she/her')
@@ -141,13 +117,7 @@ it('stores gender as null when consent is not given during onboarding', function
 it('stores gender when consent is given during onboarding', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'female')
         ->set('gender_consent', true)
         ->set('pronouns', 'she/her')
@@ -163,13 +133,7 @@ it('stores gender when consent is given during onboarding', function () {
 it('clears gender on step validation when consent is not given', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('gender_consent', false)
         ->set('pronouns', 'he/him')
@@ -180,13 +144,7 @@ it('clears gender on step validation when consent is not given', function () {
 it('validates pronouns is required on step 2', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('pronouns', '')
         ->call('nextStep')
@@ -197,13 +155,7 @@ it('validates pronouns is required on step 2', function () {
 it('advances to step 4 (Preferences) from step 3 with optional phone', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'female')
         ->set('pronouns', 'she/her')
         ->call('nextStep')
@@ -217,13 +169,7 @@ it('advances to step 4 (Preferences) from step 3 with optional phone', function 
 it('goes back to previous step', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->assertSet('step', 2)
         ->call('previousStep')
         ->assertSet('step', 1);
@@ -235,13 +181,7 @@ it('goes back to previous step', function () {
 it('completes profile and redirects to dashboard', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'non-binary')
         ->set('gender_consent', true)
         ->set('pronouns', 'they/them')
@@ -267,13 +207,7 @@ it('syncs favorite game systems on completion', function () {
     $gs2 = GameSystem::create(['name' => ['en' => 'Pathfinder'], 'slug' => 'pathfinder']);
     $gs3 = GameSystem::create(['name' => ['en' => 'Call of Cthulhu'], 'slug' => 'call-of-cthulhu']);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('pronouns', 'he/him')
         ->call('nextStep')
@@ -316,13 +250,7 @@ it('logs onboarding completion event with location_source and funnel tracking', 
     Log::shouldReceive('warning')->atLeast(0)->andReturn(null);
     Log::shouldReceive('error')->atLeast(0)->andReturn(null);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('pronouns', 'he/him')
         ->call('nextStep')
@@ -384,13 +312,7 @@ it('replaces game system preferences on re-sync', function () {
     $user->gameSystemPreferences()->attach($gs1->id, ['preference_type' => 'favorite']);
 
     // Now complete with gs2 only — gs1 should be removed
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('pronouns', 'he/him')
         ->call('nextStep')
@@ -435,13 +357,7 @@ it('rejects invalid game system IDs during onboarding', function () {
     $gs = GameSystem::create(['name' => ['en' => 'D&D 5e'], 'slug' => 'dnd-5e']);
 
     // Use a non-existent game system ID
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('pronouns', 'he/him')
         ->call('nextStep')
@@ -454,13 +370,7 @@ it('rejects invalid game system IDs during onboarding', function () {
 it('rejects all non-existent game system IDs during onboarding', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('pronouns', 'he/him')
         ->call('nextStep')
@@ -475,13 +385,7 @@ it('accepts valid game system IDs during onboarding', function () {
     $gs1 = GameSystem::create(['name' => ['en' => 'D&D 5e'], 'slug' => 'dnd-5e']);
     $gs2 = GameSystem::create(['name' => ['en' => 'Pathfinder'], 'slug' => 'pathfinder']);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('pronouns', 'he/him')
         ->call('nextStep')
@@ -758,13 +662,7 @@ it('creates a Location record on profile completion with geocoded data', functio
     Log::shouldReceive('warning')->andReturn(null);
     Log::shouldReceive('error')->andReturn(null);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('pronouns', 'he/him')
         ->call('nextStep')
@@ -816,13 +714,7 @@ it('reuses existing Location record when place_id matches during completion', fu
     Log::shouldReceive('warning')->andReturn(null);
     Log::shouldReceive('error')->andReturn(null);
 
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
+    startAtStep2($user)
         ->set('gender', 'male')
         ->set('pronouns', 'he/him')
         ->call('nextStep')
@@ -833,6 +725,22 @@ it('reuses existing Location record when place_id matches during completion', fu
     expect($user->fresh()->location_id)->toBe($existingLocation->id);
     expect(Location::count())->toBe(1);
 });
+
+// ── Onboarding step helper ─────────────────────────────
+// 18 tests advance past step 1 (location) before testing step 2+ behavior.
+// This helper standardizes the step-1 completion block (Berlin coords +
+// locationConfirmed → nextStep), replacing 18 identical 6-line blocks
+// (108 lines) with one-line calls. Net file reduction: 91 lines.
+function startAtStep2(User $user)
+{
+    return Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('city', 'Berlin')
+        ->set('lat', 52.52)
+        ->set('lng', 13.405)
+        ->set('locationConfirmed', true)
+        ->call('nextStep');
+}
 
 it('pre-fills location from existing user location_id on mount', function () {
     $location = Location::factory()->create([
