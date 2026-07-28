@@ -30,6 +30,13 @@ class DashboardScheduleServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Freeze at a stable mid-week moment so the today/this_week/coming_up
+        // bucket logic is deterministic. Without this, the test flakes near
+        // week boundaries (Sunday evening / Monday UTC) — see the original
+        // convoluted conditional date-placement that still flaked. A Wednesday
+        // afternoon leaves safe room on either side of the current week.
+        Carbon::setTestNow(Carbon::parse('2026-01-14 14:00:00'));
+
         $this->service = new DashboardScheduleService;
         Cache::flush();
         Queue::fake();
@@ -39,11 +46,23 @@ class DashboardScheduleServiceTest extends TestCase
         $this->gameSystem = GameSystem::factory()->create();
     }
 
+    protected function tearDown(): void
+    {
+        // Release the frozen clock so it can't leak into other test classes.
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
     // ── getUpcomingGames ────────────────────────────────
 
     public function test_get_upcoming_games_groups_into_today_this_week_and_coming_up(): void
     {
-        // Game today — 30 min from now, guaranteed within today and after now()
+        // setUp() freezes time at Wednesday 2026-01-14 14:00, so the week
+        // boundaries are stable: this week runs Mon–Sun and Wednesday has
+        // safe room on either side. The previous convoluted date-boundary
+        // branching is no longer needed — it flaked near Sunday/Monday UTC.
+
+        // Game today — 30 min from now, within today and after now().
         $today = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
@@ -51,53 +70,34 @@ class DashboardScheduleServiceTest extends TestCase
             'status' => GameStatus::Scheduled->value,
         ]);
 
-        // Game this week (but not today) — placed safely within the current week.
-        // On Sunday, the week has already ended, so there's no "this week but not today" slot.
-        // In that case, we place it tomorrow (it becomes "coming_up") and adjust expectations.
-        $endOfWeek = now()->copy()->endOfWeek();
-        $isSundayWithNoThisWeek = now()->isSameDay($endOfWeek) && now()->addMinutes(30)->isAfter(now()->copy()->startOfDay()->addHours(22));
-
-        if ($isSundayWithNoThisWeek || now()->diffInDays($endOfWeek, false) < 1) {
-            // Sunday evening or Monday (effectively no room this week): place mid-next-week
-            $thisWeekDate = now()->addDays(3)->startOfDay()->addHours(12);
-            $expectThisWeekCount = 0;
-            $expectComingUpCount = 2;
-        } else {
-            // There's room this week — place the game 2 days out (safe even on Saturday)
-            $thisWeekDate = now()->addDays(2)->startOfDay()->addHours(12);
-            // Verify it's actually within this week
-            if (Carbon::parse($thisWeekDate)->gt($endOfWeek)) {
-                $expectThisWeekCount = 0;
-                $expectComingUpCount = 2;
-            } else {
-                $expectThisWeekCount = 1;
-                $expectComingUpCount = 1;
-            }
-        }
-
+        // Game this week (but not today) — Friday noon, solidly within this week.
         $thisWeek = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => $thisWeekDate,
+            'date_time' => now()->copy()->startOfWeek()->addDays(4)->addHours(12), // Friday noon
             'status' => GameStatus::Scheduled->value,
         ]);
 
-        // Game coming up (after this week, within 14 days)
-        $comingUpDate = $endOfWeek->copy()->addDays(5)->addHours(12);
+        // Game coming up — after this week, within 14 days.
         $comingUp = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => $comingUpDate,
+            'date_time' => now()->copy()->endOfWeek()->addDays(5)->addHours(12),
             'status' => GameStatus::Scheduled->value,
         ]);
 
         $result = $this->service->getUpcomingGames($this->user);
 
         $this->assertCount(1, $result['today']);
-        $this->assertCount($expectThisWeekCount, $result['this_week']);
-        $this->assertCount($expectComingUpCount, $result['coming_up']);
+        $this->assertCount(1, $result['this_week']);
+        $this->assertCount(1, $result['coming_up']);
 
+        // Verify bucket IDENTITY, not just counts — otherwise the this_week
+        // and coming_up fixtures could be swapped (or misplaced together) and
+        // the test would still pass. (CodeRabbit review.)
         $this->assertEquals($today->id, $result['today'][0]['id']);
+        $this->assertEquals($thisWeek->id, $result['this_week'][0]['id']);
+        $this->assertEquals($comingUp->id, $result['coming_up'][0]['id']);
     }
 
     public function test_get_upcoming_games_includes_games_where_user_is_approved_participant(): void
