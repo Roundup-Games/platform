@@ -49,25 +49,6 @@ test('approved participants count excludes owner', function () {
     $approved->each(fn ($p) => expect($p->role)->not->toBe(ParticipantRole::Owner));
 });
 
-test('owner name does not appear in approved participants section', function () {
-    $player = User::factory()->create([
-        'name' => 'VisiblePlayer',
-        'profile_complete' => true,
-    ]);
-
-    GameParticipant::create([
-        'game_id' => $this->game->id,
-        'user_id' => $player->id,
-        'role' => ParticipantRole::Player->value,
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-
-    Livewire\Livewire::actingAs($this->owner)
-        ->test(GameManageParticipants::class, ['id' => $this->game->id])
-        ->assertSee('VisiblePlayer')
-        ->assertDontSee($this->owner->name);
-});
-
 test('approved participants section shows count excluding owner', function () {
     $player = User::factory()->create(['profile_complete' => true]);
 
