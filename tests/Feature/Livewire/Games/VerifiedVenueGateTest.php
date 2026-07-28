@@ -67,13 +67,15 @@ dataset('venue-gate-components', [
 ]);
 
 describe('canCreatePublic gate (CreateGame + CreateCampaign)', function () {
-    it('returns true for GM user regardless of location', function (string $component) {
+    it('returns true for GM user at verified and unverified locations', function (string $component, bool $verified) {
         $gm = venueGateGmUser();
+        $location = $verified ? verifiedLocation() : nonVerifiedLocation();
 
         Livewire\Livewire::actingAs($gm)
             ->test($component)
+            ->set('location_id', $location->id)
             ->assertSet('canCreatePublic', true);
-    })->with('venue-gate-components');
+    })->with('venue-gate-components')->with(['verified' => true, 'unverified' => false]);
 
     it('returns true for GM user even without a location', function (string $component) {
         $gm = venueGateGmUser();
