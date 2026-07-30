@@ -134,7 +134,7 @@ describe('Webhook — analytics dedup', function () {
     });
 
     it('captures subscription.canceled once per Paddle event_id across redeliveries', function () {
-        $user = PaddleWebhooks::createUser(['analytics_consent' => true]);
+        $user = PaddleWebhooks::createUser();
         $user->forceFill(['paddle_id' => 'ctm_dedup'])->save();
         PaddleWebhooks::createCustomer($user, 'ctm_dedup');
         PaddleWebhooks::createSubscription($user, [
@@ -172,7 +172,10 @@ describe('Webhook — analytics dedup', function () {
         // bug, so the payload omits status entirely.) The subscription is
         // pre-created so Cashier's parent handler returns early and the DB is
         // not asked to persist a null status.
-        $user = PaddleWebhooks::createUser(['analytics_consent' => true]);
+        // Consent is granted via the PostHogConsentChecker mock in beforeEach;
+        // the User.analytics_consent column is irrelevant here (the checker
+        // reads the request cookie, not the column, and it's non-fillable).
+        $user = PaddleWebhooks::createUser();
         $user->forceFill(['paddle_id' => 'ctm_no_status'])->save();
         PaddleWebhooks::createCustomer($user, 'ctm_no_status');
         PaddleWebhooks::createSubscription($user, ['paddle_id' => 'sub_no_status', 'status' => 'active']);
