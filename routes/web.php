@@ -129,11 +129,11 @@ Route::get('auth/{provider}/callback', [OAuthController::class, 'callback'])
 // already roundup-authenticated; this is the bot-add round-trip, not login.
 
 Route::get('discord/install', [DiscordBotInstallController::class, 'redirect'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'not.disabled', 'verified'])
     ->name('discord.install.redirect');
 
 Route::get('discord/install/callback', [DiscordBotInstallController::class, 'callback'])
-    ->middleware(['auth', 'verified', 'throttle:10,1'])
+    ->middleware(['auth', 'not.disabled', 'verified', 'throttle:10,1'])
     ->name('discord.install.callback');
 
 // ── Locale Switch ──────────────────────────────────────
@@ -192,13 +192,13 @@ Route::prefix('{locale}')
         Route::get('/gms', GmDirectory::class)->name('gm.directory');
         Route::get('/game-systems', GameSystemsPage::class)->name('game-systems');
         Route::get('/game-systems/request', RequestGameSystemPage::class)
-            ->middleware(['auth', 'profile.complete'])
+            ->middleware(['auth', 'not.disabled', 'profile.complete'])
             ->name('game-systems.request');
         Route::get('/propose-venue', ProposeVenue::class)
-            ->middleware(['auth', 'profile.complete'])
+            ->middleware(['auth', 'not.disabled', 'profile.complete'])
             ->name('venues.propose');
         Route::get('/game-systems/requests/mine', MyRequestsPage::class)
-            ->middleware(['auth', 'profile.complete'])
+            ->middleware(['auth', 'not.disabled', 'profile.complete'])
             ->name('game-systems.requests.mine');
         Route::get('/game-systems/{slug}', GameSystemDetail::class)->name('game-systems.show')->where('slug', '[a-zA-Z0-9\-]+');
         Route::post('/contact', [PageController::class, 'submitContact'])
@@ -208,10 +208,10 @@ Route::prefix('{locale}')
         // ── Authenticated (Breeze) ────────────────────
 
         Route::get('/dashboard', Dashboard::class)
-            ->middleware(['auth', 'verified', 'profile.complete'])
+            ->middleware(['auth', 'not.disabled', 'verified', 'profile.complete'])
             ->name('dashboard');
 
-        Route::middleware(['auth', 'profile.complete'])->group(function () {
+        Route::middleware(['auth', 'not.disabled', 'profile.complete'])->group(function () {
             // GM Workspace (auth + GM role + subscription checked in component mount)
             Route::get('/gm-workspace', GmWorkspace::class)->name('gm.workspace');
 
@@ -283,7 +283,7 @@ Route::prefix('{locale}')
 
         Route::get('/teams', BrowseTeams::class)->name('teams.browse');
 
-        Route::middleware(['auth', 'profile.complete'])->group(function () {
+        Route::middleware(['auth', 'not.disabled', 'profile.complete'])->group(function () {
             Route::get('/teams/create', CreateTeam::class)->name('teams.create');
             Route::get('/teams/invites', PendingInvites::class)->name('teams.invites');
             Route::get('/teams/{slug}/manage', ManageTeam::class)->name('teams.manage');
@@ -297,14 +297,14 @@ Route::prefix('{locale}')
         Route::get('/events', EventListing::class)->name('events.index');
         Route::get('/events/create', CreateEvent::class)
             ->name('events.create')
-            ->middleware(['auth', 'verified', 'profile.complete']);
+            ->middleware(['auth', 'not.disabled', 'verified', 'profile.complete']);
         Route::get('/events/{slug}', EventDetail::class)
             ->name('events.detail')
             ->where('slug', '[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*+');
 
         // ── Events (Authenticated) ───────────────────
 
-        Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
+        Route::middleware(['auth', 'not.disabled', 'verified', 'profile.complete'])->group(function () {
             Route::get('/events/{slug}/manage', ManageEvent::class)->name('events.manage');
             Route::get('/events/{slug}/announcements', EventAnnouncements::class)->name('events.announcements');
             Route::get('/events/{slug}/register', RegisterForEvent::class)->name('events.register');
@@ -315,11 +315,11 @@ Route::prefix('{locale}')
 
         // Unified "Plan something" entry point — asks one-time vs recurring,
         // then routes to games.create or campaigns.create with smart defaults.
-        Route::middleware(['auth', 'profile.complete'])->group(function () {
+        Route::middleware(['auth', 'not.disabled', 'profile.complete'])->group(function () {
             Route::get('/plan', PlanSomething::class)->name('plan.create');
         });
 
-        Route::middleware(['auth', 'profile.complete'])->group(function () {
+        Route::middleware(['auth', 'not.disabled', 'profile.complete'])->group(function () {
             Route::get('/games/create', CreateGame::class)->name('games.create');
             Route::get('/dashboard/games/{id}', GameDetail::class)->name('games.show')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/games/{id}/manage-participants', ManageParticipants::class)->name('games.manage-participants')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
@@ -336,7 +336,7 @@ Route::prefix('{locale}')
 
         // ── Campaigns ─────────────────────────────────
 
-        Route::middleware(['auth', 'profile.complete'])->group(function () {
+        Route::middleware(['auth', 'not.disabled', 'profile.complete'])->group(function () {
             Route::get('/campaigns/create', CreateCampaign::class)->name('campaigns.create');
             Route::get('/dashboard/campaigns/{id}', CampaignDetail::class)->name('campaigns.show')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/campaigns/{id}/apply', ApplyToCampaign::class)->name('campaigns.apply')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
@@ -369,13 +369,13 @@ Route::prefix('{locale}')
         // gated. ClaimVenue::mount() re-runs the same isPublicVenuePage() 404
         // gate as VenueDetail so only public venue pages are claimable.
         Route::get('/venue/{slug}/claim', ClaimVenue::class)
-            ->middleware(['auth', 'profile.complete'])
+            ->middleware(['auth', 'not.disabled', 'profile.complete'])
             ->name('venues.claim')
             ->where('slug', '[a-zA-Z0-9\-]+');
 
         // ── Billing (authenticated) ───────────────────
 
-        Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
+        Route::middleware(['auth', 'not.disabled', 'verified', 'profile.complete'])->group(function () {
             Route::get('/billing', BillingPortal::class)->name('billing.portal');
             Route::get('/membership', MembershipPage::class)->name('membership');
             Route::get('/billing/checkout/{planId?}', Checkout::class)->name('billing.checkout');
@@ -410,11 +410,11 @@ Route::prefix('{locale}')
 
         Route::get('/export/download/{user}', [ExportDownloadController::class, 'download'])
             ->name('export.download')
-            ->middleware(['signed', 'auth']);
+            ->middleware(['signed', 'auth', 'not.disabled']);
 
         // ── Onboarding (authenticated, profile NOT complete) ──
 
-        Route::middleware('auth')->group(function () {
+        Route::middleware('auth', 'not.disabled')->group(function () {
             Route::get('/onboarding', CompleteProfile::class)
                 ->name('onboarding.index');
         });

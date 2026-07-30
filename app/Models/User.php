@@ -21,6 +21,7 @@ use Escalated\Laravel\Contracts\TicketSubject;
 use Escalated\Laravel\Models\Ticket;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -106,7 +107,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'signup_content_slug',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id', 'gender', 'gender_consent', 'analytics_consent'])]
-class User extends Authenticatable implements FilamentUser, HasLocalePreference, HasMedia, Ticketable, TicketSubject
+class User extends Authenticatable implements FilamentUser, HasLocalePreference, HasMedia, MustVerifyEmail, Ticketable, TicketSubject
 {
     use Billable;
     use HasApiTokens;

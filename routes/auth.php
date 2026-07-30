@@ -36,7 +36,12 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
-Route::middleware('auth')->group(function () {
+// 'not.disabled' ejects disabled users from these account-management
+// routes too — the admin:user:disable command wipes the sessions table,
+// but this closes the narrow window where a disabled user re-logs in and
+// reaches verify-email / confirm-password / password.update before hitting
+// a not.disabled-protected page.
+Route::middleware(['auth', 'not.disabled'])->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

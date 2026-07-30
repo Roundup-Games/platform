@@ -109,3 +109,29 @@ describe('API v1 push endpoint auth:sanctum', function () {
         ]);
     });
 });
+
+describe('API v1 disabled-user ejection (auth:sanctum)', function () {
+    it('ejects a disabled user from API routes with 401 JSON', function () {
+        // auth:sanctum runs in SPA/session mode here (bearer tokens are not
+        // usable: users have UUID keys but personal_access_tokens.tokenable_id
+        // is bigint). The real exposure is the re-login window — Auth::attempt
+        // does not filter is_disabled, so a disabled user can establish a fresh
+        // session and reach an API route before any not.disabled web page. The
+        // not.disabled alias on this group closes it and, because this is a JSON
+        // request, must return a clean 401 rather than a web redirect.
+        $user = User::factory()->create();
+
+        $user->update(['is_disabled' => true, 'disabled_at' => now()]);
+
+        // Production re-resolves the user per request; the test guard caches
+        // the model, so re-auth with the fresh disabled instance (mirrors the
+        // pattern in AuthenticationSmokeTest).
+        $this->actingAs($user->fresh())
+            ->postJson('/api/v1/push/subscribe', [
+                'endpoint' => 'https://example.com/push/disabled',
+                'keys' => ['p256h' => 'k', 'auth' => 'a'],
+            ])
+            ->assertUnauthorized()
+            ->assertJson(['message' => __('auth.error_your_account_has_been_disabled')]);
+    })->group('smoke');
+});

@@ -38,7 +38,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'discord/interactions',
         ]);
 
-        $middleware->append(EnsureUserNotDisabled::class);
         $middleware->append(EnsureLocaleDefaults::class);
         $middleware->append(CaptureFirstTouch::class);
         $middleware->append(CachePublicPages::class);

@@ -33,7 +33,7 @@ Route::middleware(['throttle:api'])->prefix('v1')->group(function () {
 
     // ── Authenticated Endpoints ────────────────────────
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'not.disabled'])->group(function () {
         Route::post('push/subscribe', [PushSubscriptionController::class, 'subscribe'])
             ->name('api.push.subscribe');
 

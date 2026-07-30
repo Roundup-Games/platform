@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\Verified;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 
@@ -22,7 +21,8 @@ class VerifyEmailController extends Controller
         }
 
         if ($user->markEmailAsVerified()) {
-            \assert($user instanceof MustVerifyEmail);
+            // User implements MustVerifyEmail, so Verified()'s constructor
+            // type-checks directly — no runtime assert needed.
             event(new Verified($user));
         }
 
