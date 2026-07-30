@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Tests\Traits\CapturesLogRecords;
 
 /**
  * Tests the DiscordPublisher chokepoint (T05): the single path through which
@@ -40,6 +41,7 @@ use Tests\TestCase;
  */
 class DiscordPublisherTest extends TestCase
 {
+    use CapturesLogRecords;
     use DatabaseTransactions;
 
     private const BASE_URL = 'https://discord.test/api/v10';
@@ -689,14 +691,9 @@ class DiscordPublisherTest extends TestCase
 
         Http::fake(); // No Discord call must be made.
 
-        // Capture MessageLogged events directly rather than Log::spy(). The
-        // spy's shouldNotHaveReceived()+withArgs(closure) matcher degenerates to
-        // <Any Arguments> and counts every info() call — a known Mockery
-        // fragility — so filter the captured events with PHPUnit instead.
-        $logged = [];
-        Log::listen(function ($event) use (&$logged) {
-            $logged[] = $event;
-        });
+        // Capture at the Monolog layer (see CapturesLogRecords). Log::listen()
+        // does not fire with the test env's single-driver stderr channel.
+        $this->captureLogRecords();
 
         $this->makePublisher()->publish($game);
 
@@ -706,16 +703,16 @@ class DiscordPublisherTest extends TestCase
         $this->assertSame(0, DiscordCardMessage::where('game_id', $game->id)->count());
 
         // The seam emits its one structured-log event with the v1 contract shape.
-        $deferred = collect($logged)->firstWhere('message', 'discord_publisher.moderation_deferred');
+        $deferred = $this->logRecord('discord_publisher.moderation_deferred');
         $this->assertNotNull($deferred, 'moderation_deferred event was logged');
-        $this->assertSame($game->id, $deferred->context['game_id']);
-        $this->assertSame($guild->id, $deferred->context['guild_id']);
-        $this->assertSame('review', $deferred->context['mode']);
-        $this->assertSame('deferred', $deferred->context['status']);
+        $this->assertSame($game->id, $deferred['context']['game_id']);
+        $this->assertSame($guild->id, $deferred['context']['guild_id']);
+        $this->assertSame('review', $deferred['context']['mode']);
+        $this->assertSame('deferred', $deferred['context']['status']);
 
         // And the seam must NOT have been followed by a card_posted event.
         $this->assertNull(
-            collect($logged)->firstWhere('message', 'discord_publisher.card_posted'),
+            $this->logRecord('discord_publisher.card_posted'),
             'card_posted must not fire for a deferred review-mode guild'
         );
     }
@@ -730,23 +727,20 @@ class DiscordPublisherTest extends TestCase
 
         $this->fakePostSuccess();
 
-        $logged = [];
-        Log::listen(function ($event) use (&$logged) {
-            $logged[] = $event;
-        });
+        $this->captureLogRecords();
 
         $this->makePublisher()->publish($game);
 
         // The defer event must never fire for an Open guild (v1 invariant).
         $this->assertNull(
-            collect($logged)->firstWhere('message', 'discord_publisher.moderation_deferred'),
+            $this->logRecord('discord_publisher.moderation_deferred'),
             'moderation_deferred must never fire for an Open-mode guild'
         );
 
         // And the normal posted path ran to completion.
         $this->assertSame(1, DiscordCardMessage::where('game_id', $game->id)->count());
         $this->assertNotNull(
-            collect($logged)->firstWhere('message', 'discord_publisher.card_posted'),
+            $this->logRecord('discord_publisher.card_posted'),
             'card_posted fires for the Open path'
         );
     }

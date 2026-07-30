@@ -11,12 +11,13 @@ use App\Models\Location;
 use App\Services\ProximityQuery;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Tests\Traits\CapturesLogRecords;
 
 class ProximityQueryTest extends TestCase
 {
+    use CapturesLogRecords;
     use DatabaseTransactions;
 
     private ProximityQuery $proximity;
@@ -205,7 +206,12 @@ class ProximityQueryTest extends TestCase
     #[Test]
     public function nearby_does_not_log_fast_queries_as_slow()
     {
-        Log::spy();
+        // Capture at the Monolog layer and assert on the specific slow-query
+        // message. Scoping matters: Game::factory()->create() triggers the
+        // Discord publish observer, which legitimately logs info() events —
+        // a blanket shouldNotHaveReceived('info') would catch that noise and
+        // fail. The query itself must only stay silent about slow queries.
+        $this->captureLogRecords();
 
         $location = Location::factory()->create([
             'latitude' => 52.5230,
@@ -218,11 +224,13 @@ class ProximityQueryTest extends TestCase
             'visibility' => 'public',
         ]);
 
-        // Fast query — should NOT trigger slow query log
+        // Fast query — should NOT trigger the slow-query log
         $this->proximity->nearby($this->centerLat, $this->centerLng, 5, 'game');
 
-        // Assert no info-level log was written (debug logs from SeoCacheService are fine)
-        Log::shouldNotHaveReceived('info');
+        $this->assertNull(
+            $this->logRecord('Proximity query slow'),
+            'A fast proximity query must not emit the slow-query log event.'
+        );
     }
 
     // ── Hubs Query ─────────────────────────────────────
