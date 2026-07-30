@@ -17,7 +17,7 @@ class InviteOptoutController extends Controller
      *
      * @return View
      */
-    public function show(Request $request, string $emailHash)
+    public function show(Request $request, string $locale, string $emailHash)
     {
         // Validate the hash looks like a SHA-256 hex string
         if (! preg_match('/^[a-f0-9]{64}$/', $emailHash)) {
@@ -41,8 +41,12 @@ class InviteOptoutController extends Controller
      *
      * @return View
      */
-    public function confirm(Request $request, string $emailHash)
+    public function confirm(Request $request, string $locale, string $emailHash)
     {
+        // $locale is the {locale} URL prefix; classic controllers bind route
+        // parameters positionally (after type-hinted dependencies), so it must
+        // precede {emailHash}. The active locale is applied by the set.locale
+        // middleware — $locale itself is otherwise unused here.
         if (! preg_match('/^[a-f0-9]{64}$/', $emailHash)) {
             return view('pages.invite-optout', ['status' => 'invalid']);
         }

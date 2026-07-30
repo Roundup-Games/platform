@@ -1,4 +1,4 @@
-@props(['title', 'subtitle'])
+@props(['title', 'subtitle' => null])
 
 <section class="bg-primary text-on-primary">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20 text-center">
