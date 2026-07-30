@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
 use Escalated\Laravel\Models\Department;
@@ -8,58 +7,17 @@ use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Subscription;
+use Tests\Helpers\PaddleWebhooks;
 use Tests\Helpers\TestablePostHogClient;
 
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\post;
 
-// ── Helpers ──────────────────────────────────────────────
-
-function webhookCreateUser(): User
-{
-    return User::factory()->create([
-        'email_verified_at' => now(),
-        'profile_complete' => true,
-    ]);
-}
-
-function webhookCreateCustomer(User $user, ?string $paddleId = null): void
-{
-    Cashier::$customerModel::create([
-        'billable_type' => get_class($user),
-        'billable_id' => $user->id,
-        'paddle_id' => $paddleId ?? 'ctm_'.$user->id,
-        'name' => $user->name,
-        'email' => $user->email,
-    ]);
-}
-
-function webhookCreateSubscription(User $user, array $overrides = []): Subscription
-{
-    return Cashier::$subscriptionModel::create([
-        'billable_type' => get_class($user),
-        'billable_id' => $user->id,
-        'type' => 'default',
-        'paddle_id' => 'sub_'.Str::random(12),
-        'status' => 'active',
-        'trial_ends_at' => null,
-        'paused_at' => null,
-        'ends_at' => null,
-        ...$overrides,
-    ]);
-}
-
-function webhookPostEvent(string $eventType, array $data, array $headers = []): TestResponse
-{
-    return post('/paddle/webhook', [
-        'event_type' => $eventType,
-        'data' => $data,
-    ], $headers);
-}
+// Webhook fixtures live in Tests\Helpers\PaddleWebhooks (PSR-4 class) so they
+// autoload on first reference regardless of test-file load order.
 
 // ═══════════════════════════════════════════════════════════
 // WEBHOOK EVENT HANDLING
@@ -72,14 +30,14 @@ describe('Webhook — subscription.canceled', function () {
     });
 
     it('responds 200 and updates subscription status', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_cancel');
-        $subscription = webhookCreateSubscription($user, [
+        $user = PaddleWebhooks::createUser();
+        PaddleWebhooks::createCustomer($user, 'ctm_cancel');
+        $subscription = PaddleWebhooks::createSubscription($user, [
             'paddle_id' => 'sub_cancel_webhook',
             'status' => 'active',
         ]);
 
-        webhookPostEvent('subscription.canceled', [
+        PaddleWebhooks::postEvent('subscription.canceled', [
             'id' => 'sub_cancel_webhook',
             'status' => 'canceled',
             'canceled_at' => now()->toIso8601String(),
@@ -108,7 +66,7 @@ describe('Webhook — transaction.payment_failed', function () {
         // (metadata->paddle_transaction_id) while TicketPayloadRenderer nests
         // the value under metadata->context->paddle_transaction_id. The query
         // never matched, so every Paddle redelivery created a duplicate ticket.
-        $user = webhookCreateUser();
+        $user = PaddleWebhooks::createUser();
         $user->forceFill(['paddle_id' => 'ctm_pay_fail'])->save();
 
         $data = [
@@ -124,8 +82,8 @@ describe('Webhook — transaction.payment_failed', function () {
 
         // Paddle delivers at-least-once and retries on non-2xx; two deliveries
         // of the same failed transaction must yield exactly one billing ticket.
-        webhookPostEvent('transaction.payment_failed', $data)->assertStatus(200);
-        webhookPostEvent('transaction.payment_failed', $data)->assertStatus(200);
+        PaddleWebhooks::postEvent('transaction.payment_failed', $data)->assertStatus(200);
+        PaddleWebhooks::postEvent('transaction.payment_failed', $data)->assertStatus(200);
 
         $tickets = Ticket::where('ticket_type', 'billing_support')->get();
         expect($tickets)->toHaveCount(1)
@@ -176,10 +134,10 @@ describe('Webhook — analytics dedup', function () {
     });
 
     it('captures subscription.canceled once per Paddle event_id across redeliveries', function () {
-        $user = webhookCreateUser(['analytics_consent' => true]);
+        $user = PaddleWebhooks::createUser(['analytics_consent' => true]);
         $user->forceFill(['paddle_id' => 'ctm_dedup'])->save();
-        webhookCreateCustomer($user, 'ctm_dedup');
-        webhookCreateSubscription($user, [
+        PaddleWebhooks::createCustomer($user, 'ctm_dedup');
+        PaddleWebhooks::createSubscription($user, [
             'paddle_id' => 'sub_dedup',
             'status' => 'active',
         ]);
@@ -214,10 +172,10 @@ describe('Webhook — analytics dedup', function () {
         // bug, so the payload omits status entirely.) The subscription is
         // pre-created so Cashier's parent handler returns early and the DB is
         // not asked to persist a null status.
-        $user = webhookCreateUser(['analytics_consent' => true]);
+        $user = PaddleWebhooks::createUser(['analytics_consent' => true]);
         $user->forceFill(['paddle_id' => 'ctm_no_status'])->save();
-        webhookCreateCustomer($user, 'ctm_no_status');
-        webhookCreateSubscription($user, ['paddle_id' => 'sub_no_status', 'status' => 'active']);
+        PaddleWebhooks::createCustomer($user, 'ctm_no_status');
+        PaddleWebhooks::createSubscription($user, ['paddle_id' => 'sub_no_status', 'status' => 'active']);
 
         post('/paddle/webhook', [
             'event_type' => 'subscription.created',
@@ -325,10 +283,10 @@ describe('Webhook — Subscription Status Transitions', function () {
     });
 
     it('creates transaction record from webhook', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_txn_create');
+        $user = PaddleWebhooks::createUser();
+        PaddleWebhooks::createCustomer($user, 'ctm_txn_create');
 
-        webhookPostEvent('transaction.completed', [
+        PaddleWebhooks::postEvent('transaction.completed', [
             'id' => 'txn_new_record',
             'customer_id' => 'ctm_txn_create',
             'subscription_id' => null,

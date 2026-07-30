@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\GmRoleService;
 use Laravel\Paddle\Subscription;
 use Spatie\Permission\Models\Role;
+use Tests\Helpers\PaddleWebhooks;
 
 use function Pest\Laravel\assertDatabaseHas;
 
@@ -40,9 +41,9 @@ beforeEach(function () {
 // ── subscription.created: real provisioning + GM-role sync invocation ────
 
 it('provisions a new subscription via the parent Cashier handler and invokes GM-role sync', function () {
-    $user = webhookCreateUser();
+    $user = PaddleWebhooks::createUser();
     $customerId = 'ctm_new_'.$user->id;
-    webhookCreateCustomer($user, $customerId);
+    PaddleWebhooks::createCustomer($user, $customerId);
     GMProfile::factory()->create(['user_id' => $user->id, 'is_active' => false]);
 
     $subId = 'sub_new_'.uniqid();
@@ -52,7 +53,7 @@ it('provisions a new subscription via the parent Cashier handler and invokes GM-
 
     Log::spy();
 
-    webhookPostEvent('subscription.created', [
+    PaddleWebhooks::postEvent('subscription.created', [
         'id' => $subId,
         'customer_id' => $customerId,
         'status' => 'active',
@@ -78,13 +79,13 @@ it('provisions a new subscription via the parent Cashier handler and invokes GM-
 // ── subscription.updated ─────────────────────────────────────────────────
 
 it('updates the subscription status and persists new price data on subscription.updated', function () {
-    $user = webhookCreateUser();
+    $user = PaddleWebhooks::createUser();
     $customerId = 'ctm_upd_'.$user->id;
-    webhookCreateCustomer($user, $customerId);
+    PaddleWebhooks::createCustomer($user, $customerId);
     $subId = 'sub_upd_'.uniqid();
-    webhookCreateSubscription($user, ['paddle_id' => $subId, 'status' => 'active']);
+    PaddleWebhooks::createSubscription($user, ['paddle_id' => $subId, 'status' => 'active']);
 
-    webhookPostEvent('subscription.updated', [
+    PaddleWebhooks::postEvent('subscription.updated', [
         'id' => $subId,
         'customer_id' => $customerId,
         'status' => 'past_due',
@@ -103,11 +104,11 @@ it('updates the subscription status and persists new price data on subscription.
 // ── subscription.canceled: revoke side-effect invocation + retention guard ─
 
 it('revokes the GM role on subscription.canceled when no local GM subscription exists', function () {
-    $user = webhookCreateUser();
+    $user = PaddleWebhooks::createUser();
     $customerId = 'ctm_canc_'.$user->id;
-    webhookCreateCustomer($user, $customerId);
+    PaddleWebhooks::createCustomer($user, $customerId);
     $subId = 'sub_canc_'.uniqid();
-    webhookCreateSubscription($user, ['paddle_id' => $subId, 'status' => 'active']);
+    PaddleWebhooks::createSubscription($user, ['paddle_id' => $subId, 'status' => 'active']);
     $user->forceFill(['paddle_id' => $customerId])->save();
 
     // Give the user an active NON-gm local membership so assignGMRole succeeds,
@@ -130,7 +131,7 @@ it('revokes the GM role on subscription.canceled when no local GM subscription e
     app(GmRoleService::class)->assignGMRole($user);
     expect($user->fresh()->hasRole('Game Master'))->toBeTrue('precondition: GM role assigned');
 
-    webhookPostEvent('subscription.canceled', [
+    PaddleWebhooks::postEvent('subscription.canceled', [
         'id' => $subId,
         'customer_id' => $customerId,
         'status' => 'canceled',
@@ -145,11 +146,11 @@ it('revokes the GM role on subscription.canceled when no local GM subscription e
 })->group('smoke');
 
 it('keeps the GM role on subscription.canceled when an active local GM subscription exists', function () {
-    $user = webhookCreateUser();
+    $user = PaddleWebhooks::createUser();
     $customerId = 'ctm_keep_'.$user->id;
-    webhookCreateCustomer($user, $customerId);
+    PaddleWebhooks::createCustomer($user, $customerId);
     $subId = 'sub_keep_'.uniqid();
-    webhookCreateSubscription($user, ['paddle_id' => $subId, 'status' => 'active']);
+    PaddleWebhooks::createSubscription($user, ['paddle_id' => $subId, 'status' => 'active']);
     $user->forceFill(['paddle_id' => $customerId])->save();
 
     $gmPlan = MembershipType::updateOrCreate(
@@ -165,7 +166,7 @@ it('keeps the GM role on subscription.canceled when an active local GM subscript
     app(GmRoleService::class)->assignGMRole($user);
     expect($user->fresh()->hasRole('Game Master'))->toBeTrue('precondition: GM role assigned');
 
-    webhookPostEvent('subscription.canceled', [
+    PaddleWebhooks::postEvent('subscription.canceled', [
         'id' => $subId,
         'customer_id' => $customerId,
         'status' => 'canceled',
