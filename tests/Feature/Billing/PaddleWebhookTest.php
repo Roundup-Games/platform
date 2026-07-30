@@ -130,7 +130,7 @@ describe('Webhook — transaction.payment_failed', function () {
         $tickets = Ticket::where('ticket_type', 'billing_support')->get();
         expect($tickets)->toHaveCount(1)
             ->and($tickets->first()->metadata['context']['paddle_transaction_id'])->toBe('txn_pay_fail_dedup');
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -256,7 +256,7 @@ describe('Webhook — Signature Verification', function () {
         $signature = computePaddleSignature($payload, $secret);
 
         postSignedWebhook('/paddle/webhook', $payload, $signature)->assertStatus(200);
-    });
+    })->group('smoke');
 
     it('rejects webhook with invalid signature when webhook_secret is configured', function () {
         $secret = 'test_webhook_secret_abc123';
@@ -276,7 +276,7 @@ describe('Webhook — Signature Verification', function () {
         $signature = computePaddleSignature($payload, 'wrong_secret_value');
 
         postSignedWebhook('/paddle/webhook', $payload, $signature)->assertStatus(403);
-    });
+    })->group('smoke');
 
     it('rejects webhook with expired timestamp in signature', function () {
         $secret = 'test_webhook_secret_abc123';

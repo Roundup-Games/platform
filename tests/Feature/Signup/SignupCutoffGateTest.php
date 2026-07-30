@@ -57,7 +57,7 @@ describe('web apply path (HandlesApplicationSubmission)', function () {
         // No participant row, no application row — the cutoff is a hard gate.
         expect(GameParticipant::where('game_id', $game->id)->where('user_id', $applicant->id)->exists())->toBeFalse();
         expect($game->applications()->where('user_id', $applicant->id)->exists())->toBeFalse();
-    });
+    })->group('smoke');
 
     it('allows applications when the cutoff is in the future', function () {
         $owner = User::factory()->create();

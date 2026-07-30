@@ -122,7 +122,7 @@ describe('addToWaitlist', function () {
 
         expect($this->service->getWaitlistPosition($p1))->toBe(1);
         expect($this->service->getWaitlistPosition($p2))->toBe(2);
-    });
+    })->group('smoke');
 });
 
 // ── promoteNext ──────────────────────────────────────────

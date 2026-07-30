@@ -26,7 +26,7 @@ describe('Sitemap Index', function () {
         get('/sitemap.xml')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/xml');
-    });
+    })->group('smoke');
 
     it('returns valid XML sitemap index', function () {
         $content = get('/sitemap.xml')->content();

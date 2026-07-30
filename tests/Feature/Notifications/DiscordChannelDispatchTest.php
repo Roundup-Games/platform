@@ -13,6 +13,7 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Channels\PushChannel;
 use Illuminate\Support\Facades\Notification;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -157,6 +158,7 @@ class DiscordChannelDispatchTest extends TestCase
 
     // ── End-to-end dispatch proof ──
 
+    #[Group('smoke')]
     #[Test]
     public function send_dispatches_discord_alongside_database_in_parallel_when_enabled(): void
     {

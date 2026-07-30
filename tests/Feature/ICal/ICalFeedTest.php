@@ -24,7 +24,7 @@ describe('iCal feed token resolution', function () {
     it('returns 404 for an unknown token code', function () {
         $this->get('/calendar/unknown-code')
             ->assertNotFound();
-    });
+    })->group('smoke');
 
     it('returns 404 for an expired token', function () {
         $user = User::factory()->create();
@@ -85,7 +85,7 @@ describe('iCal feed — successful rendering', function () {
 
         $response->assertStatus(200);
         expect($response->headers->get('Content-Type'))->toStartWith('text/calendar');
-    });
+    })->group('smoke');
 
     it('emits a valid VEVENT for an upcoming hosted game with correct DTSTART/DTEND', function () {
         $owner = User::factory()->create();

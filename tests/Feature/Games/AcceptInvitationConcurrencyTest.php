@@ -131,7 +131,7 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
         expect($approvedCount)->toBe(2); // owner + filler
-    });
+    })->group('smoke');
 
     test('sequential accepts stop at max capacity without exceeding', function () {
         ['owner' => $owner, 'game' => $game] = capacityTestCreateGame(maxPlayers: 2);
@@ -174,7 +174,7 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         // Second participant should be waitlisted, not approved
         $p2 = GameParticipant::find($participant2->id);
         expect($p2->status->value)->not->toBe(ParticipantStatus::Approved->value);
-    });
+    })->group('smoke');
 
     test('accept with no max_players limit always succeeds', function () {
         ['owner' => $owner, 'game' => $game] = capacityTestCreateGame(maxPlayers: 1000);

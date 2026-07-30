@@ -33,7 +33,7 @@ describe('ShortLink redirect — valid codes', function () {
 
         $response->assertStatus(302);
         $response->assertRedirect($this->link->url);
-    });
+    })->group('smoke');
 
     it('sets Cache-Control no-cache header', function () {
         $response = $this->get("/link/{$this->link->code}");

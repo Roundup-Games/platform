@@ -67,7 +67,7 @@ describe('GamesPage — Cancel Game Action', function () {
             'id' => $game->id,
             'status' => 'canceled',
         ]);
-    });
+    })->group('smoke');
 
     it('cannot cancel already canceled game', function () {
         $user = gamesPageCreateUser();
@@ -139,7 +139,7 @@ describe('GamesPage — Complete Game Action', function () {
         ]);
 
         $component->assertSee(__('games.flash_game_completed'));
-    });
+    })->group('smoke');
 
     it('cannot complete already canceled game', function () {
         $user = gamesPageCreateUser();

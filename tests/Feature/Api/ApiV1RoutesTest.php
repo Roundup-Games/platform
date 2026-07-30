@@ -42,7 +42,7 @@ describe('API v1 route authentication', function () {
             'endpoint' => 'https://example.com/push',
             'keys' => ['p256h' => 'key', 'auth' => 'auth'],
         ])->assertUnauthorized();
-    });
+    })->group('smoke');
 
     it('blocks unauthenticated DELETE /api/v1/push/subscribe', function () {
         $this->deleteJson('/api/v1/push/subscribe', [

@@ -35,7 +35,7 @@ it('can save profile information', function () {
         ->gender_consent->toBeTrue()
         ->pronouns->toBe('they/them')
         ->phone->toBe('+15559876543');
-});
+})->group('smoke');
 
 it('can save game preferences independently', function () {
     $user = User::factory()->create([

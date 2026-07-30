@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Testing\TestResponse;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -83,6 +84,7 @@ class DiscordInteractionEndpointTest extends TestCase
 
     // ── PING handshake ─────────────────────────────────
 
+    #[Group('smoke')]
     #[Test]
     public function a_signed_ping_returns_type_1_ack()
     {
@@ -109,6 +111,7 @@ class DiscordInteractionEndpointTest extends TestCase
 
     // ── Signature rejection (no bypass path) ───────────
 
+    #[Group('smoke')]
     #[Test]
     public function an_unsigned_request_returns_401()
     {
@@ -120,6 +123,7 @@ class DiscordInteractionEndpointTest extends TestCase
         $response->assertStatus(401);
     }
 
+    #[Group('smoke')]
     #[Test]
     public function a_tampered_body_returns_401()
     {

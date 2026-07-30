@@ -10,6 +10,7 @@ use App\Services\GmRoleService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Cashier;
+use PHPUnit\Framework\Attributes\Group;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 use Tests\Traits\CreatesUsers;
@@ -84,6 +85,7 @@ class GmRoleServiceTest extends TestCase
 
     // ── Logging Events ─────────────────────────────────
 
+    #[Group('smoke')]
     public function test_revoke_gm_role_removes_role_and_deactivates_profile(): void
     {
         // (The previous name claimed to verify logging, but the body tests
@@ -128,6 +130,7 @@ class GmRoleServiceTest extends TestCase
         $this->assertTrue($user->fresh()->can_create_public_entries);
     }
 
+    #[Group('smoke')]
     public function test_activate_gm_subscription_grants_can_create_public_entries(): void
     {
         $this->seedGmPlan();

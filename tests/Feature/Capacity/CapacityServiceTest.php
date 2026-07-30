@@ -78,7 +78,7 @@ describe('increase', function () {
         // The two originally-waitlisted players must now be Pending.
         expect($waitlisted1->fresh()->status)->toBe(ParticipantStatus::Pending)
             ->and($waitlisted2->fresh()->status)->toBe(ParticipantStatus::Pending);
-    });
+    })->group('smoke');
 
     it('is a no-op for promotions on an unlimited game (no waitlist to fill)', function () {
         // games.max_players is NOT NULL (migration 2026_04_28_100003), so

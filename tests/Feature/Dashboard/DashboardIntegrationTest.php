@@ -80,7 +80,7 @@ describe('Dashboard rendering', function () {
 
         // Verify dashboardMode is always resolvable
         expect($dashboard->mode)->toBeIn(['newcomer', 'established']);
-    });
+    })->group('smoke');
 });
 
 // ── Dashboard mode resolution ───────────────────────────────────
