@@ -36,7 +36,6 @@ use App\Policies\Escalated\TicketPolicy;
 use App\Policies\GameBulletinPolicy;
 use App\SEO\BreadcrumbBuilder;
 use App\Services\AttendanceService;
-use App\Services\BenchService;
 use App\Services\EscalatedBladeRenderer;
 use App\Services\ICal\ICalFeedRenderer;
 use App\Services\PostHogClient;
@@ -131,8 +130,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ReliabilityScoreService::class);
 
         $this->app->singleton(WaitlistService::class);
-
-        $this->app->singleton(BenchService::class);
 
         $this->app->singleton(AttendanceService::class);
 

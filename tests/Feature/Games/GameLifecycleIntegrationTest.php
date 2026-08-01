@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Jobs\ResolveAttendance;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -128,28 +129,38 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertNull($waitlistedParticipant->confirmation_expires_at);
 
         // ── Step 3: Complete the game (S04 — attendance) ──
-        $game->update(['status' => 'completed', 'date_time' => now()->subHours(2)]);
+        $game->update([
+            'status' => 'completed',
+            'date_time' => now()->subHours(2),
+            'attendance_window_opens_at' => now()->subHour(),
+            'attendance_window_closes_at' => now()->addDays(2),
+        ]);
 
         // Report attendance: host reports all players
         // Host reports player1 as attended
-        $result1 = $this->attendanceService->reportAttendance(
-            $game, $host, $player1, AttendanceStatus::Attended->value
+        $result1 = $this->attendanceService->submitReport(
+            $game, $host, [['reported_id' => $player1->id, 'status' => AttendanceStatus::Attended->value]]
         );
         $this->assertTrue($result1['success']);
 
         // Host reports waitlisted player as attended
-        $result2 = $this->attendanceService->reportAttendance(
-            $game, $host, $waitlistedPlayer, AttendanceStatus::Attended->value
+        $result2 = $this->attendanceService->submitReport(
+            $game, $host, [['reported_id' => $waitlistedPlayer->id, 'status' => AttendanceStatus::Attended->value]]
         );
         $this->assertTrue($result2['success']);
 
         // Player1 reports host as attended (corroboration)
-        $result3 = $this->attendanceService->reportAttendance(
-            $game, $player1, $host, AttendanceStatus::Attended->value
+        $result3 = $this->attendanceService->submitReport(
+            $game, $player1, [['reported_id' => $host->id, 'status' => AttendanceStatus::Attended->value]]
         );
         $this->assertTrue($result3['success']);
 
         // Player2 (cancelled) doesn't get attendance reported
+
+        // submitReport() defers attendance_status/reliability writes to the consensus
+        // resolution engine (async queue). These fixtures don't reach early-consensus,
+        // so trigger resolution synchronously — mirrors what the production queue does.
+        ResolveAttendance::dispatchSync($game);
 
         // ── Step 4: Verify reliability scores updated (S01/S04) ──
         $player1->refresh();
@@ -216,6 +227,8 @@ class GameLifecycleIntegrationTest extends TestCase
             'owner_id' => $host->id,
             'status' => 'completed',
             'date_time' => now()->subHours(3),
+            'attendance_window_opens_at' => now()->subHour(),
+            'attendance_window_closes_at' => now()->addDays(2),
         ]);
 
         GameParticipant::create([
@@ -232,14 +245,14 @@ class GameLifecycleIntegrationTest extends TestCase
         ]);
 
         // Reporter marks host as no-show
-        $result = $this->attendanceService->reportAttendance(
-            $game, $reporter, $host, AttendanceStatus::NoShow->value
+        $result = $this->attendanceService->submitReport(
+            $game, $reporter, [['reported_id' => $host->id, 'status' => AttendanceStatus::NoShow->value]]
         );
         $this->assertTrue($result['success']);
 
         // Reporter marks player as no-show
-        $result = $this->attendanceService->reportAttendance(
-            $game, $reporter, $player, AttendanceStatus::NoShow->value
+        $result = $this->attendanceService->submitReport(
+            $game, $reporter, [['reported_id' => $player->id, 'status' => AttendanceStatus::NoShow->value]]
         );
         $this->assertTrue($result['success']);
 
@@ -325,7 +338,7 @@ class GameLifecycleIntegrationTest extends TestCase
 
         // Cancel the game
         $game->update(['status' => 'canceled']);
-        $this->waitlistService->handleGameCancellation($game);
+        $this->waitlistService->handleEntityCancellation($game);
 
         // Waitlisted player should be rejected
         $wlParticipant->refresh();

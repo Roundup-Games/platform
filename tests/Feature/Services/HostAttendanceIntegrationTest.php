@@ -6,14 +6,15 @@ use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Jobs\ResolveAttendance;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\AttendanceService;
-use App\Services\BenchService;
 use App\Services\ParticipantLifecycle;
 use App\Services\ReliabilityScoreService;
+use App\Services\Roster;
 use App\Services\WaitlistService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
@@ -57,11 +58,15 @@ class HostAttendanceIntegrationTest extends TestCase
         $this->createPlayerParticipant($game, $player);
 
         // Player reports host as attended
-        $result = $this->attendanceService->reportAttendance(
-            $game, $player, $host, AttendanceStatus::Attended->value
+        $result = $this->attendanceService->submitReport(
+            $game, $player, [['reported_id' => $host->id, 'status' => AttendanceStatus::Attended->value]]
         );
 
         $this->assertTrue($result['success'], 'Host attendance report should succeed: '.$result['reason']);
+
+        // submitReport() defers attendance_status writes to the consensus resolution
+        // engine (async queue); resolve synchronously to mirror the production queue.
+        ResolveAttendance::dispatchSync($game);
 
         $hostParticipant->refresh();
         $this->assertEquals(AttendanceStatus::Attended, $hostParticipant->attendance_status);
@@ -83,9 +88,13 @@ class HostAttendanceIntegrationTest extends TestCase
         $this->createPlayerParticipant($game, $player);
 
         // Player reports host as attended
-        $this->attendanceService->reportAttendance(
-            $game, $player, $host, AttendanceStatus::Attended->value
+        $this->attendanceService->submitReport(
+            $game, $player, [['reported_id' => $host->id, 'status' => AttendanceStatus::Attended->value]]
         );
+
+        // submitReport() defers reliability writes to the consensus resolution
+        // engine (async queue); resolve synchronously to mirror the production queue.
+        ResolveAttendance::dispatchSync($game);
 
         $host->refresh();
         $this->assertNotNull($host->reliability_score, 'Host reliability score should be computed');
@@ -99,12 +108,12 @@ class HostAttendanceIntegrationTest extends TestCase
         $game = $this->createCompletedGame($host);
         $this->createOwnerParticipant($game, $host);
 
-        $result = $this->attendanceService->reportAttendance(
-            $game, $host, $host, AttendanceStatus::Attended->value
+        $result = $this->attendanceService->submitReport(
+            $game, $host, [['reported_id' => $host->id, 'status' => AttendanceStatus::Attended->value]]
         );
 
         $this->assertFalse($result['success']);
-        $this->assertStringContainsString('Host cannot self-report', $result['reason']);
+        $this->assertStringContainsString('Cannot report your own attendance', $result['reason']);
     }
 
     public function test_host_attendance_reported_as_no_show_decreases_reliability(): void
@@ -117,11 +126,15 @@ class HostAttendanceIntegrationTest extends TestCase
         $this->createPlayerParticipant($game, $player);
 
         // Player reports host as no-show
-        $result = $this->attendanceService->reportAttendance(
-            $game, $player, $host, AttendanceStatus::NoShow->value
+        $result = $this->attendanceService->submitReport(
+            $game, $player, [['reported_id' => $host->id, 'status' => AttendanceStatus::NoShow->value]]
         );
 
         $this->assertTrue($result['success'], 'Reporting host as no-show should succeed: '.$result['reason']);
+
+        // submitReport() defers reliability writes to the consensus resolution
+        // engine (async queue); resolve synchronously to mirror the production queue.
+        ResolveAttendance::dispatchSync($game);
 
         $host->refresh();
         // No-show as host uses HOST_WEIGHTS['host_no_show'] = -1.5
@@ -364,31 +377,6 @@ class HostAttendanceIntegrationTest extends TestCase
             'Host participant should remain approved');
     }
 
-    public function test_bench_add_rejects_owner(): void
-    {
-        $host = User::factory()->create();
-        $player = User::factory()->create();
-
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'status' => GameStatus::Scheduled,
-            'date_time' => now()->addDays(7),
-            'max_players' => 1,
-            'bench_mode' => true,
-        ]);
-
-        // Fill the game
-        $this->createOwnerParticipant($game, $host);
-        $this->createPlayerParticipant($game, $player);
-
-        $benchService = app(BenchService::class);
-
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Cannot add to bench: you are the host');
-
-        $benchService->addToBench($game, $host);
-    }
-
     public function test_bench_entity_cancellation_preserves_owner_status(): void
     {
         $host = User::factory()->create();
@@ -415,8 +403,7 @@ class HostAttendanceIntegrationTest extends TestCase
             'benched_at' => now(),
         ]);
 
-        $benchService = app(BenchService::class);
-        $benchService->handleEntityCancellation($game);
+        app(Roster::class)->onCancellation($game);
 
         // Benched player should be rejected
         $benchedPlayerParticipant = $game->participants()->where('user_id', $benchedPlayer->id)->first();
@@ -475,6 +462,8 @@ class HostAttendanceIntegrationTest extends TestCase
             'status' => GameStatus::Completed,
             'date_time' => now()->subDay(),
             'max_players' => $maxPlayers,
+            'attendance_window_opens_at' => now()->subHour(),
+            'attendance_window_closes_at' => now()->addDays(2),
         ]);
     }
 

@@ -8,14 +8,12 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Services\BenchService;
 use Livewire\Livewire;
 use Tests\Feature\Bench\BenchTestHelpers;
 
 beforeEach(function () {
     $this->owner = User::factory()->create();
     $this->gameSystem = GameSystem::factory()->create();
-    $this->benchService = app(BenchService::class);
 });
 
 uses(BenchTestHelpers::class);

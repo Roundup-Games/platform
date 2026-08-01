@@ -428,9 +428,9 @@ describe('promoteAllOnCancel', function () {
     });
 });
 
-// ── handleGameCancellation ───────────────────────────────
+// ── handleEntityCancellation (game) ───────────────────────────────
 
-describe('handleGameCancellation', function () {
+describe('handleEntityCancellation (game path)', function () {
     it('rejects all waitlisted participants', function () {
         ['game' => $game] = createFullStandaloneGame();
 
@@ -438,7 +438,7 @@ describe('handleGameCancellation', function () {
 
         $this->service->addToWaitlist($game, $waitUser);
 
-        $this->service->handleGameCancellation($game);
+        $this->service->handleEntityCancellation($game);
 
         $waitlisted = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $waitUser->id)->first();
@@ -446,7 +446,7 @@ describe('handleGameCancellation', function () {
         expect($waitlisted->status)->toBe(ParticipantStatus::Rejected);
     });
 
-    it('does not reject benched participants (BenchService responsibility)', function () {
+    it('does not reject benched participants (Roster responsibility)', function () {
         ['game' => $game] = createFullStandaloneGame();
 
         $benchUser = User::factory()->create();
@@ -458,7 +458,7 @@ describe('handleGameCancellation', function () {
             'status' => ParticipantStatus::Benched->value,
         ]);
 
-        $this->service->handleGameCancellation($game);
+        $this->service->handleEntityCancellation($game);
 
         // WaitlistService only handles waitlisted — benched should remain unchanged
         $benched = GameParticipant::where('game_id', $game->id)
@@ -473,7 +473,7 @@ describe('handleGameCancellation', function () {
         $waitUser = User::factory()->create();
         $this->service->addToWaitlist($game, $waitUser);
 
-        $this->service->handleGameCancellation($game);
+        $this->service->handleEntityCancellation($game);
 
         // Approved player participants should remain unchanged (owner has no record)
         $approvedPlayer = $game->participants()

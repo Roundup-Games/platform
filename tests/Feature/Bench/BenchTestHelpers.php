@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Bench;
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
-use App\Services\BenchService;
 use Tests\Traits\CreatesGameInstances;
 
 trait BenchTestHelpers
@@ -30,10 +30,23 @@ trait BenchTestHelpers
         return $this->createFullBenchSession($campaign, $this->owner, $maxPlayers);
     }
 
+    /**
+     * Stage a benched participant via direct create (test fixture).
+     *
+     * The host-curated addToBench() was retired with BenchService — this
+     * fixture creates the same DB state (status=Benched, benched_at=now)
+     * without the validation gates that method enforced. Test preconditions
+     * (capacity, bench_mode) are established by the factory/state.
+     */
     public function addBenchUser(Campaign|Game $entity): array
     {
         $user = User::factory()->create();
-        $participant = app(BenchService::class)->addToBench($entity, $user);
+        $participant = $entity->participants()->create([
+            'user_id' => $user->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Benched->value,
+            'benched_at' => now(),
+        ]);
 
         return ['user' => $user, 'participant' => $participant];
     }

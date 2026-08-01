@@ -8,14 +8,12 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Services\BenchService;
 use App\Services\WaitlistService;
 
 beforeEach(function () {
     $this->owner = User::factory()->create();
     $this->gameSystem = GameSystem::factory()->create();
     $this->waitlistService = app(WaitlistService::class);
-    $this->benchService = app(BenchService::class);
 });
 
 // ── Helpers ──────────────────────────────────────────────
@@ -161,7 +159,12 @@ describe('GameCard overflow indicators', function () {
             'status' => ParticipantStatus::Approved->value,
         ]);
 
-        $this->benchService->addToBench($game, User::factory()->create());
+        $game->participants()->create([
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Benched->value,
+            'benched_at' => now(),
+        ]);
 
         $gameWithCounts = Game::withCount([
             'participants as waitlisted_count' => fn ($q) => $q->where('status', 'waitlisted'),
@@ -211,7 +214,12 @@ describe('CampaignCard overflow indicators', function () {
     test('campaign card shows benched count for bench-mode campaign', function () {
         $campaign = createPublicCampaignWithCounts($this->owner, $this->gameSystem, maxPlayers: 2, benchMode: true);
         $user = User::factory()->create();
-        $this->benchService->addToBench($campaign, $user);
+        $campaign->participants()->create([
+            'user_id' => $user->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Benched->value,
+            'benched_at' => now(),
+        ]);
 
         $campaignWithCounts = Campaign::withCount([
             'participants as waitlisted_count' => fn ($q) => $q->where('status', 'waitlisted'),

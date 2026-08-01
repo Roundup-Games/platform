@@ -232,7 +232,7 @@ describe('Campaign ManageParticipants promote from bench', function () {
             ->call('managePromoteFromBench', $participant->id)
             ->assertHasNoErrors();
 
-        // BenchService::promoteFromBench changes status to approved
+        // Roster::promoteFromBench changes status to approved
         $participant->refresh();
         expect($participant->status)->toBe(ParticipantStatus::Approved);
     });

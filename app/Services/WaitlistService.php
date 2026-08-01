@@ -434,26 +434,10 @@ class WaitlistService
     }
 
     /**
-     * Handle game cancellation — reject all waitlisted/benched participants.
-     */
-    public function handleGameCancellation(Game $game): void
-    {
-        $this->handleEntityCancellation($game);
-    }
-
-    /**
-     * Handle campaign cancellation — reject all waitlisted/benched participants.
-     */
-    public function handleCampaignCancellation(Campaign $campaign): void
-    {
-        $this->handleEntityCancellation($campaign);
-    }
-
-    /**
      * Handle entity (game or campaign) cancellation — reject all waitlisted participants.
      *
      * Only handles Waitlisted participants. Benched participants are the responsibility
-     * of BenchService::handleEntityCancellation(), which should be called separately.
+     * of Roster::rejectBenched() (called via Roster::onCancellation), which runs alongside waitlist rejection.
      * This avoids double-processing of benched participants.
      */
     public function handleEntityCancellation(Campaign|Game $entity): void
@@ -562,17 +546,6 @@ class WaitlistService
         HandleExpiredConfirmation::dispatch($next->id, get_class($next))->delay($expiresAt);
 
         return $next->fresh();
-    }
-
-    /**
-     * Compute the absolute confirmation deadline (Carbon) for a promoted participant.
-     * Returns now() + urgency-scaled window based on time until game start.
-     */
-    public function computeConfirmationDeadline(Campaign|Game $entity): Carbon
-    {
-        $hours = $this->computeConfirmationWindow($entity);
-
-        return now()->addMinutes((int) round($hours * 60));
     }
 
     /**

@@ -206,7 +206,7 @@ class ParticipantLifecycle
      * The single seam for bench promotion: every host entry point (sidebar,
      * manage-participants page) routes here. Precondition (must be Benched),
      * capacity check (entity must have room), transition, and log live behind
-     * this interface. Moved from BenchService — Bench is a host-controlled
+     * this interface. Moved from the retired BenchService — bench is a host-controlled
      * concept with no FIFO/confirmation depth, so its transitions collapse
      * cleanly into the lifecycle service.
      *

@@ -10,7 +10,6 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Services\BenchService;
 use App\Services\WaitlistService;
 use Livewire\Livewire;
 
@@ -18,7 +17,6 @@ beforeEach(function () {
     $this->owner = User::factory()->create();
     $this->gameSystem = GameSystem::factory()->create();
     $this->waitlistService = app(WaitlistService::class);
-    $this->benchService = app(BenchService::class);
 });
 
 // ── Helpers ──────────────────────────────────────────────
@@ -202,7 +200,12 @@ describe('leave flow', function () {
 
         $user = User::factory()->create();
         $participant = $status === ParticipantStatus::Benched
-            ? $this->benchService->addToBench($entity, $user)
+            ? $entity->participants()->create([
+                'user_id' => $user->id,
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Benched->value,
+                'benched_at' => now(),
+            ])
             : $this->waitlistService->addToWaitlist($entity, $user);
 
         $request = Livewire::actingAs($user)
@@ -234,7 +237,12 @@ describe('leave flow', function () {
             // Add a real waitlisted/benched participant owned by someone else
             $owner = User::factory()->create();
             $participant = $status === ParticipantStatus::Benched
-                ? $this->benchService->addToBench($entity, $owner)
+                ? $entity->participants()->create([
+                    'user_id' => $owner->id,
+                    'role' => ParticipantRole::Player->value,
+                    'status' => ParticipantStatus::Benched->value,
+                    'benched_at' => now(),
+                ])
                 : $this->waitlistService->addToWaitlist($entity, $owner);
             $actingUser = User::factory()->create();
         } else { // 'wrong-status'
@@ -336,7 +344,12 @@ describe('campaign detail banner visibility', function () {
         $user = User::factory()->create();
 
         // In bench mode, users go to bench, not waitlist
-        $this->benchService->addToBench($campaign, $user);
+        $campaign->participants()->create([
+            'user_id' => $user->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Benched->value,
+            'benched_at' => now(),
+        ]);
 
         Livewire::actingAs($user)
             ->test(CampaignDetail::class, ['id' => $campaign->id])

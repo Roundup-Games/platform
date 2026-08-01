@@ -28,13 +28,6 @@ class AttendanceService
 {
     // ── Tunable thresholds (read from config/attendance.php) ────
 
-    public static function timelinessThresholdHours(): int
-    {
-        $v = config('attendance.timeliness_threshold_hours', 72);
-
-        return is_int($v) ? $v : 72;
-    }
-
     public static function quarantineThreshold(): int
     {
         $v = config('attendance.quarantine_threshold', 3);
@@ -62,13 +55,6 @@ class AttendanceService
         $v = config('attendance.low_reliability_multiplier', 0.5);
 
         return is_numeric($v) ? (float) $v : 0.5;
-    }
-
-    public static function lateReportMultiplier(): float
-    {
-        $v = config('attendance.late_report_multiplier', 0.7);
-
-        return is_numeric($v) ? (float) $v : 0.7;
     }
 
     public static function hostCancelMinRoster(): int
@@ -388,166 +374,17 @@ class AttendanceService
             }
         }
 
-        // 3. Check timeliness: reduce weight if >72h since game
-        $hoursSinceGame = $game->date_time ? $game->date_time->diffInHours(now()) : 0;
-        if ($hoursSinceGame > self::timelinessThresholdHours()) {
-            $weightMultiplier *= self::lateReportMultiplier();
-
-            Log::info('Reduced report weight due to late reporting', [
-                'reporter_id' => $reporter->id,
-                'hours_since_game' => $hoursSinceGame,
-                'multiplier' => $weightMultiplier,
-            ]);
-        }
+        // Timeliness weighting was removed under the consensus redesign: per
+        // config/attendance.php, all reports within the reporting window carry
+        // full weight regardless of when they are filed. The reporting window
+        // gate (submitReport) already refuses reports filed past the window, so
+        // weight reduction for late reports is obsolete.
 
         return [
             'allowed' => true,
             'weight_multiplier' => round($weightMultiplier, 2),
             'quarantined' => false,
         ];
-    }
-
-    // ── 4. Backward-compatible methods (kept) ───────────────────
-
-    /**
-     * Legacy single-report method. Does not drive consensus resolution, but
-     * DOES record corroboration (two independent reporters agreeing on a status)
-     * so reports filed via this path still count out of the grief-resistance
-     * quarantine the same way as submitReport().
-     *
-     * @deprecated Use submitReport() for consensus-based attendance reporting.
-     *             This method is retained for backward compatibility only.
-     *
-     * @return array{success: bool, reason: string}
-     */
-    public function reportAttendance(Game $game, User $reporter, User $reported, string $status): array
-    {
-        // Validate status is a valid AttendanceStatus value
-        $validStatuses = AttendanceStatus::values();
-        if (! in_array($status, $validStatuses, true)) {
-            return ['success' => false, 'reason' => "Invalid attendance status: {$status}"];
-        }
-
-        // Game must have occurred
-        if ($game->date_time?->isFuture() ?? false) {
-            return ['success' => false, 'reason' => 'Cannot report attendance for a future game'];
-        }
-
-        // Game must not be cancelled
-        if ($game->status === GameStatus::Canceled) {
-            return ['success' => false, 'reason' => 'Cannot report attendance for a cancelled game'];
-        }
-
-        // Reporter must be an approved participant or the game owner.
-        /** @var GameParticipant|null $reporterParticipant */
-        $reporterParticipant = $game->participants()
-            ->whereBelongsTo($reporter)
-            ->first();
-
-        if (! $reporterParticipant && (string) $game->owner_id !== (string) $reporter->id) {
-            return ['success' => false, 'reason' => 'Reporter is not a participant in this game'];
-        }
-
-        // Reported user must be a participant or the game owner.
-        /** @var GameParticipant|null $reportedParticipant */
-        $reportedParticipant = $game->participants()
-            ->whereBelongsTo($reported)
-            ->first();
-
-        if (! $reportedParticipant && (string) $game->owner_id !== (string) $reported->id) {
-            return ['success' => false, 'reason' => 'Reported user is not a participant in this game'];
-        }
-
-        // Cannot self-report as host for own attendance
-        if ($reporter->is($reported) && (string) $game->owner_id === (string) $reporter->id) {
-            return ['success' => false, 'reason' => 'Host cannot self-report attendance'];
-        }
-
-        // Self-reporting is allowed for non-hosts (only 'attended' or 'excused')
-        if ($reporter->is($reported) && ! in_array($status, ['attended', 'excused'], true)) {
-            return ['success' => false, 'reason' => 'Self-reporting is only allowed for attended or excused status'];
-        }
-
-        // Apply grief resistance
-        $griefCheck = $this->checkGriefResistance($reporter, $game);
-
-        if (! $griefCheck['allowed']) {
-            Log::warning('Attendance report blocked by grief resistance', [
-                'game_id' => $game->id,
-                'reporter_id' => $reporter->id,
-                'reported_id' => $reported->id,
-                'reason' => $griefCheck['reason'] ?? 'quarantined',
-            ]);
-
-            return ['success' => false, 'reason' => 'Report blocked: '.($griefCheck['reason'] ?? 'reporter is quarantined')];
-        }
-
-        $weight = $griefCheck['weight_multiplier'];
-
-        // Bail if reported participant has no record
-        if ($reportedParticipant === null) {
-            Log::error('Attendance report skipped: reported user has no participant record (data integrity gap)', [
-                'game_id' => $game->id,
-                'reported_id' => $reported->id,
-                'is_owner' => (string) $game->owner_id === (string) $reported->id,
-            ]);
-
-            return ['success' => false, 'reason' => 'Reported user has no participant record'];
-        }
-
-        // Record attendance, create report atomically
-        DB::transaction(function () use ($reportedParticipant, $status, $reporter, $weight, $game, $reported, $griefCheck) {
-            $this->recordAttendance($reportedParticipant, $status, $reporter, $weight);
-
-            $game->attendanceReports()->create([
-                'reporter_id' => $reporter->id,
-                'reported_id' => $reported->id,
-                'status' => $status,
-                'weight_applied' => $weight,
-                'is_corroborated' => false,
-                'quarantined' => $griefCheck['quarantined'],
-            ]);
-
-            // If this report is the second independent voice for a status,
-            // corroborate all agreeing reports (same semantics as submitReport).
-            app(AttendanceResolutionService::class)->markCorroborated($game);
-        });
-
-        Log::info('Attendance reported (legacy)', [
-            'game_id' => $game->id,
-            'reporter_id' => $reporter->id,
-            'reported_id' => $reported->id,
-            'status' => $status,
-            'weight' => $weight,
-            'quarantined' => $griefCheck['quarantined'],
-        ]);
-
-        // Notify the reported user
-        try {
-            $notificationService = app(NotificationService::class);
-            /** @var AttendanceReport|null $report */
-            $report = AttendanceReport::whereBelongsTo($game)
-                ->whereBelongsTo($reported, 'reported')
-                ->whereBelongsTo($reporter, 'reporter')
-                ->orderByDesc('created_at')
-                ->first();
-            if ($report) {
-                $notificationService->send(
-                    $reported,
-                    new AttendanceReported($game, $report),
-                    NotificationCategory::AttendanceReported,
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Failed to send attendance reported notification', [
-                'game_id' => $game->id,
-                'reporter_id' => $reporter->id,
-                'reported_id' => $reported->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return ['success' => true, 'reason' => 'Attendance recorded'];
     }
 
     /**

@@ -10,7 +10,6 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\AttendanceService;
-use App\Services\BenchService;
 use App\Services\Roster;
 use App\Services\WaitlistService;
 
@@ -87,7 +86,7 @@ describe('game cancellation', function () {
             'waitlisted_at' => now()->addSecond(),
         ]);
 
-        $this->service->handleGameCancellation($game);
+        $this->service->handleEntityCancellation($game);
 
         expect($wp1->fresh()->status)->toBe(ParticipantStatus::Rejected)
             ->and($wp1->fresh()->removed_at)->not()->toBeNull()
@@ -114,8 +113,8 @@ describe('game cancellation', function () {
             'status' => ParticipantStatus::Benched->value,
         ]);
 
-        // Benched participants are resolved by BenchService, not WaitlistService
-        app(BenchService::class)->handleEntityCancellation($game);
+        // Benched participants are resolved by Roster, not WaitlistService
+        app(Roster::class)->onCancellation($game);
 
         expect($bp1->fresh()->status)->toBe(ParticipantStatus::Rejected)
             ->and($bp1->fresh()->removed_at)->not()->toBeNull()
@@ -137,7 +136,7 @@ describe('game cancellation', function () {
             'waitlisted_at' => now(),
         ]);
 
-        $this->service->handleGameCancellation($game);
+        $this->service->handleEntityCancellation($game);
 
         // All approved participants should remain approved (including owner)
         $approvedParticipants = $game->participants()

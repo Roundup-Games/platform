@@ -12,7 +12,6 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Services\BenchService;
 use App\Services\DashboardCacheService;
 use App\Services\ParticipantLifecycle;
 use App\Services\ParticipantService;
@@ -46,7 +45,6 @@ describe('Capacity and Counting Correctness', function () {
 
     beforeEach(function () {
         $this->service = new ParticipantService;
-        $this->benchService = new BenchService;
         $this->lifecycle = new ParticipantLifecycle;
         $this->system = GameSystem::factory()->create();
     });
@@ -209,9 +207,9 @@ describe('Capacity and Counting Correctness', function () {
         });
     });
 
-    // ── 4. BenchService capacity check with owner participant ──
+    // ── 4. Roster bench-capacity check with owner participant ──
 
-    describe('BenchService capacity with owner included', function () {
+    describe('Bench capacity with owner included', function () {
         it('allows bench add when owner fills entity to max_players', function () {
             $game = Game::factory()->create([
                 'owner_id' => User::factory()->create()->id,
@@ -244,34 +242,16 @@ describe('Capacity and Counting Correctness', function () {
 
             // Add to bench — should succeed because entity IS full
             $benchedUser = User::factory()->create();
-            $result = $this->benchService->addToBench($game, $benchedUser);
+            $result = $game->participants()->create([
+                'user_id' => $benchedUser->id,
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Benched->value,
+                'benched_at' => now(),
+            ]);
 
             expect($result)->toBeInstanceOf(GameParticipant::class);
             expect($result->status)->toBe(ParticipantStatus::Benched);
             expect($result->user_id)->toBe($benchedUser->id);
-        });
-
-        it('refuses bench add when entity is not full (owner only, max=3)', function () {
-            $game = Game::factory()->create([
-                'owner_id' => User::factory()->create()->id,
-                'game_system_id' => $this->system->id,
-                'max_players' => 3,
-                'bench_mode' => true,
-            ]);
-
-            // Owner participant — 1/3, not full
-            GameParticipant::create([
-                'game_id' => $game->id,
-                'user_id' => $game->owner_id,
-                'role' => ParticipantRole::Owner->value,
-                'status' => ParticipantStatus::Approved->value,
-                'join_source' => JoinSource::Application,
-            ]);
-
-            $benchedUser = User::factory()->create();
-
-            expect(fn () => $this->benchService->addToBench($game, $benchedUser))
-                ->toThrow(\LogicException::class, 'Cannot add to bench: entity is not full.');
         });
 
         it('promotes from bench correctly accounting for owner', function () {
@@ -303,7 +283,12 @@ describe('Capacity and Counting Correctness', function () {
 
             // Bench a user
             $benchedUser = User::factory()->create();
-            $benched = $this->benchService->addToBench($game, $benchedUser);
+            $benched = $game->participants()->create([
+                'user_id' => $benchedUser->id,
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Benched->value,
+                'benched_at' => now(),
+            ]);
 
             // Remove the approved player to open a spot
             GameParticipant::where('game_id', $game->id)

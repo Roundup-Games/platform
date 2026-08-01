@@ -15,7 +15,7 @@ use Livewire\Attributes\On;
  * Thin Livewire adapter for participant management.
  *
  * Delegates all domain logic to ParticipantService, WaitlistService,
- * BenchService, and Roster, handling Livewire-specific concerns
+ * Roster (inline bench rejection), and OverflowRouter, handling Livewire-specific concerns
  * (authorization, session flash, error bags). The only entity-specific
  * contract it imposes is getEntity(); type-derived metadata (foreign
  * key, participant class, entity name) is resolved via EntityMeta.

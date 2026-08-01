@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Dto\EntityMeta;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Notifications\BelowMinPlayersWarning;
@@ -16,11 +18,11 @@ use Illuminate\Support\Facades\Log;
  * Before this module existed, two cascades had no orchestrator:
  *
  *  Cancellation — rejecting every waitlisted and benched participant when a
- *  game or campaign is cancelled — was split across WaitlistService and
- *  BenchService with no caller. A docblock in WaitlistService admitted the
- *  caller had to remember to invoke BenchService::handleEntityCancellation
- *  separately. In practice nothing wired either call into the production
- *  cancel flow, so the cascade was tested but never ran.
+ *  game or campaign is cancelled — was split across WaitlistService and the
+ *  now-retired BenchService. A docblock in WaitlistService admitted the
+ *  caller had to remember to invoke the bench rejection separately. In
+ *  practice nothing wired either call into the production cancel flow, so
+ *  the cascade was tested but never ran.
  *
  *  Departure — promoting the next waitlisted player into an opened slot and
  *  warning the host about a below-minimum roster — was invoked from seven
@@ -32,13 +34,14 @@ use Illuminate\Support\Facades\Log;
  *
  * Roster::onCancellation and Roster::onDeparture are the seams. The cancel
  * and leave/remove flows call them; promotion, rejection, notification, and
- * their ordering live behind the interface.
+ * their ordering live behind the interface. Bench rejection (rejectBenched)
+ * is an inline private — it was the only remaining concern in BenchService,
+ * which has been fully retired.
  */
 class Roster
 {
     public function __construct(
         private readonly WaitlistService $waitlist,
-        private readonly BenchService $bench,
         private readonly ParticipantService $participants,
         private readonly NotificationService $notifications,
     ) {}
@@ -53,7 +56,7 @@ class Roster
     {
         try {
             $this->waitlist->handleEntityCancellation($entity);
-            $this->bench->handleEntityCancellation($entity);
+            $this->rejectBenched($entity);
         } catch (\Throwable $e) {
             // The cancellation itself has already persisted; a cascade failure
             // must not break the cancel flow. Log and continue — the affected
@@ -91,6 +94,45 @@ class Roster
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Reject all benched participants on a cancelled entity (excluding owner).
+     *
+     * Moved from the now-retired BenchService. Benched participants were never
+     * Approved so reliability scoring is correctly N/A — removed_by is null
+     * (system-initiated rejection, not host-removal).
+     */
+    private function rejectBenched(Game|Campaign $entity): void
+    {
+        $benched = $entity->participants()
+            ->where('status', ParticipantStatus::Benched->value)
+            ->get();
+
+        $ownerBenched = $benched->first(fn ($p) => $p->role === ParticipantRole::Owner);
+        if ($ownerBenched) {
+            Log::warning('bench.cancel_found_owner_benched: data integrity issue', [
+                'entity_id' => $entity->id,
+                'owner_participant_id' => $ownerBenched->id,
+            ]);
+            $benched = $benched->filter(fn ($p) => $p->role !== ParticipantRole::Owner);
+        }
+
+        foreach ($benched as $participant) {
+            $participant->update([
+                'status' => ParticipantStatus::Rejected->value,
+                'removed_at' => now(),
+                'removed_by' => null,
+            ]);
+        }
+
+        $meta = EntityMeta::fromEntity($entity);
+
+        Log::info('bench.entity_cancelled', [
+            'entity_type' => $meta->type,
+            $meta->foreignKey => $entity->id,
+            'affected_count' => $benched->count(),
+        ]);
     }
 
     /**

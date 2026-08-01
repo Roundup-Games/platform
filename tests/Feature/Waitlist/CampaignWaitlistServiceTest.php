@@ -210,7 +210,7 @@ describe('handleExpiredConfirmation max attempts', function () {
 
 // ── 7. Campaign cancellation rejects all waitlisted participants ──
 
-describe('handleCampaignCancellation', function () {
+describe('handleEntityCancellation (campaign path)', function () {
     it('rejects all waitlisted campaign participants on cancellation', function () {
         ['campaign' => $campaign] = createFullCampaign();
 
@@ -218,7 +218,7 @@ describe('handleCampaignCancellation', function () {
 
         $this->service->addToWaitlist($campaign, $waitUser);
 
-        $this->service->handleCampaignCancellation($campaign);
+        $this->service->handleEntityCancellation($campaign);
 
         $waitlisted = CampaignParticipant::where('campaign_id', $campaign->id)
             ->where('user_id', $waitUser->id)->first();
@@ -226,7 +226,7 @@ describe('handleCampaignCancellation', function () {
         expect($waitlisted->status)->toBe(ParticipantStatus::Rejected);
     });
 
-    it('does not reject benched participants (BenchService responsibility)', function () {
+    it('does not reject benched participants (Roster responsibility)', function () {
         ['campaign' => $campaign] = createFullCampaign();
 
         $benchUser = User::factory()->create();
@@ -238,7 +238,7 @@ describe('handleCampaignCancellation', function () {
             'status' => ParticipantStatus::Benched->value,
         ]);
 
-        $this->service->handleCampaignCancellation($campaign);
+        $this->service->handleEntityCancellation($campaign);
 
         // WaitlistService only handles waitlisted — benched should remain unchanged
         $benched = CampaignParticipant::where('campaign_id', $campaign->id)
@@ -253,7 +253,7 @@ describe('handleCampaignCancellation', function () {
         $waitUser = User::factory()->create();
         $this->service->addToWaitlist($campaign, $waitUser);
 
-        $this->service->handleCampaignCancellation($campaign);
+        $this->service->handleEntityCancellation($campaign);
 
         $ownerParticipant = CampaignParticipant::where('campaign_id', $campaign->id)
             ->where('user_id', $owner->id)->first();

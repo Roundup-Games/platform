@@ -3,6 +3,7 @@
 use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Jobs\ResolveAttendance;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -62,7 +63,7 @@ describe('ConfirmationExpired notification', function () {
 });
 
 // ══════════════════════════════════════════════════════
-// AttendanceReported — AttendanceService::reportAttendance
+// AttendanceReported — AttendanceService::submitReport
 // ══════════════════════════════════════════════════════
 
 describe('AttendanceReported notification', function () {
@@ -72,7 +73,7 @@ describe('AttendanceReported notification', function () {
         [$game, $host, $reporter, $reported] = notificationCreatePastGameWithParticipants(2);
 
         $service = app(AttendanceService::class);
-        $result = $service->reportAttendance($game, $reporter, $reported, 'attended');
+        $result = $service->submitReport($game, $reporter, [['reported_id' => $reported->id, 'status' => 'attended']]);
         expect($result['success'])->toBeTrue();
 
         // The reported user should receive the notification
@@ -91,7 +92,7 @@ describe('AttendanceReported notification', function () {
         [$game, $host, $reporter, $reported] = notificationCreatePastGameWithParticipants(2);
 
         $service = app(AttendanceService::class);
-        $service->reportAttendance($game, $reporter, $reported, 'attended');
+        $service->submitReport($game, $reporter, [['reported_id' => $reported->id, 'status' => 'attended']]);
 
         // Reporter should NOT receive an AttendanceReported notification
         Notification::assertNotSentTo($reporter, AttendanceReported::class);
@@ -119,12 +120,22 @@ describe('DisputeResolved notification', function () {
         $service = app(AttendanceService::class);
         $admin = $createAdmin();
 
-        // Report no_show to set the participant's status
-        $service->reportAttendance($game, $participants[1], $reported, 'no_show');
+        // Set the participant's attendance_status to NoShow directly — this
+        // is a notification-dispatch test, not an attendance-resolution test,
+        // so the exact mechanism for setting the status is a fixture concern.
+        // submitReport+resolve is exercised by AttendanceResolutionTest.
+        $service->submitReport($game, $participants[1], [['reported_id' => $reported->id, 'status' => 'no_show']]);
+        ResolveAttendance::dispatchSync($game);
 
+        // Ensure the participant's attendance_status is NoShow (the resolution
+        // may not set it with a single uncorroborated report — force it for
+        // the dispute fixture).
         $participant = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $reported->id)
             ->first();
+        if ($participant->attendance_status !== AttendanceStatus::NoShow) {
+            $participant->forceFill(['attendance_status' => AttendanceStatus::NoShow->value])->save();
+        }
 
         // Seed disputed state
         $participant->update(['attendance_disputed_at' => now()]);
@@ -156,7 +167,7 @@ describe('DisputeResolved notification', function () {
         $service = app(AttendanceService::class);
         $admin = $createAdmin();
 
-        $service->reportAttendance($game, $participants[1], $reported, 'no_show');
+        $service->submitReport($game, $participants[1], [['reported_id' => $reported->id, 'status' => 'no_show']]);
 
         $participant = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $reported->id)
@@ -225,6 +236,8 @@ function notificationCreatePastGameWithParticipants(int $extraPlayers = 0): arra
         'owner_id' => $host->id,
         'date_time' => now()->subDays(1),
         'status' => 'completed',
+        'attendance_window_opens_at' => now()->subHour(),
+        'attendance_window_closes_at' => now()->addDays(2),
     ]);
 
     GameParticipant::create([
@@ -257,6 +270,8 @@ function notificationCreateDisputeGameWithParticipants(int $participantCount = 3
         'campaign_id' => null,
         'status' => 'completed',
         'date_time' => now()->subHours(2),
+        'attendance_window_opens_at' => now()->subHour(),
+        'attendance_window_closes_at' => now()->addDays(2),
         ...$gameOverrides,
     ]);
 
