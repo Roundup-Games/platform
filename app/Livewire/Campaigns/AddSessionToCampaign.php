@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Dto\OverflowStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
@@ -169,12 +170,14 @@ class AddSessionToCampaign extends Component
                 $isFull = app(ParticipantService::class)->isAtCapacity($game);
 
                 if ($isFull) {
-                    // Place on bench instead of inviting
+                    // Route to bench or waitlist via OverflowStatus, reading
+                    // bench_mode from the parent campaign (already in scope).
+                    $overflow = OverflowStatus::for($campaign->isBenchMode());
                     $game->participants()->create([
                         'user_id' => $campaignParticipant->user_id,
                         'role' => ParticipantRole::Player->value,
-                        'status' => ParticipantStatus::Benched->value,
-                        'benched_at' => now(),
+                        'status' => $overflow->statusValue(),
+                        $overflow->timestampColumn => now(),
                     ]);
                     $benchedCount++;
                 } else {

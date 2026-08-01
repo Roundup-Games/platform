@@ -89,7 +89,7 @@ class GameDetail extends Component
 
     public function mount(string $id): void
     {
-        $game = Game::findOrFail($id);
+        $game = Game::with('campaign')->findOrFail($id);
         $this->authorize('view', $game);
         $this->game = $game;
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Dto\OverflowStatus;
 use App\Dto\ShareIntentResult;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
@@ -235,7 +236,13 @@ class ShareIntentService
                     return;
                 }
 
-                $status = $this->determineStatus($lockedEntity, $entityType);
+                $resolved = $this->determineStatus($lockedEntity);
+
+                // determineStatus returns OverflowStatus (bench/waitlist) when the
+                // entity is full, or Approved when not. Both carry the status +
+                // timestamp needed for the participant-data builder.
+                $isOverflow = $resolved instanceof OverflowStatus;
+                $status = $isOverflow ? $resolved->status : $resolved;
 
                 $participantData = [
                     $fkColumn => $lockedEntity->getKey(),
@@ -249,10 +256,8 @@ class ShareIntentService
                     $participantData['short_link_id'] = $shortLinkId;
                 }
 
-                if ($status === ParticipantStatus::Waitlisted) {
-                    $participantData['waitlisted_at'] = now();
-                } elseif ($status === ParticipantStatus::Benched) {
-                    $participantData['benched_at'] = now();
+                if ($isOverflow) {
+                    $participantData[$resolved->timestampColumn] = now();
                 } elseif ($status === ParticipantStatus::Approved) {
                     // Stamp approved_at on game participants so LIFO
                     // capacity-demotion ordering is correct for direct share
@@ -320,24 +325,18 @@ class ShareIntentService
     }
 
     /**
-     * @param  Game|Campaign  $entity
-     *                                 Determine participant status based on entity capacity.
+     * Resolve participant status based on entity capacity.
      *
-     * Games → benched when full + campaign session, waitlisted when full + standalone.
-     * Campaigns → benched when full.
+     * Routed through OverflowStatus::for($entity->isBenchMode()) — the single
+     * source of truth: bench when bench_mode=true, waitlist otherwise. Returns
+     * Approved when the entity is not full.
      */
-    private function determineStatus(Game|Campaign $entity, string $entityType): ParticipantStatus
+    private function determineStatus(Game|Campaign $entity): OverflowStatus|ParticipantStatus
     {
         $approvedCount = app(ParticipantService::class)->getApprovedParticipantCount($entity);
 
         if ($entity->max_players && $approvedCount >= $entity->max_players) {
-            if ($entityType === 'campaign') {
-                return ParticipantStatus::Benched;
-            }
-
-            return ($entity instanceof Game && $entity->campaign_id !== null)
-                ? ParticipantStatus::Benched
-                : ParticipantStatus::Waitlisted;
+            return OverflowStatus::for($entity->isBenchMode());
         }
 
         return ParticipantStatus::Approved;

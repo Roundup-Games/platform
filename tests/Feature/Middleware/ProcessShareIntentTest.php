@@ -131,6 +131,7 @@ describe('ProcessShareIntent — campaign share link', function () {
             'share_token' => $shareToken,
             'share_token_expires_at' => now()->addDays(7),
             'max_players' => 1,
+            'bench_mode' => true,
         ]);
 
         CampaignParticipant::create([

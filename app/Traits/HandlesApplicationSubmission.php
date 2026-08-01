@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Dto\OverflowStatus;
 use App\Dto\TransactionDecisions;
 use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
@@ -148,7 +149,13 @@ trait HandlesApplicationSubmission
                 // Store for post-transaction flash message and logging
                 $txDecisions->isPublic = $isPublic;
                 $txDecisions->isFull = $isFull;
-                $txDecisions->benchMode = $freshEntity->isBenchMode();
+                // Route the overflow decision (bench vs waitlist) through the
+                // single source of truth — OverflowStatus::for() — rather than
+                // reimplementing the bench-mode branch inline. Null when the
+                // entity is not full (no overflow needed).
+                if ($isPublic && $isFull) {
+                    $txDecisions->overflow = OverflowStatus::for($freshEntity->isBenchMode());
+                }
 
                 // Determine participant status
                 $participantStatus = 'pending';
@@ -157,14 +164,11 @@ trait HandlesApplicationSubmission
                 $waitlistedAt = null;
 
                 if ($isPublic) {
-                    if ($isFull && $freshEntity->isBenchMode()) {
-                        $participantStatus = 'benched';
+                    if ($txDecisions->overflow !== null) {
+                        $participantStatus = $txDecisions->overflow->statusValue();
                         $participantRole = ParticipantRole::Player->value;
-                        $benchedAt = now();
-                    } elseif ($isFull) {
-                        $participantStatus = 'waitlisted';
-                        $participantRole = ParticipantRole::Player->value;
-                        $waitlistedAt = now();
+                        $benchedAt = $txDecisions->overflow->isBench() ? now() : null;
+                        $waitlistedAt = $txDecisions->overflow->isWaitlist() ? now() : null;
                     } else {
                         $participantStatus = 'approved';
                         $participantRole = ParticipantRole::Player->value;
@@ -216,8 +220,8 @@ trait HandlesApplicationSubmission
             $config['log_key'] => $entity->id,
             'user_id' => Auth::id(),
             'auto_approved' => $isPublic && ! $isFull,
-            'benched' => $isPublic && $isFull && $txDecisions->benchMode,
-            'waitlisted' => $isPublic && $isFull && ! $txDecisions->benchMode,
+            'benched' => $txDecisions->overflow?->isBench() ?? false,
+            'waitlisted' => $txDecisions->overflow?->isWaitlist() ?? false,
         ]);
 
         // Matching-quality funnel: capture the application outcome. This is the
@@ -225,10 +229,10 @@ trait HandlesApplicationSubmission
         // close out. Knowing the split between auto-approved (public) and
         // host-gated (protected) is essential for acceptance-rate analysis.
         $outcome = match (true) {
-            $isPublic && ! $isFull => 'approved',
-            $isPublic && $txDecisions->benchMode => 'benched',
-            $isPublic => 'waitlisted',
-            default => 'pending',
+            ! $isPublic => 'pending',
+            ! $isFull => 'approved',
+            $txDecisions->overflow?->isBench() => 'benched',
+            default => 'waitlisted',
         };
         app(PostHogAnalytics::class)->capture(
             authenticatedUser(),
@@ -262,7 +266,7 @@ trait HandlesApplicationSubmission
             }
         }
 
-        if ($isPublic && $isFull && $txDecisions->benchMode) {
+        if ($txDecisions->overflow?->isBench()) {
             session()->flash('success', __($config['translations']['bench_success']));
 
             // Notify the applicant they were placed on the bench (host-curated
@@ -284,7 +288,7 @@ trait HandlesApplicationSubmission
                     'error' => $e->getMessage(),
                 ]);
             }
-        } elseif ($isPublic && $isFull) {
+        } elseif ($txDecisions->overflow?->isWaitlist()) {
             session()->flash('success', __($config['translations']['waitlist_success']));
 
             // Notify the applicant they were placed on the waitlist (FIFO

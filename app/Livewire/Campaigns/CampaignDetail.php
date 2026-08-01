@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Dto\OverflowStatus;
 use App\Enums\CampaignStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
@@ -11,6 +12,7 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Review;
 use App\Models\ShortLink;
+use App\Services\OverflowRouter;
 use App\Services\ParticipantLifecycle;
 use App\Services\RecurrenceService;
 use App\Services\ReviewEligibilityService;
@@ -168,8 +170,10 @@ class CampaignDetail extends Component
             ? JoinSource::ShortLink
             : JoinSource::ShareLink;
 
+        $overflowFlash = null;
+
         try {
-            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId) {
+            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId, &$overflowFlash) {
                 $campaign = Campaign::lockForUpdate()->find($this->campaign->id);
 
                 if ($campaign === null) {
@@ -207,13 +211,17 @@ class CampaignDetail extends Component
                 }
 
                 if ($isFull) {
-                    // Full campaign: bench the player
-                    $baseData['status'] = ParticipantStatus::Benched->value;
-                    $baseData['benched_at'] = now();
+                    // Full campaign: route to bench or waitlist via OverflowStatus
+                    $overflow = OverflowStatus::for($campaign->isBenchMode());
+                    $baseData['status'] = $overflow->statusValue();
+                    $baseData[$overflow->timestampColumn] = now();
 
                     CampaignParticipant::create($baseData);
 
-                    Log::info('Player benched via share link (campaign full)', [
+                    // Capture overflow-aware flash message (mirrors GameDetail)
+                    $overflowFlash = app(OverflowRouter::class)->flashResult($campaign);
+
+                    Log::info('Player '.$overflow->statusValue().' via share link (campaign full)', [
                         'campaign_id' => $campaign->id,
                         'user_id' => $viewer->id,
                         'join_source' => $joinSource->value,
@@ -241,7 +249,12 @@ class CampaignDetail extends Component
             // Reload campaign to reflect new participant
             $this->campaign->load('participants.user');
 
-            session()->flash('success', __('campaigns.flash_joined_via_share_link'));
+            session()->flash(
+                'success',
+                $overflowFlash !== null
+                    ? __($overflowFlash->messageKey, $overflowFlash->messageParams)
+                    : __('campaigns.flash_joined_via_share_link')
+            );
         } catch (\Throwable $e) {
             Log::error('Failed to join campaign via share link', [
                 'campaign_id' => $this->campaign->id,

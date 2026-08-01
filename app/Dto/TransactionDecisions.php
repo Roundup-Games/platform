@@ -15,5 +15,13 @@ class TransactionDecisions
 
     public bool $isFull = false;
 
-    public bool $benchMode = false;
+    /**
+     * The resolved overflow disposition (bench vs waitlist) for a full entity.
+     * Null when the entity is not at capacity or the applicant is non-public
+     * (no overflow routing needed). Set inside the transaction so post-tx
+     * notification/analytics code reads the authoritative decision.
+     *
+     * @see OverflowStatus::for()
+     */
+    public ?OverflowStatus $overflow = null;
 }

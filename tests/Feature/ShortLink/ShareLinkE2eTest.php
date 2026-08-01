@@ -274,6 +274,7 @@ describe('Scenario 5: Full campaign → user benched via share link', function (
             'share_token_expires_at' => now()->addDays(7),
             'visibility' => 'public',
             'max_players' => 1,
+            'bench_mode' => true,
         ]);
 
         // Fill the campaign
@@ -642,6 +643,7 @@ describe('Full game from campaign session → benches', function () {
         $campaign = Campaign::factory()->create([
             'owner_id' => $this->owner->id,
             'max_players' => 10,
+            'bench_mode' => true,
         ]);
 
         $token = (string) Str::uuid();
@@ -652,7 +654,7 @@ describe('Full game from campaign session → benches', function () {
             'share_token_expires_at' => now()->addDays(7),
             'visibility' => 'public',
             'max_players' => 1,
-            'campaign_id' => $campaign->id, // belongs to campaign → benches
+            'campaign_id' => $campaign->id, // campaign has bench_mode=true → benches
         ]);
 
         // Fill the game
