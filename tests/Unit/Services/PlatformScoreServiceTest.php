@@ -74,29 +74,3 @@ describe('calculateScore — pure formula', function () {
         expect($this->service->calculateScore(0, 0, 0, 1, 'ttrpg'))->toBe(10);
     });
 });
-
-describe('weight constants — regression guard', function () {
-    it('has boardgame weight profile with expected keys and values', function () {
-        $weights = $this->service->getWeights();
-
-        expect($weights)->toHaveKey('boardgame');
-        expect($weights['boardgame'])->toBe([
-            'favorites' => 10,
-            'games' => 3,
-            'campaigns' => 5,
-            'active_games' => 20,
-        ]);
-    });
-
-    it('has ttrpg weight profile with expected keys and values', function () {
-        $weights = $this->service->getWeights();
-
-        expect($weights)->toHaveKey('ttrpg');
-        expect($weights['ttrpg'])->toBe([
-            'favorites' => 10,
-            'games' => 3,
-            'campaigns' => 15,
-            'active_games' => 10,
-        ]);
-    });
-});

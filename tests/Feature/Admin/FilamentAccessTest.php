@@ -3,8 +3,10 @@
 use App\Models\Event;
 use App\Models\Team;
 use App\Models\User;
-use App\Services\ScopedRoleService;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Traits\AssignsScopedRoles;
+
+uses(AssignsScopedRoles::class);
 
 beforeEach(function () {
     seedRoles();
@@ -26,12 +28,11 @@ beforeEach(function () {
     $this->gamesAdmin->unsetRelations();
 
     // Assign scoped roles
-    $service = app(ScopedRoleService::class);
     $team = Team::factory()->create(['is_active' => true, 'created_by' => $this->teamAdmin->id]);
-    $service->assignTeamScopedRole($this->teamAdmin, 'Team Admin', $team);
+    $this->assignTeamScopedRole($this->teamAdmin, 'Team Admin', $team);
 
     $event = Event::factory()->create(['organizer_id' => $this->eventAdmin->id, 'is_public' => true]);
-    $service->assignEventScopedRole($this->eventAdmin, 'Event Admin', $event);
+    $this->assignEventScopedRole($this->eventAdmin, 'Event Admin', $event);
 });
 
 describe('Admin Panel Authentication', function () {

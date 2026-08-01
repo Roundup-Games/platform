@@ -67,41 +67,6 @@ class DashboardScheduleService
         return null;
     }
 
-    /**
-     * Get the single next upcoming game for the all-clear summary.
-     *
-     * Returns id, name, date_time, relative_time — or null.
-     * Used by ActionCenterService::getClearSummary.
-     *
-     * @return array<string, mixed>
-     */
-    public function getNextUpcomingGame(User $user): ?array
-    {
-        $game = Game::query()
-            ->where('status', GameStatus::Scheduled)
-            ->where('date_time', '>', now())
-            ->where(function ($q) use ($user) {
-                $q->whereBelongsTo($user, 'owner')
-                    ->orWhereHas('participants', fn ($pq) => $pq
-                        ->whereBelongsTo($user)
-                        ->where('status', ParticipantStatus::Approved));
-            })
-            ->orderBy('date_time')
-            ->with(['gameSystems'])
-            ->first();
-
-        if ($game === null) {
-            return null;
-        }
-
-        return [
-            'id' => $game->id,
-            'name' => $game->name,
-            'date_time' => $game->date_time?->toIso8601String(),
-            'relative_time' => $this->formatRelativeTime($game->date_time),
-        ];
-    }
-
     // ── Internal helpers ───────────────────────────────
 
     /**

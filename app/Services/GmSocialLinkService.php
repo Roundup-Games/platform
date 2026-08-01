@@ -114,29 +114,6 @@ class GmSocialLinkService
     }
 
     /**
-     * Get all platforms sorted by sort_order from config.
-     *
-     * @return array<string, mixed>
-     */
-    public function getPlatforms(): array
-    {
-        $raw = config('platforms', []);
-        if (! is_array($raw) || array_keys($raw) === range(0, count($raw) - 1)) {
-            return [];
-        }
-
-        /** @var array<string, mixed> $raw */
-        uasort($raw, function (mixed $a, mixed $b): int {
-            $orderA = is_array($a) && is_int($a['sort_order'] ?? null) ? $a['sort_order'] : 999;
-            $orderB = is_array($b) && is_int($b['sort_order'] ?? null) ? $b['sort_order'] : 999;
-
-            return $orderA <=> $orderB;
-        });
-
-        return $raw;
-    }
-
-    /**
      * Sync social links for a user — creates, updates, and deletes as needed.
      *
      * Each item in $links should have: platform, handle, and optionally instance.
@@ -238,18 +215,5 @@ class GmSocialLinkService
                 'user_id' => $user->id, 'platform' => $platform,
             ]);
         }
-    }
-
-    /**
-     * Get the full display URL for a social link.
-     * Falls back to regenerating from handle/instance if stored URL is missing.
-     */
-    public function getDisplayUrl(GmSocialLink $link): ?string
-    {
-        if ($link->url) {
-            return $link->url;
-        }
-
-        return $this->generateUrl($link->platform, $link->handle, $link->instance);
     }
 }

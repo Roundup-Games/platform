@@ -9,7 +9,6 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Models\GMProfile;
 use App\Models\Location;
 use App\Models\Review;
 use App\Models\User;
@@ -20,9 +19,8 @@ use Tests\TestCase;
 /*
  * Surviving slice of ReviewEligibilityServiceTest. The common eligibility
  * scenarios (approved/pending/rejected/non-participant/future/already-reviewed
- * for session + campaign; mixed/empty getEligibleReviews) are duplicated by
- * tests/Feature/Policies/ReviewPolicyTest.php, which exercises the service
- * directly inside its `describe('ReviewEligibilityService', ...)` block.
+ * for session + campaign) are duplicated by tests/Feature/Policies/ReviewPolicyTest.php,
+ * which exercises the service directly inside its `describe('ReviewEligibilityService', ...)` block.
  *
  * What remains here are the venue-specific and owner-specific edge cases that
  * the policy file does NOT yet cover. They should be migrated into the policy
@@ -254,82 +252,6 @@ class ReviewEligibilityServiceTest extends TestCase
         ]);
 
         $this->assertFalse($this->service->canReviewSession($host, $game));
-    }
-
-    // ── getEligibleReviews — detailed mixed case not in ReviewPolicyTest ──
-
-    /** 3 completed games (1 reviewed) + 2 campaigns → 2 game + 2 campaign entries */
-    public function test_get_eligible_reviews_mixed(): void
-    {
-        $gm = User::factory()->create();
-        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
-        $user = User::factory()->create();
-
-        // 3 completed games — user is approved participant in all
-        $games = collect();
-        for ($i = 0; $i < 3; $i++) {
-            $games->push(Game::factory()->create([
-                'owner_id' => $gm->id,
-                'date_time' => now()->subDays($i + 1),
-            ]));
-        }
-        foreach ($games as $game) {
-            GameParticipant::factory()->create([
-                'game_id' => $game->id,
-                'user_id' => $user->id,
-                'status' => ParticipantStatus::Approved,
-            ]);
-        }
-
-        // Review one of the games
-        Review::factory()->create([
-            'reviewable_type' => Game::class,
-            'reviewable_id' => $games[0]->id,
-            'reviewer_id' => $user->id,
-            'gm_profile_id' => $gmProfile->id,
-        ]);
-
-        // 2 campaigns with completed sessions — user is approved participant in both
-        $campaigns = collect();
-        for ($i = 0; $i < 2; $i++) {
-            $campaigns->push(Campaign::factory()->create(['owner_id' => $gm->id]));
-        }
-        foreach ($campaigns as $campaign) {
-            Game::factory()->create([
-                'owner_id' => $gm->id,
-                'campaign_id' => $campaign->id,
-                'date_time' => now()->subDay(),
-            ]);
-            CampaignParticipant::create([
-                'campaign_id' => $campaign->id,
-                'user_id' => $user->id,
-                'role' => ParticipantRole::Player->value,
-                'status' => ParticipantStatus::Approved,
-            ]);
-        }
-
-        $eligible = $this->service->getEligibleReviews($user);
-
-        // 2 unreviewed games + 2 campaigns = 4 total
-        $this->assertCount(4, $eligible);
-
-        $gameEntries = $eligible->where('reviewable_type', Game::class);
-        $campaignEntries = $eligible->where('reviewable_type', Campaign::class);
-        $this->assertCount(2, $gameEntries);
-        $this->assertCount(2, $campaignEntries);
-
-        // Verify the reviewed game is excluded
-        $reviewedGameIds = $gameEntries->pluck('reviewable_id');
-        $this->assertNotContains($games[0]->id, $reviewedGameIds);
-        $this->assertContains($games[1]->id, $reviewedGameIds);
-        $this->assertContains($games[2]->id, $reviewedGameIds);
-
-        // Each entry has the expected structure
-        foreach ($eligible as $entry) {
-            $this->assertArrayHasKey('reviewable_type', $entry);
-            $this->assertArrayHasKey('reviewable_id', $entry);
-            $this->assertArrayHasKey('reviewable', $entry);
-        }
     }
 
     /**

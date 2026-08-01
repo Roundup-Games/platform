@@ -3,43 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
-use App\Models\MembershipType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PaddleBillingController extends Controller
 {
-    /**
-     * Redirect to Paddle checkout for a membership subscription.
-     * Cashier Paddle uses client-side Paddle.js — we build the Checkout
-     * options server-side and pass them to the checkout page for rendering.
-     */
-    public function checkout(Request $request, MembershipType $membershipType): RedirectResponse
-    {
-        $user = authenticatedUser();
-
-        if (! $membershipType->paddle_price_id) {
-            Log::error('Paddle checkout attempted for membership type without Paddle price ID', [
-                'membership_type_id' => $membershipType->id,
-                'membership_type_name' => $membershipType->name,
-            ]);
-
-            return back()->with('error', __('billing.error_this_membership_plan_is_not'));
-        }
-
-        Log::info('Paddle checkout initiated', [
-            'user_id' => $user->id,
-            'membership_type_id' => $membershipType->id,
-            'paddle_price_id' => $membershipType->paddle_price_id,
-        ]);
-
-        $checkout = $user->subscribe($membershipType->paddle_price_id)
-            ->returnTo(route('billing.portal'));
-
-        return redirect()->route('billing.checkout', ['planId' => $membershipType->id]);
-    }
-
     /**
      * Redirect to Paddle checkout for a one-time event registration payment.
      * Cashier Paddle uses client-side Paddle.js — we build the Checkout

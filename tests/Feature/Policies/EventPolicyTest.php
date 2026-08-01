@@ -2,8 +2,10 @@
 
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ScopedRoleService;
 use Illuminate\Support\Facades\Gate;
+use Tests\Traits\AssignsScopedRoles;
+
+uses(AssignsScopedRoles::class);
 
 beforeEach(function () {
     seedPermissions();
@@ -32,7 +34,7 @@ beforeEach(function () {
     ]);
 
     // Assign Event Admin scoped to the public event
-    app(ScopedRoleService::class)->assignEventScopedRole($this->eventAdmin, 'Event Admin', $this->publicEvent);
+    $this->assignEventScopedRole($this->eventAdmin, 'Event Admin', $this->publicEvent);
     $this->eventAdmin->unsetRelations();
 
     setPermissionsTeamId(1);

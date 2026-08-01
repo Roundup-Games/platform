@@ -200,8 +200,6 @@ class BillingPortal extends Component
 
     private function paddleVendorDomain(): string
     {
-        $vendorId = config('cashier.vendor_id', '');
-
         // Sandbox uses different domain
         if (app()->environment('local', 'testing')) {
             return 'sandbox-vendors.paddle.com';

@@ -80,14 +80,6 @@ describe('Discord handle validation', function () {
 });
 
 describe('Discord platform registry placement', function () {
-    it('surfaces Discord as the first platform by sort_order', function () {
-        $platforms = $this->service->getPlatforms();
-
-        $firstKey = array_key_first($platforms);
-        expect($firstKey)->toBe('discord');
-        expect($platforms['discord']['sort_order'])->toBe(5);
-    });
-
     it('registers the Discord platform with the expected display metadata', function () {
         $config = config('platforms.discord');
 

@@ -56,116 +56,6 @@ function createCompletedGameWithParticipants(int $participantCount = 3, array $g
     return ['owner' => $owner, 'game' => $game, 'participants' => $participants];
 }
 
-// ── reportAttendance ─────────────────────────────────────
-
-describe('reportAttendance', function () {
-    it('allows a participant to report another participant as attended', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-        $reporter = $participants[1];
-        $reported = $participants[2];
-
-        $result = $this->service->reportAttendance($game, $reporter, $reported, 'attended');
-
-        expect($result['success'])->toBeTrue();
-        expect($result['reason'])->toBe('Attendance recorded');
-
-        // Check the participant record
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $reported->id)
-            ->first();
-        expect($participant->attendance_status)->toBe(AttendanceStatus::Attended);
-        expect($participant->attendance_reported_by)->toBe($reporter->id);
-        expect($participant->attendance_reported_at)->not->toBeNull();
-
-        // Check attendance report created
-        $report = AttendanceReport::where('game_id', $game->id)
-            ->where('reported_id', $reported->id)
-            ->first();
-        expect($report)->not->toBeNull();
-        expect($report->status)->toBe(AttendanceStatus::Attended);
-        expect($report->weight_applied)->toBe(1.0);
-    });
-
-    it('allows a participant to report another as no_show', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-        $reporter = $participants[1];
-        $reported = $participants[2];
-
-        $result = $this->service->reportAttendance($game, $reporter, $reported, 'no_show');
-
-        expect($result['success'])->toBeTrue();
-
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $reported->id)
-            ->first();
-        expect($participant->attendance_status)->toBe(AttendanceStatus::NoShow);
-    });
-
-    it('rejects report for a future game', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3, [
-            'date_time' => now()->addDays(7),
-            'status' => 'scheduled',
-        ]);
-
-        $result = $this->service->reportAttendance($game, $participants[1], $participants[2], 'attended');
-
-        expect($result['success'])->toBeFalse();
-        expect($result['reason'])->toContain('future game');
-    });
-
-    it('rejects report from a non-participant', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-        $outsider = User::factory()->create();
-
-        $result = $this->service->reportAttendance($game, $outsider, $participants[2], 'attended');
-
-        expect($result['success'])->toBeFalse();
-        expect($result['reason'])->toContain('not a participant');
-    });
-
-    it('rejects report for a non-participant target', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-        $outsider = User::factory()->create();
-
-        $result = $this->service->reportAttendance($game, $participants[1], $outsider, 'attended');
-
-        expect($result['success'])->toBeFalse();
-        expect($result['reason'])->toContain('not a participant');
-    });
-
-    it('rejects host self-reporting attendance', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-
-        $result = $this->service->reportAttendance($game, $owner, $owner, 'attended');
-
-        expect($result['success'])->toBeFalse();
-        expect($result['reason'])->toContain('Host cannot self-report');
-    });
-
-    it('allows non-host self-reporting with valid non-no_show statuses', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-
-        // Self-report as attended
-        $resultAttended = $this->service->reportAttendance($game, $participants[1], $participants[1], 'attended');
-        expect($resultAttended['success'])->toBeTrue();
-
-        // Self-report as excused (separate participant)
-        $resultExcused = $this->service->reportAttendance($game, $participants[2], $participants[2], 'excused');
-        expect($resultExcused['success'])->toBeTrue();
-    });
-
-    it('rejects non-host self-reporting as no_show', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-        $reporter = $participants[1];
-
-        $result = $this->service->reportAttendance($game, $reporter, $reporter, 'no_show');
-
-        expect($result['success'])->toBeFalse();
-        expect($result['reason'])->toContain('Self-reporting');
-    });
-
-});
-
 // ── checkGriefResistance ─────────────────────────────────
 
 describe('checkGriefResistance', function () {
@@ -327,19 +217,13 @@ describe('checkGriefResistance', function () {
         expect($result['quarantined'])->toBeFalse();
     });
 
-    it('reduces weight for late reports past 72 hours', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3, [
-            'date_time' => now()->subHours(80),
-        ]);
-
-        $reporter = $participants[1];
-        $result = $this->service->checkGriefResistance($reporter, $game);
-
-        expect($result['allowed'])->toBeTrue();
-        expect($result['weight_multiplier'])->toBe(0.7);
-    });
-
-    it('combines low reliability and late report penalties', function () {
+    it('reduces weight for low-reliability reporters regardless of report timing', function () {
+        // The consensus redesign dropped timeliness weighting: per
+        // config/attendance.php, all reports within the reporting window carry
+        // full weight regardless of when they are filed. Only low-reliability
+        // scales the weight. (The late-report branch that used to also apply a
+        // 0.7 multiplier was removed as dead-by-design; the reporting-window
+        // gate in submitReport already refuses reports past the window.)
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3, [
             'date_time' => now()->subHours(80),
         ]);
@@ -354,8 +238,8 @@ describe('checkGriefResistance', function () {
         $result = $this->service->checkGriefResistance($reporter, $game);
 
         expect($result['allowed'])->toBeTrue();
-        // 0.5 (low reliability) * 0.7 (late report) = 0.35
-        expect($result['weight_multiplier'])->toBe(0.35);
+        // 0.5 (low reliability) — timeliness no longer compounds
+        expect($result['weight_multiplier'])->toBe(0.5);
     });
 });
 

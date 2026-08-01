@@ -89,21 +89,6 @@ class ActivityLogService
     }
 
     /**
-     * Return the most recent activity log entries for a user,
-     * with subject eager-loaded, ordered newest first.
-     *
-     * @return Collection<int, ActivityLog>
-     */
-    public function getRecentForUser(User $user, int $limit = 20): Collection
-    {
-        return ActivityLog::with('subject')
-            ->whereBelongsTo($user)
-            ->orderByDesc('created_at')
-            ->limit($limit)
-            ->get();
-    }
-
-    /**
      * Log an activity for all participants of a game or campaign.
      *
      * Used for events like game_created / campaign_created where every

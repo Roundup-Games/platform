@@ -446,8 +446,10 @@ describe('multi-link support', function () {
                 ->count()
         )->toBe(2);
 
-        // link2 still resolves
-        $resolved = app(ShortLinkService::class)->resolveLink('xyz5678');
+        // link2 still resolves (via the live ID-based resolver; the code-based
+        // resolveLink() was removed as production-dead — the cached resolver
+        // lives in ShortLinkController).
+        $resolved = app(ShortLinkService::class)->resolveLinkById($link2->id);
         expect($resolved)->not->toBeNull();
         expect($resolved->id)->toBe($link2->id);
     });

@@ -105,40 +105,6 @@ class ShortLinkService
     }
 
     /**
-     * Resolve a short link code to its ShortLink model.
-     *
-     * Returns null for expired, hit-capped, or non-existent codes.
-     */
-    public function resolveLink(string $code): ?ShortLink
-    {
-        $link = ShortLink::where('code', $code)->first();
-
-        if ($link === null) {
-            Log::debug('ShortLinkService: code not found', ['code_prefix' => substr($code, 0, 3).'…']);
-
-            return null;
-        }
-
-        if ($link->isExpired()) {
-            Log::debug('ShortLinkService: link expired', ['code_prefix' => substr($code, 0, 3).'…', 'expires_at' => $link->expires_at]);
-
-            return null;
-        }
-
-        if ($link->hasHitCap()) {
-            Log::debug('ShortLinkService: hit cap exceeded', [
-                'code_prefix' => substr($code, 0, 3).'…',
-                'hit_count' => $link->hit_count,
-                'max_hits' => $link->max_hits,
-            ]);
-
-            return null;
-        }
-
-        return $link;
-    }
-
-    /**
      * Resolve a short link ID to its ShortLink model.
      *
      * Uses a short-lived cache (5 minutes) to avoid repeated DB lookups while
@@ -195,22 +161,6 @@ class ShortLinkService
             ->where('linkable_id', (is_int($k = $linkable->getKey()) || is_string($k) ? (string) $k : ''))
             ->orderByDesc('created_at')
             ->get();
-    }
-
-    /**
-     * Get all short links created by a user, grouped by linkable entity.
-     *
-     * @return Collection<(int|string), Collection<int, ShortLink>>
-     */
-    public function getLinksForUser(User $user): Collection
-    {
-        /** @var Collection<(int|string), Collection<int, ShortLink>> $grouped */
-        $grouped = ShortLink::whereBelongsTo($user)
-            ->orderByDesc('created_at')
-            ->get()
-            ->groupBy(fn (ShortLink $link) => $link->linkable_type.':'.(string) $link->linkable_id);
-
-        return $grouped;
     }
 
     /**

@@ -74,16 +74,6 @@ class PlatformScoreService
     }
 
     /**
-     * Expose weight constants for testing.
-     *
-     * @return array<string, array<string, int>>
-     */
-    public function getWeights(): array
-    {
-        return self::WEIGHTS;
-    }
-
-    /**
      * Compute platform scores for all game systems.
      *
      * Processes in chunks of 100 to avoid memory issues. Uses updateQuietly

@@ -137,54 +137,7 @@ describe('ShortLinkService — createLink', function () {
     });
 });
 
-// ── resolveLink ────────────────────────────────────────
-
-describe('ShortLinkService — resolveLink', function () {
-    it('finds a valid link by code', function () {
-        $link = ShortLink::factory()->create([
-            'linkable_id' => $this->game->id,
-            'code' => 'VALID01',
-        ]);
-
-        $resolved = $this->service->resolveLink('VALID01');
-
-        expect($resolved)->not->toBeNull();
-        expect($resolved->id)->toBe($link->id);
-    });
-
-    it('returns null for non-existent code', function () {
-        $resolved = $this->service->resolveLink('NOTFND0');
-
-        expect($resolved)->toBeNull();
-    });
-
-    it('returns null for expired link', function () {
-        ShortLink::factory()->create([
-            'linkable_id' => $this->game->id,
-            'code' => 'EXPIRED',
-            'expires_at' => now()->subHour(),
-        ]);
-
-        $resolved = $this->service->resolveLink('EXPIRED');
-
-        expect($resolved)->toBeNull();
-    });
-
-    it('returns null for hit-capped link', function () {
-        ShortLink::factory()->create([
-            'linkable_id' => $this->game->id,
-            'code' => 'CAPPED1',
-            'max_hits' => 5,
-            'hit_count' => 5,
-        ]);
-
-        $resolved = $this->service->resolveLink('CAPPED1');
-
-        expect($resolved)->toBeNull();
-    });
-});
-
-// ── getLinksForEntity ──────────────────────────────────
+// ── getLinksForEntity ───────────────────────────────
 
 describe('ShortLinkService — getLinksForEntity', function () {
     it('returns only links for the given entity', function () {

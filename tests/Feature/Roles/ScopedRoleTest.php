@@ -9,6 +9,9 @@ use App\Models\User;
 use App\Services\ScopedRoleService;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Traits\AssignsScopedRoles;
+
+uses(AssignsScopedRoles::class);
 
 beforeEach(function () {
     seedRoles();
@@ -42,10 +45,10 @@ beforeEach(function () {
     $this->eventB = Event::factory()->create(['name' => 'Event B', 'organizer_id' => $this->otherUser->id, 'is_public' => true]);
 
     // Assign Team Admin scoped to teamA
-    $this->service->assignTeamScopedRole($this->teamAdmin, 'Team Admin', $this->teamA);
+    $this->assignTeamScopedRole($this->teamAdmin, 'Team Admin', $this->teamA);
 
     // Assign Event Admin scoped to eventA
-    $this->service->assignEventScopedRole($this->eventAdmin, 'Event Admin', $this->eventA);
+    $this->assignEventScopedRole($this->eventAdmin, 'Event Admin', $this->eventA);
 });
 
 describe('Global Admin', function () {
@@ -120,39 +123,9 @@ describe('Event-Scoped Roles', function () {
     });
 });
 
-describe('Administered Entities', function () {
-    test('getAdministeredTeams returns teams where user is Team Admin', function () {
-        $teams = $this->service->getAdministeredTeams($this->teamAdmin);
-        expect($teams->count())->toBe(1);
-        expect($teams->first()->id)->toBe($this->teamA->id);
-    });
-
-    test('getAdministeredTeams returns empty for non-team-admin', function () {
-        $teams = $this->service->getAdministeredTeams($this->regularUser);
-        expect($teams)->toBeEmpty();
-    });
-
-    test('getAdministeredTeams returns empty for Platform Admin (global, not scoped)', function () {
-        // Platform Admin role is global, not scoped to any team_id
-        $teams = $this->service->getAdministeredTeams($this->platformAdmin);
-        expect($teams)->toBeEmpty();
-    });
-
-    test('getAdministeredEvents returns events where user is Event Admin', function () {
-        $events = $this->service->getAdministeredEvents($this->eventAdmin);
-        expect($events->count())->toBe(1);
-        expect($events->first()->id)->toBe($this->eventA->id);
-    });
-
-    test('getAdministeredEvents returns empty for non-event-admin', function () {
-        $events = $this->service->getAdministeredEvents($this->regularUser);
-        expect($events)->toBeEmpty();
-    });
-});
-
 describe('Role Removal', function () {
     test('removing team-scoped role revokes permissions', function () {
-        $this->service->removeTeamScopedRole($this->teamAdmin, 'Team Admin', $this->teamA);
+        $this->removeTeamScopedRole($this->teamAdmin, 'Team Admin', $this->teamA);
 
         // Force fresh context
         setPermissionsTeamId(null);
@@ -163,7 +136,7 @@ describe('Role Removal', function () {
     });
 
     test('removing event-scoped role revokes permissions', function () {
-        $this->service->removeEventScopedRole($this->eventAdmin, 'Event Admin', $this->eventA);
+        $this->removeEventScopedRole($this->eventAdmin, 'Event Admin', $this->eventA);
 
         // Force fresh context
         setPermissionsTeamId(null);
@@ -285,26 +258,20 @@ describe('Ownership Checks', function () {
 describe('Multi-Team Isolation', function () {
     test('user can be Team Admin of multiple teams', function () {
         $multiAdmin = User::factory()->create();
-        $this->service->assignTeamScopedRole($multiAdmin, 'Team Admin', $this->teamA);
-        $this->service->assignTeamScopedRole($multiAdmin, 'Team Admin', $this->teamB);
+        $this->assignTeamScopedRole($multiAdmin, 'Team Admin', $this->teamA);
+        $this->assignTeamScopedRole($multiAdmin, 'Team Admin', $this->teamB);
 
         expect($this->service->hasTeamPermission($multiAdmin, 'update team', $this->teamA))->toBeTrue();
         expect($this->service->hasTeamPermission($multiAdmin, 'update team', $this->teamB))->toBeTrue();
-
-        $teams = $this->service->getAdministeredTeams($multiAdmin);
-        expect($teams->count())->toBe(2);
     });
 
     test('user can be Event Admin of multiple events', function () {
         $multiAdmin = User::factory()->create();
-        $this->service->assignEventScopedRole($multiAdmin, 'Event Admin', $this->eventA);
-        $this->service->assignEventScopedRole($multiAdmin, 'Event Admin', $this->eventB);
+        $this->assignEventScopedRole($multiAdmin, 'Event Admin', $this->eventA);
+        $this->assignEventScopedRole($multiAdmin, 'Event Admin', $this->eventB);
 
         expect($this->service->hasEventPermission($multiAdmin, 'update event', $this->eventA))->toBeTrue();
         expect($this->service->hasEventPermission($multiAdmin, 'update event', $this->eventB))->toBeTrue();
-
-        $events = $this->service->getAdministeredEvents($multiAdmin);
-        expect($events->count())->toBe(2);
     });
 });
 

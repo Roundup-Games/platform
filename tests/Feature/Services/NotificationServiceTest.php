@@ -420,53 +420,6 @@ describe('NotificationService', function () {
             expect($user->fresh()->unreadNotifications)->toHaveCount(0);
         });
     });
-
-    // ── getGroupedRecent ─────────────────────────────────────────
-
-    describe('getGroupedRecent', function () {
-        it('groups notifications by read/unread status', function () {
-            $user = User::factory()->create();
-
-            $user->notifyNow(new TestNotification(['entity_id' => 1]));
-            $user->notifyNow(new TestNotification(['entity_id' => 2]));
-            $user->notifyNow(new TestNotification(['entity_id' => 3]));
-
-            // Mark the first as read
-            $user->notifications->first()->markAsRead();
-
-            $result = $this->service->getGroupedRecent($user);
-
-            expect($result)->toHaveKeys(['read', 'unread']);
-            expect($result['read'])->toHaveCount(1);
-            expect($result['unread'])->toHaveCount(2);
-        });
-
-        it('respects the limit parameter', function () {
-            $user = User::factory()->create();
-
-            for ($i = 1; $i <= 5; $i++) {
-                $user->notifyNow(new TestNotification(['entity_id' => $i]));
-            }
-
-            $result = $this->service->getGroupedRecent($user, 3);
-
-            $total = $result->flatten()->count();
-            expect($total)->toBe(3);
-        });
-
-        it('returns notifications sorted by created_at desc', function () {
-            $user = User::factory()->create();
-
-            $user->notifyNow(new TestNotification(['entity_id' => 1]));
-            $this->travelTo(now()->addSecond());
-            $user->notifyNow(new TestNotification(['entity_id' => 2]));
-
-            $result = $this->service->getGroupedRecent($user);
-
-            $all = $result->flatten();
-            expect($all->first()->data['entity_id'])->toBe(2);
-        });
-    });
 });
 
 // ── Test Notification Classes ────────────────────────────────────

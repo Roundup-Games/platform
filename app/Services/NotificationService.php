@@ -9,10 +9,7 @@ use App\Notifications\Channels\DiscordChannel;
 use App\Notifications\Channels\PushChannel;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
-use Illuminate\Notifications\DatabaseNotification;
-use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -196,24 +193,6 @@ class NotificationService
     public function getUnreadCount(User $user): int
     {
         return $user->unreadNotifications()->count();
-    }
-
-    /**
-     * Get recent notifications for a user, grouped by read status.
-     *
-     * Returns a collection of notifications sorted by created_at desc.
-     * Grouping by read/unread is a stub for future UI categorization.
-
-     *
-     * @return Collection<(int|string), DatabaseNotificationCollection<int, DatabaseNotification>>
-     */
-    public function getGroupedRecent(User $user, int $limit = 10): Collection
-    {
-        return $user->notifications()
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get()
-            ->groupBy(fn ($n) => $n->read_at !== null ? 'read' : 'unread');
     }
 
     /**

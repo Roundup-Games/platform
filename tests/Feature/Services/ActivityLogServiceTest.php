@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->service = new ActivityLogService;
@@ -70,79 +69,6 @@ describe('log()', function () {
         $result = $this->service->log(ActivityType::ReviewReceived, $this->user);
 
         expect($result)->toBeNull();
-    });
-});
-
-describe('getRecentForUser()', function () {
-    it('returns entries ordered by created_at descending', function () {
-        // Create logs with explicit timestamps
-        ActivityLog::insert([
-            [
-                'id' => (string) Str::orderedUuid(),
-                'user_id' => $this->user->id,
-                'event_type' => 'game_created',
-                'created_at' => now()->subHours(2),
-            ],
-            [
-                'id' => (string) Str::orderedUuid(),
-                'user_id' => $this->user->id,
-                'event_type' => 'follow_received',
-                'created_at' => now()->subHour(),
-            ],
-            [
-                'id' => (string) Str::orderedUuid(),
-                'user_id' => $this->user->id,
-                'event_type' => 'review_received',
-                'created_at' => now(),
-            ],
-        ]);
-
-        $results = $this->service->getRecentForUser($this->user);
-
-        expect($results)->toHaveCount(3);
-        expect($results->first()->event_type)->toBe(ActivityType::ReviewReceived);
-        expect($results->last()->event_type)->toBe(ActivityType::GameCreated);
-    });
-
-    it('respects the limit parameter', function () {
-        for ($i = 0; $i < 25; $i++) {
-            ActivityLog::insert([
-                'id' => (string) Str::orderedUuid(),
-                'user_id' => $this->user->id,
-                'event_type' => 'game_created',
-                'created_at' => now()->subMinutes($i),
-            ]);
-        }
-
-        $results = $this->service->getRecentForUser($this->user, 10);
-
-        expect($results)->toHaveCount(10);
-    });
-
-    it('only returns entries for the given user', function () {
-        $otherUser = User::factory()->create();
-
-        ActivityLog::insert([
-            ['id' => (string) Str::orderedUuid(), 'user_id' => $this->user->id, 'event_type' => 'game_created', 'created_at' => now()],
-            ['id' => (string) Str::orderedUuid(), 'user_id' => $otherUser->id, 'event_type' => 'follow_received', 'created_at' => now()],
-        ]);
-
-        $results = $this->service->getRecentForUser($this->user);
-
-        expect($results)->toHaveCount(1);
-        expect($results->first()->user_id)->toBe($this->user->id);
-    });
-
-    it('eager loads subject relationship', function () {
-        $game = Game::factory()->create();
-
-        $this->service->log(ActivityType::GameCreated, $this->user, $game);
-
-        $results = $this->service->getRecentForUser($this->user);
-
-        expect($results)->toHaveCount(1);
-        expect($results->first()->relationLoaded('subject'))->toBeTrue();
-        expect($results->first()->subject)->toBeInstanceOf(Game::class);
     });
 });
 

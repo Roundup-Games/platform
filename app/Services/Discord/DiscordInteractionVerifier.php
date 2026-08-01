@@ -43,7 +43,9 @@ class DiscordInteractionVerifier
      * when it does not get a 2xx, so a 5-minute window tolerates legitimate
      * retries and clock skew while closing the long-lived replay path (e.g.
      * replaying a captured `join` to silently re-enroll a user who has since
-     * left). Driven by config so the skew tolerance can be tuned per env.
+     * left). A 5-minute window is a fixed security constant (anti-replay), not
+     * a tunable parameter — weakening it via config would expand the replay
+     * surface.
      */
     private const MAX_TIMESTAMP_AGE_SECONDS = 300;
 
@@ -77,12 +79,8 @@ class DiscordInteractionVerifier
         // signature work. Without this a captured valid triple replays forever.
         // Discord sends the timestamp as a raw unix-epoch integer string, so
         // validate it is numeric (strtotime() parses date text, not epochs).
-        $timestampAge = is_string($configuredAge = config('services.discord.interaction_timestamp_tolerance'))
-            && is_numeric($configuredAge)
-            ? (int) $configuredAge
-            : self::MAX_TIMESTAMP_AGE_SECONDS;
         $epoch = ctype_digit($timestamp) ? (int) $timestamp : false;
-        if ($epoch === false || abs(time() - $epoch) > $timestampAge) {
+        if ($epoch === false || abs(time() - $epoch) > self::MAX_TIMESTAMP_AGE_SECONDS) {
             return false;
         }
 

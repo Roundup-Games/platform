@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Dto\GeocodeResult;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -102,27 +101,6 @@ class GeocodingService
                 return null;
             }
         });
-    }
-
-    /**
-     * Geocode and return a typed DTO.
-     *
-     * @param  array<string, mixed>  $options
-     */
-    public function geocodeDto(string $address, array $options = []): ?GeocodeResult
-    {
-        $result = $this->geocode($address, $options);
-        if ($result === null) {
-            return null;
-        }
-
-        return new GeocodeResult(
-            lat: $result['lat'],
-            lng: $result['lng'],
-            displayName: $result['display_name'],
-            placeId: $result['place_id'],
-            raw: $result['raw'],
-        );
     }
 
     /**
