@@ -67,6 +67,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
  * @property Carbon|null $privacy_policy_accepted_at
  * @property Carbon|null $terms_accepted_at
  * @property array<string, mixed>|null $reliability_score
+ * @property array<string, mixed>|null $notification_settings
  */
 #[Fillable([
     'name',

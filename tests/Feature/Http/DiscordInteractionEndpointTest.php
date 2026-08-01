@@ -448,8 +448,11 @@ class DiscordInteractionEndpointTest extends TestCase
         $response->assertJsonPath('type', 4);
         $response->assertJsonPath('data.flags', 64);
 
-        // The deep-link button points at the public roundup game page.
-        $response->assertJsonPath('data.components.0.components.0.url', "{$this->appUrl()}/games/{$gameId}");
+        // The PRIMARY button is the Discord-join on-ramp (M059/S02); the
+        // SECONDARY is the RSVP-on-web fallback.
+        $response->assertJsonPath('data.components.0.components.0.url', "{$this->appUrl()}/discord/join/{$gameId}");
+        $response->assertJsonPath('data.components.0.components.1.url', "{$this->appUrl()}/games/{$gameId}");
+        $response->assertJsonPath('data.components.0.components.0.label', 'Link Discord to grab your seat');
 
         Queue::assertNotPushed(ProcessDiscordRsvp::class);
     }

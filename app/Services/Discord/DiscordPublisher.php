@@ -16,6 +16,7 @@ use App\Models\GameParticipant;
 use App\Models\LinkedAccount;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -328,7 +329,7 @@ class DiscordPublisher
         }
 
         // Open a per-session thread on the card (once, idempotent, best-effort).
-        $this->ensureThread($cardRow ?? null, $channelId, (string) $messageId, $game);
+        $this->ensureThread($cardRow ?? null, $channelId, (string) $messageId, $game, $guild->locale);
 
         Log::info('discord_publisher.card_posted', [
             'game_id' => $game->id,
@@ -616,16 +617,21 @@ class DiscordPublisher
     }
 
     /**
-     * Create the per-session thread on a freshly-posted card, once.
+     * Create the per-session thread on a freshly-posted card, once, then post
+     * a short welcome starter message into it so the thread is a real
+     * discussion space rather than an empty shell.
      *
      * Idempotent: skipped when the card already has a thread_id (edit-in-place
      * re-publishes never spawn a second thread) and when the feature is off.
      * Best-effort: a Discord failure (most commonly 403 — the bot lacks Create
-     * Public Threads in this channel) is logged and swallowed so the card post
-     * itself never fails over the thread. thread_id stays NULL on failure, so a
-     * later publish (a roster-churn refresh) retries via this same path.
+     * Public Threads / Send Messages in Threads in this channel) is logged and
+     * swallowed so the card post itself never fails over the thread. thread_id
+     * stays NULL on a thread-create failure, so a later publish (a roster-churn
+     * refresh) retries via this same path. A starter-message failure after a
+     * successful thread create still persists the thread_id (the thread exists
+     * and is tracked) — only the welcome line is lost.
      */
-    private function ensureThread(?DiscordCardMessage $card, string $channelId, string $messageId, Game $game): void
+    private function ensureThread(?DiscordCardMessage $card, string $channelId, string $messageId, Game $game, ?string $locale): void
     {
         if ($card === null || $card->thread_id !== null) {
             return;
@@ -637,6 +643,9 @@ class DiscordPublisher
 
         try {
             $threadId = $this->client->createThreadFromMessage($channelId, $messageId, $this->threadName($game));
+            // Persist the thread id BEFORE the starter post so a starter-message
+            // failure leaves the thread tracked (a later publish won't recreate
+            // it) — the welcome line is best-effort polish, not load-bearing.
             $card->update(['thread_id' => $threadId]);
 
             Log::info('discord_publisher.thread_created', [
@@ -645,6 +654,8 @@ class DiscordPublisher
                 'channel_id' => $channelId,
                 'thread_id' => $threadId,
             ]);
+
+            $this->postThreadStarter($threadId, $game, $locale);
         } catch (DiscordApiException $e) {
             // The thread is a best-effort enhancement — never fail the card
             // post over it. thread_id stays NULL so a subsequent publish
@@ -653,6 +664,46 @@ class DiscordPublisher
                 'game_id' => $game->id,
                 'guild_id' => $card->guild_id,
                 'channel_id' => $channelId,
+                'status_code' => $e->statusCode(),
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Post a short, locale-aware welcome starter message into a freshly-created
+     * session thread so members arrive at a space that invites conversation
+     * (M059/S04). Best-effort: any Discord failure is logged and swallowed —
+     * the thread already exists and is tracked; only the welcome line is lost.
+     */
+    private function postThreadStarter(string $threadId, Game $game, ?string $locale): void
+    {
+        $resolvedLocale = $locale !== null && $locale !== '' ? $locale : config('app.fallback_locale', 'en');
+        $resolvedLocale = is_string($resolvedLocale) ? $resolvedLocale : 'en';
+
+        $name = trim((string) $game->name);
+        $when = $game->date_time?->format('j M Y · H:i');
+
+        $lines = [];
+        $lines[] = '💬 '.Lang::get('discord.content_thread_starter_welcome', ['name' => $name !== '' ? $name : Lang::get('discord.content_thread_starter_this_session', [], $resolvedLocale)], $resolvedLocale);
+        if ($when !== null) {
+            $lines[] = '📅 '.$when;
+        }
+        $lines[] = Lang::get('discord.content_thread_starter_prompt', [], $resolvedLocale);
+
+        $payload = new DiscordWebhookPayload(implode("\n", $lines));
+
+        try {
+            $this->client->postMessage($threadId, $payload);
+
+            Log::info('discord_publisher.thread_starter_posted', [
+                'game_id' => $game->id,
+                'thread_id' => $threadId,
+            ]);
+        } catch (DiscordApiException $e) {
+            Log::warning('discord_publisher.thread_starter_failed', [
+                'game_id' => $game->id,
+                'thread_id' => $threadId,
                 'status_code' => $e->statusCode(),
                 'error' => $e->getMessage(),
             ]);

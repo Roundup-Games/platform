@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\GeocodingService;
 use App\Services\PostHogAnalytics;
 use App\Services\ProfileVisibilityResolver;
+use App\Support\DiscordJoinIntent;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -394,6 +395,21 @@ class CompleteProfile extends Component
         // Livewire update requests hit /livewire/update (outside the {locale} route group),
         // so URL::defaults is not set by SetLocale and falls back to the fallback locale.
         $locale = app()->getLocale();
+
+        // M059/S02: honor a Discord join intent. If the member arrived via the
+        // "Link Discord to grab your seat" button, onboarding was just the
+        // required waypoint — now land them on the game primed to join.
+        $intent = app(DiscordJoinIntent::class)->consume(request());
+        if ($intent !== null) {
+            Log::info('discord_join_intent.redirecting_after_onboarding', [
+                'user_id' => $user->id,
+                'game_id' => $intent,
+            ]);
+            $this->redirect(app(DiscordJoinIntent::class)->targetUrl($intent));
+
+            return;
+        }
+
         $this->redirect('/'.$locale.'/dashboard');
     }
 

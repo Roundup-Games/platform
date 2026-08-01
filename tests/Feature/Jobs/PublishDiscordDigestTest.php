@@ -78,15 +78,19 @@ class PublishDiscordDigestTest extends TestCase
     }
 
     /**
-     * Http::fake stub for a successful message POST, echoing a message id.
+     * Http::fake stub for a successful first-run-of-day: starter POST +
+     * thread create (M059/S03 daily-thread model).
      */
     private function fakePostSuccess(): void
     {
         Http::fake([
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => '999888777666555444', 'type' => 11], 200),
+            self::BASE_URL.'/channels/*/messages/*' => Http::response(['id' => self::MESSAGE_ID], 200),
             self::BASE_URL.'/channels/*/messages' => Http::response([
                 'id' => self::MESSAGE_ID,
                 'channel_id' => self::CALENDAR_CHANNEL,
             ], 200),
+            self::BASE_URL.'/channels/*' => Http::response([], 204),
         ]);
     }
 
@@ -116,10 +120,11 @@ class PublishDiscordDigestTest extends TestCase
         (new PublishDiscordDigest($guild->id))->handle(app(DiscordDigestPublisher::class));
 
         $guild->refresh();
-        // The publisher posted + tracked the message id — proof the job
-        // delegated to the real publisher for THIS guild.
-        $this->assertSame(self::MESSAGE_ID, $guild->digest_message_id);
-        $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_channel_id);
+        // The publisher posted the starter + created the thread — proof the
+        // job delegated to the real publisher for THIS guild.
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
+        $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_thread_channel_id);
+        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
     }
 
     // ════════════════════════════════════════════════════
@@ -181,12 +186,12 @@ class PublishDiscordDigestTest extends TestCase
     }
 
     #[Test]
-    public function successful_publish_emits_publisher_posted_pulse()
+    public function successful_publish_emits_publisher_created_pulse()
     {
-        // The job runs the publisher, which owns the discord_digest.posted
+        // The job runs the publisher, which owns the discord_digest.created
         // steady-state health signal. Proves the job wires the publisher in
         // (not a no-op) end to end. Requires an eligible game so the populated
-        // (posted) path runs rather than the empty-state path.
+        // (created) path runs rather than the empty-state path.
         $guild = $this->postableGuild();
         $owner = User::factory()->create();
         Game::factory()->create([
@@ -203,12 +208,11 @@ class PublishDiscordDigestTest extends TestCase
 
         (new PublishDiscordDigest($guild->id))->handle(app(DiscordDigestPublisher::class));
 
-        // The posted pulse is distinguishable from the job's started/completed
-        // logs (which also carry guild_id) by its status field — only the
-        // publisher's posted/edited logs include status. (CodeRabbit review.)
+        // The created pulse is distinguishable from the job's started/completed
+        // logs (which also carry guild_id) by its status field (M059/S03).
         Log::shouldHaveReceived('info')
             ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id
-                && ($ctx['status'] ?? null) === 'posted')
+                && ($ctx['status'] ?? null) === 'created')
             ->atLeast()
             ->once();
     }
@@ -266,14 +270,16 @@ class PublishDiscordDigestTest extends TestCase
     // ════════════════════════════════════════════════════
 
     #[Test]
-    public function job_retry_converges_via_edit_in_place_without_duplicate()
+    public function job_retry_converges_via_within_day_refresh_without_duplicate()
     {
         // tries=3 + backoff=60 mirror PublishGameToDiscord; the publisher is
-        // idempotent so retries PATCH, never duplicate. Prove the contract by
-        // running twice against a tracked digest.
+        // idempotent so a same-day retry PATCHes the starter, never duplicates
+        // the thread. Prove the contract by running twice against a tracked
+        // today-thread (M059/S03).
         $guild = $this->postableGuild([
-            'digest_message_id' => '111000000000000000',
-            'digest_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_message_id' => self::MESSAGE_ID,
         ]);
 
         Http::fake([
@@ -284,8 +290,8 @@ class PublishDiscordDigestTest extends TestCase
         (new PublishDiscordDigest($guild->id))->handle(app(DiscordDigestPublisher::class));
 
         $guild->refresh();
-        $this->assertSame(self::MESSAGE_ID, $guild->digest_message_id);
-        // Both runs PATCHed (edited), never POSTed a duplicate.
-        Http::assertSent(fn ($r) => $r->method() === 'POST' ? false : true);
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
+        // Both runs PATCHed the starter; no thread-create POST.
+        Http::assertNotSent(fn ($r) => $r->method() === 'POST' && str_contains($r->url(), '/threads'));
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\ParticipantStatus;
 use App\Http\Middleware\VerifyDiscordInteractionSignature;
 use App\Jobs\ProcessDiscordLeave;
 use App\Jobs\ProcessDiscordRsvp;
+use App\Models\DiscordGuild;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -161,7 +162,7 @@ class DiscordInteractionController extends Controller
                 'guild_id' => $guildId,
             ]);
 
-            return $this->unlinkedDeepLink($gameId);
+            return $this->unlinkedDeepLink($gameId, $guildId);
         }
 
         $game = Game::with('participants')->find($gameId);
@@ -271,7 +272,7 @@ class DiscordInteractionController extends Controller
                 'guild_id' => $guildId,
             ]);
 
-            return $this->unlinkedDeepLink($gameId);
+            return $this->unlinkedDeepLink($gameId, $guildId);
         }
 
         $jobClass::dispatch(
@@ -295,18 +296,25 @@ class DiscordInteractionController extends Controller
     // ── Unlinked deep-link ──────────────────────────────
 
     /**
-     * Build the ephemeral deep-link response for an unlinked clicker: a LINK
-     * button to the game page + value-framed copy. Ephemeral so it's private.
+     * Build the ephemeral on-ramp response for an unlinked clicker (M059/S02):
+     * a PRIMARY "Link Discord to grab your seat" button that carries the join
+     * intent through OAuth → register → onboard → land-on-game, plus a
+     * secondary "RSVP on roundup" link for members who prefer the web. Both
+     * ephemeral (private to the clicker). Copy is resolved against the guild's
+     * locale (the audience is the guild community), falling back to the app
+     * fallback locale when the guild can't be loaded.
      */
-    private function unlinkedDeepLink(string $gameId): JsonResponse
+    private function unlinkedDeepLink(string $gameId, string $guildId): JsonResponse
     {
-        $url = $this->gameDeepLinkUrl($gameId);
+        $joinUrl = $this->discordJoinUrl($gameId);
+        $webUrl = $this->gameDeepLinkUrl($gameId);
+        $locale = $this->resolveGuildLocale($guildId);
 
         return response()->json([
             'type' => self::TYPE_CHANNEL_MESSAGE,
             'data' => [
                 'flags' => self::FLAG_EPHEMERAL,
-                'content' => "You're almost on the roster. RSVP on roundup to grab your seat — link your Discord account there once and this button RSVPs you straight from Discord next time.",
+                'content' => __('discord.content_unlinked_onramp_body', [], $locale),
                 'components' => [
                     [
                         'type' => 1,
@@ -314,14 +322,46 @@ class DiscordInteractionController extends Controller
                             [
                                 'type' => 2,
                                 'style' => 5, // LINK
-                                'label' => 'RSVP on roundup',
-                                'url' => $url,
+                                'label' => __('discord.action_link_discord_to_grab_your_seat', [], $locale),
+                                'url' => $joinUrl,
+                            ],
+                            [
+                                'type' => 2,
+                                'style' => 5, // LINK
+                                'label' => __('discord.action_rsvp_on_roundup', [], $locale),
+                                'url' => $webUrl,
                             ],
                         ],
                     ],
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Resolve the locale to use for Discord-facing copy: the guild's configured
+     * locale when the guild is known, otherwise the app fallback. The
+     * interaction's guild_id is a Discord snowflake, so look it up against the
+     * discord_guilds.guild_id column (NOT the roundup UUID primary key).
+     * Best-effort single-row lookup — unlinked clicks are rare.
+     */
+    private function resolveGuildLocale(string $guildId): string
+    {
+        $guild = DiscordGuild::where('guild_id', $guildId)->first();
+        $locale = is_string($guild?->locale) && $guild->locale !== '' ? $guild->locale : config('app.fallback_locale', 'en');
+
+        return is_string($locale) && $locale !== '' ? $locale : 'en';
+    }
+
+    /**
+     * The absolute Discord-join on-ramp URL for a game (the guest route that
+     * sets the intent and redirects to Discord OAuth).
+     */
+    private function discordJoinUrl(string $gameId): string
+    {
+        $baseUrl = is_string(config('app.url')) ? rtrim(config('app.url'), '/') : '';
+
+        return $baseUrl.'/discord/join/'.$gameId;
     }
 
     private function gameDeepLinkUrl(string $gameId): string

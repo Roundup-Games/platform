@@ -22,22 +22,21 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests the DiscordDigestPublisher chokepoint (M057/S02/T03): the single path
- * through which the daily two-week calendar digest is published to a guild's
- * calendar channel.
+ * Tests the DiscordDigestPublisher chokepoint — the single path through which
+ * the daily two-week calendar digest is published to a guild's calendar channel.
  *
- * The publisher is PARALLEL to {@see DiscordPublisher} (decision D121) — one
- * edited message per guild, not one card per game — and composes S01's
- * DiscordWebhookClient + T02's DiscordDigestRenderer. These tests inject a
- * webhook client pointed at Http::fake() so no real Discord call is made; the
- * renderer is the real pure transformer.
+ * Rewritten for M059/S03: the digest is now a DAILY THREAD (one fresh thread
+ * per guild per day, anchored on a starter message), replacing M057's single
+ * edited message. These tests inject a webhook client pointed at Http::fake()
+ * so no real Discord call is made; the renderer is the real pure transformer.
  *
- * Coverage mirrors the slice must-haves: first-post + track, edit-in-place
- * rewrite, calendar-channel reconfiguration (delete stale + repost), empty
- * window (still one tidy digest), eligibility gating (paused, no channel,
- * publishing_enabled off, opted-out owner, non-public, non-scheduled, outside
- * window), per-guild failure isolation, best-effort delete on reconfig, and
- * the batched roster-count query.
+ * Coverage: first-run-of-day (starter + thread create + track), within-day
+ * refresh (PATCH starter, no second thread), cross-day (fresh create, previous
+ * archived), empty window (daily pulse still creates a thread), legacy
+ * single-message retirement (one-time delete), channel-reconfig, 404 self-heal,
+ * eligibility gating (paused, no channel, publishing_enabled off, opted-out
+ * owner, non-public, non-scheduled, outside window), per-guild failure, and the
+ * batched roster-count query.
  */
 class DiscordDigestPublisherTest extends TestCase
 {
@@ -48,6 +47,8 @@ class DiscordDigestPublisherTest extends TestCase
     private const CALENDAR_CHANNEL = '555666777888999000';
 
     private const MESSAGE_ID = '444333222111000999';
+
+    private const THREAD_ID = '999888777666555444';
 
     protected function setUp(): void
     {
@@ -79,7 +80,7 @@ class DiscordDigestPublisherTest extends TestCase
      * Build a guild with a calendar channel and an opted-in organizer who owns
      * a public scheduled game inside the 14-day window.
      *
-     * @return array{guild: DiscordGuild, owner: User, game: Game}
+     * @return array{0: DiscordGuild, 1: User, 2: Game}
      */
     private function guildWithUpcomingGame(): array
     {
@@ -108,27 +109,27 @@ class DiscordDigestPublisherTest extends TestCase
     }
 
     /**
-     * Http::fake stub for a successful message POST, echoing a message id.
+     * Http::fake stub for a successful first-run-of-day: starter POST + thread
+     * create. Patterns are ordered most-specific first so the thread create
+     * (channels/…/messages/…/threads) matches before the generic message one.
      */
-    private function fakePostSuccess(): void
+    private function fakeCreateSuccess(string $messageId = self::MESSAGE_ID, string $threadId = self::THREAD_ID): void
     {
         Http::fake([
-            self::BASE_URL.'/channels/*/messages' => Http::response([
-                'id' => self::MESSAGE_ID,
-                'channel_id' => self::CALENDAR_CHANNEL,
-            ], 200),
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => $threadId, 'type' => 11], 200),
+            self::BASE_URL.'/channels/*/messages/*' => Http::response(['id' => $messageId], 200), // edit (PATCH) / delete
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => $messageId, 'channel_id' => self::CALENDAR_CHANNEL], 200),
+            self::BASE_URL.'/channels/*' => Http::response([], 204),
         ]);
     }
 
     /**
-     * Http::fake stub for a successful message PATCH, echoing the message id.
+     * Http::fake stub for a successful within-day refresh: PATCH the starter.
      */
     private function fakeEditSuccess(): void
     {
         Http::fake([
-            self::BASE_URL.'/channels/*/messages/*' => Http::response([
-                'id' => self::MESSAGE_ID,
-            ], 200),
+            self::BASE_URL.'/channels/*/messages/*' => Http::response(['id' => self::MESSAGE_ID], 200),
         ]);
     }
 
@@ -145,58 +146,62 @@ class DiscordDigestPublisherTest extends TestCase
     }
 
     // ════════════════════════════════════════════════════
-    //  FIRST PUBLISH: posts + tracks digest_message_id/digest_channel_id
+    //  FIRST RUN OF THE DAY: starter POST + thread create + track
     // ════════════════════════════════════════════════════
 
     #[Test]
-    public function first_publish_posts_to_calendar_channel_and_tracks_message_id()
+    public function first_run_posts_starter_then_creates_thread_and_tracks_the_trio()
     {
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
         $guild->refresh();
-        $this->assertSame(self::MESSAGE_ID, $guild->digest_message_id);
-        $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_channel_id);
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
+        $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_thread_channel_id);
+        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
 
-        // Exactly one POST to the calendar channel.
-        Http::assertSentCount(1);
+        // Exactly one starter POST + one thread create POST.
         Http::assertSent(fn (Request $r) => $r->method() === 'POST'
-            && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages'));
+            && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages')
+            && ! str_contains($r->url(), '/threads'));
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST'
+            && str_contains($r->url(), '/messages/'.self::MESSAGE_ID.'/threads'));
     }
 
     #[Test]
-    public function first_publish_logs_posted_with_event_and_embed_counts()
+    public function first_run_logs_created_status_with_event_and_embed_counts()
     {
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
-        $this->fakePostSuccess();
-
+        $this->fakeCreateSuccess();
         Log::spy();
 
         $this->makePublisher()->publish($guild);
 
         Log::shouldHaveReceived('info')
             ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id
-                && ($ctx['status'] ?? null) === 'posted'
+                && ($ctx['status'] ?? null) === 'created'
                 && ($ctx['event_count'] ?? null) === 1
                 && is_int($ctx['embed_count'] ?? null)
-                && ($ctx['message_id'] ?? null) === self::MESSAGE_ID)
+                && ($ctx['message_id'] ?? null) === self::MESSAGE_ID
+                && ($ctx['thread_id'] ?? null) === self::THREAD_ID)
             ->atLeast()
             ->once();
     }
 
     // ════════════════════════════════════════════════════
-    //  EDIT-IN-PLACE: same-channel re-run PATCHes the digest
+    //  WITHIN-DAY REFRESH: same-channel, same-day PATCH of the starter
     // ════════════════════════════════════════════════════
 
     #[Test]
-    public function republish_on_same_channel_patches_existing_digest_in_place()
+    public function same_day_rerun_patches_the_starter_without_creating_a_second_thread()
     {
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
         $guild->update([
-            'digest_message_id' => '111000000000000000',
-            'digest_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_message_id' => self::MESSAGE_ID,
         ]);
 
         $this->fakeEditSuccess();
@@ -204,140 +209,226 @@ class DiscordDigestPublisherTest extends TestCase
         $this->makePublisher()->publish($guild);
 
         $guild->refresh();
-        $this->assertSame(self::MESSAGE_ID, $guild->digest_message_id);
-        $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_channel_id);
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
+        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
 
-        // PATCH, not POST.
+        // PATCH the starter, and NO thread-create POST.
         Http::assertSent(fn (Request $r) => $r->method() === 'PATCH'
-            && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages/111000000000000000'));
+            && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages/'.self::MESSAGE_ID));
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && str_contains($r->url(), '/threads') ? false : true);
         Http::assertSentCount(1);
     }
 
     #[Test]
-    public function republish_on_same_channel_logs_edited_status()
+    public function same_day_refresh_logs_refreshed_status()
     {
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
         $guild->update([
-            'digest_message_id' => '111000000000000000',
-            'digest_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_message_id' => self::MESSAGE_ID,
         ]);
         $this->fakeEditSuccess();
-
         Log::spy();
 
         $this->makePublisher()->publish($guild);
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $msg, array $ctx) => ($ctx['status'] ?? null) === 'edited')
+            ->withArgs(fn (string $msg, array $ctx) => ($ctx['status'] ?? null) === 'refreshed')
             ->atLeast()
             ->once();
     }
 
-    // ════════════════════════════════════════════════════
-    //  CHANNEL RECONFIGURATION: delete stale + post to new channel
-    // ════════════════════════════════════════════════════
-
     #[Test]
-    public function calendar_channel_reconfigured_deletes_stale_and_reposts_to_new_channel()
+    public function same_day_refresh_404_self_heals_into_a_fresh_create()
     {
+        // The starter was removed out-of-band (moderator delete). A 404 must
+        // self-heal into a fresh starter + thread create for today rather than
+        // bricking the digest on a dead message id.
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
-
-        $oldChannel = self::CALENDAR_CHANNEL;
-        $newChannel = '777888999000111222';
-        $staleMessageId = '111000000000000000';
         $guild->update([
-            'digest_message_id' => $staleMessageId,
-            'digest_channel_id' => $oldChannel,
-            'calendar_channel_id' => $newChannel,
+            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_message_id' => 'dead-message-id',
         ]);
 
         Http::fake([
-            self::BASE_URL."/channels/{$oldChannel}/messages/{$staleMessageId}" => Http::response([], 204),
-            self::BASE_URL.'/channels/'.$newChannel.'/messages' => Http::response(['id' => self::MESSAGE_ID], 200),
+            // The 404 on the stale starter...
+            self::BASE_URL.'/channels/'.self::CALENDAR_CHANNEL.'/messages/dead-message-id' => Http::response(['message' => 'Unknown Message'], 404),
+            // ...then the self-heal create path.
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => self::THREAD_ID, 'type' => 11], 200),
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => self::MESSAGE_ID, 'channel_id' => self::CALENDAR_CHANNEL], 200),
+            self::BASE_URL.'/channels/*' => Http::response([], 204),
         ]);
 
         $this->makePublisher()->publish($guild);
 
         $guild->refresh();
-        $this->assertSame(self::MESSAGE_ID, $guild->digest_message_id);
-        $this->assertSame($newChannel, $guild->digest_channel_id);
-
-        Http::assertSent(fn (Request $r) => $r->method() === 'DELETE'
-            && str_contains($r->url(), "/channels/{$oldChannel}/messages/{$staleMessageId}"));
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id, 'self-healed onto a fresh starter');
+        // The create path issued a thread create.
         Http::assertSent(fn (Request $r) => $r->method() === 'POST'
-            && str_contains($r->url(), "/channels/{$newChannel}/messages"));
+            && str_contains($r->url(), '/messages/'.self::MESSAGE_ID.'/threads'));
     }
 
+    // ════════════════════════════════════════════════════
+    //  CROSS-DAY: a new daily run creates a fresh thread, archiving yesterday's
+    // ════════════════════════════════════════════════════
+
     #[Test]
-    public function channel_reconfig_tolerates_stale_delete_failure_and_still_reposts()
+    public function cross_day_run_creates_a_fresh_thread_and_does_not_delete_the_previous()
     {
-        // Self-healing contract: an orphaned stale message must not block the
-        // repost to the new channel.
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
-
-        $oldChannel = self::CALENDAR_CHANNEL;
-        $newChannel = '777888999000111222';
-        $staleMessageId = '111000000000000000';
+        $yesterday = now()->subDay()->toDateString();
+        $yesterdayMessage = '111222333444555666';
         $guild->update([
-            'digest_message_id' => $staleMessageId,
-            'digest_channel_id' => $oldChannel,
-            'calendar_channel_id' => $newChannel,
+            'digest_thread_date' => $yesterday,
+            'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_message_id' => $yesterdayMessage,
         ]);
 
-        Http::fake([
-            // Stale message already gone (channel removed).
-            self::BASE_URL."/channels/{$oldChannel}/messages/{$staleMessageId}" => Http::response(['message' => 'Unknown Message'], 404),
-            self::BASE_URL.'/channels/'.$newChannel.'/messages' => Http::response(['id' => self::MESSAGE_ID], 200),
-        ]);
-
-        Log::spy();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
         $guild->refresh();
-        // Repost succeeded despite the delete failure.
-        $this->assertSame(self::MESSAGE_ID, $guild->digest_message_id);
-        $this->assertSame($newChannel, $guild->digest_channel_id);
+        // New thread tracked for today.
+        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
 
-        // delete_failed logged (best-effort), not thrown.
-        Log::shouldHaveReceived('warning')
-            ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
-            ->atLeast()
-            ->once();
+        // Yesterday's starter is NOT deleted (archived, left read-only).
+        Http::assertSent(fn (Request $r) => $r->method() === 'DELETE'
+            && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages/'.$yesterdayMessage) ? false : true);
+        Http::assertNotSent(fn (Request $r) => $r->method() === 'DELETE'
+            && str_contains($r->url(), $yesterdayMessage));
+    }
+
+    #[Test]
+    public function thread_create_failure_after_successful_starter_post_does_not_orphan_the_starter()
+    {
+        // M059/S03 robustness: the starter is tracked BEFORE the thread create,
+        // so a thread-create failure must NOT throw (which would orphan the
+        // starter on the next retry — a duplicate POST). It logs a warning,
+        // leaves the starter tracked, and the next same-day run refreshes it.
+        [$guild, $owner, $game] = $this->guildWithUpcomingGame();
+
+        Http::fake([
+            // Starter POST succeeds...
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => self::MESSAGE_ID, 'channel_id' => self::CALENDAR_CHANNEL], 200),
+            // ...but the thread create fails terminally (403).
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['message' => 'Missing Access'], 403),
+            self::BASE_URL.'/channels/*' => Http::response([], 204),
+        ]);
+
+        // No exception — the thread failure is swallowed (best-effort).
+        $this->makePublisher()->publish($guild);
+
+        $guild->refresh();
+        // The starter is tracked even though the thread failed — no orphan, so
+        // a retry / same-day re-run PATCHes this starter rather than POSTing a
+        // duplicate.
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
+        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
+        $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_thread_channel_id);
+
+        // Exactly one POST to the starter (no duplicate on this run).
+        $starterPosts = 0;
+        Http::assertSent(function (Request $r) use (&$starterPosts): bool {
+            if ($r->method() === 'POST' && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages') && ! str_contains($r->url(), '/threads')) {
+                $starterPosts++;
+            }
+
+            return true;
+        });
+        $this->assertSame(1, $starterPosts, 'no duplicate starter when the thread create fails');
     }
 
     // ════════════════════════════════════════════════════
-    //  EMPTY WINDOW: still exactly one tidy digest
+    //  LEGACY RETIREMENT: first new-model run deletes the old single message
     // ════════════════════════════════════════════════════
 
     #[Test]
-    public function empty_window_first_publishes_empty_state_digest()
+    public function legacy_single_message_is_best_effort_deleted_on_first_new_model_run()
+    {
+        [$guild, $owner, $game] = $this->guildWithUpcomingGame();
+        $legacyMessage = '555444333222111000';
+        $legacyChannel = self::CALENDAR_CHANNEL;
+        $guild->update([
+            'digest_message_id' => $legacyMessage,
+            'digest_channel_id' => $legacyChannel,
+        ]);
+
+        $this->fakeCreateSuccess();
+
+        $this->makePublisher()->publish($guild);
+
+        // Legacy single message deleted once...
+        Http::assertSent(fn (Request $r) => $r->method() === 'DELETE'
+            && str_contains($r->url(), "/channels/{$legacyChannel}/messages/{$legacyMessage}"));
+
+        $guild->refresh();
+        // ...and the legacy tracking cleared.
+        $this->assertNull($guild->digest_message_id);
+        $this->assertNull($guild->digest_channel_id);
+        // The new daily thread is tracked.
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
+    }
+
+    #[Test]
+    public function legacy_delete_failure_is_swallowed_and_new_thread_still_created()
+    {
+        [$guild, $owner, $game] = $this->guildWithUpcomingGame();
+        $guild->update([
+            'digest_message_id' => 'gone-already',
+            'digest_channel_id' => self::CALENDAR_CHANNEL,
+        ]);
+
+        Http::fake([
+            // Legacy message already gone.
+            self::BASE_URL.'/channels/'.self::CALENDAR_CHANNEL.'/messages/gone-already' => Http::response(['message' => 'Unknown Message'], 404),
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => self::THREAD_ID, 'type' => 11], 200),
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => self::MESSAGE_ID, 'channel_id' => self::CALENDAR_CHANNEL], 200),
+            self::BASE_URL.'/channels/*' => Http::response([], 204),
+        ]);
+
+        $this->makePublisher()->publish($guild);
+
+        $guild->refresh();
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id, 'new thread created despite legacy 404');
+        $this->assertNull($guild->digest_message_id);
+    }
+
+    // ════════════════════════════════════════════════════
+    //  EMPTY WINDOW: a daily pulse — still creates/refreshes a thread
+    // ════════════════════════════════════════════════════
+
+    #[Test]
+    public function empty_window_first_run_creates_a_thread_with_empty_state()
     {
         $guild = DiscordGuild::factory()
             ->configured()
             ->create(['calendar_channel_id' => self::CALENDAR_CHANNEL]);
 
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
         $guild->refresh();
-        // Channel always has exactly one current digest — even when empty.
-        $this->assertSame(self::MESSAGE_ID, $guild->digest_message_id);
-        $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_channel_id);
-
-        Http::assertSentCount(1);
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
+        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST'
+            && str_contains($r->url(), '/messages/'.self::MESSAGE_ID.'/threads'));
     }
 
     #[Test]
-    public function empty_window_republish_patches_empty_state_in_place()
+    public function empty_window_same_day_refresh_patches_in_place_and_logs_empty()
     {
         $guild = DiscordGuild::factory()
             ->configured()
             ->create([
                 'calendar_channel_id' => self::CALENDAR_CHANNEL,
-                'digest_message_id' => '111000000000000000',
-                'digest_channel_id' => self::CALENDAR_CHANNEL,
+                'digest_thread_date' => now()->toDateString(),
+                'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
+                'digest_thread_message_id' => self::MESSAGE_ID,
             ]);
 
         $this->fakeEditSuccess();
@@ -345,17 +436,45 @@ class DiscordDigestPublisherTest extends TestCase
 
         $this->makePublisher()->publish($guild);
 
-        $guild->refresh();
-        $this->assertSame(self::MESSAGE_ID, $guild->digest_message_id);
-
         Http::assertSent(fn (Request $r) => $r->method() === 'PATCH');
-
-        // empty event emits the empty pulse (proves the job ran).
         Log::shouldHaveReceived('info')
             ->withArgs(fn (string $msg, array $ctx) => ($ctx['event_count'] ?? null) === 0
                 && ($ctx['status'] ?? null) === 'empty')
             ->atLeast()
             ->once();
+    }
+
+    // ════════════════════════════════════════════════════
+    //  CHANNEL RECONFIG: calendar channel changed → fresh create in new channel
+    // ════════════════════════════════════════════════════
+
+    #[Test]
+    public function calendar_channel_reconfigured_creates_fresh_thread_in_new_channel()
+    {
+        [$guild, $owner, $game] = $this->guildWithUpcomingGame();
+        $oldChannel = self::CALENDAR_CHANNEL;
+        $newChannel = '777888999000111222';
+        $guild->update([
+            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_channel_id' => $oldChannel,
+            'digest_thread_message_id' => '111222333444555666',
+            'calendar_channel_id' => $newChannel,
+        ]);
+
+        Http::fake([
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => self::THREAD_ID, 'type' => 11], 200),
+            self::BASE_URL.'/channels/'.$newChannel.'/messages' => Http::response(['id' => self::MESSAGE_ID, 'channel_id' => $newChannel], 200),
+        ]);
+
+        $this->makePublisher()->publish($guild);
+
+        $guild->refresh();
+        $this->assertSame($newChannel, $guild->digest_thread_channel_id);
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
+
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST'
+            && str_contains($r->url(), "/channels/{$newChannel}/messages")
+            && ! str_contains($r->url(), '/threads'));
     }
 
     // ════════════════════════════════════════════════════
@@ -375,7 +494,7 @@ class DiscordDigestPublisherTest extends TestCase
 
         Http::assertNothingSent();
         $guild->refresh();
-        $this->assertNull($guild->digest_message_id);
+        $this->assertNull($guild->digest_thread_message_id);
 
         Log::shouldHaveReceived('info')
             ->withArgs(fn (string $msg, array $ctx) => ($ctx['reason'] ?? null) === 'paused')
@@ -413,7 +532,7 @@ class DiscordDigestPublisherTest extends TestCase
 
         Http::assertNothingSent();
         $guild->refresh();
-        $this->assertNull($guild->digest_message_id);
+        $this->assertNull($guild->digest_thread_message_id);
     }
 
     // ════════════════════════════════════════════════════
@@ -435,14 +554,14 @@ class DiscordDigestPublisherTest extends TestCase
         $gameA = Game::factory()->create(['owner_id' => $ownerA->id, 'visibility' => 'public', 'date_time' => now()->addDays(2)]);
         $gameB = Game::factory()->create(['owner_id' => $ownerB->id, 'visibility' => 'public', 'date_time' => now()->addDays(4)]);
 
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
-        // Both organizers' games appear in the rendered digest payload.
         $posted = null;
         Http::assertSent(function (Request $r) use (&$posted): bool {
-            if ($r->method() === 'POST') {
+            // Capture the starter POST (to the calendar channel, not a thread).
+            if ($r->method() === 'POST' && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages') && ! str_contains($r->url(), '/threads')) {
                 $posted = $r->data();
             }
 
@@ -469,13 +588,13 @@ class DiscordDigestPublisherTest extends TestCase
         $includedGame = Game::factory()->create(['owner_id' => $optedInOwner->id, 'visibility' => 'public', 'date_time' => now()->addDays(2)]);
         $excludedGame = Game::factory()->create(['owner_id' => $optedOutOwner->id, 'visibility' => 'public', 'date_time' => now()->addDays(3)]);
 
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
         $posted = null;
         Http::assertSent(function (Request $r) use (&$posted): bool {
-            if ($r->method() === 'POST') {
+            if ($r->method() === 'POST' && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages') && ! str_contains($r->url(), '/threads')) {
                 $posted = $r->data();
             }
 
@@ -501,13 +620,13 @@ class DiscordDigestPublisherTest extends TestCase
         Game::factory()->create(['owner_id' => $owner->id, 'visibility' => Visibility::Protected->value, 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['owner_id' => $owner->id, 'visibility' => Visibility::Private->value, 'date_time' => now()->addDays(4)]);
 
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
         $posted = null;
         Http::assertSent(function (Request $r) use (&$posted): bool {
-            if ($r->method() === 'POST') {
+            if ($r->method() === 'POST' && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages') && ! str_contains($r->url(), '/threads')) {
                 $posted = $r->data();
             }
 
@@ -515,10 +634,7 @@ class DiscordDigestPublisherTest extends TestCase
         });
         $body = $this->bodyJson($posted);
         $this->assertStringContainsString('/games/'.$publicGame->id, $body);
-        // Only the public game's id should appear (protected/private excluded).
-        $publicIdCount = substr_count($body, '/games/'.$publicGame->id);
         $this->assertSame(1, substr_count($body, '/games/'));
-        $this->assertSame(1, $publicIdCount);
     }
 
     #[Test]
@@ -535,13 +651,13 @@ class DiscordDigestPublisherTest extends TestCase
         Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'public', 'status' => 'canceled', 'date_time' => now()->addDays(3)]);
         Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'public', 'status' => 'completed', 'date_time' => now()->addDays(4)]);
 
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
         $posted = null;
         Http::assertSent(function (Request $r) use (&$posted): bool {
-            if ($r->method() === 'POST') {
+            if ($r->method() === 'POST' && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages') && ! str_contains($r->url(), '/threads')) {
                 $posted = $r->data();
             }
 
@@ -562,20 +678,17 @@ class DiscordDigestPublisherTest extends TestCase
         $owner = User::factory()->create();
         DiscordGuildOrganizer::factory()->optedIn()->create(['guild_id' => $guild->id, 'user_id' => $owner->id]);
 
-        // Inside window (day 10).
         $nearGame = Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'public', 'date_time' => now()->addDays(10)]);
-        // Outside window (day 20).
         Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'public', 'date_time' => now()->addDays(20)]);
-        // In the past.
         Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'public', 'date_time' => now()->subDays(2)]);
 
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
         $posted = null;
         Http::assertSent(function (Request $r) use (&$posted): bool {
-            if ($r->method() === 'POST') {
+            if ($r->method() === 'POST' && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages') && ! str_contains($r->url(), '/threads')) {
                 $posted = $r->data();
             }
 
@@ -589,25 +702,22 @@ class DiscordDigestPublisherTest extends TestCase
     #[Test]
     public function opted_in_owner_in_a_different_guild_does_not_surface_in_this_guilds_digest()
     {
-        // The opt-in gate is guild-scoped, not global.
         $guildA = DiscordGuild::factory()->configured()->create(['calendar_channel_id' => self::CALENDAR_CHANNEL]);
         $guildB = DiscordGuild::factory()->configured()->create(['calendar_channel_id' => '888999000111222333']);
 
         $owner = User::factory()->create();
-        // Owner opted in ONLY to guildB, not guildA.
         DiscordGuildOrganizer::factory()->optedIn()->create(['guild_id' => $guildB->id, 'user_id' => $owner->id]);
 
         Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'public', 'date_time' => now()->addDays(2)]);
 
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
         Log::spy();
 
-        // guildA's digest should be empty (no opted-in owners).
         $this->makePublisher()->publish($guildA);
 
         $guildA->refresh();
-        // Empty window still posts the empty-state digest.
-        $this->assertSame(self::MESSAGE_ID, $guildA->digest_message_id);
+        // Empty window still creates the daily-pulse thread.
+        $this->assertSame(self::MESSAGE_ID, $guildA->digest_thread_message_id);
         Log::shouldHaveReceived('info')
             ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guildA->id)
             ->atLeast()
@@ -622,8 +732,6 @@ class DiscordDigestPublisherTest extends TestCase
     public function roster_counts_are_computed_from_participant_pipeline_and_rendered_in_payload()
     {
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
-        // 3 approved + 2 waitlisted (only approved should surface in the
-        // one-liner roster segment).
         foreach (range(1, 3) as $_) {
             GameParticipant::create([
                 'game_id' => $game->id,
@@ -639,13 +747,13 @@ class DiscordDigestPublisherTest extends TestCase
             ]);
         }
 
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
         $posted = null;
         Http::assertSent(function (Request $r) use (&$posted): bool {
-            if ($r->method() === 'POST') {
+            if ($r->method() === 'POST' && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages') && ! str_contains($r->url(), '/threads')) {
                 $posted = $r->data();
             }
 
@@ -653,8 +761,6 @@ class DiscordDigestPublisherTest extends TestCase
         });
         $this->assertNotNull($posted);
         $body = $this->bodyJson($posted);
-        // The renderer's one-liner shows approved/max — 3 approved against the
-        // factory default max_players (4-8). Just assert the count surfaces.
         $this->assertStringContainsString('3/', $body);
     }
 
@@ -663,7 +769,7 @@ class DiscordDigestPublisherTest extends TestCase
     // ════════════════════════════════════════════════════
 
     #[Test]
-    public function terminal_post_failure_throws_aggregate_and_does_not_track_message_id()
+    public function terminal_post_failure_throws_aggregate_and_does_not_track_a_thread()
     {
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
 
@@ -681,9 +787,7 @@ class DiscordDigestPublisherTest extends TestCase
 
         $this->assertTrue($threw, 'aggregate DiscordPublishException was thrown');
         $guild->refresh();
-        // First-publish failed → no tracking row (the guild stays untracked so
-        // the next run retries the first-post path).
-        $this->assertNull($guild->digest_message_id);
+        $this->assertNull($guild->digest_thread_message_id);
 
         Log::shouldHaveReceived('error')
             ->withArgs(fn (string $msg, array $ctx) => ($ctx['guild_id'] ?? null) === $guild->id)
@@ -694,16 +798,16 @@ class DiscordDigestPublisherTest extends TestCase
     #[Test]
     public function terminal_edit_failure_throws_aggregate_but_preserves_existing_tracking()
     {
-        // A failed edit leaves the prior digest_message_id intact (it was not
-        // cleared); the self-healing rebuild corrects it on the next run.
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
         $guild->update([
-            'digest_message_id' => '111000000000000000',
-            'digest_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
+            'digest_thread_message_id' => self::MESSAGE_ID,
         ]);
 
+        // A 500 (not a 404) on the edit → re-thrown, not self-healed.
         Http::fake([
-            self::BASE_URL.'/channels/*/messages/*' => Http::response(['message' => 'Unknown Message'], 404),
+            self::BASE_URL.'/channels/*/messages/*' => Http::response(['message' => 'Internal'], 500),
         ]);
 
         $threw = false;
@@ -715,38 +819,8 @@ class DiscordDigestPublisherTest extends TestCase
 
         $this->assertTrue($threw);
         $guild->refresh();
-        // Prior tracking untouched — next run can retry.
-        $this->assertSame('111000000000000000', $guild->digest_message_id);
-    }
-
-    #[Test]
-    public function reconfig_repost_failure_after_successful_delete_throws_and_tracks_new_state_correctly()
-    {
-        [$guild, $owner, $game] = $this->guildWithUpcomingGame();
-        $oldChannel = self::CALENDAR_CHANNEL;
-        $newChannel = '777888999000111222';
-        $staleMessageId = '111000000000000000';
-        $guild->update([
-            'digest_message_id' => $staleMessageId,
-            'digest_channel_id' => $oldChannel,
-            'calendar_channel_id' => $newChannel,
-        ]);
-
-        Http::fake([
-            // Stale delete succeeds...
-            self::BASE_URL."/channels/{$oldChannel}/messages/{$staleMessageId}" => Http::response([], 204),
-            // ...but the repost to the new channel fails terminally.
-            self::BASE_URL.'/channels/'.$newChannel.'/messages' => Http::response(['message' => 'Missing Access'], 403),
-        ]);
-
-        $this->expectException(DiscordPublishException::class);
-        $this->makePublisher()->publish($guild);
-
-        $guild->refresh();
-        // The old digest was deleted; the new post failed, so the guild should
-        // not claim a message it does not have. (The stale message id may still
-        // be set because the failure short-circuited before the update — that
-        // is acceptable; the self-healing next run re-posts fresh.)
+        // Prior tracking untouched.
+        $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
     }
 
     // ════════════════════════════════════════════════════
@@ -766,17 +840,16 @@ class DiscordDigestPublisherTest extends TestCase
         $venue = Location::factory()->create(['name' => 'The Dragon\'s Lair']);
         $sameDate = now()->addDays(5)->startOfDay()->setHour(19);
 
-        // Two games at the same venue + date → a multi-table night.
         $g1 = Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'public', 'date_time' => $sameDate->copy()->setTime(19, 0), 'location_id' => $venue->id]);
         $g2 = Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'public', 'date_time' => $sameDate->copy()->setTime(19, 30), 'location_id' => $venue->id]);
 
-        $this->fakePostSuccess();
+        $this->fakeCreateSuccess();
 
         $this->makePublisher()->publish($guild);
 
         $posted = null;
         Http::assertSent(function (Request $r) use (&$posted): bool {
-            if ($r->method() === 'POST') {
+            if ($r->method() === 'POST' && str_contains($r->url(), '/channels/'.self::CALENDAR_CHANNEL.'/messages') && ! str_contains($r->url(), '/threads')) {
                 $posted = $r->data();
             }
 
@@ -784,7 +857,6 @@ class DiscordDigestPublisherTest extends TestCase
         });
         $this->assertNotNull($posted);
 
-        // Both games collapse under one venue field in the same date embed.
         $fields = $posted['embeds'][0]['fields'] ?? [];
         $venueFields = array_filter($fields, fn ($f) => str_contains((string) $f['name'], 'Dragon'));
         $this->assertCount(1, $venueFields, 'multi-table night collapsed under one venue field');

@@ -6,8 +6,10 @@ use App\Enums\OAuthProvider;
 use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Rules\ValidUserName;
+use App\Services\NotificationPreferenceSync;
 use App\Services\PendingInvitationMatcher;
 use App\Services\PostHogAnalytics;
+use App\Support\DiscordJoinIntent;
 use App\Support\FirstTouch;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -341,6 +343,39 @@ class OAuthController
             ]);
         }
 
+        // M059/S01 (D-b): when a Discord account is linked, turn Discord DM on
+        // for every actionable category and suppress email for the urgency
+        // tier (Discord now covers urgency; mail stays re-enableable in
+        // settings and then fires in parallel). One-time default-shift at the
+        // link moment, not a runtime suppression.
+        if ($provider === OAuthProvider::Discord->value) {
+            app(NotificationPreferenceSync::class)->enableDiscordDefaultsFor($user);
+        }
+
+        // M059/S02: honor a Discord join intent. The authed-link path is a
+        // real on-ramp persona (a roundup member logged in via email/Google
+        // who has NOT yet linked Discord) — without this, linkAccount() would
+        // land them on profile/view and silently drop the "land on the game"
+        // promise the on-ramp button made. Only intent-bearing linkers are
+        // affected; everyone else keeps the existing profile/view redirect.
+        // Mirrors redirectAfterLogin() exactly.
+        $intent = app(DiscordJoinIntent::class)->peek(request());
+
+        if ($intent !== null) {
+            if (! $user->profile_complete) {
+                // Onboarding first — the intent stays in the session so
+                // completion lands them on the game.
+                return redirect($this->localeUrl('onboarding'));
+            }
+
+            Log::info('discord_join_intent.redirecting_to_game_after_link', [
+                'user_id' => $user->id,
+                'game_id' => $intent,
+            ]);
+
+            return redirect()->to(app(DiscordJoinIntent::class)->targetUrl($intent));
+        }
+
         return redirect($this->localeUrl('profile/view'))
             ->with('status', ucfirst($provider).' account linked successfully.');
     }
@@ -350,7 +385,7 @@ class OAuthController
      */
     private function createLinkedAccount(User $user, string $provider, \Laravel\Socialite\Two\User $socialiteUser, string $providerUserId): LinkedAccount
     {
-        return $user->linkedAccounts()->create([
+        $linkedAccount = $user->linkedAccounts()->create([
             'provider' => $provider,
             'provider_user_id' => $providerUserId,
             'token' => $socialiteUser->token,
@@ -358,6 +393,16 @@ class OAuthController
             'token_expires_at' => null,
             'provider_meta' => $this->providerMetaFor($provider, $socialiteUser),
         ]);
+
+        // M059/S01 (D-b): apply the Discord auto-enable + urgent-mail-suppress
+        // default-shift on the new-user and email-match login paths too, so a
+        // member who signs up via Discord lands on the priority defaults
+        // without an extra settings visit.
+        if ($provider === OAuthProvider::Discord->value) {
+            app(NotificationPreferenceSync::class)->enableDiscordDefaultsFor($user);
+        }
+
+        return $linkedAccount;
     }
 
     /**
@@ -455,14 +500,33 @@ class OAuthController
 
     /**
      * Determine where to redirect after login based on profile state.
+     *
+     * Honors a Discord join intent (M059/S02) when present: if the member
+     * arrived via the "Link Discord to grab your seat" button, send them to
+     * the game join target once profile-complete (or to onboarding first, with
+     * the intent preserved so onboarding completion lands them on the game).
      */
     private function redirectAfterLogin(User $user): RedirectResponse
     {
         $locale = session('locale', config('app.fallback_locale'));
         $locale = is_string($locale) ? $locale : 'en';
 
+        $intent = app(DiscordJoinIntent::class)->peek(request());
+
         if (! $user->profile_complete) {
+            // Onboarding first — the intent stays in the session so onboarding
+            // completion lands them on the game.
             return redirect()->to('/'.$locale.'/onboarding');
+        }
+
+        if ($intent !== null) {
+            // Profile complete + intent → land on the game primed to join.
+            Log::info('discord_join_intent.redirecting_to_game', [
+                'user_id' => $user->id,
+                'game_id' => $intent,
+            ]);
+
+            return redirect()->to(app(DiscordJoinIntent::class)->targetUrl($intent));
         }
 
         return redirect()->intended('/'.$locale.'/dashboard');

@@ -24,6 +24,7 @@ use App\Services\ReviewEligibilityService;
 use App\Services\Roster;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
+use App\Support\DiscordJoinIntent;
 use App\Traits\HandlesBench;
 use App\Traits\HandlesSessionEnd;
 use App\Traits\HandlesWaitlist;
@@ -100,6 +101,33 @@ class GameDetail extends Component
 
         // Detect short link arrival via ph_link_id cookie
         $this->detectShortLink();
+
+        // M059/S02: a member arriving from the Discord "My seat" on-ramp lands
+        // here with ?discord_join=1. The query param is forgeable, so the only
+        // load-bearing gate is canJoinViaDiscord() (which enforces public
+        // visibility — see its docblock for why protected games are screened).
+        //
+        // The intent has served its purpose the moment the member lands here,
+        // so it is CONSUMED regardless of whether the auto-join fires — a skip
+        // (already a participant, signup closed, …) or a thrown write must never
+        // leave a stale intent that nothing else reads. Failure here must NEVER
+        // brick the page load: a thrown exception from the write is swallowed
+        // and surfaced as a flash error so the member can retry via the explicit
+        // button. Only fires on the initial browser navigation (Livewire updates
+        // do not carry the query param).
+        if (request()->query('discord_join') === '1' && Auth::check()) {
+            app(DiscordJoinIntent::class)->consume(request());
+
+            if ($this->canJoinViaDiscord()) {
+                try {
+                    $this->joinViaDiscord();
+                } catch (\Throwable $e) {
+                    // joinViaDiscord() already logged the failure; degrade to a
+                    // normal page render with an error flash so the member can retry.
+                    session()->flash('error', __('games.error_join_via_share_link_failed'));
+                }
+            }
+        }
 
         // Initialize attendance form defaults (everyone = attended) if window is open
         if ($this->isAttendanceWindowOpen()) {
@@ -848,6 +876,184 @@ class GameDetail extends Component
         }
     }
 
+    /**
+     * Join the game from a Discord "My seat" intent (M059/S02).
+     *
+     * Mirrors {@see joinViaShareLink()} exactly EXCEPT: no share-token / short-
+     * link requirement (the member arrived via the Discord on-ramp, not a
+     * share link), and the join is attributed {@see JoinSource::Discord} so the
+     * acquisition funnel is measured. Same participant pipeline, same capacity /
+     * overflow / approved_at stamping. Driven either by the auto-trigger on
+     * mount (?discord_join=1 + canJoinViaDiscord) or by an explicit Join button.
+     */
+    public function joinViaDiscord(): void
+    {
+        $viewer = authenticatedUser();
+
+        if ($this->game->signupHasClosed()) {
+            session()->flash('error', __('games.error_signup_closed'));
+
+            return;
+        }
+
+        if (! $this->canJoinViaDiscord()) {
+            session()->flash('error', __('common.error_not_authorized'));
+
+            return;
+        }
+
+        $rateLimitKey = 'discord-join:'.$viewer->id.':'.$this->game->id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            session()->flash('error', __('common.error_rate_limit'));
+
+            return;
+        }
+        RateLimiter::hit($rateLimitKey, 60);
+
+        $overflowFlash = null;
+
+        try {
+            DB::transaction(function () use ($viewer, &$overflowFlash): void {
+                $game = Game::lockForUpdate()->find($this->game->id);
+
+                if ($game === null) {
+                    throw new \RuntimeException('Game not found during Discord join transaction.');
+                }
+
+                $isFull = $this->participantService()->isAtCapacity($game);
+
+                $baseData = [
+                    'game_id' => $game->id,
+                    'user_id' => $viewer->id,
+                    'role' => ParticipantRole::Player->value,
+                    'join_source' => JoinSource::Discord->value,
+                ];
+
+                if ($isFull) {
+                    $overflow = app(OverflowRouter::class)->resolve($game);
+                    $baseData['status'] = $overflow->statusValue();
+                    $baseData[$overflow->timestampColumn] = now();
+
+                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
+
+                    $overflowFlash = app(OverflowRouter::class)->flashResult($game);
+
+                    Log::info('Player '.$overflow->statusValue().' via Discord intent (game full)', [
+                        'game_id' => $game->id,
+                        'user_id' => $viewer->id,
+                        'join_source' => JoinSource::Discord->value,
+                    ]);
+                } else {
+                    $baseData['status'] = ParticipantStatus::Approved->value;
+                    // Stamp approved_at so LIFO capacity-demotion ordering is
+                    // correct — mirrors joinViaShareLink / ProcessDiscordRsvp.
+                    $baseData['approved_at'] = now();
+
+                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
+
+                    Log::info('Player joined via Discord intent', [
+                        'game_id' => $game->id,
+                        'user_id' => $viewer->id,
+                        'join_source' => JoinSource::Discord->value,
+                    ]);
+                }
+            });
+
+            // The intent has been fulfilled — clear it so a later visit to this
+            // or another game does not replay the join.
+            app(DiscordJoinIntent::class)->consume(request());
+
+            $this->game->load('participants.user');
+            unset($this->isParticipant, $this->isGameFull, $this->canApply, $this->canJoinWaitlist, $this->canJoinViaDiscord);
+
+            session()->flash(
+                'success',
+                $overflowFlash !== null
+                    ? __($overflowFlash->messageKey, $overflowFlash->messageParams)
+                    : __('games.flash_joined_via_share_link')
+            );
+        } catch (\Throwable $e) {
+            Log::error('Failed to join via Discord intent', [
+                'game_id' => $this->game->id,
+                'user_id' => $viewer->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw ValidationException::withMessages([
+                'discord_join' => [__('games.error_join_via_share_link_failed')],
+            ]);
+        }
+    }
+
+    /**
+     * Whether the viewer can join this game directly from a Discord "My seat"
+     * intent (M059/S02).
+     *
+     * Mirrors the linked-member Discord button ({@see ProcessDiscordRsvp}):
+     * instant join for public games, which auto-approve on the web Apply path
+     * Public games auto-approve on the web Apply path too
+     * ({@see HandlesApplicationSubmission} sets participant + application to
+     * 'approved' only when visibility is public), so there is no screening
+     * bypass for PUBLIC games — the Discord path simply attributes
+     * JoinSource::Discord and skips the ceremonial GameApplication row.
+     *
+     * PROTECTED games are screened on the web path (participant 'pending',
+     * application 'pending', owner approval required). Because ?discord_join=1
+     * is a FORGEABLE query param, a visibility gate here is load-bearing: it
+     * mirrors {@see DiscordJoinController} (Game::public()) and the card
+     * publisher (public only) and prevents a viewer who can load a protected
+     * game (friend / teammate / short-link holder) from bypassing the owner's
+     * screening gate by appending the flag. Same remaining guards as
+     * {@see canJoinViaShareLink()} MINUS the share-token / short-link
+     * requirement. Full games route to the OverflowRouter (waitlist/bench)
+     * inside joinViaDiscord().
+     */
+    #[Computed]
+    public function canJoinViaDiscord(): bool
+    {
+        $viewer = Auth::user();
+
+        if ($viewer === null) {
+            return false;
+        }
+
+        // Only PUBLIC games — see the docblock for the screening-bypass rationale.
+        if ($this->game->visibility !== Visibility::Public) {
+            return false;
+        }
+
+        // Cannot be the owner.
+        if ((string) $this->game->owner_id === (string) $viewer->id) {
+            return false;
+        }
+
+        // Cannot already be an active (or removed) participant.
+        $existingParticipant = $this->game->participants
+            ->first(fn ($p) => $p->user_id === $viewer->id
+                && in_array($p->status?->value, [
+                    ParticipantStatus::Approved->value,
+                    ParticipantStatus::Pending->value,
+                    ParticipantStatus::Waitlisted->value,
+                    ParticipantStatus::Benched->value,
+                    ParticipantStatus::Removed->value,
+                ]));
+
+        if ($existingParticipant) {
+            return false;
+        }
+
+        // Game must not be completed or canceled.
+        if (in_array($this->game->status?->value, [GameStatus::Completed->value, GameStatus::Canceled->value])) {
+            return false;
+        }
+
+        // Signup cutoff (D124).
+        if ($this->game->signupHasClosed()) {
+            return false;
+        }
+
+        return true;
+    }
+
     #[Computed]
     public function canJoinViaShareLink(): bool
     {
@@ -1156,6 +1362,7 @@ class GameDetail extends Component
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),
+            'canJoinViaDiscord' => $this->canJoinViaDiscord(),
             'shortLinks' => $this->getShortLinks(),
             'canCreateMoreShortLinks' => Auth::user()
                 ? app(ShortLinkService::class)->canCreateMore($this->game, Auth::user())

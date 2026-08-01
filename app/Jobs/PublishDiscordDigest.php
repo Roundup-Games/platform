@@ -6,6 +6,7 @@ use App\Models\DiscordGuild;
 use App\Services\Discord\DiscordDigestPublisher;
 use App\Services\Discord\DiscordPublishException;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -23,11 +24,14 @@ use Illuminate\Support\Facades\Log;
  * the guild id as a primitive so the job serializes cleanly and survives a
  * model change between dispatch and handle().
  *
- * The publisher is idempotent (edit-in-place via the guild-scoped
- * digest_message_id), so job retries are safe — a re-run PATCHes the digest,
- * never duplicates it. The self-healing rebuild contract (full message rebuilt
- * from scratch and PATCHed each cycle) means a failed edit is silently
- * corrected on the next run with no partial-edit state to persist.
+ * The publisher is idempotent within a day (same-day re-run PATCHes today's
+ * starter; cross-day creates a fresh thread), so job retries are safe. The
+ * daily-thread lifecycle is APPEND-based, though, so two CONCURRENT runs for
+ * the same guild could both observe no-tracked-for-today and each create a
+ * thread → duplicate daily threads that never converge. {@see ShouldBeUnique}
+ * keyed on guild id coalesces a concurrent burst (a manual --guild= re-run
+ * racing the scheduler, or a retry racing a fresh dispatch) into one run,
+ * mirroring {@see PublishGameToDiscord}.
  *
  * Failure handling: a {@see DiscordPublishException}
  * (terminal post/edit failure, already logged discord_digest.post_failed by
@@ -36,7 +40,7 @@ use Illuminate\Support\Facades\Log;
  * marked fatal — the next daily run re-dispatches fresh, and edit-in-place
  * keeps the retry idempotent.
  */
-class PublishDiscordDigest implements ShouldQueue
+class PublishDiscordDigest implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;
@@ -62,6 +66,17 @@ class PublishDiscordDigest implements ShouldQueue
     public int $backoff = 60;
 
     /**
+     * Hold the unique lock long enough to coalesce a concurrent burst of
+     * dispatches for the same guild (a manual --guild= re-run racing the
+     * scheduler, or a retry racing a fresh dispatch) into one run — mirrors
+     * {@see PublishGameToDiscord}. The daily-thread lifecycle is append-based,
+     * so without this, two concurrent runs could each create a thread and
+     * never converge; a suppressed dispatch is safely picked up by the next
+     * daily run (or within-day refresh).
+     */
+    public int $uniqueFor = 60;
+
+    /**
      * @param  string  $guildId  DiscordGuild primary key (string UUID) — passed
      *                           as a primitive so the job serializes cleanly and
      *                           survives a model change between dispatch and
@@ -70,6 +85,14 @@ class PublishDiscordDigest implements ShouldQueue
     public function __construct(
         public string $guildId,
     ) {}
+
+    /**
+     * Unique key per guild — coalesces concurrent dispatches into one run.
+     */
+    public function uniqueId(): string
+    {
+        return $this->guildId;
+    }
 
     public function handle(DiscordDigestPublisher $publisher): void
     {

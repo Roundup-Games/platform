@@ -22,6 +22,9 @@ use Illuminate\Support\Str;
  * @property string|null $calendar_channel_id
  * @property string|null $digest_message_id current digest's Discord message snowflake (M057/S02)
  * @property string|null $digest_channel_id channel the current digest was posted to (reconfig detection)
+ * @property string|null $digest_thread_date app-tz date ('Y-m-d') of today's calendar thread (M059/S03)
+ * @property string|null $digest_thread_channel_id channel today's calendar thread lives in (M059/S03)
+ * @property string|null $digest_thread_message_id starter message the daily thread is anchored on (M059/S03)
  * @property string|null $games_channel_id
  * @property string|null $locale
  * @property bool $paused
@@ -46,6 +49,9 @@ class DiscordGuild extends Model
         'calendar_channel_id',
         'digest_message_id',
         'digest_channel_id',
+        'digest_thread_date',
+        'digest_thread_channel_id',
+        'digest_thread_message_id',
         'games_channel_id',
         'locale',
         'paused',

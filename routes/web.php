@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\DiscordBotInstallController;
 use App\Http\Controllers\DiscordInteractionController;
+use App\Http\Controllers\DiscordJoinController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Controllers\ICalFeedController;
 use App\Http\Controllers\InviteOptoutController;
@@ -135,6 +136,16 @@ Route::get('discord/install', [DiscordBotInstallController::class, 'redirect'])
 Route::get('discord/install/callback', [DiscordBotInstallController::class, 'callback'])
     ->middleware(['auth', 'not.disabled', 'verified', 'throttle:10,1'])
     ->name('discord.install.callback');
+
+// ── Discord "My seat" on-ramp for unlinked members (M059/S02) ──
+// Guest-accessible: the ephemeral "Link Discord to grab your seat" button
+// deep-links here. Records the targeted game as a session intent and hands
+// off to Discord OAuth; the callback + onboarding carry the intent through to
+// the game join target.
+Route::get('discord/join/{game}', DiscordJoinController::class)
+    ->where('game', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+    ->middleware('throttle:10,1')
+    ->name('discord.join');
 
 // ── Locale Switch ──────────────────────────────────────
 

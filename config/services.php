@@ -101,7 +101,13 @@ return [
         // hasn't granted the bot Create Public Threads / Send in Threads gets
         // no thread, but the card still posts. No pings — members rely on
         // Discord's own thread/channel notifications.
-        'session_threads_enabled' => env('DISCORD_SESSION_THREADS_ENABLED', false),
+        // Default ON (M059/S04): a per-session thread is the conversation
+        // space the card's 'My seat' button lives in, so the feature ships
+        // enabled. A guild that hasn't granted the bot Create Public Threads /
+        // Send in Threads gets a graceful 403 skip (no thread, card still
+        // posts) — see DiscordPublisher::ensureThread(). Override per-env to
+        // turn threads off globally.
+        'session_threads_enabled' => env('DISCORD_SESSION_THREADS_ENABLED', true),
         // Discord OAuth scopes asserted by OAuthController::redirect().
         //   - identify + email: login + attribution (no Discord approval cycle).
         //   - guilds: added by M057/D119 to power organizer auto-discovery —

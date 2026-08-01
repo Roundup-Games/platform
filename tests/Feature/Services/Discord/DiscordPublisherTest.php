@@ -770,6 +770,55 @@ class DiscordPublisherTest extends TestCase
     }
 
     #[Test]
+    public function first_publish_also_posts_a_welcome_starter_message_into_the_thread()
+    {
+        // M059/S04: a freshly-created session thread receives a short
+        // locale-aware welcome starter so it is a real discussion space.
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+        $game->update(['name' => 'Cragmaw Keep']);
+        config(['services.discord.session_threads_enabled' => true]);
+        $this->fakePostAndThreadSuccess('thread-9');
+
+        $this->makePublisher()->publish($game);
+
+        // A POST to channels/thread-9/messages carrying the welcome copy.
+        Http::assertSent(function (Request $request): bool {
+            if ($request->method() !== 'POST') {
+                return false;
+            }
+            if (! str_contains($request->url(), '/channels/thread-9/messages')) {
+                return false;
+            }
+
+            return str_contains((string) $request->body(), 'Cragmaw Keep')
+                && str_contains((string) $request->body(), 'thread to coordinate');
+        });
+    }
+
+    #[Test]
+    public function thread_starter_failure_is_swallowed_and_thread_id_still_persisted()
+    {
+        // The starter is best-effort polish: a failure to post it must NOT
+        // untrack the thread (which was created successfully) nor fail the card.
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+        config(['services.discord.session_threads_enabled' => true]);
+        Http::fake([
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => 'thread-still-good', 'type' => 11], 200),
+            // First POST to channels/{thread}/messages (the starter) 403s.
+            self::BASE_URL.'/channels/thread-still-good/messages' => Http::response(['message' => 'Missing Access'], 403),
+            self::BASE_URL.'/channels/*/messages/*' => Http::response(['id' => self::MESSAGE_ID], 200),
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => self::MESSAGE_ID, 'channel_id' => self::GAMES_CHANNEL], 200),
+            self::BASE_URL.'/channels/*' => Http::response([], 204),
+        ]);
+
+        $this->makePublisher()->publish($game);
+
+        $card = DiscordCardMessage::where('game_id', $game->id)->where('guild_id', $guild->id)->first();
+        $this->assertNotNull($card);
+        $this->assertSame('thread-still-good', $card->thread_id, 'thread id persisted even though the starter failed');
+    }
+
+    #[Test]
     public function republish_edits_in_place_without_creating_a_second_thread()
     {
         [$game, $guild] = $this->publicGameInOptedInGuild();
