@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class DebriefingAvailable extends BaseNotification
@@ -80,5 +81,22 @@ class DebriefingAvailable extends BaseNotification
             url: route('games.show', ['locale' => $locale, 'id' => $this->game]),
             tag: "debriefing-{$this->game->id}",
         );
+    }
+
+    /**
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+
+        return DiscordWebhookPayload::embed([
+            'title' => __('notifications.push_title_debriefing_available'),
+            'url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
+            'description' => __('notifications.push_body_debriefing_available', [
+                'game' => $this->game->name,
+            ]),
+            'color' => 0x5865F2,
+        ]);
     }
 }

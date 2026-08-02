@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class AttendanceReported extends BaseNotification
@@ -102,5 +103,27 @@ class AttendanceReported extends BaseNotification
             ]),
             tag: "attendance-reported-{$this->report->id}",
         );
+    }
+
+    /**
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $status = __('attendance.status_'.$this->report->status->value);
+
+        return DiscordWebhookPayload::embed([
+            'title' => __('notifications.push_title_attendance_reported'),
+            'url' => route('games.show', [
+                'locale' => $locale,
+                'id' => $this->game->id,
+            ]),
+            'description' => __('notifications.push_body_attendance_reported', [
+                'status' => $status,
+                'game' => $this->game->name,
+            ]),
+            'color' => 0x5865F2,
+        ]);
     }
 }

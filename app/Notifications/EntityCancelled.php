@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class EntityCancelled extends BaseNotification
@@ -105,5 +106,23 @@ class EntityCancelled extends BaseNotification
             url: route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
             tag: "{$type}-cancelled-{$this->entity->id}",
         );
+    }
+
+    /**
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $type = $this->getEntityType();
+
+        return DiscordWebhookPayload::embed([
+            'title' => __("notifications.push_title_{$type}_cancelled"),
+            'url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
+            'description' => __("notifications.push_body_{$type}_cancelled", [
+                $type => $this->entity->name,
+            ]),
+            'color' => 0x5865F2,
+        ]);
     }
 }

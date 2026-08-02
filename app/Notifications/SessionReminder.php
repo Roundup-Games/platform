@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\Channels\PushChannel;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 
 /**
@@ -92,6 +93,37 @@ class SessionReminder extends BaseNotification
             url: route('games.show', ['locale' => $locale, 'id' => $this->game]),
             tag: "game-reminder-{$this->window}-{$this->game->id}",
         );
+    }
+
+    /**
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $timezone = $notifiable->timezone ?? 'Europe/Berlin';
+
+        $time = $this->game->date_time
+            ? $this->game->date_time->setTimezone($timezone)->format('g:i A T')
+            : '';
+
+        $titleKey = $this->window === '24h'
+            ? 'notifications.push_title_session_reminder_24h'
+            : 'notifications.push_title_session_reminder';
+
+        $bodyKey = $this->window === '24h'
+            ? 'notifications.push_body_session_reminder_24h'
+            : 'notifications.push_body_session_reminder';
+
+        return DiscordWebhookPayload::embed([
+            'title' => __($titleKey),
+            'url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
+            'description' => __($bodyKey, [
+                'game' => $this->game->name,
+                'time' => $time,
+            ]),
+            'color' => 0x5865F2,
+        ]);
     }
 
     /**

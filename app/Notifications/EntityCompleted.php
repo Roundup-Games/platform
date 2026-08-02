@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class EntityCompleted extends BaseNotification
@@ -73,6 +74,14 @@ class EntityCompleted extends BaseNotification
      * Not applicable for this notification type.
      */
     public function toPush(User $notifiable): ?PushPayload
+    {
+        return null;
+    }
+
+    /**
+     * Opts out of Discord to mirror this notification's null push (D130).
+     */
+    public function toDiscord(User $notifiable): ?DiscordWebhookPayload
     {
         return null;
     }

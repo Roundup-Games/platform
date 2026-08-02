@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class AttendanceNudge extends BaseNotification
@@ -97,5 +98,26 @@ class AttendanceNudge extends BaseNotification
             ]),
             tag: "attendance-nudge-{$this->game->id}",
         );
+    }
+
+    /**
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+
+        return DiscordWebhookPayload::embed([
+            'title' => __('notifications.push_title_attendance_nudge'),
+            'url' => route('games.show', [
+                'locale' => $locale,
+                'id' => $this->game->id,
+            ]),
+            'description' => __('notifications.push_body_attendance_nudge', [
+                'game' => $this->game->name,
+                'deadline' => $this->deadline,
+            ]),
+            'color' => 0x5865F2,
+        ]);
     }
 }

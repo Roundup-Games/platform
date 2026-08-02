@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Review;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Str;
 
@@ -65,6 +66,14 @@ class ReviewReported extends BaseNotification
      * Not applicable for this notification type.
      */
     public function toPush(User $notifiable): ?PushPayload
+    {
+        return null;
+    }
+
+    /**
+     * Opts out of Discord to mirror this notification's null push (D130).
+     */
+    public function toDiscord(User $notifiable): ?DiscordWebhookPayload
     {
         return null;
     }

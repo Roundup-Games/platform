@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class ConfirmationExpired extends BaseNotification
@@ -61,5 +62,22 @@ class ConfirmationExpired extends BaseNotification
             url: $this->getEntityRoute($locale),
             tag: "confirmation-expired-{$this->getEntityType()}-{$this->entity->id}",
         );
+    }
+
+    /**
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+
+        return DiscordWebhookPayload::embed([
+            'title' => __('notifications.push_title_confirmation_expired'),
+            'url' => $this->getEntityRoute($locale),
+            'description' => __('notifications.push_body_confirmation_expired', [
+                'game' => $this->entity->name,
+            ]),
+            'color' => 0x5865F2,
+        ]);
     }
 }

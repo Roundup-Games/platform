@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class WaitlistExpiredRejected extends BaseNotification
@@ -64,5 +65,22 @@ class WaitlistExpiredRejected extends BaseNotification
             url: route('games.index', ['locale' => $locale]),
             tag: "waitlist-rejected-{$this->getEntityType()}-{$this->entity->id}",
         );
+    }
+
+    /**
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+
+        return DiscordWebhookPayload::embed([
+            'title' => __('notifications.push_title_waitlist_expired_rejected'),
+            'url' => route('games.index', ['locale' => $locale]),
+            'description' => __('notifications.push_body_waitlist_expired_rejected', [
+                'game' => $this->entity->name,
+            ]),
+            'color' => 0x5865F2,
+        ]);
     }
 }

@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Str;
 
@@ -89,5 +90,37 @@ class BulletinPosted extends BaseNotification
             url: route('games.show', ['locale' => $locale, 'id' => $this->game]),
             tag: "bulletin-{$this->bulletin->id}",
         );
+    }
+
+    /**
+     * Get the Discord DM representation.
+     *
+     * Delivered as a rich embed card so the DM carries the event context
+     * (who posted, for which session) and the bulletin content snippet —
+     * not just the bare session name + link the channel's auto-derive
+     * fallback produces. Mirrors the mail/push content via the same lang
+     * keys so the three channels stay in lockstep.
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $url = route('games.show', ['locale' => $locale, 'id' => $this->game]);
+
+        return DiscordWebhookPayload::embed([
+            'title' => __('notifications.subject_bulletin_posted', [
+                'game' => $this->game->name,
+            ]),
+            'url' => $url,
+            'description' => __('notifications.body_bulletin_posted', [
+                'host' => $this->host->name,
+                'game' => $this->game->name,
+            ])
+                ."\n\n"
+                .__('notifications.body_bulletin_content', [
+                    'content' => Str::limit($this->bulletin->content, 280),
+                ]),
+            // Discord blurple — the app's Discord brand colour.
+            'color' => 0x5865F2,
+        ]);
     }
 }

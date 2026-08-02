@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
@@ -67,6 +68,14 @@ class ContentRemoved extends BaseNotification
             'reason' => $this->reason,
             'scope' => $this->scope,
         ];
+    }
+
+    /**
+     * Opts out of Discord to mirror this notification's null push (D130).
+     */
+    public function toDiscord(User $notifiable): ?DiscordWebhookPayload
+    {
+        return null;
     }
 
     public function getActor(): ?User

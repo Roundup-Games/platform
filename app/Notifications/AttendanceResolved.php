@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Enums\AttendanceStatus;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class AttendanceResolved extends BaseNotification
@@ -100,5 +101,27 @@ class AttendanceResolved extends BaseNotification
             ]),
             tag: "attendance-resolved-{$this->game->id}",
         );
+    }
+
+    /**
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $status = $this->status->label();
+
+        return DiscordWebhookPayload::embed([
+            'title' => __('notifications.push_title_attendance_resolved'),
+            'url' => route('games.show', [
+                'locale' => $locale,
+                'id' => $this->game->id,
+            ]),
+            'description' => __('notifications.push_body_attendance_resolved', [
+                'game' => $this->game->name,
+                'status' => $status,
+            ]),
+            'color' => 0x5865F2,
+        ]);
     }
 }

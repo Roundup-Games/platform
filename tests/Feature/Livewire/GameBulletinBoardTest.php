@@ -388,6 +388,35 @@ describe('notifications', function () {
             }
         );
     });
+
+    it('discord DM embed carries the host, game, bulletin content, and link', function () {
+        Notification::fake();
+
+        $participant = createApprovedParticipant($this->game);
+
+        Livewire::actingAs($this->owner)
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
+            ->set('content', 'Bring snacks!')
+            ->call('create');
+
+        Notification::assertSentTo(
+            $participant,
+            function (BulletinPosted $notification) use ($participant) {
+                $payload = $notification->toDiscord($participant);
+                expect($payload)->not->toBeNull();
+                expect($payload->embeds)->not->toBeNull();
+                expect($payload->embeds)->toHaveCount(1);
+
+                $embed = $payload->embeds[0];
+                expect($embed['title'])->toContain($this->game->name);
+                expect($embed['description'])->toContain($this->owner->name);
+                expect($embed['description'])->toContain('Bring snacks!');
+                expect($embed['url'])->toContain($this->game->id);
+
+                return true;
+            }
+        );
+    });
 });
 
 // ── Logging ─────────────────────────────────────────────

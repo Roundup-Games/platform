@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class DisputeResolved extends BaseNotification
@@ -106,5 +107,32 @@ class DisputeResolved extends BaseNotification
             ]),
             tag: "dispute-resolved-{$this->game->id}",
         );
+    }
+
+    /**
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $resolved = $this->resolution === 'resolved_favor';
+
+        $title = $resolved
+            ? __('notifications.push_title_dispute_resolved_favor')
+            : __('notifications.push_title_dispute_upheld');
+
+        $body = $resolved
+            ? __('notifications.push_body_dispute_resolved_favor', ['game' => $this->game->name])
+            : __('notifications.push_body_dispute_upheld', ['game' => $this->game->name]);
+
+        return DiscordWebhookPayload::embed([
+            'title' => $title,
+            'url' => route('games.show', [
+                'locale' => $locale,
+                'id' => $this->game->id,
+            ]),
+            'description' => $body,
+            'color' => 0x5865F2,
+        ]);
     }
 }
