@@ -30,6 +30,15 @@ services:
       - roundup
     depends_on:
       - app
+    # Worker has no nginx/fpm (stripped in the Dockerfile worker stage), so the
+    # image's default HTTP healthcheck always fails with 'unhealthy'. Probe what
+    # the worker actually does: Horizon is processing the queue.
+    healthcheck:
+      test: ["CMD", "sh", "-c", "php artisan horizon:status 2>/dev/null | grep -qi running"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
 volumes:
   app_storage:
