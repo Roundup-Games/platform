@@ -396,6 +396,28 @@ class DiscordChannelTest extends TestCase
             ->once();
     }
 
+    /**
+     * Regression: DiscordChannel must receive a non-null DiscordWebhookClient
+     * when resolved from the container. The constructor param is nullable with
+     * a null default; without an explicit binding for DiscordWebhookClient,
+     * Laravel's resolveClass() skips auto-resolution and returns the default,
+     * silently killing every Discord DM delivery with a misleading
+     * 'bot_token_missing' skip.
+     */
+    #[Test]
+    public function container_resolves_discord_channel_with_a_non_null_client(): void
+    {
+        config()->set('services.discord.bot_token', 'test-bot-token');
+
+        $channel = app(DiscordChannel::class);
+
+        $this->assertNotNull(
+            (new \ReflectionClass($channel))->getProperty('client')->getValue($channel),
+            'DiscordChannel resolved from the container must have a non-null DiscordWebhookClient. '
+            .'Without an explicit binding, Laravel skips auto-resolution for nullable params with defaults.'
+        );
+    }
+
     #[Test]
     public function send_treats_post_message_failure_as_graceful_send_failed_noop(): void
     {

@@ -36,6 +36,7 @@ use App\Policies\Escalated\TicketPolicy;
 use App\Policies\GameBulletinPolicy;
 use App\SEO\BreadcrumbBuilder;
 use App\Services\AttendanceService;
+use App\Services\Discord\DiscordWebhookClient;
 use App\Services\EscalatedBladeRenderer;
 use App\Services\ICal\ICalFeedRenderer;
 use App\Services\PostHogClient;
@@ -126,6 +127,14 @@ class AppServiceProvider extends ServiceProvider
 
         // Missing translation tracking — only in local env
         $this->app->singleton(MissingTranslationCollector::class);
+
+        // Discord DM REST client — explicit binding so the container resolves it
+        // as a dependency of DiscordChannel (whose constructor param is nullable
+        // with a null default). Without this, Laravel's resolveClass() sees the
+        // default, skips auto-resolution, and DiscordChannel::$client is always
+        // null — silently killing every Discord DM delivery with a misleading
+        // 'bot_token_missing' skip.
+        $this->app->singleton(DiscordWebhookClient::class);
 
         $this->app->singleton(ReliabilityScoreService::class);
 
