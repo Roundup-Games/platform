@@ -166,6 +166,11 @@ Schedule::command('anonymize:stale-invite-emails')->weekly()->sundays()->at('04:
 // Privacy — prune expired data export ZIPs (older than 7 days)
 Schedule::command('exports:prune --days=7')->dailyAt('04:30')->onOneServer();
 
+// Queue hygiene — keep the failed_jobs dead-letter sink bounded. Notification
+// channel jobs that exhaust their Horizon retries land here; without pruning
+// the table grows unbounded. Retain 7 days to match Horizon's failed trim.
+Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:45')->onOneServer();
+
 // Data integrity — audit checks + automated repair
 Schedule::command('data:audit')->dailyAt('05:00')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
 Schedule::command('data:repair')->dailyAt('05:15')->onOneServer();

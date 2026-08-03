@@ -111,6 +111,11 @@ describe('PushChannel', function () {
 
         $success = Mockery::mock(MessageSentReport::class);
         $success->shouldReceive('isSuccess')->andReturn(true);
+        // Enriched delivery logging reads the endpoint for per-device attribution.
+        $success->shouldReceive('getEndpoint')->andReturn('https://push.example.com/ok');
+
+        // Silence the per-device push.sent success log (DB count is the assertion).
+        Log::shouldReceive('info')->zeroOrMoreTimes();
 
         $this->webPush->shouldReceive('queueNotification')->twice();
         $this->webPush->shouldReceive('flush')

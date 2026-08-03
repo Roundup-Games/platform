@@ -113,7 +113,7 @@ class DiscordChannel
 
         // Step 2 — post the derived DM message.
         try {
-            $this->client->postMessage($dmChannelId, $payload);
+            $messageId = $this->client->postMessage($dmChannelId, $payload);
         } catch (DiscordApiException $e) {
             Log::warning('notification.discord_dm_api_error', [
                 'user_id' => $notifiable->id,
@@ -133,6 +133,9 @@ class DiscordChannel
             'notification_type' => $notificationType,
             'category' => $category,
             'dm_channel_id' => $dmChannelId,
+            // Discord message snowflake — retained so a delivery can be traced
+            // to the specific message (lookup, uniqueness audit, support).
+            'message_id' => $messageId,
         ]);
     }
 

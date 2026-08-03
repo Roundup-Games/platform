@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Listeners\DropDemoDomainMail;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
+use App\Listeners\LogNotificationDelivery;
 use App\Listeners\RecordUserSignIn;
 use App\Listeners\SuppressAutomatedTicketStatusNotifications;
 use App\Models\Campaign;
@@ -73,7 +74,9 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
@@ -234,6 +237,15 @@ class AppServiceProvider extends ServiceProvider
         // remember-me) — the session boundary that makes retention cohorts
         // measurable. See RecordUserSignIn for the consent/privacy design.
         EventFacade::listen(Login::class, RecordUserSignIn::class);
+
+        // Per-channel delivery observability. NotificationService logs dispatch
+        // (enqueue) intent; these fire on the queue worker after each channel's
+        // send() actually succeeds or fails, giving a uniform delivery record
+        // across database/mail/push/discord (covering the previously-unobserved
+        // mail and database channels). The listener is fully defensive and can
+        // never fail the channel job.
+        EventFacade::listen(NotificationSent::class, LogNotificationDelivery::class);
+        EventFacade::listen(NotificationFailed::class, LogNotificationDelivery::class);
 
         // Escalated helpdesk authorization gates
         // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)
