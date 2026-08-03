@@ -175,8 +175,10 @@ class UserAnonymizationService
      *
      * This is safe to call inside the anonymization transaction — the
      * notification dispatch is wrapped in try/catch so failures don't
-     * block the transaction. Notifications use queued delivery, so the
-     * actual send happens after commit.
+     * block the transaction. All notifications implement ShouldQueue and
+     * the queue connection has after_commit=true, so the actual send is
+     * deferred until this transaction commits — a rollback cannot leak
+     * cancellation notices for entities that stayed active.
      */
     private function cancelSoleHostedEntities(string $userId): void
     {

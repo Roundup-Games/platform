@@ -2320,9 +2320,17 @@ class ViewTicket extends BaseViewTicket
                 $ticketService->close($ticket, $admin);
             });
 
-            // Send suspension notification after transaction commits
+            // Send suspension notification after transaction commits.
+            // Routed through NotificationService (like the sibling ContentReportWarning
+            // below) so the dispatch is logged, the recipient's channel preferences are
+            // honoured, and the PostHog delivery signal fires. getActor() returns null,
+            // so the block-list never suppresses this admin-issued notice.
             $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
-            $reportedUser->notify(new AccountSuspended(self::asString($reason)));
+            app(NotificationService::class)->send(
+                $reportedUser,
+                new AccountSuspended(self::asString($reason)),
+                NotificationCategory::ModerationNotice,
+            );
 
             Log::info('content_report.user_suspended', [
                 'ticket_id' => $ticket->id,
