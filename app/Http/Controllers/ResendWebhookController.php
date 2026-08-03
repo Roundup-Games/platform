@@ -41,7 +41,8 @@ class ResendWebhookController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $secret = (string) config('services.resend.webhook_secret');
+        $secret = config('services.resend.webhook_secret');
+        $secret = is_string($secret) ? $secret : '';
 
         if ($secret === '') {
             // Reject loudly rather than silently accepting unverified traffic.

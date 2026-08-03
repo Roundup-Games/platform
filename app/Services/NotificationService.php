@@ -277,7 +277,7 @@ class NotificationService
         // complained (spam). The suppression check is a single indexed lookup on
         // the lowercased email; dropping mail here protects sender reputation
         // and complies with the recipient's spam-complaint opt-out.
-        if (isset($resolved['mail']) && $user->email !== null && EmailSuppression::isSuppressed($user->email)) {
+        if (isset($resolved['mail']) && EmailSuppression::isSuppressed($user->email)) {
             unset($resolved['mail']);
 
             Log::info('notification.mail_suppressed', [

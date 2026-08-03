@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Notifications\EntityInvitation;
 use App\Notifications\WeeklyDigest;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -165,3 +166,23 @@ it('renders a translated digest unsubscribe link in the weekly digest email', fu
         // German action label is present (not the English fallback)
         ->and($rendered)->toContain('Wochen-Digest abbestellen');
 });
+
+it('labels digest groups by the per-notification data.type discriminator', function () {
+    // EntityInvitation stores data.type = 'game_invitation' / 'campaign_invitation',
+    // which are the keys digest_labels actually defines. The class basename
+    // ('entity_invitation') has no key — so resolving from data.type is what makes
+    // these render their specific translated label instead of the generic fallback.
+    $user = User::factory()->create(['preferred_language' => 'en']);
+    app()->setLocale('en');
+
+    $user->notifications()->createMany([
+        ['id' => Str::uuid(), 'type' => EntityInvitation::class, 'data' => ['type' => 'game_invitation']],
+        ['id' => Str::uuid(), 'type' => EntityInvitation::class, 'data' => ['type' => 'game_invitation']],
+        ['id' => Str::uuid(), 'type' => EntityInvitation::class, 'data' => ['type' => 'campaign_invitation']],
+    ]);
+
+    $rendered = (string) (new WeeklyDigest($user->unreadNotifications))->toMail($user)->render();
+
+    expect($rendered)->toContain('Game invitation')
+        ->and($rendered)->toContain('Campaign invitation');
+})->group('smoke');

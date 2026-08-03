@@ -112,6 +112,8 @@ class PushChannel
     /**
      * Handle a push delivery report — log the outcome and clean up expired
      * subscriptions.
+     *
+     * @param  array<string, int|string>  $userIdByEndpoint
      */
     protected function handleReport(
         MessageSentReport $report,
@@ -143,7 +145,7 @@ class PushChannel
 
             Log::info('push.subscription_expired', [
                 'subscription_id' => $subscription?->id,
-                'user_id' => $subscription?->user_id ?? $userId,
+                'user_id' => $userId,
                 'notification_type' => $notificationType,
                 'endpoint' => $endpoint,
             ]);

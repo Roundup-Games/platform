@@ -43,7 +43,9 @@ class LogNotificationDelivery
             $notifiable = $event->notifiable;
             $notificationType = $event->notification::class;
             $channel = $this->channelAlias($event->channel);
-            $notifiableId = method_exists($notifiable, 'getKey') ? $notifiable->getKey() : null;
+            $notifiableId = is_object($notifiable) && method_exists($notifiable, 'getKey')
+                ? $notifiable->getKey()
+                : null;
 
             if ($event instanceof NotificationSent) {
                 Log::info('notification.channel_delivered', [
@@ -92,6 +94,6 @@ class LogNotificationDelivery
             return (string) $response;
         }
 
-        return $response::class;
+        return is_object($response) ? $response::class : gettype($response);
     }
 }

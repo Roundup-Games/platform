@@ -325,9 +325,17 @@ class AttendanceResolutionService
                     continue;
                 }
 
+                // attendance_status is non-null for participants resolved in this
+                // run (they were in $resolvedUserIds), but the type system can't
+                // prove it — guard explicitly.
+                $status = $participant->attendance_status;
+                if ($status === null) {
+                    continue;
+                }
+
                 $notificationService->send(
                     $participant->user,
-                    new AttendanceResolved($game, $participant->attendance_status),
+                    new AttendanceResolved($game, $status),
                     NotificationCategory::AttendanceResolved,
                 );
             }

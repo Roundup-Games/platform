@@ -93,7 +93,7 @@ class GameSystemRequestDuplicate extends BaseNotification
     }
 
     /**
-     * Opts out of Discord to mirror this notification's null push (D130).
+     * Discord opted out (D130): this type has no push surface, so it has no Discord surface either.
      */
     public function toDiscord(User $notifiable): ?DiscordWebhookPayload
     {

@@ -58,7 +58,7 @@ class WeeklyDigest extends Notification implements ShouldQueue
         // Group by notification type for a scannable summary. Cap at a reasonable
         // number of line items to keep the email compact and email-render cheap.
         $grouped = $this->notifications
-            ->groupBy(fn ($n) => $this->shortType($n->type, $locale))
+            ->groupBy(fn ($n) => $this->shortType($n, $locale))
             ->map(fn ($items) => $items->count())
             ->sortDesc();
 
@@ -92,24 +92,36 @@ class WeeklyDigest extends Notification implements ShouldQueue
     }
 
     /**
-     * Get a human-readable short label from the notification class name.
-     * Resolves a localized digest label via notifications.digest_labels.{type}
-     * (keyed by the toDatabase()['type'] discriminator) when present, falling
-     * back to a Title-Case class basename so an unmapped type never breaks the
-     * digest.
+     * Resolve a localized digest label for a notification row.
+     *
+     * Prefers the per-notification data.type discriminator (e.g. 'game_invitation'
+     * vs 'campaign_invitation' from EntityInvitation) — the value the
+     * label_digest_* translation keys are actually keyed by — falling back to
+     * the snake_cased class basename when data.type is absent, and finally to a
+     * Title-Case basename so an unmapped/legacy type never breaks the digest.
      */
-    private function shortType(string $fullType, string $locale): string
+    private function shortType(DatabaseNotification $notification, string $locale): string
     {
-        $short = class_basename($fullType);
-        $snake = strtolower((string) preg_replace('/([a-z])([A-Z])/', '$1_$2', $short));
+        $classBase = class_basename((string) $notification->type);
 
-        $label = __('notifications.digest_labels.'.$snake, [], $locale);
+        $data = is_array($notification->data ?? null) ? $notification->data : [];
+        $key = is_string($data['type'] ?? null) && $data['type'] !== ''
+            ? (string) $data['type']
+            : strtolower((string) preg_replace('/([a-z])([A-Z])/', '$1_$2', $classBase));
 
-        // __('...' returns the key itself when absent; fall back to the basename.
-        if ($label === 'notifications.digest_labels.'.$snake) {
-            return preg_replace('/(?<!^)([A-Z])/', ' $1', $short) ?: $short;
+        // Flat lang-file convention: label_digest_{type} (i18n:check enforces
+        // flat prefixed keys — no nested digest_labels array). The
+        // concatenation lives INSIDE __() so i18n:dead-strings' dynamic-prefix
+        // detector registers 'label_digest_' as a live prefix.
+        $expected = 'notifications.label_digest_'.$key;
+        $label = __('notifications.label_digest_'.$key, [], $locale);
+
+        // __('...') returns the key itself when absent; fall back to a
+        // Title-Case class basename so the digest still renders.
+        if ($label !== $expected) {
+            return $label;
         }
 
-        return $label;
+        return preg_replace('/(?<!^)([A-Z])/', ' $1', $classBase) ?: $classBase;
     }
 }

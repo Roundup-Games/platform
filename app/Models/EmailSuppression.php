@@ -57,13 +57,21 @@ class EmailSuppression extends Model
      * Case-insensitive (email stored lowercased). This is the single source of
      * truth consulted by NotificationService before adding MailChannel.
      */
-    public static function isSuppressed(string $email): bool
+    public static function isSuppressed(?string $email): bool
     {
+        if ($email === null) {
+            return false;
+        }
+
         return static::query()
             ->where('email', mb_strtolower(trim($email)))
             ->exists();
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeForEmail(Builder $query, string $email): Builder
     {
         return $query->where('email', mb_strtolower(trim($email)));

@@ -5,6 +5,7 @@ namespace App\Listeners;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 use Throwable;
 
 /**
@@ -32,14 +33,18 @@ class LogMailMessageSent
             // nullsafe operator does NOT save us there. Read the envelope through
             // the SentMessage wrapper, which forwards getEnvelope() to Symfony.
             $recipients = array_map(
-                static fn ($a) => $a instanceof Address ? $a->getAddress() : (string) $a,
+                static fn (Address $a) => $a->getAddress(),
                 $event->sent->getEnvelope()->getRecipients(),
             );
+
+            // getOriginalMessage() returns a RawMessage; getSubject() is only on
+            // the Email subclass, so guard before accessing it.
+            $subject = $message instanceof Email ? $message->getSubject() : null;
 
             Log::info('mail.message_sent', [
                 'message_id' => $messageId,
                 'recipients' => $recipients,
-                'subject' => $message?->getSubject(),
+                'subject' => $subject,
             ]);
         } catch (Throwable $e) {
             Log::warning('mail.message_sent_log_failed', [
