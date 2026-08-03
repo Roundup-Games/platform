@@ -4,6 +4,7 @@ use App\Enums\NotificationCategory;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\EntityInvitation;
+use App\Notifications\WeeklyDigest;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -125,4 +126,42 @@ it('generates valid unsubscribe URLs in notification emails', function () {
     // Should contain an unsubscribe link
     expect($rendered)->toContain('notifications/unsubscribe/'.$this->user->id.'/game_invitation');
     expect($rendered)->toContain('signature');
+});
+
+// smoke: one-click weekly-digest opt-out (CAN-SPAM/GDPR)
+it('unsubscribes a user from the weekly digest via signed URL', function () {
+    $this->user->update(['weekly_digest_enabled' => true]);
+
+    $url = URL::signedRoute('notifications.unsubscribe-digest', [
+        'locale' => 'en',
+        'user' => $this->user->id,
+    ]);
+
+    $response = $this->actingAs($this->user)->get($url);
+
+    $response->assertRedirect(route('profile.show', ['locale' => 'en']));
+    $response->assertSessionHas('status');
+    expect($this->user->fresh()->weekly_digest_enabled)->toBeFalse();
+})->group('smoke');
+
+it('rejects unsigned digest unsubscribe URLs with 403', function () {
+    $url = url('/en/notifications/unsubscribe-digest/'.$this->user->id);
+
+    $this->get($url)->assertForbidden();
+});
+
+it('renders a translated digest unsubscribe link in the weekly digest email', function () {
+    $germanUser = User::factory()->create(['preferred_language' => 'de', 'weekly_digest_enabled' => true]);
+    // Mirror what the notification dispatcher does in production: set the
+    // recipient's locale before rendering (direct toMail() calls don't).
+    app()->setLocale('de');
+    $notification = new WeeklyDigest($germanUser->unreadNotifications);
+
+    $mail = $notification->toMail($germanUser);
+    $rendered = (string) $mail->render();
+
+    expect($rendered)->toContain('unsubscribe-digest/'.$germanUser->id)
+        ->and($rendered)->toContain('signature')
+        // German action label is present (not the English fallback)
+        ->and($rendered)->toContain('Wochen-Digest abbestellen');
 });

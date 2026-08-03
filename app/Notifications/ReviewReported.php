@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use App\Dto\PushPayload;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\Discord\DiscordWebhookPayload;
@@ -59,15 +58,6 @@ class ReviewReported extends BaseNotification
     public function getActor(): User
     {
         return $this->reporter;
-    }
-
-    /**
-     * Get the push notification representation.
-     * Not applicable for this notification type.
-     */
-    public function toPush(User $notifiable): ?PushPayload
-    {
-        return null;
     }
 
     /**

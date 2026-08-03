@@ -54,4 +54,30 @@ class NotificationController extends Controller
             ->route('home', ['locale' => $locale])
             ->with('status', __('notifications.unsubscribe_success', ['category' => $categoryEnum->label()]));
     }
+
+    /**
+     * Handle a signed one-click opt-out from the weekly digest email.
+     *
+     * The digest is controlled by the weekly_digest_enabled flag, not the
+     * per-category channel matrix, so it gets its own signed route. A recurring
+     * automated email must offer a no-login opt-out path (CAN-SPAM / GDPR).
+     */
+    public function unsubscribeDigest(Request $request, string $locale, User $user): RedirectResponse
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403, __('notifications.unsubscribe_invalid_link'));
+        }
+
+        $user->update(['weekly_digest_enabled' => false]);
+
+        if (Auth::check() && Auth::id() === $user->id) {
+            return redirect()
+                ->route('profile.show', ['locale' => $locale])
+                ->with('status', __('notifications.unsubscribe_digest_success'));
+        }
+
+        return redirect()
+            ->route('home', ['locale' => $locale])
+            ->with('status', __('notifications.unsubscribe_digest_success'));
+    }
 }

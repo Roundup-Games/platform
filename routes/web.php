@@ -414,6 +414,13 @@ Route::prefix('{locale}')
             ->name('notifications.unsubscribe')
             ->middleware('signed');
 
+        // One-click opt-out from the weekly digest email. The digest bypasses the
+        // per-category channel system (it has no category), so it gets its own
+        // signed route that flips weekly_digest_enabled instead.
+        Route::get('/notifications/unsubscribe-digest/{user}', [NotificationController::class, 'unsubscribeDigest'])
+            ->name('notifications.unsubscribe-digest')
+            ->middleware('signed');
+
         // ── Data Export Download (signed URL + auth) ──────
         // Signed URL expires after 7 days. Auth ensures only the data subject
         // can download their own export — prevents leakage via browser history

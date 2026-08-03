@@ -10,6 +10,7 @@ use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Weekly digest email summarising a user's unread in-app notifications.
@@ -47,6 +48,8 @@ class WeeklyDigest extends Notification implements ShouldQueue
 
     public function toMail(User $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+
         $message = (new MailMessage)
             ->subject(__('notifications.subject_weekly_digest'))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
@@ -55,7 +58,7 @@ class WeeklyDigest extends Notification implements ShouldQueue
         // Group by notification type for a scannable summary. Cap at a reasonable
         // number of line items to keep the email compact and email-render cheap.
         $grouped = $this->notifications
-            ->groupBy(fn ($n) => $this->shortType($n->type))
+            ->groupBy(fn ($n) => $this->shortType($n->type, $locale))
             ->map(fn ($items) => $items->count())
             ->sortDesc();
 
@@ -71,18 +74,42 @@ class WeeklyDigest extends Notification implements ShouldQueue
         }
 
         return $message
-            ->action(__('notifications.action_weekly_digest'), route('notifications.index', ['locale' => $notifiable->preferred_language->value ?? app()->getLocale()]))
+            ->action(__('notifications.action_weekly_digest'), route('notifications.index', ['locale' => $locale]))
+            ->line(__('notifications.body_weekly_digest_unsubscribe'))
+            ->action(__('notifications.action_unsubscribe_digest'), $this->unsubscribeUrl($notifiable, $locale))
             ->line(__('notifications.body_weekly_digest_settings'));
     }
 
     /**
-     * Get a human-readable short label from the notification class name.
+     * Signed one-click opt-out URL for the weekly digest.
      */
-    private function shortType(string $fullType): string
+    protected function unsubscribeUrl(User $notifiable, string $locale): string
+    {
+        return URL::signedRoute('notifications.unsubscribe-digest', [
+            'locale' => $locale,
+            'user' => $notifiable->id,
+        ]);
+    }
+
+    /**
+     * Get a human-readable short label from the notification class name.
+     * Resolves a localized digest label via notifications.digest_labels.{type}
+     * (keyed by the toDatabase()['type'] discriminator) when present, falling
+     * back to a Title-Case class basename so an unmapped type never breaks the
+     * digest.
+     */
+    private function shortType(string $fullType, string $locale): string
     {
         $short = class_basename($fullType);
+        $snake = strtolower((string) preg_replace('/([a-z])([A-Z])/', '$1_$2', $short));
 
-        // Convert PascalCase to Title Case for readability
-        return preg_replace('/(?<!^)([A-Z])/', ' $1', $short) ?: $short;
+        $label = __('notifications.digest_labels.'.$snake, [], $locale);
+
+        // __('...' returns the key itself when absent; fall back to the basename.
+        if ($label === 'notifications.digest_labels.'.$snake) {
+            return preg_replace('/(?<!^)([A-Z])/', ' $1', $short) ?: $short;
+        }
+
+        return $label;
     }
 }

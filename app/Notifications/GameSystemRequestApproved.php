@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use App\Dto\PushPayload;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\Discord\DiscordWebhookPayload;
@@ -72,15 +71,6 @@ class GameSystemRequestApproved extends BaseNotification
      * Returns null since this is a system notification, not triggered by a user.
      */
     public function getActor(): ?User
-    {
-        return null;
-    }
-
-    /**
-     * Get the push notification representation.
-     * Not applicable for this notification type.
-     */
-    public function toPush(User $notifiable): ?PushPayload
     {
         return null;
     }

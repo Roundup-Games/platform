@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
@@ -71,15 +70,6 @@ class EntityUpdated extends BaseNotification
     public function getActor(): ?User
     {
         return $this->entity->owner;
-    }
-
-    /**
-     * Get the push notification representation.
-     * Not applicable for this notification type.
-     */
-    public function toPush(User $notifiable): ?PushPayload
-    {
-        return null;
     }
 
     /**

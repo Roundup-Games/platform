@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
 
 class BulletinPosted extends BaseNotification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Game  $game  The game the bulletin was posted to
      * @param  User  $host  The host who posted the bulletin
@@ -42,7 +44,8 @@ class BulletinPosted extends BaseNotification
             ->line(__('notifications.body_bulletin_content', [
                 'content' => Str::limit($this->bulletin->content, 100),
             ]))
-            ->action(__('notifications.action_view_game'), route('games.show', ['locale' => $locale, 'id' => $this->game]));
+            ->action(__('notifications.action_view_game'), route('games.show', ['locale' => $locale, 'id' => $this->game]))
+            ->line($this->unsubscribeLine($notifiable, 'session_content'));
     }
 
     /**

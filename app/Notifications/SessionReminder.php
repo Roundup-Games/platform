@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
+use App\Notifications\Channels\DiscordChannel;
 use App\Notifications\Channels\PushChannel;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Channels\DatabaseChannel;
@@ -28,15 +29,17 @@ class SessionReminder extends BaseNotification
     ) {}
 
     /**
-     * Database + push, no mail channel.
+     * Database + push + Discord, no mail channel.
      * Overrides BaseNotification's default (which includes mail) because this
-     * notification has no toMail() implementation.
+     * notification has no toMail() implementation. The toDiscord() embed below
+     * is intentionally reachable — session reminders are high-signal and a
+     * linked Discord user should receive them.
      *
      * @return array<int, string>
      */
     protected function supportedChannels(): array
     {
-        return [DatabaseChannel::class, PushChannel::class];
+        return [DatabaseChannel::class, PushChannel::class, DiscordChannel::class];
     }
 
     /**

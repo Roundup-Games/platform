@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use App\Dto\PushPayload;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Discord\DiscordWebhookPayload;
@@ -67,15 +66,6 @@ class TeamMemberRemoved extends BaseNotification
     public function getActor(): User
     {
         return $this->remover;
-    }
-
-    /**
-     * Get the push notification representation.
-     * Not applicable for this notification type.
-     */
-    public function toPush(User $notifiable): ?PushPayload
-    {
-        return null;
     }
 
     /**
