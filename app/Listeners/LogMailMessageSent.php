@@ -27,9 +27,13 @@ class LogMailMessageSent
             $message = $event->sent->getOriginalMessage();
             $messageId = $event->sent->getMessageId();
 
+            // Laravel's MessageSent event exposes only $sent and $data; its
+            // __get() throws for any other key (including 'envelope'), so the
+            // nullsafe operator does NOT save us there. Read the envelope through
+            // the SentMessage wrapper, which forwards getEnvelope() to Symfony.
             $recipients = array_map(
                 static fn ($a) => $a instanceof Address ? $a->getAddress() : (string) $a,
-                $event->envelope?->getRecipients() ?? [],
+                $event->sent->getEnvelope()->getRecipients(),
             );
 
             Log::info('mail.message_sent', [

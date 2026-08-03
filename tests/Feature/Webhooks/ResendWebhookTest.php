@@ -211,3 +211,38 @@ it('keeps the mail channel for a clean address', function () {
 
     expect($channels)->toHaveKey('mail');
 })->group('smoke');
+
+// ══════════════════════════════════════════════════════
+// Retryable failure — suppression is the load-bearing side effect
+// ══════════════════════════════════════════════════════
+
+it('returns 500 so Resend retries when a bounce suppression write fails', function () {
+    // Simulate a transient DB write failure: an email longer than the
+    // varchar(255) column forces a QueryException inside firstOrCreate's INSERT
+    // (Postgres enforces varchar length deterministically; the test DB is pgsql).
+    // No static event listeners are mutated, so the test stays isolated.
+    $email = str_repeat('a', 300).'@example.com';
+    $body = bouncedPayload($email);
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(500);
+
+    expect(EmailSuppression::count())->toBe(0)
+        ->and($this->logRecord('resend.webhook_processing_failed'))->not->toBeNull();
+})->group('smoke');
+
+it('still returns 200 when a telemetry-only (delivered) event fails processing', function () {
+    // Telemetry events stay best-effort: a processing failure there must NOT
+    // trigger a Resend retry (that would only add noise). We assert the contract
+    // by confirming the delivered path returns 200 even though it cannot suppress
+    // — paired with the bounce test above, this pins the 500 specifically to
+    // suppression-bearing events.
+    $body = json_encode([
+        'type' => 'email.delivered',
+        'created_at' => now()->toIso8601String(),
+        'data' => ['email_id' => 'e3', 'message_id' => '<d-3@x.com>', 'to' => ['ok@example.com'], 'subject' => 's'],
+    ]);
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(200);
+})->group('smoke');

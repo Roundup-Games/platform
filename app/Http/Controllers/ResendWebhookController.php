@@ -72,15 +72,30 @@ class ResendWebhookController extends Controller
             return response()->json(['error' => 'Invalid payload'], 400);
         }
 
-        // Always 200 for a signed request, even on processing error — a 5xx
-        // makes Resend retry, which for an already-processed event is pure noise.
+        // Compute the event type up front — it drives both the processing
+        // dispatch (handle()) and the retry decision below.
+        $type = is_string($event['type'] ?? null) ? (string) $event['type'] : '';
+
+        // Processing failures: default to best-effort 200 so a telemetry event
+        // (delivered/failed/delayed) that hit a transient error is not retried
+        // into noise. The exception is suppression-bearing events (bounced /
+        // complained): suppressing the address is the load-bearing side effect
+        // here, and the write is idempotent (firstOrCreate on a unique email),
+        // so a 500 that asks Resend to retry is safe AND necessary — otherwise a
+        // transient DB outage would permanently lose the suppression and we'd
+        // keep mailing a bouncing / complaining address (sender-reputation and
+        // CAN-SPAM/GDPR risk).
         try {
             $this->handle($event);
         } catch (Throwable $e) {
             Log::error('resend.webhook_processing_failed', [
-                'type' => $event['type'] ?? null,
+                'type' => $type,
                 'error' => $e->getMessage(),
             ]);
+
+            if (in_array($type, ['email.bounced', 'email.complained'], true)) {
+                return response()->json(['error' => 'Processing failed'], 500);
+            }
         }
 
         return response()->json(['received' => true]);
