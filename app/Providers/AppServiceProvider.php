@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Listeners\DropDemoDomainMail;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
+use App\Listeners\LogMailMessageSent;
 use App\Listeners\LogNotificationDelivery;
 use App\Listeners\RecordUserSignIn;
 use App\Listeners\SuppressAutomatedTicketStatusNotifications;
@@ -74,6 +75,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
@@ -246,6 +248,11 @@ class AppServiceProvider extends ServiceProvider
         // never fail the channel job.
         EventFacade::listen(NotificationSent::class, LogNotificationDelivery::class);
         EventFacade::listen(NotificationFailed::class, LogNotificationDelivery::class);
+
+        // Outgoing mail handoff record. Retains the assigned Message-ID so an
+        // inbound Resend delivery/bounce/complaint webhook event can be joined
+        // back to the exact message in the logs (M061).
+        EventFacade::listen(MessageSent::class, LogMailMessageSent::class);
 
         // Escalated helpdesk authorization gates
         // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)

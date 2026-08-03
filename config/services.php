@@ -123,6 +123,10 @@ return [
 
     'resend' => [
         'key' => env('RESEND_API_KEY'),
+        // Svix signing secret from the Resend webhook dashboard. Used by
+        // ResendWebhookController to verify inbound delivery/bounce/complaint
+        // events. Format: whsec_<base64>.
+        'webhook_secret' => env('RESEND_WEBHOOK_SECRET'),
     ],
 
     'ses' => [

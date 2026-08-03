@@ -30,6 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->validateCsrfTokens(except: [
             'paddle/webhook',
+            // Resend mail webhook (M061): a stateless public surface called by
+            // Resend, not a browser form POST. Authenticity is enforced by the
+            // Svix signature verifier in ResendWebhookController
+            // (RESEND_WEBHOOK_SECRET). Mirrors the Paddle webhook precedent.
+            'webhooks/resend',
             // Discord HTTP Interactions endpoint (M057/S03): a stateless
             // public surface called by Discord, not a browser form POST.
             // CSRF protection is N/A — authenticity is enforced by the

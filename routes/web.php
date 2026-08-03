@@ -12,6 +12,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaddleBillingController;
 use App\Http\Controllers\PaddleWebhookController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\ResendWebhookController;
 use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\SitemapController;
 use App\Livewire\Billing\BillingPortal;
@@ -103,6 +104,15 @@ Route::get('/calendar/{code}', [ICalFeedController::class, 'show'])
 
 Route::post('paddle/webhook', PaddleWebhookController::class)
     ->name('cashier.webhook');
+
+// ── Resend mail webhook (no auth — called by Resend) ───
+// Ingests post-delivery events (delivered / bounced / complained / failed) so
+// we can observe what Resend actually did with each message and suppress
+// addresses that hard-bounce or complain. Authenticity is enforced by the
+// Svix signature verifier inside the controller (RESEND_WEBHOOK_SECRET), so
+// CSRF is N/A — mirrors the Paddle webhook precedent.
+Route::post('webhooks/resend', ResendWebhookController::class)
+    ->name('webhooks.resend');
 
 // ── Discord HTTP Interactions endpoint (M057/S03) ─────
 // Public, stateless surface called by Discord (NOT a browser form POST).

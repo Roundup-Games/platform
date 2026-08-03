@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\NotificationCategory;
+use App\Models\EmailSuppression;
 use App\Models\User;
 use App\Notifications\BaseNotification;
 use App\Notifications\Channels\DiscordChannel;
@@ -269,6 +270,20 @@ class NotificationService
             if ($enabled) {
                 $resolved[$name] = $class;
             }
+        }
+
+        // Delivery hygiene (M061): never hand the mail channel to Resend for an
+        // address it has already told us is undeliverable (hard bounce) or that
+        // complained (spam). The suppression check is a single indexed lookup on
+        // the lowercased email; dropping mail here protects sender reputation
+        // and complies with the recipient's spam-complaint opt-out.
+        if (isset($resolved['mail']) && $user->email !== null && EmailSuppression::isSuppressed($user->email)) {
+            unset($resolved['mail']);
+
+            Log::info('notification.mail_suppressed', [
+                'user_id' => $user->id,
+                'category' => $categoryKey,
+            ]);
         }
 
         return $resolved;
