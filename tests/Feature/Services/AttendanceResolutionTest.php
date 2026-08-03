@@ -542,6 +542,41 @@ describe('pre-game statuses', function () {
 
         expect(getAttendanceStatus($resolved, $target))->toBe(AttendanceStatus::CancelledEarly);
     });
+
+    test('a pre-game-status participant is NOT sent an AttendanceResolved notification', function () {
+        ['game' => $game, 'host' => $host, 'players' => $players] = createCompletedGameWithPlayers(4);
+
+        // Give players[0] a pre-game status so resolution skips it.
+        $preGamePlayer = $players[0];
+        GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $preGamePlayer->id)
+            ->first()
+            ->forceFill(['attendance_status' => AttendanceStatus::LateCancel->value])
+            ->save();
+
+        // Reports against the other players so they get freshly resolved.
+        fileReport($game, $host, $players[1], 'no_show');
+        fileReport($game, $preGamePlayer, $players[1], 'no_show');
+
+        $notifiedUserIds = [];
+        $this->app->instance(
+            NotificationService::class,
+            mock(NotificationService::class, function (MockInterface $m) use (&$notifiedUserIds) {
+                $m->shouldReceive('send')->andReturnUsing(function ($user) use (&$notifiedUserIds) {
+                    $notifiedUserIds[] = $user->id;
+
+                    return null;
+                });
+            }),
+        );
+
+        [$service] = getAttendanceServiceWithMock();
+        $service->resolveGameAttendance($game);
+
+        // The freshly-resolved players were notified; the pre-game-status player was not.
+        expect($notifiedUserIds)->not->toContain($preGamePlayer->id)
+            ->and($notifiedUserIds)->toContain($players[1]->id);
+    });
 });
 
 // ══════════════════════════════════════════════════════════════════════════

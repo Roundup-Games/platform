@@ -107,7 +107,13 @@ class AttendanceResolutionService
         // notification to every participant (duplicate user-visible notifications).
         $resolved = false;
 
-        DB::transaction(function () use ($game, $participants, $totalParticipants, $resolutionMethod, $allReports, $participationThreshold, $noShowMajority, &$resolved) {
+        // User IDs whose attendance_status was actually set by THIS resolution run.
+        // Participants with a pre-game/host-set status are skipped in the loop
+        // below; only the freshly-resolved ones should receive an
+        // AttendanceResolved notification (the rest already know their outcome).
+        $resolvedUserIds = [];
+
+        DB::transaction(function () use ($game, $participants, $totalParticipants, $resolutionMethod, $allReports, $participationThreshold, $noShowMajority, &$resolved, &$resolvedUserIds) {
             // Lock the game row to prevent concurrent resolution (e.g., early-consensus
             // job and timeout sweeper racing for the same game).
             /** @var Game|null $locked */
@@ -125,11 +131,15 @@ class AttendanceResolutionService
             foreach ($participants as $participant) {
                 // Skip participants who already have a pre-game or host-set status
                 // (e.g., late_cancel from host cancellation offence, excused set pre-game).
-                // These users already know their outcome and don't need a resolution
-                // notification — the notification loop below also skips them.
+                // These users already know their outcome — the notification loop below
+                // only notifies participants whose status was set in THIS run.
                 if ($participant->attendance_status !== null) {
                     continue;
                 }
+
+                // Track that this participant is being resolved this run so the
+                // notification fan-out only reaches freshly-resolved players.
+                $resolvedUserIds[] = $participant->user_id;
 
                 // Collect non-self reports filed for this person (from pre-fetched collection)
                 $reports = $allReports
@@ -303,7 +313,11 @@ class AttendanceResolutionService
                 ->get();
 
             foreach ($resolvedParticipants as $participant) {
-                if ($participant->attendance_status === null) {
+                // Only notify participants whose status was set in THIS resolution
+                // run. A pre-game/host-set status (late_cancel, pre-excused) is
+                // excluded — that player already knows their outcome and would
+                // otherwise get a spurious 'attendance resolved' notice.
+                if (! in_array($participant->user_id, $resolvedUserIds, true)) {
                     continue;
                 }
 

@@ -143,7 +143,7 @@ Schedule::command('pwa:prune-visits')->monthly()->onOneServer();
 
 // Weekly notification digest — one summary email per user instead of
 // dozens of per-category emails. Monday 04:00 to avoid the Sunday maintenance window.
-Schedule::command('notifications:weekly-digest')->weekly()->mondays()->at('04:00')->onOneServer();
+Schedule::command('notifications:weekly-digest')->weekly()->mondays()->at('04:00')->withoutOverlapping(10)->onOneServer();
 
 // Discord calendar digest — one edited message per guild rewritten daily, listing
 // the next two weeks of public events. Daily 06:00 (morning check-in window);
