@@ -21,20 +21,20 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {{-- One-time session --}}
-                <button type="button" wire:click="planOneShot()"
+                <a href="{{ route('games.create') }}" wire:navigate
                         class="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-outline-variant/30 bg-surface-container-lowest hover:border-primary/50 hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer text-center">
                     <span class="material-symbols-outlined text-4xl text-primary group-hover:scale-110 transition-transform" aria-hidden="true">event</span>
                     <span class="text-base font-heading font-semibold text-on-surface">{{ __('plan.content_one_time') }}</span>
                     <span class="text-xs text-on-surface-variant">{{ __('plan.content_one_time_desc') }}</span>
-                </button>
+                </a>
 
                 {{-- Recurring event --}}
-                <button type="button" wire:click="planRecurring()"
+                <a href="{{ route('campaigns.create') }}" wire:navigate
                         class="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-outline-variant/30 bg-surface-container-lowest hover:border-primary/50 hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer text-center">
                     <span class="material-symbols-outlined text-4xl text-primary group-hover:scale-110 transition-transform" aria-hidden="true">repeat</span>
                     <span class="text-base font-heading font-semibold text-on-surface">{{ __('plan.content_recurring') }}</span>
                     <span class="text-xs text-on-surface-variant">{{ __('plan.content_recurring_desc') }}</span>
-                </button>
+                </a>
             </div>
         </section>
 

@@ -30,24 +30,24 @@ describe('PlanSomething — Rendering', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('PlanSomething — planOneShot', function () {
-    // Regression guard: previously planOneShot() redirected to
-    // route('games.create', ['type' => 'board_game']), which (a) silently
-    // assumed every one-time session is a board game and (b) caused
+    // Regression guard: the one-time card previously fired planOneShot(),
+    // which redirected to route('games.create', ['type' => 'board_game']) —
+    // silently assuming every one-time session is a board game and causing
     // CreateGame::mount() to skip its type-selector cards. A one-time session
-    // can be any of the three GameType values — the copy itself says
-    // "board game night, a one-shot adventure, or a casual gathering" (see
-    // lang/en/plan.php 'content_one_time_desc') — so the host must pick.
+    // can be any of the three GameType values (the copy says "board game night,
+    // a one-shot adventure, or a casual gathering"), so the host must pick.
     //
-    // assertRedirect(route('games.create')) is an EXACT URL match (see
-    // Livewire TestsRedirects::assertRedirect): a redirect to the type-scoped
-    // route would carry '?type=board_game' and fail this assertion. Verified
-    // by reverting the fix and watching this test go red.
-    it('redirects to games.create with no pre-selected type', function () {
+    // The card is now a plain <a wire:navigate> straight to games.create with
+    // NO ?type= query. assertRedirect no longer applies (there is no Livewire
+    // round-trip), so we assert the rendered anchor carries the bare create
+    // URL and no type query.
+    it('links to games.create with no pre-selected type', function () {
         actingAs(planSomethingCreateUser());
 
-        Livewire\Livewire::test(PlanSomething::class)
-            ->call('planOneShot')
-            ->assertRedirect(route('games.create'));
+        $html = Livewire\Livewire::test(PlanSomething::class)->html();
+
+        expect($html)->toContain('/games/create')
+            ->and($html)->not->toContain('?type=');
     });
 });
 
@@ -56,11 +56,11 @@ describe('PlanSomething — planOneShot', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('PlanSomething — planRecurring', function () {
-    it('redirects to campaigns.create', function () {
+    it('links to campaigns.create', function () {
         actingAs(planSomethingCreateUser());
 
-        Livewire\Livewire::test(PlanSomething::class)
-            ->call('planRecurring')
-            ->assertRedirect(route('campaigns.create'));
+        $html = Livewire\Livewire::test(PlanSomething::class)->html();
+
+        expect($html)->toContain('/campaigns/create');
     });
 });
