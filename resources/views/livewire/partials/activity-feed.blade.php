@@ -137,11 +137,10 @@
             @endforeach
         </div>
 
-        @if($activityFeed->hasMorePages())
-            <div class="mt-6">
-                {{ $activityFeed->links() }}
-            </div>
-        @endif
+        @include('livewire.discovery.partials._load-more', [
+            'results' => $activityFeed,
+            'loadMoreAction' => 'loadMoreActivity',
+        ])
     @else
         <div class="text-center py-16 bg-surface-container-low rounded-xl shadow-ambient">
             <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">group</span>

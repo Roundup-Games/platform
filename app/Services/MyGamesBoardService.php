@@ -54,7 +54,7 @@ class MyGamesBoardService
      *     has_any_games: bool,
      * }
      */
-    public function build(User $user): array
+    public function build(User $user, int $activityFeedLimit = 15): array
     {
         // ── Owned + participating, eager-loaded once ────
         $ownedGames = $this->ownedGames($user);
@@ -98,7 +98,7 @@ class MyGamesBoardService
         // ── Needs-attention: game-scoped Action Center items ──
         $needsAttention = $this->gameScopedActionItems($user);
 
-        $activityFeed = app(GameActivityFeedService::class)->getFeed($user, 15);
+        $activityFeed = app(GameActivityFeedService::class)->getFeed($user, $activityFeedLimit);
 
         return [
             'needs_attention' => $needsAttention,

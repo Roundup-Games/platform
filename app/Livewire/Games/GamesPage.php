@@ -35,6 +35,9 @@ class GamesPage extends Component
     use EditsVenueLocation;
     use WithPagination;
 
+    /** Grows by 15 each time the user clicks "load more" on the community feed. */
+    public int $activityFeedLimit = 15;
+
     // ── Edit Game State ────────────────────────────────
     public ?string $editingGameId = null;
 
@@ -229,6 +232,12 @@ class GamesPage extends Component
         session()->flash('success', __('games.flash_game_updated'));
     }
 
+    /** Reveal 15 more community-feed items (load-more, not numbered pages). */
+    public function loadMoreActivity(): void
+    {
+        $this->activityFeedLimit += 15;
+    }
+
     public function render(): View
     {
         seo(new SEOData(
@@ -241,7 +250,7 @@ class GamesPage extends Component
 
         // Prioritized board: needs-attention -> upcoming -> recent -> archive.
         // See MyGamesBoardService for the bucketing contract.
-        $board = app(MyGamesBoardService::class)->build($user);
+        $board = app(MyGamesBoardService::class)->build($user, $this->activityFeedLimit);
 
         return view('livewire.games.games-page', [
             'needsAttention' => $board['needs_attention'],

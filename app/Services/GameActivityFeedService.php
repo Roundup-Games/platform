@@ -29,7 +29,7 @@ class GameActivityFeedService
      *
      * @return LengthAwarePaginator<int, FeedItem>
      */
-    public function getFeed(User $viewer, int $perPage = 20): LengthAwarePaginator
+    public function getFeed(User $viewer, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
         $socialCircleIds = $this->getSocialCircleUserIds($viewer);
 
@@ -48,7 +48,6 @@ class GameActivityFeedService
             ->sortByDesc('created_at')
             ->values();
 
-        $page = is_int($p = request()->get('page')) || is_numeric($p) ? (int) $p : 1;
         $offset = ($page - 1) * $perPage;
 
         return new \Illuminate\Pagination\LengthAwarePaginator(
@@ -71,7 +70,7 @@ class GameActivityFeedService
      *
      * @return LengthAwarePaginator<int, FeedItem>
      */
-    public function getCampaignFeed(User $viewer, int $perPage = 20): LengthAwarePaginator
+    public function getCampaignFeed(User $viewer, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
         $socialCircleIds = $this->getSocialCircleUserIds($viewer);
 
@@ -89,7 +88,6 @@ class GameActivityFeedService
             ->sortByDesc('created_at')
             ->values();
 
-        $page = is_int($p = request()->get('page')) || is_numeric($p) ? (int) $p : 1;
         $offset = ($page - 1) * $perPage;
 
         return new \Illuminate\Pagination\LengthAwarePaginator(

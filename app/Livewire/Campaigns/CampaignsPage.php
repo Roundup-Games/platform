@@ -32,6 +32,9 @@ class CampaignsPage extends Component
     use EditsVenueLocation;
     use WithPagination;
 
+    /** Grows by 15 each time the user clicks "load more" on the community feed. */
+    public int $activityFeedLimit = 15;
+
     // ── Edit Campaign State ──────────────────────────────
     public ?string $editingCampaignId = null;
 
@@ -215,6 +218,12 @@ class CampaignsPage extends Component
         session()->flash('success', __('campaigns.flash_campaign_updated'));
     }
 
+    /** Reveal 15 more community-feed items (load-more, not numbered pages). */
+    public function loadMoreActivity(): void
+    {
+        $this->activityFeedLimit += 15;
+    }
+
     public function render(): View
     {
         seo(new SEOData(
@@ -227,7 +236,7 @@ class CampaignsPage extends Component
 
         // Prioritized board: needs-attention -> active hosting/playing -> ended.
         // See MyCampaignsBoardService for the bucketing contract.
-        $board = app(MyCampaignsBoardService::class)->build($user);
+        $board = app(MyCampaignsBoardService::class)->build($user, $this->activityFeedLimit);
 
         return view('livewire.campaigns.campaigns-page', [
             'needsAttention' => $board['needs_attention'],

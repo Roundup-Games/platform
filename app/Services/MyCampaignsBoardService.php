@@ -47,7 +47,7 @@ class MyCampaignsBoardService
      *     has_any_campaigns: bool,
      * }
      */
-    public function build(User $user): array
+    public function build(User $user, int $activityFeedLimit = 15): array
     {
         $ownedCampaigns = $this->ownedCampaigns($user);
         $participatingCampaigns = $this->participatingCampaigns($user);
@@ -89,7 +89,7 @@ class MyCampaignsBoardService
             'pending_invitations' => $pendingInvitations,
             'recent_ended' => $recentEnded,
             'archive' => $archive,
-            'activity_feed' => app(GameActivityFeedService::class)->getCampaignFeed($user, 15),
+            'activity_feed' => app(GameActivityFeedService::class)->getCampaignFeed($user, $activityFeedLimit),
             'has_any_campaigns' => $ownedCampaigns->isNotEmpty() || $participatingCampaigns->isNotEmpty() || $pendingInvitations->isNotEmpty(),
         ];
     }
