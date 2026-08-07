@@ -260,6 +260,82 @@ class DiscordBotInstallServiceTest extends TestCase
         $this->assertDatabaseCount('discord_guilds', 1); // updated, not duplicated
     }
 
+    /**
+     * Discord's region-tagged preferred_locale ("de-DE") is normalized to a
+     * roundup code ("de") on first install. Storing "de-DE" verbatim would
+     * silently render English — there is no lang/de-DE, so Lang::get falls
+     * back to the app fallback_locale.
+     */
+    public function test_complete_install_seeds_normalized_locale_on_first_install(): void
+    {
+        Http::fake([
+            self::TOKEN_URL => Http::response(['access_token' => 'user-bearer-token'], 200),
+            self::BASE_URL.'/users/@me/guilds' => Http::response([
+                ['id' => self::GUILD_ID, 'owner' => true, 'permissions' => '0'],
+            ], 200),
+            self::BASE_URL.'/guilds/'.self::GUILD_ID => Http::response([
+                'id' => self::GUILD_ID,
+                'name' => 'Berliner Brettspiel-Gilde',
+                'preferred_locale' => 'de-DE',
+            ], 200),
+        ]);
+
+        $guild = $this->makeService()->completeInstall(User::factory()->create(), 'code', self::GUILD_ID);
+
+        $this->assertSame('de', $guild->locale, 'region-tagged preferred_locale collapses to the roundup code');
+    }
+
+    /** An unsupported Discord locale (no roundup translation) seeds null. */
+    public function test_complete_install_seeds_null_locale_when_discord_locale_is_unsupported(): void
+    {
+        Http::fake([
+            self::TOKEN_URL => Http::response(['access_token' => 'user-bearer-token'], 200),
+            self::BASE_URL.'/users/@me/guilds' => Http::response([
+                ['id' => self::GUILD_ID, 'owner' => true, 'permissions' => '0'],
+            ], 200),
+            self::BASE_URL.'/guilds/'.self::GUILD_ID => Http::response([
+                'id' => self::GUILD_ID,
+                'name' => 'Paris Ludistes',
+                'preferred_locale' => 'fr-FR',
+            ], 200),
+        ]);
+
+        $guild = $this->makeService()->completeInstall(User::factory()->create(), 'code', self::GUILD_ID);
+
+        $this->assertNull($guild->locale, 'unsupported locale falls back to the app default rather than a partial code');
+    }
+
+    /**
+     * Regression guard: a landlord's explicit locale choice survives re-auth.
+     * Locale is seeded create-only, so a later install (which sees Discord's
+     * current preferred_locale) must NOT overwrite the stored value.
+     */
+    public function test_complete_install_preserves_landlord_locale_choice_on_reauth(): void
+    {
+        DiscordGuild::factory()->create([
+            'guild_id' => self::GUILD_ID,
+            'locale' => 'de',
+        ]);
+
+        Http::fake([
+            self::TOKEN_URL => Http::response(['access_token' => 'user-bearer-token'], 200),
+            self::BASE_URL.'/users/@me/guilds' => Http::response([
+                ['id' => self::GUILD_ID, 'owner' => true, 'permissions' => '0'],
+            ], 200),
+            // Discord now reports English — must not clobber the landlord's "de".
+            self::BASE_URL.'/guilds/'.self::GUILD_ID => Http::response([
+                'id' => self::GUILD_ID,
+                'name' => 'Renamed Server',
+                'preferred_locale' => 'en-US',
+            ], 200),
+        ]);
+
+        $guild = $this->makeService()->completeInstall(User::factory()->create(), 'code', self::GUILD_ID);
+
+        $this->assertSame('de', $guild->locale, 'landlord locale choice survives re-auth');
+        $this->assertSame('de', $guild->fresh()->locale);
+    }
+
     /** The install URL requests the guilds scope, state, and PKCE challenge. */
     public function test_install_url_requests_guilds_scope_state_and_pkce(): void
     {

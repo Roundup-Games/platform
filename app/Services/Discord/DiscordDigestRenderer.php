@@ -6,6 +6,7 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 
 /**
@@ -66,12 +67,6 @@ class DiscordDigestRenderer
     /** Muted grey for the empty-state embed (no action to take). */
     public const COLOR_EMPTY = 0x95A5A6;
 
-    /** Footer applied to every digest embed for brand consistency. */
-    private const FOOTER_TEXT = 'roundup · cross-community tabletop';
-
-    /** Grouping key + label for games with no linked venue. */
-    private const NO_VENUE_LABEL = 'Online / no venue';
-
     /** Headroom reserved inside a field value for the truncation marker. */
     private const FIELD_VALUE_HEADROOM = 40;
 
@@ -88,8 +83,10 @@ class DiscordDigestRenderer
      */
     public function render(Collection $games, DiscordDigestContext $context): DiscordWebhookPayload
     {
+        $locale = $this->resolveLocale($context->locale);
+
         if ($games->isEmpty()) {
-            return $this->emptyStatePayload();
+            return $this->emptyStatePayload($locale);
         }
 
         $dateBuckets = $this->groupByDate($games);
@@ -101,12 +98,12 @@ class DiscordDigestRenderer
             $title = $this->dateHeading($dateGames, $context);
             $venueFields = $this->buildVenueFields($dateGames, $context);
             $groups[] = [
-                'embeds' => $this->packFieldsIntoEmbeds($title, $venueFields),
+                'embeds' => $this->packFieldsIntoEmbeds($title, $venueFields, $locale),
                 'gameCount' => $dateGames->count(),
             ];
         }
 
-        return $this->packMessage($groups);
+        return $this->packMessage($groups, $locale);
     }
 
     // ── Message assembly ─────────────────────────────────
@@ -119,7 +116,7 @@ class DiscordDigestRenderer
      *
      * @param  array<int, array{embeds: array<int, array<string, mixed>>, gameCount: int}>  $groups
      */
-    private function packMessage(array $groups): DiscordWebhookPayload
+    private function packMessage(array $groups, string $locale): DiscordWebhookPayload
     {
         $totalEmbeds = array_sum(array_map(fn (array $g): int => count($g['embeds']), $groups));
 
@@ -151,7 +148,7 @@ class DiscordDigestRenderer
             $shownGames += $group['gameCount'];
         }
 
-        $embeds[] = $this->overflowNoteEmbed($shownGames);
+        $embeds[] = $this->overflowNoteEmbed($shownGames, $locale);
 
         return new DiscordWebhookPayload(embeds: $embeds);
     }
@@ -166,11 +163,11 @@ class DiscordDigestRenderer
      * @param  array<int, array{name: string, value: string, inline: bool}>  $fields
      * @return array<int, array<string, mixed>>
      */
-    private function packFieldsIntoEmbeds(string $title, array $fields): array
+    private function packFieldsIntoEmbeds(string $title, array $fields, string $locale): array
     {
         $embeds = [];
         $current = [];
-        $currentChars = $this->embedOverhead($title);
+        $currentChars = $this->embedOverhead($title, $locale);
         $part = 0;
 
         foreach ($fields as $field) {
@@ -179,10 +176,10 @@ class DiscordDigestRenderer
             $wouldExceedChars = $currentChars + $fieldChars > self::MAX_EMBED_TOTAL_CHARS;
 
             if ($current !== [] && ($wouldExceedFields || $wouldExceedChars)) {
-                $embeds[] = $this->makeDateEmbed($title, $current, $part);
+                $embeds[] = $this->makeDateEmbed($title, $current, $part, $locale);
                 $part++;
                 $current = [];
-                $currentChars = $this->embedOverhead($title);
+                $currentChars = $this->embedOverhead($title, $locale);
             }
 
             $current[] = $field;
@@ -190,7 +187,7 @@ class DiscordDigestRenderer
         }
 
         if ($current !== []) {
-            $embeds[] = $this->makeDateEmbed($title, $current, $part);
+            $embeds[] = $this->makeDateEmbed($title, $current, $part, $locale);
         }
 
         return $embeds;
@@ -200,15 +197,15 @@ class DiscordDigestRenderer
      * @param  array<int, array{name: string, value: string, inline: bool}>  $fields
      * @return array<string, mixed>
      */
-    private function makeDateEmbed(string $title, array $fields, int $part): array
+    private function makeDateEmbed(string $title, array $fields, int $part, string $locale): array
     {
-        $embedTitle = $part > 0 ? $title.' (continued)' : $title;
+        $embedTitle = $part > 0 ? $title.$this->trans('discord.content_digest_continued', [], $locale) : $title;
 
         return [
             'title' => Str::limit($embedTitle, self::MAX_TITLE_CHARS),
             'color' => self::COLOR_BRAND,
             'fields' => $fields,
-            'footer' => ['text' => self::FOOTER_TEXT],
+            'footer' => ['text' => $this->trans('discord.content_digest_footer', [], $locale)],
         ];
     }
 
@@ -216,31 +213,29 @@ class DiscordDigestRenderer
      * Base character cost of a date embed (title + footer), used to seed the
      * per-embed running total so the 6000-char cap accounts for fixed text.
      */
-    private function embedOverhead(string $title): int
+    private function embedOverhead(string $title, string $locale): int
     {
-        return mb_strlen($title) + mb_strlen(self::FOOTER_TEXT);
+        return mb_strlen($title) + mb_strlen($this->trans('discord.content_digest_footer', [], $locale));
     }
 
     /** @return array<string, mixed> */
-    private function overflowNoteEmbed(int $shownGames): array
+    private function overflowNoteEmbed(int $shownGames, string $locale): array
     {
-        $noun = $shownGames === 1 ? 'game' : 'games';
-
         return [
-            'title' => 'More events ahead',
+            'title' => $this->trans('discord.content_digest_more_ahead', [], $locale),
             'color' => self::COLOR_BRAND,
-            'description' => "Showing {$shownGames} upcoming {$noun} — see roundup for the full two-week calendar.",
-            'footer' => ['text' => self::FOOTER_TEXT],
+            'description' => Lang::choice('discord.content_digest_overflow_body', $shownGames, ['count' => $shownGames], $locale),
+            'footer' => ['text' => $this->trans('discord.content_digest_footer', [], $locale)],
         ];
     }
 
-    private function emptyStatePayload(): DiscordWebhookPayload
+    private function emptyStatePayload(string $locale): DiscordWebhookPayload
     {
         return new DiscordWebhookPayload(embeds: [[
-            'title' => 'No public events scheduled',
-            'description' => '📭 There are no public roundup games in the next two weeks — check back soon.',
+            'title' => $this->trans('discord.content_digest_empty_title', [], $locale),
+            'description' => $this->trans('discord.content_digest_empty_body', [], $locale),
             'color' => self::COLOR_EMPTY,
-            'footer' => ['text' => self::FOOTER_TEXT],
+            'footer' => ['text' => $this->trans('discord.content_digest_footer', [], $locale)],
         ]]);
     }
 
@@ -256,13 +251,14 @@ class DiscordDigestRenderer
      */
     private function buildVenueFields(Collection $dateGames, DiscordDigestContext $context): array
     {
+        $locale = $this->resolveLocale($context->locale);
         $venues = $this->groupByVenue($dateGames);
 
         $fields = [];
         foreach ($venues as $venueGames) {
             $fields[] = [
-                'name' => Str::limit($this->venueLabel($venueGames), self::MAX_FIELD_NAME_CHARS - 1),
-                'value' => $this->joinLinesWithCap($this->venueLines($venueGames, $context)),
+                'name' => Str::limit($this->venueLabel($venueGames, $locale), self::MAX_FIELD_NAME_CHARS - 1),
+                'value' => $this->joinLinesWithCap($this->venueLines($venueGames, $context), $locale),
                 'inline' => false,
             ];
         }
@@ -302,13 +298,13 @@ class DiscordDigestRenderer
      *
      * @param  Collection<int, Game>  $venueGames
      */
-    private function venueLabel(Collection $venueGames): string
+    private function venueLabel(Collection $venueGames, string $locale): string
     {
         $first = $venueGames[0] ?? null;
         $location = $first !== null ? $this->loadedLocation($first) : null;
         $name = $location !== null ? trim((string) $location->name) : '';
 
-        return $name !== '' ? $name : self::NO_VENUE_LABEL;
+        return $name !== '' ? $name : $this->trans('discord.content_digest_no_venue', [], $locale);
     }
 
     /**
@@ -393,19 +389,20 @@ class DiscordDigestRenderer
      */
     private function rosterLabel(Game $game, DiscordDigestContext $context): string
     {
+        $locale = $this->resolveLocale($context->locale);
         $approved = $context->approvedCountFor((string) $game->id) ?? 0;
         $max = $this->intOrNull($game->max_players);
 
         if ($max !== null && $max > 0) {
             $value = "{$approved}/{$max}";
             if ($approved >= $max) {
-                $value .= ' full';
+                $value .= $this->trans('discord.content_digest_roster_full', [], $locale);
             }
 
             return $value;
         }
 
-        return 'open';
+        return $this->trans('discord.content_digest_roster_open', [], $locale);
     }
 
     private function deepLink(Game $game, DiscordDigestContext $context): ?string
@@ -464,7 +461,7 @@ class DiscordDigestRenderer
         $date = $first?->date_time;
 
         if ($date === null) {
-            return 'Undated';
+            return $this->trans('discord.content_digest_undated', [], $this->resolveLocale($context->locale));
         }
 
         $carbon = $date->copy();
@@ -494,7 +491,7 @@ class DiscordDigestRenderer
      *
      * @param  array<int, string>  $lines
      */
-    private function joinLinesWithCap(array $lines): string
+    private function joinLinesWithCap(array $lines, string $locale): string
     {
         if ($lines === []) {
             return '';
@@ -514,7 +511,7 @@ class DiscordDigestRenderer
 
         $remaining = count($lines) - $included;
         if ($remaining > 0) {
-            $marker = "… (+{$remaining} more)";
+            $marker = $this->trans('discord.content_digest_more_marker', ['count' => $remaining], $locale);
             $out .= ($out === '' ? '' : "\n").$marker;
         }
 
@@ -567,5 +564,29 @@ class DiscordDigestRenderer
         $int = (int) $value;
 
         return $int >= 0 ? $int : null;
+    }
+
+    // ── Locale ──────────────────────────────────────────
+
+    /**
+     * Resolve a non-empty locale string, falling back to the configured
+     * fallback locale (then 'en') so Lang never receives null.
+     */
+    private function resolveLocale(?string $locale): string
+    {
+        $resolved = ($locale !== null && $locale !== '') ? $locale : config('app.fallback_locale', 'en');
+
+        return is_string($resolved) && $resolved !== '' ? $resolved : 'en';
+    }
+
+    /**
+     * Translate a digest string in the guild's locale. Keeps the renderer's
+     * text audience-correct (the digest is read by guild members).
+     *
+     * @param  array<string, string|int>  $replace
+     */
+    private function trans(string $key, array $replace = [], ?string $locale = null): string
+    {
+        return Lang::get($key, $replace, $this->resolveLocale($locale));
     }
 }

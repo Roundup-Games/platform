@@ -54,7 +54,12 @@ return new class extends Migration
             $table->string('calendar_channel_id', 255)->nullable();
             $table->string('games_channel_id', 255)->nullable();
 
-            // Discord guild preferred_locale (e.g. "en-US"), nullable.
+            // The language roundup posts to this guild in (cards, digest,
+            // threads, dates) — a roundup code ("en"/"de"), nullable to mean
+            // "app default". Seeded from Discord's preferred_locale on first
+            // install (normalized to the primary subtag by
+            // DiscordBotInstallService) and overridable via the guild-settings
+            // surface; the landlord's choice is never overwritten by re-auth.
             $table->string('locale', 10)->nullable();
 
             // Landlord pause switch — stops/resumes all posting to this guild.

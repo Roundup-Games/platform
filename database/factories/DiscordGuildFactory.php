@@ -25,7 +25,7 @@ class DiscordGuildFactory extends Factory
             'digest_message_id' => null,
             'digest_channel_id' => null,
             'games_channel_id' => null,
-            'locale' => 'en-US',
+            'locale' => 'en',
             'paused' => false,
             'moderation_mode' => DiscordModerationMode::Open->value,
         ];

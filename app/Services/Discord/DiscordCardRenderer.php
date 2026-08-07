@@ -9,6 +9,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 
 /**
@@ -85,7 +86,7 @@ class DiscordCardRenderer
             'url' => $deepLink,
             'color' => $this->color($game),
             'timestamp' => $this->timestamp($game),
-            'footer' => ['text' => 'roundup · cross-community tabletop'],
+            'footer' => ['text' => $this->trans('discord.content_card_footer', [], $context->locale)],
             'fields' => $this->fields($game, $context),
         ];
 
@@ -128,17 +129,17 @@ class DiscordCardRenderer
         $roster = $this->rosterField($game, $context);
         $fields[] = $roster;
 
-        $systems = $this->systemsField($game);
+        $systems = $this->systemsField($game, $context->locale);
         if ($systems !== null) {
             $fields[] = $systems;
         }
 
-        $trust = $this->trustField($game);
+        $trust = $this->trustField($game, $context->locale);
         if ($trust !== null) {
             $fields[] = $trust;
         }
 
-        $venue = $this->venueField($game);
+        $venue = $this->venueField($game, $context->locale);
         if ($venue !== null) {
             $fields[] = $venue;
         }
@@ -178,7 +179,7 @@ class DiscordCardRenderer
             $value .= "\n⏱️ {$duration}";
         }
 
-        return ['name' => 'When', 'value' => $value, 'inline' => true];
+        return ['name' => $this->trans('discord.content_card_field_when', [], $context->locale), 'value' => $value, 'inline' => true];
     }
 
     /**
@@ -194,19 +195,19 @@ class DiscordCardRenderer
         if ($max !== null && $max > 0) {
             $countLine = "{$approved}/{$max}";
             if ($approved >= $max) {
-                $countLine .= ' — **Full**';
+                $countLine .= ' — **'.$this->trans('discord.content_card_full', [], $context->locale).'**';
             }
         } else {
             // Unlimited capacity (max_players null or 0 — see HasCapacity).
-            $countLine = "{$approved} joined · open roster";
+            $countLine = $this->trans('discord.content_card_joined_open_roster', ['count' => $approved], $context->locale);
         }
 
         $overflows = [];
         if ($context->waitlistCount > 0) {
-            $overflows[] = "{$context->waitlistCount} waitlist";
+            $overflows[] = $this->trans('discord.content_card_count_waitlist', ['count' => $context->waitlistCount], $context->locale);
         }
         if ($context->benchedCount > 0) {
-            $overflows[] = "{$context->benchedCount} bench";
+            $overflows[] = $this->trans('discord.content_card_count_bench', ['count' => $context->benchedCount], $context->locale);
         }
         if ($overflows !== []) {
             $countLine .= ' ('.implode(' · ', $overflows).')';
@@ -214,7 +215,7 @@ class DiscordCardRenderer
 
         $min = $this->intOrNull($game->min_players);
         if ($min !== null && $min > 0 && ($max === null || $max === 0)) {
-            $countLine .= " · min {$min}";
+            $countLine .= ' · '.$this->trans('discord.content_card_min', ['count' => $min], $context->locale);
         }
 
         // Name lines (only when Discord-linked members are supplied). Listed
@@ -223,7 +224,7 @@ class DiscordCardRenderer
         $names = $this->rosterNameLines($context);
 
         return [
-            'name' => 'Players',
+            'name' => $this->trans('discord.content_card_field_players', [], $context->locale),
             'value' => $names === '' ? $countLine : $countLine."\n".$names,
             // Block layout when we list names (they need the width); compact
             // inline when only a count is shown.
@@ -270,22 +271,24 @@ class DiscordCardRenderer
         // which always fits.
         foreach ([12, 8, 5, 3, 1, 0] as $cap) {
             $lines = [
-                $this->rosterGroupLine('In', $byStatus[ParticipantStatus::Approved->value], $context->approvedCount, $cap),
+                $this->rosterGroupLine($this->trans('discord.content_card_roster_in', [], $context->locale), $byStatus[ParticipantStatus::Approved->value], $context->approvedCount, $cap, $context->locale),
             ];
             if ($context->waitlistCount > 0) {
                 $lines[] = $this->rosterGroupLine(
-                    "Waitlist ({$context->waitlistCount})",
+                    $this->trans('discord.content_card_roster_waitlist', ['count' => $context->waitlistCount], $context->locale),
                     $byStatus[ParticipantStatus::Waitlisted->value],
                     $context->waitlistCount,
                     $cap,
+                    $context->locale,
                 );
             }
             if ($context->benchedCount > 0) {
                 $lines[] = $this->rosterGroupLine(
-                    "Bench ({$context->benchedCount})",
+                    $this->trans('discord.content_card_roster_bench', ['count' => $context->benchedCount], $context->locale),
                     $byStatus[ParticipantStatus::Benched->value],
                     $context->benchedCount,
                     $cap,
+                    $context->locale,
                 );
             }
             $joined = trim(implode("\n", array_filter($lines, fn ($l) => $l !== '')));
@@ -304,7 +307,7 @@ class DiscordCardRenderer
      * @param  int  $totalCount  Total participants in this roster (linked + unlinked).
      * @param  int  $cap  Max linked names to render (overflow folds to "+y more").
      */
-    private function rosterGroupLine(string $header, array $members, int $totalCount, int $cap): string
+    private function rosterGroupLine(string $header, array $members, int $totalCount, int $cap, ?string $locale = null): string
     {
         if ($totalCount <= 0 && $members === []) {
             return '';
@@ -319,12 +322,12 @@ class DiscordCardRenderer
 
         $moreLinked = count($members) - count($shown);
         if ($moreLinked > 0) {
-            $parts[] = "+{$moreLinked} more";
+            $parts[] = $this->trans('discord.content_card_more', ['count' => $moreLinked], $locale);
         }
 
         $roundupOnly = max(0, $totalCount - count($members));
         if ($roundupOnly > 0) {
-            $parts[] = "+{$roundupOnly} from roundup";
+            $parts[] = $this->trans('discord.content_card_from_roundup', ['count' => $roundupOnly], $locale);
         }
 
         if ($parts === []) {
@@ -352,7 +355,7 @@ class DiscordCardRenderer
     /**
      * @return array{name: string, value: string, inline: bool}|null
      */
-    private function systemsField(Game $game): ?array
+    private function systemsField(Game $game, ?string $locale = null): ?array
     {
         $systems = $this->loadedSystems($game);
         if ($systems->isEmpty()) {
@@ -364,7 +367,7 @@ class DiscordCardRenderer
             return null;
         }
 
-        return ['name' => 'System', 'value' => implode(' · ', $labels->all()), 'inline' => true];
+        return ['name' => $this->trans('discord.content_card_field_system', [], $locale), 'value' => implode(' · ', $labels->all()), 'inline' => true];
     }
 
     /**
@@ -374,7 +377,7 @@ class DiscordCardRenderer
      *
      * @return array{name: string, value: string, inline: bool}|null
      */
-    private function trustField(Game $game): ?array
+    private function trustField(Game $game, ?string $locale = null): ?array
     {
         $owner = $this->loadedOwner($game);
         if (! $owner) {
@@ -394,20 +397,20 @@ class DiscordCardRenderer
         $pct = is_numeric($scoreRaw) ? (int) round((float) $scoreRaw) : null;
 
         $badge = match ($tier) {
-            'reliable' => '🟢 Reliable',
-            'active' => '🔵 Active',
-            default => '🟡 Newcomer',
+            'reliable' => $this->trans('discord.content_card_tier_reliable', [], $locale),
+            'active' => $this->trans('discord.content_card_tier_active', [], $locale),
+            default => $this->trans('discord.content_card_tier_newcomer', [], $locale),
         };
 
         $parts = [$badge];
         if ($pct !== null) {
-            $parts[] = "{$pct}% reliable";
+            $parts[] = $this->trans('discord.content_card_reliable_pct', ['pct' => $pct], $locale);
         }
         if ($games !== null && $games > 0) {
-            $parts[] = "{$games} game".($games === 1 ? '' : 's').' hosted';
+            $parts[] = Lang::choice('discord.content_card_games_hosted', $games, ['count' => $games], $this->resolveLocale($locale));
         }
 
-        return ['name' => 'Organizer', 'value' => implode(' · ', $parts), 'inline' => true];
+        return ['name' => $this->trans('discord.content_card_field_organizer', [], $locale), 'value' => implode(' · ', $parts), 'inline' => true];
     }
 
     /**
@@ -416,7 +419,7 @@ class DiscordCardRenderer
      *
      * @return array{name: string, value: string, inline: bool}|null
      */
-    private function venueField(Game $game): ?array
+    private function venueField(Game $game, ?string $locale = null): ?array
     {
         $location = $this->loadedLocation($game);
         if (! $location) {
@@ -431,13 +434,13 @@ class DiscordCardRenderer
         if ($name !== '') {
             $lines[] = $website !== null ? "[**{$name}**]({$website})" : "**{$name}**";
         } elseif ($website !== null) {
-            $lines[] = "[**Venue**]({$website})";
+            $lines[] = '[**'.$this->trans('discord.content_card_field_venue', [], $locale).'**]('.$website.')';
         }
 
         // Map link — lat/lng when available (precise), else a name/address query.
         $mapUrl = $this->mapUrl($location);
         if ($mapUrl !== null) {
-            $lines[] = "🗺️ [Open in Maps]({$mapUrl})";
+            $lines[] = '🗺️ ['.$this->trans('discord.content_card_open_in_maps', [], $locale).']('.$mapUrl.')';
         }
 
         // Operational parameters surfaced from venue_metadata (M055/S05).
@@ -450,7 +453,7 @@ class DiscordCardRenderer
             return null;
         }
 
-        return ['name' => 'Venue', 'value' => implode("\n", $lines), 'inline' => false];
+        return ['name' => $this->trans('discord.content_card_field_venue', [], $locale), 'value' => implode("\n", $lines), 'inline' => false];
     }
 
     /**
@@ -468,13 +471,16 @@ class DiscordCardRenderer
         }
 
         $count = $context->crossCommunityAttendeeCount;
-        $where = $context->guildName !== null && $context->guildName !== ''
-            ? "outside {$context->guildName}"
-            : 'from beyond this server';
+
+        if ($context->guildName !== null && $context->guildName !== '') {
+            $value = $this->trans('discord.content_card_cross_value_outside', ['count' => $count, 'guild' => $context->guildName], $context->locale);
+        } else {
+            $value = $this->trans('discord.content_card_cross_value_generic', ['count' => $count], $context->locale);
+        }
 
         return [
-            'name' => '🌐 Cross-community',
-            'value' => "**{$count}** attending {$where} — the roundup community reaches across servers",
+            'name' => $this->trans('discord.content_card_field_cross_community', [], $context->locale),
+            'value' => $value,
             'inline' => false,
         ];
     }
@@ -498,7 +504,7 @@ class DiscordCardRenderer
             [
                 'type' => 2, // BUTTON
                 'style' => 1, // PRIMARY (blurple)
-                'label' => '🎟️ My seat',
+                'label' => $this->trans('discord.content_card_button_my_seat', [], $context->locale),
                 // custom_id carries the game_id so the stateless Interactions
                 // endpoint (D117) can resolve the target game. Namespaced so
                 // roundup interactions never collide with another bot's.
@@ -507,7 +513,7 @@ class DiscordCardRenderer
             [
                 'type' => 2, // BUTTON
                 'style' => 5, // LINK
-                'label' => 'View on roundup',
+                'label' => $this->trans('discord.content_card_button_view', [], $context->locale),
                 'url' => $deepLink,
             ],
         ];
@@ -744,5 +750,30 @@ class DiscordCardRenderer
         $float = (float) $value;
 
         return $float !== 0.0 ? $float : null;
+    }
+
+    // ── Locale ──────────────────────────────────────────
+
+    /**
+     * Resolve a non-empty locale string, falling back to the configured
+     * fallback locale (then 'en') so Lang never receives null.
+     */
+    private function resolveLocale(?string $locale): string
+    {
+        $resolved = ($locale !== null && $locale !== '') ? $locale : config('app.fallback_locale', 'en');
+
+        return is_string($resolved) && $resolved !== '' ? $resolved : 'en';
+    }
+
+    /**
+     * Translate a card string in the guild's locale. Keeps the renderer's text
+     * audience-correct (the card is read by guild members) while staying a pure
+     * function of (key, replace, locale) — Lang::get is a cached, stateless read.
+     *
+     * @param  array<string, string|int>  $replace
+     */
+    private function trans(string $key, array $replace = [], ?string $locale = null): string
+    {
+        return Lang::get($key, $replace, $this->resolveLocale($locale));
     }
 }

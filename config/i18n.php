@@ -54,6 +54,12 @@ return [
         'notifications' => [
             'channel_discord',
         ],
+        'discord' => [
+            // Brand / proper noun — identical in EN and DE
+            'label_discord',
+            // True cognate — identical in EN and DE
+            'heading_server',
+        ],
     ],
 
 ];

@@ -443,9 +443,9 @@ class DiscordDigestRendererTest extends TestCase
 
     // ── Fixture builders (pure — factory make(), no DB) ─
 
-    private function context(array $approvedCounts = []): DiscordDigestContext
+    private function context(array $approvedCounts = [], ?string $locale = null): DiscordDigestContext
     {
-        return new DiscordDigestContext(approvedCounts: $approvedCounts, appUrl: 'https://roundup.test');
+        return new DiscordDigestContext(approvedCounts: $approvedCounts, appUrl: 'https://roundup.test', locale: $locale);
     }
 
     private function lineFor(Game $game, DiscordDigestContext $context): string
@@ -502,5 +502,79 @@ class DiscordDigestRendererTest extends TestCase
             'id' => Str::uuid()->toString(),
             'name' => ['en' => 'Test System'],
         ], $overrides));
+    }
+
+    // ── Locale (guild-locale rendering) ────────────────
+
+    #[Test]
+    public function renders_footer_and_empty_state_in_guild_locale_when_locale_is_de()
+    {
+        $payload = $this->renderer->render(collect([]), $this->context(locale: 'de'));
+        $embed = $payload->toArray()['embeds'][0];
+
+        $this->assertStringContainsString('Keine öffentlichen Events', $embed['title'], 'empty-state title is German');
+        $this->assertStringContainsString('keine öffentlichen roundup-Spiele', $embed['description']);
+        $this->assertStringContainsString('tabletop über Community-Grenzen', $embed['footer']['text']);
+    }
+
+    #[Test]
+    public function renders_empty_state_in_english_when_locale_is_en()
+    {
+        $payload = $this->renderer->render(collect([]), $this->context(locale: 'en'));
+        $embed = $payload->toArray()['embeds'][0];
+
+        $this->assertStringContainsString('No public events scheduled', $embed['title']);
+        $this->assertStringContainsString('cross-community tabletop', $embed['footer']['text']);
+    }
+
+    #[Test]
+    public function falls_back_to_fallback_locale_when_guild_locale_is_null()
+    {
+        // Null guild locale → the configured fallback_locale (en), not the
+        // current app locale (the digest renders on a queue worker where the
+        // app locale is not meaningful).
+        $payload = $this->renderer->render(collect([]), $this->context());
+        $embed = $payload->toArray()['embeds'][0];
+
+        $this->assertStringContainsString('No public events scheduled', $embed['title'], 'falls back to fallback_locale (en)');
+    }
+
+    #[Test]
+    public function renders_no_venue_label_in_guild_locale()
+    {
+        // Game with no linked venue → the venue heading uses the locale label.
+        $game = $this->makeGameOn('2026-08-15 19:00:00', venue: null);
+
+        $payload = $this->renderer->render(collect([$game]), $this->context(locale: 'de'));
+        $field = $payload->toArray()['embeds'][0]['fields'][0];
+
+        $this->assertSame('Online / kein Ort', $field['name']);
+    }
+
+    #[Test]
+    public function renders_undated_heading_in_guild_locale_when_game_has_no_date()
+    {
+        $game = $this->makeGameOn('2026-08-15 19:00:00', overrides: ['date_time' => null]);
+
+        $payload = $this->renderer->render(collect([$game]), $this->context(locale: 'de'));
+        $title = $payload->toArray()['embeds'][0]['title'];
+
+        $this->assertSame('Ohne Datum', $title);
+    }
+
+    #[Test]
+    public function renders_roster_states_in_guild_locale()
+    {
+        $fullGame = $this->makeGameOn('2026-08-15 19:00:00', name: 'Full Game', overrides: ['max_players' => 1]);
+        $openGame = $this->makeGameOn('2026-08-15 19:00:00', name: 'Open Game', overrides: ['max_players' => null]);
+
+        $payload = $this->renderer->render(
+            collect([$fullGame, $openGame]),
+            $this->context(approvedCounts: [$fullGame->id => 1], locale: 'de'),
+        );
+
+        $lines = $payload->toArray()['embeds'][0]['fields'][0]['value'];
+        $this->assertStringContainsString('1/1 voll', $lines, 'full roster shows German “voll”');
+        $this->assertStringContainsString('offen', $lines, 'unlimited roster shows German “offen”');
     }
 }

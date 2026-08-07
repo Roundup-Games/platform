@@ -203,9 +203,22 @@ class DiscordBotInstallService
                 'icon' => is_string($detail['icon'] ?? null) ? $detail['icon'] : null,
                 'owner_user_id' => $landlord->id,
                 // Channels are null until the landlord picks them (T06 settings surface).
-                'locale' => is_string($detail['preferred_locale'] ?? null) ? $detail['preferred_locale'] : null,
+                // locale is seeded create-only below (see normalizeLocaleForRoundup)
+                // so a re-auth never clobbers a landlord's later override.
             ],
         );
+
+        // Seed the posting locale from Discord's preferred_locale ONLY on first
+        // install. Discord returns region-tagged BCP-47 codes ("de-DE", "en-US")
+        // that the translator cannot resolve — there is no lang/de-DE/, so they
+        // silently fall back to English. normalizeLocaleForRoundup() collapses
+        // to a roundup code ("de") so German guilds render German out of the
+        // box. Create-only seeding means a landlord's explicit choice survives
+        // every later re-auth.
+        if ($guild->wasRecentlyCreated) {
+            $guild->locale = $this->normalizeLocaleForRoundup($detail['preferred_locale'] ?? null);
+            $guild->save();
+        }
 
         Log::info('discord_bot_install.guild_installed', [
             'guild_id' => $guildSnowflake,
@@ -399,6 +412,32 @@ class DiscordBotInstallService
     private function isValidSnowflake(string $value): bool
     {
         return $value !== '' && preg_match('/^[0-9]{17,20}$/', $value) === 1;
+    }
+
+    /**
+     * Normalize Discord's BCP-47 guild preferred_locale ("de-DE", "en-US",
+     * "ja-JP") into a roundup language code that has a matching lang/{code}/
+     * directory, or null when roundup has no translation for it.
+     *
+     * Why: the renderers and DiscordInteractionController feed $guild->locale
+     * straight into Lang::get(..., $locale), which resolves ONLY against the
+     * 2-letter lang directories. A stored "de-DE" misses lang/de and silently
+     * falls back to the app fallback_locale (English) — verified empirically.
+     * Collapsing to the primary subtag fixes that, and gating on
+     * available_locales drops unsupported languages ("fr-FR" -> null) so they
+     * fall back cleanly rather than rendering a partial mix.
+     */
+    private function normalizeLocaleForRoundup(mixed $preferredLocale): ?string
+    {
+        if (! is_string($preferredLocale) || $preferredLocale === '') {
+            return null;
+        }
+
+        $primary = Str::before($preferredLocale, '-');
+        $available = config('app.available_locales', ['en']);
+        $available = is_array($available) ? $available : ['en'];
+
+        return in_array($primary, $available, true) ? $primary : null;
     }
 
     /**

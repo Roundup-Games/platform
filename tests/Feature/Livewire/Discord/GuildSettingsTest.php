@@ -67,7 +67,9 @@ class GuildSettingsTest extends TestCase
             'owner_user_id' => $landlord->id,
             'name' => 'Dice Tower Den',
             'icon' => 'abc123',
-            'locale' => 'en-US',
+            // Discord's "en-US" preferred_locale is normalized to the roundup
+            // code "en" on install (see DiscordBotInstallService).
+            'locale' => 'en',
             'paused' => false,
         ]);
 

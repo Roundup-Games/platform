@@ -589,4 +589,59 @@ class DiscordCardRendererTest extends TestCase
 
         $this->fail("Expected embed field '{$name}' not present. Fields: ".implode(', ', $this->fieldNames($embed)));
     }
+
+    // ── Locale (guild-locale rendering) ────────────────
+
+    #[Test]
+    public function renders_all_card_labels_in_german_when_guild_locale_is_de()
+    {
+        $system = $this->makeSystem(['name' => 'Catan']);
+        $owner = $this->makeOwner([
+            'reliability_score' => ['score' => 92.0, 'game_count' => 5, 'tier' => 'reliable'],
+        ]);
+        $game = $this->makeGame(['name' => ['en' => 'Catan Nacht']], $owner, null, collect([$system]));
+
+        $context = new DiscordCardContext(
+            approvedCount: 3,
+            appUrl: 'https://roundup.test',
+            locale: 'de',
+        );
+
+        $embed = $this->renderer->render($game, $context)->embed;
+
+        $this->assertContains('Wann', $this->fieldNames($embed));
+        $this->assertContains('Mitspieler', $this->fieldNames($embed));
+        $this->assertContains('System', $this->fieldNames($embed));
+        $this->assertContains('Spielleitung', $this->fieldNames($embed));
+        $this->assertSame('roundup · tabletop über Community-Grenzen hinweg', $embed['footer']['text']);
+
+        // Trust badge localized.
+        $organizerValue = $this->field($embed, 'Spielleitung');
+        $this->assertStringContainsString('🟢 Zuverlässig', $organizerValue);
+        $this->assertStringContainsString('92% zuverlässig', $organizerValue);
+    }
+
+    #[Test]
+    public function renders_card_buttons_in_guild_locale()
+    {
+        $game = $this->makeGame(['name' => ['en' => 'Test']]);
+        $context = new DiscordCardContext(appUrl: 'https://roundup.test', locale: 'de');
+
+        $components = $this->renderer->render($game, $context)->components;
+        $labels = array_map(fn (array $b): string => $b['label'], $components[0]['components']);
+
+        $this->assertSame('🎟️ Mein Platz', $labels[0]);
+        $this->assertSame('Auf roundup ansehen', $labels[1]);
+    }
+
+    #[Test]
+    public function renders_full_roster_marker_in_guild_locale()
+    {
+        $game = $this->makeGame(['max_players' => 2]);
+        $context = new DiscordCardContext(approvedCount: 2, appUrl: 'https://roundup.test', locale: 'de');
+
+        $playersValue = $this->field($this->renderer->render($game, $context)->embed, 'Mitspieler');
+        $this->assertStringContainsString('2/2', $playersValue);
+        $this->assertStringContainsString('**Voll**', $playersValue, 'full marker is German “Voll”');
+    }
 }

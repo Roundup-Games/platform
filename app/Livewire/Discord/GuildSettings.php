@@ -33,6 +33,11 @@ use Livewire\Component;
  * paused guild as "do not post"; this surface logs the pause/resume action
  * per the slice verification contract (landlord pause and resume actions
  * logged).
+ *
+ * Posting language: the landlord picks the roundup code roundup posts to this
+ * guild in (cards, digest, threads, dates) via {@see saveLocale()}. Seeded
+ * from Discord's preferred_locale on first install (normalized) and never
+ * overwritten by re-auth — see DiscordBotInstallService.
  */
 #[Layout('layouts.app')]
 class GuildSettings extends Component
@@ -52,12 +57,24 @@ class GuildSettings extends Component
 
     public bool $paused = false;
 
+    /**
+     * The locale roundup posts to this guild in (cards, digest, threads,
+     * dates). A roundup code ("en"/"de"), nullable to mean "app default".
+     * Seeded from Discord's preferred_locale on first install (normalized by
+     * DiscordBotInstallService), overridable here, and never overwritten by a
+     * later re-auth — see DiscordBotInstallService::completeInstall().
+     */
+    public ?string $locale = null;
+
     public string $guildName = '';
 
     /** @var list<array{id: string, name: string, type: int}> Channels the landlord can pick from */
     public array $channels = [];
 
     public bool $saved = false;
+
+    /** Flashed after saveLocale() so the Language section confirms on its own. */
+    public bool $localeSaved = false;
 
     public bool $pausedChanged = false;
 
@@ -85,6 +102,7 @@ class GuildSettings extends Component
         $this->calendar_channel_id = $guildModel->calendar_channel_id;
         $this->games_channel_id = $guildModel->games_channel_id;
         $this->paused = (bool) $guildModel->paused;
+        $this->locale = $guildModel->locale;
 
         $this->loadChannels();
     }
@@ -129,6 +147,37 @@ class GuildSettings extends Component
     }
 
     /**
+     * Persist the landlord's posting-language choice.
+     *
+     * Separate from {@see save()} so each section has its own confirmation
+     * flash ("Language saved." vs "Channels saved.") — and so changing only
+     * the language never rewrites the channel routing. An empty value clears
+     * the stored locale, falling back to the app default at render time.
+     */
+    public function saveLocale(DiscordBotInstallService $installService): void
+    {
+        $guildModel = $this->resolveGuild();
+        $this->authorizeOwner($guildModel);
+
+        $validated = $this->validate([
+            'locale' => ['nullable', 'string', 'in:'.implode(',', array_keys($this->localeOptions()))],
+        ]);
+
+        $guildModel->update([
+            'locale' => $validated['locale'] ?: null,
+        ]);
+
+        Log::info('discord_guild.locale_configured', [
+            'guild_id' => $guildModel->guild_id,
+            'row_id' => $guildModel->id,
+            'locale' => $guildModel->locale,
+            'owner_user_id' => $guildModel->owner_user_id,
+        ]);
+
+        $this->localeSaved = true;
+    }
+
+    /**
      * Toggle the landlord pause switch. Logged per the slice verification
      * contract (landlord pause and resume actions logged).
      */
@@ -157,7 +206,32 @@ class GuildSettings extends Component
 
         return view('livewire.discord.guild-settings', [
             'guild' => $guildModel,
+            'availableLocales' => $this->localeOptions(),
         ]);
+    }
+
+    /**
+     * The locales a guild manager can pick, each with its endonym so a manager
+     * recognises their own language regardless of the viewer's UI locale.
+     *
+     * @return array<string, string> code => endonym
+     */
+    private function localeOptions(): array
+    {
+        $endonyms = ['en' => 'English', 'de' => 'Deutsch'];
+
+        $codes = config('app.available_locales', ['en']);
+        $codes = is_array($codes) ? $codes : ['en'];
+
+        $options = [];
+        foreach ($codes as $code) {
+            if (! is_string($code)) {
+                continue;
+            }
+            $options[$code] = $endonyms[$code] ?? $code;
+        }
+
+        return $options;
     }
 
     // ── Helpers ────────────────────────────────────────
