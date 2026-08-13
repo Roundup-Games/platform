@@ -100,8 +100,12 @@ it('rethrows a duplicate-email insert race as an email field error, not a 500', 
 
     $response = $this->post('/en/register', $payload);
 
+    // A 500 would set no validation errors; the email error proves store()
+    // caught the constraint violation and turned it into a field error. We
+    // cannot query users here: Postgres aborts the surrounding test
+    // transaction once the duplicate insert fails.
+    $response->assertRedirect();
     $response->assertSessionHasErrors(['email']);
-    expect(User::where('email', $payload['email'])->count())->toBe(1);
 })->group('smoke');
 
 it('sends an email verification notification on registration (MustVerifyEmail contract)', function () {
