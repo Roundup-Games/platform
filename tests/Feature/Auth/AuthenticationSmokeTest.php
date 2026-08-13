@@ -80,6 +80,28 @@ it('rejects registration with duplicate email', function () {
     expect(User::where('email', $existing->email)->count())->toBe(1);
 })->group('smoke');
 
+it('rethrows a duplicate-email insert race as an email field error, not a 500', function () {
+    // The 'unique:users' rule and the insert are two statements, so two
+    // near-simultaneous signups both pass the rule and the second insert hits
+    // users_email_unique. Simulate that: after validation passes, a concurrent
+    // signup inserts the same email just before store() reaches its own insert.
+    $payload = registrationPayload();
+
+    $raced = false;
+    User::creating(function () use (&$raced, $payload) {
+        if ($raced) {
+            return;
+        }
+        $raced = true;
+        User::withoutEvents(fn () => User::factory()->create(['email' => $payload['email']]));
+    });
+
+    $response = $this->post('/en/register', $payload);
+
+    $response->assertSessionHasErrors(['email']);
+    expect(User::where('email', $payload['email'])->count())->toBe(1);
+})->group('smoke');
+
 it('sends an email verification notification on registration (MustVerifyEmail contract)', function () {
     // M058: User now implements MustVerifyEmail, so the framework's
     // SendEmailVerificationNotification listener fires on Registered and sends

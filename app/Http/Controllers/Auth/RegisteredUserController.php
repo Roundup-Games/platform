@@ -9,6 +9,7 @@ use App\Services\PendingInvitationMatcher;
 use App\Services\PostHogAnalytics;
 use App\Support\FirstTouch;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -49,21 +50,32 @@ class RegisteredUserController extends Controller
         // forgets the keys so they cannot leak into a later signup.
         $firstTouch = FirstTouch::consume($request);
 
-        $user = User::create([
-            'name' => $sanitizedName,
-            'email' => $request->email,
-            'password' => Hash::make($password),
-            'password_set_at' => now(),
-            'profile_complete' => false,
-            'slug' => User::generateUniqueSlug($sanitizedName),
-            'privacy_policy_accepted_at' => now(),
-            'terms_accepted_at' => now(),
-            'signup_oauth_provider' => 'email',
-            'first_touch_referer_domain' => FirstTouch::reduceDomain($firstTouch['referer']),
-            'first_touch_path' => $firstTouch['path'],
-            'signup_content_type' => $firstTouch['content_type'],
-            'signup_content_slug' => $firstTouch['content_slug'],
-        ]);
+        // The 'unique:users' rule above and this insert are two statements. Two
+        // near-simultaneous signups with the same email both pass the rule, then
+        // the second insert hits the users_email_unique constraint. Rethrow that
+        // race as the field error the validator would have shown, so the second
+        // person sees "email already taken" instead of a 500.
+        try {
+            $user = User::create([
+                'name' => $sanitizedName,
+                'email' => $request->email,
+                'password' => Hash::make($password),
+                'password_set_at' => now(),
+                'profile_complete' => false,
+                'slug' => User::generateUniqueSlug($sanitizedName),
+                'privacy_policy_accepted_at' => now(),
+                'terms_accepted_at' => now(),
+                'signup_oauth_provider' => 'email',
+                'first_touch_referer_domain' => FirstTouch::reduceDomain($firstTouch['referer']),
+                'first_touch_path' => $firstTouch['path'],
+                'signup_content_type' => $firstTouch['content_type'],
+                'signup_content_slug' => $firstTouch['content_slug'],
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages([
+                'email' => trans('validation.unique', ['attribute' => 'email']),
+            ]);
+        }
 
         event(new Registered($user));
 
