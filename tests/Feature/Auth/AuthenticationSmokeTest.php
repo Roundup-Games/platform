@@ -93,7 +93,9 @@ it('rethrows a duplicate-email insert race as an email field error, not a 500', 
             return;
         }
         $raced = true;
-        User::withoutEvents(fn () => User::factory()->create(['email' => $payload['email']]));
+        // Let events fire so the model's creating hook still generates the id
+        // and slug. The $raced guard above stops this insert from recursing.
+        User::factory()->create(['email' => $payload['email']]);
     });
 
     $response = $this->post('/en/register', $payload);
