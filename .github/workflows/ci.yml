@@ -34,7 +34,11 @@ jobs:
           tools: composer:v2
 
       - name: Install dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
+        uses: ramsey/composer-install@v3
+        with:
+          # Locked: honor the committed composer.lock (same rationale as the
+          # test job) so every job installs byte-identical dependencies.
+          dependency-versions: locked
 
       - name: Check code style
         run: vendor/bin/pint --test
@@ -57,7 +61,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Install dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
+        uses: ramsey/composer-install@v3
+        with:
+          # Locked: honor the committed composer.lock (same rationale as the
+          # test job) so every job installs byte-identical dependencies.
+          dependency-versions: locked
 
       - name: Check Eloquent best-practices baseline
         run: composer practices
@@ -75,7 +83,11 @@ jobs:
           tools: composer:v2
 
       - name: Install dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
+        uses: ramsey/composer-install@v3
+        with:
+          # Locked: honor the committed composer.lock (same rationale as the
+          # test job) so every job installs byte-identical dependencies.
+          dependency-versions: locked
 
       - name: Verify Larastan schema is in sync
         # Regenerate the Larastan-compatible schema from the squashed dump
