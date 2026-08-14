@@ -44,6 +44,7 @@ use App\Services\ICal\ICalFeedRenderer;
 use App\Services\PostHogClient;
 use App\Services\PostHogFeatureFlag;
 use App\Services\ReliabilityScoreService;
+use App\Services\ScopedRoleService;
 use App\Services\WaitlistService;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
@@ -97,6 +98,10 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 use RalphJSmit\Laravel\SEO\TagManager;
 use SocialiteProviders\Discord\DiscordExtendSocialite;
 use SocialiteProviders\Manager\SocialiteWasCalled;
+use Spatie\Permission\Events\PermissionAttachedEvent;
+use Spatie\Permission\Events\PermissionDetachedEvent;
+use Spatie\Permission\Events\RoleAttachedEvent;
+use Spatie\Permission\Events\RoleDetachedEvent;
 use Spatie\Translatable\Facades\Translatable;
 
 class AppServiceProvider extends ServiceProvider
@@ -219,6 +224,14 @@ class AppServiceProvider extends ServiceProvider
         // Escalated ticket event listeners for game system requests
         EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
         EventFacade::listen(TicketClosed::class, HandleGameSystemTicketClosed::class);
+
+        // Role/permission mutations must invalidate ScopedRoleService's
+        // per-request memo (WeakMap on the User instance) so a role granted
+        // or revoked mid-request takes effect on the next check.
+        EventFacade::listen(RoleAttachedEvent::class, fn () => ScopedRoleService::flushMemo());
+        EventFacade::listen(RoleDetachedEvent::class, fn () => ScopedRoleService::flushMemo());
+        EventFacade::listen(PermissionAttachedEvent::class, fn () => ScopedRoleService::flushMemo());
+        EventFacade::listen(PermissionDetachedEvent::class, fn () => ScopedRoleService::flushMemo());
 
         // Safety net: never deliver to synthetic/demo (RFC 2606) email domains.
         // Fires on every send path (queue, scheduler, web) so demo data created by
