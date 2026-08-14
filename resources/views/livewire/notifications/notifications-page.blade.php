@@ -82,14 +82,11 @@
                     {{-- Expanded individual items --}}
                     @if($group->count > 1 && isset($expandedGroups[$group->groupKey]))
                         <div class="border-t border-outline-variant/10 bg-surface-container-low/50">
-                            @php
-                                // Fetch individual notifications for this group
-                                $individuals = $this->authUser->notifications()
-                                    ->where('type', $group->fullType)
-                                    ->whereDate('created_at', \Carbon\Carbon::parse($group->createdAt->toDateString()))
-                                    ->orderBy('created_at', 'desc')
-                                    ->get();
-                            @endphp
+                        @php
+                            // Batched by the component (one query for ALL expanded
+                            // groups) — was one query per group per render here.
+                            $individuals = $this->expandedGroupIndividuals[$group->fullType.'|'.$group->createdAt->toDateString()] ?? collect();
+                        @endphp
                             @foreach($individuals as $notification)
                                 <div class="flex items-start gap-3 px-4 py-2.5 {{ ! $loop->last ? 'border-b border-outline-variant/5' : '' }} {{ $notification->read_at ? 'opacity-60' : '' }}">
                                     <span class="mt-1 shrink-0 w-1.5 h-1.5 rounded-full {{ $notification->read_at ? 'bg-transparent' : 'bg-primary' }}"></span>
