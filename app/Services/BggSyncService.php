@@ -10,6 +10,7 @@ use App\Models\GameSystemDesigner;
 use App\Models\GameSystemFamily;
 use App\Models\GameSystemMechanic;
 use App\Models\GameSystemPublisher;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -224,7 +225,18 @@ class BggSyncService
      */
     public function search(string $query): array
     {
-        return $this->parser->parseSearchResults($this->client->search($query));
+        $normalized = trim($query);
+
+        // BGG responses are effectively immutable and every live call pays the
+        // client's 2s rate-limit throttle (plus 202-retry sleeps) — repeated
+        // admin searches of the same term must hit the cache instead.
+        $cacheKey = 'bgg:search:'.hash('xxh128', mb_strtolower($normalized));
+
+        /** @var array<int, array{bgg_id: int, name: string, year_released: int|null, bgg_type: string}> $results */
+        $results = Cache::remember($cacheKey, now()->addDays(7),
+            fn () => $this->parser->parseSearchResults($this->client->search($normalized)));
+
+        return $results;
     }
 
     /**
@@ -237,9 +249,18 @@ class BggSyncService
      */
     public function previewGameSystem(int $bggId): ?array
     {
-        $items = $this->parser->parseItems($this->client->fetchThing([$bggId]));
+        // Same caching rationale as search(): BGG thing data is immutable and
+        // the admin preview flow re-fetches the same id repeatedly while a
+        // ticket is being vetted.
+        /** @var array<string, mixed>|null $preview */
+        $preview = Cache::remember("bgg:thing:{$bggId}", now()->addDays(30),
+            function () use ($bggId): ?array {
+                $items = $this->parser->parseItems($this->client->fetchThing([$bggId]));
 
-        return $items[0] ?? null;
+                return $items[0] ?? null;
+            });
+
+        return $preview;
     }
 
     /**

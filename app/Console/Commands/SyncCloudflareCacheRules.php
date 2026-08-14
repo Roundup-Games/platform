@@ -383,7 +383,7 @@ class CloudflareClient
     {
         $response = Http::withHeaders([
             'Authorization' => "Bearer {$this->apiToken}",
-        ])->get("{$this->baseUrl}/zones/{$this->zoneId}/rulesets/phases/http_request_cache_settings/entrypoint");
+        ])->timeout(15)->connectTimeout(5)->get("{$this->baseUrl}/zones/{$this->zoneId}/rulesets/phases/http_request_cache_settings/entrypoint");
 
         $this->checkResponse($response, 'get cache ruleset');
 
@@ -402,7 +402,7 @@ class CloudflareClient
         $response = Http::withHeaders([
             'Authorization' => "Bearer {$this->apiToken}",
             'Content-Type' => 'application/json',
-        ])->put("{$this->baseUrl}/zones/{$this->zoneId}/rulesets/{$rulesetId}", [
+        ])->timeout(15)->connectTimeout(5)->put("{$this->baseUrl}/zones/{$this->zoneId}/rulesets/{$rulesetId}", [
             'rules' => $rules,
         ]);
 
@@ -417,7 +417,7 @@ class CloudflareClient
         $response = Http::withHeaders([
             'Authorization' => "Bearer {$this->apiToken}",
             'Content-Type' => 'application/json',
-        ])->post("{$this->baseUrl}/zones/{$this->zoneId}/purge_cache", [
+        ])->timeout(15)->connectTimeout(5)->post("{$this->baseUrl}/zones/{$this->zoneId}/purge_cache", [
             'purge_everything' => true,
         ]);
 

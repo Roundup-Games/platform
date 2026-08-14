@@ -59,10 +59,13 @@ class UserPreferenceResolver
             }
         }
 
-        // Merge explicit avoids with implied avoids (implied only if not explicitly favorited)
+        // Merge explicit avoids with implied avoids (implied only if not explicitly favorited).
+        // keyBy hoisted out of the loop — rebuilding the lookup every iteration
+        // was O(avoided × favorites) on the discovery request path.
         $allAvoided = $avoided->keyBy('id');
+        $resolvedFavoriteIds = $resolvedFavorites->keyBy('id');
         foreach ($impliedAvoidIds as $id => $expansion) {
-            if (! $resolvedFavorites->keyBy('id')->has($id) && ! $impliedFavorites->has($id)) {
+            if (! $resolvedFavoriteIds->has($id) && ! $impliedFavorites->has($id)) {
                 $allAvoided->put($id, $expansion);
             }
         }

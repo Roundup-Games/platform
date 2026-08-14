@@ -402,21 +402,34 @@ class GenerateUserDataExport extends Command
     }
 
     /**
-     * @return array<string, mixed>
+     * @return list<array{id: mixed, event_type: string|null, subject_type: string|null, subject_id: mixed, created_at: string|null}>
      */
     protected function gatherActivityLog(User $user): array
     {
-        return ActivityLog::whereBelongsTo($user)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn (ActivityLog $log) => [
-                'id' => $log->id,
-                'event_type' => $log->event_type?->value,
-                'subject_type' => $log->subject_type,
-                'subject_id' => $log->subject_id,
-                'created_at' => $log->created_at?->toIso8601String(),
-            ])
-            ->toArray();
+        // Chunked to bound peak memory: a veteran user's activity log is the
+        // largest section of the export (every join/recap/follow/invite ever
+        // triggered) and hydrating it as one Eloquent collection tripled the
+        // payload (models + mapped arrays + pretty-printed JSON) in a single
+        // shot — enough to OOM a GDPR-mandated export under the CLI limit.
+        // Rows are converted to plain arrays per chunk so only one chunk of
+        // models is ever materialized.
+        $rows = [];
+
+        ActivityLog::whereBelongsTo($user)
+            ->orderByDesc('created_at')
+            ->chunkById(500, function (Collection $chunk) use (&$rows): void {
+                foreach ($chunk as $log) {
+                    $rows[] = [
+                        'id' => $log->id,
+                        'event_type' => $log->event_type?->value,
+                        'subject_type' => $log->subject_type,
+                        'subject_id' => $log->subject_id,
+                        'created_at' => $log->created_at?->toIso8601String(),
+                    ];
+                }
+            });
+
+        return $rows;
     }
 
     /**
@@ -528,7 +541,7 @@ class GenerateUserDataExport extends Command
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param  array<mixed>  $data  — keyed map OR list (both encode to valid JSON)
      */
     protected function writeJson(string $dir, string $filename, array $data): string
     {
