@@ -105,7 +105,7 @@ class EnrichPostHogProfile implements ShouldQueue
         try {
             $activityType = ActivityType::from($this->type);
         } catch (\ValueError $e) {
-            Log::channel('daily')->warning('posthog.enrichment_job.unknown_type', [
+            Log::warning('posthog.enrichment_job.unknown_type', [
                 'type' => $this->type,
                 'user_id' => $this->userId,
                 'error' => $e->getMessage(),
@@ -123,7 +123,7 @@ class EnrichPostHogProfile implements ShouldQueue
                 $this->enrichTeamGroup($posthog, $activityType, $user, $subject);
             }
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.enrichment_job.failed', [
+            Log::warning('posthog.enrichment_job.failed', [
                 'event_type' => $this->type,
                 'user_id' => $this->userId,
                 'error' => $e->getMessage(),
@@ -163,7 +163,7 @@ class EnrichPostHogProfile implements ShouldQueue
         }
 
         if (! in_array($this->subjectType, self::ALLOWED_SUBJECT_TYPES, true)) {
-            Log::channel('daily')->warning('posthog.enrichment_job.disallowed_subject_type', [
+            Log::warning('posthog.enrichment_job.disallowed_subject_type', [
                 'subject_type' => $this->subjectType,
             ]);
 
@@ -262,7 +262,7 @@ class EnrichPostHogProfile implements ShouldQueue
                 'reliability_tier' => $tier,
             ]);
         } catch (\Throwable $e) {
-            Log::channel('daily')->debug('posthog.profile_properties.compute_failed', [
+            Log::debug('posthog.profile_properties.compute_failed', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
@@ -327,7 +327,7 @@ class EnrichPostHogProfile implements ShouldQueue
                     break;
             }
         } catch (\Throwable $e) {
-            Log::channel('daily')->debug('posthog.user_profile_enrichment.partial_failure', [
+            Log::debug('posthog.user_profile_enrichment.partial_failure', [
                 'event_type' => $type->value,
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
@@ -377,7 +377,7 @@ class EnrichPostHogProfile implements ShouldQueue
                 ]));
             }
         } catch (\Throwable $e) {
-            Log::channel('daily')->debug('posthog.team_group_enrichment.failed', [
+            Log::debug('posthog.team_group_enrichment.failed', [
                 'event_type' => $type->value,
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
@@ -406,7 +406,7 @@ class EnrichPostHogProfile implements ShouldQueue
      */
     public function failed(?\Throwable $exception = null): void
     {
-        Log::channel('daily')->error('posthog.enrichment_job.exhausted_retries', [
+        Log::error('posthog.enrichment_job.exhausted_retries', [
             'type' => $this->type,
             'user_id' => $this->userId,
             'exception' => $exception?->getMessage(),

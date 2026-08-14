@@ -40,7 +40,7 @@ class AnonymizeStaleInviteEmails extends Command
             $this->info("Campaign participants: {$campaignCount} record(s) ".($dryRun ? 'would be ' : '').'anonymized');
             $this->info("Total: {$total} record(s) ".($dryRun ? 'would be ' : '')."anonymized (retention: {$days} days)");
 
-            Log::channel('daily')->info('anonymize.stale_invite_emails', [
+            Log::info('anonymize.stale_invite_emails', [
                 'game_count' => $gameCount,
                 'campaign_count' => $campaignCount,
                 'total' => $total,
@@ -52,7 +52,7 @@ class AnonymizeStaleInviteEmails extends Command
         } catch (\Throwable $e) {
             $this->error("Anonymization failed: {$e->getMessage()}");
 
-            Log::channel('daily')->error('anonymize.stale_invite_emails.failed', [
+            Log::error('anonymize.stale_invite_emails.failed', [
                 'error' => $e->getMessage(),
             ]);
 

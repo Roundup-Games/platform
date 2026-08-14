@@ -34,7 +34,7 @@ class TrackAppVisit
                 ['user_id', 'visit_date'],
             );
 
-            Log::channel('daily')->debug('pwa.visit.tracked', [
+            Log::debug('pwa.visit.tracked', [
                 'user_id' => $user->id,
                 'visit_date' => $today,
             ]);

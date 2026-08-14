@@ -104,7 +104,7 @@ class PostHogEventBridge
                 );
             }
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.event_bridge.failed', [
+            Log::warning('posthog.event_bridge.failed', [
                 'event_type' => $type->value,
                 'user_id' => $user->id,
                 'subject_type' => $subject ? get_class($subject) : null,

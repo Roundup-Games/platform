@@ -10,7 +10,6 @@ use App\Services\Geohash;
 use App\Services\ProfileVisibilityResolver;
 use App\Services\ScopedRoleService;
 use App\Services\SocialGraphService;
-use App\Services\UserAnonymizationService;
 use App\Services\UserPreferenceResolver;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\UserFactory;
@@ -892,20 +891,6 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function scopeNotAnonymized(Builder $query): void
     {
         $query->whereNull('anonymized_at');
-    }
-
-    /**
-     * Anonymize the user in-place: strip PII, set anonymized_at.
-     *
-     * @deprecated Use UserAnonymizationService::anonymize() instead.
-     *             The service handles Tier 1 data deletion, media cleanup,
-     *             session invalidation, and PostHog data removal.
-     *             This model method only strips PII on the user row.
-     * @see UserAnonymizationService::anonymize()
-     */
-    public function anonymize(): void
-    {
-        app(UserAnonymizationService::class)->anonymize($this);
     }
 
     // ── Helpers ────────────────────────────────────────

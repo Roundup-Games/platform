@@ -104,12 +104,4 @@ trait HandlesSessionEnd
             session()->flash('error', $result['reason']);
         }
     }
-
-    /**
-     * @deprecated Use submitAttendanceReport instead.
-     */
-    public function reportParticipantAttendance(string $participantId, string $status): void
-    {
-        $this->submitAttendanceReport($participantId, $status);
-    }
 }

@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\User;
-use App\Services\UserAnonymizationService;
 
 describe('User anonymization', function () {
     it('notAnonymized scope excludes anonymized users', function () {
@@ -24,26 +23,6 @@ describe('User anonymization', function () {
 
         expect($active->isAnonymized())->toBeFalse()
             ->and($anon->isAnonymized())->toBeTrue();
-    });
-
-    it('anonymize delegates to UserAnonymizationService', function () {
-        $user = User::factory()->create([
-            'name' => 'Jane Doe',
-            'email' => 'jane@example.com',
-        ]);
-
-        $userId = $user->id;
-
-        // The model method now delegates to UserAnonymizationService.
-        // Mock the service to verify delegation.
-        $mock = Mockery::mock(UserAnonymizationService::class);
-        $mock->shouldReceive('anonymize')->once()->withArgs(function ($arg) use ($userId) {
-            return $arg->id === $userId;
-        });
-
-        app()->instance(UserAnonymizationService::class, $mock);
-
-        $user->anonymize();
     });
 
     it('loads anonymized users normally by default (no global scope)', function () {

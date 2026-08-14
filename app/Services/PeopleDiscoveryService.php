@@ -227,7 +227,10 @@ class PeopleDiscoveryService
             $meta = $candidateMeta[$userId] ?? null;
             $distanceKm = 0.0;
             if ($meta) {
-                $distanceKm = $this->haversineDistance(
+                // Canonical implementation (rounded to 2dp) — shared with
+                // venue/game proximity so distances are consistent at
+                // radius boundaries. See ProximityQuery.
+                $distanceKm = ProximityQuery::haversineDistance(
                     $lat, $lng,
                     $meta['latitude'], $meta['longitude'],
                 );
@@ -816,23 +819,6 @@ class PeopleDiscoveryService
             $existingKeys[] = $cacheKey;
             Cache::put($keySetKey, $existingKeys, $ttl);
         }
-    }
-
-    /**
-     * Approximate distance between two points using the Haversine formula (km).
-     */
-    private function haversineDistance(float $lat1, float $lng1, float $lat2, float $lng2): float
-    {
-        $earthRadius = 6371;
-
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLng = deg2rad($lng2 - $lng1);
-
-        $a = sin($dLat / 2) ** 2
-            + cos(deg2rad($lat1)) * cos(deg2rad($lat2))
-            * sin($dLng / 2) ** 2;
-
-        return $earthRadius * 2 * asin(sqrt($a));
     }
 
     /**

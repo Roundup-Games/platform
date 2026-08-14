@@ -36,7 +36,7 @@ class PwaEligibilityService
 
         $this->setCached($user, $result);
 
-        Log::channel('daily')->info('pwa.eligibility.evaluated', [
+        Log::info('pwa.eligibility.evaluated', [
             'user_id' => $user->id,
             'eligible' => $result->eligible,
             'reason' => $result->reason,
@@ -55,7 +55,7 @@ class PwaEligibilityService
 
         $this->setCached($user, $result);
 
-        Log::channel('daily')->info('pwa.eligibility.reevaluated', [
+        Log::info('pwa.eligibility.reevaluated', [
             'user_id' => $user->id,
             'eligible' => $result->eligible,
             'reason' => $result->reason,
@@ -77,7 +77,7 @@ class PwaEligibilityService
         // 2. Trypass events (override score gate)
         $trypass = $this->detectTrypass($user);
         if ($trypass !== null) {
-            Log::channel('daily')->info('pwa.eligibility.trypass', [
+            Log::info('pwa.eligibility.trypass', [
                 'user_id' => $user->id,
                 'reason' => $trypass->reason,
             ]);
@@ -226,7 +226,7 @@ class PwaEligibilityService
             return null;
         }
 
-        Log::channel('daily')->debug('pwa.eligibility.cache_hit', [
+        Log::debug('pwa.eligibility.cache_hit', [
             'user_id' => $user->id,
             'eligible' => $cached['eligible'] ?? null,
             'reason' => $cached['reason'] ?? null,

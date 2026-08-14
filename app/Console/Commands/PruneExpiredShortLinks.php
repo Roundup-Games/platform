@@ -58,7 +58,7 @@ class PruneExpiredShortLinks extends Command
             $this->info("Phase 2 (expired cleanup): {$deletedCount} link(s) ".($dryRun ? 'would be ' : '').'soft-deleted');
             $this->info("Phase 3 (analytics retention): {$hitsDeleted} hit(s) ".($dryRun ? 'would be ' : '')."hard-deleted (older than {$days} days)");
 
-            Log::channel('daily')->info('prune.expired_links', [
+            Log::info('prune.expired_links', [
                 'entity_expiry_count' => $expiredCount,
                 'soft_deleted_count' => $deletedCount,
                 'analytics_deleted_count' => $hitsDeleted,
@@ -71,7 +71,7 @@ class PruneExpiredShortLinks extends Command
         } catch (\Throwable $e) {
             $this->error("Prune failed: {$e->getMessage()}");
 
-            Log::channel('daily')->error('prune.expired_links.failed', [
+            Log::error('prune.expired_links.failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);

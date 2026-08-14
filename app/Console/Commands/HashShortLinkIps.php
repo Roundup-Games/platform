@@ -50,7 +50,7 @@ class HashShortLinkIps extends Command
 
         $this->info("Hashed {$hashed} raw IP address(es).");
 
-        Log::channel('daily')->info('short-links:hash-ips completed', [
+        Log::info('short-links:hash-ips completed', [
             'hashed_count' => $hashed,
         ]);
 

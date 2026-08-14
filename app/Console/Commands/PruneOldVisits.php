@@ -41,7 +41,7 @@ class PruneOldVisits extends Command
             : "Deleted {$count} old visit record(s) (older than {$maxAge} days)"
         );
 
-        Log::channel('daily')->info('pwa.visits.pruned', [
+        Log::info('pwa.visits.pruned', [
             'count' => $count,
             'max_age_days' => $maxAge,
             'dry_run' => $dryRun,

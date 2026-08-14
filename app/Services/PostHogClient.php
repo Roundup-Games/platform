@@ -49,7 +49,7 @@ class PostHogClient
         try {
             PostHog::capture($payload);
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.client.capture_failed', [
+            Log::warning('posthog.client.capture_failed', [
                 'event' => $payload['event'],
                 'error' => $e->getMessage(),
             ]);
@@ -72,7 +72,7 @@ class PostHogClient
         try {
             PostHog::identify($payload);
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.client.identify_failed', [
+            Log::warning('posthog.client.identify_failed', [
                 'distinctId' => $payload['distinctId'] ?? 'unknown',
                 'error' => $e->getMessage(),
             ]);
@@ -97,7 +97,7 @@ class PostHogClient
                 'properties' => $properties,
             ]);
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.client.group_identify_failed', [
+            Log::warning('posthog.client.group_identify_failed', [
                 'groupType' => $groupType,
                 'groupKey' => $groupKey,
                 'error' => $e->getMessage(),
@@ -121,7 +121,7 @@ class PostHogClient
                 onlyEvaluateLocally: false,
             );
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.client.feature_flag_failed', [
+            Log::warning('posthog.client.feature_flag_failed', [
                 'flag_key' => $key,
                 'distinctId' => $distinctId,
                 'error' => $e->getMessage(),
