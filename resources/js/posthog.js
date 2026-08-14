@@ -5,7 +5,9 @@
  * Reads API key and host from server-injected <meta> tags.
  *
  * Key design decisions:
- * - Gated behind cookie consent: posthog.init() only fires when analytics consent is granted
+ * - Gated behind cookie consent: the PostHog SDK is dynamically imported and
+ *   posthog.init() fires ONLY when analytics consent is granted. Visitors who
+ *   never consent download just this tiny loader, not the ~71 KB gzipped SDK.
  * - Listens for cookieConsentChanged event so consent after page load activates tracking
  * - captureHistoryEvents: false — uses livewire:navigated hook instead for correct page titles
  * - PII is set server-side only; client-side identify() just links the session to user ID
@@ -13,12 +15,14 @@
  *
  * See docs/posthog.md for architecture details.
  */
-import posthog from 'posthog-js';
+
+/** @type {import('posthog-js').PostHog | null} Populated by the dynamic import below. */
+let posthog = null;
 
 const apiKey = document.querySelector('meta[name="posthog-api-key"]')?.content;
 const apiHost = document.querySelector('meta[name="posthog-api-host"]')?.content;
 
-let posthogInitialized = false;
+let posthogInitPromise = null;
 
 /**
  * Read the cookie_consent cookie and check if a specific category is granted.
@@ -35,101 +39,107 @@ function hasConsented(category) {
 }
 
 /**
- * Initialize PostHog with all features. Called only once when consent is granted.
+ * Initialize PostHog with all features. Called only once when consent is
+ * granted; subsequent calls return the same in-flight promise.
  */
 function initPostHog() {
-    if (posthogInitialized) return;
-    if (!apiKey || !apiHost) return;
+    if (posthogInitPromise) return posthogInitPromise;
 
-    posthog.init(apiKey, {
-        api_host: apiHost,
-        autocapture: true,
-        autocaptureExceptions: true,
-        capture_pageview: true,
-        capture_pageleave: 'if_capture_pageview',
-        captureHistoryEvents: false,
-        session_recording: {
-            maskAllInputs: true,
-            maskAllImages: true,
-            maskTextSelector: '[data-ph-mask], input[type="password"], input[name="email"], input[name="username"], input[name="phone"], input[name="card_number"], input[name="cvv"], input[name="ssn"]',
-            captureLog: false,
-            captureNetworkTelemetry: true,
-            recordCanvas: false,
-            sampleRate: parseFloat(
-                document.querySelector('meta[name="posthog-replay-sample-rate"]')?.content || '0'
-            ),
-        },
-        respect_dnt: true,
-        advanced_disable_decide: false,
-    });
+    posthogInitPromise = (async () => {
+        if (!apiKey || !apiHost) return;
 
-    posthogInitialized = true;
+        ({ default: posthog } = await import('posthog-js'));
 
-    if (import.meta.env.DEV) {
-        console.log('[PostHog] Initialized with host:', apiHost);
-    }
-
-    // ── Surveys ──────────────────────────────────────────
-    const surveysEnabled = document.querySelector(
-        'meta[name="posthog-surveys-enabled"]',
-    )?.content === 'true';
-
-    if (surveysEnabled) {
-        window.addEventListener('ph:survey:sent', (e) => {
-            if (import.meta.env.DEV) console.log('[PostHog] Survey submitted:', e.detail);
+        posthog.init(apiKey, {
+            api_host: apiHost,
+            autocapture: true,
+            autocaptureExceptions: true,
+            capture_pageview: true,
+            capture_pageleave: 'if_capture_pageview',
+            captureHistoryEvents: false,
+            session_recording: {
+                maskAllInputs: true,
+                maskAllImages: true,
+                maskTextSelector: '[data-ph-mask], input[type="password"], input[name="email"], input[name="username"], input[name="phone"], input[name="card_number"], input[name="cvv"], input[name="ssn"]',
+                captureLog: false,
+                captureNetworkTelemetry: true,
+                recordCanvas: false,
+                sampleRate: parseFloat(
+                    document.querySelector('meta[name="posthog-replay-sample-rate"]')?.content || '0'
+                ),
+            },
+            respect_dnt: true,
+            advanced_disable_decide: false,
         });
-        window.addEventListener('ph:survey:shown', (e) => {
-            if (import.meta.env.DEV) console.log('[PostHog] Survey shown:', e.detail);
+
+        if (import.meta.env.DEV) {
+            console.log('[PostHog] Initialized with host:', apiHost);
+        }
+
+        // ── Surveys ──────────────────────────────────────────
+        const surveysEnabled = document.querySelector(
+            'meta[name="posthog-surveys-enabled"]',
+        )?.content === 'true';
+
+        if (surveysEnabled) {
+            window.addEventListener('ph:survey:sent', (e) => {
+                if (import.meta.env.DEV) console.log('[PostHog] Survey submitted:', e.detail);
+            });
+            window.addEventListener('ph:survey:shown', (e) => {
+                if (import.meta.env.DEV) console.log('[PostHog] Survey shown:', e.detail);
+            });
+            window.addEventListener('ph:survey:dismissed', (e) => {
+                if (import.meta.env.DEV) console.log('[PostHog] Survey dismissed:', e.detail);
+            });
+        } else {
+            const style = document.createElement('style');
+            style.textContent = '[data-ph-survey], .ph-survey { display: none !important; }';
+            document.head.appendChild(style);
+            if (import.meta.env.DEV) console.log('[PostHog] Surveys: disabled (meta tag override)');
+        }
+
+        // ── Livewire wire:navigate pageview tracking ─────────
+        document.addEventListener('livewire:navigating', () => {
+            posthog.capture('$pageleave');
+            if (import.meta.env.DEV) console.log('[PostHog] $pageleave (livewire:navigating)');
         });
-        window.addEventListener('ph:survey:dismissed', (e) => {
-            if (import.meta.env.DEV) console.log('[PostHog] Survey dismissed:', e.detail);
+
+        document.addEventListener('livewire:navigated', () => {
+            posthog.capture('$pageview');
+            if (import.meta.env.DEV) console.log('[PostHog] $pageview (livewire:navigated)');
         });
-    } else {
-        const style = document.createElement('style');
-        style.textContent = '[data-ph-survey], .ph-survey { display: none !important; }';
-        document.head.appendChild(style);
-        if (import.meta.env.DEV) console.log('[PostHog] Surveys: disabled (meta tag override)');
-    }
 
-    // ── Livewire wire:navigate pageview tracking ─────────
-    document.addEventListener('livewire:navigating', () => {
-        posthog.capture('$pageleave');
-        if (import.meta.env.DEV) console.log('[PostHog] $pageleave (livewire:navigating)');
-    });
+        // ── User identification ──────────────────────────────
+        if (window.__posthogUser) {
+            posthog.identify(window.__posthogUser.id);
+            if (import.meta.env.DEV) console.log('[PostHog] Identified user:', window.__posthogUser.id);
+            delete window.__posthogUser;
+        }
 
-    document.addEventListener('livewire:navigated', () => {
-        posthog.capture('$pageview');
-        if (import.meta.env.DEV) console.log('[PostHog] $pageview (livewire:navigated)');
-    });
+        // ── Namespaced helpers (avoid polluting global scope) ──
+        // Access via window.Roundup.posthog.featureFlag(key) etc.
+        window.Roundup = window.Roundup || {};
+        window.Roundup.posthog = {
+            featureFlag: (key) => {
+                if (!posthog.__loaded) return undefined;
+                return posthog.getFeatureFlag(key);
+            },
+            captureError: (error, context = {}) => {
+                if (posthog.captureException) {
+                    posthog.captureException(error, context);
+                } else {
+                    posthog.capture('$exception', {
+                        $exception_type: error?.name || 'Error',
+                        $exception_message: error?.message || String(error),
+                        $exception_stack: error?.stack || '',
+                        ...context,
+                    });
+                }
+            },
+        };
+    })();
 
-    // ── User identification ──────────────────────────────
-    if (window.__posthogUser) {
-        posthog.identify(window.__posthogUser.id);
-        if (import.meta.env.DEV) console.log('[PostHog] Identified user:', window.__posthogUser.id);
-        delete window.__posthogUser;
-    }
-
-    // ── Namespaced helpers (avoid polluting global scope) ──
-    // Access via window.Roundup.posthog.featureFlag(key) etc.
-    window.Roundup = window.Roundup || {};
-    window.Roundup.posthog = {
-        featureFlag: (key) => {
-            if (!posthog.__loaded) return undefined;
-            return posthog.getFeatureFlag(key);
-        },
-        captureError: (error, context = {}) => {
-            if (posthog.captureException) {
-                posthog.captureException(error, context);
-            } else {
-                posthog.capture('$exception', {
-                    $exception_type: error?.name || 'Error',
-                    $exception_message: error?.message || String(error),
-                    $exception_stack: error?.stack || '',
-                    ...context,
-                });
-            }
-        },
-    };
+    return posthogInitPromise;
 }
 
 /**
@@ -152,11 +162,13 @@ tryInit();
 //    analytics_consent column (authoritative for authenticated users).
 //    Privacy: we capture only the GRANT, never the denial — tracking someone
 //    who just declined tracking would be paradoxical. The event carries no PII.
-document.addEventListener('cookieConsentChanged', (e) => {
+document.addEventListener('cookieConsentChanged', async (e) => {
     const consent = e.detail?.consent;
     if (consent && consent.analytics === true) {
-        tryInit();
-        if (posthogInitialized) {
+        // Await the dynamic import so the capture below always has the SDK
+        // instance available (the import resolves after first consent).
+        await initPostHog();
+        if (posthog?.capture) {
             posthog.capture('consent.analytics_granted', {
                 also_granted_marketing: consent.marketing === true,
             });
@@ -168,5 +180,3 @@ document.addEventListener('cookieConsentChanged', (e) => {
 if (import.meta.env.DEV && navigator.doNotTrack === '1') {
     console.warn('[PostHog] Do Not Track is enabled — all tracking is disabled.');
 }
-
-export default posthog;
