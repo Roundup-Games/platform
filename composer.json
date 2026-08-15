@@ -96,6 +96,10 @@
         ],
         "test": [
             "@php artisan config:clear --ansi",
+            "@php artisan test --parallel"
+        ],
+        "test:seq": [
+            "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
         "smoke": [

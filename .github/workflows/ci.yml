@@ -5,6 +5,12 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+    # Content-only changes are covered by cheaper checks (pint runs via
+    # weblate-pint.yml for lang/; docs need no DB). Pushes stay unfiltered
+    # so main/develop always run the full matrix.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
 # Least-privilege token scope. The workflow is read-only on the repo
 # (no releases, PR comments, deploys, or packages); the only write surface
@@ -131,9 +137,12 @@ jobs:
           tools: composer:v2
 
       - name: Install dependencies
-        # --no-dev would skip nothing here (no dev-only i18n deps), but
-        # locked keeps CI reproducible against composer.lock.
-        run: composer install --no-interaction --no-progress --prefer-dist
+        # Cached, locked install — same action the lint/stan/test jobs use;
+        # the raw composer install re-downloaded the whole vendor tree
+        # (~200 MB) from packagist on every run.
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: locked
 
       - name: Copy environment file
         run: cp .env.example .env
