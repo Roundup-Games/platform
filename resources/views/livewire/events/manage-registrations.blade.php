@@ -105,7 +105,7 @@
                     </thead>
                     <tbody class="divide-y divide-outline-variant/30">
                         @foreach($this->registrations as $registration)
-                            <tr class="hover:bg-surface-container-low/50">
+                            <tr wire:key="registration-{{ $registration->id }}" class="hover:bg-surface-container-low/50">
                                 {{-- Registrant --}}
                                 <td class="px-4 py-3">
                                     <div>

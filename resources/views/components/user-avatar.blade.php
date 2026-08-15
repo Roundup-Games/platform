@@ -15,6 +15,8 @@
                  aria-hidden="true"
                  width="32"
                  height="32"
+                 loading="lazy"
+                 decoding="async"
                  data-fallback="initial" />
         </div>
     @else

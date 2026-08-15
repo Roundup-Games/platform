@@ -245,7 +245,12 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             get: function (mixed $value) {
                 $media = $this->getFirstMedia('avatar');
                 if ($media) {
-                    return $media->getUrl();
+                    // thumb conversion (32–48px component renders) — serving
+                    // the original 2–5MB upload for a tiny avatar wastes
+                    // bandwidth on every list page. SEO paths already use
+                    // getUrl('thumb'); image-fallback.js covers any media
+                    // whose thumb conversion has not been generated yet.
+                    return $media->getUrl('thumb');
                 }
 
                 return $value;

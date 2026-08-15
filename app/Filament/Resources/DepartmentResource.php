@@ -48,12 +48,10 @@ class DepartmentResource extends BaseDepartmentResource
                         Forms\Components\Select::make('agents')
                             ->label(__('escalated-filament::filament.resources.department.field_agents'))
                             ->multiple()
-                            ->preload()
-                            ->searchable(['name', 'email'])
-                            ->options(fn () => User::query()
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->toArray())
+                            // Server-side search only — ->preload() + a full
+                            // options() closure shipped the entire users table
+                            // into the admin DOM on every form load.
+                            ->searchable()
                             ->getSearchResultsUsing(fn (string $search) => User::query()
                                 ->where('name', 'ilike', "%{$search}%")
                                 ->orWhere('email', 'ilike', "%{$search}%")

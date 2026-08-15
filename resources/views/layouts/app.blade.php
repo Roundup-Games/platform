@@ -36,6 +36,11 @@
 
         {{-- Fonts: self-hosted Inter (body) + Noto Serif (headings) + Material Symbols (icons) via @font-face in app.css --}}
         {{-- Material Symbols is subset to project icons — rebuild with build-tools/subset-icons.sh --}}
+        {{-- Preload critical fonts (same as public-layout): without these the
+             fonts are only discovered after app.css downloads + CSSOM builds,
+             extending the font-display swap flash on first visit. --}}
+        <link rel="preload" href="/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/fonts/noto-serif-latin-var.woff2" as="font" type="font/woff2" crossorigin>
 
         {{-- DNS prefetch for external image CDN --}}
         <link rel="dns-prefetch" href="https://spg-images.s3.us-west-1.amazonaws.com">
@@ -47,8 +52,8 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
-        {{-- PWA update toast translations (read by app.js) --}}
-        <script>window.__pwaUpdateToast={message:'{{ addslashes(__('pwa.content_update_available')) }}',action:'{{ addslashes(__('pwa.action_update')) }}'};window.__pwaOfflineToast={queued:'{{ addslashes(__('pwa.offline_action_queued')) }}',offline:'{{ addslashes(__('pwa.offline_action_offline')) }}'};</script>
+        {{-- PWA update toast translations (read by app.js). @js() produces safely-escaped JSON — addslashes() does not escape </script> or U+2028/29. --}}
+        <script>window.__pwaUpdateToast=@js(['message' => __('pwa.content_update_available'), 'action' => __('pwa.action_update')]);window.__pwaOfflineToast=@js(['queued' => __('pwa.offline_action_queued'), 'offline' => __('pwa.offline_action_offline')]);</script>
 
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
