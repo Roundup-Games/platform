@@ -102,7 +102,9 @@ class BggClient
             }
 
             try {
-                $httpRequest = Http::timeout(30);
+                // connectTimeout bounds DNS/TCP black holes (common with BGG)
+                // to 5s instead of burning the full 30s budget per attempt.
+                $httpRequest = Http::timeout(30)->connectTimeout(5);
 
                 if ($this->token) {
                     $httpRequest = $httpRequest->withToken($this->token);

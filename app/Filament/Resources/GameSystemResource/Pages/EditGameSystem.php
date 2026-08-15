@@ -2,10 +2,9 @@
 
 namespace App\Filament\Resources\GameSystemResource\Pages;
 
-use App\Exceptions\BggApiException;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameSystemResource;
-use App\Services\BggSyncService;
+use App\Jobs\SyncGameSystemsFromBgg;
 use App\Services\SeoCacheService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -51,23 +50,15 @@ class EditGameSystem extends EditRecord
                         return;
                     }
 
-                    try {
-                        app(BggSyncService::class)->syncGameSystems([$record->bgg_id]);
+                    // Queue the sync — a single BGG fetch can still hit
+                    // 30s timeout + 202-retry sleeps; don't block the request.
+                    SyncGameSystemsFromBgg::dispatch([$record->bgg_id]);
 
-                        Notification::make()
-                            ->success()
-                            ->title('Sync complete')
-                            ->body('Game system re-synced from BGG.')
-                            ->send();
-
-                        $this->refreshFormData(['bgg_last_synced_at']);
-                    } catch (BggApiException $e) {
-                        Notification::make()
-                            ->danger()
-                            ->title('Sync failed')
-                            ->body($e->getMessage())
-                            ->send();
-                    }
+                    Notification::make()
+                        ->success()
+                        ->title('BGG sync queued')
+                        ->body('The game system will re-sync from BGG in the background. Re-open the record in a few minutes.')
+                        ->send();
                 }),
         ];
     }

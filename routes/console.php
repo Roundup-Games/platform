@@ -103,7 +103,14 @@ Artisan::command('platform-scores:compute', function () {
     $this->info('ComputePlatformScores job dispatched to the queue.');
 })->purpose('Compute platform popularity scores for all game systems');
 
-Schedule::command('bgg:weekly-sync')->weekly()->mondays()->at('03:00');
+// Foreground scheduler runs would starve every later entry in the 03:00
+// window for hours while BGG throttles; background + single-server + overlap
+// guard matches every other long-running entry in this file.
+Schedule::command('bgg:weekly-sync')
+    ->weekly()->mondays()->at('03:00')
+    ->runInBackground()
+    ->withoutOverlapping()
+    ->onOneServer();
 
 Schedule::command('platform-scores:compute')->dailyAt('03:00')->onOneServer();
 
