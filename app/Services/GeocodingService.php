@@ -98,7 +98,10 @@ class GeocodingService
             return $cached['value'];
         }
 
-        $lock = Cache::lock("{$cacheKey}:lock", 10);
+        // Lock TTL must exceed the worst-case upstream call (10s HTTP timeout)
+        // or the lock can expire mid-fetch and let a second caller through —
+        // exactly the duplicate Nominatim request this exists to prevent.
+        $lock = Cache::lock("{$cacheKey}:lock", 15);
 
         try {
             /** @var array<string, mixed>|null $result */
@@ -117,11 +120,14 @@ class GeocodingService
 
             return $result;
         } catch (LockTimeoutException) {
-            // Contention: fetch without the lock; the cache write is idempotent.
-            $result = $fetch();
-            $this->putNullable($cacheKey, $result);
+            // Another request is still fetching. Prefer its result: re-read
+            // once — if it landed, serve it; otherwise fail soft (null) WITHOUT
+            // calling the upstream again. A dropped lookup is recoverable on
+            // the next request; a duplicate request risks Nominatim's 1 req/s
+            // policy turning one slow query into site-wide 429s.
+            $cached = $this->readCached($cacheKey);
 
-            return $result;
+            return $cached['hit'] ? $cached['value'] : null;
         }
     }
 

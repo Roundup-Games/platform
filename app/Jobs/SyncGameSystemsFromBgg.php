@@ -26,9 +26,14 @@ class SyncGameSystemsFromBgg implements ShouldQueue
     use InteractsWithQueue;
     use Queueable;
 
-    public int $tries = 1;
+    public int $tries = 2;
 
-    /** BGG rate-limit sleeps make retries counterproductive — fail fast. */
+    /** Retry once after a minute — transient BGG/network failures get a
+     *  second chance; sustained failures stay terminal (failed() logs). */
+    /** @var array<int, int> */
+    public array $backoff = [60];
+
+    /** BGG rate-limit sleeps make aggressive retries counterproductive. */
     public int $timeout = 1800;
 
     /**

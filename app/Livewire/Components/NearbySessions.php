@@ -194,13 +194,7 @@ class NearbySessions extends Component
 
         // Combine and format. loadCount batches the participant counts into
         // ONE query instead of one COUNT per item below.
-        // map()/filter() degrade to base Collections (no loadCount), so the
-        // filtered entities are re-wrapped in an Eloquent Collection.
-        new EloquentCollection($gameResults
-            ->map(fn (mixed $result) => $result instanceof ProximityResult ? $result->entity : null)
-            ->filter(fn (mixed $entity) => $entity instanceof Game)
-            ->values()
-            ->all())->loadCount('participants');
+        $this->preloadParticipantCounts($gameResults);
 
         $all = $gameResults->map(function (mixed $result) {
             if (! $result instanceof ProximityResult) {
@@ -244,11 +238,7 @@ class NearbySessions extends Component
                 ['limit' => $this->limit, 'status_filter' => true, 'visibility' => [Visibility::Public->value]],
             );
 
-            new EloquentCollection($fallbackResults
-                ->map(fn (mixed $result) => $result instanceof ProximityResult ? $result->entity : null)
-                ->filter(fn (mixed $entity) => $entity instanceof Game)
-                ->values()
-                ->all())->loadCount('participants');
+            $this->preloadParticipantCounts($fallbackResults);
 
             $sorted = $fallbackResults->map(function (mixed $result) {
                 if (! $result instanceof ProximityResult) {
@@ -349,6 +339,26 @@ class NearbySessions extends Component
                 type: 'campaign',
             );
         });
+    }
+
+    /**
+     * Batch participant counts for a page of proximity results in ONE query
+     * instead of one COUNT per item. map()/filter() degrade to base
+     * Collections (no loadCount), so the filtered entities are re-wrapped
+     * in an Eloquent Collection; loadCount mutates the shared models, which
+     * the later ->map() over the original results then reads.
+     *
+     * @param  Collection<int, mixed>  $results
+     */
+    private function preloadParticipantCounts(Collection $results): void
+    {
+        (new EloquentCollection(
+            $results
+                ->map(fn (mixed $result) => $result instanceof ProximityResult ? $result->entity : null)
+                ->filter(fn (mixed $entity) => $entity instanceof Game)
+                ->values()
+                ->all(),
+        ))->loadCount('participants');
     }
 
     public function render(): View

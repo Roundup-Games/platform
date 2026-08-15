@@ -56,6 +56,14 @@ class DepartmentResource extends BaseDepartmentResource
                                 ->where('name', 'ilike', "%{$search}%")
                                 ->orWhere('email', 'ilike', "%{$search}%")
                                 ->orderBy('name')
+                                ->limit(50)
+                                ->pluck('name', 'id')
+                                ->toArray())
+                            // Without options(), Filament cannot resolve the
+                            // display labels of already-saved agent ids on the
+                            // Edit form — it would render raw uuids.
+                            ->getOptionLabelsUsing(fn (array $values): array => User::query()
+                                ->whereKey($values)
                                 ->pluck('name', 'id')
                                 ->toArray()),
                     ])

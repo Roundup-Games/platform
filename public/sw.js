@@ -55,7 +55,9 @@ async function buildPreCacheList() {
             CACHE_NAME = 'roundup-' + Math.abs(hash).toString(36);
 
             const manifest = JSON.parse(text);
-            const excluded = [/admin-.*\.css$/, /^posthog-/];
+            // posthog chunk ships as assets/posthog-<hash>.js — match on the
+            // file segment, not the anchored path start.
+            const excluded = [/admin-.*\.css$/, /(^|\/)posthog-[^/]*\.js$/];
             for (const entry of Object.values(manifest)) {
                 if (!entry.file) continue;
                 // Skip assets the current visitor cannot use: the Filament admin

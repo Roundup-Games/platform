@@ -48,7 +48,16 @@ function initPostHog() {
     posthogInitPromise = (async () => {
         if (!apiKey || !apiHost) return;
 
-        ({ default: posthog } = await import('posthog-js'));
+        try {
+            ({ default: posthog } = await import('posthog-js'));
+        } catch (err) {
+            // A rejected import would otherwise be cached in posthogInitPromise
+            // forever — every later call (consent arriving, capture attempts)
+            // would re-yield the same failure. Clear it so the next call retries.
+            console.warn('[PostHog] SDK failed to load; will retry on next init', err);
+            posthogInitPromise = null;
+            throw err;
+        }
 
         posthog.init(apiKey, {
             api_host: apiHost,

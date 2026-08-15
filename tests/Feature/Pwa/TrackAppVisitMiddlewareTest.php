@@ -2,6 +2,8 @@
 
 use App\Models\User;
 use App\Models\UserAppVisit;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -96,6 +98,28 @@ describe('TrackAppVisit Middleware', function () {
             ->get(route('dashboard'));
 
         expect(UserAppVisit::count())->toBe($countBefore);
+    });
+
+    // ── Failure path ────────────────────────────────────────────────
+
+    it('releases the daily cache gate when the upsert fails so a later request retries', function () {
+        $today = now()->toDateString();
+        $cacheKey = "pwa:visit:{$this->user->id}:{$today}";
+
+        // Simulate a transient DB failure: a CHECK constraint that rejects
+        // today's row forces a QueryException inside the upsert (same pattern
+        // as ResendWebhookTest's varchar-overflow). The constraint and the
+        // aborted statement roll back with the test's transaction; the array
+        // cache is unaffected, so the gate-release assertion below is exact.
+        DB::statement("ALTER TABLE user_app_visits ADD CONSTRAINT tmp_fail_visit CHECK (visit_date < '1900-01-01')");
+
+        actingAs($this->user)
+            ->get(route('dashboard'))
+            ->assertStatus(500);
+
+        // The gate was released — the day's visit isn't silently lost to a
+        // transient failure; the next request will retry the upsert.
+        expect(Cache::has($cacheKey))->toBeFalse();
     });
 
 });

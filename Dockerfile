@@ -41,6 +41,7 @@ RUN install-php-extensions gd intl bcmath exif
 # runtime (FPM, Horizon, artisan) shares identical settings.
 RUN printf '%s\n' \
     'opcache.enable=1' \
+    'opcache.enable_cli=1' \
     'opcache.validate_timestamps=0' \
     'opcache.memory_consumption=256' \
     'opcache.max_accelerated_files=30000' \

@@ -129,12 +129,10 @@ class GenerateUserDataExport extends Command
                 $this->gatherTeams($user),
             );
 
-            // 8. Activity log
-            $fileChecksums['activity-log.json'] = $this->writeJson(
-                $tempDir,
-                'activity-log.json',
-                $this->gatherActivityLog($user),
-            );
+            // 8. Activity log — streamed: this section is unbounded (every
+            // activity row ever written for the user) and would otherwise
+            // materialize the full rows array plus a second full JSON string.
+            $fileChecksums['activity-log.json'] = $this->writeActivityLog($tempDir, $user);
 
             // 9. Push subscriptions
             $fileChecksums['push-subscriptions.json'] = $this->writeJson(
@@ -402,34 +400,52 @@ class GenerateUserDataExport extends Command
     }
 
     /**
-     * @return list<array{id: mixed, event_type: string|null, subject_type: string|null, subject_id: mixed, created_at: string|null}>
+     * Stream activity-log.json row by row, keeping only one chunk of models
+     * in memory. Output is the same JSON-array shape writeJson() produces
+     * (rows individually pretty-printed, one record per line).
+     *
+     * @return string sha256 checksum of the written file
      */
-    protected function gatherActivityLog(User $user): array
+    protected function writeActivityLog(string $dir, User $user): string
     {
-        // Chunked to bound peak memory: a veteran user's activity log is the
-        // largest section of the export (every join/recap/follow/invite ever
-        // triggered) and hydrating it as one Eloquent collection tripled the
-        // payload (models + mapped arrays + pretty-printed JSON) in a single
-        // shot — enough to OOM a GDPR-mandated export under the CLI limit.
-        // Rows are converted to plain arrays per chunk so only one chunk of
-        // models is ever materialized.
-        $rows = [];
+        $path = $dir.'/activity-log.json';
+        $handle = fopen($path, 'wb');
+        if ($handle === false) {
+            throw new \RuntimeException("Unable to open [{$path}] for writing.");
+        }
 
-        ActivityLog::whereBelongsTo($user)
-            ->orderByDesc('created_at')
-            ->chunkById(500, function (Collection $chunk) use (&$rows): void {
-                foreach ($chunk as $log) {
-                    $rows[] = [
-                        'id' => $log->id,
-                        'event_type' => $log->event_type?->value,
-                        'subject_type' => $log->subject_type,
-                        'subject_id' => $log->subject_id,
-                        'created_at' => $log->created_at?->toIso8601String(),
-                    ];
-                }
-            });
+        try {
+            fwrite($handle, "[\n");
+            $first = true;
 
-        return $rows;
+            ActivityLog::whereBelongsTo($user)
+                // chunkById requires a cursor column matching the sort order:
+                // ordering by created_at while chunking on the ascending id
+                // cursor skips/duplicates rows. id is an ordered UUID
+                // (time-ordered by ActivityLog::booted()), so id DESC is a
+                // deterministic proxy for newest-first.
+                ->orderByDesc('id')
+                ->chunkByIdDesc(500, function (Collection $chunk) use ($handle, &$first): void {
+                    foreach ($chunk as $log) {
+                        $row = [
+                            'id' => $log->id,
+                            'event_type' => $log->event_type?->value,
+                            'subject_type' => $log->subject_type,
+                            'subject_id' => $log->subject_id,
+                            'created_at' => $log->created_at?->toIso8601String(),
+                        ];
+                        $json = json_encode($row, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                        fwrite($handle, ($first ? '' : ",\n").($json === false ? 'null' : $json));
+                        $first = false;
+                    }
+                });
+
+            fwrite($handle, "\n]");
+        } finally {
+            fclose($handle);
+        }
+
+        return hash_file('sha256', $path) ?: '';
     }
 
     /**

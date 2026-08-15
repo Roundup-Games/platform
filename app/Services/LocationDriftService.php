@@ -186,31 +186,23 @@ class LocationDriftService
     {
         $flaggedIds = [];
 
-        // Fetch ALL named/geocoded rows once and group in PHP. The previous
-        // per-group query used lower(trim(name)) = ? — non-sargable, so each of
-        // the G groups was a full table scan (O(G × N) on a growing table).
-        // The pairwise phase below stays bounded by MAX_NAME_GROUP_SIZE.
-        /** @var Collection<int, Location> $allRows ordered lowest-id first */
-        $allRows = Location::query()
-            ->whereNotNull('name')
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->orderBy('id')
-            ->get(['id', 'name', 'latitude', 'longitude']);
+        // Stream ALL named/geocoded rows ordered by normalized name, keeping
+        // only one duplicate-group in memory at a time — bounded regardless of
+        // table size. The previous per-group query used lower(trim(name)) = ?
+        // — non-sargable, so each of the G groups was a full table scan
+        // (O(G × N) on a growing table). The pairwise phase below stays
+        // bounded by MAX_NAME_GROUP_SIZE.
+        $currentName = null;
+        /** @var array<int, Location> $currentGroup */
+        $currentGroup = [];
 
-        $byNormName = $allRows
-            ->groupBy(fn (Location $row) => mb_strtolower(trim((string) $row->name)))
-            // Re-index each group sequentially: the pairwise loop below uses
-            // array position ($k === 0 skip, $rows[$m] lookups), not original
-            // collection keys.
-            ->map(fn (Collection $group) => $group->values());
-
-        foreach ($byNormName as $rows) {
-            if ($rows->count() < 2 || $rows->count() > self::MAX_NAME_GROUP_SIZE) {
-                continue; // singletons can't be duplicates; bound pairwise cost
+        $processGroup = function () use (&$currentGroup, &$flagged, &$flaggedIds, $dryRun): void {
+            $count = count($currentGroup);
+            if ($count < 2 || $count > self::MAX_NAME_GROUP_SIZE) {
+                return; // singletons can't be duplicates; bound pairwise cost
             }
 
-            foreach ($rows as $k => $candidate) {
+            foreach ($currentGroup as $k => $candidate) {
                 if ($k === 0) {
                     continue; // lowest-id in the group is never a duplicate target-source
                 }
@@ -221,10 +213,7 @@ class LocationDriftService
                 // Scan lower-id rows ascending; first within-threshold match is
                 // the lowest-id member of this candidate's matched set.
                 for ($m = 0; $m < $k; $m++) {
-                    $other = $rows[$m];
-                    if (! $other instanceof Location) {
-                        continue;
-                    }
+                    $other = $currentGroup[$m];
                     $distKm = $candidate->distanceTo((float) $other->latitude, (float) $other->longitude);
                     if ($distKm < self::DUPLICATE_DISTANCE_KM) {
                         $this->flag((string) $candidate->id, 'duplicate', [
@@ -238,7 +227,28 @@ class LocationDriftService
                     }
                 }
             }
-        }
+        };
+
+        Location::query()
+            ->whereNotNull('name')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->select(['id', 'name', 'latitude', 'longitude'])
+            ->selectRaw('lower(trim(name)) as norm_name')
+            ->orderBy('norm_name')
+            ->orderBy('id')
+            ->cursor()
+            ->each(function (Location $row) use (&$currentName, &$currentGroup, $processGroup): void {
+                $normName = is_string($norm = $row->getAttribute('norm_name')) ? $norm : '';
+                if ($normName !== $currentName) {
+                    $processGroup();
+                    $currentName = $normName;
+                    $currentGroup = [];
+                }
+                $currentGroup[] = $row;
+            });
+
+        $processGroup(); // flush the final group
 
         return $flaggedIds;
     }

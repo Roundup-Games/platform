@@ -48,7 +48,28 @@ return new class extends Migration
 
     public function up(): void
     {
-        foreach ($this->indexes as ['sql' => $sql]) {
+        foreach ($this->indexes as ['table' => $table, 'index' => $index, 'sql' => $sql]) {
+            // A crashed CONCURRENTLY build leaves an INVALID index behind:
+            // unusable by the planner (queries keep seq-scanning) yet still
+            // maintained on every write. `IF NOT EXISTS` would silently keep
+            // it, so detect and drop it first — this also makes the migration
+            // a recovery tool for a torn deployment.
+            $invalid = DB::selectOne("
+                select c.relname as index_name
+                from pg_index i
+                join pg_class c on c.oid = i.indexrelid
+                join pg_class t on t.oid = i.indrelid
+                join pg_namespace n on n.oid = t.relnamespace
+                where n.nspname = 'public'
+                  and t.relname = :table
+                  and c.relname = :index
+                  and not i.indisvalid
+            ", ['table' => $table, 'index' => $index]);
+
+            if ($invalid !== null) {
+                DB::statement("DROP INDEX CONCURRENTLY IF EXISTS {$index}");
+            }
+
             DB::statement($sql);
         }
     }

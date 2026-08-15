@@ -30,14 +30,23 @@ class TrackAppVisit
             // replaces an INSERT..ON CONFLICT round-trip on every page view —
             // idempotent data was being re-written N times per session.
             if (Cache::add("pwa:visit:{$user->id}:{$today}", true, now()->addDay())) {
-                UserAppVisit::upsert(
-                    [
-                        'id' => (string) Str::orderedUuid(),
-                        'user_id' => $user->id,
-                        'visit_date' => $today,
-                    ],
-                    ['user_id', 'visit_date'],
-                );
+                try {
+                    UserAppVisit::upsert(
+                        [
+                            'id' => (string) Str::orderedUuid(),
+                            'user_id' => $user->id,
+                            'visit_date' => $today,
+                        ],
+                        ['user_id', 'visit_date'],
+                    );
+                } catch (\Throwable $e) {
+                    // Release the daily gate so the next request retries the
+                    // write — otherwise a transient DB failure would suppress
+                    // visit tracking for the rest of the day.
+                    Cache::forget("pwa:visit:{$user->id}:{$today}");
+
+                    throw $e;
+                }
 
                 Log::debug('pwa.visit.tracked', [
                     'user_id' => $user->id,
