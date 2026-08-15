@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\UserAppVisit;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,19 +26,24 @@ class TrackAppVisit
         if ($user && $this->shouldTrack($request)) {
             $today = now()->toDateString();
 
-            UserAppVisit::upsert(
-                [
-                    'id' => (string) Str::orderedUuid(),
+            // One visit row per user per day. The cache check is atomic and
+            // replaces an INSERT..ON CONFLICT round-trip on every page view —
+            // idempotent data was being re-written N times per session.
+            if (Cache::add("pwa:visit:{$user->id}:{$today}", true, now()->addDay())) {
+                UserAppVisit::upsert(
+                    [
+                        'id' => (string) Str::orderedUuid(),
+                        'user_id' => $user->id,
+                        'visit_date' => $today,
+                    ],
+                    ['user_id', 'visit_date'],
+                );
+
+                Log::debug('pwa.visit.tracked', [
                     'user_id' => $user->id,
                     'visit_date' => $today,
-                ],
-                ['user_id', 'visit_date'],
-            );
-
-            Log::debug('pwa.visit.tracked', [
-                'user_id' => $user->id,
-                'visit_date' => $today,
-            ]);
+                ]);
+            }
         }
 
         return $next($request);

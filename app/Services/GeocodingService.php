@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -18,6 +19,9 @@ use Illuminate\Support\Facades\Log;
  */
 class GeocodingService
 {
+    /** TTL for negative results ("no match" / upstream failure). */
+    private const NEGATIVE_TTL = 300;
+
     private string $baseUrl;
 
     private string $userAgent;
@@ -53,54 +57,10 @@ class GeocodingService
     {
         $cacheKey = $this->cacheKey($address, $options);
 
-        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($address, $options) {
-            try {
-                $params = array_merge([
-                    'q' => $address,
-                    'format' => 'json',
-                    'limit' => 1,
-                    'addressdetails' => 1,
-                ], $options);
+        /** @var array{lat: float, lng: float, display_name: string, place_id: string, raw: array<int|string, mixed>}|null $result */
+        $result = $this->rememberNullable($cacheKey, fn () => $this->fetchGeocode($address, $options));
 
-                $response = Http::timeout($this->timeout)
-                    ->withHeaders(['User-Agent' => $this->userAgent])
-                    ->get("{$this->baseUrl}/search", $params);
-
-                if ($response->failed()) {
-                    Log::warning('Geocoding API request failed', [
-                        'address' => $address,
-                        'status' => $response->status(),
-                    ]);
-
-                    return null;
-                }
-
-                $results = $response->json();
-
-                if (! is_array($results) || empty($results) || ! is_array($results[0] ?? null)) {
-                    Log::info('Geocoding: no results found', ['address' => $address]);
-
-                    return null;
-                }
-
-                $result = $results[0];
-
-                return [
-                    'lat' => is_numeric($lat = $result['lat'] ?? 0) ? (float) $lat : 0.0,
-                    'lng' => is_numeric($lon = $result['lon'] ?? 0) ? (float) $lon : 0.0,
-                    'display_name' => is_string($result['display_name'] ?? null) ? $result['display_name'] : '',
-                    'place_id' => to_string_id($result['place_id'] ?? null),
-                    'raw' => $result,
-                ];
-            } catch (ConnectionException $e) {
-                Log::error('Geocoding API connection error', [
-                    'address' => $address,
-                    'error' => $e->getMessage(),
-                ]);
-
-                return null;
-            }
-        });
+        return $result;
     }
 
     /**
@@ -115,42 +75,186 @@ class GeocodingService
     {
         $cacheKey = "geocode:reverse:{$lat},{$lng}";
 
-        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($lat, $lng) {
-            try {
-                $response = Http::timeout($this->timeout)
-                    ->withHeaders(['User-Agent' => $this->userAgent])
-                    ->get("{$this->baseUrl}/reverse", [
-                        'lat' => $lat,
-                        'lon' => $lng,
-                        'format' => 'json',
-                        'addressdetails' => 1,
-                    ]);
+        return $this->rememberNullable($cacheKey, fn () => $this->fetchReverseGeocode($lat, $lng));
+    }
 
-                if ($response->failed()) {
-                    return null;
+    /**
+     * Cache wrapper that actually caches null results.
+     *
+     * Cache::remember re-executes the closure when it returns null (null is
+     * indistinguishable from a cache miss), so every typo'd or unresolvable
+     * address re-hit Nominatim — whose usage policy is 1 req/s — from every
+     * Livewire picker. Negatives are cached under a false sentinel with a
+     * short TTL, and a lock collapses concurrent misses (stampede) into a
+     * single upstream call.
+     *
+     * @param  callable(): (array<string, mixed>|null)  $fetch
+     * @return array<string, mixed>|null
+     */
+    private function rememberNullable(string $cacheKey, callable $fetch): ?array
+    {
+        $cached = $this->readCached($cacheKey);
+        if ($cached['hit']) {
+            return $cached['value'];
+        }
+
+        $lock = Cache::lock("{$cacheKey}:lock", 10);
+
+        try {
+            /** @var array<string, mixed>|null $result */
+            $result = $lock->block(5, function () use ($cacheKey, $fetch): ?array {
+                // Re-check after acquiring — another request may have warmed it.
+                $cached = $this->readCached($cacheKey);
+                if ($cached['hit']) {
+                    return $cached['value'];
                 }
 
-                $result = $response->json();
+                $result = $fetch();
+                $this->putNullable($cacheKey, $result);
 
-                if (! is_array($result) || isset($result['error'])) {
-                    return null;
-                }
+                return $result;
+            });
 
-                return [
-                    'display_name' => is_string($result['display_name'] ?? null) ? $result['display_name'] : '',
-                    'address' => is_array($result['address'] ?? null) ? $result['address'] : [],
-                    'raw' => $result,
-                ];
-            } catch (ConnectionException $e) {
-                Log::error('Reverse geocoding connection error', [
-                    'lat' => $lat,
-                    'lng' => $lng,
-                    'error' => $e->getMessage(),
+            return $result;
+        } catch (LockTimeoutException) {
+            // Contention: fetch without the lock; the cache write is idempotent.
+            $result = $fetch();
+            $this->putNullable($cacheKey, $result);
+
+            return $result;
+        }
+    }
+
+    /**
+     * Read a cache entry produced by putNullable(). false is the negative
+     * sentinel ("known no-result"); arrays are positive hits; anything else
+     * (null = miss, or a corrupt entry) is treated as a miss.
+     *
+     * @return array{hit: bool, value: array<string, mixed>|null}
+     */
+    private function readCached(string $cacheKey): array
+    {
+        $cached = Cache::get($cacheKey);
+
+        if ($cached === false) {
+            return ['hit' => true, 'value' => null];
+        }
+
+        if (is_array($cached)) {
+            /** @var array<string, mixed> $value */
+            $value = $cached;
+
+            return ['hit' => true, 'value' => $value];
+        }
+
+        return ['hit' => false, 'value' => null];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $result
+     */
+    private function putNullable(string $cacheKey, ?array $result): void
+    {
+        Cache::put(
+            $cacheKey,
+            $result ?? false,
+            $result !== null ? $this->cacheTtl : self::NEGATIVE_TTL,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>|null
+     */
+    private function fetchGeocode(string $address, array $options): ?array
+    {
+        try {
+            $params = array_merge([
+                'q' => $address,
+                'format' => 'json',
+                'limit' => 1,
+                'addressdetails' => 1,
+            ], $options);
+
+            $response = Http::timeout($this->timeout)
+                ->withHeaders(['User-Agent' => $this->userAgent])
+                ->get("{$this->baseUrl}/search", $params);
+
+            if ($response->failed()) {
+                Log::warning('Geocoding API request failed', [
+                    'address' => $address,
+                    'status' => $response->status(),
                 ]);
 
                 return null;
             }
-        });
+
+            $results = $response->json();
+
+            if (! is_array($results) || empty($results) || ! is_array($results[0] ?? null)) {
+                Log::info('Geocoding: no results found', ['address' => $address]);
+
+                return null;
+            }
+
+            $result = $results[0];
+
+            return [
+                'lat' => is_numeric($lat = $result['lat'] ?? 0) ? (float) $lat : 0.0,
+                'lng' => is_numeric($lon = $result['lon'] ?? 0) ? (float) $lon : 0.0,
+                'display_name' => is_string($result['display_name'] ?? null) ? $result['display_name'] : '',
+                'place_id' => to_string_id($result['place_id'] ?? null),
+                'raw' => $result,
+            ];
+        } catch (ConnectionException $e) {
+            Log::error('Geocoding API connection error', [
+                'address' => $address,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function fetchReverseGeocode(float $lat, float $lng): ?array
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->withHeaders(['User-Agent' => $this->userAgent])
+                ->get("{$this->baseUrl}/reverse", [
+                    'lat' => $lat,
+                    'lon' => $lng,
+                    'format' => 'json',
+                    'addressdetails' => 1,
+                ]);
+
+            if ($response->failed()) {
+                return null;
+            }
+
+            $result = $response->json();
+
+            if (! is_array($result) || isset($result['error'])) {
+                return null;
+            }
+
+            return [
+                'display_name' => is_string($result['display_name'] ?? null) ? $result['display_name'] : '',
+                'address' => is_array($result['address'] ?? null) ? $result['address'] : [],
+                'raw' => $result,
+            ];
+        } catch (ConnectionException $e) {
+            Log::error('Reverse geocoding connection error', [
+                'lat' => $lat,
+                'lng' => $lng,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     /**

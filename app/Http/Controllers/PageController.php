@@ -13,6 +13,7 @@ use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
@@ -23,27 +24,39 @@ class PageController extends Controller
     /** @return View */
     public function home()
     {
-        // Weekly rolling activity: sessions happening this week
-        $sessionsThisWeek = Game::query()
-            ->public()
-            ->where('date_time', '>=', now()->startOfWeek())
-            ->where('date_time', '<=', now()->endOfWeek())
-            ->count();
+        // Weekly rolling activity stats, cached: three aggregates (one over a
+        // games⋈participants join) ran per request on the hottest anonymous
+        // page, and marketing copy tolerates minutes of staleness. The 10-min
+        // TTL keeps "this week" boundaries effectively live.
+        [$sessionsThisWeek, $activeCampaigns, $peopleThisWeek] = Cache::remember(
+            'home:stats:v1',
+            now()->addMinutes(10),
+            function (): array {
+                // Weekly rolling activity: sessions happening this week
+                $sessionsThisWeek = Game::query()
+                    ->public()
+                    ->where('date_time', '>=', now()->startOfWeek())
+                    ->where('date_time', '<=', now()->endOfWeek())
+                    ->count();
 
-        // Active campaigns (non-completed, public)
-        $activeCampaigns = Campaign::query()
-            ->where('visibility', 'public')
-            ->where('status', '!=', 'completed')
-            ->count();
+                // Active campaigns (non-completed, public)
+                $activeCampaigns = Campaign::query()
+                    ->where('visibility', 'public')
+                    ->where('status', '!=', 'completed')
+                    ->count();
 
-        // Total participants across this week's public scheduled sessions
-        $peopleThisWeek = Game::query()
-            ->where('games.visibility', 'public')
-            ->where('games.status', 'scheduled')
-            ->where('games.date_time', '>=', now()->startOfWeek())
-            ->where('games.date_time', '<=', now()->endOfWeek())
-            ->join('game_participants', 'games.id', '=', 'game_participants.game_id')
-            ->count();
+                // Total participants across this week's public scheduled sessions
+                $peopleThisWeek = Game::query()
+                    ->where('games.visibility', 'public')
+                    ->where('games.status', 'scheduled')
+                    ->where('games.date_time', '>=', now()->startOfWeek())
+                    ->where('games.date_time', '<=', now()->endOfWeek())
+                    ->join('game_participants', 'games.id', '=', 'game_participants.game_id')
+                    ->count();
+
+                return [$sessionsThisWeek, $activeCampaigns, $peopleThisWeek];
+            }
+        );
 
         $schema = SchemaCollection::initialize();
         $schema->markup[OrganizationSchema::class][] = fn (OrganizationSchema $s) => $s;
@@ -80,7 +93,12 @@ class PageController extends Controller
 
     public function forOrganizers(): View
     {
-        $organizerCount = User::has('ownedGames')->count();
+        // Cached EXISTS-subquery user count — same rationale as home():stats.
+        $organizerCount = (int) Cache::remember(
+            'pages:organizer-count:v1',
+            now()->addMinutes(30),
+            fn () => User::has('ownedGames')->count(),
+        );
         $displayCount = $organizerCount >= 10 ? $organizerCount : 50;
 
         seo(new SEOData(
