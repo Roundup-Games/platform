@@ -24,12 +24,20 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
+    environment:
+      # The app service owns migrations + seeding; a second concurrent
+      # migrator races the migrations table on every deploy.
+      RUN_MIGRATIONS: "0"
     volumes:
       - app_storage:/var/www/html/storage
     networks:
       - roundup
     depends_on:
-      - app
+      # Wait for the app to be healthy (migrations done) — the list form only
+      # orders container START, not readiness, which still raced boot-time
+      # queries against a mid-migration schema.
+      app:
+        condition: service_healthy
     # Worker has no nginx/fpm (stripped in the Dockerfile worker stage), so the
     # image's default HTTP healthcheck always fails with 'unhealthy'. Probe what
     # the worker actually does: Horizon is processing the queue.

@@ -33,9 +33,16 @@ else
     echo "APP_KEY=${GENERATED_KEY}" >> .env
 fi
 
-# Run migrations
-echo "Running migrations..."
-php artisan migrate --force
+# Run migrations + first-time seeding in exactly ONE container. The worker
+# container inherits this init script; running `migrate --force` in both
+# containers concurrently races the migrations table on every deploy.
+# Set RUN_MIGRATIONS=0 on every non-owner service (see docker-compose.yml).
+if [ "${RUN_MIGRATIONS:-1}" = "1" ]; then
+    echo "Running migrations..."
+    php artisan migrate --force
+else
+    echo "RUN_MIGRATIONS=0 — skipping migrations (owner service runs them)."
+fi
 
 # Cache config, routes, views, events for production
 echo "Caching config, routes, views, events..."
@@ -46,8 +53,10 @@ php artisan event:cache
 
 # Seed Escalated helpdesk data (departments, tags, SLA policies) — idempotent
 # Allow errors to surface in container logs for debugging; || true prevents script failure
-echo "Seeding Escalated helpdesk data..."
-php artisan db:seed --force --class=EscalatedSetupSeeder || true
+if [ "${RUN_MIGRATIONS:-1}" = "1" ]; then
+    echo "Seeding Escalated helpdesk data..."
+    php artisan db:seed --force --class=EscalatedSetupSeeder || true
+fi
 
 # Write deploy timestamp for admin dashboard
 date -u +"%Y-%m-%d %H:%M:%S UTC" > /var/www/html/storage/framework/deploy-timestamp

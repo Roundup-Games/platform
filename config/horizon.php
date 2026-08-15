@@ -205,7 +205,11 @@ return [
             'maxProcesses' => 1,
             'maxTime' => 0,
             'maxJobs' => 0,
-            'memory' => 128,
+            // Must stay >= the worker image's PHP memory_limit (512M, raised
+            // for GD image-conversion jobs). At the old 128 default Horizon
+            // killed big conversions mid-job and retried them 3× — the raise
+            // was unreachable.
+            'memory' => 512,
             'tries' => 3,
             'timeout' => 120,
             'nice' => 0,
