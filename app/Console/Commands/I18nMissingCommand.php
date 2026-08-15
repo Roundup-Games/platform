@@ -44,6 +44,12 @@ class I18nMissingCommand extends Command
         $confirmedMissing = [];
         $falsePositives = [];
 
+        // Memoize per-domain key sets. getKeys() includes + Arr::dot-flattens
+        // the domain file, and in_array() scans linearly — recomputing both per
+        // entry made long missing-key sessions O(entries × keys) with a file
+        // include per entry.
+        $keysByDomain = [];
+
         foreach ($entries as $entry) {
             if (! is_array($entry)) {
                 continue;
@@ -66,9 +72,12 @@ class I18nMissingCommand extends Command
                 continue;
             }
 
-            $existingKeys = $parser->getKeys($parser->getPrimaryLocale(), $domain);
+            $keysByDomain[$domain] ??= array_fill_keys(
+                $parser->getKeys($parser->getPrimaryLocale(), $domain),
+                true,
+            );
 
-            if (in_array($keyPart, $existingKeys)) {
+            if (isset($keysByDomain[$domain][$keyPart])) {
                 $falsePositives[] = array_merge($entry, ['reason' => 'Key exists in domain file (may be locale-specific gap)']);
 
                 continue;

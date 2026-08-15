@@ -29,8 +29,11 @@ class UserPreferenceResolver
      */
     public function resolvedGameSystemPreferences(User $user): array
     {
-        $favorites = $user->favoriteGameSystems()->get();
-        $avoided = $user->avoidedGameSystems()->get();
+        // Eager-load expansions — the loops below touch ->expansions on every
+        // system, which lazy-loads one query per favorite/avoided system on
+        // every discovery/dashboard render that resolves preferences.
+        $favorites = $user->favoriteGameSystems()->with('expansions')->get();
+        $avoided = $user->avoidedGameSystems()->with('expansions')->get();
         $avoidedIds = $avoided->pluck('id')->flip();
 
         // Collect implied favorites from expansions of favorited base games

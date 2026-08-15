@@ -128,17 +128,24 @@ class LocationDriftService
             ->havingRaw('count(*) > 1')
             ->pluck('place_id');
 
-        foreach ($groups as $placeId) {
-            $rows = DB::table('locations')
-                ->where('place_id', $placeId)
-                ->orderBy('id')
-                ->pluck('id');
+        // One indexed query for ALL duplicate place_ids instead of one query
+        // per group (G round-trips on a nightly sweep).
+        $rows = DB::table('locations')
+            ->whereNotNull('place_id')
+            ->whereIn('place_id', $groups->all())
+            ->orderBy('place_id')
+            ->orderBy('id')
+            ->get(['place_id', 'id'])
+            ->groupBy('place_id');
 
-            if ($rows->count() < 2) {
+        foreach ($rows as $groupRows) {
+            $ids = $groupRows->pluck('id');
+
+            if ($ids->count() < 2) {
                 continue;
             }
 
-            $first = $rows->first();
+            $first = $ids->first();
             // pluck('id') is typed mixed, so narrow explicitly. The count() >= 2
             // guard above makes a non-scalar unreachable — fail loud rather than
             // fabricate an empty id, which would log phantom drift rows (a
@@ -148,7 +155,7 @@ class LocationDriftService
             }
             $targetId = (string) $first;
 
-            foreach ($rows->skip(1) as $id) {
+            foreach ($ids->skip(1) as $id) {
                 if (! is_scalar($id)) {
                     throw new \LogicException('Location id missing from pluck("id") result.');
                 }
@@ -179,26 +186,29 @@ class LocationDriftService
     {
         $flaggedIds = [];
 
-        $groups = DB::table('locations')
+        // Fetch ALL named/geocoded rows once and group in PHP. The previous
+        // per-group query used lower(trim(name)) = ? — non-sargable, so each of
+        // the G groups was a full table scan (O(G × N) on a growing table).
+        // The pairwise phase below stays bounded by MAX_NAME_GROUP_SIZE.
+        /** @var Collection<int, Location> $allRows ordered lowest-id first */
+        $allRows = Location::query()
             ->whereNotNull('name')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
-            ->selectRaw('lower(trim(name)) as norm_name, count(*) as cnt')
-            ->groupBy('norm_name')
-            ->havingRaw('count(*) > 1')
-            ->get();
+            ->orderBy('id')
+            ->get(['id', 'name', 'latitude', 'longitude']);
 
-        foreach ($groups as $group) {
-            if ($group->cnt > self::MAX_NAME_GROUP_SIZE) {
-                continue; // bound pairwise cost
+        $byNormName = $allRows
+            ->groupBy(fn (Location $row) => mb_strtolower(trim((string) $row->name)))
+            // Re-index each group sequentially: the pairwise loop below uses
+            // array position ($k === 0 skip, $rows[$m] lookups), not original
+            // collection keys.
+            ->map(fn (Collection $group) => $group->values());
+
+        foreach ($byNormName as $rows) {
+            if ($rows->count() < 2 || $rows->count() > self::MAX_NAME_GROUP_SIZE) {
+                continue; // singletons can't be duplicates; bound pairwise cost
             }
-
-            /** @var Collection<int, Location> $rows ordered lowest-id first */
-            $rows = Location::whereRaw('lower(trim(name)) = ?', [$group->norm_name])
-                ->whereNotNull('latitude')
-                ->whereNotNull('longitude')
-                ->orderBy('id')
-                ->get();
 
             foreach ($rows as $k => $candidate) {
                 if ($k === 0) {
