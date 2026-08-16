@@ -10,6 +10,7 @@ use App\Models\GameSystemDesigner;
 use App\Models\GameSystemFamily;
 use App\Models\GameSystemMechanic;
 use App\Models\GameSystemPublisher;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -21,11 +22,20 @@ class BggSyncService
      * two concurrent syncs (manual admin job + ticket listener + weekly sweep
      * all call this service) would double BGG request pressure. block()
      * releases the lock when the closure returns/throws; the TTL is only the
-     * crash-safety lease, so it sits above the job's $timeout (300s), which
-     * bounds the longest legit hold. Equal-to-timeout would let a sync at
-     * exactly max runtime expire the lock mid-flight.
+     * crash-safety lease. Laravel's Lock contract has no renew(), so a hold
+     * must finish before the TTL expires: each hold is bounded to
+     * SYNC_LOCK_TTL - BATCH_WORST_CASE_SECONDS (see doSyncGameSystems), and
+     * large ID lists continue under a fresh lock acquisition per slice —
+     * mutual exclusion is preserved for every hold, never lapsing mid-flight.
      */
     private const SYNC_LOCK_TTL = 600;
+
+    /**
+     * Worst-case duration of a single batch: 3 attempts x 30s timeout +
+     * 2 x 5s 202-retry sleeps + 2s rate-limit throttle, plus upserts. A hold
+     * starting its last batch at the deadline still finishes inside the TTL.
+     */
+    private const BATCH_WORST_CASE_SECONDS = 120;
 
     private BggClient $client;
 
@@ -50,24 +60,60 @@ class BggSyncService
      */
     public function syncGameSystems(array $bggIds): SyncResult
     {
-        // Serialize syncs process-wide (see SYNC_LOCK_TTL). Waiting up to 60s
-        // covers a short in-flight sync; longer contention surfaces as a
-        // LockTimeoutException, and the job's backoff re-enters this wait —
-        // preferable to racing.
-        /** @var SyncResult $result */
-        $result = Cache::lock('bgg:sync', self::SYNC_LOCK_TTL)
-            ->block(60, fn () => $this->doSyncGameSystems($bggIds));
+        $remaining = array_values($bggIds);
+        $merged = SyncResult::empty();
 
-        return $result;
+        do {
+            // One bounded lock hold per slice. Waiting up to 60s covers a short
+            // in-flight sync; longer contention surfaces as a
+            // LockTimeoutException, and the job's backoff re-enters this wait —
+            // preferable to racing.
+            /** @var array{result: SyncResult, processed: array<int, int>, remaining: array<int, int>} $slice */
+            $slice = Cache::lock('bgg:sync', self::SYNC_LOCK_TTL)
+                ->block(60, fn (): array => $this->doSyncGameSystems($remaining, $this->holdDeadline()));
+
+            $merged = $merged->merge($slice['result']);
+            $processed = $slice['processed'];
+            $remaining = $slice['remaining'];
+
+            if ($remaining !== [] && $processed === []) {
+                // Deadline math makes this unreachable (each hold starts with a
+                // fresh, positive budget), but a zero-progress slice would loop
+                // forever — fail loud instead of hanging the worker.
+                throw new \LogicException('BGG sync slice made no progress; refusing to loop.');
+            }
+
+            if ($remaining !== []) {
+                Log::info('BGG sync: lock budget reached — continuing '.count($remaining).' id(s) under a fresh lock hold');
+            }
+        } while ($remaining !== []);
+
+        return $merged;
     }
 
     /**
-     * @param  array<int, int>  $bggIds
+     * Deadline for the current lock hold: a hold stops before starting a
+     * batch that could cross it, guaranteeing release inside the TTL.
+     * Protected so tests can force slice boundaries with an expired deadline.
      */
-    private function doSyncGameSystems(array $bggIds): SyncResult
+    protected function holdDeadline(): CarbonInterface
+    {
+        return now()->addSeconds(self::SYNC_LOCK_TTL - self::BATCH_WORST_CASE_SECONDS);
+    }
+
+    /**
+     * Runs one bounded lock-held slice. Stops before starting a batch that
+     * would cross $deadline (never mid-batch), reporting the processed and
+     * remaining ID lists so syncGameSystems() can continue under a fresh
+     * hold. The BggSyncLog row reflects only the ids this slice attempted.
+     *
+     * @param  array<int, int>  $bggIds
+     * @return array{result: SyncResult, processed: array<int, int>, remaining: array<int, int>}
+     */
+    private function doSyncGameSystems(array $bggIds, CarbonInterface $deadline): array
     {
         // Early return for empty input
-        if (empty($bggIds)) {
+        if ($bggIds === []) {
             $log = BggSyncLog::create([
                 'status' => 'success',
                 'bgg_ids' => [],
@@ -79,7 +125,7 @@ class BggSyncService
 
             Log::info('BGG sync completed: 0 items (empty batch)');
 
-            return SyncResult::empty();
+            return ['result' => SyncResult::empty(), 'processed' => [], 'remaining' => []];
         }
 
         $log = BggSyncLog::create([
@@ -92,6 +138,7 @@ class BggSyncService
         $failed = 0;
         $errors = [];
         $discoveredExpansionIds = [];
+        $batchesDone = 0;
 
         try {
             assert($this->batchSize > 0, 'Batch size must be positive');
@@ -99,6 +146,12 @@ class BggSyncService
             $chunkCount = count($chunks);
 
             foreach ($chunks as $batchIndex => $batch) {
+                // Hold-budget guard: stop BEFORE a batch that could cross the
+                // deadline so the lock is released cleanly, never expired.
+                if ($batchesDone > 0 && now()->greaterThanOrEqualTo($deadline)) {
+                    break;
+                }
+
                 Log::info('BGG sync: fetching batch '.($batchIndex + 1)."/{$chunkCount}", [
                     'ids' => $batch,
                 ]);
@@ -123,27 +176,39 @@ class BggSyncService
                         Log::error("BGG sync: {$errorMsg}");
                     }
                 }
+
+                $batchesDone++;
             }
+
+            $processed = array_slice($bggIds, 0, $batchesDone * $this->batchSize);
+            $remaining = array_slice($bggIds, $batchesDone * $this->batchSize);
 
             $log->update([
                 'status' => 'success',
+                'bgg_ids' => $processed,
                 'items_synced' => $synced,
                 'items_failed' => $failed,
                 'completed_at' => now(),
             ]);
 
-            Log::info("BGG sync completed: {$synced} synced, {$failed} failed");
+            Log::info("BGG sync completed: {$synced} synced, {$failed} failed"
+                .($remaining === [] ? '' : ' (partial — '.count($remaining).' id(s) continue under a fresh lock hold)'));
 
-            return new SyncResult(
-                synced: $synced,
-                failed: $failed,
-                errors: $errors,
-                discoveredExpansionIds: array_values(array_unique(array_filter($discoveredExpansionIds, fn (mixed $v) => is_int($v)))),
-            );
+            return [
+                'result' => new SyncResult(
+                    synced: $synced,
+                    failed: $failed,
+                    errors: $errors,
+                    discoveredExpansionIds: array_values(array_unique(array_filter($discoveredExpansionIds, fn (mixed $v) => is_int($v)))),
+                ),
+                'processed' => $processed,
+                'remaining' => $remaining,
+            ];
 
         } catch (\Throwable $e) {
             $log->update([
                 'status' => 'failed',
+                'bgg_ids' => array_slice($bggIds, 0, $batchesDone * $this->batchSize),
                 'items_synced' => $synced,
                 'items_failed' => $failed,
                 'error_message' => $e->getMessage(),

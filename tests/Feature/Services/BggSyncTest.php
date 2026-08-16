@@ -12,6 +12,8 @@ use App\Models\GameSystemPublisher;
 use App\Services\BggClient;
 use App\Services\BggSyncService;
 use App\Services\BggXmlParser;
+use Carbon\CarbonInterface;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -634,4 +636,66 @@ it('runs bgg:sync command with multiple IDs', function () {
     expect($output)->toContain('Synced: 2, Failed: 0');
 
     expect(GameSystem::whereIn('bgg_id', [174430, 224517])->count())->toBe(2);
+});
+
+// ── Lock-budget slicing (CodeRabbit: sync must not outlive SYNC_LOCK_TTL) ──
+
+it('continues large ID lists under fresh lock holds when the hold budget is hit', function () {
+    // 45 ids with batchSize 20 and an always-expired hold deadline forces
+    // one batch per slice: 20 + 20 + 5, each under its own lock acquisition.
+    Http::fake(function (Request $request) {
+        // Echo one parsable <item> per requested id so every batch syncs
+        // its full id list (the real API does the same).
+        parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+        $ids = array_filter(explode(',', (string) ($query['id'] ?? '')), 'ctype_digit');
+        $items = implode('', array_map(fn (string $id): string => <<<XML
+          <item type="boardgame" id="{$id}">
+            <name value="Slice Game {$id}"/><yearpublished value="2017"/>
+            <minplayers value="1"/><maxplayers value="4"/>
+            <maxplaytime value="60"/><minage value="12"/>
+            <statistics><ratings>
+              <average value="8.0"/><bayesaverage value="7.5"/><usersrated value="100"/>
+              <averageweight value="2.0"/>
+              <ranks><rank type="subtype" id="1" name="boardgame" value="1"/></ranks>
+            </ratings></statistics>
+          </item>
+        XML, $ids));
+
+        return Http::response("<items>{$items}</items>", 200, ['Content-Type' => 'application/xml']);
+    });
+
+    $service = new class(new BggClient(baseUrl: 'https://boardgamegeek.com/xmlapi2', token: 'test-token', rateLimitSeconds: 0, maxRetries: 1, retrySleepSeconds: 0), new BggXmlParser, 20) extends BggSyncService
+    {
+        protected function holdDeadline(): CarbonInterface
+        {
+            // Always expired (except the guard skips index 0) — forces the
+            // maximum slicing: one batch per lock hold.
+            return now()->subSecond();
+        }
+    };
+
+    $ids = array_map(fn (int $i): int => 1000000 + $i, range(1, 45));
+
+    $result = $service->syncGameSystems($ids);
+
+    // The full list completed across slices, merged into one SyncResult.
+    expect($result->synced)->toBe(45)
+        ->and($result->failed)->toBe(0);
+
+    // Three slices => three log rows, each recording only the ids it ran.
+    $logs = BggSyncLog::orderBy('started_at')->get();
+    expect($logs)->toHaveCount(3);
+    expect($logs->pluck('items_synced')->all())->toBe([20, 20, 5]);
+    expect($logs->every(fn (BggSyncLog $log) => $log->status === 'success'))->toBeTrue();
+});
+
+it('completes a small list in a single lock hold under the normal deadline', function () {
+    Http::fake([
+        'boardgamegeek.com/*' => Http::response($this->gloomhavenXml, 200, ['Content-Type' => 'application/xml']),
+    ]);
+
+    $result = createService()->syncGameSystems([174430]);
+
+    expect($result->synced)->toBe(1)
+        ->and(BggSyncLog::count())->toBe(1);
 });
