@@ -261,10 +261,10 @@ class PostHogExceptionReporter
      */
     private function normalizeMessage(string $message): string
     {
-        $message = preg_replace('/\s*\((?:Connection|SQL):.*$/s', '', $message);
-        $message = preg_replace('/\'[^\']*\'|"[^"]*"/', '?', $message);
+        $message = (string) preg_replace('/\s*\((?:Connection|SQL):.*$/s', '', $message);
+        $message = (string) preg_replace('/\'[^\']*\'|"[^"]*"/', '?', $message);
 
-        return preg_replace('/\d+/', '?', $message);
+        return (string) preg_replace('/\d+/', '?', $message);
     }
 
     /**
