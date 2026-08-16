@@ -220,6 +220,9 @@ class PostHogExceptionReporter
 
     /**
      * Redact the SQL tail from every message in a built exception list.
+     *
+     * @param  array<int, array<string, mixed>>  $exceptionList
+     * @return array<int, array<string, mixed>>
      */
     private function redactExceptionMessages(array $exceptionList): array
     {
