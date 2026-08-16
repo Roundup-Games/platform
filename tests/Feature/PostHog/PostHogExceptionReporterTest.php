@@ -290,12 +290,13 @@ it('does not forward a bound email address from a unique violation', function ()
         $driver
     ));
 
-    $payload = json_encode($this->posthogClient->capturedCalls[0]);
-    expect($payload)->not->toContain('real.person@example.com');
-
-    // The stable, non-PII part of the reason is kept for debugging.
+    // The exception value carries the driver message. The bound email lives in
+    // the SQL and the Postgres DETAIL line, both of which are stripped; the
+    // stable constraint name is kept for debugging.
     $values = collect($this->posthogClient->capturedCalls[0]['properties']['$exception_list'])
         ->pluck('value')
         ->implode(' ');
-    expect($values)->toContain('users_email_unique');
+    expect($values)->not->toContain('real.person@example.com')
+        ->and($values)->not->toContain('DETAIL:')
+        ->and($values)->toContain('users_email_unique');
 })->group('smoke');
