@@ -4,11 +4,13 @@ namespace App\Services;
 
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use PDOException;
 use PostHog\ExceptionPayloadBuilder;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
@@ -20,6 +22,11 @@ use Throwable;
  * Rate-limited to 10 reports/minute per exception type to prevent flooding.
  * All PostHog calls are wrapped in try/catch so analytics failures never
  * block error reporting or app responses.
+ *
+ * A database connection failure carries the host, port, database name, and a
+ * SQL fragment in its message. Such failures are infrastructure blips, not
+ * application bugs, so this reporter groups them under one stable issue and
+ * scrubs the message before it reaches error tracking.
  */
 class PostHogExceptionReporter
 {
@@ -32,6 +39,22 @@ class PostHogExceptionReporter
      * Rate limit cache key prefix.
      */
     private const CACHE_KEY_PREFIX = 'posthog:exception_throttle:';
+
+    /**
+     * SQLSTATE codes for connection-level database failures:
+     * 08006 connection_failure, 08001 unable to establish connection,
+     * 57P01 admin shutdown. These signal an infrastructure outage.
+     */
+    private const CONNECTION_SQLSTATES = ['08006', '08001', '57P01'];
+
+    /**
+     * Stable, secret-free message and fingerprint for infrastructure failures.
+     * Keeps the private host, port, database name, and SQL out of the issue
+     * title, and groups every connection blip under a single issue.
+     */
+    private const INFRASTRUCTURE_MESSAGE = 'Database connection failure (infrastructure — details scrubbed)';
+
+    private const INFRASTRUCTURE_FINGERPRINT = 'infrastructure:database_connection';
 
     public function __construct(
         private readonly PostHogClient $posthog,
@@ -60,8 +83,12 @@ class PostHogExceptionReporter
             return;
         }
 
+        $isInfrastructureFailure = $this->isInfrastructureFailure($e);
+
         $distinctId = $this->resolveDistinctId();
-        $fingerprint = $this->buildFingerprint($e);
+        $fingerprint = $isInfrastructureFailure
+            ? self::INFRASTRUCTURE_FINGERPRINT
+            : $this->buildFingerprint($e);
 
         // Build the structured exception list the PostHog ingestion endpoint requires.
         // PostHog expects $exception_list as an array of objects with type/value/mechanism/stacktrace.
@@ -70,6 +97,11 @@ class PostHogExceptionReporter
             'type' => 'manual',
             'handled' => false,
         ]);
+
+        // Replace the leaky connection message with a stable, scrubbed string.
+        if ($isInfrastructureFailure) {
+            $exceptionList = $this->scrubInfrastructureMessages($exceptionList);
+        }
 
         $this->posthog->capture([
             'distinctId' => $distinctId,
@@ -179,23 +211,95 @@ class PostHogExceptionReporter
      */
     private function resolveDistinctId(): string
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        if ($user) {
-            $authId = $user->getAuthIdentifier();
+            if ($user) {
+                $authId = $user->getAuthIdentifier();
 
-            return to_string_id($authId);
+                return to_string_id($authId);
+            }
+
+            // Anonymous — use a random UUID stored in the session.
+            // Generated once per session, reused across requests for grouping.
+            // No PII (IP, UA) is used as input — purely random identifier.
+            if (! $anonId = session('posthog_anon_id')) {
+                $anonId = (string) Str::uuid();
+                session(['posthog_anon_id' => $anonId]);
+            }
+
+            return 'anon:'.substr(is_string($anonId) ? $anonId : '', 0, 16);
+        } catch (Throwable) {
+            // Auth::user() and session() both read the session store, which may
+            // be the thing that just failed (the database session driver during
+            // a Postgres outage). Fall back to a stable id so reporting an
+            // infrastructure failure never throws while reading a dead store.
+            return 'anon:unknown';
+        }
+    }
+
+    /**
+     * Check whether an exception, or one it wraps, is a connection-level
+     * database failure — an infrastructure blip rather than an app bug.
+     */
+    private function isInfrastructureFailure(Throwable $e): bool
+    {
+        for ($current = $e; $current !== null; $current = $current->getPrevious()) {
+            if (! $current instanceof QueryException && ! $current instanceof PDOException) {
+                continue;
+            }
+
+            $sqlState = $this->extractSqlState($current);
+
+            if ($sqlState !== null && in_array($sqlState, self::CONNECTION_SQLSTATES, true)) {
+                return true;
+            }
         }
 
-        // Anonymous — use a random UUID stored in the session.
-        // Generated once per session, reused across requests for grouping.
-        // No PII (IP, UA) is used as input — purely random identifier.
-        if (! $anonId = session('posthog_anon_id')) {
-            $anonId = (string) Str::uuid();
-            session(['posthog_anon_id' => $anonId]);
+        return false;
+    }
+
+    /**
+     * Extract the five-character SQLSTATE from a database exception. Reads
+     * errorInfo first, then the code, then the message — never returns any
+     * other part of the message, so no host or SQL leaks out.
+     */
+    private function extractSqlState(Throwable $e): ?string
+    {
+        $errorInfo = $e->errorInfo ?? null;
+        if (is_array($errorInfo) && isset($errorInfo[0]) && is_string($errorInfo[0])) {
+            return $errorInfo[0];
         }
 
-        return 'anon:'.substr(is_string($anonId) ? $anonId : '', 0, 16);
+        $code = $e->getCode();
+        if (is_string($code) && preg_match('/^[0-9A-Z]{5}$/', $code)) {
+            return $code;
+        }
+
+        if (preg_match('/SQLSTATE\[([0-9A-Z]{5})\]/', $e->getMessage(), $m)) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Replace every message in the exception list with a stable, secret-free
+     * string. The connection message holds the host, port, database name, and
+     * a SQL fragment, so none of it reaches error tracking.
+     *
+     * @param  array<int, array<string, mixed>>  $exceptionList
+     * @return array<int, array<string, mixed>>
+     */
+    private function scrubInfrastructureMessages(array $exceptionList): array
+    {
+        foreach ($exceptionList as $index => $entry) {
+            if (is_array($entry) && array_key_exists('value', $entry)) {
+                $exceptionList[$index]['value'] = self::INFRASTRUCTURE_MESSAGE;
+            }
+        }
+
+        return $exceptionList;
     }
 
     /**

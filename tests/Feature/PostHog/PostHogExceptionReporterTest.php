@@ -6,6 +6,7 @@ use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -218,4 +219,88 @@ it('builds stack trace starting with exception class and location via reporter',
     expect($exceptionList)->toHaveCount(1)
         ->and($exceptionList[0]['type'])->toBe(RuntimeException::class)
         ->and($exceptionList[0])->toHaveKey('stacktrace');
+});
+
+// ── Infrastructure (connection-level) database failures ─────
+
+/**
+ * Build a QueryException that mirrors a Postgres connection failure — the
+ * message carries the private host, port, database name, and SQL fragment.
+ */
+function connectionQueryException(string $sqlState): QueryException
+{
+    $pdo = new PDOException(
+        "SQLSTATE[{$sqlState}] [7] could not connect to server: Connection refused; ".
+        'host "10.0.3.14" port "5432" dbname "roundup_prod"'
+    );
+    $pdo->errorInfo = [$sqlState, 7, 'could not connect to server'];
+
+    return new QueryException(
+        'pgsql',
+        'select * from "sessions" where "id" = ? limit 1',
+        ['session-abc123'],
+        $pdo
+    );
+}
+
+it('scrubs the message from a connection-level database failure', function () {
+    Auth::logout();
+
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report(connectionQueryException('08006'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    $properties = $this->posthogClient->capturedCalls[0]['properties'];
+
+    foreach ($properties['$exception_list'] as $entry) {
+        expect($entry['value'])->toBe('Database connection failure (infrastructure — details scrubbed)');
+    }
+
+    // No host, database name, or SQL reaches error tracking.
+    $encoded = json_encode($properties['$exception_list']);
+    expect($encoded)->not->toContain('10.0.3.14')
+        ->and($encoded)->not->toContain('roundup_prod')
+        ->and($encoded)->not->toContain('sessions');
+});
+
+it('groups every connection failure under one stable fingerprint', function () {
+    Auth::logout();
+
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report(connectionQueryException('08006'));
+    $reporter->report(connectionQueryException('57P01'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(2);
+    expect($this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'])
+        ->toBe('infrastructure:database_connection')
+        ->and($this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'])
+        ->toBe('infrastructure:database_connection');
+});
+
+it('does NOT scrub a non-connection query error', function () {
+    Auth::logout();
+
+    $pdo = new PDOException('SQLSTATE[42P01] relation "widgets" does not exist');
+    $pdo->errorInfo = ['42P01', 7, 'relation does not exist'];
+    $queryException = new QueryException('pgsql', 'select * from "widgets"', [], $pdo);
+
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report($queryException);
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    $properties = $this->posthogClient->capturedCalls[0]['properties'];
+    expect($properties['$exception_fingerprint'])->not->toBe('infrastructure:database_connection')
+        ->and($properties['$exception_list'][0]['value'])->not->toBe('Database connection failure (infrastructure — details scrubbed)');
+});
+
+it('reports without throwing when the session store is dead', function () {
+    // Auth::user() and session() both read the session store; during a
+    // Postgres outage with SESSION_DRIVER=database, that read blows up.
+    Auth::shouldReceive('user')->andThrow(new RuntimeException('session store unavailable'));
+
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report(connectionQueryException('08006'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    expect($this->posthogClient->capturedCalls[0]['distinctId'])->toBe('anon:unknown');
 });
