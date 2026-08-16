@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -147,21 +148,27 @@ class PostHogExceptionReporter
      *
      * With the array or database cache driver, concurrent requests may
      * both pass the limit check — acceptable for analytics.
+     *
+     * The throttle reads a store that does not depend on the primary database
+     * (see config posthog.exception_throttle_store), so a database outage —
+     * the flood this guard exists to cap — cannot disable it.
      */
     private function passesRateLimit(Throwable $e): bool
     {
         $key = self::CACHE_KEY_PREFIX.md5(get_class($e));
+        $cache = cache()->store(config('posthog.exception_throttle_store'));
 
         try {
             // Ensure key exists with TTL before incrementing.
             // add() is atomic — only sets if key doesn't exist, avoiding
             // the race between concurrent first-request increments.
-            cache()->add($key, 0, 60);
+            $cache->add($key, 0, 60);
 
-            return cache()->increment($key) <= self::RATE_LIMIT_PER_CLASS;
+            return $cache->increment($key) <= self::RATE_LIMIT_PER_CLASS;
         } catch (Throwable) {
-            // If cache fails, allow the report through
-            return true;
+            // Cache unreachable — fail closed. A broken throttle must not flood
+            // error tracking with unbounded reports.
+            return false;
         }
     }
 
@@ -200,11 +207,33 @@ class PostHogExceptionReporter
 
     /**
      * Build a fingerprint for grouping similar exceptions in PostHog.
-     * Strips line numbers so same exception in same file groups together.
+     *
+     * The message is the variable part of the key. An exception whose message
+     * embeds request-specific data mints a new fingerprint on every request,
+     * so the same failure scatters into many one-off issues instead of one.
+     * The signal is normalized first — see fingerprintSignal().
      */
     private function buildFingerprint(Throwable $e): string
     {
-        return md5(get_class($e).'|'.$e->getFile().'|'.$e->getMessage());
+        return md5(get_class($e).'|'.$e->getFile().'|'.$this->fingerprintSignal($e));
+    }
+
+    /**
+     * Return the stable part of the exception used for grouping.
+     *
+     * A QueryException message interpolates the bound SQL, so two failures of
+     * the same query differ on every request. During a database outage this
+     * splits one incident into many single-occurrence issues. Group on the
+     * SQLSTATE code plus the connection name instead — both stay constant
+     * across the outage.
+     */
+    private function fingerprintSignal(Throwable $e): string
+    {
+        if ($e instanceof QueryException) {
+            return 'sqlstate:'.$e->getCode().'|connection:'.$e->getConnectionName();
+        }
+
+        return $e->getMessage();
     }
 
     /**

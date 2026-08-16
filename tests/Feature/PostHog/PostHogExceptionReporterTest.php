@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Session\TokenMismatchException;
@@ -205,6 +206,53 @@ it('reports 500 HttpException directly via reporter', function () {
     $payload = $this->posthogClient->capturedCalls[0];
     expect($payload['properties'])->toHaveKey('$exception_list')
         ->and($payload['properties']['$exception_list'][0]['type'])->toBe(HttpException::class);
+});
+
+describe('fingerprint normalization', function () {
+    it('groups QueryExceptions that differ only in bound SQL values', function () {
+        $reporter = app(PostHogExceptionReporter::class);
+
+        // Same query, same connection, different bound session id per request.
+        $reporter->report(new QueryException(
+            'pgsql',
+            'select * from "sessions" where "id" = ?',
+            ['e6GRIflnKfirst'],
+            new PDOException('SQLSTATE[08006] connection refused'),
+        ));
+        $reporter->report(new QueryException(
+            'pgsql',
+            'select * from "sessions" where "id" = ?',
+            ['Zt2QpWbXsecond'],
+            new PDOException('SQLSTATE[08006] connection refused'),
+        ));
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(2);
+
+        $first = $this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'];
+        $second = $this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'];
+        expect($first)->toBe($second);
+    });
+
+    it('separates QueryExceptions from different connections', function () {
+        $reporter = app(PostHogExceptionReporter::class);
+
+        $reporter->report(new QueryException(
+            'pgsql',
+            'select * from "sessions" where "id" = ?',
+            ['id-a'],
+            new PDOException('SQLSTATE[08006] connection refused'),
+        ));
+        $reporter->report(new QueryException(
+            'analytics',
+            'select * from "sessions" where "id" = ?',
+            ['id-a'],
+            new PDOException('SQLSTATE[08006] connection refused'),
+        ));
+
+        $first = $this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'];
+        $second = $this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'];
+        expect($first)->not->toBe($second);
+    });
 });
 
 it('builds stack trace starting with exception class and location via reporter', function () {

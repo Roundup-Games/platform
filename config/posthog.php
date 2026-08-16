@@ -83,4 +83,18 @@ return [
         'enabled' => env('POSTHOG_FEATURE_FLAGS_ENABLED', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Exception Report Throttle Store
+    |--------------------------------------------------------------------------
+    |
+    | Cache store that backs the per-class exception report throttle. It must
+    | not depend on the primary database. A database outage is exactly when the
+    | throttle has to cap report volume, so a throttle that reads the failing
+    | database disables itself during the incident it exists to survive. The
+    | file store stays available when the database is down.
+    |
+    */
+    'exception_throttle_store' => env('POSTHOG_EXCEPTION_THROTTLE_STORE', 'file'),
+
 ];
