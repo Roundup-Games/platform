@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -70,6 +71,11 @@ class PostHogExceptionReporter
             'type' => 'manual',
             'handled' => false,
         ]);
+        // A QueryException value carries the executed SQL, which can embed a
+        // per-request secret — with the database session driver, the session
+        // id read from the sessions table. Strip that tail before the payload
+        // reaches the error-tracking provider.
+        $exceptionList = $this->scrubExceptionList($exceptionList);
 
         $this->posthog->capture([
             'distinctId' => $distinctId,
@@ -200,11 +206,78 @@ class PostHogExceptionReporter
 
     /**
      * Build a fingerprint for grouping similar exceptions in PostHog.
-     * Strips line numbers so same exception in same file groups together.
+     *
+     * Most exceptions key on class, file and message. A QueryException is the
+     * exception: Laravel appends the executed statement as a
+     * "(Connection: ..., SQL: ...)" tail, and with the database session driver
+     * the first query on every request reads the sessions table by id. That id
+     * changes each request, so hashing the raw message gives every failed
+     * request its own fingerprint and identical database outages never group.
+     * Key database failures on the class, the SQLSTATE and the top application
+     * frame instead — all stable across requests, and free of the session id.
      */
     private function buildFingerprint(Throwable $e): string
     {
+        if ($e instanceof QueryException) {
+            return md5(implode('|', [
+                get_class($e),
+                $this->sqlState($e),
+                $this->topApplicationFrame($e),
+            ]));
+        }
+
         return md5(get_class($e).'|'.$e->getFile().'|'.$e->getMessage());
+    }
+
+    /**
+     * SQLSTATE class for a database failure — for example "08006" for a
+     * connection refusal. PDO exposes it as errorInfo[0]; getCode() is the
+     * fallback when the driver did not populate errorInfo.
+     */
+    private function sqlState(QueryException $e): string
+    {
+        $state = $e->errorInfo[0] ?? null;
+
+        return is_string($state) && $state !== '' ? $state : (string) $e->getCode();
+    }
+
+    /**
+     * First stack frame inside the application, skipping the framework and its
+     * dependencies. A database exception is thrown deep in the connection
+     * layer, so the throw location alone cannot tell two call sites apart.
+     * Falls back to the throw location when no application frame is present, as
+     * happens for a session read that runs before any application code.
+     */
+    private function topApplicationFrame(Throwable $e): string
+    {
+        $base = base_path();
+
+        foreach ($e->getTrace() as $frame) {
+            $file = $frame['file'] ?? null;
+
+            if (is_string($file) && str_starts_with($file, $base) && ! str_contains($file, '/vendor/')) {
+                return $file.':'.($frame['line'] ?? 0);
+            }
+        }
+
+        return $e->getFile().':'.$e->getLine();
+    }
+
+    /**
+     * Strip the "(Connection: ..., SQL: ...)" tail that Laravel appends to a
+     * QueryException message from every value in the exception list, so the
+     * embedded SQL — and any per-request secret it carries — never reaches the
+     * error-tracking provider. The leading SQLSTATE and driver message stay.
+     */
+    private function scrubExceptionList(array $exceptionList): array
+    {
+        foreach ($exceptionList as $i => $entry) {
+            if (isset($entry['value']) && is_string($entry['value'])) {
+                $exceptionList[$i]['value'] = preg_replace('/\s*\(Connection: .+, SQL: .+\)$/s', '', $entry['value']);
+            }
+        }
+
+        return $exceptionList;
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -205,6 +206,60 @@ it('reports 500 HttpException directly via reporter', function () {
     $payload = $this->posthogClient->capturedCalls[0];
     expect($payload['properties'])->toHaveKey('$exception_list')
         ->and($payload['properties']['$exception_list'][0]['type'])->toBe(HttpException::class);
+});
+
+/**
+ * Build a QueryException that mirrors a failed database session read: a
+ * connection refusal on "select * from sessions where id = <session id>".
+ * Only the session id binding changes between requests.
+ */
+function makeSessionReadQueryException(string $sessionId): QueryException
+{
+    $previous = new PDOException('SQLSTATE[08006] [7] could not connect to server: Connection refused');
+    $previous->errorInfo = ['08006', 7, 'could not connect to server'];
+
+    return new QueryException(
+        'pgsql',
+        'select * from "sessions" where "id" = ?',
+        [$sessionId],
+        $previous,
+    );
+}
+
+describe('QueryException fingerprint grouping', function () {
+    it('groups database failures that differ only by session id', function () {
+        // Build both exceptions from one call site so they share a stack frame,
+        // as a real session read does — there the failure is thrown below the
+        // framework, with no application frame between it and the throw point.
+        $exceptions = array_map(
+            fn (string $id) => makeSessionReadQueryException($id),
+            ['session-aaa', 'session-bbb'],
+        );
+
+        $reporter = app(PostHogExceptionReporter::class);
+        foreach ($exceptions as $exception) {
+            $reporter->report($exception);
+        }
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(2);
+
+        $first = $this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'];
+        $second = $this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'];
+        expect($first)->toBe($second);
+    });
+
+    it('keeps the session id out of the reported exception value', function () {
+        $reporter = app(PostHogExceptionReporter::class);
+        $reporter->report(makeSessionReadQueryException('super-secret-session-id'));
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+        $value = $this->posthogClient->capturedCalls[0]['properties']['$exception_list'][0]['value'];
+        expect($value)
+            ->not->toContain('super-secret-session-id')
+            ->not->toContain('SQL:')
+            // The driver message survives so the error stays readable.
+            ->toContain('SQLSTATE[08006]');
+    });
 });
 
 it('builds stack trace starting with exception class and location via reporter', function () {
