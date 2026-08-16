@@ -6,6 +6,7 @@ use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -143,6 +144,66 @@ describe('rate limiting integration', function () {
         $handler->report(new InvalidArgumentException('Different class'));
 
         expect($this->posthogClient->capturedCalls)->toHaveCount(11);
+    });
+});
+
+describe('fingerprint grouping', function () {
+    // A QueryException carries the full SQL with bound values in its message.
+    // With SESSION_DRIVER=database, the failing session lookup embeds a
+    // different session id per request. The fingerprint must ignore that so
+    // every occurrence of the outage groups into one issue.
+    it('groups QueryExceptions that differ only in bound values', function () {
+        $pdo = new PDOException('SQLSTATE[08006] [7] could not connect to server: Connection refused');
+        $sql = 'select * from "sessions" where "id" = ? limit 1';
+
+        $reporter = app(PostHogExceptionReporter::class);
+        $reporter->report(new QueryException('pgsql', $sql, ['session-aaaaaaaa'], $pdo));
+        $reporter->report(new QueryException('pgsql', $sql, ['session-bbbbbbbb'], $pdo));
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(2);
+        $first = $this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'];
+        $second = $this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'];
+        expect($first)->toBe($second);
+    });
+
+    it('groups messages that differ only in numeric values', function () {
+        $reporter = app(PostHogExceptionReporter::class);
+        $reporter->report(new RuntimeException('User 111 not found'));
+        $reporter->report(new RuntimeException('User 222 not found'));
+
+        $first = $this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'];
+        $second = $this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'];
+        expect($first)->toBe($second);
+    });
+
+    it('keeps distinct faults in separate fingerprints', function () {
+        $reporter = app(PostHogExceptionReporter::class);
+        $reporter->report(new RuntimeException('Disk is full'));
+        $reporter->report(new RuntimeException('Queue is empty'));
+
+        $first = $this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'];
+        $second = $this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'];
+        expect($first)->not->toBe($second);
+    });
+});
+
+describe('rate limiting when cache is down', function () {
+    it('still caps the flood instead of failing open', function () {
+        // Reset the per-worker fallback counter so the static state from other
+        // tests does not leak into this one.
+        $throttle = new ReflectionProperty(PostHogExceptionReporter::class, 'localThrottle');
+        $throttle->setValue(null, []);
+
+        // Simulate the cache being unreachable (Redis on the failing host).
+        Cache::shouldReceive('add')->andThrow(new RuntimeException('Connection refused'));
+
+        $reporter = app(PostHogExceptionReporter::class);
+        for ($i = 0; $i < 12; $i++) {
+            $reporter->report(new LogicException("Cache down {$i}"));
+        }
+
+        // Fail-open would capture all 12; the fallback caps at the per-class limit.
+        expect($this->posthogClient->capturedCalls)->toHaveCount(10);
     });
 });
 

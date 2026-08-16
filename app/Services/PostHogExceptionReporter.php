@@ -33,6 +33,14 @@ class PostHogExceptionReporter
      */
     private const CACHE_KEY_PREFIX = 'posthog:exception_throttle:';
 
+    /**
+     * Per-worker fallback counters, used when the shared cache is unavailable.
+     * Keyed by exception class.
+     *
+     * @var array<string, array{window: int, count: int}>
+     */
+    private static array $localThrottle = [];
+
     public function __construct(
         private readonly PostHogClient $posthog,
     ) {}
@@ -150,7 +158,8 @@ class PostHogExceptionReporter
      */
     private function passesRateLimit(Throwable $e): bool
     {
-        $key = self::CACHE_KEY_PREFIX.md5(get_class($e));
+        $class = get_class($e);
+        $key = self::CACHE_KEY_PREFIX.md5($class);
 
         try {
             // Ensure key exists with TTL before incrementing.
@@ -160,9 +169,36 @@ class PostHogExceptionReporter
 
             return cache()->increment($key) <= self::RATE_LIMIT_PER_CLASS;
         } catch (Throwable) {
-            // If cache fails, allow the report through
+            // The cache is down — often the same host outage that generates
+            // this flood of exceptions. Failing open here would defeat the
+            // flood guard exactly when it is needed. Fall back to a per-worker
+            // counter: it still lets the first reports of the fault through,
+            // so error tracking keeps signal during the outage, but caps the
+            // volume instead of forwarding every occurrence.
+            return $this->passesLocalRateLimit($class);
+        }
+    }
+
+    /**
+     * Rate-limit using an in-process counter, for when the shared cache is
+     * down. PHP-FPM reuses a worker across requests, so the static counter
+     * persists and caps the per-class flood within each worker.
+     */
+    private function passesLocalRateLimit(string $class): bool
+    {
+        $window = time() - (time() % 60);
+        $entry = self::$localThrottle[$class] ?? null;
+
+        if ($entry === null || $entry['window'] !== $window) {
+            self::$localThrottle[$class] = ['window' => $window, 'count' => 1];
+
             return true;
         }
+
+        $count = $entry['count'] + 1;
+        self::$localThrottle[$class]['count'] = $count;
+
+        return $count <= self::RATE_LIMIT_PER_CLASS;
     }
 
     /**
@@ -200,11 +236,35 @@ class PostHogExceptionReporter
 
     /**
      * Build a fingerprint for grouping similar exceptions in PostHog.
-     * Strips line numbers so same exception in same file groups together.
+     *
+     * Hashes the class, the file, and a normalized message. The message is
+     * normalized because raw messages embed per-request values — a
+     * QueryException carries the full SQL with bound values, so an unnormalized
+     * message opens a fresh issue on every occurrence instead of grouping.
      */
     private function buildFingerprint(Throwable $e): string
     {
-        return md5(get_class($e).'|'.$e->getFile().'|'.$e->getMessage());
+        return md5(get_class($e).'|'.$e->getFile().'|'.$this->normalizeMessage($e->getMessage()));
+    }
+
+    /**
+     * Strip per-request values from an exception message so the same fault
+     * gets one stable fingerprint.
+     *
+     * Laravel appends the rendered query to QueryException messages:
+     * "<driver error> (Connection: pgsql, SQL: select ... where "id" = <value>)".
+     * The bound value changes on every request, so the whole SQL suffix is
+     * dropped. The driver error before it stays, so a connection failure keeps
+     * a different fingerprint than a syntax error. Quoted literals and digit
+     * runs in the remaining text are replaced with a placeholder so ids,
+     * counts, and timestamps in any message do not fragment the fingerprint.
+     */
+    private function normalizeMessage(string $message): string
+    {
+        $message = preg_replace('/\s*\((?:Connection|SQL):.*$/s', '', $message);
+        $message = preg_replace('/\'[^\']*\'|"[^"]*"/', '?', $message);
+
+        return preg_replace('/\d+/', '?', $message);
     }
 
     /**
