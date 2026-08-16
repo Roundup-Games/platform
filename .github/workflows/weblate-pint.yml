@@ -42,9 +42,11 @@ jobs:
           tools: composer:v2
 
       - name: Install dependencies
-        # Locked, no-dev is enough for Pint (it's a dev tool already in vendor
-        # via the locked composer.lock).
-        run: composer install --no-interaction --no-progress --prefer-dist
+        # Cached, locked install (same action as CI) — the raw composer
+        # install re-downloaded the full vendor tree on every Weblate PR.
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: locked
 
       - name: Run Pint (auto-fix)
         # No --test flag — Pint applies fixes. Without --dirty it stages them

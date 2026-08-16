@@ -189,14 +189,6 @@ class NotificationService
     }
 
     /**
-     * Get the count of unread notifications for a user.
-     */
-    public function getUnreadCount(User $user): int
-    {
-        return $user->unreadNotifications()->count();
-    }
-
-    /**
      * Resolve which notification channels are enabled for a user
      * and category combination.
      *

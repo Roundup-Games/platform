@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Dto\SyncResult;
+use App\Exceptions\BggSyncSliceDeadlineReached;
 use App\Models\BggSyncLog;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
@@ -10,11 +11,35 @@ use App\Models\GameSystemDesigner;
 use App\Models\GameSystemFamily;
 use App\Models\GameSystemMechanic;
 use App\Models\GameSystemPublisher;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class BggSyncService
 {
+    /**
+     * Global sync mutex. The client's 2s rate-limit throttle is per-process —
+     * two concurrent syncs (manual admin job + ticket listener + weekly sweep
+     * all call this service) would double BGG request pressure. block()
+     * releases the lock when the closure returns/throws; the TTL is only the
+     * crash-safety lease. Laravel's Lock contract has no renew(), so a hold
+     * must finish before the TTL expires: every remote operation (batch
+     * fetch, auto base-game fetch, cover download) is deadline-guarded
+     * (SYNC_LOCK_TTL - SYNC_HOLD_MARGIN_SECONDS), and unfinished ids
+     * continue under a fresh lock acquisition per slice — mutual exclusion is
+     * preserved for every hold, never lapsing mid-flight.
+     */
+    private const SYNC_LOCK_TTL = 600;
+
+    /**
+     * Worst-case duration of the longest remote-op chain that can begin at a
+     * passing deadline check and still finish inside the lease: one BGG
+     * fetchThing (3 x 30s timeout + 2 x 5s 202 sleeps + 2s throttle ≈ 102s)
+     * plus one cover download (medialibrary HTTP ≈ 30s).
+     */
+    private const SYNC_HOLD_MARGIN_SECONDS = 150;
+
     private BggClient $client;
 
     private BggXmlParser $parser;
@@ -38,8 +63,60 @@ class BggSyncService
      */
     public function syncGameSystems(array $bggIds): SyncResult
     {
+        $remaining = array_values($bggIds);
+        $merged = SyncResult::empty();
+
+        do {
+            // One bounded lock hold per slice. Waiting up to 60s covers a short
+            // in-flight sync; longer contention surfaces as a
+            // LockTimeoutException, and the job's backoff re-enters this wait —
+            // preferable to racing.
+            /** @var array{result: SyncResult, processed: array<int, int>, remaining: array<int, int>} $slice */
+            $slice = Cache::lock('bgg:sync', self::SYNC_LOCK_TTL)
+                ->block(60, fn (): array => $this->doSyncGameSystems($remaining, $this->holdDeadline()));
+
+            $merged = $merged->merge($slice['result']);
+            $processed = $slice['processed'];
+            $remaining = $slice['remaining'];
+
+            if ($remaining !== [] && $processed === []) {
+                // Deadline math makes this unreachable (each hold starts with a
+                // fresh, positive budget), but a zero-progress slice would loop
+                // forever — fail loud instead of hanging the worker.
+                throw new \LogicException('BGG sync slice made no progress; refusing to loop.');
+            }
+
+            if ($remaining !== []) {
+                Log::info('BGG sync: lock budget reached — continuing '.count($remaining).' id(s) under a fresh lock hold');
+            }
+        } while ($remaining !== []);
+
+        return $merged;
+    }
+
+    /**
+     * Deadline for the current lock hold: a hold stops before starting a
+     * batch that could cross it, guaranteeing release inside the TTL.
+     * Protected so tests can force slice boundaries with an expired deadline.
+     */
+    protected function holdDeadline(): CarbonInterface
+    {
+        return now()->addSeconds(self::SYNC_LOCK_TTL - self::SYNC_HOLD_MARGIN_SECONDS);
+    }
+
+    /**
+     * Runs one bounded lock-held slice. Stops before starting a batch that
+     * would cross $deadline (never mid-batch), reporting the processed and
+     * remaining ID lists so syncGameSystems() can continue under a fresh
+     * hold. The BggSyncLog row reflects only the ids this slice attempted.
+     *
+     * @param  array<int, int>  $bggIds
+     * @return array{result: SyncResult, processed: array<int, int>, remaining: array<int, int>}
+     */
+    private function doSyncGameSystems(array $bggIds, CarbonInterface $deadline): array
+    {
         // Early return for empty input
-        if (empty($bggIds)) {
+        if ($bggIds === []) {
             $log = BggSyncLog::create([
                 'status' => 'success',
                 'bgg_ids' => [],
@@ -51,7 +128,7 @@ class BggSyncService
 
             Log::info('BGG sync completed: 0 items (empty batch)');
 
-            return SyncResult::empty();
+            return ['result' => SyncResult::empty(), 'processed' => [], 'remaining' => []];
         }
 
         $log = BggSyncLog::create([
@@ -64,13 +141,27 @@ class BggSyncService
         $failed = 0;
         $errors = [];
         $discoveredExpansionIds = [];
+        $batchesDone = 0;
+        // Requested ids already seen in parsed responses. BGG omits unknown/
+        // deleted ids from responses, so slice boundaries are reconciled by
+        // id set, not response position — an id BGG never returns must not be
+        // re-queued forever.
+        $accountedIds = [];
 
         try {
             assert($this->batchSize > 0, 'Batch size must be positive');
             $chunks = array_chunk($bggIds, $this->batchSize);
             $chunkCount = count($chunks);
+            $deadlineReached = false;
 
             foreach ($chunks as $batchIndex => $batch) {
+                // Hold-budget guard: stop BEFORE a batch that could cross the
+                // deadline so the lock is released cleanly, never expired.
+                if ($batchesDone > 0 && now()->greaterThanOrEqualTo($deadline)) {
+                    $deadlineReached = true;
+                    break;
+                }
+
                 Log::info('BGG sync: fetching batch '.($batchIndex + 1)."/{$chunkCount}", [
                     'ids' => $batch,
                 ]);
@@ -79,14 +170,39 @@ class BggSyncService
                 $items = $this->parser->parseItems($xmlString);
 
                 foreach ($items as $parsed) {
+                    // One-shot remote-op guard for this item. The first remote
+                    // op of a slice is exempt so every slice makes progress
+                    // even when the deadline is already past (unreachable in
+                    // production — holdDeadline() is always fresh); after the
+                    // first use the guard enforces the live deadline for every
+                    // remote operation, including the recursive base-game
+                    // fetch and cover downloads inside upsertGameSystem().
+                    $exempt = $accountedIds === [];
+                    $guard = function () use ($deadline, &$exempt): void {
+                        if (! $exempt && now()->greaterThanOrEqualTo($deadline)) {
+                            throw new BggSyncSliceDeadlineReached;
+                        }
+                        $exempt = false;
+                    };
+
                     try {
-                        $this->upsertGameSystem($parsed);
+                        $this->upsertGameSystem($parsed, $guard);
                         $synced++;
+
+                        if (is_int($parsed['bgg_id'] ?? null)) {
+                            $accountedIds[$parsed['bgg_id']] = true;
+                        }
 
                         // Collect discovered expansion IDs
                         if (! empty($parsed['expansion_ids']) && is_array($parsed['expansion_ids'])) {
                             $discoveredExpansionIds = array_merge($discoveredExpansionIds, $parsed['expansion_ids']);
                         }
+                    } catch (BggSyncSliceDeadlineReached) {
+                        // The interrupted item is retried under the next hold —
+                        // its partial DB writes are safe to redo (idempotent
+                        // upserts). Do not count it as failed.
+                        $deadlineReached = true;
+                        break;
                     } catch (\Throwable $e) {
                         $failed++;
                         $bggIdStr = to_string_id($parsed['bgg_id'] ?? null);
@@ -95,27 +211,50 @@ class BggSyncService
                         Log::error("BGG sync: {$errorMsg}");
                     }
                 }
+
+                if ($deadlineReached) {
+                    break;
+                }
+
+                $batchesDone++;
             }
+
+            // On a deadline trip, only ids BGG has NOT yet returned for this
+            // request set continue under the next hold. Normal completion
+            // treats unreturned ids as terminal (nothing left to fetch).
+            $processed = $deadlineReached
+                ? array_values(array_filter($bggIds, fn (int $id): bool => isset($accountedIds[$id])))
+                : $bggIds;
+            $remaining = $deadlineReached
+                ? array_values(array_filter($bggIds, fn (int $id): bool => ! isset($accountedIds[$id])))
+                : [];
 
             $log->update([
                 'status' => 'success',
+                'bgg_ids' => $processed,
                 'items_synced' => $synced,
                 'items_failed' => $failed,
                 'completed_at' => now(),
             ]);
 
-            Log::info("BGG sync completed: {$synced} synced, {$failed} failed");
+            Log::info("BGG sync completed: {$synced} synced, {$failed} failed"
+                .($remaining === [] ? '' : ' (partial — '.count($remaining).' id(s) continue under a fresh lock hold)'));
 
-            return new SyncResult(
-                synced: $synced,
-                failed: $failed,
-                errors: $errors,
-                discoveredExpansionIds: array_values(array_unique(array_filter($discoveredExpansionIds, fn (mixed $v) => is_int($v)))),
-            );
+            return [
+                'result' => new SyncResult(
+                    synced: $synced,
+                    failed: $failed,
+                    errors: $errors,
+                    discoveredExpansionIds: array_values(array_unique(array_filter($discoveredExpansionIds, fn (mixed $v) => is_int($v)))),
+                ),
+                'processed' => $processed,
+                'remaining' => $remaining,
+            ];
 
         } catch (\Throwable $e) {
             $log->update([
                 'status' => 'failed',
+                'bgg_ids' => array_values(array_filter($bggIds, fn (int $id): bool => isset($accountedIds[$id]))),
                 'items_synced' => $synced,
                 'items_failed' => $failed,
                 'error_message' => $e->getMessage(),
@@ -135,8 +274,9 @@ class BggSyncService
      * and resolves base_game_id for expansions.
      *
      * @param  array<string, mixed>  $data
+     * @param  (callable(): void)|null  $guard  Deadline guard invoked before every remote operation
      */
-    private function upsertGameSystem(array $data): GameSystem
+    private function upsertGameSystem(array $data, ?callable $guard = null): GameSystem
     {
         // Generate a slug that won't collide with existing entries.
         // BGG has different entries with identical names (e.g., multiple
@@ -185,7 +325,12 @@ class BggSyncService
                     'base_game_bgg_id' => $data['base_game_bgg_id'],
                     'expansion_bgg_id' => $data['bgg_id'],
                 ]);
-                $baseGame = $this->fetchAndUpsertBaseGame(is_int($data['base_game_bgg_id']) ? $data['base_game_bgg_id'] : 0);
+                // Remote op: a full fetchThing can cost up to ~102s — never
+                // start it past the hold deadline.
+                if ($guard !== null) {
+                    $guard();
+                }
+                $baseGame = $this->fetchAndUpsertBaseGame(is_int($data['base_game_bgg_id']) ? $data['base_game_bgg_id'] : 0, $guard);
                 if ($baseGame) {
                     $gameSystem->baseGame()->associate($baseGame)->save();
                     Log::info('BGG sync: auto-fetched missing base game for expansion', [
@@ -199,6 +344,12 @@ class BggSyncService
 
         // Download cover image via MediaLibrary
         if (! empty($data['image_url'])) {
+            // Remote op: the image download must not start past the hold
+            // deadline. Guard BEFORE clearing the collection so a deferred
+            // retry keeps the previous cover instead of leaving it empty.
+            if ($guard !== null) {
+                $guard();
+            }
             try {
                 $gameSystem->clearMediaCollection('cover');
                 $imageUrl = is_string($data['image_url']) ? $data['image_url'] : '';
@@ -224,7 +375,18 @@ class BggSyncService
      */
     public function search(string $query): array
     {
-        return $this->parser->parseSearchResults($this->client->search($query));
+        $normalized = trim($query);
+
+        // BGG responses are effectively immutable and every live call pays the
+        // client's 2s rate-limit throttle (plus 202-retry sleeps) — repeated
+        // admin searches of the same term must hit the cache instead.
+        $cacheKey = 'bgg:search:'.hash('xxh128', mb_strtolower($normalized));
+
+        /** @var array<int, array{bgg_id: int, name: string, year_released: int|null, bgg_type: string}> $results */
+        $results = Cache::remember($cacheKey, now()->addDays(7),
+            fn () => $this->parser->parseSearchResults($this->client->search($normalized)));
+
+        return $results;
     }
 
     /**
@@ -237,9 +399,18 @@ class BggSyncService
      */
     public function previewGameSystem(int $bggId): ?array
     {
-        $items = $this->parser->parseItems($this->client->fetchThing([$bggId]));
+        // Same caching rationale as search(): BGG thing data is immutable and
+        // the admin preview flow re-fetches the same id repeatedly while a
+        // ticket is being vetted.
+        /** @var array<string, mixed>|null $preview */
+        $preview = Cache::remember("bgg:thing:{$bggId}", now()->addDays(30),
+            function () use ($bggId): ?array {
+                $items = $this->parser->parseItems($this->client->fetchThing([$bggId]));
 
-        return $items[0] ?? null;
+                return $items[0] ?? null;
+            });
+
+        return $preview;
     }
 
     /**
@@ -280,7 +451,7 @@ class BggSyncService
      * Used when an expansion references a base game that hasn't been synced yet.
      * Returns the created/updated GameSystem, or null if the fetch fails.
      */
-    private function fetchAndUpsertBaseGame(int $bggId): ?GameSystem
+    private function fetchAndUpsertBaseGame(int $bggId, ?callable $guard = null): ?GameSystem
     {
         try {
             Log::info('BGG sync: fetching missing base game from BGG', [
@@ -298,7 +469,12 @@ class BggSyncService
                 return null;
             }
 
-            return $this->upsertGameSystem($items[0]);
+            return $this->upsertGameSystem($items[0], $guard);
+        } catch (BggSyncSliceDeadlineReached $e) {
+            // Control-flow: the deadline guard tripped inside the nested
+            // upsert — propagate to the slice loop, do not swallow as a
+            // failed base-game fetch.
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('BGG sync: failed to auto-fetch base game', [
                 'base_game_bgg_id' => $bggId,

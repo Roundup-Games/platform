@@ -165,7 +165,7 @@ class PostHogIdentifyUsers
             ],
         ]);
 
-        Log::channel('daily')->debug('posthog.user.identified', [
+        Log::debug('posthog.user.identified', [
             'user_id' => $distinctId,
         ]);
     }

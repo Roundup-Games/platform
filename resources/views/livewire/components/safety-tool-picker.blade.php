@@ -62,7 +62,7 @@
                         @if($tool['supportsText'] && $tool['isSelected'])
                             <div class="px-3 pb-3 pl-10">
                                 <textarea
-                                    wire:model.live="linesAndVeilsText"
+                                    wire:model.live.debounce.400ms="linesAndVeilsText"
                                     placeholder="{{ $tool['textPlaceholder'] }}"
                                     rows="2"
                                     @if($mode === 'display') disabled @endif
@@ -85,7 +85,7 @@
         <p class="text-xs text-on-surface-variant mb-2">Any additional safety arrangements or notes for your group.</p>
         <textarea
             id="safety-custom-note"
-            wire:model.live="customNote"
+            wire:model.live.debounce.400ms="customNote"
             placeholder="e.g. We take a 10-minute break every hour"
             rows="2"
             @if($mode === 'display') disabled @endif

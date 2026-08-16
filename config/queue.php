@@ -71,7 +71,12 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            // Must exceed the longest job/supervisor timeout (Horizon prod
+            // supervisor: 300s; ComputePlatformScores: 300s). If retry_after is
+            // LOWER than a job's runtime, Redis re-releases the reserved job to
+            // another worker while the first is still running — duplicating
+            // expensive work and orphaning attempts. 360s = 300s cap + buffer.
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 360),
             'block_for' => null,
             'after_commit' => true,
         ],

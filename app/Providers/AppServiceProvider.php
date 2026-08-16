@@ -44,6 +44,7 @@ use App\Services\ICal\ICalFeedRenderer;
 use App\Services\PostHogClient;
 use App\Services\PostHogFeatureFlag;
 use App\Services\ReliabilityScoreService;
+use App\Services\ScopedRoleService;
 use App\Services\WaitlistService;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
@@ -84,6 +85,7 @@ use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
@@ -97,6 +99,10 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 use RalphJSmit\Laravel\SEO\TagManager;
 use SocialiteProviders\Discord\DiscordExtendSocialite;
 use SocialiteProviders\Manager\SocialiteWasCalled;
+use Spatie\Permission\Events\PermissionAttachedEvent;
+use Spatie\Permission\Events\PermissionDetachedEvent;
+use Spatie\Permission\Events\RoleAttachedEvent;
+use Spatie\Permission\Events\RoleDetachedEvent;
 use Spatie\Translatable\Facades\Translatable;
 
 class AppServiceProvider extends ServiceProvider
@@ -121,13 +127,16 @@ class AppServiceProvider extends ServiceProvider
                 return null;
             }
 
+            // 10s POST timeout instead of the library's 30s default: a
+            // silently-hanging push endpoint otherwise stalls the queued
+            // notification job and delays zombie-endpoint cleanup 3×.
             return new WebPush([
                 'VAPID' => [
                     'subject' => config('services.vapid.subject'),
                     'publicKey' => $publicKey,
                     'privateKey' => $privateKey,
                 ],
-            ]);
+            ], [], 10);
         });
 
         // Missing translation tracking — only in local env
@@ -220,6 +229,14 @@ class AppServiceProvider extends ServiceProvider
         EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
         EventFacade::listen(TicketClosed::class, HandleGameSystemTicketClosed::class);
 
+        // Role/permission mutations must invalidate ScopedRoleService's
+        // per-request memo (WeakMap on the User instance) so a role granted
+        // or revoked mid-request takes effect on the next check.
+        EventFacade::listen(RoleAttachedEvent::class, fn () => ScopedRoleService::flushMemo());
+        EventFacade::listen(RoleDetachedEvent::class, fn () => ScopedRoleService::flushMemo());
+        EventFacade::listen(PermissionAttachedEvent::class, fn () => ScopedRoleService::flushMemo());
+        EventFacade::listen(PermissionDetachedEvent::class, fn () => ScopedRoleService::flushMemo());
+
         // Safety net: never deliver to synthetic/demo (RFC 2606) email domains.
         // Fires on every send path (queue, scheduler, web) so demo data created by
         // DemoSeedCommand cannot leak into a live mailer.
@@ -301,8 +318,36 @@ class AppServiceProvider extends ServiceProvider
             $host = config('posthog.host', 'https://eu.i.posthog.com');
             PostHog::init(
                 $apiKey,
-                ['host' => is_string($host) ? $host : 'https://eu.i.posthog.com'],
+                [
+                    'host' => is_string($host) ? $host : 'https://eu.i.posthog.com',
+                    // Bound the SDK's shutdown flush. The default 10s cURL
+                    // timeout lets a PostHog outage pin FPM workers (and queue
+                    // workers — see the Queue::looping flush below) long after
+                    // the response is sent. Analytics is best-effort.
+                    'timeout' => 1500,
+                ],
             );
+
+            // Deterministic, guarded flush at request end instead of relying on
+            // SDK destructor timing, with the short timeout above applied.
+            $this->app->terminating(function (): void {
+                try {
+                    PostHog::flush();
+                } catch (\Throwable) {
+                    // Best-effort telemetry — never fail the response.
+                }
+            });
+
+            // Long-running queue workers never destruct the SDK client, so
+            // buffered events would flush inline mid-job (or be lost at worker
+            // restart). Flush at every idle loop boundary instead.
+            Queue::looping(function (): void {
+                try {
+                    PostHog::flush();
+                } catch (\Throwable) {
+                    // Best-effort telemetry — never break the worker loop.
+                }
+            });
         }
         // SEO: inject locale alternates (en/de/x-default) and canonical URL on every page
         // Bind TagManager as a singleton so seo()->for($model) in components persists to {!! seo() !!} in layout

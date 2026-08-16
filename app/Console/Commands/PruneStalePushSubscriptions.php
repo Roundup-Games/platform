@@ -41,7 +41,7 @@ class PruneStalePushSubscriptions extends Command
             : "Deleted {$count} stale push subscription(s) (not updated in {$maxAge}+ days)"
         );
 
-        Log::channel('daily')->info('pwa.subscriptions.pruned', [
+        Log::info('pwa.subscriptions.pruned', [
             'count' => $count,
             'max_age_days' => $maxAge,
             'dry_run' => $dryRun,

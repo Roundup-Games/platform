@@ -466,9 +466,13 @@ class DashboardCacheService
     {
         $allKeys = [];
 
+        // Collect per-user key lists first, then flatten once — array_merge
+        // inside the loop re-copied the accumulated array every iteration
+        // (O(n²) element copies when a game update invalidates many users).
         foreach ($userIds as $userId) {
-            $allKeys = array_merge($allKeys, $this->sectionKeysForUser((string) $userId, $sections));
+            $allKeys[] = $this->sectionKeysForUser((string) $userId, $sections);
         }
+        $allKeys = array_merge(...$allKeys);
 
         Cache::deleteMultiple(array_unique($allKeys));
 

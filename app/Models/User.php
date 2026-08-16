@@ -10,7 +10,6 @@ use App\Services\Geohash;
 use App\Services\ProfileVisibilityResolver;
 use App\Services\ScopedRoleService;
 use App\Services\SocialGraphService;
-use App\Services\UserAnonymizationService;
 use App\Services\UserPreferenceResolver;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\UserFactory;
@@ -246,7 +245,12 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             get: function (mixed $value) {
                 $media = $this->getFirstMedia('avatar');
                 if ($media) {
-                    return $media->getUrl();
+                    // thumb conversion (32–48px component renders) — serving
+                    // the original 2–5MB upload for a tiny avatar wastes
+                    // bandwidth on every list page. SEO paths already use
+                    // getUrl('thumb'); image-fallback.js covers any media
+                    // whose thumb conversion has not been generated yet.
+                    return $media->getUrl('thumb');
                 }
 
                 return $value;
@@ -892,20 +896,6 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function scopeNotAnonymized(Builder $query): void
     {
         $query->whereNull('anonymized_at');
-    }
-
-    /**
-     * Anonymize the user in-place: strip PII, set anonymized_at.
-     *
-     * @deprecated Use UserAnonymizationService::anonymize() instead.
-     *             The service handles Tier 1 data deletion, media cleanup,
-     *             session invalidation, and PostHog data removal.
-     *             This model method only strips PII on the user row.
-     * @see UserAnonymizationService::anonymize()
-     */
-    public function anonymize(): void
-    {
-        app(UserAnonymizationService::class)->anonymize($this);
     }
 
     // ── Helpers ────────────────────────────────────────

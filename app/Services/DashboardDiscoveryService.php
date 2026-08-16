@@ -120,9 +120,12 @@ class DashboardDiscoveryService
             ->pluck('game_id');
         $excludeGameIds = $ownedGameIds->merge($participatingGameIds)->unique()->values()->toArray();
 
-        // User's preferred system IDs for relevance tag
+        // User's preferred system IDs for relevance tag — flipped to a hash
+        // set so per-game tag checks are isset() instead of O(offered × preferred)
+        // array_intersect scans inside the scoring map.
         $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')
             ->filter(fn ($id) => is_string($id))->values()->all();
+        $preferredSystemSet = array_fill_keys($preferredSystemIds, true);
 
         // Social circle IDs for friends_are_going tag
         $socialCircleIds = $user->followings()
@@ -144,22 +147,28 @@ class DashboardDiscoveryService
         $userLat = $userLocation?->latitude ? (float) $userLocation->latitude : null;
         $userLng = $userLocation?->longitude ? (float) $userLocation->longitude : null;
 
-        // Pre-fetch friend participant game IDs to avoid N+1 inside the loop
+        // Pre-fetch friend participant game IDs to avoid N+1 inside the loop.
+        // Stored as a hash set — in_array(..., false) forced a loose linear
+        // scan per scored game (O(games × friendGames)).
         $friendGameIds = [];
+        $friendGameIdSet = [];
         if (! empty($socialCircleIds)) {
             $friendGameIds = GameParticipant::whereIn('game_id', $games->pluck('id'))
                 ->where('status', ParticipantStatus::Approved->value)
                 ->whereIn('user_id', $socialCircleIds)
                 ->pluck('game_id')
+                ->filter(fn ($id) => is_string($id))
                 ->unique()
                 ->values()
-                ->toArray();
+                ->all();
+            $friendGameIds = array_map(fn (string $id): string => $id, $friendGameIds);
+            $friendGameIdSet = array_fill_keys($friendGameIds, true);
         }
 
         // Compute relevance tags and distance for each game
         $now = now();
         $userLanguage = $user->preferred_language?->value;
-        $scoredGames = $games->map(function ($game) use ($preferredSystemIds, $friendGameIds, $userLat, $userLng, $now, $userLanguage) {
+        $scoredGames = $games->map(function ($game) use ($preferredSystemSet, $friendGameIdSet, $userLat, $userLng, $now, $userLanguage) {
             $tags = [];
             $participantCount = (int) ($game->participant_count ?? 0);
 
@@ -169,7 +178,14 @@ class DashboardDiscoveryService
             $offeredIds = $game->relationLoaded('gameSystems')
                 ? $game->gameSystems->pluck('id')->filter(fn ($id) => is_string($id))->values()->all()
                 : [];
-            if (! empty(array_intersect($offeredIds, $preferredSystemIds))) {
+            $matchesTaste = false;
+            foreach ($offeredIds as $systemId) {
+                if (isset($preferredSystemSet[$systemId])) {
+                    $matchesTaste = true;
+                    break;
+                }
+            }
+            if ($matchesTaste) {
                 $tags[] = 'matches_your_taste';
             }
 
@@ -194,7 +210,7 @@ class DashboardDiscoveryService
             }
 
             // friends_are_going
-            if (! empty($friendGameIds) && in_array($game->id, $friendGameIds, false)) {
+            if (isset($friendGameIdSet[$game->id])) {
                 $tags[] = 'friends_are_going';
             }
 

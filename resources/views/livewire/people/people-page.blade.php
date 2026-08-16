@@ -51,16 +51,17 @@
 
         {{-- Tab Content --}}
         {{-- Poll for nearby cache hydration when on the nearby tab and results are pending --}}
-        <div class="space-y-3" @if($activeTab === 'nearby') wire:poll.5s="dispatchNearbyWarmup" @endif>
+        <div class="space-y-3" @if($activeTab === 'nearby' && ($this->nearbyUsers['pending'] ?? false)) wire:poll.5s="dispatchNearbyWarmup" @endif>
 
             {{-- Following Tab --}}
             @if($activeTab === 'following')
                 @php $followings = $this->followingUsers @endphp
                 @if($followings->count() > 0)
+                    @php $mutualIds = $this->mutualFollowerIds @endphp
                     @foreach($followings as $rel)
                         @php
                             $user = $rel->related;
-                            $isMutual = $this->authUser->isFollowedBy($user);
+                            $isMutual = isset($mutualIds[$user->id]);
                         @endphp
                         <div class="flex items-center gap-4 p-4 bg-surface-container-lowest rounded-xl shadow-ambient"
                              wire:key="following-{{ $user->id }}">
@@ -107,10 +108,11 @@
             @elseif($activeTab === 'followers')
                 @php $followers = $this->followerUsers @endphp
                 @if($followers->count() > 0)
+                    @php $followingBackIds = $this->followingBackIds @endphp
                     @foreach($followers as $rel)
                         @php
                             $user = $rel->user;
-                            $isFollowingBack = $this->authUser->isFollowing($user);
+                            $isFollowingBack = isset($followingBackIds[$user->id]);
                         @endphp
                         <div class="flex items-center gap-4 p-4 bg-surface-container-lowest rounded-xl shadow-ambient"
                              wire:key="follower-{{ $user->id }}">
@@ -221,10 +223,7 @@
                     </div>
                 @elseif($nearbyResults && $nearbyResults->count() > 0)
                     @php
-                        $nearbyUserMap = \App\Models\User::with('media')
-                            ->whereIn('id', $nearbyResults->pluck('user_id')->unique()->all())
-                            ->get()
-                            ->keyBy('id');
+                        $nearbyUserMap = $this->nearbyUserMap;
                     @endphp
                     @foreach($nearbyResults as $result)
                         @php

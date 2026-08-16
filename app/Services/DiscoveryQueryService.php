@@ -51,6 +51,12 @@ class DiscoveryQueryService
      */
     public const RECOMMENDATION_RAIL_SIZE = 12;
 
+    /**
+     * Per-source hydration cap for merged (games + campaigns) discovery
+     * results — bounds the "All" tab's eager-loaded hydration set.
+     */
+    private const MERGE_HYDRATION_CAP = 500;
+
     public function __construct(
         private readonly ProximityQuery $proximity,
     ) {}
@@ -518,15 +524,29 @@ class DiscoveryQueryService
         $gamesQuery = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $date);
         $campaignsQuery = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $recurrence);
 
-        $games = $gamesQuery->get()->each(function ($item) {
-            $item->discoverable_type = 'game';
-            $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0);
-        });
+        // Cap per-source hydration. Both queries eager-load 6 relations + 3
+        // withCount subqueries, so an unbounded get() made the default "All"
+        // tab O(public catalog) per render to display $perPage items. The cap
+        // keeps the newest $cap games (SQL-ordered by the same key the merge
+        // sorts by) and all matching campaigns; beyond the cap the total count
+        // reported by the paginator becomes the capped count — acceptable for
+        // discovery UX and strictly better than hydrating everything.
+        $cap = self::MERGE_HYDRATION_CAP;
 
-        $campaigns = $campaignsQuery->get()->each(function ($item) {
-            $item->discoverable_type = 'campaign';
-            $item->discoverable_sort_key = (int) ($item->sessions->first()->date_time->timestamp ?? $item->created_at->timestamp ?? 0);
-        });
+        $games = $gamesQuery
+            ->reorder('date_time', 'desc')
+            ->limit($cap)
+            ->get()->each(function ($item) {
+                $item->discoverable_type = 'game';
+                $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0);
+            });
+
+        $campaigns = $campaignsQuery
+            ->limit($cap)
+            ->get()->each(function ($item) {
+                $item->discoverable_type = 'campaign';
+                $item->discoverable_sort_key = (int) ($item->sessions->first()->date_time->timestamp ?? $item->created_at->timestamp ?? 0);
+            });
 
         /** @var Collection<int, Game|Campaign> $merged */
         $merged = collect([...$games, ...$campaigns]);

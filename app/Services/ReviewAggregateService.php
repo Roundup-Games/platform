@@ -120,6 +120,51 @@ class ReviewAggregateService
     }
 
     /**
+     * Batched variant of topProficiencies() for a page of GM profiles.
+     *
+     * One query for the whole page instead of one-per-profile (N+1) — used by
+     * the GM directory, which re-runs on every filter/sort interaction.
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection<int, GMProfile>  $gmProfiles
+     * @return array<string, Collection<int, array{name: string, count: int}>> profile id => top tags
+     */
+    public function topProficienciesForProfiles(\Illuminate\Database\Eloquent\Collection $gmProfiles, int $limit = 3): array
+    {
+        if ($gmProfiles->isEmpty()) {
+            return [];
+        }
+
+        // whereBelongsTo() on an explicit (non-morph) FK gains nothing over
+        // the keys themselves, and its invariant Collection<int, Model> type
+        // can't accept a typed profile collection under Larastan.
+        $reviews = Review::query()
+            ->whereIn('gm_profile_id', $gmProfiles->modelKeys())
+            ->published()
+            ->whereNotNull('proficiency_tags')
+            ->get(['gm_profile_id', 'proficiency_tags']);
+
+        $frequencies = [];
+        foreach ($reviews as $review) {
+            $profileId = (string) $review->gm_profile_id;
+            foreach ((array) $review->proficiency_tags as $tag) {
+                $frequencies[$profileId][$tag] = ($frequencies[$profileId][$tag] ?? 0) + 1;
+            }
+        }
+
+        $result = [];
+        foreach ($gmProfiles as $gmProfile) {
+            $frequency = $frequencies[(string) $gmProfile->id] ?? [];
+            arsort($frequency);
+
+            $result[$gmProfile->id] = collect(array_slice($frequency, 0, $limit, true))
+                ->map(fn (int $count, string $name) => ['name' => $name, 'count' => $count])
+                ->values();
+        }
+
+        return $result;
+    }
+
+    /**
      * Get recent published reviews for a GM, paginated.
      *
      * @return LengthAwarePaginator<int, Review>

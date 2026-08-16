@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Services\NotificationQueryService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -108,7 +110,7 @@ class NotificationsPage extends Component
         }
 
         // Clear computed caches
-        unset($this->notifications, $this->unreadCount);
+        unset($this->notifications, $this->unreadCount, $this->expandedGroupIndividuals);
 
         // Dispatch event for bell component and analytics
         $this->dispatch('notification-read', groupKey: $groupKey);
@@ -127,7 +129,7 @@ class NotificationsPage extends Component
         ]);
 
         // Clear computed caches
-        unset($this->notifications, $this->unreadCount);
+        unset($this->notifications, $this->unreadCount, $this->expandedGroupIndividuals);
 
         // Dispatch event for bell component and analytics
         $this->dispatch('notifications-all-read');
@@ -143,6 +145,9 @@ class NotificationsPage extends Component
         } else {
             $this->expandedGroups[$groupKey] = true;
         }
+
+        // The expanded-set changed, so the batched individual fetch must rerun.
+        unset($this->expandedGroupIndividuals);
     }
 
     /**
@@ -150,7 +155,7 @@ class NotificationsPage extends Component
      */
     public function refreshNotifications(): void
     {
-        unset($this->notifications, $this->unreadCount);
+        unset($this->notifications, $this->unreadCount, $this->expandedGroupIndividuals);
     }
 
     /**
@@ -159,7 +164,7 @@ class NotificationsPage extends Component
     #[On('notification-received')]
     public function onNotificationReceived(): void
     {
-        unset($this->notifications, $this->unreadCount);
+        unset($this->notifications, $this->unreadCount, $this->expandedGroupIndividuals);
     }
 
     /**
@@ -174,6 +179,52 @@ class NotificationsPage extends Component
         }
 
         return null;
+    }
+
+    /**
+     * Individual notifications for every EXPANDED group, fetched in ONE
+     * query (keyed "{fullType}|{Y-m-d}") instead of one query per group per
+     * render — this page polls every 60s, so per-group Blade queries were
+     * re-running continuously for every expanded group.
+     *
+     * @return array<string, Collection<int, DatabaseNotification>>
+     */
+    #[Computed]
+    public function expandedGroupIndividuals(): array
+    {
+        if ($this->expandedGroups === []) {
+            return [];
+        }
+
+        // Parse every expanded group key into its (fullType, date) filter.
+        $filters = [];
+        foreach (array_keys($this->expandedGroups) as $groupKey) {
+            $parts = explode('_', (string) $groupKey);
+            $dateString = (string) array_pop($parts);
+            $shortType = implode('_', $parts);
+            $fullType = $this->resolveFullType($shortType);
+            if ($fullType !== null && $dateString !== '') {
+                $filters[] = [$fullType, $dateString];
+            }
+        }
+
+        if ($filters === []) {
+            return [];
+        }
+
+        $query = $this->authUser->notifications();
+        $query->where(function ($outer) use ($filters): void {
+            foreach ($filters as [$fullType, $dateString]) {
+                $outer->orWhere(function ($inner) use ($fullType, $dateString): void {
+                    $inner->where('type', $fullType)
+                        ->whereDate('created_at', $dateString);
+                });
+            }
+        });
+
+        return $query->orderByDesc('created_at')->get()
+            ->groupBy(fn ($notification) => $notification->type.'|'.($notification->created_at?->toDateString() ?? ''))
+            ->all();
     }
 
     public function render(): View

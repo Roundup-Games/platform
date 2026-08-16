@@ -121,7 +121,15 @@ class SpClient
                 'Accept' => 'text/html',
             ])
                 ->timeout(self::TIMEOUT)
-                ->retry(self::RETRIES, self::RETRY_DELAY_MS, throw: false)
+                // Retry only transient failures — permanent 404/410s resolved
+                // in one request instead of 3 requests + 6s of fixed sleeps.
+                ->retry(
+                    self::RETRIES,
+                    self::RETRY_DELAY_MS,
+                    when: fn (\Throwable $e) => $e instanceof ConnectionException
+                        || ($e instanceof RequestException && $e->response->status() >= 500),
+                    throw: false,
+                )
                 ->get($url);
         } catch (ConnectionException $e) {
             Log::warning('SP client: connection error', [

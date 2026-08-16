@@ -127,7 +127,9 @@
                 </div>
             @else
                 @foreach($this->announcements as $announcement)
-                    <div class="p-4 hover:bg-surface-container-low/50 transition-colors">
+                    {{-- wire:key: pin/unpin re-sorts this list; without keys Livewire's
+                         morph can reuse the wrong DOM nodes (flicker + lost state). --}}
+                    <div wire:key="announcement-{{ $announcement->id }}" class="p-4 hover:bg-surface-container-low/50 transition-colors">
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">

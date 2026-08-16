@@ -100,6 +100,8 @@ class DashboardNewcomerService
     {
         $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')
             ->filter(fn ($id) => is_string($id))->values()->all();
+        // Hash set — avoids O(offered × preferred) array_intersect per game.
+        $preferredSystemSet = array_fill_keys($preferredSystemIds, true);
 
         // Exclude games the user already participates in or owns
         $excludeGameIds = $this->getExcludedGameIds($user);
@@ -117,7 +119,7 @@ class DashboardNewcomerService
         $userLat = $userLocation?->latitude ? (float) $userLocation->latitude : null;
         $userLng = $userLocation?->longitude ? (float) $userLocation->longitude : null;
 
-        $scoredGames = $games->map(function ($game) use ($preferredSystemIds, $userLat, $userLng) {
+        $scoredGames = $games->map(function ($game) use ($preferredSystemSet, $userLat, $userLng) {
             $spotsAvailable = $game->max_players - (int) ($game->participant_count ?? 0);
             $participantCount = (int) ($game->participant_count ?? 0);
 
@@ -128,7 +130,13 @@ class DashboardNewcomerService
             $offeredSystemIds = $game->relationLoaded('gameSystems')
                 ? $game->gameSystems->pluck('id')->filter(fn ($id) => is_string($id))->values()->all()
                 : [];
-            $matchesTaste = ! empty(array_intersect($offeredSystemIds, $preferredSystemIds));
+            $matchesTaste = false;
+            foreach ($offeredSystemIds as $systemId) {
+                if (isset($preferredSystemSet[$systemId])) {
+                    $matchesTaste = true;
+                    break;
+                }
+            }
             $preferenceScore = $matchesTaste ? 50 : 0;
 
             // Proximity score (0-30)

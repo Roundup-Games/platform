@@ -8,7 +8,7 @@ FROM node:24-alpine AS frontend
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 COPY vite.config.js ./
 COPY resources/ resources/
@@ -31,6 +31,24 @@ FROM serversideup/php:8.5-fpm-nginx AS base
 # Additional PHP extensions needed beyond the Laravel defaults
 USER root
 RUN install-php-extensions gd intl bcmath exif
+
+# Production opcache tuning. The image boots with PHP's defaults, which are
+# shaped for development: validate_timestamps=1 stats()s every cached file,
+# the 10k max_accelerated_files cap is below this app's file count (~700 app
+# files + ~290 vendor packages → eviction churn), and JIT stays off. Deploys
+# are new containers — code is never hot-swapped in place — so timestamp
+# validation is pure overhead. Baked into the image (not env vars) so every
+# runtime (FPM, Horizon, artisan) shares identical settings.
+RUN printf '%s\n' \
+    'opcache.enable=1' \
+    'opcache.enable_cli=1' \
+    'opcache.validate_timestamps=0' \
+    'opcache.memory_consumption=256' \
+    'opcache.max_accelerated_files=30000' \
+    'opcache.interned_strings_buffer=16' \
+    'opcache.jit=tracing' \
+    'opcache.jit_buffer_size=64M' \
+    > /usr/local/etc/php/conf.d/zz-opcache-tuning.ini
 
 # Install ALL apt packages in one stable layer:
 #   - postgresql-client: DB creation at startup (app + worker)

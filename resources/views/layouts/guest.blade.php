@@ -32,6 +32,9 @@
 
         {{-- Fonts: self-hosted Inter (body) + Noto Serif (headings) + Material Symbols (icons) via @font-face in app.css --}}
         {{-- Material Symbols is subset to project icons — rebuild with build-tools/subset-icons.sh --}}
+        {{-- Preload critical fonts (same as public-layout) — see app layout note. --}}
+        <link rel="preload" href="/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/fonts/noto-serif-latin-var.woff2" as="font" type="font/woff2" crossorigin>
 
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])

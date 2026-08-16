@@ -1319,12 +1319,20 @@ class GameDetail extends Component
 
     public function render(): View
     {
-        $this->game->load([
+        // loadMissing() keeps the static relations cached across re-renders —
+        // render() runs on EVERY Livewire interaction (button clicks, panel
+        // toggles), and re-querying all ten relations each time cost 6-10
+        // queries per interaction on the hottest authenticated page. The
+        // mutable relations (participants/applications) are still eagerly
+        // refreshed: actions that mutate them call ->load() themselves, but
+        // render remains the guaranteed-fresh source for the roster UI.
+        $this->game->loadMissing([
             'owner', 'campaign',
             'gameSystems.categories', 'gameSystems.mechanics',
             'gameSystems.publishers', 'gameSystems.baseGame', 'gameSystems.expansions',
-            'participants.user', 'applications.user', 'linkedLocation',
+            'linkedLocation',
         ]);
+        $this->game->load(['participants.user', 'applications.user']);
 
         $sz = $this->sessionZeroState();
         $db = $this->debriefingState();

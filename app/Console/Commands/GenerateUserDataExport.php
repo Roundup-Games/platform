@@ -129,12 +129,10 @@ class GenerateUserDataExport extends Command
                 $this->gatherTeams($user),
             );
 
-            // 8. Activity log
-            $fileChecksums['activity-log.json'] = $this->writeJson(
-                $tempDir,
-                'activity-log.json',
-                $this->gatherActivityLog($user),
-            );
+            // 8. Activity log — streamed: this section is unbounded (every
+            // activity row ever written for the user) and would otherwise
+            // materialize the full rows array plus a second full JSON string.
+            $fileChecksums['activity-log.json'] = $this->writeActivityLog($tempDir, $user);
 
             // 9. Push subscriptions
             $fileChecksums['push-subscriptions.json'] = $this->writeJson(
@@ -402,21 +400,78 @@ class GenerateUserDataExport extends Command
     }
 
     /**
-     * @return array<string, mixed>
+     * Write the full buffer or throw — a short/failed fwrite would
+     * otherwise produce truncated JSON that still gets checksummed, zipped,
+     * and reported as a successful GDPR export.
+     *
+     * @param  resource  $handle
      */
-    protected function gatherActivityLog(User $user): array
+    protected function writeAll($handle, string $contents): void
     {
-        return ActivityLog::whereBelongsTo($user)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn (ActivityLog $log) => [
-                'id' => $log->id,
-                'event_type' => $log->event_type?->value,
-                'subject_type' => $log->subject_type,
-                'subject_id' => $log->subject_id,
-                'created_at' => $log->created_at?->toIso8601String(),
-            ])
-            ->toArray();
+        $offset = 0;
+        $length = strlen($contents);
+
+        while ($offset < $length) {
+            $written = fwrite($handle, substr($contents, $offset));
+            if ($written === false || $written === 0) {
+                throw new \RuntimeException('Unable to write activity-log export: short or failed write.');
+            }
+            $offset += $written;
+        }
+    }
+
+    /**
+     * Stream activity-log.json row by row, keeping only one chunk of models
+     * in memory. Output is the same JSON-array shape writeJson() produces
+     * (rows individually pretty-printed, one record per line).
+     *
+     * @return string sha256 checksum of the written file
+     */
+    protected function writeActivityLog(string $dir, User $user): string
+    {
+        $path = $dir.'/activity-log.json';
+        $handle = fopen($path, 'wb');
+        if ($handle === false) {
+            throw new \RuntimeException("Unable to open [{$path}] for writing.");
+        }
+
+        try {
+            $this->writeAll($handle, "[\n");
+            $first = true;
+
+            ActivityLog::whereBelongsTo($user)
+                // Only the exported columns — `properties` is a JSONB blob
+                // that is never emitted, and hydrating it per row inflates
+                // transfer + retained chunk memory. `id` must stay: it is
+                // the chunkByIdDesc cursor column.
+                ->select(['id', 'event_type', 'subject_type', 'subject_id', 'created_at'])
+                // chunkById requires a cursor column matching the sort order:
+                // ordering by created_at while chunking on the ascending id
+                // cursor skips/duplicates rows. id is an ordered UUID
+                // (time-ordered by ActivityLog::booted()), so id DESC is a
+                // deterministic proxy for newest-first.
+                ->orderByDesc('id')
+                ->chunkByIdDesc(500, function (Collection $chunk) use ($handle, &$first): void {
+                    foreach ($chunk as $log) {
+                        $row = [
+                            'id' => $log->id,
+                            'event_type' => $log->event_type?->value,
+                            'subject_type' => $log->subject_type,
+                            'subject_id' => $log->subject_id,
+                            'created_at' => $log->created_at?->toIso8601String(),
+                        ];
+                        $json = json_encode($row, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                        $this->writeAll($handle, ($first ? '' : ",\n").($json === false ? 'null' : $json));
+                        $first = false;
+                    }
+                });
+
+            $this->writeAll($handle, "\n]");
+        } finally {
+            fclose($handle);
+        }
+
+        return hash_file('sha256', $path) ?: '';
     }
 
     /**
@@ -528,7 +583,7 @@ class GenerateUserDataExport extends Command
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param  array<mixed>  $data  — keyed map OR list (both encode to valid JSON)
      */
     protected function writeJson(string $dir, string $filename, array $data): string
     {

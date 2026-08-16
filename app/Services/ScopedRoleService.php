@@ -8,9 +8,61 @@ use App\Models\User;
 use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use WeakMap;
 
 class ScopedRoleService
 {
+    /**
+     * Per-request memoization of expensive permission checks.
+     *
+     * isGlobalAdmin() runs two queries and hasPermissionInAnyScope() walks
+     * every team scope flushing Spatie's permission cache — yet both are
+     * invoked from the before() hook of ~10 policies, i.e. once per ability
+     * check and per row in policy-guarded loops. Results are stable for the
+     * lifetime of a single request/job, so they are memoized on the User
+     * instance via a static WeakMap: entries are garbage-collected with the
+     * User object, so FPM requests and Horizon jobs never see stale entries.
+     *
+     * Invalidated by {@see flushMemo()} whenever roles/permissions change
+     * (wired to Spatie's attach/detach events in AppServiceProvider).
+     *
+     * @var WeakMap<User, array<string, bool>>|null
+     */
+    private static ?WeakMap $memo = null;
+
+    /**
+     * Drop all memoized permission results (role/permission mutation).
+     */
+    public static function flushMemo(): void
+    {
+        self::$memo = null;
+    }
+
+    /**
+     * Memoized lookup helper: returns the cached result or invokes the
+     * callback, storing its return value under the given key.
+     *
+     * @param  callable(): bool  $compute
+     */
+    private static function memoized(User $user, string $key, callable $compute): bool
+    {
+        self::$memo ??= new WeakMap;
+
+        $memo = self::$memo[$user] ?? [];
+
+        if (array_key_exists($key, $memo)) {
+            return $memo[$key];
+        }
+
+        $result = $compute();
+
+        // Write back: PHP arrays are value types, so mutating $memo alone
+        // would never reach the WeakMap.
+        self::$memo[$user] = [...$memo, $key => $result];
+
+        return $result;
+    }
+
     /**
      * Check if a user has a specific permission within a team scope.
      *
@@ -83,6 +135,10 @@ class ScopedRoleService
      * the correct behavior for policy checks in environments where permissions may
      * not yet be seeded (e.g., tests that only test ownership logic).
      */
+    // NOTE: checkPermission is deliberately NOT memoized — it is
+    // context-sensitive (Spatie's permissions-team scope changes between
+    // calls inside hasTeamPermission), so caching it would return the
+    // global-context answer where a team-scoped one is required.
     public function checkPermission(User $user, string $permission): bool
     {
         try {
@@ -127,6 +183,11 @@ class ScopedRoleService
      */
     public function isGlobalAdmin(User $user): bool
     {
+        return self::memoized($user, 'is_global_admin', fn () => $this->doIsGlobalAdmin($user));
+    }
+
+    private function doIsGlobalAdmin(User $user): bool
+    {
         $roleIds = Role::whereIn('name', ['Platform Admin', 'Games Admin'])
             ->whereNull('team_id')
             ->pluck('id');
@@ -150,6 +211,11 @@ class ScopedRoleService
      * Checks global context first, then iterates all team-scoped role assignments.
      */
     public function hasPermissionInAnyScope(User $user, string $permission): bool
+    {
+        return self::memoized($user, "perm_any:{$permission}", fn () => $this->doHasPermissionInAnyScope($user, $permission));
+    }
+
+    private function doHasPermissionInAnyScope(User $user, string $permission): bool
     {
         // Check global context first
         if ($this->checkPermission($user, $permission)) {

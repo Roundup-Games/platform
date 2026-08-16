@@ -2,9 +2,8 @@
 
 namespace App\Filament\Resources\GameSystemResource\Pages;
 
-use App\Exceptions\BggApiException;
 use App\Filament\Resources\GameSystemResource;
-use App\Services\BggSyncService;
+use App\Jobs\SyncGameSystemsFromBgg;
 use Filament\Actions\BulkAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Notifications\Notification;
@@ -43,21 +42,16 @@ class ListGameSystems extends ListRecords
                         return;
                     }
 
-                    try {
-                        $result = app(BggSyncService::class)->syncGameSystems($bggIds);
+                    // Queue the sync — BGG rate-limit throttles and 202-retry
+                    // sleeps make multi-batch syncs run for minutes; never block
+                    // the admin request (see SyncGameSystemsFromBgg).
+                    SyncGameSystemsFromBgg::dispatch($bggIds);
 
-                        Notification::make()
-                            ->success()
-                            ->title('Bulk sync complete')
-                            ->body("Synced {$result->synced} game system(s), {$result->failed} failed.")
-                            ->send();
-                    } catch (BggApiException $e) {
-                        Notification::make()
-                            ->danger()
-                            ->title('Bulk sync failed')
-                            ->body($e->getMessage())
-                            ->send();
-                    }
+                    Notification::make()
+                        ->success()
+                        ->title('BGG sync queued')
+                        ->body(count($bggIds).' game system(s) will re-sync from BGG in the background. Re-check "last synced" in a few minutes.')
+                        ->send();
                 }),
         ];
     }

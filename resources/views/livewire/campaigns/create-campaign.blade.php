@@ -207,14 +207,14 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label for="campaign-min-players" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_min_players') }}</label>
-                                <input type="number" id="campaign-min-players" wire:model.live="min_players" min="1" max="99" placeholder="2"
+                                <input type="number" id="campaign-min-players" wire:model.live.debounce.400ms="min_players" min="1" max="99" placeholder="2"
                                        class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                                 @error('min_players') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                             </div>
 
                             <div>
                                 <label for="campaign-max-players" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_max_players') }}</label>
-                                <input type="number" id="campaign-max-players" wire:model.live="max_players" min="1" max="99" placeholder="{{ $game_type === 'gathering' ? '12' : '6' }}"
+                                <input type="number" id="campaign-max-players" wire:model.live.debounce.400ms="max_players" min="1" max="99" placeholder="{{ $game_type === 'gathering' ? '12' : '6' }}"
                                        class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                                 @if($game_type === 'gathering')
                                     <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.content_max_players_venue_hint') }}</p>

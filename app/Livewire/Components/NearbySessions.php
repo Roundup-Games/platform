@@ -12,6 +12,7 @@ use App\Services\GeocodingService;
 use App\Services\ProximityQuery;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
@@ -191,7 +192,10 @@ class NearbySessions extends Component
             $campaignResults = $this->getNearbyCampaigns($proximity, $radius);
         }
 
-        // Combine and format
+        // Combine and format. loadCount batches the participant counts into
+        // ONE query instead of one COUNT per item below.
+        $this->preloadParticipantCounts($gameResults);
+
         $all = $gameResults->map(function (mixed $result) {
             if (! $result instanceof ProximityResult) {
                 return null;
@@ -206,7 +210,7 @@ class NearbySessions extends Component
                 location: $result->location,
                 distance_km: $result->distanceKm,
                 game_system: $game->gameSystem,
-                participant_count: $game->participants()->count(),
+                participant_count: $game->participants_count ?? $game->participants()->count(),
                 type: 'session',
             );
         })->merge($campaignResults);
@@ -234,6 +238,8 @@ class NearbySessions extends Component
                 ['limit' => $this->limit, 'status_filter' => true, 'visibility' => [Visibility::Public->value]],
             );
 
+            $this->preloadParticipantCounts($fallbackResults);
+
             $sorted = $fallbackResults->map(function (mixed $result) {
                 if (! $result instanceof ProximityResult) {
                     return null;
@@ -248,7 +254,7 @@ class NearbySessions extends Component
                     location: $result->location,
                     distance_km: $result->distanceKm,
                     game_system: $game->gameSystem,
-                    participant_count: $game->participants()->count(),
+                    participant_count: $game->participants_count ?? $game->participants()->count(),
                     type: 'session',
                 );
             })->filter(fn (mixed $item) => $item instanceof NearbySessionItem)->sortBy(function (NearbySessionItem $item) {
@@ -317,6 +323,8 @@ class NearbySessions extends Component
             ->where('status', '!=', 'completed')
             ->get();
 
+        $campaigns->loadCount('participants');
+
         return $campaigns->map(function ($campaign) use ($nearestByCampaign) {
             $gameResult = $nearestByCampaign->get($campaign->id);
             $loc = $gameResult instanceof ProximityResult ? $gameResult->location : null;
@@ -327,10 +335,30 @@ class NearbySessions extends Component
                 location: $loc,
                 distance_km: $dist,
                 game_system: $campaign->gameSystem,
-                participant_count: $campaign->participants()->count(),
+                participant_count: $campaign->participants_count ?? $campaign->participants()->count(),
                 type: 'campaign',
             );
         });
+    }
+
+    /**
+     * Batch participant counts for a page of proximity results in ONE query
+     * instead of one COUNT per item. map()/filter() degrade to base
+     * Collections (no loadCount), so the filtered entities are re-wrapped
+     * in an Eloquent Collection; loadCount mutates the shared models, which
+     * the later ->map() over the original results then reads.
+     *
+     * @param  Collection<int, mixed>  $results
+     */
+    private function preloadParticipantCounts(Collection $results): void
+    {
+        (new EloquentCollection(
+            $results
+                ->map(fn (mixed $result) => $result instanceof ProximityResult ? $result->entity : null)
+                ->filter(fn (mixed $entity) => $entity instanceof Game)
+                ->values()
+                ->all(),
+        ))->loadCount('participants');
     }
 
     public function render(): View

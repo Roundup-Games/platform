@@ -10,4 +10,21 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    build: {
+        // Production bundles must not ship console noise (subscription ids,
+        // service-worker chatter). Dev-mode logs are already gated behind
+        // import.meta.env.DEV; this drops the remaining unconditional calls.
+        // Vite 8 bundles with rolldown/oxc — `build.esbuild` is silently
+        // ignored there, so the drop must go through the oxc minifier's
+        // compress options.
+        rolldownOptions: {
+            output: {
+                minify: {
+                    compress: {
+                        dropConsole: true,
+                    },
+                },
+            },
+        },
+    },
 });

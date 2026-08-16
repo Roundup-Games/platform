@@ -29,8 +29,11 @@ class UserPreferenceResolver
      */
     public function resolvedGameSystemPreferences(User $user): array
     {
-        $favorites = $user->favoriteGameSystems()->get();
-        $avoided = $user->avoidedGameSystems()->get();
+        // Eager-load expansions — the loops below touch ->expansions on every
+        // system, which lazy-loads one query per favorite/avoided system on
+        // every discovery/dashboard render that resolves preferences.
+        $favorites = $user->favoriteGameSystems()->with('expansions')->get();
+        $avoided = $user->avoidedGameSystems()->with('expansions')->get();
         $avoidedIds = $avoided->pluck('id')->flip();
 
         // Collect implied favorites from expansions of favorited base games
@@ -59,10 +62,13 @@ class UserPreferenceResolver
             }
         }
 
-        // Merge explicit avoids with implied avoids (implied only if not explicitly favorited)
+        // Merge explicit avoids with implied avoids (implied only if not explicitly favorited).
+        // keyBy hoisted out of the loop — rebuilding the lookup every iteration
+        // was O(avoided × favorites) on the discovery request path.
         $allAvoided = $avoided->keyBy('id');
+        $resolvedFavoriteIds = $resolvedFavorites->keyBy('id');
         foreach ($impliedAvoidIds as $id => $expansion) {
-            if (! $resolvedFavorites->keyBy('id')->has($id) && ! $impliedFavorites->has($id)) {
+            if (! $resolvedFavoriteIds->has($id) && ! $impliedFavorites->has($id)) {
                 $allAvoided->put($id, $expansion);
             }
         }

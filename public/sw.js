@@ -55,10 +55,17 @@ async function buildPreCacheList() {
             CACHE_NAME = 'roundup-' + Math.abs(hash).toString(36);
 
             const manifest = JSON.parse(text);
+            // posthog chunk ships as assets/posthog-<hash>.js — match on the
+            // file segment, not the anchored path start.
+            const excluded = [/admin-.*\.css$/, /(^|\/)posthog-[^/]*\.js$/];
             for (const entry of Object.values(manifest)) {
-                if (entry.file) {
-                    urls.push('/build/' + entry.file);
-                }
+                if (!entry.file) continue;
+                // Skip assets the current visitor cannot use: the Filament admin
+                // stylesheet (public visitors never load it) and the PostHog SDK
+                // chunk (fetched on demand once analytics consent is granted —
+                // precaching it would ship it to non-consenting visitors).
+                if (excluded.some((re) => re.test(entry.file))) continue;
+                urls.push('/build/' + entry.file);
                 // Include CSS/JS imports if present
                 if (entry.css) {
                     for (const css of entry.css) {

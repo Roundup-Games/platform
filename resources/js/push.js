@@ -55,6 +55,7 @@ async function fetchVapidKey() {
         const resp = await fetch(API_VAPID_KEY, {
             credentials: 'same-origin',
             headers: { Accept: 'application/json' },
+            signal: AbortSignal.timeout(15_000),
         });
 
         if (!resp.ok) {
@@ -89,6 +90,11 @@ export async function subscribeToPush() {
         return { success: false, error: 'Push notifications are not supported in this browser.' };
     }
 
+    // Kick off the VAPID key fetch immediately — it's independent of the
+    // permission prompt and SW registration, and previously waited behind
+    // them (a slow permission dialog delayed it for nothing).
+    const vapidKeyPromise = fetchVapidKey();
+
     const permitted = await requestPermission();
     if (!permitted) {
         return { success: false, error: 'Notification permission was not granted.' };
@@ -101,7 +107,7 @@ export async function subscribeToPush() {
         return syncSubscription(existingSub);
     }
 
-    const vapidKey = await fetchVapidKey();
+    const vapidKey = await vapidKeyPromise;
     if (!vapidKey) {
         return { success: false, error: 'Push notifications are not configured on the server.' };
     }
@@ -125,6 +131,7 @@ async function syncSubscription(subscription) {
         const resp = await fetch(API_SUBSCRIBE, {
             method: 'POST',
             credentials: 'same-origin',
+            signal: AbortSignal.timeout(15_000),
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
@@ -183,6 +190,7 @@ export async function unsubscribeFromPush() {
         const resp = await fetch(API_UNSUBSCRIBE, {
             method: 'DELETE',
             credentials: 'same-origin',
+            signal: AbortSignal.timeout(15_000),
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',

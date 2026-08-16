@@ -10,6 +10,7 @@ use App\Services\PeopleDiscoveryService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -17,7 +18,17 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-/** @property-read array<string, mixed> $nearbyUsers */
+/**
+ * @property-read array<string, mixed> $nearbyUsers
+ *
+ * The following computed properties are declared for phpstan (Livewire's
+ * #[Computed] magic property access); see the matching methods below.
+ * @property-read LengthAwarePaginator<int, UserRelationship> $followingUsers
+ * @property-read LengthAwarePaginator<int, UserRelationship> $followerUsers
+ * @property-read Collection<int, User> $nearbyUserMap
+ * @property-read array<string, true> $mutualFollowerIds
+ * @property-read array<string, true> $followingBackIds
+ */
 #[Layout('layouts.app')]
 class PeoplePage extends Component
 {
@@ -215,6 +226,93 @@ class PeoplePage extends Component
         return 0;
     }
 
+    /**
+     * The User models for the current nearby-results page, keyed by id.
+     *
+     * Replaces a raw Eloquent query that lived in the blade template (ran on
+     * every render — including every 5s poll tick while the warm-up ran).
+     * Kept as a #[Computed] so it is fetched once per request.
+     *
+     * @return Collection<int, User>
+     */
+    #[Computed]
+    public function nearbyUserMap()
+    {
+        $nearby = $this->nearbyUsers;
+        $results = $nearby['results'] ?? null;
+
+        $ids = $results instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator
+            ? collect($results->items())->pluck('user_id')->unique()->values()
+            : collect();
+
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        return User::with('media')
+            ->whereKey($ids)
+            ->get()
+            ->keyBy('id');
+    }
+
+    /**
+     * IDs on the current "Following" page who follow the viewer back
+     * (mutual relationships). One query instead of one exists() per row.
+     *
+     * @return array<string, true> id => true lookup set
+     */
+    #[Computed]
+    public function mutualFollowerIds(): array
+    {
+        $pageIds = $this->followingUsers->getCollection()
+            ->map(fn ($rel) => $rel->related?->id)
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($pageIds === []) {
+            return [];
+        }
+
+        // followers() rows carry the follower's id in user_id.
+        /** @var list<string> $followers */
+        $followers = $this->authUser->followers()
+            ->whereIn('user_id', $pageIds)
+            ->pluck('user_id')
+            ->all();
+
+        return array_fill_keys($followers, true);
+    }
+
+    /**
+     * IDs on the current "Followers" page whom the viewer follows back.
+     * One query instead of one exists() per row.
+     *
+     * @return array<string, true> id => true lookup set
+     */
+    #[Computed]
+    public function followingBackIds(): array
+    {
+        $pageIds = $this->followerUsers->getCollection()
+            ->map(fn ($rel) => $rel->user?->id)
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($pageIds === []) {
+            return [];
+        }
+
+        // followings() rows carry the followed user's id in related_user_id.
+        /** @var list<string> $following */
+        $following = $this->authUser->followings()
+            ->whereIn('related_user_id', $pageIds)
+            ->pluck('related_user_id')
+            ->all();
+
+        return array_fill_keys($following, true);
+    }
+
     // ── Follow Stats ─────────────────────────────────
 
     #[Computed]
@@ -245,7 +343,7 @@ class PeoplePage extends Component
         }
 
         UserRelationship::unfollow($this->authUser, $target);
-        unset($this->followingUsers, $this->followerUsers, $this->followingCount, $this->followersCount);
+        unset($this->followingUsers, $this->followerUsers, $this->followingCount, $this->followersCount, $this->mutualFollowerIds, $this->followingBackIds);
 
         session()->flash('success', __('common.flash_unfollowed', ['name' => $target->name]));
     }
@@ -258,7 +356,7 @@ class PeoplePage extends Component
         }
 
         UserRelationship::follow($this->authUser, $target);
-        unset($this->followingUsers, $this->followerUsers, $this->followingCount, $this->followersCount);
+        unset($this->followingUsers, $this->followerUsers, $this->followingCount, $this->followersCount, $this->mutualFollowerIds, $this->followingBackIds);
 
         session()->flash('success', __('common.flash_now_following', ['name' => $target->name]));
     }
@@ -275,7 +373,7 @@ class PeoplePage extends Component
             ->where('type', RelationshipType::Follow)
             ->delete();
 
-        unset($this->followerUsers, $this->followersCount, $this->followingCount);
+        unset($this->followerUsers, $this->followersCount, $this->followingCount, $this->followingBackIds, $this->mutualFollowerIds);
 
         session()->flash('success', __('common.flash_follower_removed', ['name' => $target->name]));
     }
@@ -303,7 +401,7 @@ class PeoplePage extends Component
         UserRelationship::follow($this->authUser, $target);
 
         // follow() handles cache invalidation + dispatch internally
-        unset($this->nearbyUsers, $this->nearbyCount, $this->followingCount, $this->followingUsers);
+        unset($this->nearbyUsers, $this->nearbyCount, $this->followingCount, $this->followingUsers, $this->nearbyUserMap, $this->mutualFollowerIds, $this->followingBackIds);
         $this->nearbyWarming = false; // allow re-warm on next poll
 
         session()->flash('success', __('common.flash_now_following', ['name' => $target->name]));

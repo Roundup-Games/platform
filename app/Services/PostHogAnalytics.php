@@ -61,7 +61,7 @@ class PostHogAnalytics
                 'properties' => $properties,
             ]);
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.analytics.capture_failed', [
+            Log::warning('posthog.analytics.capture_failed', [
                 'event' => $event,
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
@@ -131,7 +131,7 @@ class PostHogAnalytics
                 ],
             ]);
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.analytics.attendance_capture_failed', [
+            Log::warning('posthog.analytics.attendance_capture_failed', [
                 'participant_id' => $participant->id,
                 'user_id' => $userId,
                 'status' => $status->value,
@@ -191,7 +191,7 @@ class PostHogAnalytics
                 ],
             ]);
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.analytics.first_touch_failed', [
+            Log::warning('posthog.analytics.first_touch_failed', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
@@ -246,7 +246,7 @@ class PostHogAnalytics
                 'properties' => $properties,
             ]);
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.analytics.identify_failed', [
+            Log::warning('posthog.analytics.identify_failed', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
@@ -340,7 +340,7 @@ class PostHogAnalytics
                 ], $extra),
             ]);
         } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.analytics.participant_transition_failed', [
+            Log::warning('posthog.analytics.participant_transition_failed', [
                 'event' => $event,
                 'participant_id' => $participant->getId(),
                 'user_id' => $userId,

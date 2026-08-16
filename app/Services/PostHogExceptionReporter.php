@@ -99,7 +99,7 @@ class PostHogExceptionReporter
             ],
         ]);
 
-        Log::channel('daily')->debug('posthog.exception.reported', [
+        Log::debug('posthog.exception.reported', [
             'exception_class' => get_class($e),
             'fingerprint' => $fingerprint,
         ]);
