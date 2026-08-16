@@ -246,21 +246,26 @@ class PostHogExceptionReporter
      */
     private function normalizeMessage(string $message): string
     {
-        // Drop the "(Connection: <name>, SQL: <sql with bound values>)" tail.
-        $message = preg_replace('/ \(Connection: .*$/s', '', $message);
+        $patterns = [
+            // Drop the "(Connection: <name>, SQL: <sql with bound values>)" tail.
+            '/ \(Connection: .*$/s' => '',
+            // Drop Postgres "DETAIL: ..." lines — they quote key values (PII).
+            '/^\h*DETAIL:.*$/mi' => '',
+            // Collapse the connection endpoint so different pool members or DNS
+            // results do not fragment one connection failure. Covers both the
+            // "server at "host", port N" and "host "host" ... port N" forms.
+            '/server at "[^"]*"/i' => 'server at "*"',
+            '/host "[^"]*"/i' => 'host "*"',
+            '/port \d+/i' => 'port *',
+            // Collapse blank lines left by the removals above.
+            '/\v+/' => "\n",
+        ];
 
-        // Drop Postgres "DETAIL: ..." lines — they quote key values (PII).
-        $message = preg_replace('/^\h*DETAIL:.*$/mi', '', $message);
-
-        // Collapse the connection endpoint so different pool members or DNS
-        // results do not fragment one connection failure. Covers both the
-        // "server at "host", port N" and "host "host" ... port N" forms.
-        $message = preg_replace('/server at "[^"]*"/i', 'server at "*"', $message);
-        $message = preg_replace('/host "[^"]*"/i', 'host "*"', $message);
-        $message = preg_replace('/port \d+/i', 'port *', $message);
-
-        // Collapse blank lines left by the removals above.
-        $message = preg_replace('/\v+/', "\n", $message);
+        // preg_replace returns null only on internal error; keep the last good
+        // value so the method always returns a string.
+        foreach ($patterns as $pattern => $replacement) {
+            $message = preg_replace($pattern, $replacement, $message) ?? $message;
+        }
 
         return trim($message);
     }

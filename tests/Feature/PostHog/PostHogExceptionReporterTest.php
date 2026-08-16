@@ -239,10 +239,13 @@ describe('QueryException fingerprint normalization', function () {
             new PDOException($pdo),
         ));
 
+        // Assert on the message 'value' fields — the description shown in the
+        // issue — not the whole payload: the stacktrace's source-context lines
+        // capture this test file, which itself contains the email literal.
         $payload = $this->posthogClient->capturedCalls[0];
-        expect(json_encode($payload))->not->toContain($email);
         foreach ($payload['properties']['$exception_list'] as $entry) {
-            expect($entry['value'])->not->toContain('DETAIL:');
+            expect($entry['value'])->not->toContain($email)
+                ->and($entry['value'])->not->toContain('DETAIL:');
         }
     });
 });
