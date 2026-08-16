@@ -268,6 +268,9 @@ class PostHogExceptionReporter
      * QueryException message from every value in the exception list, so the
      * embedded SQL — and any per-request secret it carries — never reaches the
      * error-tracking provider. The leading SQLSTATE and driver message stay.
+     *
+     * @param  array<int, array<string, mixed>>  $exceptionList
+     * @return array<int, array<string, mixed>>
      */
     private function scrubExceptionList(array $exceptionList): array
     {
