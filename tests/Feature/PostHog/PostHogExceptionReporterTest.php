@@ -6,6 +6,7 @@ use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -205,6 +206,57 @@ it('reports 500 HttpException directly via reporter', function () {
     $payload = $this->posthogClient->capturedCalls[0];
     expect($payload['properties'])->toHaveKey('$exception_list')
         ->and($payload['properties']['$exception_list'][0]['type'])->toBe(HttpException::class);
+});
+
+describe('QueryException fingerprint normalization', function () {
+    it('groups connection failures that differ only by the per-request session id', function () {
+        Auth::logout();
+        $reporter = app(PostHogExceptionReporter::class);
+
+        // Same outage, two visitors: the session-read SQL carries a different
+        // session id per request, which previously made each report unique.
+        $sql = 'select * from "sessions" where "id" = ? limit 1';
+        $pdo = 'SQLSTATE[08006] [7] connection to server at "10.0.0.5", port 5432 failed: Connection refused';
+
+        $reporter->report(new QueryException('pgsql', $sql, ['session-aaaaaaaa'], new PDOException($pdo)));
+        $reporter->report(new QueryException('pgsql', $sql, ['session-bbbbbbbb'], new PDOException($pdo)));
+
+        $first = $this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'];
+        $second = $this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'];
+        expect($first)->toBe($second);
+    });
+
+    it('does not leak the offending key value into the description or fingerprint', function () {
+        Auth::logout();
+        $reporter = app(PostHogExceptionReporter::class);
+
+        $email = 'person@example.com';
+        $pdo = "SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key value violates unique constraint \"users_email_unique\"\nDETAIL:  Key (email)=({$email}) already exists.";
+        $reporter->report(new QueryException(
+            'pgsql',
+            'insert into "users" ("email") values (?)',
+            [$email],
+            new PDOException($pdo),
+        ));
+
+        $payload = $this->posthogClient->capturedCalls[0];
+        expect(json_encode($payload))->not->toContain($email);
+        foreach ($payload['properties']['$exception_list'] as $entry) {
+            expect($entry['value'])->not->toContain('DETAIL:');
+        }
+    });
+});
+
+it('falls back to a placeholder distinct id when the session store is unreachable', function () {
+    // During a database outage the DB-backed session read throws — the reporter
+    // must still capture instead of becoming a second failure.
+    Auth::shouldReceive('user')->andThrow(new RuntimeException('database is down'));
+
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report(new RuntimeException('outage'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    expect($this->posthogClient->capturedCalls[0]['distinctId'])->toBe('anon:unknown');
 });
 
 it('builds stack trace starting with exception class and location via reporter', function () {
