@@ -156,7 +156,8 @@ class PostHogExceptionReporter
     private function passesRateLimit(Throwable $e): bool
     {
         $key = self::CACHE_KEY_PREFIX.md5(get_class($e));
-        $cache = cache()->store(config('posthog.exception_throttle_store'));
+        $store = config('posthog.exception_throttle_store');
+        $cache = cache()->store(is_string($store) ? $store : null);
 
         try {
             // Ensure key exists with TTL before incrementing.
