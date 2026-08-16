@@ -6,6 +6,7 @@ use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -205,6 +206,55 @@ it('reports 500 HttpException directly via reporter', function () {
     $payload = $this->posthogClient->capturedCalls[0];
     expect($payload['properties'])->toHaveKey('$exception_list')
         ->and($payload['properties']['$exception_list'][0]['type'])->toBe(HttpException::class);
+});
+
+// ── QueryException grouping and SQL redaction ───────────
+// A Laravel QueryException appends the failed statement and its bindings to the
+// message. Each running query then makes a unique message, so a single database
+// outage spawns a new error-tracking issue per statement, and a session-lookup
+// binding carries a live session ID into the payload.
+
+it('groups QueryExceptions from different statements under one fingerprint', function () {
+    Auth::logout();
+    $reporter = app(PostHogExceptionReporter::class);
+
+    $previous = new PDOException('SQLSTATE[08006] [7] connection to server at "10.0.0.5" port 5432 failed: Connection refused');
+
+    $reporter->report(new QueryException(
+        'pgsql',
+        'select * from "sessions" where "id" = ? limit 1',
+        ['sess_live_secret_one'],
+        $previous,
+    ));
+    $reporter->report(new QueryException(
+        'pgsql',
+        'select * from "escalated_departments" where "team_id" = ?',
+        [42],
+        $previous,
+    ));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(2);
+    $first = $this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'];
+    $second = $this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'];
+    expect($first)->toBe($second);
+});
+
+it('redacts the SQL and bindings out of the captured QueryException message', function () {
+    Auth::logout();
+    $reporter = app(PostHogExceptionReporter::class);
+
+    $reporter->report(new QueryException(
+        'pgsql',
+        'select * from "sessions" where "id" = ? limit 1',
+        ['sess_live_secret_one'],
+        new PDOException('SQLSTATE[08006] [7] connection to server failed: Connection refused'),
+    ));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    $value = $this->posthogClient->capturedCalls[0]['properties']['$exception_list'][0]['value'];
+    expect($value)->not->toContain('sess_live_secret_one')
+        ->and($value)->not->toContain('select * from')
+        ->and($value)->toContain('[redacted]');
 });
 
 it('builds stack trace starting with exception class and location via reporter', function () {

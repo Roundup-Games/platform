@@ -70,6 +70,12 @@ class PostHogExceptionReporter
             'type' => 'manual',
             'handled' => false,
         ]);
+        // Redact the SQL and bound values out of every captured message before
+        // the payload leaves the app. A QueryException embeds the failed
+        // statement and its bindings — which include live session IDs — so this
+        // keeps that bearer-style secret out of the error-tracking provider,
+        // mirroring scrubRequestPath() for the request path.
+        $exceptionList = $this->redactExceptionMessages($exceptionList);
 
         $this->posthog->capture([
             'distinctId' => $distinctId,
@@ -200,11 +206,52 @@ class PostHogExceptionReporter
 
     /**
      * Build a fingerprint for grouping similar exceptions in PostHog.
-     * Strips line numbers so same exception in same file groups together.
+     *
+     * Keys on exception class, file, and a redacted message. The message is
+     * redacted first so a Laravel QueryException — which appends the failed
+     * SQL and its bindings — does not mint a new fingerprint for every
+     * statement. Without this, one database outage spawns a separate issue per
+     * running query instead of one issue whose occurrence count grows.
      */
     private function buildFingerprint(Throwable $e): string
     {
-        return md5(get_class($e).'|'.$e->getFile().'|'.$e->getMessage());
+        return md5(get_class($e).'|'.$e->getFile().'|'.$this->redactSql($e->getMessage()));
+    }
+
+    /**
+     * Redact the SQL tail from every message in a built exception list.
+     */
+    private function redactExceptionMessages(array $exceptionList): array
+    {
+        foreach ($exceptionList as &$exception) {
+            if (isset($exception['value']) && is_string($exception['value'])) {
+                $exception['value'] = $this->redactSql($exception['value']);
+            }
+        }
+        unset($exception);
+
+        return $exceptionList;
+    }
+
+    /**
+     * Strip the SQL statement and bound values from a Laravel QueryException
+     * message.
+     *
+     * QueryException appends " (Connection: <name>, SQL: <statement with
+     * bindings>)" to the previous exception's message. That tail makes each
+     * failing statement a unique message — one outage becomes forty issues —
+     * and the bindings can carry a live session ID or other secret. Replacing
+     * the tail with a fixed placeholder collapses the outage into one issue and
+     * keeps the bindings out of the payload. Messages without the tail are
+     * returned unchanged.
+     */
+    private function redactSql(string $message): string
+    {
+        return preg_replace(
+            '/ \((?:Connection: .+?, )?SQL: .+\)$/s',
+            ' (SQL: [redacted])',
+            $message,
+        ) ?? $message;
     }
 
     /**
