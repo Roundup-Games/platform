@@ -92,16 +92,21 @@ class PostHogExceptionReporter
 
         // Build the structured exception list the PostHog ingestion endpoint requires.
         // PostHog expects $exception_list as an array of objects with type/value/mechanism/stacktrace.
-        $exceptionList = ExceptionPayloadBuilder::buildExceptionList($e);
+        //
+        // A connection failure carries the host, port, database name, and SQL
+        // in its message AND in the source context that PostHog captures for
+        // each stack frame. Build the list from a clean synthetic exception so
+        // none of it reaches error tracking; the stable fingerprint still
+        // groups every blip into one issue.
+        $reported = $isInfrastructureFailure
+            ? new \RuntimeException(self::INFRASTRUCTURE_MESSAGE)
+            : $e;
+
+        $exceptionList = ExceptionPayloadBuilder::buildExceptionList($reported);
         $exceptionList = ExceptionPayloadBuilder::overridePrimaryMechanism($exceptionList, [
             'type' => 'manual',
             'handled' => false,
         ]);
-
-        // Replace the leaky connection message with a stable, scrubbed string.
-        if ($isInfrastructureFailure) {
-            $exceptionList = $this->scrubInfrastructureMessages($exceptionList);
-        }
 
         $this->posthog->capture([
             'distinctId' => $distinctId,
@@ -281,25 +286,6 @@ class PostHogExceptionReporter
         }
 
         return null;
-    }
-
-    /**
-     * Replace every message in the exception list with a stable, secret-free
-     * string. The connection message holds the host, port, database name, and
-     * a SQL fragment, so none of it reaches error tracking.
-     *
-     * @param  array<int, array<string, mixed>>  $exceptionList
-     * @return array<int, array<string, mixed>>
-     */
-    private function scrubInfrastructureMessages(array $exceptionList): array
-    {
-        foreach ($exceptionList as $index => $entry) {
-            if (is_array($entry) && array_key_exists('value', $entry)) {
-                $exceptionList[$index]['value'] = self::INFRASTRUCTURE_MESSAGE;
-            }
-        }
-
-        return $exceptionList;
     }
 
     /**

@@ -250,17 +250,14 @@ it('scrubs the message from a connection-level database failure', function () {
     $reporter->report(connectionQueryException('08006'));
 
     expect($this->posthogClient->capturedCalls)->toHaveCount(1);
-    $properties = $this->posthogClient->capturedCalls[0]['properties'];
+    $list = $this->posthogClient->capturedCalls[0]['properties']['$exception_list'];
 
-    foreach ($properties['$exception_list'] as $entry) {
-        expect($entry['value'])->toBe('Database connection failure (infrastructure — details scrubbed)');
-    }
-
-    // No host, database name, or SQL reaches error tracking.
-    $encoded = json_encode($properties['$exception_list']);
-    expect($encoded)->not->toContain('10.0.3.14')
-        ->and($encoded)->not->toContain('roundup_prod')
-        ->and($encoded)->not->toContain('sessions');
+    // The original QueryException — its type, its host-bearing message, and
+    // its stacktrace — is replaced by one clean synthetic entry, so no host,
+    // port, database name, or SQL survives.
+    expect($list)->toHaveCount(1)
+        ->and($list[0]['type'])->toBe(RuntimeException::class)
+        ->and($list[0]['value'])->toBe('Database connection failure (infrastructure — details scrubbed)');
 });
 
 it('groups every connection failure under one stable fingerprint', function () {
