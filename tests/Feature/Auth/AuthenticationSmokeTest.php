@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Middleware\CaptureFirstTouch;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -106,6 +108,78 @@ it('rethrows a duplicate-email insert race as an email field error, not a 500', 
     // transaction once the duplicate insert fails.
     $response->assertRedirect();
     $response->assertSessionHasErrors(['email']);
+})->group('smoke');
+
+it('does not mislabel a slug race as an email error when the email is unique', function () {
+    // generateUniqueSlug() is itself check-then-insert: two concurrent
+    // signups with the same name can both scan the same free slug, and the
+    // loser's insert hits users_slug_unique — a DIFFERENT constraint from
+    // the email one. Simulate the losing racer: the owner's row lands
+    // between this request's slug scan and its insert.
+    User::factory()->create([
+        'name' => 'Slug Racer',
+        'slug' => 'slug-racer-owner',
+    ]);
+
+    $forced = false;
+    User::creating(function (User $user) use (&$forced) {
+        if ($forced) {
+            return;
+        }
+        $forced = true;
+        $user->slug = 'slug-racer-owner';
+    });
+
+    // The racer's email is unique — an "email already taken" error here
+    // would be a false field error (and would send a perfectly valid
+    // address down the forgot-password path).
+    $payload = registrationPayload(['name' => 'Slug Racer']);
+
+    // store() handles a slug race by retrying with a randomized slug. Under
+    // the RefreshDatabase transaction that retry cannot complete (Postgres
+    // poisons the surrounding transaction on the first failed insert, so the
+    // retry aborts with 25P02 before any constraint check); in production
+    // there is no wrapping transaction and the retry succeeds. Either way,
+    // the outcome must NOT be a ValidationException on email — that is the
+    // mislabeling this test pins against.
+    try {
+        $this->post('/en/register', $payload);
+    } catch (QueryException) {
+        // Expected under the test transaction only (aborted transaction).
+    }
+
+    expect(session('errors'))->toBeNull();
+})->group('smoke');
+
+it('keeps first-touch attribution across a lost duplicate-email race', function () {
+    // A raced signup is shown a field error, not a 500 — the person retries.
+    // The first-touch capture keys must survive that failed attempt so the
+    // eventual successful retry still attributes the signup (the Signup
+    // Attribution Report consumes the write-once columns).
+    $this->withSession([
+        CaptureFirstTouch::PATH_KEY => '/en/discovery',
+        CaptureFirstTouch::REFERER_KEY => 'https://google.com/search?q=dnd',
+        CaptureFirstTouch::CAPTURED_KEY => true,
+    ]);
+
+    $payload = registrationPayload();
+
+    $raced = false;
+    User::creating(function () use (&$raced, $payload) {
+        if ($raced) {
+            return;
+        }
+        $raced = true;
+        User::factory()->create(['email' => $payload['email']]);
+    });
+
+    $this->post('/en/register', $payload)->assertSessionHasErrors(['email']);
+
+    // Session driver is array in tests, so this read is safe even though
+    // the surrounding database transaction is aborted.
+    expect(session(CaptureFirstTouch::PATH_KEY))->toBe('/en/discovery')
+        ->and(session(CaptureFirstTouch::REFERER_KEY))->toBe('https://google.com/search?q=dnd')
+        ->and(session(CaptureFirstTouch::CAPTURED_KEY))->toBeTrue();
 })->group('smoke');
 
 it('sends an email verification notification on registration (MustVerifyEmail contract)', function () {

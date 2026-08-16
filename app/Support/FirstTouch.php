@@ -153,18 +153,18 @@ class FirstTouch
     }
 
     /**
-     * Consume the first-touch session signals in one call — reads the
-     * CaptureFirstTouch session keys, derives the content context from the
-     * intended path, and forgets the capture keys so they cannot leak into
-     * a later signup.
+     * Read the first-touch session signals WITHOUT forgetting the capture
+     * keys — reads the CaptureFirstTouch session keys and derives the
+     * content context from the intended path.
      *
-     * Extracted from the duplicated blocks in OAuthController::callback and
-     * RegisteredUserController::store so the two signup paths derive the
-     * same signals and can never drift (CodeRabbit review follow-up).
+     * For signup paths that can still fail after reading: see
+     * RegisteredUserController::store(), which reads up front but only
+     * forgets once the user row exists, so a signup that loses a race and is
+     * shown a field error keeps its attribution for the successful retry.
      *
      * @return array{referer: ?string, path: ?string, content_type: ?string, content_slug: ?string}
      */
-    public static function consume(Request $request): array
+    public static function read(Request $request): array
     {
         $session = $request->session();
         $referer = is_string($session->get(CaptureFirstTouch::REFERER_KEY))
@@ -177,11 +177,6 @@ class FirstTouch
             is_string($session->get('url.intended')) ? $session->get('url.intended') : null
         );
         $contentContext = self::detectContentContext($intendedPath ?? $path);
-        $session->forget([
-            CaptureFirstTouch::REFERER_KEY,
-            CaptureFirstTouch::PATH_KEY,
-            CaptureFirstTouch::CAPTURED_KEY,
-        ]);
 
         return [
             'referer' => $referer,
@@ -189,5 +184,40 @@ class FirstTouch
             'content_type' => $contentContext['type'],
             'content_slug' => $contentContext['slug'],
         ];
+    }
+
+    /**
+     * Forget the CaptureFirstTouch session keys so they cannot leak into a
+     * later signup. Call only once the signals have been durably persisted
+     * (or deliberately discarded) — see read().
+     */
+    public static function forget(Request $request): void
+    {
+        $request->session()->forget([
+            CaptureFirstTouch::REFERER_KEY,
+            CaptureFirstTouch::PATH_KEY,
+            CaptureFirstTouch::CAPTURED_KEY,
+        ]);
+    }
+
+    /**
+     * Consume the first-touch session signals in one call — read() followed
+     * by forget(). Use this when nothing after reading can fail before the
+     * signals are persisted; use read()/forget() separately when a failure
+     * between the two should preserve the capture keys for a retry
+     * (RegisteredUserController::store).
+     *
+     * Extracted from the duplicated blocks in OAuthController::callback and
+     * RegisteredUserController::store so the two signup paths derive the
+     * same signals and can never drift (CodeRabbit review follow-up).
+     *
+     * @return array{referer: ?string, path: ?string, content_type: ?string, content_slug: ?string}
+     */
+    public static function consume(Request $request): array
+    {
+        $signals = self::read($request);
+        self::forget($request);
+
+        return $signals;
     }
 }
