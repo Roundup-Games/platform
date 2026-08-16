@@ -6,6 +6,7 @@ use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -219,3 +220,82 @@ it('builds stack trace starting with exception class and location via reporter',
         ->and($exceptionList[0]['type'])->toBe(RuntimeException::class)
         ->and($exceptionList[0])->toHaveKey('stacktrace');
 });
+
+// ── Database exception normalization ────────────────────
+// A QueryException message carries the SQL and its bound values. These tests
+// confirm the reporter strips those before fingerprinting or forwarding, so a
+// brief outage groups into one issue and bound values (emails) never leave.
+
+/**
+ * Build a QueryException the way Laravel does for a Postgres connection
+ * failure — a driver PDOException wrapped with the failing statement and its
+ * inlined binding.
+ */
+function connectionRefusedQueryException(string $sessionId): QueryException
+{
+    $driver = new PDOException(
+        'SQLSTATE[08006] [7] connection to server at "192.168.178.31", port 5432 failed: Connection refused'
+    );
+    // A real PDO failure populates errorInfo; a bare PDOException does not.
+    $driver->errorInfo = ['08006', 7, 'connection to server failed'];
+
+    return new QueryException(
+        'pgsql',
+        'select * from "sessions" where "id" = ?',
+        [$sessionId],
+        $driver
+    );
+}
+
+it('collapses connection failures with different session IDs into one fingerprint', function () {
+    Auth::logout();
+    $reporter = app(PostHogExceptionReporter::class);
+
+    $reporter->report(connectionRefusedQueryException('PXpQwrdmpAbc123'));
+    $reporter->report(connectionRefusedQueryException('Zk9mNvTqLxYz789'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(2);
+    $first = $this->posthogClient->capturedCalls[0]['properties']['$exception_fingerprint'];
+    $second = $this->posthogClient->capturedCalls[1]['properties']['$exception_fingerprint'];
+    expect($first)->toBe($second);
+});
+
+it('strips the SQL and bound session ID from the exception value', function () {
+    Auth::logout();
+    $reporter = app(PostHogExceptionReporter::class);
+
+    $reporter->report(connectionRefusedQueryException('PXpQwrdmpAbc123'));
+
+    $values = collect($this->posthogClient->capturedCalls[0]['properties']['$exception_list'])
+        ->pluck('value')
+        ->implode(' ');
+    expect($values)->not->toContain('PXpQwrdmpAbc123')
+        ->and($values)->not->toContain('SQL:')
+        ->and($values)->toContain('Connection refused');
+});
+
+it('does not forward a bound email address from a unique violation', function () {
+    Auth::logout();
+    $reporter = app(PostHogExceptionReporter::class);
+
+    $driver = new PDOException(
+        'SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key value violates unique constraint "users_email_unique"'
+        ."\nDETAIL:  Key (email)=(real.person@example.com) already exists."
+    );
+    $driver->errorInfo = ['23505', 7, 'duplicate key value violates unique constraint'];
+    $reporter->report(new QueryException(
+        'pgsql',
+        'insert into "users" ("email") values (?)',
+        ['real.person@example.com'],
+        $driver
+    ));
+
+    $payload = json_encode($this->posthogClient->capturedCalls[0]);
+    expect($payload)->not->toContain('real.person@example.com');
+
+    // The stable, non-PII part of the reason is kept for debugging.
+    $values = collect($this->posthogClient->capturedCalls[0]['properties']['$exception_list'])
+        ->pluck('value')
+        ->implode(' ');
+    expect($values)->toContain('users_email_unique');
+})->group('smoke');

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -70,6 +71,9 @@ class PostHogExceptionReporter
             'type' => 'manual',
             'handled' => false,
         ]);
+        // Strip SQL and bound values from every exception value so bindings
+        // (session IDs, email addresses) never reach the error-tracking provider.
+        $exceptionList = $this->scrubExceptionValues($exceptionList);
 
         $this->posthog->capture([
             'distinctId' => $distinctId,
@@ -200,11 +204,79 @@ class PostHogExceptionReporter
 
     /**
      * Build a fingerprint for grouping similar exceptions in PostHog.
-     * Strips line numbers so same exception in same file groups together.
+     *
+     * Uses class and file (line numbers are dropped so the same exception in
+     * the same file groups together). The message discriminator is normalized
+     * first: a raw QueryException message carries the SQL and its bound values,
+     * so a per-visitor session ID or an inlined email would make every
+     * occurrence hash differently. normalizeMessage() removes those, and for a
+     * database driver error the discriminator collapses to the SQLSTATE code,
+     * so all failures with the same code group into one issue.
      */
     private function buildFingerprint(Throwable $e): string
     {
-        return md5(get_class($e).'|'.$e->getFile().'|'.$e->getMessage());
+        return md5(get_class($e).'|'.$e->getFile().'|'.$this->fingerprintDiscriminator($e));
+    }
+
+    /**
+     * Resolve the message part of the fingerprint.
+     *
+     * A database driver error exposes a SQLSTATE code (e.g. `08006` for a
+     * connection failure) in errorInfo[0]. Reading it structurally is reliable
+     * across drivers, unlike matching the message string. All errors with the
+     * same code collapse to that code, so a brief outage that fails many
+     * statements makes one issue, not one per statement. Other exceptions fall
+     * back to the normalized message.
+     */
+    private function fingerprintDiscriminator(Throwable $e): string
+    {
+        if ($e instanceof QueryException && ($sqlState = $e->errorInfo[0] ?? null)) {
+            return 'SQLSTATE:'.$sqlState;
+        }
+
+        return $this->normalizeMessage($e->getMessage());
+    }
+
+    /**
+     * Replace every exception value with a normalized form.
+     *
+     * A QueryException chain reaches PostHog as two frames — the driver
+     * PDOException and the Laravel QueryException — and both inline bound
+     * values into their message. normalizeMessage() removes them from each.
+     *
+     * @param  array<int, array<string, mixed>>  $exceptionList
+     * @return array<int, array<string, mixed>>
+     */
+    private function scrubExceptionValues(array $exceptionList): array
+    {
+        foreach ($exceptionList as &$frame) {
+            if (isset($frame['value']) && is_string($frame['value'])) {
+                $frame['value'] = $this->normalizeMessage($frame['value']);
+            }
+        }
+
+        return $exceptionList;
+    }
+
+    /**
+     * Remove bound values from a raw exception message.
+     *
+     * Laravel appends `(Connection: <name>, SQL: <sql with bindings inlined>)`
+     * to a QueryException message, and Postgres adds a `DETAIL:` line that
+     * echoes the value that broke a constraint (for example a real email
+     * address on a unique violation). Both carry bound values, so both are
+     * stripped. The stable driver reason (the SQLSTATE line, the constraint
+     * name) is kept for grouping and debugging.
+     */
+    private function normalizeMessage(string $message): string
+    {
+        foreach ([' (Connection:', ' (SQL:', 'DETAIL:'] as $marker) {
+            if (($pos = strpos($message, $marker)) !== false) {
+                $message = substr($message, 0, $pos);
+            }
+        }
+
+        return trim($message);
     }
 
     /**
