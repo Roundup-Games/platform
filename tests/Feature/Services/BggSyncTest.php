@@ -641,25 +641,36 @@ it('runs bgg:sync command with multiple IDs', function () {
 // ── Lock-budget slicing (CodeRabbit: sync must not outlive SYNC_LOCK_TTL) ──
 
 it('continues large ID lists under fresh lock holds when the hold budget is hit', function () {
-    // 45 ids with batchSize 20 and an always-expired hold deadline forces
-    // one batch per slice: 20 + 20 + 5, each under its own lock acquisition.
+    // An always-expired hold deadline forces maximum slicing: after each
+    // slice's first remote op, every later remote op defers to a fresh lock
+    // hold. Every item here expands a DISTINCT missing base game, so each
+    // item's base fetch is a remote op that trips the guard. In production
+    // the deadline is ~480s and slices carry many batches — this seam just
+    // proves the deferral/merge/termination machinery.
     Http::fake(function (Request $request) {
-        // Echo one parsable <item> per requested id so every batch syncs
-        // its full id list (the real API does the same).
         parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
         $ids = array_filter(explode(',', (string) ($query['id'] ?? '')), 'ctype_digit');
-        $items = implode('', array_map(fn (string $id): string => <<<XML
+        $items = implode('', array_map(function (string $id): string {
+            // Expansions 1000xx expand missing base 8000xx; bases are standalone.
+            $baseId = (int) $id >= 8000000 ? null : 8000000 + ((int) $id - 1000000);
+            $expansionLink = $baseId !== null
+                ? '<link type="boardgameexpansion" inbound="true" id="'.$baseId.'" value="Base '.$baseId.'"/>'
+                : '';
+
+            return <<<XML
           <item type="boardgame" id="{$id}">
             <name value="Slice Game {$id}"/><yearpublished value="2017"/>
             <minplayers value="1"/><maxplayers value="4"/>
             <maxplaytime value="60"/><minage value="12"/>
+            {$expansionLink}
             <statistics><ratings>
               <average value="8.0"/><bayesaverage value="7.5"/><usersrated value="100"/>
               <averageweight value="2.0"/>
               <ranks><rank type="subtype" id="1" name="boardgame" value="1"/></ranks>
             </ratings></statistics>
           </item>
-        XML, $ids));
+        XML;
+        }, $ids));
 
         return Http::response("<items>{$items}</items>", 200, ['Content-Type' => 'application/xml']);
     });
@@ -668,25 +679,89 @@ it('continues large ID lists under fresh lock holds when the hold budget is hit'
     {
         protected function holdDeadline(): CarbonInterface
         {
-            // Always expired (except the guard skips index 0) — forces the
-            // maximum slicing: one batch per lock hold.
             return now()->subSecond();
         }
     };
 
-    $ids = array_map(fn (int $i): int => 1000000 + $i, range(1, 45));
+    $ids = array_map(fn (int $i): int => 1000000 + $i, range(1, 3));
 
     $result = $service->syncGameSystems($ids);
 
     // The full list completed across slices, merged into one SyncResult.
-    expect($result->synced)->toBe(45)
+    expect($result->synced)->toBe(3)
         ->and($result->failed)->toBe(0);
 
-    // Three slices => three log rows, each recording only the ids it ran.
+    // One remote-op-bearing item per slice => three log rows, one id each,
+    // and every auto-fetched base game landed.
     $logs = BggSyncLog::orderBy('started_at')->get();
     expect($logs)->toHaveCount(3);
-    expect($logs->pluck('items_synced')->all())->toBe([20, 20, 5]);
+    expect($logs->pluck('items_synced')->all())->toBe([1, 1, 1]);
     expect($logs->every(fn (BggSyncLog $log) => $log->status === 'success'))->toBeTrue();
+    expect(GameSystem::whereIn('bgg_id', [8000001, 8000002, 8000003])->count())->toBe(3);
+});
+
+it('defers an expansion base-game fetch past the hold deadline and completes it on the next hold', function () {
+    // CodeRabbit follow-up: the deadline must guard EVERY remote op, including
+    // the recursive fetchAndUpsertBaseGame() for expansions whose base game is
+    // missing from the catalog. With an always-expired deadline the expansion's
+    // base fetch defers to the next lock hold instead of running unbounded.
+    $makeItem = function (string $id, ?string $baseId): string {
+        $expansionLink = $baseId !== null
+            ? '<link type="boardgameexpansion" inbound="true" id="'.$baseId.'" value="Base '.$baseId.'"/>'
+            : '';
+
+        return <<<XML
+      <item type="boardgame" id="{$id}">
+        <name value="Game {$id}"/><yearpublished value="2020"/>
+        <minplayers value="1"/><maxplayers value="4"/>
+        <maxplaytime value="60"/><minage value="12"/>
+        <link type="boardgamecategory" id="1002" value="Adventure"/>
+        {$expansionLink}
+        <statistics><ratings>
+          <average value="7.5"/><bayesaverage value="7.0"/><usersrated value="50"/>
+          <averageweight value="2.0"/>
+          <ranks><rank type="subtype" id="1" name="boardgame" value="1"/></ranks>
+        </ratings></statistics>
+      </item>
+    XML;
+    };
+
+    Http::fake(function (Request $request) use ($makeItem) {
+        parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+        $ids = array_filter(explode(',', (string) ($query['id'] ?? '')), 'ctype_digit');
+        $items = implode('', array_map(
+            fn (string $id): string => $makeItem($id, $id === '9002' ? '9003' : null),
+            $ids,
+        ));
+
+        return Http::response("<items>{$items}</items>", 200, ['Content-Type' => 'application/xml']);
+    });
+
+    $service = new class(new BggClient(baseUrl: 'https://boardgamegeek.com/xmlapi2', token: 'test-token', rateLimitSeconds: 0, maxRetries: 1, retrySleepSeconds: 0), new BggXmlParser, 20) extends BggSyncService
+    {
+        protected function holdDeadline(): CarbonInterface
+        {
+            return now()->subSecond();
+        }
+    };
+
+    // 9001 is standalone; 9002 expands 9003 (not in catalog yet).
+    $result = $service->syncGameSystems([9001, 9002]);
+
+    expect($result->synced)->toBe(2)
+        ->and($result->failed)->toBe(0);
+
+    // The auto-fetched base game landed and the expansion links to it.
+    $base = GameSystem::where('bgg_id', 9003)->first();
+    $expansion = GameSystem::where('bgg_id', 9002)->first();
+    expect($base)->not->toBeNull()
+        ->and($expansion)->not->toBeNull()
+        ->and($expansion->base_game_id)->toBe($base->id);
+
+    // Slice 1: 9001 only (9002's base fetch deferred); slice 2: 9002 + its
+    // exempt base fetch; no third slice.
+    $logs = BggSyncLog::orderBy('started_at')->get();
+    expect($logs)->toHaveCount(2);
 });
 
 it('completes a small list in a single lock hold under the normal deadline', function () {
