@@ -26,15 +26,25 @@ class SyncGameSystemsFromBgg implements ShouldQueue
     use InteractsWithQueue;
     use Queueable;
 
-    public int $tries = 2;
+    public int $tries = 3;
 
-    /** Retry once after a minute — transient BGG/network failures get a
-     *  second chance; sustained failures stay terminal (failed() logs). */
-    /** @var array<int, int> */
-    public array $backoff = [60];
+    /** Staggered backoff: a lock-contention failure (weekly sweep running)
+     * gets re-attempted over a ~12-minute window, longer than the 5-minute
+     * $timeout that bounds any single sync. BGG's rate-limit sleeps make
+     * aggressive retries counterproductive.
+     *
+     * @var array<int, int>
+     */
+    public array $backoff = [60, 600];
 
-    /** BGG rate-limit sleeps make aggressive retries counterproductive. */
-    public int $timeout = 1800;
+    /** Must stay below the queue connection's retry_after (360s on redis/
+     * database) — a timeout above it would let the queue redeliver the job
+     * while the first attempt is still running. 300s matches the longest-job
+     * contract documented in config/queue.php (Horizon supervisor and
+     * ComputePlatformScores also cap at 300s). A slow sync that exceeds it
+     * is retried safely: upserts are idempotent and the sync lock serializes
+     * attempts. */
+    public int $timeout = 300;
 
     /**
      * @param  array<int, int>  $bggIds

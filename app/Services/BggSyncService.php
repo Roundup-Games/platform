@@ -19,10 +19,13 @@ class BggSyncService
     /**
      * Global sync mutex. The client's 2s rate-limit throttle is per-process —
      * two concurrent syncs (manual admin job + ticket listener + weekly sweep
-     * all call this service) would double BGG request pressure. Lock TTL
-     * matches the longest legitimate run (SyncGameSystemsFromBgg::timeout).
+     * all call this service) would double BGG request pressure. block()
+     * releases the lock when the closure returns/throws; the TTL is only the
+     * crash-safety lease, so it sits above the job's $timeout (300s), which
+     * bounds the longest legit hold. Equal-to-timeout would let a sync at
+     * exactly max runtime expire the lock mid-flight.
      */
-    private const SYNC_LOCK_TTL = 1800;
+    private const SYNC_LOCK_TTL = 600;
 
     private BggClient $client;
 
@@ -48,8 +51,9 @@ class BggSyncService
     public function syncGameSystems(array $bggIds): SyncResult
     {
         // Serialize syncs process-wide (see SYNC_LOCK_TTL). Waiting up to 60s
-        // covers a short in-flight sync; a longer one surfaces as a
-        // LockTimeoutException the caller can retry — preferable to racing.
+        // covers a short in-flight sync; longer contention surfaces as a
+        // LockTimeoutException, and the job's backoff re-enters this wait —
+        // preferable to racing.
         /** @var SyncResult $result */
         $result = Cache::lock('bgg:sync', self::SYNC_LOCK_TTL)
             ->block(60, fn () => $this->doSyncGameSystems($bggIds));

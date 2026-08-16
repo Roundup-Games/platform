@@ -53,7 +53,7 @@ $variant = $flags->getVariant('my-experiment');
 ### Client-side (JS)
 
 ```js
-const value = window.featureFlag('my-flag');
+const value = window.Roundup.posthog.featureFlag('my-flag');
 ```
 
 ### Creating a Flag

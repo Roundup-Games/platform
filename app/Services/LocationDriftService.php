@@ -121,56 +121,54 @@ class LocationDriftService
     {
         $flaggedIds = [];
 
-        $groups = DB::table('locations')
-            ->whereNotNull('place_id')
-            ->select('place_id', DB::raw('count(*) as cnt'))
-            ->groupBy('place_id')
-            ->havingRaw('count(*) > 1')
-            ->pluck('place_id');
+        // Stream ALL non-null place_id rows ordered by (place_id, id) and
+        // keep only the current group's first id in memory — bounded
+        // regardless of duplicate volume. The previous shape collected every
+        // duplicate place_id into a whereIn() list and hydrated all matching
+        // rows before processing.
+        $currentPlaceId = null;
+        $firstId = null;
 
-        // One indexed query for ALL duplicate place_ids instead of one query
-        // per group (G round-trips on a nightly sweep).
-        $rows = DB::table('locations')
+        $flushLaterRow = function (mixed $id, ?string $targetId) use (&$flagged, &$flaggedIds, $dryRun): void {
+            if ($targetId === null || ! is_scalar($id)) {
+                if ($id !== null && ! is_scalar($id)) {
+                    throw new \LogicException('Location id missing from place_id scan result.');
+                }
+
+                return;
+            }
+            $id = (string) $id;
+            if (isset($flagged[$id])) {
+                return;
+            }
+            $this->flag($id, 'duplicate', [
+                'candidate_target_id' => $targetId,
+                'matched_on' => 'place_id',
+            ], $dryRun, 'place_id');
+            $flagged[$id] = true;
+            $flaggedIds[] = $id;
+        };
+
+        DB::table('locations')
             ->whereNotNull('place_id')
-            ->whereIn('place_id', $groups->all())
             ->orderBy('place_id')
             ->orderBy('id')
-            ->get(['place_id', 'id'])
-            ->groupBy('place_id');
+            ->select(['place_id', 'id'])
+            ->cursor()
+            ->each(function (object $row) use (&$currentPlaceId, &$firstId, $flushLaterRow): void {
+                $placeId = $row->place_id;
+                $id = $row->id;
 
-        foreach ($rows as $groupRows) {
-            $ids = $groupRows->pluck('id');
+                if ($placeId !== $currentPlaceId) {
+                    $currentPlaceId = $placeId;
+                    $firstId = is_scalar($id) ? (string) $id : null;
 
-            if ($ids->count() < 2) {
-                continue;
-            }
-
-            $first = $ids->first();
-            // pluck('id') is typed mixed, so narrow explicitly. The count() >= 2
-            // guard above makes a non-scalar unreachable — fail loud rather than
-            // fabricate an empty id, which would log phantom drift rows (a
-            // data-quality detector must never emit made-up location ids).
-            if (! is_scalar($first)) {
-                throw new \LogicException('Location id missing from pluck("id") result.');
-            }
-            $targetId = (string) $first;
-
-            foreach ($ids->skip(1) as $id) {
-                if (! is_scalar($id)) {
-                    throw new \LogicException('Location id missing from pluck("id") result.');
+                    return;
                 }
-                $id = (string) $id;
-                if (isset($flagged[$id])) {
-                    continue;
-                }
-                $this->flag($id, 'duplicate', [
-                    'candidate_target_id' => $targetId,
-                    'matched_on' => 'place_id',
-                ], $dryRun, 'place_id');
-                $flagged[$id] = true;
-                $flaggedIds[] = $id;
-            }
-        }
+
+                // Every later row in the group is a duplicate of the first.
+                $flushLaterRow($id, $firstId);
+            });
 
         return $flaggedIds;
     }
@@ -195,11 +193,15 @@ class LocationDriftService
         $currentName = null;
         /** @var array<int, Location> $currentGroup */
         $currentGroup = [];
+        // Once a name group exceeds MAX_NAME_GROUP_SIZE it is skipped, but
+        // the rows would otherwise keep accumulating in $currentGroup until
+        // the name changes — stop retaining them entirely.
+        $groupOversized = false;
 
         $processGroup = function () use (&$currentGroup, &$flagged, &$flaggedIds, $dryRun): void {
             $count = count($currentGroup);
-            if ($count < 2 || $count > self::MAX_NAME_GROUP_SIZE) {
-                return; // singletons can't be duplicates; bound pairwise cost
+            if ($count < 2) {
+                return; // singletons — or an oversized group, which was cleared
             }
 
             foreach ($currentGroup as $k => $candidate) {
@@ -238,13 +240,26 @@ class LocationDriftService
             ->orderBy('norm_name')
             ->orderBy('id')
             ->cursor()
-            ->each(function (Location $row) use (&$currentName, &$currentGroup, $processGroup): void {
+            ->each(function (Location $row) use (&$currentName, &$currentGroup, &$groupOversized, $processGroup): void {
                 $normName = is_string($norm = $row->getAttribute('norm_name')) ? $norm : '';
                 if ($normName !== $currentName) {
                     $processGroup();
                     $currentName = $normName;
                     $currentGroup = [];
+                    $groupOversized = false;
                 }
+
+                if ($groupOversized) {
+                    return; // dropped rows of an already-oversized group
+                }
+
+                if (count($currentGroup) >= self::MAX_NAME_GROUP_SIZE) {
+                    $groupOversized = true;
+                    $currentGroup = [];
+
+                    return;
+                }
+
                 $currentGroup[] = $row;
             });
 
