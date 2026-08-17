@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Feature\Services;
 
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;

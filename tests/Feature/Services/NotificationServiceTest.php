@@ -2,19 +2,20 @@
 
 namespace Tests\Feature\Services;
 
-use App\Dto\PushPayload;
 use App\Enums\NotificationCategory;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Notifications\BaseNotification;
 use App\Notifications\Channels\PushChannel;
 use App\Services\NotificationService;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Tests\Feature\Services\Fixtures\TestBaseNotification;
+use Tests\Feature\Services\Fixtures\TestNotification;
+use Tests\Feature\Services\Fixtures\TestNotificationB;
+use Tests\Feature\Services\Fixtures\TestNotificationWithActor;
 
 describe('NotificationService', function () {
     beforeEach(function () {
@@ -421,68 +422,3 @@ describe('NotificationService', function () {
         });
     });
 });
-
-// ── Test Notification Classes ────────────────────────────────────
-
-class TestNotification extends \Illuminate\Notifications\Notification
-{
-    public function __construct(protected array $data = []) {}
-
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
-
-    public function toDatabase(object $notifiable): array
-    {
-        return $this->data;
-    }
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->line('Test notification');
-    }
-}
-
-class TestNotificationWithActor extends TestNotification
-{
-    public function __construct(array $data, protected User $actor)
-    {
-        parent::__construct($data);
-    }
-
-    public function getActor(): User
-    {
-        return $this->actor;
-    }
-}
-
-class TestNotificationB extends TestNotification {}
-
-class TestBaseNotification extends BaseNotification
-{
-    public function __construct(public array $payload = []) {}
-
-    public function toDatabase(object $notifiable): array
-    {
-        return $this->payload;
-    }
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->line('Test base notification');
-    }
-
-    public function toPush(object $notifiable): PushPayload
-    {
-        return new PushPayload(
-            title: 'Test',
-            body: 'Test push',
-            icon: '/icon.png',
-            url: '/test',
-            tag: 'test',
-        );
-    }
-}

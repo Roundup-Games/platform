@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Notifications;
+namespace Tests\Feature\Notifications;
 
 use App\Enums\ContentLanguage;
 use App\Models\Game;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Billing;
 
 use App\Http\Controllers\PaddleWebhookController;
 use App\Models\User;
