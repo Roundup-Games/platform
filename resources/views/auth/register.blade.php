@@ -29,7 +29,10 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('register') }}">
+    {{-- Disable the submit button after the first submit so a double click
+         cannot send a second POST. That second POST is the common trigger for
+         the duplicate-email race the store() controller now also handles. --}}
+    <form method="POST" action="{{ route('register') }}" x-data="{ submitting: false }" @submit="submitting = true">
         @csrf
 
         <!-- Name -->
@@ -65,7 +68,7 @@
                 {{ __('auth.content_already_registered') }}
             </a>
 
-            <x-primary-button class="ms-4">
+            <x-primary-button class="ms-4" x-bind:disabled="submitting" x-bind:class="{ 'opacity-50 cursor-not-allowed pointer-events-none': submitting }">
                 {{ __('profile.action_create_account') }}
             </x-primary-button>
         </div>
