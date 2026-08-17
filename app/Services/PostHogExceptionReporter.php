@@ -71,6 +71,19 @@ class PostHogExceptionReporter
             'handled' => false,
         ]);
 
+        // Normalize every message before it reaches the error-tracking store.
+        // The SDK copies each Throwable message (including the wrapped
+        // PDOException) into the entry 'value', which becomes the issue
+        // description. A QueryException message carries per-request bound
+        // values, and a Postgres unique violation carries the offending key
+        // value (a customer email address). Scrub both so no per-row data or
+        // PII leaves the app, using the same shape as the fingerprint.
+        foreach ($exceptionList as $i => $entry) {
+            if (isset($entry['value']) && is_string($entry['value'])) {
+                $exceptionList[$i]['value'] = $this->normalizeMessage($entry['value']);
+            }
+        }
+
         $this->posthog->capture([
             'distinctId' => $distinctId,
             'event' => '$exception',
@@ -179,32 +192,82 @@ class PostHogExceptionReporter
      */
     private function resolveDistinctId(): string
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        if ($user) {
-            $authId = $user->getAuthIdentifier();
+            if ($user) {
+                $authId = $user->getAuthIdentifier();
 
-            return to_string_id($authId);
+                return to_string_id($authId);
+            }
+
+            // Anonymous — use a random UUID stored in the session.
+            // Generated once per session, reused across requests for grouping.
+            // No PII (IP, UA) is used as input — purely random identifier.
+            if (! $anonId = session('posthog_anon_id')) {
+                $anonId = (string) Str::uuid();
+                session(['posthog_anon_id' => $anonId]);
+            }
+
+            return 'anon:'.substr(is_string($anonId) ? $anonId : '', 0, 16);
+        } catch (Throwable) {
+            // With SESSION_DRIVER=database the auth guard and session read hit
+            // Postgres. During a database outage — exactly when we report it —
+            // that read throws, so fall back to a placeholder instead of the
+            // reporter becoming a second failure on top of the outage.
+            return 'anon:unknown';
         }
-
-        // Anonymous — use a random UUID stored in the session.
-        // Generated once per session, reused across requests for grouping.
-        // No PII (IP, UA) is used as input — purely random identifier.
-        if (! $anonId = session('posthog_anon_id')) {
-            $anonId = (string) Str::uuid();
-            session(['posthog_anon_id' => $anonId]);
-        }
-
-        return 'anon:'.substr(is_string($anonId) ? $anonId : '', 0, 16);
     }
 
     /**
      * Build a fingerprint for grouping similar exceptions in PostHog.
-     * Strips line numbers so same exception in same file groups together.
+     *
+     * The key is class plus file plus a normalized message shape. Without the
+     * normalization a QueryException fingerprints on the failing SQL, which
+     * with SESSION_DRIVER=database carries the per-visitor session id from the
+     * session-read query — so one connection outage splits into one issue per
+     * request instead of grouping into one.
      */
     private function buildFingerprint(Throwable $e): string
     {
-        return md5(get_class($e).'|'.$e->getFile().'|'.$e->getMessage());
+        return md5(get_class($e).'|'.$e->getFile().'|'.$this->normalizeMessage($e->getMessage()));
+    }
+
+    /**
+     * Normalize an exception message into a stable, PII-free shape.
+     *
+     * A QueryException message ends with " (Connection: <name>, SQL: <sql>)",
+     * where the SQL holds per-request bound values — most damagingly the
+     * session id in the session-read query. A Postgres unique violation adds a
+     * "DETAIL:  Key (col)=(value) already exists." line, and that value can be
+     * a customer email address. Both are removed, and the connection endpoint
+     * host and port are collapsed, so a connection-level failure produces one
+     * stable message shape regardless of visitor or pool member.
+     */
+    private function normalizeMessage(string $message): string
+    {
+        $patterns = [
+            // Drop the "(Connection: <name>, SQL: <sql with bound values>)" tail.
+            '/ \(Connection: .*$/s' => '',
+            // Drop Postgres "DETAIL: ..." lines — they quote key values (PII).
+            '/^\h*DETAIL:.*$/mi' => '',
+            // Collapse the connection endpoint so different pool members or DNS
+            // results do not fragment one connection failure. Covers both the
+            // "server at "host", port N" and "host "host" ... port N" forms.
+            '/server at "[^"]*"/i' => 'server at "*"',
+            '/host "[^"]*"/i' => 'host "*"',
+            '/port \d+/i' => 'port *',
+            // Collapse blank lines left by the removals above.
+            '/\v+/' => "\n",
+        ];
+
+        // preg_replace returns null only on internal error; keep the last good
+        // value so the method always returns a string.
+        foreach ($patterns as $pattern => $replacement) {
+            $message = preg_replace($pattern, $replacement, $message) ?? $message;
+        }
+
+        return trim($message);
     }
 
     /**
