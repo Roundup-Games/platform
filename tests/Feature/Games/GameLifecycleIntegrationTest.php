@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Games;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;

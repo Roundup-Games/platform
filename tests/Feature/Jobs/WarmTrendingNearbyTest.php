@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Jobs;
+namespace Tests\Feature\Jobs;
 
 use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;

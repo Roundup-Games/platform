@@ -1,5 +1,7 @@
 <?php
 
+namespace Tests\Feature\Services;
+
 use App\Models\User;
 use App\Services\TicketPayloadRenderer;
 use Database\Seeders\EscalatedSetupSeeder;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Notifications;
+namespace Tests\Feature\Notifications;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\ContentLanguage;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Escalated;
 
 use App\Dto\SyncResult;
 use App\Listeners\HandleGameSystemTicketClosed;

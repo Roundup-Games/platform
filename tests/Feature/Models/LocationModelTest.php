@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Models;
+namespace Tests\Feature\Models;
 
 use App\Models\Game;
 use App\Models\Location;
