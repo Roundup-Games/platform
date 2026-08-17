@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Services;
+namespace Tests\Feature\Services;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
@@ -12,6 +12,7 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\DashboardEstablishedService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
@@ -27,10 +28,25 @@ class DashboardWeekDataTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Freeze at a stable mid-week moment (same convention as
+        // DashboardScheduleServiceTest) so week-boundary fixtures are
+        // deterministic: startOfWeek()+2h is solidly in the past and
+        // endOfWeek()-2h is solidly in the future at every hour of the
+        // frozen Wednesday. Without this the suite flakes when CI runs in
+        // the Sunday 22:00–Monday 02:00 UTC window.
+        Carbon::setTestNow(Carbon::parse('2026-01-14 14:00:00'));
+
         $this->service = app(DashboardEstablishedService::class);
         Cache::flush();
         Queue::fake();
         Log::spy();
+    }
+
+    protected function tearDown(): void
+    {
+        // Release the frozen clock so it can't leak into other test classes.
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     // ── Structure ──────────────────────────────────────────────
@@ -238,14 +254,14 @@ class DashboardWeekDataTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // Past game (yesterday or earlier this week)
+        // Time is frozen at Wednesday 14:00 (setUp), so both fixtures are
+        // deterministic: Monday 02:00 is in the past, Sunday ~22:00 is upcoming.
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Completed,
             'date_time' => now()->startOfWeek()->addHours(2),
         ]);
 
-        // Future game
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
@@ -254,10 +270,15 @@ class DashboardWeekDataTest extends TestCase
 
         $result = $this->service->computeWeekData($user);
 
-        $this->assertEquals(2, $result['summary']['total']);
-        // At least one past and one upcoming (exact counts depend on when test runs)
-        $this->assertGreaterThan(0, $result['summary']['past'] + $result['summary']['upcoming']);
-        $this->assertEquals($result['summary']['total'], $result['summary']['past'] + $result['summary']['upcoming']);
+        $this->assertSame(2, $result['summary']['total']);
+        $this->assertSame(1, $result['summary']['past']);
+        $this->assertSame(1, $result['summary']['upcoming']);
+
+        $allGames = collect($result['days'])->flatMap->games;
+        $this->assertSame(
+            [true, false],
+            $allGames->sortBy('date_time')->pluck('is_past')->values()->all(),
+        );
     }
 
     // ── is_hosting flag ────────────────────────────────────────
