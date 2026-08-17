@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\ViewErrorBag;
+use Illuminate\Validation\ValidationException;
 
 //
 // Standard email/password authentication smoke tests (M058/S02).
@@ -140,15 +142,28 @@ it('does not mislabel a slug race as an email error when the email is unique', f
     // poisons the surrounding transaction on the first failed insert, so the
     // retry aborts with 25P02 before any constraint check); in production
     // there is no wrapping transaction and the retry succeeds. Either way,
-    // the outcome must NOT be a ValidationException on email — that is the
-    // mislabeling this test pins against.
+    // the outcome must NOT carry a validation error on email — that is the
+    // mislabeling this test pins against. In feature tests the kernel
+    // converts a ValidationException to a redirect with the errors flashed
+    // into the session; the array session driver serializes the ViewErrorBag
+    // to ['default' => ['format' => ..., 'messages' => [...]]], so the
+    // extraction below reads both the object and serialized shapes. The raw
+    // catch covers a future change to exception propagation.
     try {
         $this->post('/en/register', $payload);
+    } catch (ValidationException $e) {
+        expect($e->errors())->not->toHaveKey('email');
     } catch (QueryException) {
         // Expected under the test transaction only (aborted transaction).
     }
 
-    expect(session('errors'))->toBeNull();
+    $flashed = session('errors');
+    $messages = match (true) {
+        $flashed instanceof ViewErrorBag => $flashed->getBag('default')->getMessages(),
+        is_array($flashed) && isset($flashed['default']['messages']) => $flashed['default']['messages'],
+        default => [],
+    };
+    expect($messages)->not->toHaveKey('email');
 })->group('smoke');
 
 it('keeps first-touch attribution across a lost duplicate-email race', function () {

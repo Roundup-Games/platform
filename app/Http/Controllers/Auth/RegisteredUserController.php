@@ -82,23 +82,25 @@ class RegisteredUserController extends Controller
             // race (two people with the same name signing up at once) and
             // must not be reported as an email error to someone whose email
             // is fine.
-            if (in_array('email', $e->columns, true)) {
+            if (self::isEmailViolation($e)) {
                 throw self::emailTaken();
             }
 
-            // Slug race: retry once with a randomized suffix, which cannot
-            // collide with the slug the concurrent signup claimed between
-            // this request's scan and its insert.
+            // Slug race: retry once with a randomized suffix on the slug we
+            // already computed. The suffix is what guarantees no collision
+            // with the slug the concurrent signup claimed between this
+            // request's scan and its insert — re-scanning would only add
+            // queries and cannot improve on a random suffix.
             try {
                 $user = User::create([
                     ...$attributes,
-                    'slug' => User::generateUniqueSlug($sanitizedName).'-'.Str::lower(Str::random(4)),
+                    'slug' => $attributes['slug'].'-'.Str::lower(Str::random(4)),
                 ]);
             } catch (UniqueConstraintViolationException $retry) {
                 // The competing signup may have claimed the email between
                 // the first attempt and the retry — same field error, not a
                 // 500.
-                if (in_array('email', $retry->columns, true)) {
+                if (self::isEmailViolation($retry)) {
                     throw self::emailTaken();
                 }
 
@@ -152,5 +154,26 @@ class RegisteredUserController extends Controller
         return ValidationException::withMessages([
             'email' => trans('validation.unique', ['attribute' => 'email']),
         ]);
+    }
+
+    /**
+     * Whether a unique-constraint violation from the users insert is on the
+     * email column.
+     *
+     * Primary signal: $e->columns, which the framework's Postgres driver
+     * populates from the `Key (email)=` detail of the native 23505 error
+     * message (verified against a live Postgres — both users_email_unique
+     * and users_slug_unique violations arrive with their column parsed).
+     *
+     * Fallback: $e->index, the constraint name. An expression-based unique
+     * index (a function of columns rather than a plain column list) would
+     * leave columns empty and carry only the index name; matching the exact
+     * constraint keeps an email race from falling through to the slug retry
+     * and resurfacing as a 500 via the retry's rethrow.
+     */
+    private static function isEmailViolation(UniqueConstraintViolationException $e): bool
+    {
+        return in_array('email', $e->columns, true)
+            || $e->index === 'users_email_unique';
     }
 }
