@@ -345,14 +345,29 @@ class DashboardContributionsTest extends TestCase
     // ── Cache integration ──────────────────────────────
 
     #[Test]
-    public function get_contributions_caches_result(): void
+    public function get_contributions_caches_result_until_invalidated(): void
     {
         $user = User::factory()->create();
 
-        $result1 = $this->service->getContributions($user);
-        $result2 = $this->service->getContributions($user);
+        $first = $this->service->getContributions($user);
+        $this->assertSame(0, $first['hosted']['count']);
 
-        $this->assertEquals($result1, $result2);
+        // A new completed game now exists. The 1h-TTL cache must still serve
+        // the stale result until it expires or is invalidated — equality of
+        // two fresh computations would prove nothing about caching.
+        Game::factory()->create([
+            'owner_id' => $user->id,
+            'status' => GameStatus::Completed,
+        ]);
+
+        $second = $this->service->getContributions($user);
+        $this->assertSame(0, $second['hosted']['count'], 'expected the cached (stale) count — cache was bypassed');
+
+        // Invalidation forces a recompute that observes the new game.
+        $this->service->invalidateForUser((string) $user->id, ['contributions']);
+
+        $third = $this->service->getContributions($user);
+        $this->assertSame(1, $third['hosted']['count']);
     }
 
     #[Test]
@@ -399,7 +414,7 @@ class DashboardContributionsTest extends TestCase
         $user = User::factory()->create();
 
         // Populate contributions cache
-        $result = $this->service->getContributions($user);
+        $this->service->getContributions($user);
         $cacheKey = "dashboard:contributions:{$user->id}";
         $this->assertNotNull(Cache::get($cacheKey), 'Cache should be populated');
 
