@@ -145,7 +145,7 @@
                                     @if($campaign->recurrence)
                                         <span class="flex items-center gap-1">
                                             <span class="material-symbols-outlined text-sm" aria-hidden="true">repeat</span>
-                                            {{ __('campaigns.content_' . $campaign->recurrence) }}
+                                            {{ \App\Enums\Recurrence::labelFor($campaign->recurrence) }}
                                         </span>
                                     @endif
                                     @if($campaign->owner)

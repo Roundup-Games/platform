@@ -1,8 +1,7 @@
 <?php
 
-use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
-use App\Enums\VenueType;
+use App\Enums\Recurrence;
 
 /**
  * Raw-key leak guard: when a translation key is missing, Laravel's translator
@@ -42,29 +41,59 @@ function enumLabelDataset(): array
 }
 
 /**
- * Exact key strings mirroring the dynamic constructions in blades and form
- * components. Each family here is built with string concatenation somewhere in
- * app/ or resources/, so static key checkers cannot verify it.
+ * Every key the string-backed labelFor() helpers can construct. The source
+ * columns are plain strings (not enum-cast), so these families cannot be
+ * verified through the enum dataset.
  *
  * @return array<string, array<int, string>>
  */
-function dynamicFamilyDataset(): array
+function labelForDataset(): array
 {
-    $families = [
-        // _game-sidebar.blade.php / campaign-detail.blade.php application chips
-        'common.status_' => ParticipantStatus::cases(),
-        // _participant-list.blade.php role chips
-        'games.field_role_' => ParticipantRole::cases(),
-        // VenueType enum label home (venue picker fallback path uses tryFrom)
-        'venue.type_' => VenueType::cases(),
+    $datasets = [];
+
+    foreach (['en', 'de'] as $locale) {
+        foreach (ParticipantStatus::cases() as $case) {
+            $key = "common.status_{$case->value}";
+            $datasets["{$locale} {$key}"] = [$locale, ParticipantStatus::class, $key];
+        }
+        foreach (Recurrence::cases() as $case) {
+            $key = "campaigns.content_{$case->value}";
+            $datasets["{$locale} {$key}"] = [$locale, Recurrence::class, $key];
+        }
+    }
+
+    return $datasets;
+}
+
+/**
+ * Every key the entity-type interpolation in notifications can construct.
+ * RoutesGameOrCampaign::getEntityType() returns 'game' or 'campaign', and the
+ * notification classes interpolate it as __("..._{$type}_..."). These are the
+ * only translation keys still built by runtime interpolation.
+ *
+ * @return array<string, array<int, string>>
+ */
+function entityTypeInterpolationDataset(): array
+{
+    $suffixes = [
+        'notifications.subject_{}_invitation',
+        'notifications.body_{}_invitation',
+        'notifications.category_{}_invitation',
+        'notifications.push_body_{}_invitation',
+        'notifications.subject_{}_completed',
+        'notifications.body_{}_completed',
+        'notifications.subject_{}_updated',
+        'notifications.body_{}_updated',
+        'notifications.subject_{}_cancelled',
+        'notifications.action_view_{}',
     ];
 
     $datasets = [];
 
     foreach (['en', 'de'] as $locale) {
-        foreach ($families as $prefix => $cases) {
-            foreach ($cases as $case) {
-                $key = $prefix.$case->value;
+        foreach (['game', 'campaign'] as $type) {
+            foreach ($suffixes as $suffix) {
+                $key = str_replace('{}', $type, $suffix);
                 $datasets["{$locale} {$key}"] = [$locale, $key];
             }
         }
@@ -92,12 +121,23 @@ describe('Enum Label Translation', function () {
     })->with(fn () => enumLabelDataset());
 });
 
-// ── Dynamically-built blade/form key families ─────────────────────────
+// ── String-column families resolved via labelFor() ────────────────────
 
-describe('Dynamic Key Families', function () {
-    it('resolves :key (used by a blade/form key builder) in :locale', function (string $locale, string $key) {
+describe('LabelFor Families', function () {
+    it('resolves :key for :enum::labelFor() in :locale', function (string $locale, string $enum, string $key) {
+        app()->setLocale($locale);
+
+        expect($enum::labelFor(substr($key, strpos($key, '.') + 1)))
+            ->not->toBe($key);
+    })->with(fn () => labelForDataset());
+});
+
+// ── Notification entity-type interpolations ───────────────────────────
+
+describe('Entity-Type Interpolated Keys', function () {
+    it('resolves :key (notification interpolation) in :locale', function (string $locale, string $key) {
         app()->setLocale($locale);
 
         expect(__($key))->not->toBe($key);
-    })->with(fn () => dynamicFamilyDataset());
+    })->with(fn () => entityTypeInterpolationDataset());
 });

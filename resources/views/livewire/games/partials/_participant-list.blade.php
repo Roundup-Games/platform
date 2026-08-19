@@ -18,7 +18,7 @@
                     <x-user-link :user="$participant->user" avatar-size="w-10 h-10" :truncate="true" />
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                         {{ $participant->role->isOwner() ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
-                        {{ __('games.field_role_' . $participant->role->value) }}
+                        {{ $participant->role->label() }}
                     </span>
                     <x-join-source-badge :participant="$participant" />
                 </div>

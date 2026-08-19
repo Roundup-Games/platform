@@ -20,10 +20,10 @@ enum ParticipantRole: string
     public function label(): string
     {
         return match ($this) {
-            self::Owner => 'Owner',
-            self::Player => 'Player',
-            self::Invited => 'Invited',
-            self::Applicant => 'Applicant',
+            self::Owner => __('games.field_role_owner'),
+            self::Player => __('games.field_role_player'),
+            self::Invited => __('games.field_role_invited'),
+            self::Applicant => __('games.field_role_applicant'),
         };
     }
 

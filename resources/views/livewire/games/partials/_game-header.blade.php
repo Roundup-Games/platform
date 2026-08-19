@@ -27,7 +27,7 @@
             @if($game->game_type)
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $game->game_type->value === 'board_game' ? 'casino' : 'auto_stories' }}</span>
-                    {{ __('games.type_' . $game->game_type->value) }}
+                    {{ $game->game_type->label() }}
                 </span>
             @endif
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium

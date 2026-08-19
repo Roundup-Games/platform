@@ -116,7 +116,7 @@
                             @if($entityType === 'campaign' && isset($entity->recurrence) && $entity->recurrence)
                                 <span class="inline-flex items-center gap-1">
                                     <span class="material-symbols-outlined text-xs" aria-hidden="true">repeat</span>
-                                    {{ __('campaigns.content_' . $entity->recurrence) }}
+                                    {{ \App\Enums\Recurrence::labelFor($entity->recurrence) }}
                                 </span>
                             @endif
 

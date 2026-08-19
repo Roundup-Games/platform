@@ -173,12 +173,7 @@
         @endif
         @if($recurrence)
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                {{ match($recurrence) {
-                    'weekly' => __('campaigns.content_weekly'),
-                    'bi-weekly' => __('campaigns.content_bi-weekly'),
-                    'monthly' => __('campaigns.content_monthly'),
-                    default => __(ucfirst(str_replace('-', ' ', $recurrence))),
-                } }}
+                {{ \App\Enums\Recurrence::labelFor($recurrence) }}
             </span>
         @endif
         @if($game_system_id)

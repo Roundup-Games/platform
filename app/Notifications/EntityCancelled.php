@@ -48,7 +48,11 @@ class EntityCancelled extends BaseNotification
             ]));
         }
 
-        $mail->action(__("notifications.action_browse_{$type}"), route("{$type}s.index", ['locale' => $locale]))
+        $browseAction = $this->entity instanceof Campaign
+            ? __('notifications.action_browse_campaigns')
+            : __('notifications.action_browse_games');
+
+        $mail->action($browseAction, route("{$type}s.index", ['locale' => $locale]))
             ->line($this->unsubscribeLine($notifiable, "{$type}_cancelled"));
 
         return $mail;

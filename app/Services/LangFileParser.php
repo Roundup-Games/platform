@@ -255,6 +255,20 @@ class LangFileParser
                     }
                 }
 
+                // Translation-config arrays: 'translations' => ['field' => 'domain.key', ...]
+                // resolved at runtime via __($config['translations']['field']) in
+                // HandlesApplicationSubmission (ApplyToGame/ApplyToCampaign). All
+                // domain.key-shaped values inside the array are referenced.
+                if (preg_match_all("/['\"]translations['\"]\s*=>\s*\[([^\]]+)\]/", $content, $blocks)) {
+                    foreach ($blocks[1] as $block) {
+                        if (preg_match_all("/['\"]([a-z_-]+\.[a-z0-9_-]+)['\"]/", $block, $km)) {
+                            foreach ($km[1] as $key) {
+                                $this->addKeyReference($keys, $key, $relativePath.' (translation-config)');
+                            }
+                        }
+                    }
+                }
+
                 // Skip self — LangFileParser matches its own regex patterns
                 if (str_contains($relativePath, 'LangFileParser.php')) {
                     continue;

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Enums\CampaignStatus;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
+use App\Enums\Recurrence;
 use App\Enums\VibeFlag;
 use App\Enums\Visibility;
 use App\Filament\Components\SeoFields;
@@ -71,10 +72,13 @@ class CampaignResource extends Resource
                                     ->options(fn (): array => GameSystem::labelOptions())
                                     ->getOptionLabelsUsing(fn (array $values): array => GameSystem::labelsForIds($values)),
                                 Select::make('recurrence')
+                                    // The campaigns_recurrence_check DB constraint admits
+                                    // weekly/bi-weekly/monthly only; 'custom' is offered on
+                                    // the public form but cannot persist, so it is absent here.
                                     ->options([
-                                        'weekly' => 'Weekly',
-                                        'bi-weekly' => 'Bi-weekly',
-                                        'monthly' => 'Monthly',
+                                        'weekly' => Recurrence::Weekly->label(),
+                                        'bi-weekly' => Recurrence::BiWeekly->label(),
+                                        'monthly' => Recurrence::Monthly->label(),
                                     ]),
                                 TextInput::make('session_duration')
                                     ->label('Session Duration (hours)')
@@ -175,6 +179,7 @@ class CampaignResource extends Resource
                     ->toggleable(),
                 TextColumn::make('recurrence')
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => Recurrence::labelFor($state))
                     ->toggleable(),
                 TextColumn::make('visibility')
                     ->badge()

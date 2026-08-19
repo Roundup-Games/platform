@@ -29,7 +29,7 @@ class AttendanceReported extends BaseNotification
     {
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $date = $this->game->date_time?->format('M j, Y') ?? '';
-        $status = __('attendance.status_'.$this->report->status->value);
+        $status = $this->report->status->label();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_attendance_reported', [
@@ -88,7 +88,7 @@ class AttendanceReported extends BaseNotification
     public function toPush(User $notifiable): PushPayload
     {
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $status = __('attendance.status_'.$this->report->status->value);
+        $status = $this->report->status->label();
 
         return new PushPayload(
             title: __('notifications.push_title_attendance_reported'),
@@ -111,7 +111,7 @@ class AttendanceReported extends BaseNotification
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $status = __('attendance.status_'.$this->report->status->value);
+        $status = $this->report->status->label();
 
         return DiscordWebhookPayload::embed([
             'title' => __('notifications.push_title_attendance_reported'),
