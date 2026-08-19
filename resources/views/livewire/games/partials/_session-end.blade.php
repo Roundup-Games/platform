@@ -99,7 +99,7 @@
                     <div class="flex items-center gap-2 mb-4">
                         <span class="material-symbols-outlined text-xl text-on-surface-variant" aria-hidden="true">how_to_reg</span>
                         <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">
-                            {{ __('games.title_submit_attendance') }}
+                            {{ __('games.action_submit_attendance_report') }}
                         </h2>
                     </div>
                     @if($attendanceTimeRemaining)

@@ -28,7 +28,7 @@
                                 <span class="material-symbols-outlined text-lg text-on-surface-variant mt-0.5" aria-hidden="true">schedule</span>
                                 <div>
                                     <dt class="text-on-surface-variant">{{ __('games.content_play_time') }}</dt>
-                                    <dd class="font-medium text-on-surface">{{ $system->average_play_time }} {{ strtolower(__('games.content_min')) }}</dd>
+                                    <dd class="font-medium text-on-surface">{{ $system->average_play_time }} {{ strtolower(__('common.label_unit_min')) }}</dd>
                                 </div>
                             </div>
                         @endif
@@ -45,7 +45,7 @@
                             <div class="flex items-start gap-3">
                                 <span class="material-symbols-outlined text-lg text-on-surface-variant mt-0.5" aria-hidden="true">calendar_today</span>
                                 <div>
-                                    <dt class="text-on-surface-variant">{{ __('games.content_year') }}</dt>
+                                    <dt class="text-on-surface-variant">{{ __('games.field_year') }}</dt>
                                     <dd class="font-medium text-on-surface">{{ $system->year_released }}</dd>
                                 </div>
                             </div>

@@ -149,20 +149,20 @@ class GamesPage extends Component
 
         if ($game->name !== $this->edit_name) {
             $changes['name'] = $this->edit_name;
-            $changedLabels[] = __('games.field_name');
+            $changedLabels[] = __('common.field_name');
         }
         if (($game->description ?? '') !== $this->edit_description) {
             $changes['description'] = $this->edit_description ?: null;
-            $changedLabels[] = __('games.field_description');
+            $changedLabels[] = __('common.field_description');
         }
         $newDuration = $this->edit_expected_duration !== '' ? (float) $this->edit_expected_duration : null;
         if ($game->expected_duration != $newDuration) {
             $changes['expected_duration'] = $newDuration ?? 2;
-            $changedLabels[] = __('games.field_duration');
+            $changedLabels[] = __('common.content_duration_hours');
         }
         if ($game->visibility?->value !== $this->edit_visibility) {
             $changes['visibility'] = $this->edit_visibility;
-            $changedLabels[] = __('games.field_visibility');
+            $changedLabels[] = __('common.content_visibility');
         }
         $oldLocation = $game->location['details'] ?? '';
         if ($oldLocation !== $this->edit_location_details) {
@@ -241,7 +241,7 @@ class GamesPage extends Component
     public function render(): View
     {
         seo(new SEOData(
-            title: __('games.seo_title_my_games'),
+            title: __('games.heading_my_games'),
             description: __('games.seo_description_my_games', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
             robots: 'noindex, nofollow',
         ));

@@ -14,7 +14,7 @@
         <div class="flex items-center justify-between flex-wrap gap-3">
             <h2 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">group_add</span>
-                {{ __('games.title_capacity') }}
+                {{ __('location.field_capacity') }}
             </h2>
             <span class="text-sm text-on-surface-variant">
                 {{ __('games.label_current_capacity', [
@@ -102,7 +102,7 @@
                                 {{ $row['name'] }}
                                 <span class="text-on-surface-variant/70">
                                     ({{ $row['reason'] === 'owner'
-                                        ? __('games.label_capacity_exempt_owner')
+                                        ? __('games.label_host')
                                         : __('games.label_capacity_exempt_manual') }})
                                 </span>
                             </li>

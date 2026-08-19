@@ -38,7 +38,7 @@
     </button>
     <button type="button" wire:click="toggleChannelGlobally('mail')" class="text-xs font-medium text-center transition-colors hover:text-primary"
             aria-label="{{ __('notifications.aria_master_toggle_all_email') }}">
-        <span @class(['text-primary' => $allMailOn, 'text-on-surface-variant' => !$allMailOn])>{{ __('notifications.channel_email') }}</span>
+        <span @class(['text-primary' => $allMailOn, 'text-on-surface-variant' => !$allMailOn])>{{ __('emails.field_email') }}</span>
     </button>
     <button type="button" wire:click="toggleChannelGlobally('push')" class="text-xs font-medium text-center transition-colors hover:text-primary"
             aria-label="{{ __('notifications.aria_master_toggle_all_push') }}">
@@ -47,7 +47,7 @@
     @if($hasDiscordLinked)
         <button type="button" wire:click="toggleChannelGlobally('discord')" class="text-xs font-medium text-center transition-colors hover:text-primary"
                 aria-label="{{ __('notifications.aria_master_toggle_all_discord') }}">
-            <span @class(['text-primary' => $allDiscordOn, 'text-on-surface-variant' => !$allDiscordOn])>{{ __('notifications.channel_discord') }}</span>
+            <span @class(['text-primary' => $allDiscordOn, 'text-on-surface-variant' => !$allDiscordOn])>{{ __('common.content_source_discord') }}</span>
         </button>
     @endif
 </div>
@@ -55,10 +55,10 @@
 {{-- Mobile channel master switches --}}
 <div class="sm:hidden flex justify-end gap-3 px-4 pb-2">
     <button type="button" wire:click="toggleChannelGlobally('database')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_in_app') }}</button>
-    <button type="button" wire:click="toggleChannelGlobally('mail')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_email') }}</button>
+    <button type="button" wire:click="toggleChannelGlobally('mail')" class="text-xs font-medium text-on-surface-variant">{{ __('emails.field_email') }}</button>
     <button type="button" wire:click="toggleChannelGlobally('push')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_push') }}</button>
     @if($hasDiscordLinked)
-        <button type="button" wire:click="toggleChannelGlobally('discord')" class="text-xs font-medium text-on-surface-variant">{{ __('notifications.channel_discord') }}</button>
+        <button type="button" wire:click="toggleChannelGlobally('discord')" class="text-xs font-medium text-on-surface-variant">{{ __('common.content_source_discord') }}</button>
     @endif
 </div>
 
@@ -109,7 +109,7 @@
                                     'bg-surface-container-highest' => !$mail,
                                 ])
                                 role="switch"
-                                aria-label="{{ $categoryLabel }} — {{ __('notifications.channel_email') }}"
+                                aria-label="{{ $categoryLabel }} — {{ __('emails.field_email') }}"
                                 :aria-checked="{{ $mail ? 'true' : 'false' }}">
                             <span @class([
                                 'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
@@ -146,7 +146,7 @@
                                         'bg-surface-container-highest' => !$discord,
                                     ])
                                     role="switch"
-                                    aria-label="{{ $categoryLabel }} — {{ __('notifications.channel_discord') }}"
+                                    aria-label="{{ $categoryLabel }} — {{ __('common.content_source_discord') }}"
                                     :aria-checked="{{ $discord ? 'true' : 'false' }}">
                                 <span @class([
                                     'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',

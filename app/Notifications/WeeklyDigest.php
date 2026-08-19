@@ -52,7 +52,7 @@ class WeeklyDigest extends Notification implements ShouldQueue
 
         $message = (new MailMessage)
             ->subject(__('notifications.subject_weekly_digest'))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_weekly_digest_intro', ['count' => $this->notifications->count()]));
 
         // Group by notification type for a scannable summary. Cap at a reasonable

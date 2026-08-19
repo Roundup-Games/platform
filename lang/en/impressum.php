@@ -6,13 +6,11 @@ return [
     // ── Company Details ────────────────────────────────
     'heading_company' => 'Company Information',
     'label_address' => 'Registered Address',
-    'label_contact_email' => 'Contact Email',
     'label_vat_id' => 'VAT Identification Number',
     'label_responsible_person' => 'Responsible for Content (TMG §5)',
     // ── Pre-incorporation notice ───────────────────────
     'content_pre_incorporation' => ':name is currently in pre-incorporation and is intended to be registered as a gGmbH (gemeinnützige Gesellschaft mit beschränkter Haftung) in :city, :country, under :person.',
     // ── Registration ───────────────────────────────────
-    'heading_registration' => 'Registration',
     'content_registration_pending' => 'Registration is pending. Details will be published here once the incorporation process is complete.',
     // ── Dispute Resolution ─────────────────────────────
     'heading_dispute' => 'Online Dispute Resolution',

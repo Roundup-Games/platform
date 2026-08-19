@@ -165,13 +165,13 @@ class I18nDeadStringsCommand extends Command
             'emails.content_you_re_invited_to_a_campaign',
             // dashboard.blade.php: $actionKey match() block
             'profile.dashboard_feed_action_created_game',
-            'profile.dashboard_feed_action_joined_game',
-            'profile.dashboard_feed_action_completed_game',
+            'profile.dashboard_feed_action_joined',
+            'profile.dashboard_feed_action_completed',
             'profile.dashboard_feed_action_recapped_game',
             'profile.dashboard_feed_action_created_campaign',
-            'profile.dashboard_feed_action_joined_campaign',
-            'profile.dashboard_feed_action_completed_campaign',
-            'profile.dashboard_feed_action_scheduled_session',
+            'profile.dashboard_feed_action_joined',
+            'profile.dashboard_feed_action_completed',
+            'campaigns.activity_scheduled_session_for',
         ];
 
         return array_values(array_filter($deadKeys, function ($dead) use ($staticFileKeys, $dynamicDomainPrefixes, $dynamicVariableKeys, $usage) {

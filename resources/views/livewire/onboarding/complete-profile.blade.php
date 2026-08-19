@@ -2,7 +2,7 @@
     <!-- Progress indicator -->
     <div class="mb-6">
         <div class="flex items-center justify-between mb-2">
-            @foreach([__('location.content_location'), __('common.content_identity'), __('pages.content_contact'), __('profile.content_preferences')] as $i => $label)
+            @foreach([__('common.field_location'), __('common.content_identity'), __('common.content_contact'), __('profile.content_preferences')] as $i => $label)
                 <div class="flex items-center {{ $loop->last ? '' : 'flex-1' }}">
                     <div class="flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium
                         {{ $step > $i + 1 ? 'bg-primary text-on-primary' : ($step === $i + 1 ? 'bg-primary text-on-primary' : 'bg-surface-container-highest text-on-surface-variant') }}">

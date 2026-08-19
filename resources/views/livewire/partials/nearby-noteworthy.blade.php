@@ -12,10 +12,10 @@
         'friends_are_going' => 'bg-primary/10 text-primary',
     ];
     $tagLabels = [
-        'matches_your_taste' => 'profile.dashboard_nearby_matches_taste',
-        'popular_nearby' => 'profile.dashboard_nearby_popular',
-        'filling_fast' => 'profile.dashboard_nearby_filling_fast',
-        'starting_soon' => 'profile.dashboard_nearby_starting_soon',
+        'matches_your_taste' => 'profile.dashboard_newcomer_relevance_matches_taste',
+        'popular_nearby' => 'profile.dashboard_newcomer_relevance_popular',
+        'filling_fast' => 'profile.dashboard_newcomer_relevance_filling_fast',
+        'starting_soon' => 'profile.dashboard_newcomer_relevance_starting_soon',
         'friends_are_going' => 'profile.dashboard_nearby_friends_going',
     ];
 @endphp
@@ -112,7 +112,7 @@
                 <a href="{{ route('profile.edit') }}" wire:navigate
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors">
                     <span aria-hidden="true" class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">edit_location</span>
-                    {{ __('profile.dashboard_nearby_set_location') }}
+                    {{ __('location.action_set_your_location') }}
                 </a>
             @endcan
         </div>

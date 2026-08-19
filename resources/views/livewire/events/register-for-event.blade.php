@@ -161,7 +161,7 @@
                             @php
                                 $baseFee = $registrationMode === 'team' ? ($event->team_registration_fee ?? 0) : ($event->individual_registration_fee ?? 0);
                             @endphp
-                            {{ $baseFee > 0 ? format_currency($baseFee) : __('billing.content_free') }}
+                            {{ $baseFee > 0 ? format_currency($baseFee) : __('common.price_free') }}
                         </span>
                     </div>
                     @if($this->isEarlyBird && $event->early_bird_discount > 0)
@@ -173,7 +173,7 @@
                     <div class="flex justify-between pt-2 border-t border-outline-variant font-medium">
                         <span class="text-on-surface">{{ __('common.content_total') }}</span>
                         <span class="text-on-surface {{ $this->effectiveFee === 0 ? 'text-secondary' : '' }}">
-                            {{ $this->effectiveFee > 0 ? format_currency($this->effectiveFee) : __('billing.content_free') }}
+                            {{ $this->effectiveFee > 0 ? format_currency($this->effectiveFee) : __('common.price_free') }}
                         </span>
                     </div>
                 </div>

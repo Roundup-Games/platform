@@ -128,7 +128,7 @@
         {{-- ═══ Open invitations ═══ --}}
         @if($pendingInvitations->isNotEmpty())
             <section>
-                <h2 class="text-xl font-heading font-semibold text-on-surface mb-4">{{ __('campaigns.heading_open_invitations') }}</h2>
+                <h2 class="text-xl font-heading font-semibold text-on-surface mb-4">{{ __('common.heading_open_invitations') }}</h2>
                 <div class="space-y-3">
                     @foreach($pendingInvitations as $invitation)
                         @php $campaign = $invitation->campaign; @endphp
@@ -159,15 +159,15 @@
                             <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">
                                 <button wire:click="acceptInvitation('{{ $invitation->id }}')"
                                         class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-secondary hover:bg-secondary/10 transition-colors"
-                                        aria-label="{{ __('campaigns.action_accept_invitation') }}">
+                                        aria-label="{{ __('common.action_accept_invitation') }}">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">check</span>
-                                    <span class="hidden sm:inline">{{ __('campaigns.action_accept_invitation') }}</span>
+                                    <span class="hidden sm:inline">{{ __('common.action_accept_invitation') }}</span>
                                 </button>
                                 <button wire:click="declineInvitation('{{ $invitation->id }}')"
                                         class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
-                                        aria-label="{{ __('campaigns.action_decline_invitation') }}">
+                                        aria-label="{{ __('common.action_decline') }}">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
-                                    <span class="hidden sm:inline">{{ __('campaigns.action_decline_invitation') }}</span>
+                                    <span class="hidden sm:inline">{{ __('common.action_decline') }}</span>
                                 </button>
                             </div>
                         </div>
@@ -242,7 +242,7 @@
                             </div>
 
                             <div>
-                                <label for="edit-campaign-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_description') }}</label>
+                                <label for="edit-campaign-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_description') }}</label>
                                 <textarea id="edit-campaign-description" wire:model="edit_description" rows="3"
                                           class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
                                 @error('edit_description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
@@ -256,7 +256,7 @@
                                     @error('edit_session_duration') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label for="edit-campaign-visibility" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_visibility') }}</label>
+                                    <label for="edit-campaign-visibility" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_visibility') }}</label>
                                     <select id="edit-campaign-visibility" wire:model="edit_visibility"
                                             class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
                                         <option value="public">{{ __('common.content_public') }}</option>
@@ -291,12 +291,12 @@
                                         <button type="button" wire:click="editSetAddressMode('venue')"
                                                 class="px-3 py-1 text-xs font-medium rounded-lg transition-colors {{ $edit_address_mode === 'venue' ? 'bg-secondary/20 text-secondary' : 'text-on-surface-variant hover:bg-surface-container-high' }}">
                                             <span class="material-symbols-outlined text-xs align-middle mr-0.5" aria-hidden="true">store</span>
-                                            {{ __('venues.label_venue') }}
+                                            {{ __('common.content_venue') }}
                                         </button>
                                         <button type="button" wire:click="editSetAddressMode('address')"
                                                 class="px-3 py-1 text-xs font-medium rounded-lg transition-colors {{ $edit_address_mode === 'address' ? 'bg-secondary/20 text-secondary' : 'text-on-surface-variant hover:bg-surface-container-high' }}">
                                             <span class="material-symbols-outlined text-xs align-middle mr-0.5" aria-hidden="true">edit_location</span>
-                                            {{ __('venues.label_address') }}
+                                            {{ __('location.field_address') }}
                                         </button>
                                     </div>
 
@@ -325,7 +325,7 @@
                                         @endif
                                     @else
                                         <div class="space-y-2">
-                                            <input type="text" wire:model="edit_address_city" placeholder="{{ __('location.placeholder_city') }} *"
+                                            <input type="text" wire:model="edit_address_city" placeholder="{{ __('location.field_city') }} *"
                                                    class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface text-sm placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                                             @error('edit_address_city') <p class="text-xs text-error">{{ $message }}</p> @enderror
                                             <input type="text" wire:model="edit_address_street" placeholder="{{ __('location.placeholder_street_address_neighborhood') }}"

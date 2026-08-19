@@ -7,7 +7,7 @@
                 <a href="{{ route('dashboard') }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>
-                <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('plan.heading_plan_something') }}</h1>
+                <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('plan.action_plan_something') }}</h1>
             </div>
             <p class="ml-8 sm:ml-9 text-sm text-on-surface-variant">{{ __('plan.content_choose_frequency') }}</p>
         </div>

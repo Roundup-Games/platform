@@ -8,7 +8,6 @@ return [
     'content_learn_more_about_safety_tools' => 'Mehr über Sicherheitstools erfahren',
     'content_lines_veils_details' => 'Linien & Schleier Details',
     'content_safety_tools' => 'Sicherheitstools',
-    'content_session_zero_support' => 'Session Zero',
     'content_the_single_most_impactful_thing' => 'Das Wirksamste, was du tun kannst. Nimm dir vor deinem ersten Spiel Zeit, um als Gruppe Erwartungen, Themen und Grenzen zu besprechen.',
     'content_using_safety_tools_on_roundup' => 'Sicherheitstools auf Roundup nutzen',
     'content_when_you_create_a_game' => 'Wenn du ein Spiel oder eine Kampagne erstellst, kannst du die Sicherheitstools auswählen, die du verwenden möchtest. Diese werden auf der Detailseite deines Spiels angezeigt, damit Spieler wissen, was sie erwartet. Du kannst auch eigene Notizen zu deinem Sicherheitsansatz hinzufügen.',
@@ -23,7 +22,6 @@ return [
     'category_during' => 'Während des Spiels',
     'category_after' => 'Nach dem Spiel',
     // ── Safety Tool Labels ──────────────────────────────────────────
-    'tool_session_zero' => 'Session Zero',
     'tool_lines_and_veils' => 'Linien & Schleier',
     'tool_open_door' => 'Offene-Tür-Richtlinie',
     'tool_x_card' => 'X-Karte',

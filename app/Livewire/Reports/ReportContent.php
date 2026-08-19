@@ -90,9 +90,7 @@ class ReportContent extends Component
         $rateLimitKey = "content-reports:{$reporter->id}";
 
         if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600)) {
-            $seconds = RateLimiter::availableIn($rateLimitKey);
-            $minutes = ceil($seconds / 60);
-            $this->addError('reason', __('reports.error_rate_limit', ['minutes' => $minutes]));
+            $this->addError('reason', __('common.error_rate_limit'));
 
             return;
         }
@@ -188,7 +186,11 @@ class ReportContent extends Component
      */
     public function getEntityTypeLabel(): string
     {
-        return __('reports.entity_'.$this->entityType);
+        return match ($this->entityType) {
+            'game' => __('games.content_game'),
+            'campaign' => __('campaigns.content_campaign'),
+            default => __('reports.entity_user'),
+        };
     }
 
     /**
@@ -203,7 +205,7 @@ class ReportContent extends Component
             'harassment' => __('reports.field_reason_harassment'),
             'spam' => __('reports.field_reason_spam'),
             'misleading' => __('reports.field_reason_misleading'),
-            'other' => __('reports.field_reason_other'),
+            'other' => __('common.content_other'),
         ];
     }
 

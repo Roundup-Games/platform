@@ -133,7 +133,7 @@ class DashboardQuickActionsService
     {
         return match (true) {
             $role === 'team_captain' => [
-                'label' => 'profile.dashboard_quick_manage_team',
+                'label' => 'teams.action_manage_team',
                 'url' => $this->getTeamManageUrl($user),
                 'style' => 'primary',
                 'icon' => 'groups',
@@ -145,7 +145,7 @@ class DashboardQuickActionsService
                 'icon' => 'add_circle',
             ],
             $role === 'gm' => [
-                'label' => 'profile.dashboard_quick_gm_workspace',
+                'label' => 'gws.title_gm_workspace',
                 'url' => route('gm.workspace'),
                 'style' => 'primary',
                 'icon' => 'castle',
@@ -157,7 +157,7 @@ class DashboardQuickActionsService
                 'icon' => 'explore',
             ],
             default => [ // player + has upcoming
-                'label' => 'profile.dashboard_quick_my_games',
+                'label' => 'games.heading_my_games',
                 'url' => route('games.index'),
                 'style' => 'primary',
                 'icon' => 'schedule',
@@ -206,7 +206,7 @@ class DashboardQuickActionsService
         // My Campaigns — for campaign members
         if ($this->isCampaignMember($user)) {
             $candidates[] = [
-                'label' => 'profile.dashboard_quick_my_campaigns',
+                'label' => 'campaigns.heading_my_campaigns',
                 'url' => route('campaigns.index'),
                 'style' => 'secondary',
                 'icon' => 'auto_stories',

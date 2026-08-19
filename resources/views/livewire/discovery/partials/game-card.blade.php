@@ -14,7 +14,7 @@
                 </span>
             @else
                 <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {{ __('billing.content_free') }}
+                    {{ __('common.price_free') }}
                 </span>
             @endif
         </div>
@@ -115,7 +115,7 @@
                 @if($spotsLeft === 0)
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-error/10 text-error">
                         <span class="material-symbols-outlined text-xs" aria-hidden="true">lock</span>
-                        {{ __('games.content_full') }}
+                        {{ __('common.content_full') }}
                     </span>
                 @elseif($spotsLeft !== null && $spotsLeft <= 2)
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-primary">

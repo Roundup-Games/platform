@@ -334,9 +334,9 @@ describe('campaign detail banner visibility', function () {
 
         Livewire::actingAs($user)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee(__('campaigns.action_join_waitlist'))
-            ->assertSee(__('campaigns.content_waitlist_position', ['position' => 1]))
-            ->assertSee(__('campaigns.action_leave_waitlist'));
+            ->assertSee(__('common.action_join_waitlist'))
+            ->assertSee(__('common.content_waitlist_position', ['position' => 1]))
+            ->assertSee(__('common.action_leave_waitlist'));
     });
 
     test('campaign detail hides waitlist banner and shows bench surface when bench_mode=true', function () {
@@ -353,8 +353,8 @@ describe('campaign detail banner visibility', function () {
 
         Livewire::actingAs($user)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertDontSee(__('campaigns.action_join_waitlist'))
-            ->assertSee(__('campaigns.content_you_are_on_the_bench'))
+            ->assertDontSee(__('common.action_join_waitlist'))
+            ->assertSee(__('common.content_you_are_on_the_bench'))
             ->assertSee(__('campaigns.content_you_have_been_placed_on_the_bench'))
             ->assertSee(__('games.action_leave_bench'));
     });

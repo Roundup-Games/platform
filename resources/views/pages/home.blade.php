@@ -98,7 +98,7 @@
                 <a href="{{ route('pledge') }}" wire:navigate class="group flex items-start gap-3 p-4 rounded-lg bg-inverse-on-surface/5 hover:bg-inverse-on-surface/10 transition-colors">
                     <span class="material-symbols-outlined text-inverse-primary text-xl mt-0.5 shrink-0" aria-hidden="true">volunteer_activism</span>
                     <div>
-                        <div class="font-semibold text-sm text-inverse-on-surface group-hover:text-inverse-primary transition-colors">{{ __('pages.content_trust_badge_nonprofit_title') }}</div>
+                        <div class="font-semibold text-sm text-inverse-on-surface group-hover:text-inverse-primary transition-colors">{{ __('pages.content_pledge_nonprofit_heading') }}</div>
                         <div class="text-xs text-inverse-on-surface/60 mt-0.5">{{ __('pages.content_trust_badge_nonprofit_text') }}</div>
                     </div>
                 </a>

@@ -36,12 +36,12 @@ class EntityInvitation extends BaseNotification
             ->subject(__("notifications.subject_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__("notifications.body_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
                 $type => $this->entity->name,
             ]))
-            ->action(__("notifications.action_{$type}_invitation"), $actionUrl)
+            ->action(__("notifications.action_view_{$type}"), $actionUrl)
             ->line($this->unsubscribeLine($notifiable, "{$type}_invitation"));
     }
 
@@ -85,7 +85,7 @@ class EntityInvitation extends BaseNotification
         $type = $this->getEntityType();
 
         return new PushPayload(
-            title: __("notifications.push_title_{$type}_invitation"),
+            title: __("notifications.category_{$type}_invitation"),
             body: __("notifications.push_body_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
                 $type => $this->entity->name,
@@ -105,7 +105,7 @@ class EntityInvitation extends BaseNotification
         $type = $this->getEntityType();
 
         return DiscordWebhookPayload::embed([
-            'title' => __("notifications.push_title_{$type}_invitation"),
+            'title' => __("notifications.category_{$type}_invitation"),
             'url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
             'description' => __("notifications.push_body_{$type}_invitation", [
                 'inviter' => $this->inviter->name,

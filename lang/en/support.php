@@ -31,17 +31,14 @@ return [
     'category_account_recovery' => 'Account Recovery',
     // Form fields
     'field_issue_type' => 'Issue Type',
-    'field_subject' => 'Subject',
-    'field_description' => 'Description',
     // Placeholders
     'placeholder_subject' => 'Briefly describe your issue',
-    'placeholder_description' => 'Please provide as much detail as possible about your issue...',
+    'placeholder_description' => 'Please provide as much detail as possible about your issue…',
     'placeholder_billing_subject' => 'e.g., Payment failed, Refund request, Subscription issue',
-    'placeholder_billing_description' => 'Please describe your billing issue, including any relevant transaction details...',
+    'placeholder_billing_description' => 'Please describe your billing issue, including any relevant transaction details…',
     // Actions
     'action_submit_ticket' => 'Submit Support Ticket',
     'action_submit_billing_ticket' => 'Submit Billing Ticket',
-    'action_contact_billing_support' => 'Billing Support',
     'action_contact_support' => 'Contact Support',
     // Flash messages
     'flash_ticket_submitted' => 'Your support ticket has been submitted. We\'ll get back to you soon!',
@@ -53,7 +50,6 @@ return [
     'validation_issue_type_required' => 'Please select an issue type.',
     'validation_issue_type_invalid' => 'The selected issue type is not valid.',
     // Rate limit
-    'error_rate_limit' => 'You\'ve submitted too many tickets. Please try again in :minutes minutes.',
     // Account issue types
     'field_issue_account_access' => 'Account Access',
     'field_issue_login_issue' => 'Login Issue',
@@ -61,12 +57,10 @@ return [
     'field_issue_email_change' => 'Email Change Request',
     'field_issue_suspended_account' => 'Suspended Account',
     'field_issue_data_request' => 'Data / Export Request',
-    'field_issue_other' => 'Other',
     // Billing issue types
     'field_billing_issue_payment' => 'Payment Issue',
     'field_billing_issue_refund' => 'Refund Request',
     'field_billing_issue_subscription_change' => 'Subscription Change',
     'field_billing_issue_invoice' => 'Invoice Question',
     'field_billing_issue_cancellation' => 'Cancellation Issue',
-    'field_billing_issue_other' => 'Other',
 ];

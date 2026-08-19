@@ -13,7 +13,7 @@
   — {{ format_date($registration->event->end_date) }}
 @endif
 @if($registration->event->venue_name)
-- **{{ __('location.content_venue') }}:** {{ $registration->event->venue_name }}
+- **{{ __('common.content_venue') }}:** {{ $registration->event->venue_name }}
 @endif
 @if($registration->division)
 - **{{ __('events.content_division') }}:** {{ $registration->division }}

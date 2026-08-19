@@ -1,11 +1,11 @@
-@section('title', __('discord.label_discord') . ' — ' . $guildName)
+@section('title', __('common.content_source_discord') . ' — ' . $guildName)
 
 <div class="py-6 sm:py-8">
     {{-- Page Header --}}
     <div class="max-w-2xl mx-auto mb-6">
         <div class="flex items-center gap-2 mb-1">
             <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">campaign</span>
-            <span class="text-sm text-on-surface-variant">{{ __('discord.label_discord') }}</span>
+            <span class="text-sm text-on-surface-variant">{{ __('common.content_source_discord') }}</span>
         </div>
         <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ $guildName }}</h1>
         <p class="mt-1 text-sm text-on-surface-variant">{{ __('discord.content_guild_settings_subtitle') }}</p>
@@ -106,7 +106,7 @@
 
         {{-- Language / Locale --}}
         <section class="bg-surface-container-low rounded-xl p-6">
-            <h2 class="text-lg font-heading font-semibold text-on-surface mb-1">{{ __('discord.heading_language') }}</h2>
+            <h2 class="text-lg font-heading font-semibold text-on-surface mb-1">{{ __('common.content_language') }}</h2>
             <p class="text-sm text-on-surface-variant mb-5">
                 {{ __('discord.content_language_help') }}
             </p>
@@ -189,7 +189,7 @@
                     <dd class="text-on-surface font-mono text-xs">{{ $guild->guild_id }}</dd>
                 </div>
                 <div>
-                    <dt class="text-on-surface-variant">{{ __('discord.label_moderation') }}</dt>
+                    <dt class="text-on-surface-variant">{{ __('common.content_moderation') }}</dt>
                     <dd class="text-on-surface">{{ $guild->moderation_mode->label() }}</dd>
                 </div>
             </dl>

@@ -43,7 +43,6 @@ return [
     'content_unlinked_onramp_body' => "You're one tap from your seat. Link your Discord account and we'll drop you straight onto the roster — you can finish in a few seconds. (Next time, this button RSVPs you straight from Discord.)",
 
     // ── Guild settings page (/discord/guilds/{id}) ──
-    'label_discord' => 'Discord',
     'content_guild_settings_subtitle' => 'Pick where roundup publishes event cards, and pause posting any time.',
     'flash_channels_saved' => 'Channels saved.',
     'flash_language_saved' => 'Language saved.',
@@ -60,7 +59,6 @@ return [
     'content_games_channel_help' => 'Posting stays off until a games channel is picked.',
     'action_save_channels' => 'Save channels',
     'action_refresh_list' => 'Refresh list',
-    'heading_language' => 'Language',
     'content_language_help' => 'roundup posts event cards, the daily calendar digest, and session-thread starters to this server in this language. Dates and times follow it too.',
     'label_posting_language' => 'Posting language',
     'content_app_default' => '— App default (:locale) —',
@@ -78,15 +76,10 @@ return [
     'flash_resumed' => 'Resumed.',
     'heading_server' => 'Server',
     'label_discord_guild' => 'Discord guild',
-    'label_moderation' => 'Moderation',
 
     // ── Enriched game card (rendered in the guild's locale — see DiscordCardRenderer) ──
     'content_card_field_when' => 'When',
-    'content_card_field_players' => 'Players',
-    'content_card_field_system' => 'System',
     'content_card_field_organizer' => 'Organizer',
-    'content_card_field_venue' => 'Venue',
-    'content_card_full' => 'Full',
     'content_card_joined_open_roster' => ':count joined · open roster',
     'content_card_min' => 'min :count',
     'content_card_count_waitlist' => ':count waitlist',
@@ -107,6 +100,5 @@ return [
     'content_card_cross_value_generic' => '**:count** attending from beyond this server — the roundup community reaches across servers',
     'content_card_button_my_seat' => '🎟️ My seat',
     'content_card_button_view' => 'View on roundup',
-    'content_card_footer' => 'roundup · cross-community tabletop',
 
 ];

@@ -85,7 +85,7 @@
 
 {{-- ═══ Quick Actions ═══ --}}
 @if(count($quickActions) > 0)
-<nav class="flex flex-wrap gap-3" aria-label="{{ __('profile.dashboard_quick_actions_heading') }}">
+<nav class="flex flex-wrap gap-3" aria-label="{{ __('gws.heading_quick_actions') }}">
     @foreach($quickActions as $action)
         <a href="{{ $action['url'] }}" wire:navigate
            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors {{ $action['style'] === 'primary' ? 'bg-primary text-on-primary hover:bg-primary/90' : 'border border-outline-variant text-on-surface hover:bg-surface-container-low' }}">

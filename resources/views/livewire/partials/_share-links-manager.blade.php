@@ -2,10 +2,10 @@
 
 @php
     $entityTypeMap = [
-        'App\Models\Game' => __('gws.link_type_game'),
-        'App\Models\Campaign' => __('gws.link_type_campaign'),
-        'App\Models\Event' => __('gws.link_type_event'),
-        'App\Models\Team' => __('gws.link_type_team'),
+        'App\Models\Game' => __('games.content_game'),
+        'App\Models\Campaign' => __('campaigns.content_campaign'),
+        'App\Models\Event' => __('events.content_event'),
+        'App\Models\Team' => __('events.content_team'),
     ];
 @endphp
 
@@ -18,10 +18,10 @@
                     <th class="text-left py-2 px-3 text-on-surface-variant font-medium">{{ __('gws.link_col_label') }}</th>
                     <th class="text-left py-2 px-3 text-on-surface-variant font-medium">{{ __('gws.link_col_entity') }}</th>
                     <th class="text-right py-2 px-3 text-on-surface-variant font-medium">{{ __('gws.link_col_hits') }}</th>
-                    <th class="text-left py-2 px-3 text-on-surface-variant font-medium">{{ __('gws.link_col_status') }}</th>
+                    <th class="text-left py-2 px-3 text-on-surface-variant font-medium">{{ __('common.content_status') }}</th>
                     <th class="text-left py-2 px-3 text-on-surface-variant font-medium">{{ __('gws.link_col_created') }}</th>
                     @if($showActions)
-                        <th class="text-right py-2 px-3 text-on-surface-variant font-medium">{{ __('gws.link_col_actions') }}</th>
+                        <th class="text-right py-2 px-3 text-on-surface-variant font-medium">{{ __('profile.content_actions') }}</th>
                     @endif
                 </tr>
             </thead>
@@ -59,7 +59,7 @@
                                 </span>
                             @else
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-primary-container text-on-primary-container">
-                                    {{ __('gws.link_status_active') }}
+                                    {{ __('common.status_active') }}
                                 </span>
                             @endif
                         </td>

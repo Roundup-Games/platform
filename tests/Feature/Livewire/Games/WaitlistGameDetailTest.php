@@ -389,7 +389,7 @@ describe('UI state rendering', function () {
 
         Livewire::actingAs($user)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee(__('games.action_join_waitlist'))
+            ->assertSee(__('common.action_join_waitlist'))
             ->assertSee(__('games.content_game_full_join_waitlist'));
     });
 
@@ -399,7 +399,7 @@ describe('UI state rendering', function () {
 
         Livewire::actingAs($user)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee(__('games.content_waitlist_position', ['position' => 1]));
+            ->assertSee(__('common.content_waitlist_position', ['position' => 1]));
     });
 
     it('shows confirmation banner to promoted users', function () {
@@ -421,7 +421,7 @@ describe('UI state rendering', function () {
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee(__('games.action_manual_promote'));
+            ->assertSee(__('common.action_promote'));
     });
 
     it('does not show waitlist promote buttons to non-hosts', function () {
@@ -432,7 +432,7 @@ describe('UI state rendering', function () {
 
         Livewire::actingAs($viewer)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertDontSee(__('games.action_manual_promote'));
+            ->assertDontSee(__('common.action_promote'));
     });
 
     it('does not show waitlist UI for bench-mode campaign games', function () {
@@ -469,6 +469,6 @@ describe('UI state rendering', function () {
 
         Livewire::actingAs($user)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertDontSee(__('games.action_join_waitlist'));
+            ->assertDontSee(__('common.action_join_waitlist'));
     });
 });

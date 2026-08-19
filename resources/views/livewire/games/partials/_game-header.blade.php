@@ -66,7 +66,7 @@
             @else
                 <span class="flex items-center gap-2 text-secondary">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">check_circle</span>
-                    {{ __('billing.content_free') }}
+                    {{ __('common.price_free') }}
                 </span>
             @endif
             @if($game->relationLoaded('linkedLocation') && $game->linkedLocation)

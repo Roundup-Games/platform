@@ -6,7 +6,7 @@
                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">login</span>
                 @if($isGameFull)
-                    {{ __('games.action_join_waitlist') }}
+                    {{ __('common.action_join_waitlist') }}
                 @else
                     {{ __('games.action_join_game') }}
                 @endif
@@ -22,7 +22,7 @@
                 @if($game->visibility->value === 'public')
                     {{ __('games.action_join_game') }}
                 @else
-                    {{ __('games.action_apply_to_join') }}
+                    {{ __('common.action_apply_to_join') }}
                 @endif
             </a>
         </div>
@@ -31,7 +31,7 @@
             <button wire:click="joinWaitlist"
                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">playlist_add</span>
-                {{ __('games.action_join_waitlist') }}
+                {{ __('common.action_join_waitlist') }}
             </button>
         </div>
     @endif

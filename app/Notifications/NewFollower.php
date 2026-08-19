@@ -25,7 +25,7 @@ class NewFollower extends BaseNotification
 
         return (new MailMessage)
             ->subject(__('notifications.subject_new_follower', ['follower' => $this->follower->name]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_new_follower', ['follower' => $this->follower->name, 'brand' => is_string($b = config('company.display_name')) ? $b : '']))
             ->action(__('notifications.action_new_follower'), $actionUrl)
             ->line($this->unsubscribeLine($notifiable, 'new_follower'));
@@ -64,8 +64,8 @@ class NewFollower extends BaseNotification
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return new PushPayload(
-            title: __('notifications.push_title_new_follower'),
-            body: __('notifications.push_body_new_follower', [
+            title: __('notifications.category_new_follower'),
+            body: __('notifications.subject_new_follower', [
                 'follower' => $this->follower->name,
             ]),
             icon: '/icons/pwa-192x192.png',
@@ -82,9 +82,9 @@ class NewFollower extends BaseNotification
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_new_follower'),
+            'title' => __('notifications.category_new_follower'),
             'url' => route('profile.show-authenticated', ['locale' => $locale, 'user' => $this->follower]),
-            'description' => __('notifications.push_body_new_follower', [
+            'description' => __('notifications.subject_new_follower', [
                 'follower' => $this->follower->name,
             ]),
             'color' => 0x5865F2,

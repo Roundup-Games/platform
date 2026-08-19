@@ -234,7 +234,7 @@ describe('GamesPage — Open Invitations Display', function () {
 
         actingAs($user)
             ->get('/en/games')
-            ->assertDontSee(__('games.heading_open_invitations'));
+            ->assertDontSee(__('common.heading_open_invitations'));
     });
 
     it('shows section heading when invitations exist', function () {
@@ -251,7 +251,7 @@ describe('GamesPage — Open Invitations Display', function () {
 
         actingAs($user)
             ->get('/en/games')
-            ->assertSee(__('games.heading_open_invitations'));
+            ->assertSee(__('common.heading_open_invitations'));
     });
 
     it('shows game name for pending invitations', function () {
@@ -285,8 +285,8 @@ describe('GamesPage — Open Invitations Display', function () {
 
         actingAs($user)
             ->get('/en/games')
-            ->assertSee(__('games.action_accept_invitation'))
-            ->assertSee(__('games.action_decline_invitation'));
+            ->assertSee(__('common.action_accept_invitation'))
+            ->assertSee(__('common.action_decline'));
     });
 });
 

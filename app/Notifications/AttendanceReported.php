@@ -36,7 +36,7 @@ class AttendanceReported extends BaseNotification
                 'status' => $status,
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_attendance_reported', [
                 'game' => $this->game->name,
                 'date' => $date,

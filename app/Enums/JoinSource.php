@@ -23,7 +23,7 @@ enum JoinSource: string
     {
         return match ($this) {
             self::FriendInvite => __('common.content_source_friend_invite'),
-            self::ShareLink => __('common.content_source_share_link'),
+            self::ShareLink => __('common.title_share_link'),
             self::Application => __('common.content_source_application'),
             self::EmailInvite => __('common.content_source_email_invite'),
             self::ShortLink => __('common.content_source_short_link'),

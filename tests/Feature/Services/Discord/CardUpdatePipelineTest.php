@@ -167,7 +167,7 @@ class CardUpdatePipelineTest extends TestCase
         Notification::assertSentTo(
             $attendee,
             EntityUpdated::class,
-            fn (EntityUpdated $n) => in_array(__('games.field_name'), $n->changedFields, true)
+            fn (EntityUpdated $n) => in_array(__('common.field_name'), $n->changedFields, true)
         );
     }
 

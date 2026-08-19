@@ -87,7 +87,7 @@ class ClaimVenue extends Component
     {
         return [
             'justification' => __('venue.field_justification'),
-            'website_url' => __('venue.field_website'),
+            'website_url' => __('location.field_website_url'),
             'contact_email' => __('venue.field_contact_email'),
         ];
     }

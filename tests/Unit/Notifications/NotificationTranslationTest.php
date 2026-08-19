@@ -21,10 +21,10 @@ describe('Notification Translations', function () {
     })->with([
         ['en', 'notifications.subject_new_follower',  ['follower' => 'Alice']],
         ['en', 'notifications.subject_game_invitation', ['inviter' => 'Bob']],
-        ['en', 'notifications.email_greeting',          ['name' => 'Charlie']],
+        ['en', 'common.field_hey_name',          ['name' => 'Charlie']],
         ['de', 'notifications.subject_new_follower',  ['follower' => 'Alice']],
         ['de', 'notifications.subject_game_invitation', ['inviter' => 'Bob']],
-        ['de', 'notifications.email_greeting',          ['name' => 'Charlie']],
+        ['de', 'common.field_hey_name',          ['name' => 'Charlie']],
     ]);
 
     it('renders notification layout blade view without errors', function () {

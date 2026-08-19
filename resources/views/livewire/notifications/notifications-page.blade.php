@@ -10,7 +10,7 @@
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">
                 <span class="material-symbols-outlined text-2xl align-middle mr-1" style="font-variation-settings: 'FILL' 1">notifications</span>
-                {{ __('notifications.page_title') }}
+                {{ __('notifications.nav_label') }}
             </h1>
             @if($unreadCount > 0)
                 <button

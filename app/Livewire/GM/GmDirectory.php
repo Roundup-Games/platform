@@ -123,7 +123,7 @@ class GmDirectory extends Component
     public function render(): View
     {
         seo(new SEOData(
-            title: __('gms.seo_title_gm_directory'),
+            title: __('gms.title_game_master_directory'),
             description: __('gms.seo_description_gm_directory'),
         ));
 

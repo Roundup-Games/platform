@@ -6,13 +6,13 @@
                 <a href="{{ route('games.show', $reviewableId) }}" wire:navigate
                    class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                    {{ __('reviews.action_back_to_game') }}
+                    {{ __('games.action_back_to_game') }}
                 </a>
             @else
                 <a href="{{ route('campaigns.show', $reviewableId) }}" wire:navigate
                    class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                    {{ __('reviews.action_back_to_campaign') }}
+                    {{ __('campaigns.action_back_to_campaign') }}
                 </a>
             @endif
         </div>
@@ -129,7 +129,7 @@
                         {{ __('reviews.action_submit_review') }}
                     </button>
                     <span wire:loading class="text-sm text-on-surface-variant">
-                        {{ __('reviews.content_submitting') }}
+                        {{ __('common.action_submitting') }}
                     </span>
                 </div>
             </form>

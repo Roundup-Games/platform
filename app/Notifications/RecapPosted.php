@@ -32,7 +32,7 @@ class RecapPosted extends BaseNotification
             ->subject(__('notifications.subject_recap_posted', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_recap_posted', [
                 'host' => $this->author->name,
                 'game' => $this->game->name,
@@ -77,7 +77,7 @@ class RecapPosted extends BaseNotification
 
         return new PushPayload(
             title: __('notifications.push_title_recap_posted'),
-            body: __('notifications.push_body_recap_posted', [
+            body: __('notifications.subject_recap_posted', [
                 'host' => $this->author->name,
                 'game' => $this->game->name,
             ]),
@@ -97,7 +97,7 @@ class RecapPosted extends BaseNotification
         return DiscordWebhookPayload::embed([
             'title' => __('notifications.push_title_recap_posted'),
             'url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
-            'description' => __('notifications.push_body_recap_posted', [
+            'description' => __('notifications.subject_recap_posted', [
                 'host' => $this->author->name,
                 'game' => $this->game->name,
             ]),

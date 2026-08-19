@@ -68,7 +68,7 @@
                 @if($system->average_play_time)
                     <span class="inline-flex items-center gap-1">
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">schedule</span>
-                        {{ $system->average_play_time }} {{ strtolower(__('games.content_min')) }}
+                        {{ $system->average_play_time }} {{ strtolower(__('common.label_unit_min')) }}
                     </span>
                 @endif
                 @if($system->sp_rating && $system->sp_review_count)

@@ -88,14 +88,14 @@
             {{-- Sort + rating + toggles + clear --}}
             <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
                 <div class="flex items-center gap-2">
-                    <label for="venue-sort" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('venue.field_directory_sort') }}</label>
+                    <label for="venue-sort" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('common.field_sort_by') }}</label>
                     <select id="venue-sort"
                             wire:model.live="sortBy"
                             class="bg-surface-container-high text-on-surface text-sm rounded-lg px-3 py-1.5 border border-outline-variant/30 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                         <option value="nearest">{{ __('venue.sort_directory_nearest') }}</option>
                         <option value="active">{{ __('venue.sort_directory_active') }}</option>
                         <option value="rating">{{ __('venue.sort_directory_rating') }}</option>
-                        <option value="newest">{{ __('venue.sort_directory_newest') }}</option>
+                        <option value="newest">{{ __('common.content_newest') }}</option>
                     </select>
                 </div>
 
@@ -270,7 +270,7 @@
                         <span wire:loading wire:target="loadMore">
                             <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
                         </span>
-                        {{ __('venue.action_directory_load_more') }}
+                        {{ __('common.action_load_more') }}
                     </button>
                     <p class="mt-2 text-xs text-on-surface-variant">
                         {{ __('venue.content_directory_showing_of', [

@@ -37,7 +37,7 @@
         </div>
         <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 text-center">
             <p class="text-2xl font-bold text-error">{{ $this->statusCounts['cancelled'] }}</p>
-            <p class="text-xs text-on-surface-variant tracking-wide">{{ __('events.status_cancelled') }}</p>
+            <p class="text-xs text-on-surface-variant tracking-wide">{{ __('common.status_cancelled') }}</p>
         </div>
     </div>
 
@@ -55,12 +55,12 @@
                     <option value="">{{ __('discovery.content_all_statuses') }}</option>
                     <option value="pending">{{ __('common.status_pending') }}</option>
                     <option value="confirmed">{{ __('events.status_confirmed') }}</option>
-                    <option value="cancelled">{{ __('events.status_cancelled') }}</option>
-                    <option value="waitlisted">{{ __('common.content_waitlisted') }}</option>
+                    <option value="cancelled">{{ __('common.status_cancelled') }}</option>
+                    <option value="waitlisted">{{ __('common.status_waitlisted') }}</option>
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-on-surface-variant mb-1">{{ __('events.field_type') }}</label>
+                <label class="block text-xs font-medium text-on-surface-variant mb-1">{{ __('common.field_type') }}</label>
                 <select wire:model.live="filterType" class="bg-surface-container-high border border-transparent rounded-lg text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 text-sm py-2">
                     <option value="">{{ __('discovery.content_all_types') }}</option>
                     <option value="team">{{ __('events.content_team') }}</option>
@@ -73,7 +73,7 @@
                     <option value="">{{ __('billing.content_all_payments') }}</option>
                     <option value="paid">{{ __('billing.content_paid') }}</option>
                     <option value="pending">{{ __('billing.field_payment_pending') }}</option>
-                    <option value="not_required">{{ __('billing.content_free') }}</option>
+                    <option value="not_required">{{ __('common.price_free') }}</option>
                     <option value="refunded">{{ __('billing.status_refunded') }}</option>
                 </select>
             </div>
@@ -95,7 +95,7 @@
                     <thead class="bg-surface-container">
                         <tr>
                             <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('common.content_registrant') }}</th>
-                            <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('events.field_type') }}</th>
+                            <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('common.field_type') }}</th>
                             <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('events.content_division') }}</th>
                             <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('common.content_status') }}</th>
                             <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('billing.content_payment') }}</th>
@@ -157,7 +157,7 @@
                                     @endphp
                                     <span class="text-xs font-medium {{ $paymentColors[$registration->payment_status] ?? 'text-on-surface-variant' }}">
                                         @if($registration->payment_status === 'not_required')
-                                            {{ __('billing.content_free') }}
+                                            {{ __('common.price_free') }}
                                         @else
                                             {{ ucfirst(str_replace('_', ' ', $registration->payment_status)) }}
                                         @endif
@@ -176,9 +176,9 @@
                                             <x-confirm-action
                                                 action="approve('{{ $registration->id }}')"
                                                 id="approve-registration-{{ $registration->id }}"
-                                                :trigger-label="__('events.action_approve')"
+                                                :trigger-label="__('common.action_approve')"
                                                 trigger-class="text-xs px-2 py-1 rounded-sm bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
-                                                :confirm-label="__('events.action_approve')"
+                                                :confirm-label="__('common.action_approve')"
                                                 :cancel-label="__('common.action_cancel')"
                                                 :message="__('events.flash_approve_this_registration')"
                                                 variant="inline"

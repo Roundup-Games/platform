@@ -245,12 +245,12 @@ class DashboardNewcomerService
     {
         $steps = [
             [
-                'name' => __('profile.dashboard_newcomer_step_profile'),
+                'name' => __('profile.content_profile'),
                 'route' => 'profile.edit',
                 'is_complete' => false,
             ],
             [
-                'name' => __('profile.dashboard_newcomer_step_preferences'),
+                'name' => __('profile.content_preferences'),
                 'route' => 'preferences.index',
                 'is_complete' => false,
             ],

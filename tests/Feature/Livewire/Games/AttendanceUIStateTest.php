@@ -69,7 +69,7 @@ describe('State 1: Form (window open, not submitted)', function () {
 
         Livewire::actingAs($player)
             ->test(GameDetail::class, ['id' => $data['game']->id])
-            ->assertSee(__('games.title_submit_attendance'))
+            ->assertSee(__('games.action_submit_attendance_report'))
             ->assertSee(__('games.action_submit_attendance_report'));
     });
 
@@ -522,7 +522,7 @@ describe('Cross-state edge cases', function () {
 
         Livewire::actingAs($host)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertDontSee(__('games.title_submit_attendance'))
+            ->assertDontSee(__('games.action_submit_attendance_report'))
             ->assertDontSee(__('games.title_attendance_resolved'));
     });
 
@@ -532,7 +532,7 @@ describe('Cross-state edge cases', function () {
 
         Livewire::actingAs($stranger)
             ->test(GameDetail::class, ['id' => $data['game']->id])
-            ->assertDontSee(__('games.title_submit_attendance'))
+            ->assertDontSee(__('games.action_submit_attendance_report'))
             ->assertDontSee(__('games.title_attendance_resolved'));
     });
 

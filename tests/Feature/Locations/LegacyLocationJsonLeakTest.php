@@ -159,7 +159,7 @@ describe('game detail address line (the HIGH-2 source)', function () {
         assertNoLegacyLeakIn($html);
         expect($html)
             ->toContain('Metropolis')      // city shown (D101)
-            ->not->toContain(__('people.label_disclosure_level_area')) // no false "in your area"
+            ->not->toContain(__('people.nearby_in_your_area')) // no false "in your area"
             ->not->toContain('456 Public Ave'); // street still withheld
     });
 
@@ -199,7 +199,7 @@ describe('game detail address line (the HIGH-2 source)', function () {
 
         $html = renderGameHeader($game, actingAs: $nearbyStranger);
 
-        expect($html)->toContain(__('people.label_disclosure_level_area'))
+        expect($html)->toContain(__('people.nearby_in_your_area'))
             ->and($html)->not->toContain('456 Public Ave');
     });
 

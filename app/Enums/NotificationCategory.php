@@ -84,10 +84,13 @@ enum NotificationCategory: string
             self::DisputeResolved => __('notifications.category_dispute_resolved'),
             self::AttendanceNudge => __('notifications.category_attendance_nudge'),
             self::AttendanceResolved => __('notifications.category_attendance_resolved'),
-            self::GameCancelled => __('notifications.category_game_cancelled'),
-            self::GameCompleted => __('notifications.category_game_completed'),
-            self::CampaignCancelled => __('notifications.category_campaign_cancelled'),
-            self::CampaignCompleted => __('notifications.category_campaign_completed'),
+            // Lifecycle-event labels are shared with the community activity feed
+            // (ActivityType enum) via the common.activity_type_* family; the
+            // remaining categories are notification-specific.
+            self::GameCancelled => __('common.activity_type_game_canceled'),
+            self::GameCompleted => __('common.activity_type_game_completed'),
+            self::CampaignCancelled => __('common.activity_type_campaign_canceled'),
+            self::CampaignCompleted => __('common.activity_type_campaign_completed'),
             self::GameUpdated => __('notifications.category_game_updated'),
             self::CampaignUpdated => __('notifications.category_campaign_updated'),
             self::SessionContent => __('notifications.category_session_content'),
@@ -123,7 +126,7 @@ enum NotificationCategory: string
     {
         $groups = [
             'social' => [
-                'label' => __('notifications.group_social'),
+                'label' => __('common.content_social'),
                 'categories' => [self::NewFollower],
             ],
             'invitations' => [
@@ -131,7 +134,7 @@ enum NotificationCategory: string
                 'categories' => [self::GameInvitation, self::CampaignInvitation, self::TeamInvitation, self::SessionAddedToCampaign],
             ],
             'applications' => [
-                'label' => __('notifications.group_applications'),
+                'label' => __('common.content_applications'),
                 'categories' => [self::NewApplication, self::ApplicationApproved, self::ApplicationRejected],
             ],
             'participation' => [
@@ -139,11 +142,11 @@ enum NotificationCategory: string
                 'categories' => [self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::WaitlistPromoted, self::WaitlistPlacement, self::BenchUpdates, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved],
             ],
             'status' => [
-                'label' => __('notifications.group_status'),
+                'label' => __('common.content_status'),
                 'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent],
             ],
             'content' => [
-                'label' => __('notifications.group_content'),
+                'label' => __('common.content_content'),
                 'categories' => [self::GameSystemRequest],
             ],
             'scheduling' => [
@@ -151,7 +154,7 @@ enum NotificationCategory: string
                 'categories' => [self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder],
             ],
             'moderation' => [
-                'label' => __('notifications.group_moderation'),
+                'label' => __('common.content_moderation'),
                 'categories' => [self::ReviewReported, self::ModerationNotice],
             ],
         ];

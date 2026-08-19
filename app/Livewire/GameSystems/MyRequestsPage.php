@@ -64,10 +64,10 @@ class MyRequestsPage extends Component
         $status = $this->mapTicketStatus($ticket);
 
         return match ($status) {
-            'pending' => __('games.request_status_pending'),
+            'pending' => __('common.status_pending'),
             'in_review' => __('games.request_status_in_review'),
-            'approved' => __('games.request_status_approved'),
-            'rejected' => __('games.request_status_rejected'),
+            'approved' => __('common.status_approved'),
+            'rejected' => __('common.status_rejected'),
             'duplicate' => __('games.request_status_duplicate'),
             default => ucfirst($status),
         };
@@ -80,7 +80,7 @@ class MyRequestsPage extends Component
         return match ($type) {
             'boardgame' => __('games.type_board_game'),
             'ttrpg' => __('games.type_ttrpg'),
-            'other' => __('games.type_other'),
+            'other' => __('common.content_other'),
             default => ucfirst(is_string($type) ? $type : ''),
         };
     }

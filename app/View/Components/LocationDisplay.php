@@ -131,7 +131,7 @@ class LocationDisplay extends Component
     private function areaLine(?Location $location, ?User $viewer): ?string
     {
         if (app(LocationDisclosureService::class)->isViewerNearby($location, $viewer)) {
-            return (string) __('people.label_disclosure_level_area');
+            return (string) __('people.nearby_in_your_area');
         }
 
         return $location?->city;

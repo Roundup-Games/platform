@@ -205,7 +205,7 @@
                         <p class="text-sm font-medium text-on-surface mb-2">{{ __('location.field_capacity') }}</p>
                         @if($event->registration_type === 'team' || $event->registration_type === 'both')
                             <div class="flex items-center justify-between text-sm text-on-surface-variant">
-                                <span>{{ __('events.content_teams') }}</span>
+                                <span>{{ __('common.content_teams') }}</span>
                                 <span>{{ $teamCount }}{{ $event->max_teams ? '/' . $event->max_teams : '' }}</span>
                             </div>
                             @if($event->max_teams)
@@ -220,7 +220,7 @@
                         @endif
                         @if($event->registration_type === 'individual' || $event->registration_type === 'both')
                             <div class="flex items-center justify-between text-sm text-on-surface-variant {{ ($event->registration_type === 'both') ? 'mt-2' : '' }}">
-                                <span>{{ __('events.content_participants') }}</span>
+                                <span>{{ __('common.content_participants') }}</span>
                                 <span>{{ $individualCount }}{{ $event->max_participants ? '/' . $event->max_participants : '' }}</span>
                             </div>
                             @if($event->max_participants)
@@ -255,7 +255,7 @@
                             </p>
                         @endif
                         @if($event->team_registration_fee === 0 && $event->individual_registration_fee === 0)
-                            <p class="text-sm text-secondary font-medium">{{ __('billing.content_free') }}</p>
+                            <p class="text-sm text-secondary font-medium">{{ __('common.price_free') }}</p>
                         @endif
                     </div>
 
@@ -292,7 +292,7 @@
                     <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h3 class="font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                            {{ __('location.content_venue') }}
+                            {{ __('common.content_venue') }}
                         </h3>
                         <div class="mt-3 text-sm text-on-surface-variant">
                             <x-location-display
@@ -312,7 +312,7 @@
                     <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h3 class="font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">mail</span>
-                            {{ __('pages.content_contact') }}
+                            {{ __('common.content_contact') }}
                         <div class="mt-3 text-sm space-y-1">
                             @if($event->contact_email)
                                 <p class="text-on-surface-variant">

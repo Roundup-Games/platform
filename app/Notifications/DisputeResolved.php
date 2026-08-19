@@ -40,7 +40,7 @@ class DisputeResolved extends BaseNotification
 
         return (new MailMessage)
             ->subject($subject)
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line($body)
             ->action(__('notifications.action_view_game'), route('games.show', [
                 'locale' => $locale,
@@ -90,7 +90,7 @@ class DisputeResolved extends BaseNotification
         $resolved = $this->resolution === 'resolved_favor';
 
         $title = $resolved
-            ? __('notifications.push_title_dispute_resolved_favor')
+            ? __('notifications.category_dispute_resolved')
             : __('notifications.push_title_dispute_upheld');
 
         $body = $resolved
@@ -118,7 +118,7 @@ class DisputeResolved extends BaseNotification
         $resolved = $this->resolution === 'resolved_favor';
 
         $title = $resolved
-            ? __('notifications.push_title_dispute_resolved_favor')
+            ? __('notifications.category_dispute_resolved')
             : __('notifications.push_title_dispute_upheld');
 
         $body = $resolved

@@ -16,6 +16,5 @@ return [
     'category_marketing_label' => 'Marketing',
     'category_marketing_description' => 'Optional. Lets us send personalized outreach (e.g. email campaigns) and track referrals/shares, and measure campaign effectiveness. Off by default.',
     // Footer icon
-    'nav_cookie_settings' => 'Cookie Settings',
     'label_always_active' => 'Always active',
 ];

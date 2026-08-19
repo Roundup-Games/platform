@@ -221,7 +221,7 @@
                 </div>
                 <a href="{{ route('support.billing') }}" wire:navigate
                    class="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
-                    {{ __('support.action_contact_billing_support') }}
+                    {{ __('support.title_billing_support') }}
                 </a>
             </div>
         </section>

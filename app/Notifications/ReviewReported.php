@@ -26,7 +26,7 @@ class ReviewReported extends BaseNotification
     {
         return (new MailMessage)
             ->subject(__('notifications.subject_review_reported'))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_review_reported', [
                 'reporter' => $this->reporter->name,
                 'reason' => $this->review->report_reason,

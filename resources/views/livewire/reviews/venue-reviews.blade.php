@@ -17,7 +17,7 @@
                         @endfor
                     </div>
                     <p class="text-xs text-on-surface-variant">
-                        {{ trans_choice('venue.label_reviews_count', $location->review_count) }}
+                        {{ trans_choice('reviews.content_review_count', $location->review_count) }}
                     </p>
                 </div>
             </div>
@@ -112,7 +112,7 @@
                     <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
                     {{ __('venue.action_submit_venue_review') }}
                 </button>
-                <span wire:loading class="text-sm text-on-surface-variant">{{ __('reviews.content_submitting') }}</span>
+                <span wire:loading class="text-sm text-on-surface-variant">{{ __('common.action_submitting') }}</span>
             </div>
         </form>
     @elseif(Auth::check())

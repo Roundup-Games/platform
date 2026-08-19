@@ -6,13 +6,11 @@ return [
     // ── Unternehmensdaten ──────────────────────────────
     'heading_company' => 'Angaben gemäß § 5 TMG',
     'label_address' => 'Anschrift',
-    'label_contact_email' => 'Kontakt-E-Mail',
     'label_vat_id' => 'Umsatzsteuer-Identifikationsnummer',
     'label_responsible_person' => 'Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV',
     // ── Gründungsphase ─────────────────────────────────
     'content_pre_incorporation' => ':name befindet sich derzeit in der Gründungsphase und soll als gGmbH (gemeinnützige Gesellschaft mit beschränkter Haftung) in :city, :country, unter :person registriert werden.',
     // ── Registrierung ──────────────────────────────────
-    'heading_registration' => 'Registrierung',
     'content_registration_pending' => 'Die Registrierung ist noch ausstehend. Die Details werden hier veröffentlicht, sobald der Gründungsprozess abgeschlossen ist.',
     // ── Streitbeilegung ────────────────────────────────
     'heading_dispute' => 'Online-Streitbeilegung',

@@ -42,12 +42,12 @@ class SeatDemoted extends BaseNotification
             ->subject(__('notifications.subject_seat_demoted', [
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_seat_demoted', [
                 'entity' => $this->entity->name,
                 'reason' => $this->reason,
             ]))
-            ->action(__('notifications.action_seat_demoted'), $this->getEntityRoute($locale))
+            ->action(__('notifications.action_view_'.$this->getEntityType()), $this->getEntityRoute($locale))
             ->line($this->unsubscribeLine($notifiable, 'seat_demoted'));
     }
 

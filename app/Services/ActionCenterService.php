@@ -368,7 +368,7 @@ class ActionCenterService
             title: __('profile.dashboard_action_recap_title', ['game' => $g->name]),
             description: __('profile.dashboard_action_recap_desc'),
             actionUrl: route('games.show', $g),
-            actionLabel: __('profile.dashboard_action_recap_action'),
+            actionLabel: __('profile.dashboard_prompt_write_recap'),
             icon: 'edit_note',
             createdAt: $g->updated_at ?? now(),
             metadata: [
@@ -510,7 +510,7 @@ class ActionCenterService
                     ? trans_choice('profile.dashboard_action_follower_shared', $sharedCount, ['count' => $sharedCount])
                     : __('profile.dashboard_action_follower_desc'),
                 actionUrl: $followerUser ? route('profile.public', ['user' => $followerUser]) : '#',
-                actionLabel: __('profile.dashboard_action_follower_action'),
+                actionLabel: __('profile.dashboard_prompt_view_profile'),
                 icon: 'person_add',
                 createdAt: $rel->created_at ?? now(),
                 metadata: [
@@ -638,9 +638,9 @@ class ActionCenterService
             type: 'recurrence_planning',
             priority: 'low',
             title: __('profile.dashboard_action_recurrence_title', ['campaign' => $c->name]),
-            description: __('profile.dashboard_action_recurrence_desc'),
+            description: __('campaigns.content_plan_ahead_nudge'),
             actionUrl: route('campaigns.add-session', [$c, 'prefill' => 1]),
-            actionLabel: __('profile.dashboard_action_recurrence_action'),
+            actionLabel: __('campaigns.action_plan_next_session'),
             icon: 'repeat',
             createdAt: now(),
             metadata: [

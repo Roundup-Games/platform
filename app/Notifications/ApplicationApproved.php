@@ -36,11 +36,11 @@ class ApplicationApproved extends BaseNotification
             ->subject(__('notifications.subject_application_approved', [
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_application_approved', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_application_approved', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl)
+            ->action(__('notifications.action_view_entity_type', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl)
             ->line($this->unsubscribeLine($notifiable, 'application_approved'));
     }
 

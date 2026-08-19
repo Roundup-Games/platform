@@ -4,7 +4,7 @@
 <section>
     <div class="flex items-center gap-3 mb-4">
         <div class="flex-1 h-px bg-outline-variant/30"></div>
-        <h2 class="text-xl font-heading font-semibold text-on-surface">{{ $entityType === 'game' ? __('games.heading_community') : __('campaigns.heading_community') }}</h2>
+        <h2 class="text-xl font-heading font-semibold text-on-surface">{{ $entityType === 'game' ? __('common.heading_community') : __('common.heading_community') }}</h2>
         <div class="flex-1 h-px bg-outline-variant/30"></div>
     </div>
 
@@ -144,7 +144,7 @@
     @else
         <div class="text-center py-16 bg-surface-container-low rounded-xl shadow-ambient">
             <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">group</span>
-            <h3 class="mt-2 text-sm font-medium text-on-surface">{{ $entityType === 'game' ? __('games.content_no_community_activity') : __('campaigns.content_no_community_activity') }}</h3>
+            <h3 class="mt-2 text-sm font-medium text-on-surface">{{ $entityType === 'game' ? __('common.content_no_community_activity') : __('common.content_no_community_activity') }}</h3>
             <p class="mt-1 text-sm text-on-surface-variant">
                 {{ $entityType === 'game' ? __('games.content_follow_players_to_see_activity') : __('campaigns.content_follow_players_to_see_activity') }}
             </p>

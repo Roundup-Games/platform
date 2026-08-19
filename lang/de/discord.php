@@ -43,7 +43,6 @@ return [
     'content_unlinked_onramp_body' => 'Du bist nur einen Klick von deinem Platz entfernt. Verbinde dein Discord-Konto und wir setzen dich direkt auf die Teilnehmerliste – es dauert nur wenige Sekunden. (Beim nächsten Mal zusagt dieser Button dich direkt aus Discord heraus.)',
 
     // ── Guild settings page (/discord/guilds/{id}) ──
-    'label_discord' => 'Discord',
     'content_guild_settings_subtitle' => 'Lege fest, wo roundup Event-Karten veröffentlicht, und pausiere die Veröffentlichung jederzeit.',
     'flash_channels_saved' => 'Kanäle gespeichert.',
     'flash_language_saved' => 'Sprache gespeichert.',
@@ -60,7 +59,6 @@ return [
     'content_games_channel_help' => 'Die Veröffentlichung bleibt aus, bis ein Spiele-Kanal gewählt ist.',
     'action_save_channels' => 'Kanäle speichern',
     'action_refresh_list' => 'Liste aktualisieren',
-    'heading_language' => 'Sprache',
     'content_language_help' => 'roundup veröffentlicht Event-Karten, den täglichen Kalender-Digest und Session-Thread-Starter auf diesem Server in dieser Sprache. Auch Datum und Uhrzeit richten sich danach.',
     'label_posting_language' => 'Veröffentlichungssprache',
     'content_app_default' => '— App-Standard (:locale) —',
@@ -78,15 +76,10 @@ return [
     'flash_resumed' => 'Fortgesetzt.',
     'heading_server' => 'Server',
     'label_discord_guild' => 'Discord-Gilde',
-    'label_moderation' => 'Moderation',
 
     // ── Enriched game card (rendered in the guild's locale — see DiscordCardRenderer) ──
     'content_card_field_when' => 'Wann',
-    'content_card_field_players' => 'Mitspieler',
-    'content_card_field_system' => 'System',
     'content_card_field_organizer' => 'Spielleitung',
-    'content_card_field_venue' => 'Ort',
-    'content_card_full' => 'Voll',
     'content_card_joined_open_roster' => ':count dabei · offene Liste',
     'content_card_min' => 'min :count',
     'content_card_count_waitlist' => ':count Warteliste',
@@ -107,6 +100,5 @@ return [
     'content_card_cross_value_generic' => '**:count** nehmen von außerhalb dieses Servers teil — die roundup-Community reicht über Server hinweg',
     'content_card_button_my_seat' => '🎟️ Mein Platz',
     'content_card_button_view' => 'Auf roundup ansehen',
-    'content_card_footer' => 'roundup · tabletop über Community-Grenzen hinweg',
 
 ];

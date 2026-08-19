@@ -74,7 +74,7 @@ if (! function_exists('format_currency')) {
         $value = $inCents ? $amount / 100 : $amount;
 
         if ($value == 0) {
-            return __('billing.content_free');
+            return __('common.price_free');
         }
 
         $locale = app()->getLocale();

@@ -4,7 +4,7 @@
         <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('discover') }}" class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                {{ __('campaigns.action_back_to_discover') }}
+                {{ __('common.action_back_to_discover') }}
             </a>
         </div>
     </div>
@@ -57,7 +57,7 @@
                 @else
                     <span class="flex items-center gap-2 text-secondary">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">check_circle</span>
-                        {{ __('billing.content_free') }}
+                        {{ __('common.price_free') }}
                     </span>
                 @endif
                 @if($campaign->relationLoaded('linkedLocation') && $campaign->linkedLocation)
@@ -158,7 +158,7 @@
                         @if($campaign->max_players)
                             @php($spotsLeft = max(0, $campaign->max_players - $approvedParticipantsCount))
                             <p class="text-sm text-on-surface-variant">
-                                {{ trans_choice('campaigns.content_spots_available', $spotsLeft, ['count' => $spotsLeft, 'max' => $campaign->max_players]) }}
+                                {{ trans_choice('common.content_spots_available', $spotsLeft, ['count' => $spotsLeft, 'max' => $campaign->max_players]) }}
                             </p>
                         @else
                             <p class="text-sm text-on-surface-variant">

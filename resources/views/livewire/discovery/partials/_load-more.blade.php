@@ -12,7 +12,7 @@
             <span wire:loading wire:target="{{ $loadMoreAction }}">
                 <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
             </span>
-            {{ __('discovery.action_load_more') }}
+            {{ __('common.action_load_more') }}
         </button>
         <p class="mt-2 text-xs text-on-surface-variant">
             {{ __('discovery.content_showing_of_total', [

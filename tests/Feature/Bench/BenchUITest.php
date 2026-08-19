@@ -26,7 +26,7 @@ test('host sees bench section with benched players on campaign detail', function
 
     Livewire::actingAs($this->owner)
         ->test(CampaignDetail::class, ['id' => $campaign->id])
-        ->assertSee(__('campaigns.content_bench'))
+        ->assertSee(__('common.content_bench'))
         ->assertSeeHtml('promoteFromBench');
 });
 
@@ -59,7 +59,7 @@ test('non-host cannot promote or see bench management on campaign', function () 
 
     // UI is hidden
     $component->assertDontSeeHtml('promoteFromBench')
-        ->assertDontSee(__('campaigns.action_promote_from_bench'));
+        ->assertDontSee(__('common.action_promote'));
 
     // Action also fails
     $component->call('promoteFromBench', $benchedParticipant->id);
@@ -74,7 +74,7 @@ test('benched player sees bench banner on campaign detail', function () {
 
     Livewire::actingAs($benchedUser)
         ->test(CampaignDetail::class, ['id' => $campaign->id])
-        ->assertSee(__('campaigns.content_you_are_on_the_bench'))
+        ->assertSee(__('common.content_you_are_on_the_bench'))
         ->assertSee(__('campaigns.content_you_have_been_placed_on_the_bench'));
 });
 
@@ -84,7 +84,7 @@ test('host does not see bench management when no benched players on campaign', f
     Livewire::actingAs($this->owner)
         ->test(CampaignDetail::class, ['id' => $campaign->id])
         ->assertDontSeeHtml('promoteFromBench')
-        ->assertDontSee(__('campaigns.content_bench_description'));
+        ->assertDontSee(__('common.content_bench_description'));
 });
 
 // ── Game Detail Bench UI (Campaign Sessions) ─────────────
@@ -96,7 +96,7 @@ test('host sees bench section with benched players on campaign session detail', 
 
     Livewire::actingAs($this->owner)
         ->test(GameDetail::class, ['id' => $game->id])
-        ->assertSee(__('games.content_bench'))
+        ->assertSee(__('common.content_bench'))
         ->assertSeeHtml('promoteFromBench');
 });
 
@@ -125,7 +125,7 @@ test('benched player sees bench banner on campaign session detail', function () 
 
     Livewire::actingAs($benchedUser)
         ->test(GameDetail::class, ['id' => $game->id])
-        ->assertSee(__('games.content_you_are_on_the_bench'))
+        ->assertSee(__('common.content_you_are_on_the_bench'))
         ->assertSee(__('games.content_you_have_been_placed_on_the_bench'));
 });
 
@@ -155,7 +155,7 @@ test('host does not see bench section on standalone game', function () {
     Livewire::actingAs($this->owner)
         ->test(GameDetail::class, ['id' => $game->id])
         ->assertDontSeeHtml('promoteFromBench')
-        ->assertDontSee(__('games.content_bench_description'));
+        ->assertDontSee(__('common.content_bench_description'));
 });
 
 test('non-host cannot see bench management on campaign session', function () {
@@ -168,7 +168,7 @@ test('non-host cannot see bench management on campaign session', function () {
     Livewire::actingAs($otherUser)
         ->test(GameDetail::class, ['id' => $game->id])
         ->assertDontSeeHtml('promoteFromBench')
-        ->assertDontSee(__('games.action_promote_from_bench'));
+        ->assertDontSee(__('common.action_promote'));
 });
 
 // ── Promotion edge cases ─────────────────────────────────

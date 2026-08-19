@@ -33,7 +33,7 @@ class AttendanceNudge extends BaseNotification
             ->subject(__('notifications.subject_attendance_nudge', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_attendance_nudge', [
                 'game' => $this->game->name,
                 'date' => $date,
@@ -86,7 +86,7 @@ class AttendanceNudge extends BaseNotification
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return new PushPayload(
-            title: __('notifications.push_title_attendance_nudge'),
+            title: __('notifications.category_attendance_nudge'),
             body: __('notifications.push_body_attendance_nudge', [
                 'game' => $this->game->name,
                 'deadline' => $this->deadline,
@@ -108,7 +108,7 @@ class AttendanceNudge extends BaseNotification
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_attendance_nudge'),
+            'title' => __('notifications.category_attendance_nudge'),
             'url' => route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,

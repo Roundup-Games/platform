@@ -45,7 +45,7 @@
                 </p>
                 <a href="{{ route('games.show', $game) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
-                    {{ __('games.action_view_game') }}
+                    {{ __('notifications.action_view_game') }}
                 </a>
             </div>
         @else
@@ -62,7 +62,7 @@
                     @if($game->visibility === Visibility::Public)
                         {{ __('games.action_join_game') }}
                     @else
-                        {{ __('games.action_apply_to_join') }}
+                        {{ __('common.action_apply_to_join') }}
                     @endif
                 </h2>
 

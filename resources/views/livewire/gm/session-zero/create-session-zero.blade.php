@@ -1,5 +1,5 @@
 <div>
-    @section('title', __('session_zero.title_create_session_zero'))
+    @section('title', __('gws.action_create_session_zero'))
 
     {{-- ── Header ──────────────────────────────────────────────── --}}
     <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-8">
@@ -9,7 +9,7 @@
             </div>
             <div>
                 <h2 class="font-heading text-2xl font-bold text-on-surface tracking-tight">
-                    {{ __('session_zero.title_create_session_zero') }}
+                    {{ __('gws.action_create_session_zero') }}
                 </h2>
                 <p class="mt-1 text-on-surface-variant text-sm">
                     {{ __('session_zero.description_build_your_session_zero_questionnaire') }}
@@ -50,13 +50,13 @@
                             x-data
                             x-on:click="
                                 navigator.clipboard.writeText($refs.shareableLinkInput.value);
-                                $el.textContent = '{{ __('session_zero.action_copied') }}';
-                                setTimeout(() => $el.textContent = '{{ __('session_zero.action_copy_link') }}', 2000)
+                                $el.textContent = '{{ __('common.status_copied') }}';
+                                setTimeout(() => $el.textContent = '{{ __('common.action_copy_link') }}', 2000)
                             "
                             class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors"
                         >
                             <span class="material-symbols-outlined text-sm" aria-hidden="true">content_copy</span>
-                            {{ __('session_zero.action_copy_link') }}
+                            {{ __('common.action_copy_link') }}
                         </button>
                     </div>
                 </div>
@@ -76,7 +76,7 @@
                         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-secondary/10 text-secondary text-sm font-medium hover:bg-secondary/20 transition-colors"
                     >
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
-                        {{ __('session_zero.action_preview_survey') }}
+                        {{ __('common.content_preview') }}
                     </a>
                 </div>
             </div>
@@ -94,7 +94,7 @@
 
                 <div>
                     <label for="sz-title" class="block text-sm font-medium text-on-surface mb-1">
-                        {{ __('session_zero.label_survey_title') }}
+                        {{ __('common.field_title') }}
                     </label>
                     <input
                         id="sz-title"
@@ -113,7 +113,7 @@
             <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                 <div class="flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">shield</span>
-                    <h3 class="font-heading font-semibold text-on-surface">{{ __('session_zero.heading_safety_tools') }}</h3>
+                    <h3 class="font-heading font-semibold text-on-surface">{{ __('safety.content_safety_tools') }}</h3>
                 </div>
                 <p class="text-xs text-on-surface-variant mb-4">{{ __('session_zero.description_select_safety_tools') }}</p>
 
@@ -229,7 +229,7 @@
                 >
                     {{-- Stable label so the redirect trigger stays in the DOM (M054). --}}
                     <span class="material-symbols-outlined text-sm" wire:loading.remove wire:target="save" aria-hidden="true">save</span>
-                    <span class="material-symbols-outlined text-sm animate-spin" wire:loading wire:target="save" aria-hidden="true" role="status" aria-label="{{ __('session_zero.action_creating') }}">progress_activity</span>
+                    <span class="material-symbols-outlined text-sm animate-spin" wire:loading wire:target="save" aria-hidden="true" role="status" aria-label="{{ __('common.content_creating') }}">progress_activity</span>
                     {{ __('session_zero.action_create_survey') }}
                 </button>
             </div>

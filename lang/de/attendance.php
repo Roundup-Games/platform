@@ -11,7 +11,6 @@ return [
     'status_late_cancel' => 'Kurzfristig abgesagt',
     'status_excused' => 'Entschuldigt',
     'status_cancelled_early' => 'Frühzeitig abgesagt',
-    'status_pending' => 'Ausstehend',
     'status_not_reported' => 'Noch nicht gemeldet',
     // Anfechtung
     // Zusammenfassung (game-detail.blade.php)

@@ -100,7 +100,7 @@
                     @if($gmSubscription->isActive())
                         <a href="{{ route('billing.portal') }}" wire:navigate
                            class="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
-                            {{ __('billing.action_manage') }}
+                            {{ __('common.action_manage') }}
                         </a>
                     @else
                         <a href="{{ route('billing.portal') }}" wire:navigate
@@ -201,7 +201,7 @@
                     <div class="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                         <span class="material-symbols-outlined text-xl text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
                     </div>
-                    <h3 class="mt-2 font-heading font-semibold text-sm text-on-surface tracking-tight">{{ __('pages.content_community') }}</h3>
+                    <h3 class="mt-2 font-heading font-semibold text-sm text-on-surface tracking-tight">{{ __('common.heading_community') }}</h3>
                     <p class="mt-1 text-xs text-on-surface-variant">{{ __('games.action_join_a_vibrant_community_of_tabletop_gamers') }}</p>
                 </div>
                 <div>

@@ -183,7 +183,7 @@ enum VibeFlag: string
                 'flags' => [self::Atmospheric, self::Lighthearted, self::Serious, self::Horror, self::Humorous],
             ],
             'content' => [
-                'label' => __('discovery.content_content'),
+                'label' => __('common.content_content'),
                 'flags' => [self::MatureThemes, self::FamilyFriendly, self::CharacterDriven, self::StoryRich],
             ],
             'playstyle' => [
@@ -191,7 +191,7 @@ enum VibeFlag: string
                 'flags' => [self::RulesLight, self::RulesHeavy, self::Tactical, self::CombatFocused, self::RoleplayHeavy, self::Exploration, self::PuzzleSolving, self::Sandbox, self::RuleOfCool, self::DungeonCrawl, self::KingdomBuilding, self::TheaterOfTheMind, self::RulesAsWritten, self::RoleplayLight],
             ],
             'social' => [
-                'label' => __('discovery.content_social'),
+                'label' => __('common.content_social'),
                 'flags' => [self::Competitive, self::Cooperative, self::NewPlayerFriendly, self::DropInFriendly],
             ],
             'format' => [

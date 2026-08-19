@@ -1,20 +1,17 @@
 <?php
 
 return [
-    'title_create_session_zero' => 'Create Session Zero',
     'title_survey_created' => 'Session Zero Survey Created!',
     'description_build_your_session_zero_questionnaire' => 'Build a questionnaire to set expectations, discuss safety tools, and align your group before the first session.',
     'description_share_link_with_players' => 'Share this link with your players so they can review the survey and confirm their reading.',
     'title_default_for_game' => 'Session Zero for :game',
     // Sections
     'heading_title' => 'Survey Title',
-    'heading_safety_tools' => 'Safety Tools',
     'heading_tone_and_genre' => 'Tone & Genre',
     'heading_house_rules' => 'House Rules',
     'heading_content_warnings' => 'Content Warnings',
     'heading_player_expectations' => 'Player Expectations',
     // Labels
-    'label_survey_title' => 'Title',
     'label_shareable_link' => 'Shareable Link',
     // Descriptions
     'description_select_safety_tools' => 'Select the safety tools you\'ll use in your game. These will be shared with your players.',
@@ -30,11 +27,7 @@ return [
     'placeholder_expectations_example' => 'e.g. Please arrive on time and let me know 24h in advance if you can\'t make it. Stay in character during scenes unless we\'re taking a break.',
     // Actions
     'action_create_survey' => 'Create Survey',
-    'action_creating' => 'Creating…',
-    'action_copy_link' => 'Copy Link',
-    'action_copied' => 'Copied!',
     'action_back_to_workspace' => 'Back to Workspace',
-    'action_preview_survey' => 'Preview',
     // View
     'view_description_by_gm' => 'Session Zero survey shared by your Game Master',
     'heading_confirmation' => 'Confirmation',

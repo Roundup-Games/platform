@@ -33,7 +33,7 @@ class SessionAddedToCampaign extends BaseNotification
             ->subject(__('notifications.subject_session_added_to_campaign', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_session_added_to_campaign', [
                 'campaign' => $this->campaign->name,
             ]))

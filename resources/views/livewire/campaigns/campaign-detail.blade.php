@@ -65,7 +65,7 @@
                 @else
                     <span class="flex items-center gap-2 text-secondary">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">check_circle</span>
-                        {{ __('billing.content_free') }}
+                        {{ __('common.price_free') }}
                     </span>
                 @endif
                 @if($campaign->relationLoaded('linkedLocation') && $campaign->linkedLocation)
@@ -159,15 +159,15 @@
                 <div class="flex items-start gap-4">
                     <span class="material-symbols-outlined text-2xl text-tertiary mt-0.5" aria-hidden="true">playlist_add</span>
                     <div class="flex-1">
-                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('campaigns.action_join_waitlist') }}</h2>
-                        <p class="mt-1 text-sm text-on-surface-variant">{{ __('campaigns.content_waitlist_position', ['position' => $waitlistPosition]) }}</p>
+                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('common.action_join_waitlist') }}</h2>
+                        <p class="mt-1 text-sm text-on-surface-variant">{{ __('common.content_waitlist_position', ['position' => $waitlistPosition]) }}</p>
                         <x-confirm-action
                             action="leaveWaitlist('{{ $userWaitlistParticipant->id }}')"
                             id="leave-waitlist-{{ $userWaitlistParticipant->id }}"
                             :icon="'logout'"
-                            :trigger-label="__('campaigns.action_leave_waitlist')"
+                            :trigger-label="__('common.action_leave_waitlist')"
                             trigger-class="mt-3 inline-flex items-center gap-1 text-sm text-error hover:text-error/80 underline underline-offset-2 transition-colors"
-                            :confirm-label="__('campaigns.action_leave_waitlist')"
+                            :confirm-label="__('common.action_leave_waitlist')"
                             :cancel-label="__('common.action_keep')"
                             :message="__('games.flash_confirm_leave_waitlist')"
                             variant="compact"
@@ -220,7 +220,7 @@
                 <div class="flex items-start gap-4">
                     <span class="material-symbols-outlined text-2xl text-tertiary mt-0.5" aria-hidden="true">event_seat</span>
                     <div class="flex-1">
-                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('campaigns.content_you_are_on_the_bench') }}</h2>
+                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('common.content_you_are_on_the_bench') }}</h2>
                         <p class="mt-1 text-sm text-on-surface-variant">{{ __('campaigns.content_you_have_been_placed_on_the_bench') }}</p>
                         <x-confirm-action
                             action="leaveBench('{{ $userBenchParticipant->id }}')"
@@ -337,7 +337,7 @@
                 @auth
                     @if($isParticipant && !$isOwner && $campaign->status === \App\Enums\CampaignStatus::Active)
                         <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 flex items-center justify-between">
-                            <span class="text-sm text-on-surface-variant">{{ __('campaigns.content_leave_hint') }}</span>
+                            <span class="text-sm text-on-surface-variant">{{ __('common.content_leave_hint') }}</span>
                             <x-confirm-action
                                 action="leaveCampaign()"
                                 id="leave-campaign"
@@ -399,16 +399,16 @@
                             <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                                 <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">link</span>
                                 @if($isCampaignFull)
-                                    {{ __('campaigns.action_join_waitlist') }}
+                                    {{ __('common.action_join_waitlist') }}
                                 @else
-                                    {{ __('campaigns.action_join_via_share_link') }}
+                                    {{ __('common.action_join_via_share_link') }}
                                 @endif
                             </h3>
                             <button wire:click="joinViaShareLink"
                                 class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">login</span>
                                 @if($isCampaignFull)
-                                    {{ __('campaigns.action_join_waitlist') }}
+                                    {{ __('common.action_join_waitlist') }}
                                 @else
                                     {{ __('campaigns.action_join_campaign') }}
                                 @endif
@@ -428,7 +428,7 @@
                                 @if($campaign->visibility->value === 'public')
                                     {{ __('campaigns.action_join_campaign') }}
                                 @else
-                                    {{ __('campaigns.action_apply_to_join') }}
+                                    {{ __('common.action_apply_to_join') }}
                                 @endif
                             </h3>
                             @if($campaign->visibility->value === 'protected')
@@ -442,27 +442,27 @@
                                 @if($campaign->visibility->value === 'public')
                                     {{ __('campaigns.action_join_campaign') }}
                                 @else
-                                    {{ __('campaigns.action_apply_to_join') }}
+                                    {{ __('common.action_apply_to_join') }}
                                 @endif
                             </a>
                         </div>
                     @elseif($hasExistingApplication)
                         <div class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6 text-center">
                             <span class="material-symbols-outlined text-3xl text-tertiary mb-2" aria-hidden="true">schedule</span>
-                            <p class="text-on-surface font-medium">{{ __('campaigns.content_application_pending') }}</p>
-                            <p class="text-sm text-on-surface-variant mt-1">{{ __('campaigns.content_waiting_for_host_approval') }}</p>
+                            <p class="text-on-surface font-medium">{{ __('common.content_application_pending') }}</p>
+                            <p class="text-sm text-on-surface-variant mt-1">{{ __('common.content_waiting_for_host_approval') }}</p>
                         </div>
                     @elseif($canJoinWaitlist)
                         <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
                             <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                                 <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">playlist_add</span>
-                                {{ __('campaigns.action_join_waitlist') }}
+                                {{ __('common.action_join_waitlist') }}
                             </h3>
                             <p class="text-sm text-on-surface-variant mb-4">{{ __('campaigns.content_campaign_full_join_waitlist') }}</p>
                             <button wire:click="joinWaitlist"
                                 class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">playlist_add</span>
-                                {{ __('campaigns.action_join_waitlist') }}
+                                {{ __('common.action_join_waitlist') }}
                             </button>
                         </div>
                     @endif
@@ -548,7 +548,7 @@
                     <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h3 class="text-base font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">playlist_add</span>
-                            {{ __('campaigns.content_waitlist_management') }}
+                            {{ __('common.content_waitlist_management') }}
                         </h3>
                         <div class="divide-y divide-outline-variant/30">
                             @foreach($waitlistedPlayers as $waitlisted)
@@ -556,13 +556,13 @@
                                     <div class="flex-1 min-w-0">
                                         <x-user-link :user="$waitlisted->user" avatar-size="w-9 h-9" :truncate="true" />
                                         <p class="text-xs text-on-surface-variant ml-11">
-                                            {{ __('campaigns.content_waitlist_position', ['position' => $loop->iteration]) }}
+                                            {{ __('common.content_waitlist_position', ['position' => $loop->iteration]) }}
                                         </p>
                                     </div>
                                     <button wire:click="manualPromote('{{ $waitlisted->id }}')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
-                                        {{ __('campaigns.action_manual_promote') }}
+                                        {{ __('common.action_promote') }}
                                     </button>
                                 </div>
                             @endforeach
@@ -575,9 +575,9 @@
                     <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h3 class="text-base font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">event_seat</span>
-                            {{ __('campaigns.content_bench') }}
+                            {{ __('common.content_bench') }}
                         </h3>
-                        <p class="text-xs text-on-surface-variant mb-3">{{ __('campaigns.content_bench_description') }}</p>
+                        <p class="text-xs text-on-surface-variant mb-3">{{ __('common.content_bench_description') }}</p>
                         <div class="divide-y divide-outline-variant/30">
                             @foreach($benchedPlayers as $benched)
                                 <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
@@ -587,7 +587,7 @@
                                     <button wire:click="promoteFromBench('{{ $benched->id }}')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
-                                        {{ __('campaigns.action_promote_from_bench') }}
+                                        {{ __('common.action_promote') }}
                                     </button>
                                 </div>
                             @endforeach
@@ -626,7 +626,7 @@
                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">login</span>
                     @if($isCampaignFull)
-                        {{ __('campaigns.action_join_waitlist') }}
+                        {{ __('common.action_join_waitlist') }}
                     @else
                         {{ __('campaigns.action_join_campaign') }}
                     @endif
@@ -642,7 +642,7 @@
                     @if($campaign->visibility->value === 'public')
                         {{ __('campaigns.action_join_campaign') }}
                     @else
-                        {{ __('campaigns.action_apply_to_join') }}
+                        {{ __('common.action_apply_to_join') }}
                     @endif
                 </a>
             </div>
@@ -651,7 +651,7 @@
                 <button wire:click="joinWaitlist"
                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">playlist_add</span>
-                    {{ __('campaigns.action_join_waitlist') }}
+                    {{ __('common.action_join_waitlist') }}
                 </button>
             </div>
         @endif

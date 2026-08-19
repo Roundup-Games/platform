@@ -57,7 +57,7 @@
     >
         {{-- Header --}}
         <div class="flex items-center justify-between px-4 py-3 border-b border-outline-variant/15">
-            <h3 class="text-sm font-bold text-on-surface">{{ __('notifications.dropdown_heading') }}</h3>
+            <h3 class="text-sm font-bold text-on-surface">{{ __('notifications.nav_label') }}</h3>
             @if($unreadCount > 0)
                 <button
                     wire:click="markAllRead"

@@ -11,7 +11,6 @@ return [
     'status_late_cancel' => 'Late Cancel',
     'status_excused' => 'Excused',
     'status_cancelled_early' => 'Cancelled Early',
-    'status_pending' => 'Pending',
     'status_not_reported' => 'Not yet reported',
     // Dispute
     // Recap (used in game-detail.blade.php)

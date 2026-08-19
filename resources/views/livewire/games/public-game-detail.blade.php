@@ -4,7 +4,7 @@
         <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('discover') }}" class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                {{ __('games.action_back_to_discover') }}
+                {{ __('common.action_back_to_discover') }}
             </a>
         </div>
     </div>
@@ -65,11 +65,11 @@
                             <div class="flex items-center gap-3 mt-2">
                                 @if($spotsLeft === 0)
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-error/10 text-error">
-                                        {{ __('games.content_full') }}
+                                        {{ __('common.content_full') }}
                                     </span>
                                 @else
                                     <span class="text-sm text-on-surface-variant">
-                                        {{ trans_choice('games.content_spots_available', $spotsLeft, ['count' => $spotsLeft, 'max' => $game->max_players]) }}
+                                        {{ trans_choice('common.content_spots_available', $spotsLeft, ['count' => $spotsLeft, 'max' => $game->max_players]) }}
                                     </span>
                                 @endif
                             </div>
@@ -136,7 +136,7 @@
                     <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                             <span class="material-symbols-outlined text-xl" aria-hidden="true">notes</span>
-                            {{ __('games.label_comfort_notes') }}
+                            {{ __('games.field_comfort_notes') }}
                         </h2>
                         <p class="text-sm text-on-surface whitespace-pre-line">{{ $comfortNotes }}</p>
                     </section>

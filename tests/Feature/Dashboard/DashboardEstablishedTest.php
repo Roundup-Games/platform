@@ -297,7 +297,7 @@ test('quick actions show gm workspace for gm with upcoming games', function () {
     $component = Livewire::test(Dashboard::class);
 
     $quickActions = $component->viewData('dashboard')->established->establishedQuickActions;
-    expect($quickActions[0]['label'])->toBe('profile.dashboard_quick_gm_workspace');
+    expect($quickActions[0]['label'])->toBe('gws.title_gm_workspace');
     expect($quickActions[0]['style'])->toBe('primary');
 });
 

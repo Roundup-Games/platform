@@ -32,11 +32,11 @@ class EntityCompleted extends BaseNotification
             ->subject(__("notifications.subject_{$type}_completed", [
                 $type => $this->entity->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__("notifications.body_{$type}_completed", [
                 $type => $this->entity->name,
             ]))
-            ->action(__("notifications.action_{$type}_completed"), route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]))
+            ->action(__("notifications.action_view_{$type}"), route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]))
             ->line($this->unsubscribeLine($notifiable, "{$type}_completed"));
     }
 

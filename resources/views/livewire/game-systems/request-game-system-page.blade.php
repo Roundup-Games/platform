@@ -46,13 +46,13 @@
 
                     {{-- Type --}}
                     <div>
-                        <label for="request-type" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_system_type') }}</label>
+                        <label for="request-type" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_type') }}</label>
                         <select id="request-type"
                                 wire:model="type"
                                 class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
                             <option value="boardgame">{{ __('games.type_board_game') }}</option>
                             <option value="ttrpg">{{ __('games.type_ttrpg') }}</option>
-                            <option value="other">{{ __('games.type_other') }}</option>
+                            <option value="other">{{ __('common.content_other') }}</option>
                         </select>
                         @error('type') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>

@@ -76,7 +76,7 @@ class DashboardQuickActionsServiceTest extends TestCase
         $actions = $this->service->getQuickActions($user);
 
         $this->assertCount(3, $actions);
-        $this->assertEquals('profile.dashboard_quick_my_games', $actions[0]['label']);
+        $this->assertEquals('games.heading_my_games', $actions[0]['label']);
         $this->assertEquals('primary', $actions[0]['style']);
         $this->assertEquals('schedule', $actions[0]['icon']);
         $this->assertEquals(route('games.index'), $actions[0]['url']);
@@ -113,7 +113,7 @@ class DashboardQuickActionsServiceTest extends TestCase
         $actions = $this->service->getQuickActions($user);
 
         $this->assertCount(3, $actions);
-        $this->assertEquals('profile.dashboard_quick_gm_workspace', $actions[0]['label']);
+        $this->assertEquals('gws.title_gm_workspace', $actions[0]['label']);
         $this->assertEquals('primary', $actions[0]['style']);
         $this->assertEquals('castle', $actions[0]['icon']);
         $this->assertEquals(route('gm.workspace'), $actions[0]['url']);
@@ -141,7 +141,7 @@ class DashboardQuickActionsServiceTest extends TestCase
         $actions = $this->service->getQuickActions($user);
 
         $this->assertCount(3, $actions);
-        $this->assertEquals('profile.dashboard_quick_manage_team', $actions[0]['label']);
+        $this->assertEquals('teams.action_manage_team', $actions[0]['label']);
         $this->assertEquals('primary', $actions[0]['style']);
         $this->assertEquals('groups', $actions[0]['icon']);
         $this->assertEquals(route('teams.manage', ['slug' => $team->slug]), $actions[0]['url']);
@@ -163,7 +163,7 @@ class DashboardQuickActionsServiceTest extends TestCase
         $actions = $this->service->getQuickActions($user);
 
         // Team captain takes priority over GM
-        $this->assertEquals('profile.dashboard_quick_manage_team', $actions[0]['label']);
+        $this->assertEquals('teams.action_manage_team', $actions[0]['label']);
     }
 
     // ── Campaign member actions ────────────────────────
@@ -182,7 +182,7 @@ class DashboardQuickActionsServiceTest extends TestCase
         $actions = $this->service->getQuickActions($user);
 
         $labels = collect($actions)->pluck('label')->toArray();
-        $this->assertContains('profile.dashboard_quick_my_campaigns', $labels);
+        $this->assertContains('campaigns.heading_my_campaigns', $labels);
     }
 
     public function test_non_campaign_member_gets_find_campaigns_secondary(): void
@@ -193,7 +193,7 @@ class DashboardQuickActionsServiceTest extends TestCase
 
         $labels = collect($actions)->pluck('label')->toArray();
         $this->assertContains('profile.dashboard_quick_find_campaigns', $labels);
-        $this->assertNotContains('profile.dashboard_quick_my_campaigns', $labels);
+        $this->assertNotContains('campaigns.heading_my_campaigns', $labels);
     }
 
     // ── Action structure ───────────────────────────────
@@ -318,7 +318,7 @@ class DashboardQuickActionsServiceTest extends TestCase
 
         $actions = $this->service->getQuickActions($user);
 
-        $this->assertEquals('profile.dashboard_quick_my_games', $actions[0]['label']);
+        $this->assertEquals('games.heading_my_games', $actions[0]['label']);
     }
 
     // ── Edge cases ─────────────────────────────────────
@@ -338,7 +338,7 @@ class DashboardQuickActionsServiceTest extends TestCase
         $actions = $this->service->getQuickActions($user);
 
         // Should not be team captain — treated as regular player
-        $this->assertNotEquals('profile.dashboard_quick_manage_team', $actions[0]['label']);
+        $this->assertNotEquals('teams.action_manage_team', $actions[0]['label']);
     }
 
     public function test_completed_games_do_not_count_as_upcoming(): void

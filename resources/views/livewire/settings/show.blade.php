@@ -241,7 +241,7 @@
                                         class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container transition-colors text-sm font-medium whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
                                     <span x-show="!copied">{{ __('settings.action_calendar_feed_copy') }}</span>
-                                    <span x-show="copied" x-cloak>{{ __('settings.status_calendar_feed_copied') }}</span>
+                                    <span x-show="copied" x-cloak>{{ __('common.status_copied') }}</span>
                                 </button>
                             </div>
                             <p class="mt-2 text-xs text-on-surface-variant">

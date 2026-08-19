@@ -4,7 +4,7 @@
         <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('discover') }}" class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                {{ __('venue.action_back_to_discover') }}
+                {{ __('common.action_back_to_discover') }}
             </a>
         </div>
     </div>
@@ -155,7 +155,7 @@
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                     <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-xl" aria-hidden="true">event_upcoming</span>
-                        {{ __('venue.heading_upcoming_sessions') }}
+                        {{ __('gws.heading_upcoming_sessions') }}
                     </h2>
                     <div class="divide-y divide-outline-variant/30">
                         @foreach($upcomingSessions as $session)
@@ -233,7 +233,7 @@
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                     <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-xl" aria-hidden="true">repeat</span>
-                        {{ __('venue.heading_active_campaigns') }}
+                        {{ __('gws.label_active_campaigns') }}
                     </h2>
                     <div class="divide-y divide-outline-variant/30">
                         @foreach($activeCampaigns as $campaign)
@@ -278,7 +278,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">rate_review</span>
-                {{ __('venue.heading_reviews') }}
+                {{ __('reviews.title_reviews') }}
             </h2>
             <livewire:reviews.venue-reviews :location="$location" />
         </section>

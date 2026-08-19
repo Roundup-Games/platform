@@ -35,7 +35,7 @@ class AttendanceResolved extends BaseNotification
             ->subject(__('notifications.subject_attendance_resolved', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_attendance_resolved', [
                 'game' => $this->game->name,
                 'date' => $date,
@@ -89,7 +89,7 @@ class AttendanceResolved extends BaseNotification
         $status = $this->status->label();
 
         return new PushPayload(
-            title: __('notifications.push_title_attendance_resolved'),
+            title: __('notifications.category_attendance_resolved'),
             body: __('notifications.push_body_attendance_resolved', [
                 'game' => $this->game->name,
                 'status' => $status,
@@ -112,7 +112,7 @@ class AttendanceResolved extends BaseNotification
         $status = $this->status->label();
 
         return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_attendance_resolved'),
+            'title' => __('notifications.category_attendance_resolved'),
             'url' => route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,

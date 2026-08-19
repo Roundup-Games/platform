@@ -30,7 +30,7 @@ enum SafetyTool: string
     public function label(): string
     {
         return match ($this) {
-            self::SessionZero => __('safety.tool_session_zero'),
+            self::SessionZero => __('session_zero.title_session_zero'),
             self::LinesAndVeils => __('safety.tool_lines_and_veils'),
             self::OpenDoor => __('safety.tool_open_door'),
             self::XCard => __('safety.tool_x_card'),

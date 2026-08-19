@@ -30,11 +30,11 @@ class DebriefingAvailable extends BaseNotification
             ->subject(__('notifications.subject_debriefing_available', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_debriefing_available', [
                 'game' => $this->game->name,
             ]))
-            ->action(__('notifications.action_submit_debriefing'), route('games.show', ['locale' => $locale, 'id' => $this->game]))
+            ->action(__('games.action_submit_debriefing'), route('games.show', ['locale' => $locale, 'id' => $this->game]))
             ->line($this->unsubscribeLine($notifiable, 'debriefing_available'));
     }
 
@@ -74,7 +74,7 @@ class DebriefingAvailable extends BaseNotification
 
         return new PushPayload(
             title: __('notifications.push_title_debriefing_available'),
-            body: __('notifications.push_body_debriefing_available', [
+            body: __('notifications.subject_debriefing_available', [
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
@@ -93,7 +93,7 @@ class DebriefingAvailable extends BaseNotification
         return DiscordWebhookPayload::embed([
             'title' => __('notifications.push_title_debriefing_available'),
             'url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
-            'description' => __('notifications.push_body_debriefing_available', [
+            'description' => __('notifications.subject_debriefing_available', [
                 'game' => $this->game->name,
             ]),
             'color' => 0x5865F2,

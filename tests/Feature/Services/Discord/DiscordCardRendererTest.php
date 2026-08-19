@@ -610,7 +610,7 @@ class DiscordCardRendererTest extends TestCase
         $embed = $this->renderer->render($game, $context)->embed;
 
         $this->assertContains('Wann', $this->fieldNames($embed));
-        $this->assertContains('Mitspieler', $this->fieldNames($embed));
+        $this->assertContains('Spieler', $this->fieldNames($embed));
         $this->assertContains('System', $this->fieldNames($embed));
         $this->assertContains('Spielleitung', $this->fieldNames($embed));
         $this->assertSame('roundup · tabletop über Community-Grenzen hinweg', $embed['footer']['text']);
@@ -640,7 +640,7 @@ class DiscordCardRendererTest extends TestCase
         $game = $this->makeGame(['max_players' => 2]);
         $context = new DiscordCardContext(approvedCount: 2, appUrl: 'https://roundup.test', locale: 'de');
 
-        $playersValue = $this->field($this->renderer->render($game, $context)->embed, 'Mitspieler');
+        $playersValue = $this->field($this->renderer->render($game, $context)->embed, 'Spieler');
         $this->assertStringContainsString('2/2', $playersValue);
         $this->assertStringContainsString('**Voll**', $playersValue, 'full marker is German “Voll”');
     }

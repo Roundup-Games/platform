@@ -53,15 +53,15 @@
         <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">
             <button wire:click="editCampaign('{{ $campaign->id }}')"
                     class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
-                    aria-label="{{ __('campaigns.action_edit_campaign') }}">
+                    aria-label="{{ __('common.action_edit') }}">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
-                <span class="hidden sm:inline">{{ __('campaigns.action_edit_campaign') }}</span>
+                <span class="hidden sm:inline">{{ __('common.action_edit') }}</span>
             </button>
             <button wire:click="completeCampaign('{{ $campaign->id }}')"
                     class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-secondary hover:bg-secondary/10 transition-colors"
-                    aria-label="{{ __('campaigns.action_complete_campaign') }}">
+                    aria-label="{{ __('common.action_mark_complete') }}">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
-                <span class="hidden sm:inline">{{ __('campaigns.action_complete_campaign') }}</span>
+                <span class="hidden sm:inline">{{ __('common.action_mark_complete') }}</span>
             </button>
             <x-confirm-action
                 action="cancelCampaign('{{ $campaign->id }}')"

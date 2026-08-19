@@ -12,7 +12,7 @@
                     <section class="space-y-4">
                         @if($system->categories->count())
                             <div>
-                                <h3 class="text-sm font-heading font-bold text-on-surface mb-2">{{ __('games.heading_categories') }}</h3>
+                                <h3 class="text-sm font-heading font-bold text-on-surface mb-2">{{ __('common.content_categories') }}</h3>
                                 <div class="flex flex-wrap gap-2">
                                     @foreach($system->categories as $cat)
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">

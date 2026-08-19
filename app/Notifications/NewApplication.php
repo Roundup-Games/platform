@@ -37,7 +37,7 @@ class NewApplication extends BaseNotification
                 'applicant' => $this->applicant->name,
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_new_application', [
                 'applicant' => $this->applicant->name,
                 'entity_type' => $entityTypeLabel,

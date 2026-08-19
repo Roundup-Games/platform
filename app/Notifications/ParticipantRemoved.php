@@ -35,11 +35,11 @@ class ParticipantRemoved extends BaseNotification
             ->subject(__('notifications.subject_participant_removed', [
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_participant_removed', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_participant_removed'), route('games.index', ['locale' => $locale]))
+            ->action(__('notifications.action_browse_games'), route('games.index', ['locale' => $locale]))
             ->line($this->unsubscribeLine($notifiable, 'participant_removed'));
     }
 
