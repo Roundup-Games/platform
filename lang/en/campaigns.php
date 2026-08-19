@@ -6,12 +6,8 @@ return [
     'action_create_campaign' => 'Create Campaign',
     'action_create_your_first_session' => 'Create Your First Session',
     'action_discover_sessions_near_you' => 'Discover sessions near you',
-    'action_filter_by_recurrence' => 'Filter by recurrence',
     'action_find_sessions_near_me' => 'Find sessions near me',
-    'action_find_tabletop_sessions_one_shots' => 'Find tabletop sessions, one-shots, and campaigns to join.',
     'action_join_this_session' => 'Join this Session',
-    'action_search_campaigns' => 'Search campaigns',
-    'action_search_campaigns_by_name_or_description' => 'Search campaigns by name or description…',
     'action_back_to_campaign' => 'Back to Campaign',
     'action_join_campaign' => 'Join Campaign',
     'flash_joined_via_share_link' => 'You\'ve joined the campaign!',
@@ -103,6 +99,8 @@ return [
     // Guest navigation
     // CampaignsPage - My Campaigns section
     'heading_my_campaigns' => 'My Campaigns',
+    'heading_recently_ended' => 'Recently Ended',
+    'heading_archive' => 'Archive',
     'action_cancel_campaign' => 'Cancel Campaign',
     'flash_campaign_canceled' => 'Campaign canceled successfully.',
     'flash_campaign_completed' => 'Campaign marked as completed.',
@@ -115,10 +113,7 @@ return [
     'content_empty_no_campaigns_body' => 'Find a recurring game to join, or start your own campaign.',
     'action_empty_find_adventures' => 'Find adventures',
     // CampaignsPage — Campaigns I'm In section
-    'heading_campaigns_im_in' => 'Campaigns I\'m In',
     // CampaignsPage — Open Invitations section
-    'flash_invitation_accepted' => 'Invitation accepted! You have joined the campaign.',
-    'error_campaign_full' => 'This campaign is already full.',
     // CampaignsPage — Community section
     'content_follow_players_to_see_activity' => 'Follow other players to see their campaign activity here.',
     'activity_created_campaign' => 'created a new campaign',

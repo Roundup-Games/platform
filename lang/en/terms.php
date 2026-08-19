@@ -63,5 +63,4 @@ return [
     'content_changes_2' => 'Continued use of the Platform after changes take effect constitutes acceptance of the updated Terms.',
     // ── Contact ────────────────────────────────────────
     'content_contact_email' => 'Email: '.config('company.contact.legal'),
-    // ── Last Updated ───────────────────────────────────
 ];

@@ -20,10 +20,4 @@ return [
     // Zusammenfassung (game-detail.blade.php)
     // Dashboard (dashboard.blade.php)
     'dashboard_hosting' => 'Du hostest',
-    'dashboard_new_recaps' => 'Neue Zusammenfassungen',
-    'dashboard_recap_by' => 'Von :name',
-    // Kurzfristige Absage
-    // Anwesenheitspräferenz beim Erstellen
-    // Autorisierungsfehler
-    'error_dispute_unauthorized' => 'Du darfst diese Meldung nicht anfechten.',
 ];

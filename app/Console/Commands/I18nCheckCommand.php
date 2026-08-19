@@ -197,6 +197,47 @@ class I18nCheckCommand extends Command
             }
         }
 
+        // 7. Stale exemption entries — every exemption pattern must match at
+        // least one existing key. An exemption whose key was deleted lingers
+        // as dead config and hides the fact that the whitelist drifted from
+        // the key set; it also silently preserves the misconception that the
+        // key still exists.
+        $exemptions = config('i18n.untranslated_exemptions', []);
+        if (is_array($exemptions)) {
+            foreach ($exemptions as $domain => $patterns) {
+                if (! is_string($domain) || ! is_array($patterns)) {
+                    continue;
+                }
+
+                $domainKeys = $parser->getKeys($primary, $domain);
+
+                foreach ($patterns as $pattern) {
+                    if (! is_string($pattern)) {
+                        continue;
+                    }
+
+                    $matchesAny = false;
+                    foreach ($domainKeys as $key) {
+                        if ($this->matchGlob($pattern, $key)) {
+                            $matchesAny = true;
+
+                            break;
+                        }
+                    }
+
+                    if (! $matchesAny) {
+                        $issues[] = [
+                            'type' => 'stale_exemption',
+                            'locale' => $primary,
+                            'domain' => $domain,
+                            'key' => $pattern,
+                            'message' => "Exemption '{$domain}.{$pattern}' in config/i18n.php matches no existing key",
+                        ];
+                    }
+                }
+            }
+        }
+
         return $issues;
     }
 

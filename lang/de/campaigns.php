@@ -6,12 +6,8 @@ return [
     'action_create_campaign' => 'Kampagne erstellen',
     'action_create_your_first_session' => 'Erste Session erstellen',
     'action_discover_sessions_near_you' => 'Entdecke Sessions in deiner Nähe',
-    'action_filter_by_recurrence' => 'Nach Wiederholung filtern',
     'action_find_sessions_near_me' => 'Sitzungen in meiner Nähe finden',
-    'action_find_tabletop_sessions_one_shots' => 'Finde Tabletop-Sitzungen, One-Shots und Kampagnen zum Mitmachen.',
     'action_join_this_session' => 'An dieser Sitzung teilnehmen',
-    'action_search_campaigns' => 'Kampagnen suchen',
-    'action_search_campaigns_by_name_or_description' => 'Kampagnen nach Name oder Beschreibung suchen…',
     'action_back_to_campaign' => 'Zurück zur Kampagne',
     'action_join_campaign' => 'Kampagne beitreten',
     'flash_joined_via_share_link' => 'Du bist der Kampagne beigetreten!',
@@ -103,6 +99,8 @@ return [
     // Gast-Navigation
     // CampaignsPage — Meine Kampagnen
     'heading_my_campaigns' => 'Meine Kampagnen',
+    'heading_recently_ended' => 'Kürzlich beendet',
+    'heading_archive' => 'Archiv',
     'action_cancel_campaign' => 'Kampagne abbrechen',
     'flash_campaign_canceled' => 'Kampagne erfolgreich abgebrochen.',
     'flash_campaign_completed' => 'Kampagne als abgeschlossen markiert.',
@@ -115,10 +113,7 @@ return [
     'content_empty_no_campaigns_body' => 'Finde eine wiederkehrende Gruppe zum Beitreten, oder starte deine eigene Kampagne.',
     'action_empty_find_adventures' => 'Abenteuer finden',
     // CampaignsPage — Kampagnen, an denen ich teilnehme
-    'heading_campaigns_im_in' => 'Kampagnen, an denen ich teilnehme',
     // CampaignsPage — Offene Einladungen
-    'flash_invitation_accepted' => 'Einladung angenommen! Du bist der Kampagne beigetreten.',
-    'error_campaign_full' => 'Diese Kampagne ist bereits voll.',
     // CampaignsPage — Community
     'content_follow_players_to_see_activity' => 'Folge anderen Spielern, um ihre Kampagnenaktivitäten hier zu sehen.',
     'activity_created_campaign' => 'hat eine neue Kampagne erstellt',

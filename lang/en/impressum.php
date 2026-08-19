@@ -8,6 +8,8 @@ return [
     'label_address' => 'Registered Address',
     'label_vat_id' => 'VAT Identification Number',
     'label_responsible_person' => 'Responsible for Content (TMG §5)',
+    'label_registration_court' => 'Registered at :court',
+    'label_registration_number' => 'Registration Number: :number',
     // ── Pre-incorporation notice ───────────────────────
     'content_pre_incorporation' => ':name is currently in pre-incorporation and is intended to be registered as a gGmbH (gemeinnützige Gesellschaft mit beschränkter Haftung) in :city, :country, under :person.',
     // ── Registration ───────────────────────────────────

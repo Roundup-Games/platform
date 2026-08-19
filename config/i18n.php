@@ -23,40 +23,25 @@ return [
         'privacy' => [
             'content_contact_org',
         ],
-        'terms' => [
-            'content_contact_org',
-        ],
-
         // Factual values inherently identical across en/de: units, URLs,
         // hex colors, proper nouns, and acronyms that have no German form.
         'common' => [
-            'label_unit_km',
             'content_source_discord',
         ],
         'games' => [
             'label_host',
-            'label_capacity_exempt_owner',
         ],
         'location' => [
             'placeholder_website_url',
-            'type_cafe',
-            'type_flgs',
-            'type_bar',
         ],
         'teams' => [
             'placeholder_primary_color',
             'placeholder_secondary_color',
         ],
         'venue' => [
-            'placeholder_claim_website',
             'type_cafe',
         ],
-        'notifications' => [
-            'channel_discord',
-        ],
         'discord' => [
-            // Brand / proper noun — identical in EN and DE
-            'label_discord',
             // True cognate — identical in EN and DE
             'heading_server',
         ],

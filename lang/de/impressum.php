@@ -8,6 +8,8 @@ return [
     'label_address' => 'Anschrift',
     'label_vat_id' => 'Umsatzsteuer-Identifikationsnummer',
     'label_responsible_person' => 'Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV',
+    'label_registration_court' => 'Registergericht: :court',
+    'label_registration_number' => 'Registernummer: :number',
     // ── Gründungsphase ─────────────────────────────────
     'content_pre_incorporation' => ':name befindet sich derzeit in der Gründungsphase und soll als gGmbH (gemeinnützige Gesellschaft mit beschränkter Haftung) in :city, :country, unter :person registriert werden.',
     // ── Registrierung ──────────────────────────────────

@@ -99,6 +99,8 @@ return [
     'error_cannot_cancel_event_from_status_from' => 'Cannot cancel event from status ":from".',
     'error_cannot_change_event_status_from_from_to_to' => 'Cannot change event status from ":from" to ":to".',
     'error_cannot_close_registration_from_status_from' => 'Cannot close registration from status ":from".',
+    'error_event_not_found' => 'Event not found.',
+    'error_team_not_found' => 'Team not found.',
     'error_cannot_open_registration_from_status_from' => 'Cannot open registration from status ":from".',
     'error_cannot_publish_event_from_status_from' => 'Cannot publish event from status ":from".',
     'error_this_event_does_not_support' => 'This event does not support individual registration.',

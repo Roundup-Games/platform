@@ -20,10 +20,4 @@ return [
     // Recap (used in game-detail.blade.php)
     // Dashboard engagement (used in dashboard.blade.php)
     'dashboard_hosting' => 'Hosting',
-    'dashboard_new_recaps' => 'New Recaps',
-    'dashboard_recap_by' => 'By :name',
-    // Late cancel warning
-    // Host reliability preference
-    // Authorization errors
-    'error_dispute_unauthorized' => 'You are not authorized to dispute this attendance report.',
 ];

@@ -31,6 +31,8 @@ return [
     'action_submit_ticket' => 'Support-Ticket senden',
     'action_submit_billing_ticket' => 'Rechnungs-Ticket senden',
     'action_contact_support' => 'Support kontaktieren',
+    'action_back' => 'Zurück',
+    'error_unavailable' => 'Der Support ist derzeit nicht verfügbar. Bitte versuche es später erneut.',
     // Flash messages
     'flash_ticket_submitted' => 'Dein Support-Ticket wurde gesendet. Wir melden uns bald bei dir!',
     'flash_billing_ticket_submitted' => 'Dein Rechnungs-Ticket wurde gesendet. Unser Rechnungsteam prüft es in Kürze.',

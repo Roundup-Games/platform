@@ -103,7 +103,6 @@ return [
     'content_founded_year' => 'Gründungsjahr',
     'content_frequently_asked' => 'Häufig gefragt',
     'content_full' => 'Voll',
-    'content_google' => 'Google',
     'content_happy_gaming' => 'Viel Spaß beim Spielen!',
     'content_have_a_question_suggestion_or' => 'Hast du eine Frage, einen Vorschlag oder möchtest einfach Hallo sagen? Wir freuen uns von dir zu hören.',
     'content_he_him' => 'Er/Ihn',
@@ -258,9 +257,7 @@ return [
     'field_hey_name' => 'Hallo :name,',
     'field_individual_amount' => 'Einzel: :amount',
     'field_internal_notes' => 'Interne Notizen',
-    'field_max' => 'Max',
     'field_maximum_players' => 'Maximale Spielerzahl',
-    'field_min' => 'Min',
     'field_min_count_players' => '{1} Min. :count Spieler|[2,*] Min. :count Spieler',
     'field_location' => 'Ort',
     'field_minimum_players' => 'Minimale Spielerzahl',
@@ -421,6 +418,5 @@ return [
     'status_scheduled' => 'Geplant',
     'content_updating_results' => 'Ergebnisse werden aktualisiert…',
     // Einheiten
-    'label_unit_km' => 'km',
     'label_unit_min' => 'Min.',
 ];

@@ -84,5 +84,4 @@ return [
     'content_contact_intro' => 'For any questions about this Privacy Policy or your personal data, contact us:',
     'content_contact_org' => config('company.legal_name'),
     'content_contact_email' => 'Email: '.config('company.contact.privacy'),
-    // ── Last Updated ───────────────────────────────────
 ];

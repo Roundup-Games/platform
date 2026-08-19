@@ -24,7 +24,6 @@ return [
     // Einzelne „Keine X“-Hinweise werden ausgeblendet; nur dieser Fallback wird angezeigt.
     'content_no_activity_yet' => 'Noch keine Sitzungen an diesem Ort eingetragen — schau bald wieder vorbei.',
     // Reviews (S03 hook)
-    'content_reviews_soon' => 'Bewertungen für diesen Veranstaltungsort folgen in Kürze.',
     // Bewertungs-Oberfläche (M053/S03/T04 VenueReviews-Komponente)
     'content_no_reviews' => 'Noch keine Bewertungen für diesen Veranstaltungsort.',
     'label_your_rating' => 'Deine Bewertung',

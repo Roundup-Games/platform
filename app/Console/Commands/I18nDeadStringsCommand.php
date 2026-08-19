@@ -163,6 +163,20 @@ class I18nDeadStringsCommand extends Command
             // entity-invitation.blade.php: ternary for game vs campaign
             'emails.content_you_re_invited_to_a_game',
             'emails.content_you_re_invited_to_a_campaign',
+            // DashboardDiscoveryService: story keys passed positionally to buildCard()
+            // (id, title key, desc key, icon, earnedAt) — bare args, not inside __()
+            'profile.dashboard_story_veteran_host',
+            'profile.dashboard_story_veteran_host_desc',
+            'profile.dashboard_story_community_builder',
+            'profile.dashboard_story_community_builder_desc',
+            'profile.dashboard_story_campaign_commitment',
+            'profile.dashboard_story_campaign_commitment_desc',
+            'profile.dashboard_story_trusted_voice',
+            'profile.dashboard_story_trusted_voice_desc',
+            'profile.dashboard_story_explorer',
+            'profile.dashboard_story_explorer_desc',
+            // nearby-noteworthy.blade.php: map entry => key array
+            'profile.dashboard_nearby_friends_going',
             // dashboard.blade.php: $actionKey match() block
             'profile.dashboard_feed_action_created_game',
             'profile.dashboard_feed_action_joined',

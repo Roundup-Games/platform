@@ -250,13 +250,13 @@
                         </div>
 
                         <div class="flex flex-wrap gap-3">
-                            <button wire:click="generateCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_action_calendar_feed_regenerate') }}"
+                            <button wire:click="generateCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_calendar_feed_regenerate') }}"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="generateCalendarFeedToken">refresh</span>
                                 <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="generateCalendarFeedToken" role="status">progress_activity</span>
                                 <span>{{ __('settings.action_calendar_feed_regenerate') }}</span>
                             </button>
-                            <button wire:click="revokeCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_action_calendar_feed_revoke') }}"
+                            <button wire:click="revokeCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_calendar_feed_revoke') }}"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 border border-error/40 text-error rounded-lg hover:bg-error-container/50 transition-colors text-sm font-medium">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="revokeCalendarFeedToken">link_off</span>
                                 <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="revokeCalendarFeedToken" role="status">progress_activity</span>

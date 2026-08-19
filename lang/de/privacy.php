@@ -84,5 +84,4 @@ return [
     'content_contact_intro' => 'Bei Fragen zu dieser Datenschutzerklärung oder deinen personenbezogenen Daten kontaktiere uns:',
     'content_contact_org' => config('company.legal_name'),
     'content_contact_email' => 'E-Mail: '.config('company.contact.privacy'),
-    // ── Letzte Aktualisierung ──────────────────────────
 ];

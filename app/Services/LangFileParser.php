@@ -244,12 +244,51 @@ class LangFileParser
                     }
                 }
 
+                // Lang::get('domain.key', ...) / Lang::choice('domain.key', ...)
+                // Facade form with explicit locale used by Discord renderers.
+                if (preg_match_all("/\bLang::(?:get|choice)\(\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath);
+                    }
+                }
+
+                if (preg_match_all('/\bLang::(?:get|choice)\(\s*"([a-z_-]+\.[a-z0-9_-]+)"/', $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath);
+                    }
+                }
+
+                // Result-code keys: ParticipantResult::ok('domain.key') / ::fail(...).
+                // Participant flows return translation keys as result payloads that
+                // the caller resolves via __() elsewhere — statically they never
+                // appear inside a translator call.
+                if (preg_match_all("/ParticipantResult::(?:ok|fail)\(\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath.' (result-code)');
+                    }
+                }
+
+                if (preg_match_all('/ParticipantResult::(?:ok|fail)\(\s*"([a-z_-]+\.[a-z0-9_-]+)"/', $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath.' (result-code)');
+                    }
+                }
+
+                // trans_choice ternaries: trans_choice($cond ? 'domain.key_a' : 'domain.key_b', ...)
+                // Both branches are statically known — same shape as the __() ternary.
+                if (preg_match_all("/trans_choice\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]+)'\s*:\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                    for ($i = 0; $i < count($matches[1]); $i++) {
+                        $this->addKeyReference($keys, $matches[1][$i], $relativePath.' (ternary)');
+                        $this->addKeyReference($keys, $matches[2][$i], $relativePath.' (ternary)');
+                    }
+                }
+
                 // Config-indirect references: translation keys assigned to config fields
                 // like 'label_key', 'description_key', etc. These are resolved at runtime
                 // by packages and never appear in __() calls directly.
                 // Only register the specific value assigned to these fields, not all
                 // domain.key strings in the file.
-                if (preg_match_all("/['\"](?:label_key|description_key|title_key|message_key)['\"]\\s*=>\\s*['\"]([a-z_-]+\\.[a-z0-9_-]+)['\"]/", $content, $matches)) {
+                if (preg_match_all("/['\"](?:label_key|description_key|title_key|message_key|label|description|title|subject|body|message)['\"]\\s*=>\\s*['\"]([a-z_-]+\\.[a-z0-9_-]+)['\"]/", $content, $matches)) {
                     foreach ($matches[1] as $key) {
                         $this->addKeyReference($keys, $key, $relativePath.' (config-indirect)');
                     }

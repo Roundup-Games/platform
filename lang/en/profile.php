@@ -108,17 +108,9 @@ return [
     // Dashboard stat labels
     'dashboard_stats_unread_notifications' => 'Unread',
     // Community Feed
-    'dashboard_feed_heading' => 'What\'s happening',
-    'dashboard_feed_empty_title' => 'Follow players to see their activity',
-    'dashboard_feed_empty_desc' => 'When you follow people, their game activity will appear here.',
-    'dashboard_feed_find_people' => 'Find People',
-    'dashboard_feed_trending_heading' => 'Also happening near you',
     'dashboard_feed_action_created_game' => 'started a game',
     'dashboard_feed_action_recapped_game' => 'posted a recap of',
     'dashboard_feed_action_created_campaign' => 'started a campaign',
-    'dashboard_feed_spots_left' => ':count spot left|:count spots left',
-    'dashboard_feed_players' => ':current/:max players',
-    'dashboard_feed_trending_badge' => 'Trending',
     // Smart prompt action labels (also used by DashboardSmartPromptService)
     'dashboard_prompt_view_invitations' => 'View invitations',
     'dashboard_prompt_view_details' => 'View details',
@@ -141,32 +133,13 @@ return [
     'dashboard_prompt_msg_new_follower_shared' => ':name started following you — you share :count game system|:name started following you — you share :count game systems',
     'dashboard_prompt_msg_greeting' => 'Good :time_of_day, :name',
     'dashboard_prompt_msg_upcoming_suffix' => ' — you have :count upcoming session| — you have :count upcoming sessions',
-    'dashboard_prompt_msg_welcome' => 'Welcome to :brand — find your first game',
     'dashboard_prompt_msg_time_morning' => 'morning',
     'dashboard_prompt_msg_time_afternoon' => 'afternoon',
     'dashboard_prompt_msg_time_evening' => 'evening',
     // Opportunities section
-    'dashboard_opportunities_heading' => 'Games you might like',
-    'dashboard_opportunities_create_cta' => 'Create a game',
-    'dashboard_opportunities_spots_available' => ':count spot available|:count spots available',
-    'dashboard_opportunities_recurring' => 'Recurring',
-    'dashboard_opportunities_km_away' => ':count km',
     // Contributions section
-    'dashboard_contributions_heading' => 'Your contributions',
-    'dashboard_contributions_hosted' => 'You\'ve hosted :count game|You\'ve hosted :count games',
-    'dashboard_contributions_hosted_detail' => ':hours hours for :players player|:hours hours for :players players',
-    'dashboard_contributions_played' => 'You\'ve played :count game|You\'ve played :count games',
-    'dashboard_contributions_played_detail' => 'across :count system|across :count systems',
-    'dashboard_contributions_campaign' => 'Your longest campaign: :name',
-    'dashboard_contributions_campaign_detail' => ':count session completed|:count sessions completed',
-    'dashboard_contributions_recaps' => 'You\'ve written :count recap|You\'ve written :count recaps',
-    'dashboard_contributions_reviews' => 'You\'ve given :count review|You\'ve given :count reviews',
-    'dashboard_contributions_followers' => 'You have :count follower|You have :count followers',
-    'dashboard_contributions_gm_rating' => 'Your GM rating: :rating / 5',
     // Quick Actions
     // Your Week section
-    'dashboard_your_week' => 'Your Week',
-    'dashboard_your_week_empty' => 'No games this week. Time to find your next adventure!',
     'dashboard_your_week_find_game' => 'Find Your Next Game',
     // Reliability tier labels
     'label_reliability_tier_reliable' => 'Reliable',
@@ -204,7 +177,6 @@ return [
     'action_view_all_tickets' => 'View all tickets',
     'content_no_support_tickets' => 'You haven\'t submitted any support tickets yet.',
     // Dashboard mode
-    'dashboard_mode_established' => 'Established',
     // Newcomer dashboard
     'dashboard_newcomer_welcome' => 'Welcome, :name!',
     'dashboard_newcomer_matching_games' => '{1} :count game matching your taste nearby|[2,*] :count games matching your taste nearby',
@@ -265,25 +237,13 @@ return [
     'dashboard_action_expires_in_hm' => 'Expires in :h hour :m min',
     'dashboard_action_expires_in_m' => 'Expires in :m min',
     // Action Center - additional task-plan keys
-    'dashboard_action_center_item_count' => '{1} :count item needs your attention|[2,*] :count items need your attention',
-    'dashboard_action_expires_in' => 'Expires in :time',
-    'dashboard_action_below_min' => ':count of :min players confirmed for :game',
-    'dashboard_action_pending_applications' => '{1} :count player waiting for :game|[2,*] :count players waiting for :game',
-    'dashboard_action_pending_invitation' => 'You have a pending invitation to :game',
-    'dashboard_action_missing_recap' => 'Write a recap for :game',
-    'dashboard_action_debriefing' => 'Share how :game went',
-    'dashboard_action_new_review' => 'New :rating★ review',
-    'dashboard_action_new_follower' => ':name started following you — you share :systems',
-    'dashboard_action_host_bulletin' => 'Host update for :game',
     // Established Dashboard - Schedule
     'dashboard_schedule_heading' => 'Your Schedule',
     'dashboard_schedule_coming_up' => 'Coming Up',
     'dashboard_schedule_nothing_scheduled' => 'Nothing scheduled — find your next game',
     'dashboard_schedule_host_again' => 'Host again',
-    'dashboard_schedule_host_again_desc' => 'Your last game ":game" was a hit — ready for another round?',
     // Established Dashboard - Nearby & Noteworthy
     'dashboard_nearby_heading' => 'Nearby and Noteworthy',
-    'dashboard_nearby_be_first' => 'Be the first to host in your area',
     'dashboard_nearby_empty' => 'No games nearby yet',
     'dashboard_nearby_spots' => '{1} :count spot|[2,*] :count spots',
     'dashboard_nearby_friends_going' => 'Friends going',

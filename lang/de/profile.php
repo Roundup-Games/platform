@@ -108,17 +108,9 @@ return [
     // Dashboard-Statistikbeschriftungen
     'dashboard_stats_unread_notifications' => 'Ungelesen',
     // Community Feed
-    'dashboard_feed_heading' => 'Was passiert',
-    'dashboard_feed_empty_title' => 'Folge Spielern, um Aktivität zu sehen',
-    'dashboard_feed_empty_desc' => 'Wenn du Leuten folgst, wird deren Spiel-Aktivität hier angezeigt.',
-    'dashboard_feed_find_people' => 'Leute finden',
-    'dashboard_feed_trending_heading' => 'Auch in deiner Nähe',
     'dashboard_feed_action_created_game' => 'hat ein Spiel gestartet',
     'dashboard_feed_action_recapped_game' => 'hat eine Zusammenfassung geschrieben für',
     'dashboard_feed_action_created_campaign' => 'hat eine Kampagne gestartet',
-    'dashboard_feed_spots_left' => ':count Platz frei|:count Plätze frei',
-    'dashboard_feed_players' => ':current/:max Spieler',
-    'dashboard_feed_trending_badge' => 'Beliebt',
     // Smart-Prompt-Aktionen (auch in DashboardSmartPromptService verwendet)
     'dashboard_prompt_view_invitations' => 'Einladungen ansehen',
     'dashboard_prompt_view_details' => 'Details ansehen',
@@ -141,32 +133,13 @@ return [
     'dashboard_prompt_msg_new_follower_shared' => ':name folgt dir jetzt — ihr teilt :count Spiel-System|:name folgt dir jetzt — ihr teilt :count Spiel-Systeme',
     'dashboard_prompt_msg_greeting' => 'Guten :time_of_day, :name',
     'dashboard_prompt_msg_upcoming_suffix' => ' — du hast :count anstehende Runde| — du hast :count anstehende Runden',
-    'dashboard_prompt_msg_welcome' => 'Willkommen bei :brand — finde dein erstes Spiel',
     'dashboard_prompt_msg_time_morning' => 'Morgen',
     'dashboard_prompt_msg_time_afternoon' => 'Tag',
     'dashboard_prompt_msg_time_evening' => 'Abend',
     // Spiele in der Nähe
-    'dashboard_opportunities_heading' => 'Spiele, die dir gefallen könnten',
-    'dashboard_opportunities_create_cta' => 'Spiel erstellen',
-    'dashboard_opportunities_spots_available' => ':count Platz frei|:count Plätze frei',
-    'dashboard_opportunities_recurring' => 'Wiederkehrend',
-    'dashboard_opportunities_km_away' => ':count km entfernt',
     // Deine Beiträge
-    'dashboard_contributions_heading' => 'Deine Beiträge',
-    'dashboard_contributions_hosted' => 'Du hast :count Spiel geleitet|Du hast :count Spiele geleitet',
-    'dashboard_contributions_hosted_detail' => ':hours Stunden für :players|:hours Stunden für :players Spieler',
-    'dashboard_contributions_played' => 'Du hast :count Spiel gespielt|Du hast :count Spiele gespielt',
-    'dashboard_contributions_played_detail' => 'in :count System|in :count Systemen',
-    'dashboard_contributions_campaign' => 'Deine längste Kampagne: :name',
-    'dashboard_contributions_campaign_detail' => ':count Sitzung abgeschlossen|:count Sitzungen abgeschlossen',
-    'dashboard_contributions_recaps' => 'Du hast :count Zusammenfassung geschrieben|Du hast :count Zusammenfassungen geschrieben',
-    'dashboard_contributions_reviews' => 'Du hast :count Bewertung geschrieben|Du hast :count Bewertungen geschrieben',
-    'dashboard_contributions_followers' => 'Du hast :count Follower|Du hast :count Follower',
-    'dashboard_contributions_gm_rating' => 'Deine GM-Bewertung: :rating / 5',
     // Schnellaktionen
     // Deine-Woche-Sektion
-    'dashboard_your_week' => 'Deine Woche',
-    'dashboard_your_week_empty' => 'Keine Spiele diese Woche. Zeit, was Neues zu finden!',
     'dashboard_your_week_find_game' => 'Spiel finden',
     // Zuverlässigkeitsstufen
     'label_reliability_tier_reliable' => 'Zuverlässig',
@@ -205,7 +178,6 @@ return [
     'action_view_all_tickets' => 'Alle Tickets anzeigen',
     'content_no_support_tickets' => 'Du hast noch keine Support-Tickets eingereicht.',
     // Dashboard-Modus
-    'dashboard_mode_established' => 'Etabliert',
     // Newcomer-Dashboard
     'dashboard_newcomer_welcome' => 'Willkommen, :name!',
     'dashboard_newcomer_matching_games' => '{1} :count passendes Spiel in deiner Nähe|[2,*] :count passende Spiele in deiner Nähe',
@@ -230,7 +202,6 @@ return [
     'dashboard_action_center_view_session' => 'Runde ansehen',
     'dashboard_action_center_find_game' => 'Nächstes Spiel finden',
     'dashboard_action_center_view_all' => '{1} :count weiteren Eintrag in Meine Spiele ansehen|[2,*] :count weitere Einträge in Meine Spiele ansehen',
-    'dashboard_action_center_item_count' => '{1} :count Eintrag braucht deine Aufmerksamkeit|[2,*] :count Einträge brauchen deine Aufmerksamkeit',
     // Action Center items
     'dashboard_action_waitlist_title' => 'Bestätige deinen Platz: :game',
     'dashboard_action_waitlist_desc' => 'Dein Wartelistenplatz läuft bald ab',
@@ -267,24 +238,13 @@ return [
     'dashboard_action_expires_in_hm' => 'Läuft ab in :h Std. :m Min.',
     'dashboard_action_expires_in_m' => 'Läuft ab in :m Min.',
     // Action Center - additional task-plan keys
-    'dashboard_action_expires_in' => 'Läuft ab in :time',
-    'dashboard_action_below_min' => ':count von :min Spielern bestätigt für :game',
-    'dashboard_action_pending_applications' => '{1} :count Spieler wartet auf :game|[2,*] :count Spieler warten auf :game',
-    'dashboard_action_pending_invitation' => 'Du hast eine ausstehende Einladung zu :game',
-    'dashboard_action_missing_recap' => 'Schreib einen Nachbericht für :game',
-    'dashboard_action_debriefing' => 'Teile mit, wie :game war',
-    'dashboard_action_new_review' => 'Neue :rating★-Bewertung',
-    'dashboard_action_new_follower' => ':name folgt dir jetzt — ihr teilt :systems',
-    'dashboard_action_host_bulletin' => 'Host-Update für :game',
     // Etabliertes Dashboard - Zeitplan
     'dashboard_schedule_heading' => 'Dein Zeitplan',
     'dashboard_schedule_coming_up' => 'Demnächst',
     'dashboard_schedule_nothing_scheduled' => 'Nichts geplant — finde dein nächstes Spiel',
     'dashboard_schedule_host_again' => 'Nochmal hosten',
-    'dashboard_schedule_host_again_desc' => 'Dein letztes Spiel ":game" war ein Hit — bereit für eine neue Runde?',
     // Etabliertes Dashboard - In der Nähe & Bemerkenswert
     'dashboard_nearby_heading' => 'In der Nähe & Bemerkenswert',
-    'dashboard_nearby_be_first' => 'Sei der Erste, der in deiner Nähe hostet',
     'dashboard_nearby_empty' => 'Noch keine Spiele in der Nähe',
     'dashboard_nearby_spots' => '{1} :count Platz|[2,*] :count Plätze',
     'dashboard_nearby_friends_going' => 'Freunde gehen hin',

@@ -40,6 +40,8 @@ return [
     'action_submit_ticket' => 'Submit Support Ticket',
     'action_submit_billing_ticket' => 'Submit Billing Ticket',
     'action_contact_support' => 'Contact Support',
+    'action_back' => 'Back',
+    'error_unavailable' => 'Support is currently unavailable. Please try again later.',
     // Flash messages
     'flash_ticket_submitted' => 'Your support ticket has been submitted. We\'ll get back to you soon!',
     'flash_billing_ticket_submitted' => 'Your billing support ticket has been submitted. Our billing team will review it shortly.',

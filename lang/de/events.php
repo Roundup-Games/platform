@@ -99,6 +99,8 @@ return [
     'error_cannot_cancel_event_from_status_from' => 'Veranstaltung kann nicht aus dem Status ":from" abgesagt werden.',
     'error_cannot_change_event_status_from_from_to_to' => 'Veranstaltungsstatus kann nicht von ":from" zu ":to" geändert werden.',
     'error_cannot_close_registration_from_status_from' => 'Anmeldung kann nicht aus dem Status ":from" geschlossen werden.',
+    'error_event_not_found' => 'Event nicht gefunden.',
+    'error_team_not_found' => 'Team nicht gefunden.',
     'error_cannot_open_registration_from_status_from' => 'Anmeldung kann nicht aus dem Status ":from" geöffnet werden.',
     'error_cannot_publish_event_from_status_from' => 'Veranstaltung kann nicht aus dem Status ":from" veröffentlicht werden.',
     'error_this_event_does_not_support' => 'Diese Veranstaltung unterstützt keine Einzelanmeldung.',

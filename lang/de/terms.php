@@ -63,5 +63,4 @@ return [
     'content_changes_2' => 'Fortgesetzte Nutzung der Plattform nach Inkrafttreten der Änderungen gilt als Zustimmung zu den aktualisierten Bedingungen.',
     // ── Kontakt ────────────────────────────────────────
     'content_contact_email' => 'E-Mail: '.config('company.contact.legal'),
-    // ── Letzte Aktualisierung ──────────────────────────
 ];

@@ -23,7 +23,6 @@ return [
     // Per-section "No X" boxes are hidden; only this single fallback renders.
     'content_no_activity_yet' => 'No sessions listed at this venue yet — check back soon.',
     // Reviews (S03 hook)
-    'content_reviews_soon' => 'Reviews for this venue are coming soon.',
     // Reviews surface (M053/S03/T04 VenueReviews component)
     'content_no_reviews' => 'No reviews for this venue yet.',
     'label_your_rating' => 'Your Rating',
