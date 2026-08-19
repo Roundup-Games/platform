@@ -5,6 +5,7 @@ namespace App\Livewire\Discovery;
 use App\Dto\DiscoveryFilters;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
+use App\Enums\Recurrence;
 use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
 use App\Models\Location;
@@ -230,7 +231,7 @@ class DiscoveryPage extends Component
             'experienceLevels' => ExperienceLevel::cases(),
             'safetyToolGroups' => SafetyTool::grouped(),
             'languages' => ContentLanguage::cases(),
-            'recurrenceOptions' => ['weekly', 'bi-weekly', 'monthly'],
+            'recurrenceOptions' => Recurrence::values(),
             'curatedCategories' => $service->getCuratedCategories(),
             'curatedMechanics' => $service->getCuratedMechanics(),
             'radiusOptions' => DiscoveryQueryService::RADIUS_OPTIONS,

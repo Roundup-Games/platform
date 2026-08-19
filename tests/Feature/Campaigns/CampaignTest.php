@@ -13,6 +13,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\RecurrenceService;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -85,6 +86,30 @@ describe('CreateCampaign Component', function () {
         expect($campaign->time_of_day)->toBe('20:00');
         expect($campaign->visibility)->toBe(Visibility::Protected);
         expect($campaign->status)->toBe(CampaignStatus::Active);
+    });
+
+    it('creates campaign with irregular (custom) recurrence and never nudges it', function () {
+        $user = campaignTestCreateOwner();
+        $system = GameSystem::factory()->create();
+
+        // The form has offered 'custom' since M001, but the DB CHECK constraint
+        // rejected it — this was a live 500 until the constraint was widened.
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateCampaign::class)
+            ->set('name', 'Ad Hoc Delvers')
+            ->set('game_type', 'ttrpg')
+            ->set('game_system_id', $system->id)
+            ->set('recurrence', 'custom')
+            ->set('time_of_day', '19:30')
+            ->call('save')
+            ->assertRedirect();
+
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->recurrence)->toBe('custom');
+
+        // Irregular cadence = no machine contract: no plan-ahead nudges ever.
+        expect(app(RecurrenceService::class)->shouldNudge($campaign))->toBeFalse();
+        expect(app(RecurrenceService::class)->nextSuggestedDateTime($campaign))->toBeNull();
     });
 
     it('creates campaign with minimum required fields', function () {

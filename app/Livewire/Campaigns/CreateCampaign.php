@@ -135,7 +135,7 @@ class CreateCampaign extends Component
             'location_id' => 'nullable|uuid|exists:locations,id',
             'location_instructions' => 'nullable|string|max:1000',
             'description' => 'nullable|string|max:10000',
-            'recurrence' => 'required|in:weekly,bi-weekly,monthly,custom',
+            'recurrence' => 'required|in:'.implode(',', Recurrence::values()),
             'time_of_day' => 'required|date_format:H:i',
             'session_duration' => 'nullable|numeric|min:0.5|max:24',
             'price_per_session' => 'nullable|numeric|min:0',

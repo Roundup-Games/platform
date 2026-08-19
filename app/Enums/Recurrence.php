@@ -2,6 +2,13 @@
 
 namespace App\Enums;
 
+/**
+ * Campaign cadence. Cases are declared in calendar order (shortest to
+ * longest interval, irregular last) — cases()/values() feed every user-facing
+ * enumeration (create form, admin, discovery filter) in exactly this order.
+ * tests/Unit/Enums/RecurrenceTest.php locks this; keep both in sync when
+ * adding a cadence.
+ */
 enum Recurrence: string
 {
     case Weekly = 'weekly';

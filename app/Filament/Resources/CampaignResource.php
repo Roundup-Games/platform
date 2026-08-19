@@ -72,14 +72,7 @@ class CampaignResource extends Resource
                                     ->options(fn (): array => GameSystem::labelOptions())
                                     ->getOptionLabelsUsing(fn (array $values): array => GameSystem::labelsForIds($values)),
                                 Select::make('recurrence')
-                                    // The campaigns_recurrence_check DB constraint admits
-                                    // weekly/bi-weekly/monthly only; 'custom' is offered on
-                                    // the public form but cannot persist, so it is absent here.
-                                    ->options([
-                                        'weekly' => Recurrence::Weekly->label(),
-                                        'bi-weekly' => Recurrence::BiWeekly->label(),
-                                        'monthly' => Recurrence::Monthly->label(),
-                                    ]),
+                                    ->options(collect(Recurrence::cases())->mapWithKeys(fn (Recurrence $r) => [$r->value => $r->label()])),
                                 TextInput::make('session_duration')
                                     ->label('Session Duration (hours)')
                                     ->numeric()
