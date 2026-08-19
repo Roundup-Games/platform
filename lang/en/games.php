@@ -314,10 +314,10 @@ return [
     'content_debriefing_prompt_wish' => 'A wish — something for next time',
     // Visibility labels
     // Participant role labels
+    'field_role_owner' => 'Owner',
+    'field_role_player' => 'Player',
     'field_role_invited' => 'Invited',
     'field_role_applicant' => 'Applicant',
-    // Participant status labels
-    'status_accepted' => 'Accepted',
     // Experience levels
     'content_experience_beginner' => 'Beginner',
     'content_experience_intermediate' => 'Intermediate',

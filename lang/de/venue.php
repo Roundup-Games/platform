@@ -54,6 +54,7 @@ return [
     'type_community_center' => 'Gemeindezentrum',
     'type_convention' => 'Convention / Messe',
     'type_bar' => 'Bar / Kneipe',
+    'type_other' => 'Sonstiges',
     // ── Veranstaltungsort-Verzeichnis (/{locale}/venues) ─────────────────────
     'nav_venue_directory' => 'Veranstaltungsort-Verzeichnis',
     'heading_directory' => 'Finde einen Ort zum Spielen',

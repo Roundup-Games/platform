@@ -21,7 +21,7 @@
                 {{ $campaign->name }}
             </h3>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $statusClass }}">
-                {{ __('campaigns.status_' . $campaign->status->value) }}
+                {{ $campaign->status->label() }}
             </span>
             @if($campaign->gameSystem)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">

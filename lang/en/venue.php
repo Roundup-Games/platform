@@ -53,6 +53,7 @@ return [
     'type_community_center' => 'Community Center',
     'type_convention' => 'Convention / Convention Center',
     'type_bar' => 'Bar / Pub',
+    'type_other' => 'Other',
     // ── Venue directory (/{locale}/venues) ───────────────────────────────────
     'nav_venue_directory' => 'Venue Directory',
     'heading_directory' => 'Find a place to play',

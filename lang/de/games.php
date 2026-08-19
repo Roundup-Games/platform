@@ -309,10 +309,10 @@ return [
     'content_benched_count' => '{0} |{1} auf der Bank|[2,*] auf der Bank',
     // Sichtbarkeitsbezeichnungen
     // Teilnehmerrollenbezeichnungen
+    'field_role_owner' => 'Organisator',
+    'field_role_player' => 'Spieler',
     'field_role_invited' => 'Eingeladen',
     'field_role_applicant' => 'Bewerber',
-    // Teilnehmerstatusbezeichnungen
-    'status_accepted' => 'Angenommen',
     // Erfahrungsniveau
     'content_experience_beginner' => 'Anfänger',
     'content_experience_intermediate' => 'Fortgeschritten',

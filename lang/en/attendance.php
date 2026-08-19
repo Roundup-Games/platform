@@ -12,6 +12,10 @@ return [
     'status_excused' => 'Excused',
     'status_cancelled_early' => 'Cancelled Early',
     'status_not_reported' => 'Not yet reported',
+    // Resolution methods (AttendanceResolutionMethod::label())
+    'resolution_early_consensus' => 'Early Consensus',
+    'resolution_timeout' => 'Timeout',
+    'resolution_manual' => 'Manual',
     // Dispute
     // Recap (used in game-detail.blade.php)
     // Dashboard engagement (used in dashboard.blade.php)

@@ -303,7 +303,7 @@ class CreateCampaign extends Component
     {
         $options = ['' => __('discovery.content_any')];
         foreach (ExperienceLevel::cases() as $case) {
-            $options[$case->value] = __('games.content_experience_'.$case->value);
+            $options[$case->value] = $case->label();
         }
 
         return $options;

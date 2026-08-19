@@ -74,7 +74,7 @@
                                     <div class="flex items-center gap-2 ml-3 shrink-0">
                                         @if($venue['venue_type'])
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary-container/40 text-on-primary-container">
-                                                {{ __('location.type_' . $venue['venue_type']) }}
+                                                {{ \App\Enums\VenueType::tryFrom($venue['venue_type'])?->label() ?? $venue['venue_type'] }}
                                             </span>
                                         @endif
                                         @if($venue['distance_km'] !== null)
@@ -149,7 +149,7 @@
                         @endif
                         @if($selectedIsVenue && $selectedVenue->venue_type)
                             <span class="inline-flex items-center ml-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary-container/40 text-on-primary-container">
-                                {{ __('location.type_' . $selectedVenue->venue_type->value) }}
+                                {{ $selectedVenue->venue_type->label() }}
                             </span>
                         @endif
                     @else

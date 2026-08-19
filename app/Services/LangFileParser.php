@@ -293,6 +293,24 @@ class LangFileParser
                     }
                 }
 
+                // Interpolated dynamic keys: __("domain.prefix_{$var}_suffix")
+                // Double-quoted strings resolve {$...} at runtime; extract the static
+                // prefix before the first {$ so dead-string detection can match keys
+                // starting with it. The prefix must end with an underscore so an
+                // empty prefix can never whitelist an entire domain.
+                // e.g. __("notifications.subject_{$type}_invitation") → registers 'subject_'
+                if (preg_match_all('/__\(\s*"([a-z_-]+\.[a-z0-9_-]+_)\{\$/', $content, $matches)) {
+                    foreach ($matches[1] as $prefix) {
+                        $dot = strpos($prefix, '.');
+                        if ($dot === false) {
+                            continue;
+                        }
+                        $domain = substr($prefix, 0, $dot);
+                        $keyPrefix = substr($prefix, $dot + 1);
+                        $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
+                    }
+                }
+
                 // Ternary-constructed keys: __($cond ? 'domain.key_a' : 'domain.key_b')
                 // Both branches are statically known — register them as used.
                 if (preg_match_all("/__\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]+)'\s*:\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
@@ -381,7 +399,7 @@ class LangFileParser
             'cat_', 'mech_', 'play_style_', 'playstyle_',
             'type_', 'channel_', 'state_', 'group_',
             'section_', 'tab_', 'filter_',
-            'tool_', 'gm_', 'activity_', 'category_',
+            'tool_', 'gm_', 'activity_', 'category_', 'resolution_',
             'push_', 'dashboard_', 'verb_', 'nearby_',
             'request_', 'email_', 'validation_', 'guest_',
             'display_', 'ios_', 'nav_', 'install_',

@@ -534,7 +534,7 @@
                                     @else
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
                                             {{ $application->status === 'approved' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container' }}">
-                                            {{ __('campaigns.status_' . $application->status) }}
+                                            {{ __('common.status_' . $application->status) }}
                                         </span>
                                     @endif
                                 </div>

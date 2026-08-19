@@ -22,7 +22,7 @@
                 {{ $game->name }}
             </h3>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $statusClass }}">
-                {{ __('games.status_' . $game->status->value) }}
+                {{ $game->status->label() }}
             </span>
             @foreach($game->gameSystems as $system)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
