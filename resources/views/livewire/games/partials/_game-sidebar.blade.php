@@ -15,7 +15,7 @@
                     <span class="text-sm font-medium text-on-surface">{{ __('games.content_availability') }}</span>
                     @if($spotsLeft === 0)
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-error/10 text-error">
-                            {{ __('games.content_full') }}
+                            {{ __('common.content_full') }}
                         </span>
                     @elseif($spotsLeft <= 2)
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/15 text-primary">
@@ -53,7 +53,7 @@
             <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
                 <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                     <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">link</span>
-                    {{ __('games.action_join_via_share_link') }}
+                    {{ __('common.action_join_via_share_link') }}
                 </h3>
                 @if($isGameFull)
                     <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_game_full_join_waitlist') }}</p>
@@ -62,7 +62,7 @@
                     class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">login</span>
                     @if($isGameFull)
-                        {{ __('games.action_join_waitlist') }}
+                        {{ __('common.action_join_waitlist') }}
                     @else
                         {{ __('games.action_join_game') }}
                     @endif
@@ -82,7 +82,7 @@
                     @if($game->visibility->value === 'public')
                         {{ __('games.action_join_game') }}
                     @else
-                        {{ __('games.action_apply_to_join') }}
+                        {{ __('common.action_apply_to_join') }}
                     @endif
                 </h3>
                 @if($game->visibility->value === 'protected')
@@ -96,27 +96,27 @@
                     @if($game->visibility->value === 'public')
                         {{ __('games.action_join_game') }}
                     @else
-                        {{ __('games.action_apply_to_join') }}
+                        {{ __('common.action_apply_to_join') }}
                     @endif
                 </a>
             </div>
         @elseif($hasExistingApplication)
             <div class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6 text-center">
                 <span class="material-symbols-outlined text-3xl text-tertiary mb-2" aria-hidden="true">schedule</span>
-                <p class="text-on-surface font-medium">{{ __('games.content_application_pending') }}</p>
-                <p class="text-sm text-on-surface-variant mt-1">{{ __('games.content_waiting_for_host_approval') }}</p>
+                <p class="text-on-surface font-medium">{{ __('common.content_application_pending') }}</p>
+                <p class="text-sm text-on-surface-variant mt-1">{{ __('common.content_waiting_for_host_approval') }}</p>
             </div>
         @elseif($canJoinWaitlist)
             <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
                 <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                     <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">playlist_add</span>
-                    {{ __('games.action_join_waitlist') }}
+                    {{ __('common.action_join_waitlist') }}
                 </h3>
                 <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_game_full_join_waitlist') }}</p>
                 <button wire:click="joinWaitlist"
                     class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">playlist_add</span>
-                    {{ __('games.action_join_waitlist') }}
+                    {{ __('common.action_join_waitlist') }}
                 </button>
             </div>
         @endif
@@ -192,7 +192,7 @@
                         @else
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
                                 {{ $application->status === 'approved' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container' }}">
-                                {{ __('games.status_' . $application->status) }}
+                                {{ \App\Enums\ParticipantStatus::labelFor($application->status) }}
                             </span>
                         @endif
                     </div>
@@ -206,7 +206,7 @@
         <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h3 class="text-base font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-lg" aria-hidden="true">playlist_add</span>
-                {{ __('games.content_waitlist_management') }}
+                {{ __('common.content_waitlist_management') }}
             </h3>
             <div class="divide-y divide-outline-variant/30">
                 @foreach($waitlistedPlayers as $waitlisted)
@@ -214,13 +214,13 @@
                         <div class="flex-1 min-w-0">
                             <x-user-link :user="$waitlisted->user" avatar-size="w-9 h-9" :truncate="true" />
                             <p class="text-xs text-on-surface-variant ml-11">
-                                {{ __('games.content_waitlist_position', ['position' => $loop->iteration]) }}
+                                {{ __('common.content_waitlist_position', ['position' => $loop->iteration]) }}
                             </p>
                         </div>
                         <button wire:click="manualPromote('{{ $waitlisted->id }}')"
                             class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
                             <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
-                            {{ __('games.action_manual_promote') }}
+                            {{ __('common.action_promote') }}
                         </button>
                     </div>
                 @endforeach
@@ -233,9 +233,9 @@
         <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h3 class="text-base font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-lg" aria-hidden="true">event_seat</span>
-                {{ __('games.content_bench') }}
+                {{ __('common.content_bench') }}
             </h3>
-            <p class="text-xs text-on-surface-variant mb-3">{{ __('games.content_bench_description') }}</p>
+            <p class="text-xs text-on-surface-variant mb-3">{{ __('common.content_bench_description') }}</p>
             <div class="divide-y divide-outline-variant/30">
                 @foreach($benchedPlayers as $benched)
                     <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
@@ -245,7 +245,7 @@
                         <button wire:click="promoteFromBench('{{ $benched->id }}')"
                             class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
                             <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
-                            {{ __('games.action_promote_from_bench') }}
+                            {{ __('common.action_promote') }}
                         </button>
                     </div>
                 @endforeach

@@ -199,7 +199,7 @@
 <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
     <h3 class="font-heading text-lg font-semibold text-on-surface flex items-center gap-2 mb-4">
         <span aria-hidden="true" class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">route</span>
-        {{ __('profile.dashboard_newcomer_progress_heading') }}
+        {{ __('common.field_getting_started') }}
         @if(($tracker['completion_percentage'] ?? 0) > 0)
             <span class="ml-auto text-sm font-normal text-on-surface-variant">
                 {{ $tracker['completion_percentage'] }}%
@@ -241,7 +241,7 @@
     {{-- Progress bar --}}
     @if(($tracker['completion_percentage'] ?? 0) < 100)
     <div class="mt-4 h-1.5 bg-surface-container-high rounded-full overflow-hidden" role="progressbar"
-         aria-label="{{ __('profile.dashboard_newcomer_progress_heading') }}" aria-valuenow="{{ $tracker['completion_percentage'] ?? 0 }}" aria-valuemin="0" aria-valuemax="100">
+         aria-label="{{ __('common.field_getting_started') }}" aria-valuenow="{{ $tracker['completion_percentage'] ?? 0 }}" aria-valuemin="0" aria-valuemax="100">
         <div class="h-full bg-primary rounded-full transition-all duration-500" style="width: {{ $tracker['completion_percentage'] ?? 0 }}%"></div>
     </div>
     @endif
@@ -297,7 +297,7 @@
 
 {{-- ═══ Quick Actions ═══ --}}
 @if(isset($quickActions) && count($quickActions) > 0)
-<nav class="flex flex-wrap gap-3" aria-label="{{ __('profile.dashboard_quick_actions_heading') }}">
+<nav class="flex flex-wrap gap-3" aria-label="{{ __('gws.heading_quick_actions') }}">
     @foreach($quickActions as $action)
         <a href="{{ $action['url'] }}" wire:navigate
            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors {{ $action['style'] === 'primary' ? 'bg-primary text-on-primary hover:bg-primary/90' : 'border border-outline-variant text-on-surface hover:bg-surface-container-low' }}">

@@ -123,7 +123,7 @@
     <div class="bg-surface-container-low rounded-xl shadow-ambient mb-6">
         <div class="border-b border-outline-variant">
             <nav class="flex -mb-px">
-                @foreach(['details' => __('common.content_details'), 'venue' => __('location.content_venue'), 'registration' => __('billing.field_registration_fees'), 'divisions' => __('events.content_divisions'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
+                @foreach(['details' => __('common.content_details'), 'venue' => __('common.content_venue'), 'registration' => __('billing.field_registration_fees'), 'divisions' => __('events.content_divisions'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
                     <button wire:click="setActiveTab('{{ $tab }}')"
                             class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === $tab ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant' }}">
                         {{ $label }}
@@ -185,7 +185,7 @@
                                 <option value="registration_closed">{{ __('events.content_registration_closed') }}</option>
                                 <option value="in_progress">{{ __('common.content_in_progress') }}</option>
                                 <option value="completed">{{ __('common.status_completed') }}</option>
-                                <option value="cancelled">{{ __('events.status_cancelled') }}</option>
+                                <option value="cancelled">{{ __('common.status_cancelled') }}</option>
                             </select>
                             @error('status') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>

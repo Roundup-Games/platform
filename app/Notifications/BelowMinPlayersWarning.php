@@ -26,7 +26,7 @@ class BelowMinPlayersWarning extends BaseNotification
             ->subject(__('notifications.subject_below_min_players', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_below_min_players', [
                 'game' => $this->game->name,
                 'current' => $this->currentCount,

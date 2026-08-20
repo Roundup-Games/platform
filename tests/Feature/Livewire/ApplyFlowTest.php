@@ -65,7 +65,7 @@ describe('Game Detail apply CTA', function () {
         Livewire::actingAs($viewer)
             ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('canApply', true)
-            ->assertSee(__('games.action_apply_to_join'));
+            ->assertSee(__('common.action_apply_to_join'));
     });
 
     it('hides CTA when viewer is owner', function () {
@@ -125,7 +125,7 @@ describe('Game Detail apply CTA', function () {
             ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('canApply', false)
             ->assertViewHas('hasExistingApplication', true)
-            ->assertSee(__('games.content_application_pending'));
+            ->assertSee(__('common.content_application_pending'));
     });
 });
 

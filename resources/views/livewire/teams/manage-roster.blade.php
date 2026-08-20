@@ -53,7 +53,7 @@
                 </div>
                 <button wire:click="inviteMember" wire:loading.attr="disabled"
                         class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium whitespace-nowrap">
-                    <span wire:loading.remove>{{ __('teams.field_send_invite') }}</span>
+                    <span wire:loading.remove>{{ __('people.action_send_invite') }}</span>
                     <span wire:loading>{{ __('common.content_sending') }}</span>
                 </button>
             </div>
@@ -75,7 +75,7 @@
                                 <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('common.field_name') }}</th>
                                 <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('teams.content_roster') }}</th>
                                 <th class="text-left py-2 px-3 font-medium text-on-surface-variant">#</th>
-                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('common.content_position', ['default' => 'Position']) }}</th>
+                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('common.content_position') }}</th>
                                 @if($isCaptain)
                                     <th class="text-right py-2 px-3 font-medium text-on-surface-variant">{{ __('profile.content_actions') }}</th>
                                 @endif

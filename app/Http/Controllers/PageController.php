@@ -159,7 +159,7 @@ class PageController extends Controller
     public function privacy(): View
     {
         seo(new SEOData(
-            title: __('privacy.heading_title'),
+            title: __('common.nav_privacy'),
             description: __('privacy.seo_description'),
         ));
 
@@ -169,7 +169,7 @@ class PageController extends Controller
     public function terms(): View
     {
         seo(new SEOData(
-            title: __('terms.heading_title'),
+            title: __('common.nav_terms'),
             description: __('terms.seo_description'),
         ));
 

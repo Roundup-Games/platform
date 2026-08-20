@@ -72,7 +72,7 @@
                             wire:loading.attr="disabled"
                             class="px-4 py-2 rounded-lg text-sm font-medium bg-error text-on-error hover:brightness-110 transition-colors disabled:opacity-50">
                         <span wire:loading.remove>{{ __('reports.action_submit_report') }}</span>
-                        <span wire:loading>{{ __('reports.content_submitting') }}</span>
+                        <span wire:loading>{{ __('common.action_submitting') }}</span>
                     </button>
                 </div>
             </div>

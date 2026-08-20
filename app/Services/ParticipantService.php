@@ -147,7 +147,7 @@ class ParticipantService
 
         // Self-invite check (compare on canonical form for the same reason).
         if ($normalizedEmail === EmailCanonicalizer::canonical($inviter->email)) {
-            return ParticipantResult::fail('people.error_cannot_invite_self');
+            return ParticipantResult::fail('common.error_you_cannot_invite_yourself');
         }
 
         // Rate limit: 10 email invites per user per entity per hour

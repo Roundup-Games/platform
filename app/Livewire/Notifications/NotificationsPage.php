@@ -230,6 +230,6 @@ class NotificationsPage extends Component
     public function render(): View
     {
         return view('livewire.notifications.notifications-page')
-            ->title(__('notifications.page_title'));
+            ->title(__('notifications.nav_label'));
     }
 }

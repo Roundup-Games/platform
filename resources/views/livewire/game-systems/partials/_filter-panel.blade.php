@@ -2,7 +2,7 @@
 
 {{-- ── Categories ────────────────────────────────────────────────── --}}
 <div>
-    <h3 class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('games.heading_categories') }}</h3>
+    <h3 class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_categories') }}</h3>
     <div class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
         @foreach($visibleCategories as $category)
             @php($active = in_array($category->id, $category_ids))

@@ -41,7 +41,7 @@ class ContactSupport extends Component
         'email_change' => 'support.field_issue_email_change',
         'suspended_account' => 'support.field_issue_suspended_account',
         'data_request' => 'support.field_issue_data_request',
-        'other' => 'support.field_issue_other',
+        'other' => 'common.content_other',
     ];
 
     public function submitSupport(): void
@@ -54,9 +54,7 @@ class ContactSupport extends Component
         $rateLimitKey = "account-support:{$user->id}";
 
         if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600)) {
-            $seconds = RateLimiter::availableIn($rateLimitKey);
-            $minutes = ceil($seconds / 60);
-            $this->addError('subject', __('support.error_rate_limit', ['minutes' => $minutes]));
+            $this->addError('subject', __('common.error_rate_limit'));
 
             return;
         }

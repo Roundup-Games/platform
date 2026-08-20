@@ -62,7 +62,7 @@
             <div
                 class="absolute top-full left-0 right-0 z-50 mt-1 bg-surface-container-low rounded-lg shadow-lg border border-outline/20 max-h-80 overflow-y-auto"
                 role="listbox"
-                aria-label="{{ __('people.content_friends') }}"
+                aria-label="{{ __('common.status_friends') }}"
             >
                 @if($results->isEmpty())
                     <div class="px-4 py-3 text-sm text-on-surface-variant text-center">

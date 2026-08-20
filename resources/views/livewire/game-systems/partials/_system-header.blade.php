@@ -69,7 +69,7 @@
                 @if($system->average_play_time)
                     <span class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">schedule</span>
-                        {{ $system->average_play_time }} {{ strtolower(__('games.content_min')) }}
+                        {{ $system->average_play_time }} {{ strtolower(__('common.label_unit_min')) }}
                     </span>
                 @endif
                 @if($system->year_released)

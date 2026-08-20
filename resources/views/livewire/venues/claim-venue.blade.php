@@ -18,7 +18,7 @@
                 <div>
                     <p class="text-sm font-medium text-on-primary-container">{{ session('success') }}</p>
                     @if($ticketReference)
-                        <p class="mt-1 text-xs text-on-primary-container/70">{{ __('venue.content_claim_reference', ['reference' => $ticketReference]) }}</p>
+                        <p class="mt-1 text-xs text-on-primary-container/70">{{ __('location.content_proposal_reference', ['reference' => $ticketReference]) }}</p>
                     @endif
                     <a href="{{ route('venues.detail', ['locale' => app()->getLocale(), 'slug' => $location->slug]) }}" wire:navigate class="mt-2 inline-block text-sm text-primary hover:underline">{{ __('venue.action_back_to_venue') }}</a>
                 </div>
@@ -59,11 +59,11 @@
                 <div class="space-y-4">
                     {{-- Website --}}
                     <div>
-                        <label for="claim-website" class="block text-sm font-medium text-on-surface mb-1">{{ __('venue.field_website') }}</label>
+                        <label for="claim-website" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.field_website_url') }}</label>
                         <input type="url"
                                id="claim-website"
                                wire:model="website_url"
-                               placeholder="{{ __('venue.placeholder_claim_website') }}"
+                               placeholder="{{ __('location.placeholder_website_url') }}"
                                class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                         @error('website_url') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>

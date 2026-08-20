@@ -79,7 +79,7 @@ describe('Save Game Edit', function () {
             ->first();
 
         expect($log)->not->toBeNull();
-        expect($log->properties['changed_fields'])->toContain(__('games.field_name'));
+        expect($log->properties['changed_fields'])->toContain(__('common.field_name'));
     });
 
     it('sends notifications to approved participants', function () {
@@ -103,7 +103,7 @@ describe('Save Game Edit', function () {
         Notification::assertSentTo(
             $participant,
             EntityUpdated::class,
-            fn ($notification) => in_array(__('games.field_name'), $notification->changedFields)
+            fn ($notification) => in_array(__('common.field_name'), $notification->changedFields)
         );
     });
 

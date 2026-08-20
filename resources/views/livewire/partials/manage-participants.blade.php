@@ -68,7 +68,7 @@
                     <button type="submit"
                         class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
-                        {{ __('teams.field_send_invite') }}
+                        {{ __('people.action_send_invite') }}
                     </button>
                 </form>
             </div>
@@ -114,7 +114,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
-                {{ __('events.content_participants') }} <span class="text-on-surface-variant font-normal text-base">({{ $approvedParticipants->count() }})</span>
+                {{ __('common.content_participants') }} <span class="text-on-surface-variant font-normal text-base">({{ $approvedParticipants->count() }})</span>
             </h2>
 
             @if($approvedParticipants->count())
@@ -218,7 +218,7 @@
                                     <button wire:click="approveApplication('{{ $applicant->id }}')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
-                                        <span class="hidden sm:inline">{{ __('events.action_approve') }}</span>
+                                        <span class="hidden sm:inline">{{ __('common.action_approve') }}</span>
                                     </button>
                                     <button wire:click="rejectApplication('{{ $applicant->id }}')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
@@ -288,7 +288,7 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">schedule</span>
-                    {{ __('games.content_waitlist_management') }} <span class="text-tertiary font-normal text-base">({{ $waitlistedParticipants->count() }})</span>
+                    {{ __('common.content_waitlist_management') }} <span class="text-tertiary font-normal text-base">({{ $waitlistedParticipants->count() }})</span>
                 </h2>
 
                 <div class="divide-y divide-outline-variant/30">
@@ -309,7 +309,7 @@
                                 <button wire:click="managePromoteFromWaitlist('{{ $participant->id }}')"
                                     class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
-                                    {{ __('games.action_promote_from_bench') }}
+                                    {{ __('common.action_promote') }}
                                 </button>
                                 <x-confirm-action
                                     action="manageRemoveFromWaitlist('{{ $participant->id }}')"
@@ -335,7 +335,7 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">event_seat</span>
-                    {{ __('games.content_bench') }} <span class="text-on-surface-variant font-normal text-base">({{ $benchedParticipants->count() }})</span>
+                    {{ __('common.content_bench') }} <span class="text-on-surface-variant font-normal text-base">({{ $benchedParticipants->count() }})</span>
                 </h2>
 
                 <div class="divide-y divide-outline-variant/30">
@@ -351,7 +351,7 @@
                                 <button wire:click="managePromoteFromBench('{{ $participant->id }}')"
                                     class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
-                                    {{ __('games.action_promote_from_bench') }}
+                                    {{ __('common.action_promote') }}
                                 </button>
                                 <x-confirm-action
                                     action="manageRemoveFromBench('{{ $participant->id }}')"

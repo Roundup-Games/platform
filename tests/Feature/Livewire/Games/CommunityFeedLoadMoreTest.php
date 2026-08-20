@@ -51,7 +51,7 @@ class CommunityFeedLoadMoreTest extends TestCase
         // The default window is 15; with 20 feed items there must be more.
         $component
             ->assertSet('activityFeedLimit', 15)
-            ->assertSee(__('discovery.action_load_more'));
+            ->assertSee(__('common.action_load_more'));
 
         // Load more — the window grows to 30, covering all 20 items.
         $component
@@ -59,7 +59,7 @@ class CommunityFeedLoadMoreTest extends TestCase
             ->assertSet('activityFeedLimit', 30);
 
         // Once every item is shown, the load-more control is gone.
-        $component->assertDontSee(__('discovery.action_load_more'));
+        $component->assertDontSee(__('common.action_load_more'));
     }
 
     #[Test]
@@ -82,7 +82,7 @@ class CommunityFeedLoadMoreTest extends TestCase
 
         Livewire::actingAs($viewer)
             ->test(GamesPage::class)
-            ->assertDontSee(__('discovery.action_load_more'), false);
+            ->assertDontSee(__('common.action_load_more'), false);
     }
 
     private function viewer(): User

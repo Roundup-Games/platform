@@ -22,18 +22,17 @@ return [
     'category_account_recovery' => 'Kontowiederherstellung',
     // Form fields
     'field_issue_type' => 'Problemtyp',
-    'field_subject' => 'Betreff',
-    'field_description' => 'Beschreibung',
     // Placeholders
     'placeholder_subject' => 'Beschreibe dein Problem kurz',
-    'placeholder_description' => 'Bitte beschreibe dein Problem so detailliert wie möglich...',
+    'placeholder_description' => 'Bitte beschreibe dein Problem so detailliert wie möglich…',
     'placeholder_billing_subject' => 'z.B. Zahlung fehlgeschlagen, Rückerstattung, Abonnement-Problem',
-    'placeholder_billing_description' => 'Bitte beschreibe dein Rechnungsproblem mit allen relevanten Transaktionsdetails...',
+    'placeholder_billing_description' => 'Bitte beschreibe dein Rechnungsproblem mit allen relevanten Transaktionsdetails…',
     // Actions
     'action_submit_ticket' => 'Support-Ticket senden',
     'action_submit_billing_ticket' => 'Rechnungs-Ticket senden',
-    'action_contact_billing_support' => 'Rechnungssupport',
     'action_contact_support' => 'Support kontaktieren',
+    'action_back' => 'Zurück',
+    'error_unavailable' => 'Der Support ist derzeit nicht verfügbar. Bitte versuche es später erneut.',
     // Flash messages
     'flash_ticket_submitted' => 'Dein Support-Ticket wurde gesendet. Wir melden uns bald bei dir!',
     'flash_billing_ticket_submitted' => 'Dein Rechnungs-Ticket wurde gesendet. Unser Rechnungsteam prüft es in Kürze.',
@@ -44,7 +43,6 @@ return [
     'validation_issue_type_required' => 'Bitte wähle einen Problemtyp.',
     'validation_issue_type_invalid' => 'Der gewählte Problemtyp ist nicht gültig.',
     // Rate limit
-    'error_rate_limit' => 'Du hast zu viele Tickets gesendet. Bitte versuche es in :minutes Minuten erneut.',
     // Account issue types
     'field_issue_account_access' => 'Kontozugang',
     'field_issue_login_issue' => 'Anmeldeproblem',
@@ -52,12 +50,10 @@ return [
     'field_issue_email_change' => 'E-Mail-Änderung',
     'field_issue_suspended_account' => 'Gesperrtes Konto',
     'field_issue_data_request' => 'Daten / Export-Anfrage',
-    'field_issue_other' => 'Sonstiges',
     // Billing issue types
     'field_billing_issue_payment' => 'Zahlungsproblem',
     'field_billing_issue_refund' => 'Rückerstattung',
     'field_billing_issue_subscription_change' => 'Abonnementänderung',
     'field_billing_issue_invoice' => 'Rechnungsfrage',
     'field_billing_issue_cancellation' => 'Kündigungsproblem',
-    'field_billing_issue_other' => 'Sonstiges',
 ];

@@ -386,7 +386,7 @@ class CreateGame extends Component
     {
         $options = [];
         foreach (ContentLanguage::cases() as $case) {
-            $options[$case->value] = __('common.label_language_'.$case->value);
+            $options[$case->value] = $case->label();
         }
 
         return $options;
@@ -400,7 +400,7 @@ class CreateGame extends Component
     {
         $options = [];
         foreach (GameType::cases() as $case) {
-            $options[$case->value] = __('games.type_'.$case->value);
+            $options[$case->value] = $case->label();
         }
 
         return $options;
@@ -414,7 +414,7 @@ class CreateGame extends Component
     {
         $options = ['' => __('discovery.content_any')];
         foreach (ExperienceLevel::cases() as $case) {
-            $options[$case->value] = __('games.content_experience_'.$case->value);
+            $options[$case->value] = $case->label();
         }
 
         return $options;

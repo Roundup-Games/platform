@@ -125,7 +125,7 @@
                                 <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">groups</span>
                             </div>
                             <div>
-                                <h3 class="font-medium text-on-surface">{{ __('pages.content_community') }}</h3>
+                                <h3 class="font-medium text-on-surface">{{ __('common.heading_community') }}</h3>
                                 <p class="mt-1 text-sm text-on-surface-variant">{{ __('events.content_join_events_connect_with_other') }}</p>
                                 <a href="{{ route('events.index') }}" wire:navigate class="mt-2 inline-flex items-center text-sm font-medium text-primary hover:underline">
                                     {{ __('events.action_browse_events') }}

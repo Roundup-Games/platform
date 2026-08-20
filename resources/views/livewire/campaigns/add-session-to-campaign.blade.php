@@ -39,7 +39,7 @@
                     </div>
 
                     <div>
-                        <label for="session-location-details" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.content_location') }}</label>
+                        <label for="session-location-details" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_location') }}</label>
                         <input type="text" id="session-location-details" wire:model="location_details" placeholder="Venue name, address, or meeting details"
                                class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                         @error('location_details') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
@@ -66,7 +66,7 @@
 
                     {{-- Visibility --}}
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                        <span class="text-sm text-on-surface-variant">{{ __('campaigns.field_visibility') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('common.content_visibility') }}</span>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                             {{ $campaign->visibility->value === 'public' ? 'bg-tertiary/10 text-tertiary' : ($campaign->visibility->value === 'protected' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant') }}">
                             {{ $campaign->visibility->label() }}
@@ -139,7 +139,7 @@
                     <div class="flex items-center justify-between py-2">
                         <span class="text-sm text-on-surface-variant">{{ __('campaigns.field_price') }}</span>
                         <span class="text-sm font-medium text-on-surface">
-                            {{ $campaign->price_per_session ? format_currency($campaign->price_per_session, false) : __('billing.content_free') }}
+                            {{ $campaign->price_per_session ? format_currency($campaign->price_per_session, false) : __('common.price_free') }}
                         </span>
                     </div>
                 </div>

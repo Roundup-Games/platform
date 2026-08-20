@@ -4,7 +4,7 @@
         <div class="flex items-start gap-4">
             <span class="material-symbols-outlined text-2xl text-tertiary mt-0.5" aria-hidden="true">event_seat</span>
             <div class="flex-1">
-                <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('games.content_you_are_on_the_bench') }}</h2>
+                <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('common.content_you_are_on_the_bench') }}</h2>
                 <p class="mt-1 text-sm text-on-surface-variant">{{ __('games.content_you_have_been_placed_on_the_bench') }}</p>
                 <x-confirm-action
                     action="leaveBench('{{ $userBenchParticipant->id }}')"

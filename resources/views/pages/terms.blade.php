@@ -16,7 +16,7 @@
         </div>
         <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-32 text-center">
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold tracking-tight leading-tight">
-                {{ __('terms.heading_title') }}
+                {{ __('common.nav_terms') }}
             </h1>
             <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-2xl mx-auto leading-relaxed">
                 {{ __('terms.content_introduction_2') }}
@@ -28,7 +28,7 @@
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface mb-8">
-                {{ __('terms.heading_introduction') }}
+                {{ __('common.heading_introduction') }}
             </h2>
             <div class="space-y-4 text-on-surface-variant leading-relaxed">
                 <p>{{ __('terms.content_introduction_1') }}</p>
@@ -191,7 +191,7 @@
                 {{ __('terms.heading_privacy') }}
             </h2>
             <p class="text-on-surface-variant leading-relaxed">
-                {!! __('terms.content_privacy_ref', ['privacy_link' => '<a href="' . route('privacy', app()->getLocale()) . '" wire:navigate class="text-primary hover:underline font-medium">' . __('terms.content_privacy_link_text') . '</a>']) !!}
+                {!! __('terms.content_privacy_ref', ['privacy_link' => '<a href="' . route('privacy', app()->getLocale()) . '" wire:navigate class="text-primary hover:underline font-medium">' . __('common.nav_privacy') . '</a>']) !!}
             </p>
         </div>
     </section>
@@ -229,9 +229,9 @@
                 <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">gavel</span>
             </div>
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface mb-4">
-                {{ __('terms.heading_contact') }}
+                {{ __('common.content_contact') }}
             </h2>
-            <p class="font-semibold text-on-surface">{{ __('terms.content_contact_org') }}</p>
+            <p class="font-semibold text-on-surface">{{ __('privacy.content_contact_org') }}</p>
             <p class="text-on-surface-variant">{{ __('terms.content_contact_email') }}</p>
         </div>
     </section>
@@ -240,7 +240,7 @@
     <section class="py-8 bg-surface">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
             <p class="text-sm text-on-surface-variant">
-                {{ __('terms.content_last_updated', ['date' => config('policies.terms.last_updated')]) }}
+                {{ __('common.content_last_updated', ['date' => config('policies.terms.last_updated')]) }}
             </p>
         </div>
     </section>

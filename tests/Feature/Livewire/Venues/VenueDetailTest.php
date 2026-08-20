@@ -187,11 +187,12 @@ describe('VenueDetail activity aggregation', function () {
         $response = get(route('venues.detail', ['slug' => $venue->slug]));
         $response->assertOk();
 
-        // Per-section "No X" boxes are hidden, not rendered as a wall of empties.
-        $response->assertDontSee(__('venue.content_no_upcoming_sessions'));
-        $response->assertDontSee(__('venue.content_no_past_sessions'));
-        $response->assertDontSee(__('venue.content_no_active_campaigns'));
-        $response->assertDontSee(__('venue.content_no_completed_campaigns'));
+        // Per-section boxes are hidden entirely (headings included), not
+        // rendered as a wall of empties.
+        $response->assertDontSee(__('gws.heading_upcoming_sessions'));
+        $response->assertDontSee(__('venue.heading_past_sessions'));
+        $response->assertDontSee(__('gws.label_active_campaigns'));
+        $response->assertDontSee(__('venue.heading_completed_campaigns'));
 
         // A single graceful fallback is shown instead.
         $response->assertSee(__('venue.content_no_activity_yet'));

@@ -47,7 +47,7 @@
             {{-- Subject --}}
             <div>
                 <label for="billingSubject" class="block text-sm font-medium text-on-surface-variant mb-1">
-                    {{ __('support.field_subject') }} <span class="text-error">*</span>
+                    {{ __('common.content_subject') }} <span class="text-error">*</span>
                 </label>
                 <input type="text" wire:model="subject" id="billingSubject"
                        aria-invalid="@error('subject') true @else false @enderror"
@@ -62,7 +62,7 @@
             {{-- Description --}}
             <div>
                 <label for="billingDescription" class="block text-sm font-medium text-on-surface-variant mb-1">
-                    {{ __('support.field_description') }} <span class="text-error">*</span>
+                    {{ __('common.field_description') }} <span class="text-error">*</span>
                 </label>
                 <textarea wire:model="description" id="billingDescription" rows="6"
                           aria-invalid="@error('description') true @else false @enderror"

@@ -1869,7 +1869,9 @@ class DemoSeedCommand extends Command
             return;
         }
 
-        // Pre-compute static arrays used in tight loops (avoids per-iteration collect() allocations)
+        // Pre-compute static arrays used in tight loops (avoids per-iteration collect() allocations).
+        // Cadence values only — deliberately excludes 'custom' so demo campaigns
+        // exercise the plan-ahead nudge paths (irregular campaigns never nudge).
         $recurrenceOptions = ['weekly', 'bi-weekly', 'monthly'];
         $experienceLevels = array_map(fn ($case) => $case->value, ExperienceLevel::cases());
 

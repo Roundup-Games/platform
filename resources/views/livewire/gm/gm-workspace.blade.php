@@ -181,7 +181,7 @@
                         <span class="material-symbols-outlined text-primary">add_circle</span>
                     </div>
                     <div>
-                        <span class="text-sm font-medium text-on-surface group-hover:text-primary">{{ __('gws.action_create_game') }}</span>
+                        <span class="text-sm font-medium text-on-surface group-hover:text-primary">{{ __('games.action_create_game') }}</span>
                         <p class="text-xs text-on-surface-variant">{{ __('gws.action_create_game_desc') }}</p>
                     </div>
                 </a>
@@ -192,7 +192,7 @@
                         <span class="material-symbols-outlined text-primary">add_business</span>
                     </div>
                     <div>
-                        <span class="text-sm font-medium text-on-surface group-hover:text-primary">{{ __('gws.action_create_campaign') }}</span>
+                        <span class="text-sm font-medium text-on-surface group-hover:text-primary">{{ __('campaigns.action_create_campaign') }}</span>
                         <p class="text-xs text-on-surface-variant">{{ __('gws.action_create_campaign_desc') }}</p>
                     </div>
                 </a>
@@ -263,14 +263,14 @@
                         </div>
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
                             {{ $survey->isActive() ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-highest text-on-surface-variant' }}">
-                            {{ $survey->isActive() ? __('gws.label_active') : __('gws.label_archived') }}
+                            {{ $survey->isActive() ? __('common.status_active') : __('gws.label_archived') }}
                         </span>
                         <div class="flex items-center gap-2 shrink-0">
                             <a href="{{ route('session-zero.view', ['locale' => app()->getLocale(), 'uuid' => $survey->uuid]) }}"
                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity"
                                wire:navigate>
                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">visibility</span>
-                                {{ __('gws.action_view') }}
+                                {{ __('common.action_view') }}
                             </a>
                             <button type="button"
                                 x-data="{ copied: false }"
@@ -278,7 +278,7 @@
                                 class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
                                 <span class="material-symbols-outlined text-sm" aria-hidden="true" x-show="!copied">content_copy</span>
                                 <span class="material-symbols-outlined text-sm text-secondary" aria-hidden="true" x-show="copied">check</span>
-                                <span x-text="copied ? '{{ __('session_zero.action_copied') }}' : '{{ __('session_zero.action_copy_link') }}'"></span>
+                                <span x-text="copied ? '{{ __('common.status_copied') }}' : '{{ __('common.action_copy_link') }}'"></span>
                             </button>
                         </div>
                     </div>

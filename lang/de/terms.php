@@ -1,10 +1,8 @@
 <?php
 
 return [
-    'heading_title' => 'Nutzungsbedingungen',
     'seo_description' => 'Die Geschäftsbedingungen für die Nutzung der '.config('company.display_name').' Plattform. Klar, fair und in verständlicher Sprache verfasst.',
     // ── Einleitung ─────────────────────────────────────
-    'heading_introduction' => 'Einleitung',
     'content_introduction_1' => 'Diese Nutzungsbedingungen („Bedingungen") regeln deinen Zugang zu und die Nutzung der '.config('company.display_name').' Plattform unter roundup.games („Plattform"), betrieben von '.config('company.legal_name').' („wir", „uns", „unser").',
     'content_introduction_2' => 'Mit der Erstellung eines Kontos oder der Nutzung der Plattform stimmst du diesen Bedingungen zu. Wenn du nicht einverstanden bist, nutze die Plattform bitte nicht.',
     'content_introduction_3' => 'Wir haben diese Bedingungen klar und fair formuliert. Wenn etwas unklar ist, kannst du dich gerne an uns wenden.',
@@ -55,7 +53,6 @@ return [
     // ── Datenschutz ────────────────────────────────────
     'heading_privacy' => 'Datenschutz',
     'content_privacy_ref' => 'Dein Datenschutz ist uns wichtig. Unsere Datenpraktiken sind in unserer :privacy_link beschrieben.',
-    'content_privacy_link_text' => 'Datenschutzerklärung',
     // ── Anwendbares Recht ──────────────────────────────
     'heading_governing_law' => 'Anwendbares Recht',
     'content_governing_1' => 'Diese Bedingungen unterliegen den Gesetzen der Bundesrepublik Deutschland.',
@@ -65,9 +62,5 @@ return [
     'content_changes_1' => 'Wir können diese Bedingungen von Zeit zu Zeit aktualisieren. Wenn wir dies tun, aktualisieren wir das Datum „Zuletzt aktualisiert" und benachrichtigen dich über die Plattform.',
     'content_changes_2' => 'Fortgesetzte Nutzung der Plattform nach Inkrafttreten der Änderungen gilt als Zustimmung zu den aktualisierten Bedingungen.',
     // ── Kontakt ────────────────────────────────────────
-    'heading_contact' => 'Kontakt',
-    'content_contact_org' => config('company.legal_name'),
     'content_contact_email' => 'E-Mail: '.config('company.contact.legal'),
-    // ── Letzte Aktualisierung ──────────────────────────
-    'content_last_updated' => 'Zuletzt aktualisiert: :date',
 ];

@@ -42,10 +42,9 @@ class AddSessionToCampaign extends Component
         // Pre-fill the next cadence date when deep-linked from a "plan ahead"
         // nudge CTA (?prefill=1). Only date/time is pre-filled — the host still
         // names the session. RecurrenceService::nextSuggestedDateTime returns
-        // null for any campaign without a recognisable recurrence, so the null
-        // check below is the sole (defensive) gate. (The campaigns.recurrence
-        // enum column currently restricts values to weekly/bi-weekly/monthly,
-        // so the suggestion is non-null for every persisted campaign.)
+        // null for any campaign without a recognisable recurrence (irregular
+        // "custom" campaigns never get a cadence suggestion), so the null check
+        // below is the sole (defensive) gate.
         if (request()->boolean('prefill')) {
             $suggested = app(RecurrenceService::class)->nextSuggestedDateTime($this->campaign);
             if ($suggested) {

@@ -28,7 +28,7 @@ then stranded the landlord with no way back. --}}
                                 @if($guild->paused)
                                     {{ __('settings.status_discord_servers_paused') }}
                                 @else
-                                    {{ __('settings.status_discord_servers_active') }}
+                                    {{ __('common.status_active') }}
                                 @endif
                             </p>
                         </div>

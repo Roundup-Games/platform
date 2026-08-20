@@ -22,7 +22,7 @@
                 {{ $game->name }}
             </h3>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $statusClass }}">
-                {{ __('games.status_' . $game->status->value) }}
+                {{ $game->status->label() }}
             </span>
             @foreach($game->gameSystems as $system)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
@@ -62,9 +62,9 @@
             <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">
                 <button wire:click="editGame('{{ $game->id }}')"
                         class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
-                        aria-label="{{ __('games.action_edit_game') }}">
+                        aria-label="{{ __('common.action_edit') }}">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
-                    <span class="hidden sm:inline">{{ __('games.action_edit_game') }}</span>
+                    <span class="hidden sm:inline">{{ __('common.action_edit') }}</span>
                 </button>
                 <a href="{{ route('games.create') }}?clone={{ $game->id }}" wire:navigate
                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
@@ -74,9 +74,9 @@
                 </a>
                 <button wire:click="completeGame('{{ $game->id }}')"
                         class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-secondary hover:bg-secondary/10 transition-colors"
-                        aria-label="{{ __('games.action_complete_game') }}">
+                        aria-label="{{ __('common.action_mark_complete') }}">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
-                    <span class="hidden sm:inline">{{ __('games.action_complete_game') }}</span>
+                    <span class="hidden sm:inline">{{ __('common.action_mark_complete') }}</span>
                 </button>
                 <x-confirm-action
                     action="cancelGame('{{ $game->id }}')"

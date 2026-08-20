@@ -164,10 +164,9 @@
                                 <label for="campaign-recurrence" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.content_recurrence') }} <span class="text-error">*</span></label>
                                 <select id="campaign-recurrence" wire:model="recurrence"
                                         class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
-                                    <option value="weekly">{{ __('campaigns.content_weekly') }}</option>
-                                    <option value="bi-weekly">{{ __('common.content_every_2_weeks') }}</option>
-                                    <option value="monthly">{{ __('campaigns.content_monthly') }}</option>
-                                    <option value="custom">{{ __('common.content_custom') }}</option>
+                                    @foreach($this->recurrenceOptions as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
                                 </select>
                                 @error('recurrence') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                             </div>
@@ -201,7 +200,7 @@
 
                 {{-- Section 3: Players & Location --}}
                 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">
-                    <x-form-section-header :number="3" :icon="'group'" :title="__('location.field_players_capacity') . ' & ' . __('location.content_location')" />
+                    <x-form-section-header :number="3" :icon="'group'" :title="__('location.field_players_capacity') . ' & ' . __('common.field_location')" />
 
                     <div class="space-y-5">
                         <div class="grid grid-cols-2 gap-4">
@@ -247,9 +246,9 @@
                                     <div>
                                         <span class="text-sm font-medium text-on-surface">{{ __('games.label_bench_mode') }}</span>
                                         @if(!$isGM)
-                                            <p class="text-xs text-on-surface-variant">{{ __('games.content_bench_mode_requires_gm') }}</p>
+                                            <p class="text-xs text-on-surface-variant">{{ __('common.content_bench_mode_requires_gm') }}</p>
                                         @else
-                                            <p class="text-xs text-on-surface-variant">{{ __('games.content_bench_mode_description') }}</p>
+                                            <p class="text-xs text-on-surface-variant">{{ __('common.content_bench_mode_description') }}</p>
                                         @endif
                                     </div>
                                 </div>
@@ -337,7 +336,7 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label for="campaign-language" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_language_required') }} <span class="text-error">*</span></label>
+                            <label for="campaign-language" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_language') }} <span class="text-error">*</span></label>
                             <select id="campaign-language" wire:model="language"
                                     class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
                                 @foreach($this->languageOptions as $value => $label)

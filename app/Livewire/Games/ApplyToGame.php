@@ -78,7 +78,7 @@ class ApplyToGame extends Component
                 'already_participant' => 'events.content_you_are_already_a_participant',
                 'already_applied' => 'games.content_you_have_already_applied_to_this_game',
                 'bench_success' => 'games.content_you_have_been_placed_on_the_bench',
-                'waitlist_success' => 'games.content_added_to_waitlist',
+                'waitlist_success' => 'common.content_added_to_waitlist',
                 'join_success' => 'games.content_you_have_joined_the_game',
                 'application_submitted' => 'games.content_application_submitted_the_game_owner',
             ],

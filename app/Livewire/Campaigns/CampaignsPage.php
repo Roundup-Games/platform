@@ -155,7 +155,7 @@ class CampaignsPage extends Component
         }
         if ($campaign->visibility?->value !== $this->edit_visibility) {
             $changes['visibility'] = $this->edit_visibility;
-            $changedLabels[] = __('campaigns.field_visibility');
+            $changedLabels[] = __('common.content_visibility');
         }
         if ($campaign->location_id !== $this->edit_location_id) {
             $changes['location_id'] = $this->edit_location_id ?: null;
@@ -227,7 +227,7 @@ class CampaignsPage extends Component
     public function render(): View
     {
         seo(new SEOData(
-            title: __('campaigns.seo_title_my_campaigns'),
+            title: __('campaigns.heading_my_campaigns'),
             description: __('campaigns.seo_description_my_campaigns', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
             robots: 'noindex, nofollow',
         ));

@@ -35,11 +35,11 @@ class PlayerBenched extends BaseNotification
             ->subject(__('notifications.subject_player_benched', [
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_player_benched', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_player_benched', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl)
+            ->action(__('notifications.action_view_entity_type', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl)
             ->line($this->unsubscribeLine($notifiable, 'player_benched'));
     }
 
@@ -78,8 +78,8 @@ class PlayerBenched extends BaseNotification
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return new PushPayload(
-            title: __('notifications.push_title_player_benched'),
-            body: __('notifications.push_body_player_benched', [
+            title: __('common.content_you_are_on_the_bench'),
+            body: __('notifications.subject_player_benched', [
                 'entity' => $this->entity->name,
             ]),
             icon: '/icons/pwa-192x192.png',
@@ -96,9 +96,9 @@ class PlayerBenched extends BaseNotification
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_player_benched'),
+            'title' => __('common.content_you_are_on_the_bench'),
             'url' => $this->resolveEntityUrl($locale),
-            'description' => __('notifications.push_body_player_benched', [
+            'description' => __('notifications.subject_player_benched', [
                 'entity' => $this->entity->name,
             ]),
             'color' => 0x5865F2,

@@ -15,7 +15,7 @@
         <div class="bg-surface-container-low rounded-xl shadow-ambient p-4">
             <div class="flex items-center justify-between">
                 @php
-                    $stepLabels = [1 => __('profile.content_basic_info'), 2 => __('location.content_venue'), 3 => __('billing.field_fees_registration'), 4 => __('events.content_divisions'), 5 => __('profile.content_rules_settings')];
+                    $stepLabels = [1 => __('profile.content_basic_info'), 2 => __('common.content_venue'), 3 => __('billing.field_fees_registration'), 4 => __('events.content_divisions'), 5 => __('profile.content_rules_settings')];
                 @endphp
                 @foreach($stepLabels as $num => $label)
                     <button wire:click="goToStep({{ $num }})"
@@ -129,13 +129,13 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label for="event-city" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('location.field_city') }}</label>
-                    <input type="text" id="event-city" wire:model="city" placeholder="{{ __('events.placeholder_city') }}"
+                    <input type="text" id="event-city" wire:model="city" placeholder="{{ __('common.placeholder_city') }}"
                            class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                     @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="event-country" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('location.field_country') }}</label>
-                    <input type="text" id="event-country" wire:model="country" maxlength="3" placeholder="{{ __('events.placeholder_country') }}"
+                    <input type="text" id="event-country" wire:model="country" maxlength="3" placeholder="{{ __('common.placeholder_country') }}"
                            class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                     @error('country') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>

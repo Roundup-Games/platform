@@ -63,10 +63,10 @@ class BreadcrumbBuilder
             ]),
 
             'teams.browse' => $this->crumbs([
-                [__('events.content_teams'), route('teams.browse')],
+                [__('common.content_teams'), route('teams.browse')],
             ]),
             'teams.detail' => $this->crumbs([
-                [__('events.content_teams'), route('teams.browse')],
+                [__('common.content_teams'), route('teams.browse')],
                 [$this->resolveLeafName($params, $pageTitle), request()->url()],
             ]),
 
@@ -104,19 +104,19 @@ class BreadcrumbBuilder
             ]),
             'pledge.algorithms' => $this->crumbs([
                 [__('common.nav_our_pledge'), route('pledge')],
-                [__('pages.content_pledge_card_algorithms_title'), request()->url()],
+                [__('pages.content_commitment_algorithms_title'), request()->url()],
             ]),
             'pledge.finances' => $this->crumbs([
                 [__('common.nav_our_pledge'), route('pledge')],
-                [__('pages.content_pledge_card_finances_title'), request()->url()],
+                [__('pages.content_commitment_finances_title'), request()->url()],
             ]),
             'pledge.roadmap' => $this->crumbs([
                 [__('common.nav_our_pledge'), route('pledge')],
-                [__('pages.content_pledge_card_roadmap_title'), request()->url()],
+                [__('pages.content_commitment_roadmap_title'), request()->url()],
             ]),
             'pledge.operations' => $this->crumbs([
                 [__('common.nav_our_pledge'), route('pledge')],
-                [__('pages.content_pledge_card_operations_title'), request()->url()],
+                [__('pages.content_commitment_operations_title'), request()->url()],
             ]),
 
             default => [$this->homeCrumb()],

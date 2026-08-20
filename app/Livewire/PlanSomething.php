@@ -24,7 +24,7 @@ class PlanSomething extends Component
     public function render(): View
     {
         seo(new SEOData(
-            title: __('plan.seo_title'),
+            title: __('plan.action_plan_something'),
             description: __('plan.seo_description'),
             robots: 'noindex, nofollow',
         ));

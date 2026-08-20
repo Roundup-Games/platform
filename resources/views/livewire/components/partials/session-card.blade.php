@@ -152,7 +152,7 @@
                 <a href="{{ $joinRoute }}" wire:navigate
                    class="inline-flex items-center px-4 py-2 bg-primary text-on-primary rounded-lg font-semibold text-sm hover:bg-primary-container hover:text-on-primary-container transition-colors w-full justify-center">
                     <span class="material-symbols-outlined mr-1.5 text-lg" aria-hidden="true">login</span>
-                    {{ $isCampaign ? __('campaigns.action_view_campaign') : __('campaigns.action_join_this_session') }}
+                    {{ $isCampaign ? __('notifications.action_view_campaign') : __('campaigns.action_join_this_session') }}
                 </a>
             @else
                 <a href="{{ route('register') }}" wire:navigate

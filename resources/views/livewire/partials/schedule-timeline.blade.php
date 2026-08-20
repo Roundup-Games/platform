@@ -33,7 +33,7 @@
                 <div>
                     <h4 class="text-sm font-semibold text-primary flex items-center gap-1.5 mb-2">
                         <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1" aria-hidden="true">today</span>
-                        {{ __('profile.dashboard_schedule_today') }}
+                        {{ __('common.content_today') }}
                     </h4>
                     <div class="space-y-2">
                         @foreach($scheduleGroups['today'] as $game)
@@ -48,7 +48,7 @@
                 <div>
                     <h4 class="text-sm font-semibold text-on-surface flex items-center gap-1.5 mb-2">
                         <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 0" aria-hidden="true">date_range</span>
-                        {{ __('profile.dashboard_schedule_this_week') }}
+                        {{ __('common.content_this_week') }}
                     </h4>
                     <div class="space-y-2">
                         @foreach($scheduleGroups['this_week'] as $game)

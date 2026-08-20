@@ -148,7 +148,7 @@
                             <span class="font-medium text-on-surface">{{ number_format($gmProfile->average_rating, 1) }}</span>
                         </div>
                         <span class="text-on-surface-variant">
-                            ({{ trans_choice('profile.gm_profile_reviews', $gmProfile->review_count) }})
+                            ({{ trans_choice('reviews.content_review_count', $gmProfile->review_count) }})
                         </span>
                     </div>
 
@@ -189,7 +189,7 @@
                                 <div class="mt-3 text-center">
                                     <button wire:click="loadMoreReviews"
                                             class="text-sm text-primary hover:underline">
-                                        {{ __('reviews.action_load_more') }}
+                                        {{ __('common.action_load_more') }}
                                     </button>
                                 </div>
                             @endif
@@ -239,7 +239,7 @@
                     <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                         <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-3">
                             <span class="material-symbols-outlined text-base align-middle mr-1">mood</span>
-                            {{ __('profile.content_vibes') }}
+                            {{ __('common.content_vibes') }}
                         </h2>
                         <div class="flex flex-wrap gap-2">
                             @foreach($vibes as $vibe)
@@ -328,7 +328,7 @@
                     <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                         <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-3">
                             <span class="material-symbols-outlined text-base align-middle mr-1">groups</span>
-                            {{ __('teams.content_teams') }}
+                            {{ __('common.content_teams') }}
                         </h2>
                         <div class="space-y-2">
                             @foreach($teamMemberships as $membership)

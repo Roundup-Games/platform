@@ -16,6 +16,5 @@ return [
     'category_marketing_label' => 'Marketing',
     'category_marketing_description' => 'Optional. Ermöglicht personalisierte Ansprache (z. B. E-Mail-Kampagnen) und die Verfolgung von Empfehlungen/Teilungen sowie die Messung der Kampagnenwirksamkeit. Standardmäßig deaktiviert.',
     // Footer icon
-    'nav_cookie_settings' => 'Cookie-Einstellungen',
     'label_always_active' => 'Immer aktiv',
 ];

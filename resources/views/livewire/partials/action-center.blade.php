@@ -119,7 +119,7 @@
                     {{ __('profile.dashboard_action_center_view_session') }}
                 </a>
             @else
-                <p class="text-sm text-on-surface-variant mt-2">{{ __('profile.dashboard_action_center_no_session') }}</p>
+                <p class="text-sm text-on-surface-variant mt-2">{{ __('profile.dashboard_schedule_nothing_scheduled') }}</p>
                 <a href="{{ route('discover') }}" wire:navigate
                    class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true" style="font-variation-settings: 'FILL' 1">explore</span>

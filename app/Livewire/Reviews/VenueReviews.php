@@ -63,10 +63,10 @@ class VenueReviews extends Component
     public function messages(): array
     {
         return [
-            'rating.required' => __('venue.validation_venue_rating_required'),
+            'rating.required' => __('reviews.validation_rating_required'),
             'rating.min' => __('reviews.validation_rating_min'),
             'rating.max' => __('reviews.validation_rating_max'),
-            'body.max' => __('venue.validation_venue_body_max'),
+            'body.max' => __('reviews.validation_body_max'),
         ];
     }
 

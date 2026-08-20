@@ -1,20 +1,17 @@
 <?php
 
 return [
-    'title_create_session_zero' => 'Session Zero erstellen',
     'title_survey_created' => 'Session-Zero-Umfrage erstellt!',
     'description_build_your_session_zero_questionnaire' => 'Erstelle einen Fragebogen, um Erwartungen zu klären, Safety-Tools zu besprechen und deine Gruppe vor der ersten Sitzung abzustimmen.',
     'description_share_link_with_players' => 'Teile diesen Link mit deinen Spielern, damit sie die Umfrage lesen und bestätigen können.',
     'title_default_for_game' => 'Session Zero für :game',
     // Abschnitte
     'heading_title' => 'Umfragetitel',
-    'heading_safety_tools' => 'Safety-Tools',
     'heading_tone_and_genre' => 'Tonfall & Genre',
     'heading_house_rules' => 'Hausregeln',
     'heading_content_warnings' => 'Inhaltswarnungen',
     'heading_player_expectations' => 'Spielererwartungen',
     // Labels
-    'label_survey_title' => 'Titel',
     'label_shareable_link' => 'Teilbarer Link',
     // Beschreibungen
     'description_select_safety_tools' => 'Wähle die Safety-Tools aus, die du in deinem Spiel verwenden wirst. Diese werden mit deinen Spielern geteilt.',
@@ -30,11 +27,7 @@ return [
     'placeholder_expectations_example' => 'z.B. Bitte erscheint pünktlich und gebt mir 24h vorher Bescheid, wenn ihr nicht kommen könnt. Bleibt während Szenen in der Rolle, es sei denn, wir machen eine Pause.',
     // Aktionen
     'action_create_survey' => 'Umfrage erstellen',
-    'action_creating' => 'Erstelle…',
-    'action_copy_link' => 'Link kopieren',
-    'action_copied' => 'Kopiert!',
     'action_back_to_workspace' => 'Zurück zum Workspace',
-    'action_preview_survey' => 'Vorschau',
     // Ansicht
     'view_description_by_gm' => 'Session-Zero-Umfrage, geteilt von deinem Game Master',
     'heading_confirmation' => 'Bestätigung',

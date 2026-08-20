@@ -65,7 +65,7 @@ window.addEventListener('beforeinstallprompt', function(e) {
             <div class="flex items-start gap-3">
                 <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5" aria-hidden="true">install_mobile</span>
                 <div class="flex-1 min-w-0">
-                    <h3 class="font-heading text-sm font-semibold text-on-surface">{{ __('pwa.heading_firefox_install_title', ['brand' => config('company.display_name')]) }}</h3>
+                    <h3 class="font-heading text-sm font-semibold text-on-surface">{{ __('pwa.install_title', ['brand' => config('company.display_name')]) }}</h3>
                     <ol class="text-xs text-on-surface-variant mt-2 space-y-1.5 leading-relaxed list-decimal list-inside">
                         <li class="flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-base text-primary" aria-hidden="true">more_vert</span>
@@ -79,7 +79,7 @@ window.addEventListener('beforeinstallprompt', function(e) {
                             x-on:click="dismiss()"
                             class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
                         >
-                            {{ __('pwa.action_firefox_install_dismiss') }}
+                            {{ __('pwa.ios_install_dismiss') }}
                         </button>
                     </div>
                 </div>

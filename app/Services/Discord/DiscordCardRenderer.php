@@ -86,7 +86,7 @@ class DiscordCardRenderer
             'url' => $deepLink,
             'color' => $this->color($game),
             'timestamp' => $this->timestamp($game),
-            'footer' => ['text' => $this->trans('discord.content_card_footer', [], $context->locale)],
+            'footer' => ['text' => $this->trans('discord.content_digest_footer', [], $context->locale)],
             'fields' => $this->fields($game, $context),
         ];
 
@@ -195,7 +195,7 @@ class DiscordCardRenderer
         if ($max !== null && $max > 0) {
             $countLine = "{$approved}/{$max}";
             if ($approved >= $max) {
-                $countLine .= ' — **'.$this->trans('discord.content_card_full', [], $context->locale).'**';
+                $countLine .= ' — **'.$this->trans('common.content_full', [], $context->locale).'**';
             }
         } else {
             // Unlimited capacity (max_players null or 0 — see HasCapacity).
@@ -224,7 +224,7 @@ class DiscordCardRenderer
         $names = $this->rosterNameLines($context);
 
         return [
-            'name' => $this->trans('discord.content_card_field_players', [], $context->locale),
+            'name' => $this->trans('campaigns.field_players', [], $context->locale),
             'value' => $names === '' ? $countLine : $countLine."\n".$names,
             // Block layout when we list names (they need the width); compact
             // inline when only a count is shown.
@@ -367,7 +367,7 @@ class DiscordCardRenderer
             return null;
         }
 
-        return ['name' => $this->trans('discord.content_card_field_system', [], $locale), 'value' => implode(' · ', $labels->all()), 'inline' => true];
+        return ['name' => $this->trans('common.content_system', [], $locale), 'value' => implode(' · ', $labels->all()), 'inline' => true];
     }
 
     /**
@@ -434,7 +434,7 @@ class DiscordCardRenderer
         if ($name !== '') {
             $lines[] = $website !== null ? "[**{$name}**]({$website})" : "**{$name}**";
         } elseif ($website !== null) {
-            $lines[] = '[**'.$this->trans('discord.content_card_field_venue', [], $locale).'**]('.$website.')';
+            $lines[] = '[**'.$this->trans('common.content_venue', [], $locale).'**]('.$website.')';
         }
 
         // Map link — lat/lng when available (precise), else a name/address query.
@@ -453,7 +453,7 @@ class DiscordCardRenderer
             return null;
         }
 
-        return ['name' => $this->trans('discord.content_card_field_venue', [], $locale), 'value' => implode("\n", $lines), 'inline' => false];
+        return ['name' => $this->trans('common.content_venue', [], $locale), 'value' => implode("\n", $lines), 'inline' => false];
     }
 
     /**

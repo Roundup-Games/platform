@@ -16,7 +16,7 @@
         </div>
         <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-32 text-center">
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold tracking-tight leading-tight">
-                {{ __('privacy.heading_title') }}
+                {{ __('common.nav_privacy') }}
             </h1>
             <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-2xl mx-auto leading-relaxed">
                 {{ __('privacy.content_introduction_2') }}
@@ -28,7 +28,7 @@
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface mb-8">
-                {{ __('privacy.heading_introduction') }}
+                {{ __('common.heading_introduction') }}
             </h2>
             <div class="space-y-4 text-on-surface-variant leading-relaxed">
                 <p>{{ __('privacy.content_introduction_1') }}</p>
@@ -195,7 +195,7 @@
                 <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">mail</span>
             </div>
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface mb-4">
-                {{ __('privacy.heading_contact') }}
+                {{ __('common.content_contact') }}
             </h2>
             <p class="text-on-surface-variant mb-2">{{ __('privacy.content_contact_intro') }}</p>
             <p class="font-semibold text-on-surface">{{ __('privacy.content_contact_org') }}</p>
@@ -207,7 +207,7 @@
     <section class="py-8 bg-surface">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
             <p class="text-sm text-on-surface-variant">
-                {{ __('privacy.content_last_updated', ['date' => config('policies.privacy.last_updated')]) }}
+                {{ __('common.content_last_updated', ['date' => config('policies.privacy.last_updated')]) }}
             </p>
         </div>
     </section>

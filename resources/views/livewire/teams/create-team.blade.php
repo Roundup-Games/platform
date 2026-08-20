@@ -41,14 +41,14 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label for="team-city" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.field_city') }}</label>
-                        <input type="text" id="team-city" wire:model="city" placeholder="{{ __('teams.placeholder_city') }}"
+                        <input type="text" id="team-city" wire:model="city" placeholder="{{ __('common.placeholder_city') }}"
                                class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label for="team-country" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.field_country') }}</label>
-                        <input type="text" id="team-country" wire:model="country" placeholder="{{ __('teams.placeholder_country') }}" maxlength="3"
+                        <input type="text" id="team-country" wire:model="country" placeholder="{{ __('common.placeholder_country') }}" maxlength="3"
                                class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         @error('country') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>

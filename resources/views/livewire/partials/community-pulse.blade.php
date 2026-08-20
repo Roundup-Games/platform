@@ -21,13 +21,13 @@
                 $actionKey = match($item->type) {
                     'game_created' => 'profile.dashboard_feed_action_created_game',
                     'player_joined' => $item->entityType === 'campaign'
-                        ? 'profile.dashboard_feed_action_joined_campaign'
-                        : 'profile.dashboard_feed_action_joined_game',
-                    'game_completed' => 'profile.dashboard_feed_action_completed_game',
+                        ? 'profile.dashboard_feed_action_joined'
+                        : 'profile.dashboard_feed_action_joined',
+                    'game_completed' => 'profile.dashboard_feed_action_completed',
                     'session_recapped' => 'profile.dashboard_feed_action_recapped_game',
                     'campaign_created' => 'profile.dashboard_feed_action_created_campaign',
-                    'campaign_completed' => 'profile.dashboard_feed_action_completed_campaign',
-                    'session_scheduled' => 'profile.dashboard_feed_action_scheduled_session',
+                    'campaign_completed' => 'profile.dashboard_feed_action_completed',
+                    'session_scheduled' => 'campaigns.activity_scheduled_session_for',
                     default => 'profile.dashboard_feed_action_created_game',
                 };
             @endphp

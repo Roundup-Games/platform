@@ -17,7 +17,7 @@
             'icon' => 'bolt',
             'color' => 'text-tertiary',
             'bg' => 'bg-tertiary/10',
-            'label' => __('profile.label_reliability_tier_active'),
+            'label' => __('common.status_active'),
         ],
         'newcomer' => [
             'icon' => 'person',

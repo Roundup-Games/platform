@@ -8,7 +8,6 @@ return [
     'content_learn_more_about_safety_tools' => 'Learn more about safety tools',
     'content_lines_veils_details' => 'Lines & Veils Details',
     'content_safety_tools' => 'Safety Tools',
-    'content_session_zero_support' => 'Session Zero',
     'content_the_single_most_impactful_thing' => 'The single most impactful thing you can do. Set aside time before your first game to discuss expectations, themes, and boundaries as a group.',
     'content_using_safety_tools_on_roundup' => 'Using Safety Tools on Roundup',
     'content_when_you_create_a_game' => 'When you create a game or campaign, you can select the safety tools you plan to use. These are displayed on your game\'s detail page so players know what to expect before joining. You can also add custom notes about your safety approach.',
@@ -23,7 +22,6 @@ return [
     'category_during' => 'During the Game',
     'category_after' => 'After the Game',
     // ── Safety Tool Labels ──────────────────────────────────────────
-    'tool_session_zero' => 'Session Zero',
     'tool_lines_and_veils' => 'Lines & Veils',
     'tool_open_door' => 'Open Door Policy',
     'tool_x_card' => 'X-Card',

@@ -53,7 +53,7 @@
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
         {{-- PWA update toast translations (read by app.js). @js() produces safely-escaped JSON — addslashes() does not escape </script> or U+2028/29. --}}
-        <script>window.__pwaUpdateToast=@js(['message' => __('pwa.content_update_available'), 'action' => __('pwa.action_update')]);window.__pwaOfflineToast=@js(['queued' => __('pwa.offline_action_queued'), 'offline' => __('pwa.offline_action_offline')]);</script>
+        <script>window.__pwaUpdateToast=@js(['message' => __('pwa.content_update_available'), 'action' => __('common.field_update')]);window.__pwaOfflineToast=@js(['queued' => __('pwa.offline_action_queued'), 'offline' => __('pwa.offline_action_offline')]);</script>
 
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -115,12 +115,12 @@
                         </a>
                         <a href="{{ route('people') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('people') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
-                            {{ __('profile.nav_people') }}
+                            {{ __('people.content_people') }}
                         </a>
                         @if(Auth::user()?->isGM())
                         <a href="{{ route('gm.workspace') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('gm.workspace') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('gm.workspace') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>casino</span>
-                            {{ __('profile.nav_gm_workspace') }}
+                            {{ __('gws.title_gm_workspace') }}
                         </a>
                         @endif
                         <a href="{{ route('billing.portal') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('billing.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
@@ -162,7 +162,7 @@
                         {{-- Cookie settings (public — shown to guests and members) --}}
                         <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">cookie</span>
-                            {{ __('cookie-consent.nav_cookie_settings') }}
+                            {{ __('common.nav_cookie_settings') }}
                         </button>
 
                         {{-- Utility row: language + theme --}}
@@ -233,7 +233,7 @@
 
                         <a href="{{ route('people') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('people') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
-                            {{ __('profile.nav_people') }}
+                            {{ __('people.content_people') }}
                         </a>
 
                         {{-- Divider before GM / account section --}}
@@ -242,7 +242,7 @@
                         @if(Auth::user()?->isGM())
                         <a href="{{ route('gm.workspace') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('gm.workspace') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('gm.workspace') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>casino</span>
-                            {{ __('profile.nav_gm_workspace') }}
+                            {{ __('gws.title_gm_workspace') }}
                         </a>
                         @endif
 
@@ -304,9 +304,9 @@
                                 <span class="material-symbols-outlined text-[18px]" aria-hidden="true">translate</span>
                             </a>
                             <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()"
-                                    title="{{ __('cookie-consent.nav_cookie_settings') }}"
+                                    title="{{ __('common.nav_cookie_settings') }}"
                                     class="js-cookie-consent-settings inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors cursor-pointer"
-                                    aria-label="{{ __('cookie-consent.nav_cookie_settings') }}">
+                                    aria-label="{{ __('common.nav_cookie_settings') }}">
                                 <span class="material-symbols-outlined text-[18px]" aria-hidden="true">cookie</span>
                             </button>
 
@@ -334,9 +334,9 @@
                                 <span class="material-symbols-outlined text-[18px]" aria-hidden="true">translate</span>
                             </a>
                             <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()"
-                                    title="{{ __('cookie-consent.nav_cookie_settings') }}"
+                                    title="{{ __('common.nav_cookie_settings') }}"
                                     class="js-cookie-consent-settings inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors cursor-pointer"
-                                    aria-label="{{ __('cookie-consent.nav_cookie_settings') }}">
+                                    aria-label="{{ __('common.nav_cookie_settings') }}">
                                 <span class="material-symbols-outlined text-[18px]" aria-hidden="true">cookie</span>
                             </button>
                             <div class="flex-1"></div>

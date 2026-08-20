@@ -26,7 +26,7 @@
         <a href="{{ route('discover.adventures', ['locale' => app()->getLocale()]) }}" wire:navigate
            class="block bg-surface rounded-2xl shadow-ambient p-8 hover:shadow-md transition-shadow group">
             <span class="material-symbols-outlined text-4xl text-secondary" aria-hidden="true">swords</span>
-            <h2 class="mt-4 text-xl font-heading font-semibold text-on-surface group-hover:text-secondary transition-colors">{{ __('discovery.field_tabletop_adventures') }}</h2>
+            <h2 class="mt-4 text-xl font-heading font-semibold text-on-surface group-hover:text-secondary transition-colors">{{ __('games.action_type_ttrpg') }}</h2>
             <p class="mt-2 text-sm text-on-surface-variant">{{ __('discovery.content_join_campaigns_oneshots') }}</p>
             @if($adventureCount > 0)
                 <span class="inline-flex items-center gap-1 mt-4 px-3 py-1 rounded-full text-xs font-medium bg-secondary/10 text-on-secondary-container">

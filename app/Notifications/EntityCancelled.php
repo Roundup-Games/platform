@@ -33,7 +33,7 @@ class EntityCancelled extends BaseNotification
             ->subject(__("notifications.subject_{$type}_cancelled", [
                 $type => $this->entity->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]));
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]));
 
         // GameCancelled includes date in body; CampaignCancelled does not
         if ($type === 'game') {
@@ -48,7 +48,11 @@ class EntityCancelled extends BaseNotification
             ]));
         }
 
-        $mail->action(__("notifications.action_{$type}_cancelled"), route("{$type}s.index", ['locale' => $locale]))
+        $browseAction = $this->entity instanceof Campaign
+            ? __('notifications.action_browse_campaigns')
+            : __('notifications.action_browse_games');
+
+        $mail->action($browseAction, route("{$type}s.index", ['locale' => $locale]))
             ->line($this->unsubscribeLine($notifiable, "{$type}_cancelled"));
 
         return $mail;
@@ -98,8 +102,8 @@ class EntityCancelled extends BaseNotification
         $type = $this->getEntityType();
 
         return new PushPayload(
-            title: __("notifications.push_title_{$type}_cancelled"),
-            body: __("notifications.push_body_{$type}_cancelled", [
+            title: __("common.activity_type_{$type}_canceled"),
+            body: __("notifications.subject_{$type}_cancelled", [
                 $type => $this->entity->name,
             ]),
             icon: '/icons/pwa-192x192.png',
@@ -117,9 +121,9 @@ class EntityCancelled extends BaseNotification
         $type = $this->getEntityType();
 
         return DiscordWebhookPayload::embed([
-            'title' => __("notifications.push_title_{$type}_cancelled"),
+            'title' => __("common.activity_type_{$type}_canceled"),
             'url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
-            'description' => __("notifications.push_body_{$type}_cancelled", [
+            'description' => __("notifications.subject_{$type}_cancelled", [
                 $type => $this->entity->name,
             ]),
             'color' => 0x5865F2,

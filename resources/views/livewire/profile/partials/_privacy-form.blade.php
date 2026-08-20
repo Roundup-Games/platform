@@ -24,11 +24,11 @@
     <div class="space-y-3">
         @php
             $fieldLabels = [
-                'location' => __('location.content_location'),
+                'location' => __('common.field_location'),
                 'game_systems' => __('games.content_game_systems'),
-                'vibes' => __('profile.content_vibes'),
+                'vibes' => __('common.content_vibes'),
                 'campaigns' => __('profile.content_sessions_and_campaigns'),
-                'teams' => __('profile.content_teams'),
+                'teams' => __('common.content_teams'),
                 'friends_list' => __('profile.content_friends_list'),
                 'stats' => __('profile.content_reliability_stats'),
             ];
@@ -67,7 +67,7 @@
                     </div>
 
                     <div class="flex rounded-lg overflow-hidden border border-outline-variant/30 shrink-0">
-                        @foreach(['everyone' => __('profile.visibility_everyone'), 'friends' => __('profile.visibility_friends'), 'nobody' => __('profile.visibility_nobody')] as $value => $label)
+                        @foreach(['everyone' => __('profile.visibility_everyone'), 'friends' => __('common.status_friends'), 'nobody' => __('profile.visibility_nobody')] as $value => $label)
                             @php
                                 $isActive = ($privacySettings[$field] ?? 'everyone') === $value;
                             @endphp
@@ -92,7 +92,7 @@
                     </div>
 
                     <div class="flex rounded-lg overflow-hidden border border-outline-variant/30">
-                        @foreach(['everyone' => __('profile.visibility_everyone'), 'friends' => __('profile.visibility_friends'), 'nobody' => __('profile.visibility_nobody')] as $value => $label)
+                        @foreach(['everyone' => __('profile.visibility_everyone'), 'friends' => __('common.status_friends'), 'nobody' => __('profile.visibility_nobody')] as $value => $label)
                             @php
                                 $isActive = ($privacySettings[$field] ?? 'everyone') === $value;
                             @endphp

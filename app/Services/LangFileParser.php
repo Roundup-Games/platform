@@ -244,14 +244,67 @@ class LangFileParser
                     }
                 }
 
+                // Lang::get('domain.key', ...) / Lang::choice('domain.key', ...)
+                // Facade form with explicit locale used by Discord renderers.
+                if (preg_match_all("/\bLang::(?:get|choice)\(\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath);
+                    }
+                }
+
+                if (preg_match_all('/\bLang::(?:get|choice)\(\s*"([a-z_-]+\.[a-z0-9_-]+)"/', $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath);
+                    }
+                }
+
+                // Result-code keys: ParticipantResult::ok('domain.key') / ::fail(...).
+                // Participant flows return translation keys as result payloads that
+                // the caller resolves via __() elsewhere — statically they never
+                // appear inside a translator call.
+                if (preg_match_all("/ParticipantResult::(?:ok|fail)\(\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath.' (result-code)');
+                    }
+                }
+
+                if (preg_match_all('/ParticipantResult::(?:ok|fail)\(\s*"([a-z_-]+\.[a-z0-9_-]+)"/', $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath.' (result-code)');
+                    }
+                }
+
+                // trans_choice ternaries: trans_choice($cond ? 'domain.key_a' : 'domain.key_b', ...)
+                // Both branches are statically known — same shape as the __() ternary.
+                if (preg_match_all("/trans_choice\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]+)'\s*:\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                    for ($i = 0; $i < count($matches[1]); $i++) {
+                        $this->addKeyReference($keys, $matches[1][$i], $relativePath.' (ternary)');
+                        $this->addKeyReference($keys, $matches[2][$i], $relativePath.' (ternary)');
+                    }
+                }
+
                 // Config-indirect references: translation keys assigned to config fields
                 // like 'label_key', 'description_key', etc. These are resolved at runtime
                 // by packages and never appear in __() calls directly.
                 // Only register the specific value assigned to these fields, not all
                 // domain.key strings in the file.
-                if (preg_match_all("/['\"](?:label_key|description_key|title_key|message_key)['\"]\\s*=>\\s*['\"]([a-z_-]+\\.[a-z0-9_-]+)['\"]/", $content, $matches)) {
+                if (preg_match_all("/['\"](?:label_key|description_key|title_key|message_key|label|description|title|subject|body|message)['\"]\\s*=>\\s*['\"]([a-z_-]+\\.[a-z0-9_-]+)['\"]/", $content, $matches)) {
                     foreach ($matches[1] as $key) {
                         $this->addKeyReference($keys, $key, $relativePath.' (config-indirect)');
+                    }
+                }
+
+                // Translation-config arrays: 'translations' => ['field' => 'domain.key', ...]
+                // resolved at runtime via __($config['translations']['field']) in
+                // HandlesApplicationSubmission (ApplyToGame/ApplyToCampaign). All
+                // domain.key-shaped values inside the array are referenced.
+                if (preg_match_all("/['\"]translations['\"]\s*=>\s*\[([^\]]+)\]/", $content, $blocks)) {
+                    foreach ($blocks[1] as $block) {
+                        if (preg_match_all("/['\"]([a-z_-]+\.[a-z0-9_-]+)['\"]/", $block, $km)) {
+                            foreach ($km[1] as $key) {
+                                $this->addKeyReference($keys, $key, $relativePath.' (translation-config)');
+                            }
+                        }
                     }
                 }
 
@@ -282,6 +335,24 @@ class LangFileParser
                 }
 
                 if (preg_match_all('/__\(\s*"([a-z_-]+\.[a-z0-9_-]*_)"\s*\.\s*\$/', $content, $matches)) {
+                    foreach ($matches[1] as $prefix) {
+                        $dot = strpos($prefix, '.');
+                        if ($dot === false) {
+                            continue;
+                        }
+                        $domain = substr($prefix, 0, $dot);
+                        $keyPrefix = substr($prefix, $dot + 1);
+                        $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
+                    }
+                }
+
+                // Interpolated dynamic keys: __("domain.prefix_{$var}_suffix")
+                // Double-quoted strings resolve {$...} at runtime; extract the static
+                // prefix before the first {$ so dead-string detection can match keys
+                // starting with it. The prefix must end with an underscore so an
+                // empty prefix can never whitelist an entire domain.
+                // e.g. __("notifications.subject_{$type}_invitation") → registers 'subject_'
+                if (preg_match_all('/__\(\s*"([a-z_-]+\.[a-z0-9_-]+_)\{\$/', $content, $matches)) {
                     foreach ($matches[1] as $prefix) {
                         $dot = strpos($prefix, '.');
                         if ($dot === false) {
@@ -381,7 +452,7 @@ class LangFileParser
             'cat_', 'mech_', 'play_style_', 'playstyle_',
             'type_', 'channel_', 'state_', 'group_',
             'section_', 'tab_', 'filter_',
-            'tool_', 'gm_', 'activity_', 'category_',
+            'tool_', 'gm_', 'activity_', 'category_', 'resolution_',
             'push_', 'dashboard_', 'verb_', 'nearby_',
             'request_', 'email_', 'validation_', 'guest_',
             'display_', 'ios_', 'nav_', 'install_',

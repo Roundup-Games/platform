@@ -51,7 +51,7 @@
                 @endif
 
                 <div>
-                    <p class="text-sm font-medium text-primary mb-1">{{ __('impressum.label_contact_email') }}</p>
+                    <p class="text-sm font-medium text-primary mb-1">{{ __('emails.field_contact_email') }}</p>
                     <a href="mailto:{{ config('company.contact.general') }}" class="text-on-surface-variant hover:text-primary transition-colors">{{ config('company.contact.general') }}</a>
                 </div>
 
@@ -74,7 +74,7 @@
     <section class="py-16 sm:py-20 bg-surface-container-low">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface mb-6">
-                {{ __('impressum.heading_registration') }}
+                {{ __('events.content_registration') }}
             </h2>
             <div class="space-y-3 text-on-surface-variant leading-relaxed">
                 @if(config('company.entity_type') === 'pre-incorporation')

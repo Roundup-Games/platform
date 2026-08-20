@@ -34,8 +34,8 @@ enum DisclosureLevel: string
     {
         return match ($this) {
             self::None => __('people.label_disclosure_level_none'),
-            self::Area => __('people.label_disclosure_level_area'),
-            self::City => __('people.label_disclosure_level_city'),
+            self::Area => __('people.nearby_in_your_area'),
+            self::City => __('location.field_city'),
             self::Exact => __('people.label_disclosure_level_exact'),
         };
     }

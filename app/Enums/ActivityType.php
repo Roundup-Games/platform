@@ -44,6 +44,11 @@ enum ActivityType: string
         return array_column(self::cases(), 'value');
     }
 
+    /**
+     * Label home: common.activity_type_*. Key suffixes mirror this enum's
+     * DB-backed values (American 'canceled'); the translated values follow
+     * the app-wide British 'cancelled' convention. See lang/en/common.php.
+     */
     public function label(): string
     {
         return match ($this) {

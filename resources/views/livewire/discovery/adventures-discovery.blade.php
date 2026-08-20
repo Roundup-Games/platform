@@ -66,7 +66,7 @@
                     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $session_zero ? 'bg-tertiary-container text-on-tertiary-container shadow-xs ring-1 ring-tertiary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
                     :aria-pressed="{{ $session_zero ? 'true' : 'false' }}">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">shield</span>
-                {{ __('safety.content_session_zero_support') }}
+                {{ __('session_zero.title_session_zero') }}
             </button>
 
             {{-- Location line --}}
@@ -247,7 +247,7 @@
                     <select wire:model.live="price" aria-label="{{ __('discovery.field_filter_by_price') }}"
                             class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                         <option value="">{{ __('discovery.field_any_price') }}</option>
-                        <option value="free">{{ __('billing.content_free') }}</option>
+                        <option value="free">{{ __('common.price_free') }}</option>
                         <option value="paid">{{ __('billing.content_paid') }}</option>
                     </select>
                 </div>
@@ -277,7 +277,7 @@
                 @if($session_zero)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container">
                         <span class="material-symbols-outlined text-xs" aria-hidden="true">shield</span>
-                        {{ __('safety.content_session_zero_support') }}
+                        {{ __('session_zero.title_session_zero') }}
                     </span>
                 @endif
                 @if($game_system_id)

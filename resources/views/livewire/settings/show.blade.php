@@ -241,7 +241,7 @@
                                         class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container transition-colors text-sm font-medium whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
                                     <span x-show="!copied">{{ __('settings.action_calendar_feed_copy') }}</span>
-                                    <span x-show="copied" x-cloak>{{ __('settings.status_calendar_feed_copied') }}</span>
+                                    <span x-show="copied" x-cloak>{{ __('common.status_copied') }}</span>
                                 </button>
                             </div>
                             <p class="mt-2 text-xs text-on-surface-variant">
@@ -250,13 +250,13 @@
                         </div>
 
                         <div class="flex flex-wrap gap-3">
-                            <button wire:click="generateCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_action_calendar_feed_regenerate') }}"
+                            <button wire:click="generateCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_calendar_feed_regenerate') }}"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="generateCalendarFeedToken">refresh</span>
                                 <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="generateCalendarFeedToken" role="status">progress_activity</span>
                                 <span>{{ __('settings.action_calendar_feed_regenerate') }}</span>
                             </button>
-                            <button wire:click="revokeCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_action_calendar_feed_revoke') }}"
+                            <button wire:click="revokeCalendarFeedToken" wire:loading.attr="disabled" wire:confirm="{{ __('settings.confirm_calendar_feed_revoke') }}"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 border border-error/40 text-error rounded-lg hover:bg-error-container/50 transition-colors text-sm font-medium">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true" wire:loading.remove wire:target="revokeCalendarFeedToken">link_off</span>
                                 <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true" wire:loading wire:target="revokeCalendarFeedToken" role="status">progress_activity</span>

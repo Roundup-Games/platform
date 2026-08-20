@@ -30,4 +30,14 @@ enum ParticipantStatus: string
             self::Removed => __('common.status_removed'),
         };
     }
+
+    /**
+     * Display label for a raw string status value (application models store
+     * plain strings rather than the enum). Falls back to the raw value for
+     * any legacy value outside the enum set.
+     */
+    public static function labelFor(string $value): string
+    {
+        return self::tryFrom($value)?->label() ?? $value;
+    }
 }

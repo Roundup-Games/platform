@@ -43,7 +43,7 @@
                 </p>
                 <a href="{{ route('campaigns.show', $campaign) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
-                    {{ __('campaigns.action_view_campaign') }}
+                    {{ __('notifications.action_view_campaign') }}
                 </a>
             </div>
         @else
@@ -60,7 +60,7 @@
                     @if($campaign->visibility->value === 'public')
                         {{ __('campaigns.action_join_campaign') }}
                     @else
-                        {{ __('campaigns.action_apply_to_join') }}
+                        {{ __('common.action_apply_to_join') }}
                     @endif
                 </h2>
 

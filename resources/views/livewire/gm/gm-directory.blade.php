@@ -41,7 +41,7 @@
             <div class="max-w-sm">
                 <livewire:components.game-system-picker
                     :fieldId="'gm-directory-game-system'"
-                    :label="__('gms.field_game_system')"
+                    :label="__('games.content_game_system')"
                     :value="$game_system_id"
                 />
             </div>
@@ -49,13 +49,13 @@
             {{-- Row 3: Sort + Min Rating + Clear filters --}}
             <div class="flex flex-wrap items-center gap-3">
                 <div class="flex items-center gap-2">
-                    <label for="gm-sort" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('gms.field_sort_by') }}</label>
+                    <label for="gm-sort" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('common.field_sort_by') }}</label>
                     <select id="gm-sort"
                             wire:model.live="sortBy"
                             class="bg-surface-container-high text-on-surface text-sm rounded-lg px-3 py-1.5 border border-outline-variant/30 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                         <option value="highest_rated">{{ __('gms.sort_highest_rated') }}</option>
                         <option value="most_reviewed">{{ __('gms.sort_most_reviewed') }}</option>
-                        <option value="newest">{{ __('gms.sort_newest') }}</option>
+                        <option value="newest">{{ __('common.content_newest') }}</option>
                     </select>
                 </div>
 
@@ -98,7 +98,7 @@
                                             <span class="text-amber-500 font-semibold">{{ number_format($gmProfile->average_rating, 1) }}</span>
                                             <span class="text-amber-500">★</span>
                                             <span class="text-on-surface-variant">·</span>
-                                            <span class="text-on-surface-variant">{{ trans_choice('profile.gm_profile_reviews', $gmProfile->review_count) }}</span>
+                                            <span class="text-on-surface-variant">{{ trans_choice('reviews.content_review_count', $gmProfile->review_count) }}</span>
                                         </div>
                                     @else
                                         <span class="text-sm text-on-surface-variant">{{ __('profile.gm_profile_no_reviews') }}</span>
@@ -169,7 +169,7 @@
                         <span wire:loading wire:target="loadMore">
                             <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
                         </span>
-                        {{ __('gms.action_load_more') }}
+                        {{ __('common.action_load_more') }}
                     </button>
                     <p class="mt-2 text-xs text-on-surface-variant">
                         {{ __('gms.content_showing_of_total', [

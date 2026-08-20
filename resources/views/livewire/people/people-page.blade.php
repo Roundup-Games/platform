@@ -72,7 +72,7 @@
                                     @if($isMutual)
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
                                             <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1">group</span>
-                                            {{ __('people.content_friends') }}
+                                            {{ __('common.status_friends') }}
                                         </span>
                                     @endif
                                 </div>
@@ -123,7 +123,7 @@
                                     @if($isFollowingBack)
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
                                             <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1">group</span>
-                                            {{ __('people.content_friends') }}
+                                            {{ __('common.status_friends') }}
                                         </span>
                                     @endif
                                 </div>
@@ -337,7 +337,7 @@
                                 <span wire:loading wire:target="loadMoreNearby">
                                     <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
                                 </span>
-                                {{ __('people.action_load_more') }}
+                                {{ __('common.action_load_more') }}
                             </button>
                             <p class="mt-2 text-xs text-on-surface-variant">
                                 {{ __('people.content_showing_of_total', [

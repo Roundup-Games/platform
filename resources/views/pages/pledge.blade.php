@@ -157,7 +157,7 @@
                     {{ __('pages.content_pledge_cards_heading') }}
                 </h2>
                 <p class="text-on-surface-variant max-w-xl mx-auto">
-                    {{ __('pages.content_pledge_cards_subtitle') }}
+                    {{ __('pages.content_commitments_subtitle') }}
                 </p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -167,12 +167,12 @@
                     <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">psychology</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_pledge_card_algorithms_title') }}</h3>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_commitment_algorithms_title') }}</h3>
                     <p class="text-sm text-on-surface-variant leading-relaxed flex-1">
-                        {{ __('pages.content_pledge_card_algorithms_body') }}
+                        {{ __('pages.content_commitment_algorithms_body') }}
                     </p>
                     <span class="mt-4 inline-flex items-center text-primary font-semibold text-sm group-hover:gap-2 transition-all">
-                        {{ __('pages.content_pledge_card_algorithms_action') }}
+                        {{ __('pages.content_commitment_algorithms_action') }}
                         <span class="material-symbols-outlined text-base ml-1" aria-hidden="true">arrow_forward</span>
                     </span>
                 </a>
@@ -181,15 +181,15 @@
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient opacity-60 relative flex flex-col cursor-default">
                     <div class="absolute top-4 right-4">
                         <span class="inline-flex items-center px-2.5 py-1 bg-on-surface-variant/10 text-on-surface-variant text-xs font-medium rounded-full">
-                            {{ __('pages.content_pledge_coming_soon') }}
+                            {{ __('common.field_coming_soon') }}
                         </span>
                     </div>
                     <div class="w-12 h-12 bg-on-surface-variant/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-on-surface-variant text-2xl" aria-hidden="true">account_balance</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface-variant text-lg mb-2">{{ __('pages.content_pledge_card_finances_title') }}</h3>
+                    <h3 class="font-heading font-semibold text-on-surface-variant text-lg mb-2">{{ __('pages.content_commitment_finances_title') }}</h3>
                     <p class="text-sm text-on-surface-variant/70 leading-relaxed flex-1">
-                        {{ __('pages.content_pledge_card_finances_body') }}
+                        {{ __('pages.content_commitment_finances_body') }}
                     </p>
                 </div>
 
@@ -197,15 +197,15 @@
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient opacity-60 relative flex flex-col cursor-default">
                     <div class="absolute top-4 right-4">
                         <span class="inline-flex items-center px-2.5 py-1 bg-on-surface-variant/10 text-on-surface-variant text-xs font-medium rounded-full">
-                            {{ __('pages.content_pledge_coming_soon') }}
+                            {{ __('common.field_coming_soon') }}
                         </span>
                     </div>
                     <div class="w-12 h-12 bg-on-surface-variant/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-on-surface-variant text-2xl" aria-hidden="true">map</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface-variant text-lg mb-2">{{ __('pages.content_pledge_card_roadmap_title') }}</h3>
+                    <h3 class="font-heading font-semibold text-on-surface-variant text-lg mb-2">{{ __('pages.content_commitment_roadmap_title') }}</h3>
                     <p class="text-sm text-on-surface-variant/70 leading-relaxed flex-1">
-                        {{ __('pages.content_pledge_card_roadmap_body') }}
+                        {{ __('pages.content_commitment_roadmap_body') }}
                     </p>
                 </div>
 
@@ -213,15 +213,15 @@
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient opacity-60 relative flex flex-col cursor-default">
                     <div class="absolute top-4 right-4">
                         <span class="inline-flex items-center px-2.5 py-1 bg-on-surface-variant/10 text-on-surface-variant text-xs font-medium rounded-full">
-                            {{ __('pages.content_pledge_coming_soon') }}
+                            {{ __('common.field_coming_soon') }}
                         </span>
                     </div>
                     <div class="w-12 h-12 bg-on-surface-variant/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-on-surface-variant text-2xl" aria-hidden="true">gavel</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface-variant text-lg mb-2">{{ __('pages.content_pledge_card_operations_title') }}</h3>
+                    <h3 class="font-heading font-semibold text-on-surface-variant text-lg mb-2">{{ __('pages.content_commitment_operations_title') }}</h3>
                     <p class="text-sm text-on-surface-variant/70 leading-relaxed flex-1">
-                        {{ __('pages.content_pledge_card_operations_body') }}
+                        {{ __('pages.content_commitment_operations_body') }}
                     </p>
                 </div>
             </div>

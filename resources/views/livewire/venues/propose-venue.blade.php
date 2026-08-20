@@ -106,7 +106,7 @@
                                     class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
                                 <option value="" disabled selected>{{ __('location.field_venue_type') }}</option>
                                 @foreach(\App\Enums\VenueType::cases() as $type)
-                                    <option value="{{ $type->value }}">{{ __('location.type_' . $type->value) }}</option>
+                                    <option value="{{ $type->value }}">{{ $type->label() }}</option>
                                 @endforeach
                             </select>
                             @error('venue_type') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror

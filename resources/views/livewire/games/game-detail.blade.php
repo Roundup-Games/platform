@@ -144,7 +144,7 @@
                     <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                             <span class="material-symbols-outlined text-xl" aria-hidden="true">notes</span>
-                            {{ __('games.label_comfort_notes') }}
+                            {{ __('games.field_comfort_notes') }}
                         </h2>
                         <p class="text-sm text-on-surface whitespace-pre-line">{{ $comfortNotes }}</p>
                     </section>
@@ -154,7 +154,7 @@
                 @auth
                     @if($isParticipant && !$isOwner && $game->status->value === 'scheduled')
                         <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 flex items-center justify-between">
-                            <span class="text-sm text-on-surface-variant">{{ __('games.content_leave_hint') }}</span>
+                            <span class="text-sm text-on-surface-variant">{{ __('common.content_leave_hint') }}</span>
                             <x-confirm-action
                                 action="leaveGame()"
                                 id="leave-game"

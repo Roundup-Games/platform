@@ -111,7 +111,7 @@
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-on-surface mb-1">{{ __('location.content_location') }}</label>
+            <label class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_location') }}</label>
             <livewire:components.location-picker :location-id="$locationId" />
         </div>
     </div>

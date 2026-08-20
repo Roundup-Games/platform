@@ -47,7 +47,7 @@
         {{-- Mechanic pills (from curated list) --}}
         @if($curatedMechanics->isNotEmpty())
             <div>
-                <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('games.content_mechanics') }}</p>
+                <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('games.heading_mechanics') }}</p>
                 <div class="flex flex-wrap gap-1.5">
                     @foreach($curatedMechanics as $mechanic)
                         <button
@@ -114,7 +114,7 @@
             <select wire:model.live="price" aria-label="{{ __('discovery.field_filter_by_price') }}"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.field_any_price') }}</option>
-                <option value="free">{{ __('billing.content_free') }}</option>
+                <option value="free">{{ __('common.price_free') }}</option>
                 <option value="paid">{{ __('billing.content_paid') }}</option>
             </select>
         </div>
@@ -173,12 +173,7 @@
         @endif
         @if($recurrence)
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                {{ match($recurrence) {
-                    'weekly' => __('campaigns.content_weekly'),
-                    'bi-weekly' => __('campaigns.content_bi-weekly'),
-                    'monthly' => __('campaigns.content_monthly'),
-                    default => __(ucfirst(str_replace('-', ' ', $recurrence))),
-                } }}
+                {{ \App\Enums\Recurrence::labelFor($recurrence) }}
             </span>
         @endif
         @if($game_system_id)
@@ -231,7 +226,7 @@
         @endif
         @if($price)
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                {{ $price === 'free' ? __('billing.content_free') : __('billing.content_paid') }}
+                {{ $price === 'free' ? __('common.price_free') : __('billing.content_paid') }}
             </span>
         @endif
         @if($complexity_min || $complexity_max)

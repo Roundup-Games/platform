@@ -80,7 +80,7 @@ describe('apply when full shows waitlist position', function () {
         // Reload component to see the waitlist position
         Livewire::actingAs($user)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee(__('games.content_waitlist_position', ['position' => 1]));
+            ->assertSee(__('common.content_waitlist_position', ['position' => 1]));
     });
 });
 
@@ -133,7 +133,7 @@ describe('host sees waitlist management', function () {
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee(__('games.action_manual_promote'));
+            ->assertSee(__('common.action_promote'));
     });
 });
 

@@ -39,7 +39,7 @@
         <div class="flex items-center justify-center gap-2 mb-6">
             <button wire:click="setType('all')"
                     class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'all' ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
-                {{ __('games.action_type_all') }}
+                {{ __('discovery.content_all') }}
             </button>
             <button wire:click="setType('boardgame')"
                     class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'boardgame' ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
@@ -231,7 +231,7 @@
                                         @if($system->average_play_time)
                                             <span class="flex items-center gap-0.5">
                                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">schedule</span>
-                                                {{ $system->average_play_time }}{{ __('games.content_min') }}
+                                                {{ $system->average_play_time }}{{ __('common.label_unit_min') }}
                                             </span>
                                         @endif
                                         @if($system->bgg_average_rating)

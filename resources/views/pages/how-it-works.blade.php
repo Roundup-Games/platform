@@ -100,7 +100,7 @@
                     <div class="flex items-start gap-4">
                         <span class="material-symbols-outlined text-primary text-xl mt-1 shrink-0" aria-hidden="true">forum</span>
                         <div>
-                            <h4 class="font-heading font-semibold text-on-surface">{{ __('safety.content_session_zero_support') }}</h4>
+                            <h4 class="font-heading font-semibold text-on-surface">{{ __('session_zero.title_session_zero') }}</h4>
                             <p class="text-sm text-on-surface-variant mt-1">{{ __('safety.content_for_rpg_campaigns_we_encourage') }}</p>
                         </div>
                     </div>

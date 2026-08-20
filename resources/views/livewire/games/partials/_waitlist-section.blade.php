@@ -6,15 +6,15 @@
         <div class="flex items-start gap-4">
             <span class="material-symbols-outlined text-2xl text-tertiary mt-0.5" aria-hidden="true">playlist_add</span>
             <div class="flex-1">
-                <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('games.action_join_waitlist') }}</h2>
-                <p class="mt-1 text-sm text-on-surface-variant">{{ __('games.content_waitlist_position', ['position' => $waitlistPosition]) }}</p>
+                <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('common.action_join_waitlist') }}</h2>
+                <p class="mt-1 text-sm text-on-surface-variant">{{ __('common.content_waitlist_position', ['position' => $waitlistPosition]) }}</p>
                 <x-confirm-action
                     action="leaveWaitlist('{{ $userWaitlistParticipant->id }}')"
                     id="leave-waitlist-{{ $userWaitlistParticipant->id }}"
                     :icon="'logout'"
-                    :trigger-label="__('games.action_leave_waitlist')"
+                    :trigger-label="__('common.action_leave_waitlist')"
                     trigger-class="mt-3 inline-flex items-center gap-1 text-sm text-error hover:text-error/80 underline underline-offset-2 transition-colors"
-                    :confirm-label="__('games.action_leave_waitlist')"
+                    :confirm-label="__('common.action_leave_waitlist')"
                     :cancel-label="__('common.action_keep')"
                     :message="__('games.flash_confirm_leave_waitlist')"
                     variant="compact"

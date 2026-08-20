@@ -35,7 +35,7 @@ class EntityUpdated extends BaseNotification
             ->subject(__("notifications.subject_{$type}_updated", [
                 $type => $this->entity->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__("notifications.body_{$type}_updated", [
                 $type => $this->entity->name,
                 'fields' => $fields,

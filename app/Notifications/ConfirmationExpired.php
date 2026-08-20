@@ -25,11 +25,11 @@ class ConfirmationExpired extends BaseNotification
             ->subject(__('notifications.subject_confirmation_expired', [
                 'game' => $this->entity->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_confirmation_expired', [
                 'game' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_view_game', ['game' => $this->entity->name]), $this->getEntityRoute($locale))
+            ->action(__('notifications.action_view_game'), $this->getEntityRoute($locale))
             ->line($this->unsubscribeLine($notifiable, 'confirmation_expired'));
     }
 
@@ -54,7 +54,7 @@ class ConfirmationExpired extends BaseNotification
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return new PushPayload(
-            title: __('notifications.push_title_confirmation_expired'),
+            title: __('notifications.category_confirmation_expired'),
             body: __('notifications.push_body_confirmation_expired', [
                 'game' => $this->entity->name,
             ]),
@@ -72,7 +72,7 @@ class ConfirmationExpired extends BaseNotification
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_confirmation_expired'),
+            'title' => __('notifications.category_confirmation_expired'),
             'url' => $this->getEntityRoute($locale),
             'description' => __('notifications.push_body_confirmation_expired', [
                 'game' => $this->entity->name,

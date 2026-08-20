@@ -8,7 +8,7 @@
         </div>
         <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-32 text-center">
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold tracking-tight leading-tight">
-                {{ __('pages.content_pledge_card_algorithms_title') }}
+                {{ __('pages.content_commitment_algorithms_title') }}
             </h1>
             <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-2xl mx-auto leading-relaxed">
                 {{ __('pages.content_pledge_algo_hero_subtitle') }}
@@ -131,7 +131,7 @@
             <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
                 <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">function</span>
-                    {{ __('pages.content_pledge_algo_formula_heading') }}
+                    {{ __('pages.content_how_it_works') }}
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
                     <p class="mb-2">Score = (weighted_sum / game_count) &times; 100</p>
@@ -141,14 +141,14 @@
                     <caption class="sr-only">{{ __('pages.content_pledge_algo_reliability_caption') }}</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
-                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_status') }}</th>
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('common.content_status') }}</th>
                             <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_player_weight') }}</th>
                             <th class="text-left py-2 font-medium">{{ __('pages.content_pledge_algo_table_host_weight') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_status_attended') }}</td>
+                            <td class="py-2 pr-4">{{ __('attendance.status_attended') }}</td>
                             <td class="py-2 pr-4 font-mono">+1.0</td>
                             <td class="py-2 font-mono">+1.0</td>
                         </tr>
@@ -163,7 +163,7 @@
                             <td class="py-2 font-mono text-error">&minus;1.5</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_status_excused') }}</td>
+                            <td class="py-2 pr-4">{{ __('attendance.status_excused') }}</td>
                             <td class="py-2 pr-4 font-mono">0.0</td>
                             <td class="py-2 font-mono">0.0</td>
                         </tr>
@@ -184,15 +184,15 @@
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="text-center p-4 bg-surface-container-lowest rounded-lg">
-                        <div class="font-heading font-bold text-primary text-lg mb-1">{{ __('pages.content_pledge_algo_tier_reliable') }}</div>
+                        <div class="font-heading font-bold text-primary text-lg mb-1">{{ __('profile.label_reliability_tier_reliable') }}</div>
                         <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_tier_reliable_desc') }}</p>
                     </div>
                     <div class="text-center p-4 bg-surface-container-lowest rounded-lg">
-                        <div class="font-heading font-bold text-on-surface text-lg mb-1">{{ __('pages.content_pledge_algo_tier_active') }}</div>
+                        <div class="font-heading font-bold text-on-surface text-lg mb-1">{{ __('common.status_active') }}</div>
                         <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_tier_active_desc') }}</p>
                     </div>
                     <div class="text-center p-4 bg-surface-container-lowest rounded-lg">
-                        <div class="font-heading font-bold text-on-surface-variant text-lg mb-1">{{ __('pages.content_pledge_algo_tier_newcomer') }}</div>
+                        <div class="font-heading font-bold text-on-surface-variant text-lg mb-1">{{ __('profile.label_reliability_tier_newcomer') }}</div>
                         <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_tier_newcomer_desc') }}</p>
                     </div>
                 </div>
@@ -374,7 +374,7 @@
             <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
                 <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">function</span>
-                    {{ __('pages.content_pledge_algo_formula_heading') }}
+                    {{ __('pages.content_how_it_works') }}
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
                     <p class="mb-2">{{ __('pages.content_pledge_algo_gm_formula_avg') }}</p>
@@ -481,7 +481,7 @@
             <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
                 <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">function</span>
-                    {{ __('pages.content_pledge_algo_formula_heading') }}
+                    {{ __('pages.content_how_it_works') }}
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
                     <p class="mb-2">{{ __('pages.content_pledge_algo_people_formula_taste') }}</p>
@@ -726,7 +726,7 @@
             <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
                 <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">function</span>
-                    {{ __('pages.content_pledge_algo_formula_heading') }}
+                    {{ __('pages.content_how_it_works') }}
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
                     <p class="mb-2">d = 2R &times; arcsin(&radic;(</p>
@@ -833,7 +833,7 @@
                         <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_exact_desc') }}</p>
                     </div>
                     <div class="p-4 bg-surface-container-lowest rounded-lg">
-                        <div class="font-heading font-bold text-on-surface text-sm mb-1">{{ __('pages.content_pledge_algo_disclosure_rung_city') }}</div>
+                        <div class="font-heading font-bold text-on-surface text-sm mb-1">{{ __('location.field_city') }}</div>
                         <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_city_desc') }}</p>
                     </div>
                     <div class="p-4 bg-surface-container-lowest rounded-lg">
@@ -841,7 +841,7 @@
                         <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_area_desc') }}</p>
                     </div>
                     <div class="p-4 bg-surface-container-lowest rounded-lg">
-                        <div class="font-heading font-bold text-on-surface-variant text-sm mb-1">{{ __('pages.content_pledge_algo_disclosure_rung_none') }}</div>
+                        <div class="font-heading font-bold text-on-surface-variant text-sm mb-1">{{ __('campaigns.field_none') }}</div>
                         <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_none_desc') }}</p>
                     </div>
                 </div>
@@ -867,15 +867,15 @@
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_disclosure_rel_friend') }}</td>
-                            <td class="py-2 font-mono">{{ __('pages.content_pledge_algo_disclosure_rung_city') }}</td>
+                            <td class="py-2 font-mono">{{ __('location.field_city') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_disclosure_rel_stranger') }}</td>
                             <td class="py-2 font-mono">{{ __('pages.content_pledge_algo_disclosure_rung_area') }}</td>
                         </tr>
                         <tr>
-                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_disclosure_rel_blocked') }}</td>
-                            <td class="py-2 font-mono text-on-surface-variant">{{ __('pages.content_pledge_algo_disclosure_rung_none') }}</td>
+                            <td class="py-2 pr-4">{{ __('people.content_blocked_tab') }}</td>
+                            <td class="py-2 font-mono text-on-surface-variant">{{ __('campaigns.field_none') }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -980,7 +980,7 @@
                             <td class="py-2">{{ __('pages.content_pledge_algo_trending_time_value') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_visibility') }}</td>
+                            <td class="py-2 pr-4">{{ __('common.content_visibility') }}</td>
                             <td class="py-2">{{ __('pages.content_pledge_algo_trending_visibility_value') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
@@ -1055,7 +1055,7 @@
             <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
                 <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">function</span>
-                    {{ __('pages.content_pledge_algo_formula_heading') }}
+                    {{ __('pages.content_how_it_works') }}
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
                     <p class="mb-2">score = (favorites &times; w&#8321;) + (games &times; w&#8322;)</p>
@@ -1066,7 +1066,7 @@
                     <thead>
                         <tr class="border-b border-outline-variant">
                             <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_signal') }}</th>
-                            <th class="text-center py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_board_games') }}</th>
+                            <th class="text-center py-2 pr-4 font-medium">{{ __('games.action_type_boardgame') }}</th>
                             <th class="text-center py-2 font-medium">{{ __('pages.content_pledge_algo_table_ttrpgs') }}</th>
                         </tr>
                     </thead>
@@ -1077,12 +1077,12 @@
                             <td class="py-2 text-center font-mono">10</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_signal_total_games') }}</td>
+                            <td class="py-2 pr-4">{{ __('gws.label_total_games') }}</td>
                             <td class="py-2 pr-4 text-center font-mono">3</td>
                             <td class="py-2 text-center font-mono">3</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_signal_campaigns') }}</td>
+                            <td class="py-2 pr-4">{{ __('campaigns.content_campaigns') }}</td>
                             <td class="py-2 pr-4 text-center font-mono">5</td>
                             <td class="py-2 text-center font-mono text-primary font-bold">15</td>
                         </tr>

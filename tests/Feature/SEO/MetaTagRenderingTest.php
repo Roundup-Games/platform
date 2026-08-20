@@ -47,7 +47,7 @@ describe('Static Pages Meta Tags', function () {
     it('renders discover page with title and description', function () {
         $response = get(route('discover'));
         $response->assertOk();
-        assertPageTitle($response, __('discovery.seo_title_discover'));
+        assertPageTitle($response, __('discovery.action_discover'));
         expect(extractMetaDescription($response->content()))->toContain(__('discovery.seo_description_discover'));
         assertOgMetaTagPresent($response, 'og:title');
         $response->assertSee('twitter:card', false)->assertSee('rel="canonical"', false);
@@ -56,7 +56,7 @@ describe('Static Pages Meta Tags', function () {
     it('renders GM directory with title and description', function () {
         $response = get(route('gm.directory'));
         $response->assertOk();
-        assertPageTitle($response, __('gms.seo_title_gm_directory'));
+        assertPageTitle($response, __('gms.title_game_master_directory'));
         expect(extractMetaDescription($response->content()))->toContain(__('gms.seo_description_gm_directory'));
         assertOgMetaTagPresent($response, 'og:title');
         $response->assertSee('twitter:card', false)->assertSee('rel="canonical"', false);

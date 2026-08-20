@@ -5,9 +5,9 @@
     @else
         <button wire:click="openModal"
                 class="inline-flex items-center gap-1 text-xs text-on-surface-variant hover:text-error transition-colors"
-                title="{{ __('reviews.action_report') }}">
+                title="{{ __('reports.action_report') }}">
             <span class="material-symbols-outlined text-sm">flag</span>
-            {{ __('reviews.action_report') }}
+            {{ __('reports.action_report') }}
         </button>
     @endif
 
@@ -26,10 +26,10 @@
 
                 <div class="space-y-2 mb-6">
                     @foreach([
-                        'inappropriate' => __('reviews.report_reason_inappropriate'),
+                        'inappropriate' => __('reports.field_reason_inappropriate_content'),
                         'spam' => __('reviews.report_reason_spam'),
-                        'harassment' => __('reviews.report_reason_harassment'),
-                        'other' => __('reviews.report_reason_other'),
+                        'harassment' => __('reports.field_reason_harassment'),
+                        'other' => __('common.content_other'),
                     ] as $value => $label)
                         <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors
                             {{ $reason === $value ? 'bg-primary/10 ring-1 ring-primary' : 'bg-surface-container-high hover:bg-surface-container' }}">
@@ -54,8 +54,8 @@
                     <button wire:click="submitReport"
                             wire:loading.attr="disabled"
                             class="px-4 py-2 rounded-lg text-sm font-medium bg-error text-on-error hover:brightness-110 transition-colors disabled:opacity-50">
-                        <span wire:loading.remove>{{ __('reviews.action_submit_report') }}</span>
-                        <span wire:loading>{{ __('reviews.content_submitting') }}</span>
+                        <span wire:loading.remove>{{ __('reports.action_submit_report') }}</span>
+                        <span wire:loading>{{ __('common.action_submitting') }}</span>
                     </button>
                 </div>
             </div>

@@ -41,7 +41,7 @@ class BillingSupport extends Component
         'subscription_change' => 'support.field_billing_issue_subscription_change',
         'invoice_question' => 'support.field_billing_issue_invoice',
         'cancellation_issue' => 'support.field_billing_issue_cancellation',
-        'other' => 'support.field_billing_issue_other',
+        'other' => 'common.content_other',
     ];
 
     public function submitBillingSupport(): void
@@ -54,9 +54,7 @@ class BillingSupport extends Component
         $rateLimitKey = "billing-support:{$user->id}";
 
         if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600)) {
-            $seconds = RateLimiter::availableIn($rateLimitKey);
-            $minutes = ceil($seconds / 60);
-            $this->addError('subject', __('support.error_rate_limit', ['minutes' => $minutes]));
+            $this->addError('subject', __('common.error_rate_limit'));
 
             return;
         }

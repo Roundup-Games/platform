@@ -157,7 +157,7 @@ describe('ParticipantService', function () {
             $result = $this->service->inviteByEmail($game, $this->owner, $this->owner->email);
 
             expect($result->success)->toBeFalse();
-            expect($result->errorKey)->toBe('people.error_cannot_invite_self');
+            expect($result->errorKey)->toBe('common.error_you_cannot_invite_yourself');
         });
 
         it('invites existing registered user by email', function () {

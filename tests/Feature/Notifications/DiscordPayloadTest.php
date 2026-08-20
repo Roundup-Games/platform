@@ -85,7 +85,7 @@ class DiscordPayloadTest extends TestCase
         $embed = $this->embed($payload);
         // Title is the static 'Attendance Reminder' key (no :game param);
         // the game name lives in the body/description.
-        $this->assertSame(__('notifications.push_title_attendance_nudge'), $embed['title']);
+        $this->assertSame(__('notifications.category_attendance_nudge'), $embed['title']);
         $this->assertStringContainsString($game->name, $embed['description']);
         $this->assertStringContainsString($game->id, $embed['url']);
     }
@@ -138,7 +138,7 @@ class DiscordPayloadTest extends TestCase
         $this->assertStringContainsString($game->id, $embed['url']);
         // 'resolved_favor' branch must use the *_favor title key, not *_upheld.
         $this->assertSame(
-            __('notifications.push_title_dispute_resolved_favor'),
+            __('notifications.category_dispute_resolved'),
             $embed['title'],
             'resolved_favor branch must use the *_favor title key'
         );
@@ -203,7 +203,7 @@ class DiscordPayloadTest extends TestCase
         $payload = (new EntityCancelled($game))->toDiscord($notifiable);
 
         $embed = $this->embed($payload);
-        $this->assertSame(__('notifications.push_title_game_cancelled'), $embed['title']);
+        $this->assertSame(__('common.activity_type_game_canceled'), $embed['title']);
         $this->assertStringContainsString($game->name, $embed['description']);
         $this->assertStringContainsString('/games/'.$game->id, $embed['url']);
     }
@@ -216,7 +216,7 @@ class DiscordPayloadTest extends TestCase
         $payload = (new EntityCancelled($campaign))->toDiscord($notifiable);
 
         $embed = $this->embed($payload);
-        $this->assertSame(__('notifications.push_title_campaign_cancelled'), $embed['title']);
+        $this->assertSame(__('common.activity_type_campaign_canceled'), $embed['title']);
         $this->assertStringContainsString($campaign->name, $embed['description']);
         $this->assertStringContainsString('/campaigns/'.$campaign->id, $embed['url']);
     }

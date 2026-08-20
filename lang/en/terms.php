@@ -1,10 +1,8 @@
 <?php
 
 return [
-    'heading_title' => 'Terms of Use',
     'seo_description' => 'The terms and conditions governing your use of the '.config('company.display_name').' platform. Clear, fair, and written in plain language.',
     // ── Introduction ───────────────────────────────────
-    'heading_introduction' => 'Introduction',
     'content_introduction_1' => 'These Terms of Use ("Terms") govern your access to and use of the '.config('company.display_name').' platform at roundup.games ("Platform"), operated by '.config('company.legal_name').' ("we", "us", "our").',
     'content_introduction_2' => 'By creating an account or using the Platform, you agree to these Terms. If you don\'t agree, please don\'t use the Platform.',
     'content_introduction_3' => 'We wrote these Terms to be clear and fair. If anything is unclear, feel free to reach out.',
@@ -55,7 +53,6 @@ return [
     // ── Privacy ────────────────────────────────────────
     'heading_privacy' => 'Privacy',
     'content_privacy_ref' => 'Your privacy is important to us. Our data practices are described in our :privacy_link.',
-    'content_privacy_link_text' => 'Privacy Policy',
     // ── Governing Law ──────────────────────────────────
     'heading_governing_law' => 'Governing Law',
     'content_governing_1' => 'These Terms are governed by the laws of the Federal Republic of Germany.',
@@ -65,9 +62,5 @@ return [
     'content_changes_1' => 'We may update these Terms from time to time. When we do, we\'ll update the "Last updated" date and notify you through the Platform.',
     'content_changes_2' => 'Continued use of the Platform after changes take effect constitutes acceptance of the updated Terms.',
     // ── Contact ────────────────────────────────────────
-    'heading_contact' => 'Contact',
-    'content_contact_org' => config('company.legal_name'),
     'content_contact_email' => 'Email: '.config('company.contact.legal'),
-    // ── Last Updated ───────────────────────────────────
-    'content_last_updated' => 'Last updated: :date',
 ];

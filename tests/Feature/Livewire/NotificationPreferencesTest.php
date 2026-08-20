@@ -128,7 +128,7 @@ describe('discord column gating (D118)', function () {
 
         Livewire::test(Show::class)
             ->assertSet('hasDiscordLinked', true)
-            ->assertSee(__('notifications.channel_discord'));
+            ->assertSee(__('common.content_source_discord'));
     });
 
     it('does not gate the column on a non-discord linked account', function () {

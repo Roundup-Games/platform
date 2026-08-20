@@ -53,13 +53,13 @@ class GameSystemRequestRejected extends BaseNotification
 
         $mail = (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_rejected'))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_game_system_request_rejected', [
                 'name' => $name,
             ]));
 
         if ($rejectionReason) {
-            $mail->line(__('notifications.body_rejection_reason', [
+            $mail->line(__('notifications.body_reason', [
                 'reason' => $rejectionReason,
             ]));
         }
@@ -94,7 +94,7 @@ class GameSystemRequestRejected extends BaseNotification
         ];
 
         if ($rejectionReason) {
-            $data['message'] .= ' '.__('notifications.body_rejection_reason', [
+            $data['message'] .= ' '.__('notifications.body_reason', [
                 'reason' => $rejectionReason,
             ]);
         }

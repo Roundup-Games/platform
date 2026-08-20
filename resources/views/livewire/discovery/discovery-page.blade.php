@@ -58,12 +58,7 @@
                     @foreach($recurrenceOptions as $option)
                         <button wire:click="setRecurrence('{{ $option }}')"
                                 class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $recurrence === $option ? 'bg-secondary-container text-on-secondary-container shadow-xs' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                            {{ match($option) {
-                                'weekly' => __('campaigns.content_weekly'),
-                                'bi-weekly' => __('campaigns.content_bi-weekly'),
-                                'monthly' => __('campaigns.content_monthly'),
-                                default => __(ucfirst(str_replace('-', ' ', $option))),
-                            } }}
+                            {{ \App\Enums\Recurrence::labelFor($option) }}
                         </button>
                     @endforeach
                 </div>

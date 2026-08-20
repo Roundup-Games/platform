@@ -87,7 +87,7 @@
             @if($dimensionHint)
                 <p class="text-xs text-on-surface-variant/70">{{ $dimensionHint }}</p>
             @endif
-            <p class="text-xs text-on-surface-variant/70">{{ __('common.content_jpg_png_gif_or_webp_max_sizemb', ['size' => number_format($maxSize / 1024, 0)]) }}</p>
+            <p class="text-xs text-on-surface-variant/70">{{ __('common.content_jpg_png_gif_or_webp_max_size_mb', ['size' => number_format($maxSize / 1024, 0)]) }}</p>
         </div>
 
         {{-- Preview --}}

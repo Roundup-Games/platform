@@ -19,9 +19,9 @@ enum AttendanceResolutionMethod: string
     public function label(): string
     {
         return match ($this) {
-            self::EarlyConsensus => __('attendance.resolution_method_early_consensus'),
-            self::Timeout => __('attendance.resolution_method_timeout'),
-            self::Manual => __('attendance.resolution_method_manual'),
+            self::EarlyConsensus => __('attendance.resolution_early_consensus'),
+            self::Timeout => __('attendance.resolution_timeout'),
+            self::Manual => __('attendance.resolution_manual'),
         };
     }
 }

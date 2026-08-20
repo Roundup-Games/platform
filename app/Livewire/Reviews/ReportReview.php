@@ -71,9 +71,7 @@ class ReportReview extends Component
         // Rate limit: 5 review reports per user per hour
         $rateLimitKey = "review-reports:{$reporter->id}";
         if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600)) {
-            $seconds = RateLimiter::availableIn($rateLimitKey);
-            $minutes = ceil($seconds / 60);
-            $this->addError('reason', __('reports.error_rate_limit', ['minutes' => $minutes]));
+            $this->addError('reason', __('common.error_rate_limit'));
 
             return;
         }
@@ -134,8 +132,8 @@ class ReportReview extends Component
     public function messages(): array
     {
         return [
-            'reason.required' => __('reviews.validation_report_reason_required'),
-            'reason.in' => __('reviews.validation_report_reason_invalid'),
+            'reason.required' => __('reports.validation_reason_required'),
+            'reason.in' => __('reports.validation_reason_invalid'),
         ];
     }
 

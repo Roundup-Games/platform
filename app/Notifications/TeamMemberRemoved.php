@@ -31,11 +31,11 @@ class TeamMemberRemoved extends BaseNotification
             ->subject(__('notifications.subject_team_member_removed', [
                 'team' => $this->team->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_team_member_removed', [
                 'team' => $this->team->name,
             ]))
-            ->action(__('notifications.action_team_member_removed'), route('teams.browse', ['locale' => $locale]))
+            ->action(__('teams.action_browse_teams'), route('teams.browse', ['locale' => $locale]))
             ->line($this->unsubscribeLine($notifiable, 'team_member_removed'));
     }
 

@@ -14,7 +14,7 @@
                 </span>
             @else
                 <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {{ __('billing.content_free') }}
+                    {{ __('common.price_free') }}
                 </span>
             @endif
         </div>

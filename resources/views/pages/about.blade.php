@@ -66,7 +66,7 @@
                             </p>
                             <div class="flex gap-3 text-sm font-medium">
                                 <a href="{{ route('safety-tools') }}" wire:navigate class="text-primary hover:underline">{{ __('safety.content_safety_tools') }}</a>
-                                <a href="{{ route('pledge.algorithms') }}" wire:navigate class="text-primary hover:underline">{{ __('pages.content_about_commitment_algorithms_action') }}</a>
+                                <a href="{{ route('pledge.algorithms') }}" wire:navigate class="text-primary hover:underline">{{ __('pages.content_commitment_algorithms_action') }}</a>
                             </div>
                         </div>
                     </div>
@@ -79,13 +79,13 @@
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">code</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_value_open_by_default_title') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_pledge_open_heading') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed mb-3">
                                 {{ __('pages.content_about_value_open_by_default_body') }}
                             </p>
                             <div class="flex gap-3 text-sm font-medium">
                                 <a href="https://github.com/roundup-games/platform" target="_blank" rel="noopener" class="text-primary hover:underline">GitHub</a>
-                                <a href="{{ route('pledge.algorithms') }}" wire:navigate class="text-primary hover:underline">{{ __('pages.content_about_commitment_algorithms_action') }}</a>
+                                <a href="{{ route('pledge.algorithms') }}" wire:navigate class="text-primary hover:underline">{{ __('pages.content_commitment_algorithms_action') }}</a>
                             </div>
                         </div>
                     </div>
@@ -101,7 +101,7 @@
                 {{ __('pages.content_about_commitments_heading') }}
             </h2>
             <p class="text-center text-on-surface-variant mb-12 max-w-2xl mx-auto">
-                {{ __('pages.content_about_commitments_subtitle') }}
+                {{ __('pages.content_commitments_subtitle') }}
             </p>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {{-- Algorithms (live) --}}
@@ -109,9 +109,9 @@
                     <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">functions</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2 group-hover:text-primary transition-colors">{{ __('pages.content_about_commitment_algorithms_title') }}</h3>
-                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_about_commitment_algorithms_body') }}</p>
-                    <span class="inline-block mt-3 text-sm font-medium text-primary">{{ __('pages.content_about_commitment_algorithms_action') }} →</span>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2 group-hover:text-primary transition-colors">{{ __('pages.content_commitment_algorithms_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_commitment_algorithms_body') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-primary">{{ __('pages.content_commitment_algorithms_action') }} →</span>
                 </a>
 
                 {{-- Finances (coming soon) --}}
@@ -119,9 +119,9 @@
                     <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">account_balance</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_about_commitment_finances_title') }}</h3>
-                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_about_commitment_finances_body') }}</p>
-                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('pages.content_about_commitment_finances_status') }}</span>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_commitment_finances_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_commitment_finances_body') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('common.field_coming_soon') }}</span>
                 </div>
 
                 {{-- Roadmap (coming soon) --}}
@@ -129,9 +129,9 @@
                     <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">map</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_about_commitment_roadmap_title') }}</h3>
-                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_about_commitment_roadmap_body') }}</p>
-                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('pages.content_about_commitment_roadmap_status') }}</span>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_commitment_roadmap_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_commitment_roadmap_body') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('common.field_coming_soon') }}</span>
                 </div>
 
                 {{-- Operations (coming soon) --}}
@@ -139,9 +139,9 @@
                     <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">gavel</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_about_commitment_operations_title') }}</h3>
-                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_about_commitment_operations_body') }}</p>
-                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('pages.content_about_commitment_operations_status') }}</span>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_commitment_operations_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_commitment_operations_body') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('common.field_coming_soon') }}</span>
                 </div>
             </div>
         </div>

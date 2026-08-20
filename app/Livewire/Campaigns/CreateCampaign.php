@@ -6,6 +6,7 @@ use App\Enums\CampaignStatus;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\GameType;
+use App\Enums\Recurrence;
 use App\Enums\VibeFlag;
 use App\Enums\Visibility;
 use App\Models\Campaign;
@@ -134,7 +135,7 @@ class CreateCampaign extends Component
             'location_id' => 'nullable|uuid|exists:locations,id',
             'location_instructions' => 'nullable|string|max:1000',
             'description' => 'nullable|string|max:10000',
-            'recurrence' => 'required|in:weekly,bi-weekly,monthly,custom',
+            'recurrence' => 'required|in:'.implode(',', Recurrence::values()),
             'time_of_day' => 'required|date_format:H:i',
             'session_duration' => 'nullable|numeric|min:0.5|max:24',
             'price_per_session' => 'nullable|numeric|min:0',
@@ -275,7 +276,7 @@ class CreateCampaign extends Component
     {
         $options = [];
         foreach (ContentLanguage::cases() as $case) {
-            $options[$case->value] = __('common.label_language_'.$case->value);
+            $options[$case->value] = $case->label();
         }
 
         return $options;
@@ -289,7 +290,7 @@ class CreateCampaign extends Component
     {
         $options = [];
         foreach (GameType::cases() as $case) {
-            $options[$case->value] = __('games.type_'.$case->value);
+            $options[$case->value] = $case->label();
         }
 
         return $options;
@@ -303,7 +304,21 @@ class CreateCampaign extends Component
     {
         $options = ['' => __('discovery.content_any')];
         foreach (ExperienceLevel::cases() as $case) {
-            $options[$case->value] = __('games.content_experience_'.$case->value);
+            $options[$case->value] = $case->label();
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    #[Computed]
+    public function recurrenceOptions(): array
+    {
+        $options = [];
+        foreach (Recurrence::cases() as $case) {
+            $options[$case->value] = $case->label();
         }
 
         return $options;

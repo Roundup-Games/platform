@@ -24,7 +24,7 @@ trait HandlesWaitlist
 
         try {
             app(WaitlistService::class)->addToWaitlist($this->getEntity(), $viewer);
-            session()->flash('success', __('games.content_added_to_waitlist'));
+            session()->flash('success', __('common.content_added_to_waitlist'));
         } catch (\LogicException $e) {
             session()->flash('error', $e->getMessage());
         }

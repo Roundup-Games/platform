@@ -43,7 +43,7 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
     {{-- PWA update toast translations (read by app.js). @js() produces safely-escaped JSON — addslashes() does not escape </script> or U+2028/29. --}}
-    <script>window.__pwaUpdateToast=@js(['message' => __('pwa.content_update_available'), 'action' => __('pwa.action_update')]);window.__pwaOfflineToast=@js(['queued' => __('pwa.offline_action_queued'), 'offline' => __('pwa.offline_action_offline')]);</script>
+    <script>window.__pwaUpdateToast=@js(['message' => __('pwa.content_update_available'), 'action' => __('common.field_update')]);window.__pwaOfflineToast=@js(['queued' => __('pwa.offline_action_queued'), 'offline' => __('pwa.offline_action_offline')]);</script>
 
     @stack('preload')
 
@@ -137,7 +137,7 @@
                             <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('pledge*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('common.nav_our_pledge') }}</a>
                             <a href="{{ $mobGameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('game-systems*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('games.content_game_systems') }}</a>
                             <a href="{{ route('about') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_about') }}</a>
-                            <a href="{{ route('contact') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_contact') }}</a>
+                            <a href="{{ route('contact') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('common.content_contact') }}</a>
                             <a href="{{ route('locale.switch', ['locale' => $mobPubOtherLocale, 'redirect' => $mobPubCurrentPath]) }}" class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5 uppercase">{{ strtoupper($mobPubOtherLocale) }}</a>
 
                             <div class="pt-3 mt-2 border-t border-outline-variant/15 space-y-1">
@@ -181,7 +181,7 @@
                         <a href="{{ route('about') }}" wire:navigate class="text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('pages.content_about') }}">
                             <span class="material-symbols-outlined" aria-hidden="true">contact_support</span>
                         </a>
-                        <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('pages.content_contact') }}">
+                        <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('common.content_contact') }}">
                             <span class="material-symbols-outlined" aria-hidden="true">forum</span>
                         </a>
                         <a href="https://github.com/Roundup-Games/" target="_blank" rel="noopener noreferrer" class="text-on-surface-variant hover:text-primary transition-colors" aria-label="GitHub">
@@ -210,10 +210,10 @@
                         <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_community_and_trust') }}</span>
                         <a href="{{ route('about') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_about') }}</a>
                         <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.nav_our_pledge') }}</a>
-                        <a href="{{ route('pledge.algorithms', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_pledge_card_algorithms_title') }}</a>
+                        <a href="{{ route('pledge.algorithms', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_commitment_algorithms_title') }}</a>
                         <a href="{{ route('safety-tools') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('safety.content_safety_tools') }}</a>
                         <a href="{{ $forOrganizersRouteExists ? route('for-organizers') : url(app()->getLocale() . '/for-organizers') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.content_for_organizers') }}</a>
-                        <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_contact') }}</a>
+                        <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.content_contact') }}</a>
                     </div>
                     <div class="flex flex-col gap-2 col-span-2 md:col-span-1">
                         <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('profile.content_account') }}</span>

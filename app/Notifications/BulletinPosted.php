@@ -36,7 +36,7 @@ class BulletinPosted extends BaseNotification
             ->subject(__('notifications.subject_bulletin_posted', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_bulletin_posted', [
                 'host' => $this->host->name,
                 'game' => $this->game->name,

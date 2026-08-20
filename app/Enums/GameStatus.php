@@ -19,9 +19,9 @@ enum GameStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Scheduled => __('games.status_scheduled'),
-            self::Canceled => __('games.status_canceled'),
-            self::Completed => __('games.status_completed'),
+            self::Scheduled => __('common.status_scheduled'),
+            self::Canceled => __('common.status_cancelled'),
+            self::Completed => __('common.status_completed'),
         };
     }
 }
