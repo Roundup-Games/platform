@@ -15,11 +15,23 @@ use Illuminate\Console\Command;
  * 4. Duplicate keys — PHP array key collisions (silent overwrites)
  * 5. Untranslated values — non-primary locale values identical to English
  * 6. Convention violations — keys not matching prefix/snake_case rules
+ * 7. Stale exemption entries — untranslated-exempt patterns matching no key
+ * 8. Placeholder parity — :replace tokens differing between locales
  *
  * Exit code 0 = clean, 1 = issues found.
  */
 class I18nCheckCommand extends Command
 {
+    /**
+     * Colon-suffixed segments that look like :placeholders but are German
+     * gender-inclusive language forms (Spieler:in, Spieler:innen, jede:r),
+     * not replace tokens. Laravel only substitutes tokens present in the
+     * $replace array, so these render verbatim by design.
+     *
+     * @var string[]
+     */
+    private const NON_PLACEHOLDER_TOKENS = ['in', 'innen', 'r'];
+
     protected $signature = 'i18n:check
                             {--locale= : Check only a specific non-primary locale}
                             {--domain= : Check only a specific domain}
@@ -160,10 +172,39 @@ class I18nCheckCommand extends Command
                     ];
                 }
 
-                // Untranslated values
+                // Untranslated values + placeholder parity
                 foreach ($primaryKeys as $key) {
                     if (! isset($localeValues[$key])) {
                         continue;
+                    }
+
+                    // Placeholder parity — :replace tokens must match across
+                    // locales. A token in the primary but missing here renders
+                    // literally (str_replace never fills it); a token here but
+                    // not in the primary can never be filled by the call site,
+                    // which passes params for the primary's tokens only.
+                    $primaryTokens = $this->placeholderTokens((string) ($primaryValues[$key] ?? ''));
+                    $localeTokens = $this->placeholderTokens((string) $localeValues[$key]);
+                    $missingInLocale = array_diff($primaryTokens, $localeTokens);
+                    $extraInLocale = array_diff($localeTokens, $primaryTokens, self::NON_PLACEHOLDER_TOKENS);
+
+                    if ($missingInLocale !== [] || $extraInLocale !== []) {
+                        $issues[] = [
+                            'type' => 'placeholder_mismatch',
+                            'locale' => $locale,
+                            'domain' => $domain,
+                            'key' => $key,
+                            'message' => sprintf(
+                                "Placeholder mismatch for '%s.%s' in lang/%s/%s.php: primary tokens [%s], %s tokens [%s]",
+                                $domain,
+                                $key,
+                                $locale,
+                                $domain,
+                                implode(', ', $primaryTokens ?: ['none']),
+                                $locale,
+                                implode(', ', $localeTokens ?: ['none']),
+                            ),
+                        ];
                     }
 
                     if ($this->isExempted($domain, $key)) {
@@ -261,6 +302,7 @@ class I18nCheckCommand extends Command
             'extra_key' => 'Extra Keys (Not in Primary)',
             'duplicate_key' => 'Duplicate Keys',
             'untranslated' => 'Potentially Untranslated',
+            'placeholder_mismatch' => 'Placeholder Mismatches (vs Primary)',
             'convention' => 'Convention Violations',
         ];
 
@@ -275,7 +317,7 @@ class I18nCheckCommand extends Command
             $this->newLine();
             $this->warn("  [{$typeIssues->count()}] {$label}");
 
-            if ($type === 'missing_file' || $type === 'missing_key' || $type === 'extra_key' || $type === 'duplicate_key') {
+            if ($type === 'missing_file' || $type === 'missing_key' || $type === 'extra_key' || $type === 'duplicate_key' || $type === 'placeholder_mismatch') {
                 $this->table(
                     ['Locale', 'Domain', 'Key', 'Detail'],
                     $typeIssues->map(/** @phpstan-ignore-next-line */ fn ($i) => [
@@ -311,6 +353,22 @@ class I18nCheckCommand extends Command
 
         $this->newLine();
         $this->warn("Found {$totalIssueCount} issue(s) across ".$grouped->count().' categories.');
+    }
+
+    /**
+     * Extract :replace tokens from a translation value.
+     *
+     * @return string[]
+     */
+    private function placeholderTokens(string $value): array
+    {
+        $tokens = [];
+
+        if (preg_match_all('/:([a-zA-Z_]+)/', $value, $matches)) {
+            $tokens = array_values(array_unique($matches[1]));
+        }
+
+        return $tokens;
     }
 
     /**
