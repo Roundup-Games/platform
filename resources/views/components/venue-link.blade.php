@@ -7,6 +7,6 @@
 
 @if($isLinkable)
     <a href="{{ $url }}" wire:navigate
-       aria-label="{{ __('venue.action_view_venue', ['name' => $name]) }}"
+       aria-label="{{ __('venues.action_view_venue', ['name' => $name]) }}"
        class="{{ $class ?? 'hover:underline text-primary' }}">{{ $name }}</a>
 @endif

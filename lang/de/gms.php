@@ -9,11 +9,11 @@ return [
     'sort_most_reviewed' => 'Meiste Bewertungen',
     'field_specialization' => 'Spezialisierung',
     'field_min_rating' => 'Mindestbewertung',
-    'field_any_rating' => 'Alle Bewertungen',
+    'field_any_rating' => 'Beliebige Bewertung',
     'action_clear_filters' => 'Filter zurücksetzen',
     'content_no_gms_found' => 'Keine Game Master gefunden',
     'content_try_adjusting_filters' => 'Versuche, deine Suche oder Filter anzupassen.',
-    'content_showing_of_total' => ':shown von :total Game Mastern angezeigt',
+    'content_showing_gms_of_total' => ':shown von :total Game Mastern angezeigt',
     // SEO
     'seo_description_gm_directory' => 'Durchsuche und verbinde dich mit erfahrenen Game Mastern für deine Tabletop-RPG-Sessions. Finde GMs nach Spezialisierung, Bewertung und Spielsystem.',
 ];

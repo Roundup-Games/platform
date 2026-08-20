@@ -15,7 +15,7 @@
                 @csrf
                 <button type="submit"
                         class="inline-block px-6 py-3 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors">
-                    {{ __('invite_optout.action_confirm') }}
+                    {{ __('invite_optout.action_confirm_unsubscribe') }}
                 </button>
             </form>
 

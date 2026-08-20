@@ -13,7 +13,7 @@ return [
     'action_clear_filters' => 'Clear Filters',
     'content_no_gms_found' => 'No Game Masters found',
     'content_try_adjusting_filters' => 'Try adjusting your search or filters.',
-    'content_showing_of_total' => 'Showing :shown of :total Game Masters',
+    'content_showing_gms_of_total' => 'Showing :shown of :total Game Masters',
     // SEO
     'seo_description_gm_directory' => 'Browse and connect with experienced Game Masters for your tabletop RPG sessions. Find GMs by specialization, rating, and game system.',
 ];

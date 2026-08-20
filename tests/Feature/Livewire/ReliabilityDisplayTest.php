@@ -90,7 +90,7 @@ describe('Public Profile — Reliability Badge', function () {
             ->get(route('profile.public', $profileUser))
             ->assertStatus(200)
             ->assertSee('97.5%')
-            ->assertSee('12 games');
+            ->assertSee('12 Games');
     });
 
     it('hides detailed stats when stats privacy is nobody', function () {

@@ -89,7 +89,7 @@
             <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                 <div class="flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">title</span>
-                    <h3 class="font-heading font-semibold text-on-surface">{{ __('session_zero.heading_title') }}</h3>
+                    <h3 class="font-heading font-semibold text-on-surface">{{ __('session_zero.heading_survey_title') }}</h3>
                 </div>
 
                 <div>

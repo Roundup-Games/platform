@@ -7,7 +7,7 @@ return [
     // Bench
     // Attendance actions & status labels
     'status_attended' => 'Attended',
-    'status_no_show' => 'No Show',
+    'status_no_show' => 'No-Show',
     'status_late_cancel' => 'Late Cancel',
     'status_excused' => 'Excused',
     'status_cancelled_early' => 'Cancelled Early',

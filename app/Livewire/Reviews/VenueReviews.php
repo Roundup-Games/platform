@@ -81,7 +81,7 @@ class VenueReviews extends Component
         // Re-verify eligibility at submit time (not just render) to prevent
         // TOCTOU attacks — mirrors WriteReview::submit().
         if (! Gate::allows('canReviewVenue', [Review::class, $this->location])) {
-            $this->errorMessage = __('venue.content_not_eligible');
+            $this->errorMessage = __('venues.content_not_eligible');
 
             return;
         }
@@ -103,7 +103,7 @@ class VenueReviews extends Component
         // DB row; refresh the in-memory model so the header renders fresh.
         $this->location->refresh();
 
-        session()->flash('success', __('venue.flash_venue_review_submitted'));
+        session()->flash('success', __('venues.flash_venue_review_submitted'));
 
         $this->reset(['rating', 'body']);
     }

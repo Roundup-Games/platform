@@ -21,7 +21,7 @@
                 </h3>
 
                 <p class="text-sm text-on-surface-variant mb-4">
-                    {{ __('reviews.content_report_explanation') }}
+                    {{ __('reviews.content_report_review_explanation') }}
                 </p>
 
                 <div class="space-y-2 mb-6">

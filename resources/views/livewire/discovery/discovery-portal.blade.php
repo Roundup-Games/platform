@@ -47,8 +47,8 @@
                     <span class="material-symbols-outlined text-2xl" aria-hidden="true">storefront</span>
                 </span>
                 <div class="min-w-0">
-                    <h2 class="text-base font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('venue.heading_directory_portal_card') }}</h2>
-                    <p class="text-sm text-on-surface-variant truncate">{{ __('venue.content_directory_portal_card') }}</p>
+                    <h2 class="text-base font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('venues.heading_directory_portal_card') }}</h2>
+                    <p class="text-sm text-on-surface-variant truncate">{{ __('venues.content_directory_portal_card') }}</p>
                 </div>
             </div>
             <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors shrink-0" aria-hidden="true">arrow_forward</span>

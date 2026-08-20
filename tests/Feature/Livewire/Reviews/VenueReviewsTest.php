@@ -65,7 +65,7 @@ describe('VenueReviews — display', function () {
 
         Livewire::test(VenueReviews::class, ['location' => $venue])
             ->assertOk()
-            ->assertSee(__('venue.content_no_reviews'));
+            ->assertSee(__('venues.content_no_reviews'));
     })->group('smoke');
 
     it('renders the aggregate header and a published review in the list', function () {
@@ -106,7 +106,7 @@ describe('VenueReviews — display', function () {
         Livewire::test(VenueReviews::class, ['location' => $venue])
             ->assertOk()
             ->assertDontSee('This reported review must be hidden.')
-            ->assertSee(__('venue.content_no_reviews'));
+            ->assertSee(__('venues.content_no_reviews'));
     });
 
     it('lets a guest read the list but shows no write affordance', function () {
@@ -115,8 +115,8 @@ describe('VenueReviews — display', function () {
 
         Livewire::test(VenueReviews::class, ['location' => $data['venue']])
             ->assertOk()
-            ->assertDontSee(__('venue.action_submit_venue_review'))
-            ->assertDontSee(__('venue.content_not_eligible'));
+            ->assertDontSee(__('venues.action_submit_venue_review'))
+            ->assertDontSee(__('venues.content_not_eligible'));
     });
 });
 
@@ -131,8 +131,8 @@ describe('VenueReviews — attended-only write', function () {
 
         Livewire::test(VenueReviews::class, ['location' => $data['venue']])
             ->assertOk()
-            ->assertSee(__('venue.action_submit_venue_review'))
-            ->assertSee(__('venue.label_your_rating'));
+            ->assertSee(__('venues.action_submit_venue_review'))
+            ->assertSee(__('venues.label_your_rating'));
     });
 
     it('creates a venue review (polymorphic Location, null gm_profile_id) and updates the aggregate', function () {
@@ -145,7 +145,7 @@ describe('VenueReviews — attended-only write', function () {
             ->set('body', 'Best venue in town, highly recommend.')
             ->call('submit')
             ->assertHasNoErrors()
-            ->assertSee(__('venue.flash_venue_review_submitted'));
+            ->assertSee(__('venues.flash_venue_review_submitted'));
 
         // Polymorphic venue review with no GM link.
         $this->assertDatabaseHas('reviews', [
@@ -180,11 +180,11 @@ describe('VenueReviews — attended-only write', function () {
         // Second attempt: form is gone (canReviewVenue now false), and a
         // direct submit is rejected via the TOCTOU re-check.
         Livewire::test(VenueReviews::class, ['location' => $venue])
-            ->assertDontSee(__('venue.action_submit_venue_review'))
+            ->assertDontSee(__('venues.action_submit_venue_review'))
             ->set('rating', 2)
             ->set('body', 'Trying again.')
             ->call('submit')
-            ->assertSet('errorMessage', __('venue.content_not_eligible'));
+            ->assertSet('errorMessage', __('venues.content_not_eligible'));
 
         // Only one review persisted.
         expect(Review::where('reviewable_type', Location::class)->count())->toBe(1);
@@ -224,13 +224,13 @@ describe('VenueReviews — eligibility gate', function () {
 
         Livewire::test(VenueReviews::class, ['location' => $data['venue']])
             ->assertOk()
-            ->assertDontSee(__('venue.action_submit_venue_review'))
-            ->assertSee(__('venue.content_not_eligible'))
+            ->assertDontSee(__('venues.action_submit_venue_review'))
+            ->assertSee(__('venues.content_not_eligible'))
             // Direct submit attempt is rejected by the TOCTOU re-check.
             ->set('rating', 5)
             ->set('body', 'Sneaky non-attendee review.')
             ->call('submit')
-            ->assertSet('errorMessage', __('venue.content_not_eligible'));
+            ->assertSet('errorMessage', __('venues.content_not_eligible'));
 
         $this->assertDatabaseMissing('reviews', [
             'reviewable_type' => Location::class,
@@ -252,8 +252,8 @@ describe('VenueReviews — eligibility gate', function () {
 
         Livewire::test(VenueReviews::class, ['location' => $privateLocation])
             ->assertOk()
-            ->assertDontSee(__('venue.action_submit_venue_review'))
-            ->assertSee(__('venue.content_not_eligible'));
+            ->assertDontSee(__('venues.action_submit_venue_review'))
+            ->assertSee(__('venues.content_not_eligible'));
     });
 
     it('shows no form for a verified-but-Other venue type', function () {
@@ -266,7 +266,7 @@ describe('VenueReviews — eligibility gate', function () {
 
         Livewire::test(VenueReviews::class, ['location' => $otherVenue])
             ->assertOk()
-            ->assertDontSee(__('venue.action_submit_venue_review'));
+            ->assertDontSee(__('venues.action_submit_venue_review'));
     });
 
     it('shows no form when the attendee has only an upcoming (not completed) session', function () {
@@ -295,6 +295,6 @@ describe('VenueReviews — eligibility gate', function () {
 
         Livewire::test(VenueReviews::class, ['location' => $venue])
             ->assertOk()
-            ->assertDontSee(__('venue.action_submit_venue_review'));
+            ->assertDontSee(__('venues.action_submit_venue_review'));
     });
 });

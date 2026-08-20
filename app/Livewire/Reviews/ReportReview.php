@@ -104,7 +104,7 @@ class ReportReview extends Component
         });
 
         if ($duplicateDetected) {
-            $this->addError('reason', __('reviews.error_already_reported'));
+            $this->addError('reason', __('reviews.error_review_already_reported'));
 
             return;
         }

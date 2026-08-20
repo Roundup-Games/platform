@@ -26,7 +26,7 @@
                     @if($campaignCount > 0)
                         <a href="{{ route('discover.adventures', ['game_system_id' => $system->id, 'session_type' => 'campaign']) }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-secondary-container text-on-secondary-container rounded-xl text-sm font-semibold shadow-xs hover:shadow-md transition-shadow">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">campaign</span>
-                            {{ __('games.content_active_campaigns', ['count' => $campaignCount]) }}
+                            {{ __('games.label_active_campaigns_count', ['count' => $campaignCount]) }}
                         </a>
                     @endif
                 </div>

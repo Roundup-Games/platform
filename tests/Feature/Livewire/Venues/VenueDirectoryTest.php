@@ -21,13 +21,13 @@ describe('VenueDirectory route + render', function () {
     it('renders 200 and the directory heading', function () {
         get(route('venues.directory'))
             ->assertOk()
-            ->assertSee(__('venue.heading_directory'));
+            ->assertSee(__('venues.heading_directory'));
     })->group('smoke');
 
     it('emits the directory SEO title', function () {
         $response = get(route('venues.directory'));
         $response->assertOk();
-        assertPageTitle($response, __('venue.seo_directory_title'));
+        assertPageTitle($response, __('venues.seo_directory_title'));
     });
 
     it('renders the footer link to itself from the public layout', function () {
@@ -35,7 +35,7 @@ describe('VenueDirectory route + render', function () {
         $response = get(route('venues.directory'));
         $response->assertOk();
         $response->assertSee(route('venues.directory'));
-        $response->assertSee(__('venue.nav_venue_directory'));
+        $response->assertSee(__('venues.nav_venue_directory'));
     });
 });
 
@@ -307,7 +307,7 @@ describe('VenueDirectory card content', function () {
         ]);
 
         Livewire::test(VenueDirectory::class)
-            ->assertSee(trans_choice('venue.content_directory_upcoming_sessions', 1));
+            ->assertSee(trans_choice('venues.content_directory_upcoming_sessions', 1));
     });
 
     it('shows the activity signal on the nearest (default) sort with a location', function () {
@@ -331,7 +331,7 @@ describe('VenueDirectory card content', function () {
             ->set('guestLat', 52.52)
             ->set('guestLng', 13.405)
             ->set('sortBy', 'nearest')
-            ->assertSee(trans_choice('venue.content_directory_upcoming_sessions', 1));
+            ->assertSee(trans_choice('venues.content_directory_upcoming_sessions', 1));
     });
 });
 
@@ -383,8 +383,8 @@ describe('VenueDirectory empty state', function () {
     it('shows the propose CTA for guests when no venues match', function () {
         Livewire::test(VenueDirectory::class)
             ->set('search', 'definitely-no-such-venue-xyz')
-            ->assertSee(__('venue.empty_directory_title'))
-            ->assertSee(__('venue.action_directory_cta_sign_up_propose'));
+            ->assertSee(__('venues.empty_directory_title'))
+            ->assertSee(__('venues.action_directory_cta_sign_up_propose'));
     });
 
     it('shows the propose CTA for authenticated users when no venues match', function () {
@@ -392,7 +392,7 @@ describe('VenueDirectory empty state', function () {
 
         Livewire::test(VenueDirectory::class)
             ->set('search', 'definitely-no-such-venue-xyz')
-            ->assertSee(__('venue.action_directory_cta_propose'));
+            ->assertSee(__('venues.action_directory_cta_propose'));
     });
 });
 

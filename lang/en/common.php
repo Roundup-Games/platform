@@ -366,14 +366,14 @@ return [
     // the DB-backed ActivityType enum values (American 'canceled'); the
     // VALUES follow the app-wide British 'cancelled' convention (10:4).
     'activity_type_game_created' => 'Game Created',
-    'activity_type_game_completed' => 'Game Completed',
+    'activity_type_game_completed' => 'Game completed',
     'activity_type_game_canceled' => 'Game Cancelled',
     'activity_type_campaign_created' => 'Campaign Created',
-    'activity_type_campaign_completed' => 'Campaign Completed',
+    'activity_type_campaign_completed' => 'Campaign completed',
     'activity_type_campaign_canceled' => 'Campaign Cancelled',
     'activity_type_player_joined' => 'Player Joined',
     'activity_type_review_received' => 'Review Received',
-    'activity_type_follow_received' => 'Follow Received',
+    'activity_type_follow_received' => 'New Follower',
     'activity_type_invitation_received' => 'Invitation Received',
     'activity_type_invitation_accepted' => 'Invitation Accepted',
     'activity_type_session_scheduled' => 'Session Scheduled',

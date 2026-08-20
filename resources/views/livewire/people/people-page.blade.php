@@ -340,7 +340,7 @@
                                 {{ __('common.action_load_more') }}
                             </button>
                             <p class="mt-2 text-xs text-on-surface-variant">
-                                {{ __('people.content_showing_of_total', [
+                                {{ __('people.content_showing_players_of_total', [
                                     'shown' => $nearbyResults->count(),
                                     'total' => $nearbyResults->total(),
                                 ]) }}

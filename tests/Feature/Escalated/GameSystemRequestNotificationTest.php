@@ -149,7 +149,7 @@ describe('Mail channel rendering', function () {
         expect($mail->subject)->toContain('Catan')
             ->and($mail->actionUrl)->toContain('/games/create')
             ->and($mail->actionUrl)->toContain('game_system_id='.$gameSystem->id)
-            ->and($mail->actionText)->toBe('Create a Game');
+            ->and($mail->actionText)->toBe('Create Game');
     });
 
     it('renders rejected mail with subject and no action button', function () {

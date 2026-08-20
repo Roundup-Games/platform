@@ -146,7 +146,7 @@
             <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">group</span>
             <h3 class="mt-2 text-sm font-medium text-on-surface">{{ $entityType === 'game' ? __('common.content_no_community_activity') : __('common.content_no_community_activity') }}</h3>
             <p class="mt-1 text-sm text-on-surface-variant">
-                {{ $entityType === 'game' ? __('games.content_follow_players_to_see_activity') : __('campaigns.content_follow_players_to_see_activity') }}
+                {{ $entityType === 'game' ? __('games.content_follow_players_game_activity') : __('campaigns.content_follow_players_to_see_activity') }}
             </p>
         </div>
     @endif

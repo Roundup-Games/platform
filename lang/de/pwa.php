@@ -29,7 +29,7 @@ return [
     // SW update toast
     'content_update_available' => 'Eine neue Version ist verfügbar',
     // Push notification UI
-    'push_enabled_on_devices' => 'Push-Benachrichtigungen auf :count Gerät(en) aktiviert.',
+    'push_enabled_on_devices' => '[1]Push-Benachrichtigungen auf :count Gerät aktiviert.|[2,*]Push-Benachrichtigungen auf :count Geräten aktiviert.',
     'push_denied_hint' => 'Push-Benachrichtigungen sind in deinen Browser-Einstellungen blockiert. Um sie wieder zu aktivieren, aktualisiere die Benachrichtigungsberechtigungen in deinem Browser.',
     // Offline action toasts (Background Sync)
     'offline_action_queued' => 'Aktion in Warteschlange — wird ausgeführt, wenn die Verbindung wiederhergestellt ist',

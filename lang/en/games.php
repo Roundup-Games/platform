@@ -54,8 +54,8 @@ return [
     'content_unlimited_games' => 'Unlimited Games',
     'content_use_stars_wishes_or_a' => 'Use Stars & Wishes or a debrief after sessions. Regular check-ins build a culture of trust and make your games better over time.',
     'content_you_have_already_applied_to_this_game' => 'You have already applied to this game.',
-    'content_you_have_joined_the_game' => 'You have joined the game!',
-    'content_you_have_been_placed_on_the_bench' => 'The session is full — you\'ve been placed on the bench.',
+    'content_you_have_joined_the_game' => 'You\'ve joined the game!',
+    'content_session_full_benched' => 'The session is full — you\'ve been placed on the bench.',
     'flash_promote_from_bench_success' => 'Player promoted from the bench.',
     'flash_left_bench' => 'You have left the bench.',
     'flash_left_waitlist' => 'You have left the waitlist.',
@@ -84,8 +84,8 @@ return [
     // New keys for entity domain migration
     'content_part_of_campaign_name' => 'Part of Campaign: :name',
     // Moved from events domain — game-specific
-    'flash_joined_via_share_link' => 'You\'ve joined the game!',
-    'error_join_via_share_link_failed' => 'Something went wrong joining the game. Please try again.',
+    'flash_joined_game_via_share_link' => 'You\'ve joined the game!',
+    'error_join_game_via_share_link_failed' => 'Something went wrong joining the game. Please try again.',
     'content_you_are_already_a_participant_of_this_game' => 'You are already a participant of this game.',
     'action_choose_base_game_or_expansion' => 'Choose base game or expansion',
     'action_find_games' => 'Find Games',
@@ -133,7 +133,7 @@ return [
     // GamesPage — Games I'm In section
     // GamesPage — Open Invitations section
     // GamesPage — Community section
-    'content_follow_players_to_see_activity' => 'Follow other players to see their game activity here.',
+    'content_follow_players_game_activity' => 'Follow other players to see their game activity here.',
     'activity_created_game' => 'created a new game',
     'activity_joined_game' => 'joined a game',
     'activity_completed_game' => 'completed a game',
@@ -154,7 +154,7 @@ return [
     'content_weight_light' => 'Light',
     'content_weight_heavy' => 'Heavy',
     'content_active_sessions' => ':count active sessions',
-    'content_active_campaigns' => ':count active campaigns',
+    'label_active_campaigns_count' => ':count active campaigns',
     'content_users_favorite_this' => ':count players love this',
     'content_users_avoid_this' => ':count players avoid this',
     'content_no_game_systems_match_filters' => 'No game systems match your filters.',
@@ -246,12 +246,12 @@ return [
     'request_status_in_review' => 'In Review',
     'request_status_duplicate' => 'Duplicate',
     // Request CTA (used in catalog and game-systems pages)
-    'request_cta_link' => 'Request a game system',
+    'request_cta_link' => 'Request a Game System',
     'request_cta_catalog_header' => 'Can\'t find what you\'re looking for?',
     // Waitlist
     'content_game_full_join_waitlist' => 'This game is full. Join the waitlist to be notified when a spot opens up.',
     'content_spot_opened_confirm' => 'A spot opened up! Confirm your participation before :deadline.',
-    'action_confirm_spot' => 'Confirm Spot',
+    'action_confirm_spot' => 'Confirm Your Spot',
     'action_decline_spot' => 'Decline Spot',
     'content_waitlist_spot_confirmed' => 'You have confirmed your spot!',
     'content_waitlist_spot_declined' => 'You have declined the spot.',
@@ -330,7 +330,7 @@ return [
     'action_leave_game' => 'Leave Game',
     'confirm_leave_game' => 'Are you sure you want to leave this game? Your spot will be released.',
     'error_cannot_leave_own_game' => 'You cannot leave your own game. Cancel it instead.',
-    'error_not_a_participant' => 'You are not a participant in this game.',
+    'error_not_a_game_participant' => 'You are not a participant in this game.',
     'flash_you_left_the_game' => 'You have left the game.',
     // Attendance reporting
     'content_attendance_report_description' => 'Mark each participant as attended, no-show, or excused.',
@@ -353,7 +353,7 @@ return [
     'label_all_reports_submitted' => 'All reports submitted — resolving soon',
     'label_resolution_method' => 'Resolved via :method',
     'label_resolution_consensus' => 'consensus',
-    'label_resolution_timeout' => 'timeout',
+    'label_resolution_timeout' => 'Timeout',
     'label_resolution_host_override' => 'host override',
     'action_submit_attendance_report' => 'Submit Attendance Report',
     'action_dispute_attendance' => 'Dispute',
@@ -363,7 +363,7 @@ return [
     // Capacity editor (host affordance, GameDetail)
     'action_edit_capacity' => 'Edit Capacity',
     'label_current_capacity' => ':approved/:max approved',
-    'label_max_players' => 'Max players',
+    'label_max_players' => 'Max Players',
     'placeholder_capacity_new_max' => 'New max players',
     'action_save_capacity' => 'Save',
     'title_confirm_capacity_decrease' => 'Reduce Table Size?',

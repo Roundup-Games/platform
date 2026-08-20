@@ -33,7 +33,7 @@ return [
     'field_issue_type' => 'Issue Type',
     // Placeholders
     'placeholder_subject' => 'Briefly describe your issue',
-    'placeholder_description' => 'Please provide as much detail as possible about your issue…',
+    'placeholder_support_issue_description' => 'Please provide as much detail as possible about your issue…',
     'placeholder_billing_subject' => 'e.g., Payment failed, Refund request, Subscription issue',
     'placeholder_billing_description' => 'Please describe your billing issue, including any relevant transaction details…',
     // Actions
@@ -48,7 +48,7 @@ return [
     // Validation
     'validation_subject_required' => 'Please provide a subject for your ticket.',
     'validation_description_required' => 'Please describe your issue.',
-    'validation_description_max' => 'Description must be less than 5000 characters.',
+    'validation_support_description_max' => 'Description must be less than 5000 characters.',
     'validation_issue_type_required' => 'Please select an issue type.',
     'validation_issue_type_invalid' => 'The selected issue type is not valid.',
     // Rate limit

@@ -22,16 +22,6 @@ use Illuminate\Console\Command;
  */
 class I18nCheckCommand extends Command
 {
-    /**
-     * Colon-suffixed segments that look like :placeholders but are German
-     * gender-inclusive language forms (Spieler:in, Spieler:innen, jede:r),
-     * not replace tokens. Laravel only substitutes tokens present in the
-     * $replace array, so these render verbatim by design.
-     *
-     * @var string[]
-     */
-    private const NON_PLACEHOLDER_TOKENS = ['in', 'innen', 'r'];
-
     protected $signature = 'i18n:check
                             {--locale= : Check only a specific non-primary locale}
                             {--domain= : Check only a specific domain}
@@ -186,7 +176,7 @@ class I18nCheckCommand extends Command
                     $primaryTokens = $this->placeholderTokens((string) ($primaryValues[$key] ?? ''));
                     $localeTokens = $this->placeholderTokens((string) $localeValues[$key]);
                     $missingInLocale = array_diff($primaryTokens, $localeTokens);
-                    $extraInLocale = array_diff($localeTokens, $primaryTokens, self::NON_PLACEHOLDER_TOKENS);
+                    $extraInLocale = array_diff($localeTokens, $primaryTokens);
 
                     if ($missingInLocale !== [] || $extraInLocale !== []) {
                         $issues[] = [

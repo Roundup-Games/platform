@@ -172,7 +172,7 @@
                         {{ __('common.action_load_more') }}
                     </button>
                     <p class="mt-2 text-xs text-on-surface-variant">
-                        {{ __('gms.content_showing_of_total', [
+                        {{ __('gms.content_showing_gms_of_total', [
                             'shown' => $results->count(),
                             'total' => $results->total(),
                         ]) }}

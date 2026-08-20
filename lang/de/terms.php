@@ -3,9 +3,9 @@
 return [
     'seo_description' => 'Die Geschäftsbedingungen für die Nutzung der '.config('company.display_name').' Plattform. Klar, fair und in verständlicher Sprache verfasst.',
     // ── Einleitung ─────────────────────────────────────
-    'content_introduction_1' => 'Diese Nutzungsbedingungen („Bedingungen") regeln deinen Zugang zu und die Nutzung der '.config('company.display_name').' Plattform unter roundup.games („Plattform"), betrieben von '.config('company.legal_name').' („wir", „uns", „unser").',
-    'content_introduction_2' => 'Mit der Erstellung eines Kontos oder der Nutzung der Plattform stimmst du diesen Bedingungen zu. Wenn du nicht einverstanden bist, nutze die Plattform bitte nicht.',
-    'content_introduction_3' => 'Wir haben diese Bedingungen klar und fair formuliert. Wenn etwas unklar ist, kannst du dich gerne an uns wenden.',
+    'content_terms_intro_1' => 'Diese Nutzungsbedingungen („Bedingungen") regeln deinen Zugang zu und die Nutzung der '.config('company.display_name').' Plattform unter roundup.games („Plattform"), betrieben von '.config('company.legal_name').' („wir", „uns", „unser").',
+    'content_terms_intro_2' => 'Mit der Erstellung eines Kontos oder der Nutzung der Plattform stimmst du diesen Bedingungen zu. Wenn du nicht einverstanden bist, nutze die Plattform bitte nicht.',
+    'content_terms_intro_3' => 'Wir haben diese Bedingungen klar und fair formuliert. Wenn etwas unklar ist, kannst du dich gerne an uns wenden.',
     // ── Teilnahmevoraussetzungen ────────────────────────
     'heading_eligibility' => 'Teilnahmevoraussetzungen',
     'content_eligibility_1' => 'Du musst mindestens 16 Jahre alt sein, um diese Plattform zu nutzen. Wenn du unter 18 bist, bestätigst du, dass ein Elternteil oder gesetzlicher Vertreter diese Bedingungen in deinem Namen geprüft und ihnen zugestimmt hat.',

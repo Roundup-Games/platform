@@ -255,7 +255,7 @@ describe('joinViaShareLink — shared (game + campaign)', function () {
                     'max_players' => 10,
                 ]),
                 GameDetail::class,
-                'games.flash_joined_via_share_link',
+                'games.flash_joined_game_via_share_link',
             ],
             'campaign' => [
                 Campaign::factory()->create([

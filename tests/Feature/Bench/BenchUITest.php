@@ -126,7 +126,7 @@ test('benched player sees bench banner on campaign session detail', function () 
     Livewire::actingAs($benchedUser)
         ->test(GameDetail::class, ['id' => $game->id])
         ->assertSee(__('common.content_you_are_on_the_bench'))
-        ->assertSee(__('games.content_you_have_been_placed_on_the_bench'));
+        ->assertSee(__('games.content_session_full_benched'));
 });
 
 test('host does not see bench section on standalone game', function () {
