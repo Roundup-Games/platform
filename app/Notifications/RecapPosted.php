@@ -30,6 +30,7 @@ class RecapPosted extends BaseNotification
 
         return (new MailMessage)
             ->subject(__('notifications.subject_recap_posted', [
+                'host' => $this->author->name,
                 'game' => $this->game->name,
             ]))
             ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))

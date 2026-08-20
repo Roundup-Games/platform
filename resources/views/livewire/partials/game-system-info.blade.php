@@ -132,13 +132,13 @@
                     <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
                         @if($system->publishers->count())
                             <div>
-                                <span class="text-on-surface-variant">{{ __('games.field_publisher') }}:</span>
+                                <span class="text-on-surface-variant">{{ trans_choice('games.field_publisher', $system->publishers->count()) }}:</span>
                                 <span class="font-medium text-on-surface ml-1">{{ $system->publishers->pluck('name')->join(', ') }}</span>
                             </div>
                         @endif
                         @if($system->creator)
                             <div>
-                                <span class="text-on-surface-variant">{{ __('games.field_designer') }}:</span>
+                                <span class="text-on-surface-variant">{{ trans_choice('games.field_designer', 1) }}:</span>
                                 <span class="font-medium text-on-surface ml-1">{{ Str::limit($system->creator, 60) }}</span>
                             </div>
                         @endif

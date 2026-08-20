@@ -234,8 +234,8 @@ return [
     'dashboard_action_bulletin_title' => 'Host update: :game',
     'dashboard_action_bulletin_action' => 'View game',
     'dashboard_action_recurrence_title' => 'Plan ahead: :campaign',
-    'dashboard_action_expires_in_hm' => 'Expires in :h hour :m min',
-    'dashboard_action_expires_in_m' => 'Expires in :m min',
+    'dashboard_action_expires_in_hm' => 'Expires in :hours hour :minutes min',
+    'dashboard_action_expires_in_m' => 'Expires in :minutes min',
     // Action Center - additional task-plan keys
     // Established Dashboard - Schedule
     'dashboard_schedule_heading' => 'Your Schedule',

@@ -235,8 +235,8 @@ return [
     'dashboard_action_bulletin_title' => 'Spielleiter-Update: :game',
     'dashboard_action_bulletin_action' => 'Spiel ansehen',
     'dashboard_action_recurrence_title' => 'Vorausplanen: :campaign',
-    'dashboard_action_expires_in_hm' => 'Läuft ab in :h Std. :m Min.',
-    'dashboard_action_expires_in_m' => 'Läuft ab in :m Min.',
+    'dashboard_action_expires_in_hm' => 'Läuft ab in :hours Std. :minutes Min.',
+    'dashboard_action_expires_in_m' => 'Läuft ab in :minutes Min.',
     // Action Center - additional task-plan keys
     // Etabliertes Dashboard - Zeitplan
     'dashboard_schedule_heading' => 'Dein Zeitplan',

@@ -81,7 +81,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {{-- Publisher --}}
                         <div>
-                            <label for="request-publisher" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_publisher') }}</label>
+                            <label for="request-publisher" class="block text-sm font-medium text-on-surface mb-1">{{ trans_choice('games.field_publisher', 1) }}</label>
                             <input type="text"
                                    id="request-publisher"
                                    wire:model="publisher"
@@ -92,7 +92,7 @@
 
                         {{-- Designer --}}
                         <div>
-                            <label for="request-designer" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_designer') }}</label>
+                            <label for="request-designer" class="block text-sm font-medium text-on-surface mb-1">{{ trans_choice('games.field_designer', 1) }}</label>
                             <input type="text"
                                    id="request-designer"
                                    wire:model="designer"

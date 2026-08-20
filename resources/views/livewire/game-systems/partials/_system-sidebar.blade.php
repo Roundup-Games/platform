@@ -65,7 +65,7 @@
                             <div class="flex items-start gap-3">
                                 <span class="material-symbols-outlined text-lg text-on-surface-variant mt-0.5" aria-hidden="true">business</span>
                                 <div>
-                                    <dt class="text-on-surface-variant">{{ __('games.field_publisher', ['count' => $system->publishers->count()]) }}</dt>
+                                    <dt class="text-on-surface-variant">{{ trans_choice('games.field_publisher', $system->publishers->count()) }}</dt>
                                     <dd class="font-medium text-on-surface">{{ $system->publishers->pluck('name')->join(', ') }}</dd>
                                 </div>
                             </div>
@@ -75,7 +75,7 @@
                             <div class="flex items-start gap-3">
                                 <span class="material-symbols-outlined text-lg text-on-surface-variant mt-0.5" aria-hidden="true">draw</span>
                                 <div>
-                                    <dt class="text-on-surface-variant">{{ __('games.field_designer', ['count' => $system->designers->count()]) }}</dt>
+                                    <dt class="text-on-surface-variant">{{ trans_choice('games.field_designer', $system->designers->count()) }}</dt>
                                     <dd class="font-medium text-on-surface">{{ $system->designers->pluck('name')->join(', ') }}</dd>
                                 </div>
                             </div>
