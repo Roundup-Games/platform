@@ -14,25 +14,37 @@ use App\Enums\Recurrence;
 // ── Datasets ──────────────────────────────────────────────────────────
 
 /**
- * Every enum case of every app/Enums enum that defines label(), across both
- * locales. Discovered by reflection so new enums are covered automatically.
+ * Every translated-string method of every app/Enums enum, across both
+ * locales. Discovered by reflection so new enums and new translated methods
+ * are covered automatically.
+ *
+ * textPlaceholder() is deliberately excluded: it intentionally returns an
+ * empty string for cases without a placeholder hint.
  *
  * @return array<string, array<int, string>>
  */
 function enumLabelDataset(): array
 {
+    $methods = ['label', 'description', 'shortDescription', 'fullDescription'];
+
     $datasets = [];
 
     foreach (['en', 'de'] as $locale) {
         foreach (glob(dirname(__DIR__, 3).'/app/Enums/*.php') as $file) {
             $enum = 'App\\Enums\\'.basename($file, '.php');
 
-            if (! enum_exists($enum) || ! method_exists($enum, 'label')) {
+            if (! enum_exists($enum)) {
                 continue;
             }
 
-            foreach ($enum::cases() as $case) {
-                $datasets["{$locale} {$enum}::{$case->name}"] = [$locale, $enum, $case->value];
+            foreach ($methods as $method) {
+                if (! method_exists($enum, $method)) {
+                    continue;
+                }
+
+                foreach ($enum::cases() as $case) {
+                    $datasets["{$locale} {$enum}::{$case->name}::{$method}"] = [$locale, $enum, $case->value, $method];
+                }
             }
         }
     }
@@ -105,10 +117,10 @@ function entityTypeInterpolationDataset(): array
 // ── Enum label homes ──────────────────────────────────────────────────
 
 describe('Enum Label Translation', function () {
-    it('renders a translated label for every case of every enum with a label() method in :locale', function (string $locale, string $enum, string $value) {
+    it('renders a translated label for every case of every translated enum method in :locale', function (string $locale, string $enum, string $value, string $method) {
         app()->setLocale($locale);
 
-        $label = $enum::from($value)->label();
+        $label = $enum::from($value)->{$method}();
 
         $domains = collect(glob(lang_path('en/*.php')))
             ->map(fn (string $file) => basename($file, '.php'))
