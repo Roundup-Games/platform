@@ -121,7 +121,7 @@ return [
     'content_invited_as' => 'Eingeladen als',
     'content_is_it_free_to_use' => 'Ist die Nutzung kostenlos?',
     'content_joined' => '{1} :count teilgenommen|[2,*] :count teilgenommen',
-    'content_jpg_png_gif_or_webp_max_sizemb' => 'JPG, PNG, GIF oder WebP. Max. :size MB.',
+    'content_jpg_png_gif_or_webp_max_size_mb' => 'JPG, PNG, GIF oder WebP. Max. :size MB.',
     'content_jpg_png_or_gif_max_1mb' => 'JPG, PNG oder GIF. Max. 1 MB.',
     'content_language' => 'Sprache',
     'content_language_mismatch_banner' => 'Diese Veranstaltung wird auf :language durchgeführt',

@@ -121,7 +121,7 @@ return [
     'content_invited_as' => 'Invited as',
     'content_is_it_free_to_use' => 'Is it free to use?',
     'content_joined' => '{1} :count joined|[2,*] :count joined',
-    'content_jpg_png_gif_or_webp_max_sizemb' => 'JPG, PNG, GIF, or WebP. Max :sizeMB.',
+    'content_jpg_png_gif_or_webp_max_size_mb' => 'JPG, PNG, GIF, or WebP. Max :size MB.',
     'content_jpg_png_or_gif_max_1mb' => 'JPG, PNG, or GIF. Max 1MB.',
     'content_language' => 'Language',
     'content_language_mismatch_banner' => 'This event is conducted in :language',
@@ -361,7 +361,10 @@ return [
     // Authorization
     'status_not_authorized' => 'Not Authorized',
     'price_free' => 'Free',
-    // Activity types
+    // Activity types — shared by ActivityType (community feed) and
+    // NotificationCategory (lifecycle notifications). Key suffixes mirror
+    // the DB-backed ActivityType enum values (American 'canceled'); the
+    // VALUES follow the app-wide British 'cancelled' convention (10:4).
     'activity_type_game_created' => 'Game Created',
     'activity_type_game_completed' => 'Game Completed',
     'activity_type_game_canceled' => 'Game Cancelled',

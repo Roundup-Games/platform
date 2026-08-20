@@ -17,7 +17,7 @@ return [
     'content_your_membership_expires_in_days' => 'Deine Mitgliedschaft läuft in :days Tagen ab. Erneuere jetzt, um Unterbrechungen zu vermeiden.',
     'content_your_membership_expires_today_renew' => 'Deine Mitgliedschaft läuft heute ab! Erneuere jetzt, um deinen Zugang zu behalten.',
     'content_your_plan_membership_is_now_active_welcome_aboard' => 'Deine **:plan**-Mitgliedschaft ist jetzt aktiv. Willkommen an Bord!',
-    'content_your_roundup_games_membership_is_confirmed' => 'Deine Roundup-Games-Mitgliedschaft ist bestätigt!',
+    'content_your_roundup_games_membership_is_confirmed' => 'Deine :brand-Mitgliedschaft ist bestätigt!',
     'error_no_user_found_with_that_email_address' => 'Kein Benutzer mit dieser E-Mail-Adresse gefunden.',
     'field_check_your_inbox_for_a_verification_link' => 'Überprüfe deinen Posteingang auf einen Bestätigungslink',
     'field_contact_email' => 'Kontakt-E-Mail',

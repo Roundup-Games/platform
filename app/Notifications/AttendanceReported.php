@@ -33,7 +33,6 @@ class AttendanceReported extends BaseNotification
 
         return (new MailMessage)
             ->subject(__('notifications.subject_attendance_reported', [
-                'status' => $status,
                 'game' => $this->game->name,
             ]))
             ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))

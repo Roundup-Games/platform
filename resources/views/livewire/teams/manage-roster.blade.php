@@ -75,7 +75,7 @@
                                 <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('common.field_name') }}</th>
                                 <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('teams.content_roster') }}</th>
                                 <th class="text-left py-2 px-3 font-medium text-on-surface-variant">#</th>
-                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('common.content_position', ['default' => 'Position']) }}</th>
+                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('common.content_position') }}</th>
                                 @if($isCaptain)
                                     <th class="text-right py-2 px-3 font-medium text-on-surface-variant">{{ __('profile.content_actions') }}</th>
                                 @endif

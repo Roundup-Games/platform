@@ -36,7 +36,7 @@ return [
     'seo_description_contact' => 'Have questions, feedback, or partnership ideas? Get in touch with the :brand team — we\'re a non-profit built by and for tabletop gamers.',
     'seo_description_for_organizers' => 'Schedule sessions, manage players, and grow your tabletop gaming community. Free event tools and subscriptions for board game and RPG organizers.',
     'seo_description_home' => 'Find local board game sessions, D&D groups, and tabletop RPG campaigns near you. Join a welcoming community of players and start playing today.',
-    'seo_description_how_it_works' => 'Learn how to find, join, and organize board games and tabletop RPG sessions near you. Create events, discover local players, and start playing.',
+    'seo_description_how_it_works' => 'Learn how :brand helps you find, join, and organize board games and tabletop RPG sessions near you. Create events, discover local players, and start playing.',
     'seo_title_about' => 'About Us — Non-Profit Tabletop Gaming Community',
     'seo_title_contact' => 'Contact Us — Questions, Feedback & Partnerships',
     'seo_title_for_organizers' => 'Game Organizer Tools — Host Board Game & RPG Sessions',
