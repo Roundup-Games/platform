@@ -44,13 +44,13 @@ return [
     'channel_in_app' => 'In-App',
     // Trinary state labels
     'state_off' => 'Aus',
-    'hint_preference_states' => 'Wähle, wie du für jede Kategorie benachrichtigt werden möchtest. „In-App" zeigt Benachrichtigungen im Glocken-Symbol an. „Alle" sendet zusätzlich eine E-Mail.',
+    'hint_preference_states' => 'Wähle, wie du für jede Kategorie benachrichtigt werden möchtest. „In-App“ zeigt Benachrichtigungen im Glocken-Symbol an. „Alle“ sendet zusätzlich eine E-Mail.',
     'hint_preference_channels' => 'Schalte jeden Kanal pro Benachrichtigungskategorie ein oder aus. Push-Benachrichtigungen müssen unten im Gerätebereich aktiviert werden.',
     // Wöchentlicher Digest
     'heading_weekly_digest' => 'Wöchentlicher E-Mail-Digest',
     'hint_weekly_digest' => 'Erhalte eine wöchentliche Zusammenfassung verpasster Benachrichtigungen. Hält dich auf dem Laufenden, ohne dein Postfach zu überfluten.',
     'subject_weekly_digest' => 'Dein wöchentliches Update',
-    'body_weekly_digest_intro' => '[0]Du hast diese Woche keine ungelesenen Benachrichtigungen:|[1]Du hast diese Woche :count ungelesene Benachrichtigung:|[2,*]Du hast diese Woche :count ungelesene Benachrichtigungen:',
+    'body_weekly_digest_intro' => '[0]Du hast diese Woche keine ungelesenen Benachrichtigungen.|[1]Du hast diese Woche :count ungelesene Benachrichtigung:|[2,*]Du hast diese Woche :count ungelesene Benachrichtigungen:',
     'body_weekly_digest_more' => '…und :count weitere',
     'action_weekly_digest' => 'Alle Benachrichtigungen ansehen',
     'body_weekly_digest_settings' => 'Du kannst deine Benachrichtigungseinstellungen in den Einstellungen ändern.',
@@ -134,8 +134,8 @@ return [
     'verb_campaign_cancelled' => 'Kampagne abgesagt',
     'verb_campaign_completed' => 'Kampagne abgeschlossen',
     'verb_game_system_request_approved' => 'Spielsystem-Anfrage genehmigt',
-    'verb_game_system_request_rejected' => 'Spielesystem-Anfrage abgelehnt',
-    'verb_game_system_request_duplicate' => 'Spielesystem-Anfrage als Duplikat markiert',
+    'verb_game_system_request_rejected' => 'Spielsystem-Anfrage abgelehnt',
+    'verb_game_system_request_duplicate' => 'Spielsystem-Anfrage als Duplikat markiert',
     // Teilnahme-Lebenszyklus-Verben (Bank, Warteliste, Degradierung)
     'verb_waitlist_placed' => 'hat dich auf die Warteliste gesetzt für',
     'verb_waitlist_promoted' => 'hat dich von der Warteliste befördert für',
@@ -294,15 +294,15 @@ return [
     'push_body_below_min_players' => ':game hat nur :current/:min Spieler.',
     // Moderation — Inhaltwarnung
     'subject_content_warning' => 'Warnung zu Community-Richtlinien',
-    'body_content_warning' => 'Dein :entityType „:entityName" wurde von unserem Moderationsteam zur Überprüfung markiert.',
+    'body_content_warning' => 'Dein :entityType „:entityName“ wurde von unserem Moderationsteam zur Überprüfung markiert.',
     'body_content_warning_guidelines' => 'Bitte lies unsere Community-Richtlinien, um sicherzustellen, dass dein Inhalt unseren Richtlinien entspricht.',
     // Moderation — Inhalt entfernt
     'subject_content_removed' => 'Inhalt entfernt',
-    'body_content_removed' => 'Dein :entityType „:entityName" wurde von unserem Moderationsteam entfernt.',
+    'body_content_removed' => 'Dein :entityType „:entityName“ wurde von unserem Moderationsteam entfernt.',
     'body_content_removed_guidelines' => 'Wiederholte Verstöße können zur Kontosperrung führen.',
     // Moderation — Titelbild entfernt (scoped Takedown; Entität selbst bleibt veröffentlicht)
     'subject_cover_removed' => 'Titelbild entfernt',
-    'body_cover_removed' => 'Das Titelbild deines :entityType „:entityName" wurde von unserem Moderationsteam entfernt. Dein :entityType selbst ist weiterhin veröffentlicht — du kannst jederzeit ein neues Titelbild hochladen.',
+    'body_cover_removed' => 'Das Titelbild deines :entityType „:entityName“ wurde von unserem Moderationsteam entfernt. Dein :entityType selbst ist weiterhin veröffentlicht — du kannst jederzeit ein neues Titelbild hochladen.',
     // Moderation — Konto gesperrt
     'subject_account_suspended' => 'Konto gesperrt',
     'body_account_suspended' => 'Dein Konto wurde wegen eines Verstoßes gegen unsere Community-Richtlinien gesperrt.',

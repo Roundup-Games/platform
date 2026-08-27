@@ -48,7 +48,7 @@ return [
     'heading_weekly_digest' => 'Weekly Email Digest',
     'hint_weekly_digest' => 'Receive one weekly summary email of notifications you missed. Keeps you in the loop without flooding your inbox.',
     'subject_weekly_digest' => 'Your weekly roundup',
-    'body_weekly_digest_intro' => '[0]You have no unread notifications this week:|[1]You have :count unread notification this week:|[2,*]You have :count unread notifications this week:',
+    'body_weekly_digest_intro' => '[0]You have no unread notifications this week.|[1]You have :count unread notification this week:|[2,*]You have :count unread notifications this week:',
     'body_weekly_digest_more' => '…and :count more',
     'action_weekly_digest' => 'View All Notifications',
     'body_weekly_digest_settings' => 'You can change your notification preferences in your settings.',
@@ -118,10 +118,10 @@ return [
     'unsubscribe_success' => 'You have been unsubscribed from :category email notifications.',
     'unsubscribe_invalid_link' => 'This unsubscribe link is invalid or has expired.',
     'unsubscribe_unknown_category' => 'The notification category could not be found.',
-    // Entity type labels (lowercase, for use in sentences)
-    'entity_type_game' => 'Game',
-    'entity_type_campaign' => 'Campaign',
-    'entity_type_team' => 'Team',
+    // Entity type labels (lowercase, for use mid-sentence; buttons ucfirst() them)
+    'entity_type_game' => 'game',
+    'entity_type_campaign' => 'campaign',
+    'entity_type_team' => 'team',
     // Display strings for notification list (verb + sentence templates)
     'verb_new_follower' => 'followed you',
     'verb_game_invitation' => 'invited you to a game',

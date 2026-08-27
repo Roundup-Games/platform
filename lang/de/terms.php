@@ -3,7 +3,7 @@
 return [
     'seo_description' => 'Die Geschäftsbedingungen für die Nutzung der '.config('company.display_name').' Plattform. Klar, fair und in verständlicher Sprache verfasst.',
     // ── Einleitung ─────────────────────────────────────
-    'content_terms_intro_1' => 'Diese Nutzungsbedingungen („Bedingungen") regeln deinen Zugang zu und die Nutzung der '.config('company.display_name').' Plattform unter roundup.games („Plattform"), betrieben von '.config('company.legal_name').' („wir", „uns", „unser").',
+    'content_terms_intro_1' => 'Diese Nutzungsbedingungen („Bedingungen“) regeln deinen Zugang zu und die Nutzung der '.config('company.display_name').' Plattform unter roundup.games („Plattform“), betrieben von '.config('company.legal_name').' („wir“, „uns“, „unser“).',
     'content_terms_intro_2' => 'Mit der Erstellung eines Kontos oder der Nutzung der Plattform stimmst du diesen Bedingungen zu. Wenn du nicht einverstanden bist, nutze die Plattform bitte nicht.',
     'content_terms_intro_3' => 'Wir haben diese Bedingungen klar und fair formuliert. Wenn etwas unklar ist, kannst du dich gerne an uns wenden.',
     // ── Teilnahmevoraussetzungen ────────────────────────
@@ -38,7 +38,7 @@ return [
     'heading_platform_license' => 'Plattformlizenz (Quelloffen)',
     'content_license_1' => config('company.display_name').' ist quelloffene Software. Der Quellcode ist öffentlich auf GitHub unter der entsprechenden Open-Source-Lizenz verfügbar.',
     'content_license_2' => 'Deine Nutzung der Plattform unterliegt diesen Bedingungen. Deine Nutzung des Quellcodes unterliegt der Lizenz des Repositoriums.',
-    'content_license_3' => 'Der Name „'.config('company.display_name').'", das Logo und das Branding sind nicht unter der Open-Source-Lizenz lizenziert und dürfen nicht ohne schriftliche Genehmigung verwendet werden.',
+    'content_license_3' => 'Der Name „'.config('company.display_name').'“, das Logo und das Branding sind nicht unter der Open-Source-Lizenz lizenziert und dürfen nicht ohne schriftliche Genehmigung verwendet werden.',
     // ── Abonnements & Zahlungen ────────────────────────
     'heading_subscriptions' => 'Abonnements & Zahlungen',
     'content_subscriptions_1' => 'Einige Funktionen erfordern ein kostenpflichtiges Abonnement. Abonnementgebühren werden über Paddle.com abgerechnet.',
@@ -59,7 +59,7 @@ return [
     'content_governing_2' => 'Streitigkeiten aus diesen Bedingungen werden vor den Gerichten in '.config('company.governing_law.courts_city').', Deutschland, geklärt, sofern nicht zwingendes Verbraucherschutzrecht etwas anderes vorschreibt.',
     // ── Änderungen ─────────────────────────────────────
     'heading_changes' => 'Änderungen dieser Bedingungen',
-    'content_changes_1' => 'Wir können diese Bedingungen von Zeit zu Zeit aktualisieren. Wenn wir dies tun, aktualisieren wir das Datum „Zuletzt aktualisiert" und benachrichtigen dich über die Plattform.',
+    'content_changes_1' => 'Wir können diese Bedingungen von Zeit zu Zeit aktualisieren. Wenn wir dies tun, aktualisieren wir das Datum „Zuletzt aktualisiert“ und benachrichtigen dich über die Plattform.',
     'content_changes_2' => 'Fortgesetzte Nutzung der Plattform nach Inkrafttreten der Änderungen gilt als Zustimmung zu den aktualisierten Bedingungen.',
     // ── Kontakt ────────────────────────────────────────
     'content_contact_email' => 'E-Mail: '.config('company.contact.legal'),

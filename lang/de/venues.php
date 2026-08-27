@@ -82,7 +82,7 @@ return [
     'field_directory_venue_type' => 'Veranstaltungsort-Typ',
     'field_directory_min_rating' => 'Mindestbewertung',
     'label_directory_any_rating' => 'Beliebige Bewertung',
-    'sort_directory_nearest' => 'Näheste zuerst',
+    'sort_directory_nearest' => 'Nächstgelegene zuerst',
     'sort_directory_active' => 'Aktivste',
     'sort_directory_rating' => 'Bestbewertet',
     'filter_directory_has_upcoming' => 'Mit anstehenden Sitzungen',
