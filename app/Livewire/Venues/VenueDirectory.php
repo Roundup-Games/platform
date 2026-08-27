@@ -239,8 +239,8 @@ class VenueDirectory extends Component
     public function render(): View
     {
         seo(new SEOData(
-            title: __('venue.seo_directory_title'),
-            description: __('venue.seo_directory_description'),
+            title: __('venues.seo_directory_title'),
+            description: __('venues.seo_directory_description'),
         ));
 
         $hasLocation = $this->hasGuestLocation();

@@ -5,7 +5,7 @@ return [
     'title_write_review' => 'Bewertung schreiben',
     'content_for_name' => 'für :name',
     'label_rating' => 'Bewertung',
-    'label_your_review' => 'Deine Bewertung',
+    'label_your_review' => 'Deine Rezension',
     'label_gm_strengths' => 'GM-Stärken',
     'content_max_3' => 'maximal 3 auswählen',
     'content_star_count' => ':count Stern|:count Sterne',
@@ -33,9 +33,9 @@ return [
     'content_review_count' => ':count Bewertung|:count Bewertungen',
     // Report
     'title_report_review' => 'Bewertung melden',
-    'content_report_explanation' => 'Warum meldest du diese Bewertung? Meldungen werden an unser Moderationsteam weitergeleitet.',
+    'content_report_review_explanation' => 'Warum meldest du diese Bewertung? Meldungen werden an unser Moderationsteam weitergeleitet.',
     'report_reason_spam' => 'Spam oder irreführend',
     'error_review_not_found' => 'Die Bewertung konnte nicht gefunden werden.',
-    'error_already_reported' => 'Diese Bewertung wurde bereits gemeldet.',
+    'error_review_already_reported' => 'Diese Bewertung wurde bereits gemeldet.',
     'flash_review_reported' => 'Vielen Dank. Diese Bewertung wurde an unser Moderationsteam gemeldet.',
 ];

@@ -7,7 +7,7 @@ return [
     'content_log_out' => 'Log Out',
     'content_no_password_set_you_currently' => 'No password set. You currently sign in via a linked provider.',
     'content_remember_me' => 'Remember me',
-    'content_sign_in' => 'Sign In',
+    'content_sign_in' => 'Log in',
     'content_sign_in_to_register' => 'Sign in to Register',
     'content_sign_up' => 'Sign Up',
     'content_sign_up_for_a_session' => 'Sign up for a session, show up, and have a great time. That\'s it. No dues, no commitments, no pressure. Just roll the dice and see what happens.',

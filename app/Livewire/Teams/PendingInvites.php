@@ -24,7 +24,7 @@ class PendingInvites extends Component
             ->exists();
 
         if ($existingActive) {
-            session()->flash('error', __('teams.error_you_already_have_an_active'));
+            session()->flash('error', __('teams.error_already_in_team'));
 
             return;
         }

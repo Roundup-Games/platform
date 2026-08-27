@@ -287,7 +287,7 @@ class GamesPage extends Component
             ->first();
 
         if (! $participant) {
-            session()->flash('error', __('games.error_not_a_participant'));
+            session()->flash('error', __('games.error_not_a_game_participant'));
 
             return;
         }

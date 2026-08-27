@@ -190,12 +190,12 @@ describe('VenueDetail activity aggregation', function () {
         // Per-section boxes are hidden entirely (headings included), not
         // rendered as a wall of empties.
         $response->assertDontSee(__('gws.heading_upcoming_sessions'));
-        $response->assertDontSee(__('venue.heading_past_sessions'));
+        $response->assertDontSee(__('venues.heading_past_sessions'));
         $response->assertDontSee(__('gws.label_active_campaigns'));
-        $response->assertDontSee(__('venue.heading_completed_campaigns'));
+        $response->assertDontSee(__('venues.heading_completed_campaigns'));
 
         // A single graceful fallback is shown instead.
-        $response->assertSee(__('venue.content_no_activity_yet'));
+        $response->assertSee(__('venues.content_no_activity_yet'));
     });
 });
 
@@ -325,7 +325,7 @@ describe('VenueDetail managed-by link', function () {
         $response = get(route('venues.detail', ['slug' => $venue->slug]));
         $response->assertOk();
 
-        $response->assertDontSee(__('venue.label_managed_by'));
+        $response->assertDontSee(__('venues.label_managed_by'));
     });
 });
 
@@ -346,10 +346,10 @@ describe('VenueDetail operational parameters', function () {
         $response = get(route('venues.detail', ['slug' => $venue->slug]));
         $response->assertOk();
 
-        $response->assertSee(__('venue.heading_operational_parameters'));
-        $response->assertSee(__('venue.label_overlap_guidance'));
-        $response->assertSee(__('venue.label_fee_display'));
-        $response->assertSee(__('venue.label_house_rules'));
+        $response->assertSee(__('venues.heading_operational_parameters'));
+        $response->assertSee(__('venues.label_overlap_guidance'));
+        $response->assertSee(__('venues.label_fee_display'));
+        $response->assertSee(__('venues.label_house_rules'));
         $response->assertSee('Back-to-back sessions start on the hour');
         $response->assertSee('€5 table fee per player');
         $response->assertSee('Outside food is not permitted');
@@ -362,10 +362,10 @@ describe('VenueDetail operational parameters', function () {
         $response = get(route('venues.detail', ['slug' => $venue->slug]));
         $response->assertOk();
 
-        $response->assertDontSee(__('venue.heading_operational_parameters'));
-        $response->assertDontSee(__('venue.label_overlap_guidance'));
-        $response->assertDontSee(__('venue.label_fee_display'));
-        $response->assertDontSee(__('venue.label_house_rules'));
+        $response->assertDontSee(__('venues.heading_operational_parameters'));
+        $response->assertDontSee(__('venues.label_overlap_guidance'));
+        $response->assertDontSee(__('venues.label_fee_display'));
+        $response->assertDontSee(__('venues.label_house_rules'));
     });
 
     it('hides the section when all three fields are empty strings', function () {
@@ -383,7 +383,7 @@ describe('VenueDetail operational parameters', function () {
         $response = get(route('venues.detail', ['slug' => $venue->slug]));
         $response->assertOk();
 
-        $response->assertDontSee(__('venue.heading_operational_parameters'));
+        $response->assertDontSee(__('venues.heading_operational_parameters'));
     });
 
     it('renders the section when only a subset of fields is populated', function () {
@@ -400,10 +400,10 @@ describe('VenueDetail operational parameters', function () {
         $response = get(route('venues.detail', ['slug' => $venue->slug]));
         $response->assertOk();
 
-        $response->assertSee(__('venue.heading_operational_parameters'));
+        $response->assertSee(__('venues.heading_operational_parameters'));
         $response->assertSee('Free entry; donations welcome.');
-        $response->assertDontSee(__('venue.label_overlap_guidance'));
-        $response->assertDontSee(__('venue.label_house_rules'));
+        $response->assertDontSee(__('venues.label_overlap_guidance'));
+        $response->assertDontSee(__('venues.label_house_rules'));
     });
 
     it('renders ONLY the three whitelisted keys and never other venue_metadata sub-keys', function () {
@@ -448,10 +448,10 @@ describe('VenueDetail operational parameters', function () {
         $response = get(route('venues.detail', ['locale' => 'de', 'slug' => $venue->slug]));
         $response->assertOk();
 
-        $response->assertSee(__('venue.heading_operational_parameters', [], 'de'));
-        $response->assertSee(__('venue.label_overlap_guidance', [], 'de'));
-        $response->assertSee(__('venue.label_fee_display', [], 'de'));
-        $response->assertSee(__('venue.label_house_rules', [], 'de'));
+        $response->assertSee(__('venues.heading_operational_parameters', [], 'de'));
+        $response->assertSee(__('venues.label_overlap_guidance', [], 'de'));
+        $response->assertSee(__('venues.label_fee_display', [], 'de'));
+        $response->assertSee(__('venues.label_house_rules', [], 'de'));
         $response->assertSee('Sitzungen beginnen zur vollen Stunde.');
         $response->assertSee('5 € Tischgebühr pro Spieler.');
     });

@@ -43,7 +43,7 @@ class ParticipantJoined extends BaseNotification
                 'entity_type' => $entityTypeLabel,
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_view_entity_type', ['entity_type' => $entityTypeLabel]), $actionUrl)
+            ->action(__('notifications.action_view_entity_type', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl)
             ->line($this->unsubscribeLine($notifiable, 'participant_joined'));
     }
 

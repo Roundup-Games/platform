@@ -49,7 +49,7 @@
                     <a href="{{ $safeUrl }}" target="_blank" rel="noopener"
                        class="btn-brand gap-1.5">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">open_in_new</span>
-                        {{ __('venue.action_visit_website') }}
+                        {{ __('venues.action_visit_website') }}
                     </a>
                 @endif
 
@@ -57,7 +57,7 @@
                 @if($location->managed_by && $location->managedBy)
                     <span class="inline-flex items-center gap-1.5 text-sm text-on-surface-variant">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">manage_accounts</span>
-                        <span>{{ __('venue.label_managed_by') }}:</span>
+                        <span>{{ __('venues.label_managed_by') }}:</span>
                         <a href="{{ route('profile.public', ['locale' => app()->getLocale(), 'user' => $location->managedBy]) }}"
                            wire:navigate
                            class="text-primary hover:underline">
@@ -74,7 +74,7 @@
                        wire:navigate
                        class="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">verified_user</span>
-                        {{ __('venue.action_claim_venue') }}
+                        {{ __('venues.action_claim_venue') }}
                     </a>
                 @endif
             </div>
@@ -111,9 +111,9 @@
              convention so a venue with no curated params shows nothing. --}}
         @php
             $operationalParams = [
-                'overlap_guidance' => __('venue.label_overlap_guidance'),
-                'fee_display' => __('venue.label_fee_display'),
-                'house_rules' => __('venue.label_house_rules'),
+                'overlap_guidance' => __('venues.label_overlap_guidance'),
+                'fee_display' => __('venues.label_fee_display'),
+                'house_rules' => __('venues.label_house_rules'),
             ];
             $hasOperationalParams = collect($operationalParams)
                 ->keys()
@@ -125,7 +125,7 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6" aria-labelledby="operational-parameters-heading">
                 <h2 id="operational-parameters-heading" class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">tune</span>
-                    {{ __('venue.heading_operational_parameters') }}
+                    {{ __('venues.heading_operational_parameters') }}
                 </h2>
                 <dl class="space-y-4">
                     @foreach($operationalParams as $paramKey => $paramLabel)
@@ -147,7 +147,7 @@
         @if(! $hasAnyActivity)
             <div class="text-center py-16">
                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">event_busy</span>
-                <p class="mt-4 text-on-surface-variant">{{ __('venue.content_no_activity_yet') }}</p>
+                <p class="mt-4 text-on-surface-variant">{{ __('venues.content_no_activity_yet') }}</p>
             </div>
         @else
             {{-- Upcoming sessions --}}
@@ -194,7 +194,7 @@
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                     <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-xl" aria-hidden="true">history</span>
-                        {{ __('venue.heading_past_sessions') }}
+                        {{ __('venues.heading_past_sessions') }}
                     </h2>
                     <div class="divide-y divide-outline-variant/30">
                         @foreach($pastSessions as $session)
@@ -254,7 +254,7 @@
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                     <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-xl" aria-hidden="true">trophy</span>
-                        {{ __('venue.heading_completed_campaigns') }}
+                        {{ __('venues.heading_completed_campaigns') }}
                     </h2>
                     <div class="divide-y divide-outline-variant/30">
                         @foreach($completedCampaigns as $campaign)

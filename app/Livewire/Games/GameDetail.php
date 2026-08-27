@@ -124,7 +124,7 @@ class GameDetail extends Component
                 } catch (\Throwable $e) {
                     // joinViaDiscord() already logged the failure; degrade to a
                     // normal page render with an error flash so the member can retry.
-                    session()->flash('error', __('games.error_join_via_share_link_failed'));
+                    session()->flash('error', __('games.error_join_game_via_share_link_failed'));
                 }
             }
         }
@@ -658,7 +658,7 @@ class GameDetail extends Component
                 ]));
 
         if (! $participant) {
-            session()->flash('error', __('games.error_not_a_participant'));
+            session()->flash('error', __('games.error_not_a_game_participant'));
 
             return;
         }
@@ -862,7 +862,7 @@ class GameDetail extends Component
                 'success',
                 $overflowFlash !== null
                     ? __($overflowFlash->messageKey, $overflowFlash->messageParams)
-                    : __('games.flash_joined_via_share_link')
+                    : __('games.flash_joined_game_via_share_link')
             );
         } catch (\Throwable $e) {
             Log::error('Failed to join via share link', [
@@ -871,7 +871,7 @@ class GameDetail extends Component
                 'error' => $e->getMessage(),
             ]);
             throw ValidationException::withMessages([
-                'share_link' => [__('games.error_join_via_share_link_failed')],
+                'share_link' => [__('games.error_join_game_via_share_link_failed')],
             ]);
         }
     }
@@ -970,7 +970,7 @@ class GameDetail extends Component
                 'success',
                 $overflowFlash !== null
                     ? __($overflowFlash->messageKey, $overflowFlash->messageParams)
-                    : __('games.flash_joined_via_share_link')
+                    : __('games.flash_joined_game_via_share_link')
             );
         } catch (\Throwable $e) {
             Log::error('Failed to join via Discord intent', [
@@ -979,7 +979,7 @@ class GameDetail extends Component
                 'error' => $e->getMessage(),
             ]);
             throw ValidationException::withMessages([
-                'discord_join' => [__('games.error_join_via_share_link_failed')],
+                'discord_join' => [__('games.error_join_game_via_share_link_failed')],
             ]);
         }
     }

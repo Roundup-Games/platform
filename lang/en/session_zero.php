@@ -6,7 +6,7 @@ return [
     'description_share_link_with_players' => 'Share this link with your players so they can review the survey and confirm their reading.',
     'title_default_for_game' => 'Session Zero for :game',
     // Sections
-    'heading_title' => 'Survey Title',
+    'heading_survey_title' => 'Survey Title',
     'heading_tone_and_genre' => 'Tone & Genre',
     'heading_house_rules' => 'House Rules',
     'heading_content_warnings' => 'Content Warnings',
@@ -34,7 +34,7 @@ return [
     'confirmation_confirmed' => 'You have confirmed reading this Session Zero',
     'confirmation_prompt' => 'By confirming, you acknowledge that you have read and understand the contents of this Session Zero survey.',
     'confirmation_login_prompt' => 'Log in to confirm that you have read and understood this Session Zero.',
-    'action_confirm' => 'I have read and understand this Session Zero',
+    'action_confirm_acknowledgement' => 'I have read and understand this Session Zero',
     'action_confirming' => 'Confirming…',
     'action_login_to_confirm' => 'Log in to confirm',
     'heading_confirmations' => 'Player Confirmations',

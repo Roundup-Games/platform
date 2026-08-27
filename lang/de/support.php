@@ -24,7 +24,7 @@ return [
     'field_issue_type' => 'Problemtyp',
     // Placeholders
     'placeholder_subject' => 'Beschreibe dein Problem kurz',
-    'placeholder_description' => 'Bitte beschreibe dein Problem so detailliert wie möglich…',
+    'placeholder_support_issue_description' => 'Bitte beschreibe dein Problem so detailliert wie möglich…',
     'placeholder_billing_subject' => 'z.B. Zahlung fehlgeschlagen, Rückerstattung, Abonnement-Problem',
     'placeholder_billing_description' => 'Bitte beschreibe dein Rechnungsproblem mit allen relevanten Transaktionsdetails…',
     // Actions
@@ -39,7 +39,7 @@ return [
     // Validation
     'validation_subject_required' => 'Bitte gib einen Betreff für dein Ticket an.',
     'validation_description_required' => 'Bitte beschreibe dein Problem.',
-    'validation_description_max' => 'Die Beschreibung muss kürzer als 5000 Zeichen sein.',
+    'validation_support_description_max' => 'Die Beschreibung muss kürzer als 5000 Zeichen sein.',
     'validation_issue_type_required' => 'Bitte wähle einen Problemtyp.',
     'validation_issue_type_invalid' => 'Der gewählte Problemtyp ist nicht gültig.',
     // Rate limit

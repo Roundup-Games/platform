@@ -21,7 +21,7 @@ return [
     'error_user_already_participant' => 'This person is already a participant.',
     'error_email_invite_already_sent' => 'An invitation has already been sent to this email address.',
     'error_too_many_invite_attempts' => 'Too many invitation attempts. Please try again later.',
-    'error_entity_no_longer_available' => 'This game or campaign is no longer available.',
+    'error_listing_no_longer_available' => 'This game or campaign is no longer available.',
     'flash_confirm_decline_invitation' => 'Are you sure you want to decline this invitation?',
     'flash_friends_invited' => '{1} :count friend invited.|[2,*] :count friends invited.',
     'flash_invitation_accepted' => 'Invitation accepted! You\'re now a participant.',
@@ -44,7 +44,7 @@ return [
     'nearby_action_set_location' => 'Set Location',
     'nearby_searching' => 'We\'re still looking for like-minded people you might want to follow.',
     'nearby_searching_hint' => 'Results will appear here automatically.',
-    'content_showing_of_total' => 'Showing :shown of :total players',
+    'content_showing_players_of_total' => 'Showing :shown of :total players',
     // Email invitations
     'field_invite_by_email' => 'Invite by email',
     'placeholder_enter_email_address' => 'Enter email address',

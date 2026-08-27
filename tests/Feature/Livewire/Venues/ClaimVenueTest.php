@@ -243,7 +243,7 @@ describe('venue page claim entry point', function () {
         $response = $this->actingAs($this->user)->get(route('venues.detail', ['slug' => $venue->slug]));
         $response->assertOk();
 
-        $response->assertSee(__('venue.action_claim_venue'));
+        $response->assertSee(__('venues.action_claim_venue'));
         $response->assertSee(route('venues.claim', ['locale' => 'en', 'slug' => $venue->slug]));
     });
 
@@ -256,7 +256,7 @@ describe('venue page claim entry point', function () {
 
         // Managed venue shows the manager, never the claim affordance.
         $response->assertSee('Manager Bob');
-        $response->assertDontSee(__('venue.action_claim_venue'));
+        $response->assertDontSee(__('venues.action_claim_venue'));
         $response->assertDontSee(route('venues.claim', ['locale' => 'en', 'slug' => $venue->slug]));
     });
 
@@ -266,6 +266,6 @@ describe('venue page claim entry point', function () {
         $response = $this->get(route('venues.detail', ['slug' => $venue->slug]));
         $response->assertOk();
 
-        $response->assertDontSee(__('venue.action_claim_venue'));
+        $response->assertDontSee(__('venues.action_claim_venue'));
     });
 });

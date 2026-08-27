@@ -91,7 +91,7 @@ class BillingSupport extends Component
         return [
             'subject.required' => __('support.validation_subject_required'),
             'description.required' => __('support.validation_description_required'),
-            'description.max' => __('support.validation_description_max'),
+            'description.max' => __('support.validation_support_description_max'),
             'issueType.required' => __('support.validation_issue_type_required'),
             'issueType.in' => __('support.validation_issue_type_invalid'),
         ];

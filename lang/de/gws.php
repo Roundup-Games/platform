@@ -8,7 +8,7 @@ return [
     'heading_participant_stats' => 'Teilnehmerstatistiken',
     'heading_quick_actions' => 'Schnellaktionen',
     'content_no_upcoming_sessions' => 'Keine kommenden Sitzungen diese Woche.',
-    'content_no_reviews_yet' => 'Noch keine Bewertungen — leite weiterhin großartige Spiele!',
+    'content_no_reviews_yet_gm' => 'Noch keine Bewertungen — leite weiterhin großartige Spiele!',
     'label_average' => 'Durchschnitt',
     'label_reviews' => '1 Bewertung|:count Bewertungen',
     'label_unique_players' => 'Einzigartige Spieler',

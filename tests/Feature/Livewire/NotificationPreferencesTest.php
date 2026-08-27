@@ -98,7 +98,7 @@ describe('notification preferences section', function () {
 
         Livewire::test(Show::class)
             ->assertSet('pushSubscriptionCount', 1)
-            ->assertSee(__('pwa.push_enabled_on_devices', ['count' => 1]));
+            ->assertSee(trans_choice('pwa.push_enabled_on_devices', 1, ['count' => 1]));
     });
 
     it('shows success flash after saving', function () {

@@ -73,7 +73,7 @@ class ViewSessionZeroTest extends TestCase
     {
         Livewire::test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSee(__('session_zero.action_login_to_confirm'))
-            ->assertDontSee(__('session_zero.action_confirm'));
+            ->assertDontSee(__('session_zero.action_confirm_acknowledgement'));
     }
 
     // ── Confirmation: Authenticated ──────────────────────
@@ -84,7 +84,7 @@ class ViewSessionZeroTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
-            ->assertSee(__('session_zero.action_confirm'))
+            ->assertSee(__('session_zero.action_confirm_acknowledgement'))
             ->assertDontSee(__('session_zero.action_login_to_confirm'));
     }
 
@@ -151,7 +151,7 @@ class ViewSessionZeroTest extends TestCase
             ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSet('confirmed', true)
             ->assertSee(__('session_zero.confirmation_confirmed'))
-            ->assertDontSee(__('session_zero.action_confirm'));
+            ->assertDontSee(__('session_zero.action_confirm_acknowledgement'));
     }
 
     public function test_confirmed_shows_date(): void

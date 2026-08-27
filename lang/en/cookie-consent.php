@@ -3,7 +3,7 @@
 return [
     // Banner
     'content_banner_message' => 'We use cookies to improve your experience and analyze site usage.',
-    'heading_banner_title' => 'Cookie Preferences',
+    'heading_banner_title' => 'Cookie Settings',
     // Buttons
     'action_reject_optional' => 'Reject Optional',
     'action_save_selected' => 'Save Selected',

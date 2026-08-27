@@ -41,7 +41,7 @@ class AttendanceReported extends BaseNotification
                 'date' => $date,
                 'status' => $status,
             ]))
-            ->action(__('notifications.action_dispute_attendance'), route('games.show', [
+            ->action(__('notifications.action_open_dispute_report'), route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
             ]))

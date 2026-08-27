@@ -145,7 +145,7 @@
                     class="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors"
                 >
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
-                    <span wire:loading.remove>{{ __('session_zero.action_confirm') }}</span>
+                    <span wire:loading.remove>{{ __('session_zero.action_confirm_acknowledgement') }}</span>
                     <span wire:loading>{{ __('session_zero.action_confirming') }}</span>
                 </button>
             @else

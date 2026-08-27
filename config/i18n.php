@@ -38,7 +38,7 @@ return [
             'placeholder_primary_color',
             'placeholder_secondary_color',
         ],
-        'venue' => [
+        'venues' => [
             'type_cafe',
         ],
         'discord' => [

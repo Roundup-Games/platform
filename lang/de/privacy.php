@@ -3,7 +3,7 @@
 return [
     'seo_description' => 'Erfahre, wie '.config('company.display_name').' deine personenbezogenen Daten erfasst, verwendet und schützt. Unsere Datenschutzpraktiken verständlich erklärt.',
     // ── Einleitung ─────────────────────────────────────
-    'content_introduction_1' => config('company.legal_name').' („wir", „uns", „unser") betreibt die Plattform roundup.games — einen gemeinnützigen, quelloffenen Service, der Menschen hilft, lokale Brettspiel- und Tabletop-Rollenspiel-Sessions zu finden und zu organisieren.',
+    'content_introduction_1' => config('company.legal_name').' („wir“, „uns“, „unser“) betreibt die Plattform roundup.games — einen gemeinnützigen, quelloffenen Service, der Menschen hilft, lokale Brettspiel- und Tabletop-Rollenspiel-Sessions zu finden und zu organisieren.',
     'content_introduction_2' => 'Diese Datenschutzerklärung erläutert, welche personenbezogenen Daten wir erheben, warum wir sie erheben, auf welcher Rechtsgrundlage dies beruht, wer Zugriff hat und wie lange wir sie aufbewahren. Wir haben dies in klarer Sprache verfasst, weil Transparenz für uns keine Optionalität ist — sie ist grundlegend.',
     'content_introduction_3' => 'Diese Richtlinie gilt für alle Nutzer unserer Plattform, einschließlich Besucher, die ohne Konto surfen.',
     // ── Erhobene Daten ─────────────────────────────────
@@ -66,7 +66,7 @@ return [
     'content_rights_intro' => 'Unter der DSGVO hast du folgende Rechte bezüglich deiner personenbezogenen Daten:',
     'content_rights_access' => 'Auskunft: Fordere eine Kopie aller deiner personenbezogenen Daten an, die wir über dich speichern.',
     'content_rights_rectification' => 'Berichtigung: Korrigiere ungenaue oder unvollständige Daten.',
-    'content_rights_erasure' => 'Löschung: Fordere die Löschung deiner Daten („Recht auf Vergessenwerden"), vorbehaltlich gesetzlicher Aufbewahrungspflichten.',
+    'content_rights_erasure' => 'Löschung: Fordere die Löschung deiner Daten („Recht auf Vergessenwerden“), vorbehaltlich gesetzlicher Aufbewahrungspflichten.',
     'content_rights_portability' => 'Datenübertragbarkeit: Erhalte deine Daten in einem maschinenlesbaren Format.',
     'content_rights_objection' => 'Widerspruch: Widerspreche der Verarbeitung, die auf berechtigtem Interesse beruht.',
     'content_rights_restriction' => 'Einschränkung: Fordere, dass wir die Verarbeitung deiner Daten einschränken.',

@@ -19,7 +19,7 @@
                 {{ __('common.nav_terms') }}
             </h1>
             <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-2xl mx-auto leading-relaxed">
-                {{ __('terms.content_introduction_2') }}
+                {{ __('terms.content_terms_intro_2') }}
             </p>
         </div>
     </section>
@@ -31,8 +31,8 @@
                 {{ __('common.heading_introduction') }}
             </h2>
             <div class="space-y-4 text-on-surface-variant leading-relaxed">
-                <p>{{ __('terms.content_introduction_1') }}</p>
-                <p>{{ __('terms.content_introduction_3') }}</p>
+                <p>{{ __('terms.content_terms_intro_1') }}</p>
+                <p>{{ __('terms.content_terms_intro_3') }}</p>
             </div>
         </div>
     </section>

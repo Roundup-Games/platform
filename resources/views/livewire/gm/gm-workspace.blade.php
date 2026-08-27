@@ -135,7 +135,7 @@
             @else
                 <div class="text-center py-6">
                     <span class="material-symbols-outlined text-3xl text-on-surface-variant/30 mb-2 block">rate_review</span>
-                    <p class="text-sm text-on-surface-variant">{{ __('gws.content_no_reviews_yet') }}</p>
+                    <p class="text-sm text-on-surface-variant">{{ __('gws.content_no_reviews_yet_gm') }}</p>
                 </div>
             @endif
         </div>

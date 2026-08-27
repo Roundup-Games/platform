@@ -578,7 +578,7 @@ class ParticipantLifecycle
         // Guard: entity must not be cancelled/canceled or completed
         $inactiveStatuses = ['canceled', 'cancelled', 'completed'];
         if ($entity->status && in_array($entity->status->value, $inactiveStatuses)) {
-            return ParticipantResult::fail('people.error_entity_no_longer_available');
+            return ParticipantResult::fail('people.error_listing_no_longer_available');
         }
 
         // Must be the invited user
@@ -637,7 +637,7 @@ class ParticipantLifecycle
         });
 
         if ($outcome === 'inactive') {
-            return ParticipantResult::fail('people.error_entity_no_longer_available');
+            return ParticipantResult::fail('people.error_listing_no_longer_available');
         }
 
         if ($outcome === 'invalid') {

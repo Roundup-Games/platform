@@ -267,6 +267,12 @@ grep -r "events.action_old_button" app/ resources/
 
 ---
 
+## German Conventions
+
+- **Informal address (Du) is the official form** for German translations (decision D131, 2026-08). The gaming-community tone is informal; ~92% of existing strings already use Du. Do not mix in Sie forms.
+- **No gender-colon notation** (`Spieler:in`, `jede:r`). The trailing colon collides with Laravel `:placeholder` syntax and trips both Weblate's Laravel-format check and the local `i18n:check` placeholder-parity check. Use neutral forms (`Teilnehmende`, `alle Beteiligten`, `jede Person`), pairwise forms (`Spielerinnen und Spieler`), or — only as a last resort — the slash form (`Spieler/in`).
+- **Different English strings must not share the same German string** unless the German genuinely cannot distinguish (e.g. singular/plural `Treffen`, participles `Widerrufen`). Weblate flags these as "Reused translation"; prefer differentiating the German.
+
 ## Testing Translations
 
 ### Smoke Test

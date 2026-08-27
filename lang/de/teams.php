@@ -44,7 +44,7 @@ return [
     'error_permanently_delete_this_team_this_cannot_be_undone' => 'Dieses Team dauerhaft löschen. Dies kann nicht rückgängig gemacht werden.',
     'error_this_user_already_has_a' => 'Dieser Benutzer hat bereits eine ausstehende Einladung zu diesem Team.',
     'error_this_user_already_has_an_active_team_membership' => 'Dieser Benutzer hat bereits eine aktive Teammitgliedschaft.',
-    'error_you_already_have_an_active' => 'Du hast bereits eine aktive Teammitgliedschaft. Verlasse zuerst dein aktuelles Team.',
+    'error_already_in_team' => 'Du hast bereits eine aktive Teammitgliedschaft. Verlasse zuerst dein aktuelles Team.',
     'error_you_are_not_a_member_of_any_teams' => 'Du bist noch kein Mitglied in einem Team.',
     'error_you_cannot_leave_the_team' => 'Du kannst das Team als letzter Kapitän nicht verlassen. Befördere zuerst ein anderes Mitglied.',
     'error_you_don_t_have_any_team_invitations_right_now' => 'Du hast aktuell keine Team-Einladungen.',

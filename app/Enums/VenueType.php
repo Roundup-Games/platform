@@ -62,6 +62,6 @@ enum VenueType: string
 
     public function label(): string
     {
-        return __("venue.type_{$this->value}");
+        return __("venues.type_{$this->value}");
     }
 }

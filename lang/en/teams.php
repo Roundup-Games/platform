@@ -3,7 +3,7 @@
 return [
     'action_back_to_teams' => 'Back to Teams',
     'action_browse_teams' => 'Browse Teams',
-    'action_create_a_team' => 'Create a Team',
+    'action_create_a_team' => 'Create Team',
     'action_create_team' => 'Create Team',
     'action_delete_team' => 'Delete Team',
     'action_discover_and_join_teams_in_your_area' => 'Discover and join teams in your area.',
@@ -44,7 +44,7 @@ return [
     'error_permanently_delete_this_team_this_cannot_be_undone' => 'Permanently delete this team. This cannot be undone.',
     'error_this_user_already_has_a' => 'This user already has a pending invite to this team.',
     'error_this_user_already_has_an_active_team_membership' => 'This user already has an active team membership.',
-    'error_you_already_have_an_active' => 'You already have an active team membership. Leave your current team first.',
+    'error_already_in_team' => 'You already have an active team membership. Leave your current team first.',
     'error_you_are_not_a_member_of_any_teams' => 'You are not a member of any teams.',
     'error_you_cannot_leave_the_team' => 'You cannot leave the team as the last captain. Promote another member first.',
     'error_you_don_t_have_any_team_invitations_right_now' => 'You don\'t have any team invitations right now.',

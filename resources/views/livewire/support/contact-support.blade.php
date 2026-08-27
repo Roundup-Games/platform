@@ -61,7 +61,7 @@
                           aria-invalid="@error('description') true @else false @enderror"
                           aria-describedby="description-error"
                           class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs"
-                          placeholder="{{ __('support.placeholder_description') }}"></textarea>
+                          placeholder="{{ __('support.placeholder_support_issue_description') }}"></textarea>
                 @error('description')
                     <p id="description-error" class="mt-1 text-sm text-error">{{ $message }}</p>
                 @enderror

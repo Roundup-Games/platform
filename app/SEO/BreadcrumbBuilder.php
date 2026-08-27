@@ -75,10 +75,10 @@ class BreadcrumbBuilder
             ]),
 
             'venues.directory' => $this->crumbs([
-                [__('venue.nav_venue_directory'), route('venues.directory')],
+                [__('venues.nav_venue_directory'), route('venues.directory')],
             ]),
             'venues.detail' => $this->crumbs([
-                [__('venue.nav_venue_directory'), route('venues.directory')],
+                [__('venues.nav_venue_directory'), route('venues.directory')],
                 [$this->resolveLeafName($params, $pageTitle), request()->url()],
             ]),
 

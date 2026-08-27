@@ -11,8 +11,8 @@ return [
     'content_star_count' => ':count star|:count stars',
     'placeholder_tell_us_about_experience' => 'Tell us about your experience (optional)',
     'action_submit_review' => 'Submit Review',
-    'action_write_review' => 'Write Review',
-    'action_go_back' => 'Go back',
+    'action_write_review' => 'Write a Review',
+    'action_go_back' => 'Back',
     // Validation
     'validation_rating_required' => 'Please select a rating.',
     'validation_rating_min' => 'Rating must be at least 1.',
@@ -33,9 +33,9 @@ return [
     'content_review_count' => ':count review|:count reviews',
     // Report
     'title_report_review' => 'Report Review',
-    'content_report_explanation' => 'Why are you reporting this review? Reports are sent to our moderation team for review.',
+    'content_report_review_explanation' => 'Why are you reporting this review? Reports are sent to our moderation team for review.',
     'report_reason_spam' => 'Spam or misleading',
     'error_review_not_found' => 'The review could not be found.',
-    'error_already_reported' => 'This review has already been reported.',
+    'error_review_already_reported' => 'This review has already been reported.',
     'flash_review_reported' => 'Thank you. This review has been reported to our moderation team.',
 ];

@@ -59,7 +59,7 @@ return [
     'content_profile_not_available' => 'Dieses Profil ist nicht verfügbar.',
     'content_sessions_and_campaigns' => 'Sessions & Kampagnen',
     'content_friends_list' => 'Freundesliste',
-    'visibility_everyone' => 'Alle',
+    'visibility_everyone' => 'Jeder',
     'visibility_nobody' => 'Niemand',
     'flash_privacy_settings_saved' => 'Privatsphäre-Einstellungen gespeichert.',
     'content_who_can_see_your_location' => 'Wer kann deine Stadt sehen',
@@ -115,7 +115,7 @@ return [
     'dashboard_prompt_view_invitations' => 'Einladungen ansehen',
     'dashboard_prompt_view_details' => 'Details ansehen',
     'dashboard_prompt_write_recap' => 'Zusammenfassung schreiben',
-    'dashboard_prompt_find_game' => 'Spiel finden',
+    'dashboard_prompt_find_game' => 'Finde dein nächstes Spiel',
     'dashboard_prompt_view_profile' => 'Profil ansehen',
     'dashboard_prompt_view_schedule' => 'Zeitplan ansehen',
     // Smart-Prompt-Nachrichten
@@ -235,8 +235,8 @@ return [
     'dashboard_action_bulletin_title' => 'Spielleiter-Update: :game',
     'dashboard_action_bulletin_action' => 'Spiel ansehen',
     'dashboard_action_recurrence_title' => 'Vorausplanen: :campaign',
-    'dashboard_action_expires_in_hm' => 'Läuft ab in :hours Std. :minutes Min.',
-    'dashboard_action_expires_in_m' => 'Läuft ab in :minutes Min.',
+    'dashboard_action_expires_in_hm' => 'Läuft in :hours Std :minutes Min ab',
+    'dashboard_action_expires_in_m' => 'Läuft in :minutes Min ab',
     // Action Center - additional task-plan keys
     // Etabliertes Dashboard - Zeitplan
     'dashboard_schedule_heading' => 'Dein Zeitplan',

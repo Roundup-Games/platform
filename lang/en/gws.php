@@ -8,7 +8,7 @@ return [
     'heading_participant_stats' => 'Participant Stats',
     'heading_quick_actions' => 'Quick Actions',
     'content_no_upcoming_sessions' => 'No upcoming sessions this week.',
-    'content_no_reviews_yet' => 'No reviews yet — keep running great games!',
+    'content_no_reviews_yet_gm' => 'No reviews yet — keep running great games!',
     'label_average' => 'Average',
     'label_reviews' => '1 review|:count reviews',
     'label_unique_players' => 'Unique Players',

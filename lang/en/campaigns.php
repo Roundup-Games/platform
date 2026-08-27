@@ -2,7 +2,7 @@
 
 return [
     'action_browse_sessions' => 'Browse Sessions',
-    'action_create_a_session' => 'Create a session',
+    'action_create_a_session' => 'Create Session',
     'action_create_campaign' => 'Create Campaign',
     'action_create_your_first_session' => 'Create Your First Session',
     'action_discover_sessions_near_you' => 'Discover sessions near you',
@@ -85,7 +85,7 @@ return [
     'content_this_is_a_protected_campaign' => 'This is a connections-only campaign. Your application will be reviewed by the campaign owner before you can join.',
     'content_you_are_already_a_participant_of_this_campaign' => 'You are already a participant of this campaign.',
     'content_you_have_already_applied_to_this_campaign' => 'You have already applied to this campaign.',
-    'content_you_have_joined_the_campaign' => 'You have joined the campaign!',
+    'content_you_have_joined_the_campaign' => 'You\'ve joined the campaign!',
     'content_you_have_been_placed_on_the_bench' => 'The campaign is full — you\'ve been placed on the bench.',
     'content_you_have_been_placed_on_the_waitlist' => 'The campaign is full — you\'ve been placed on the waitlist.',
     'content_campaign_full_join_waitlist' => 'This campaign is full. Join the waitlist to be notified when a spot opens up.',

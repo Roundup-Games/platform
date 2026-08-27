@@ -3,9 +3,9 @@
 return [
     'seo_description' => 'The terms and conditions governing your use of the '.config('company.display_name').' platform. Clear, fair, and written in plain language.',
     // ── Introduction ───────────────────────────────────
-    'content_introduction_1' => 'These Terms of Use ("Terms") govern your access to and use of the '.config('company.display_name').' platform at roundup.games ("Platform"), operated by '.config('company.legal_name').' ("we", "us", "our").',
-    'content_introduction_2' => 'By creating an account or using the Platform, you agree to these Terms. If you don\'t agree, please don\'t use the Platform.',
-    'content_introduction_3' => 'We wrote these Terms to be clear and fair. If anything is unclear, feel free to reach out.',
+    'content_terms_intro_1' => 'These Terms of Use ("Terms") govern your access to and use of the '.config('company.display_name').' platform at roundup.games ("Platform"), operated by '.config('company.legal_name').' ("we", "us", "our").',
+    'content_terms_intro_2' => 'By creating an account or using the Platform, you agree to these Terms. If you don\'t agree, please don\'t use the Platform.',
+    'content_terms_intro_3' => 'We wrote these Terms to be clear and fair. If anything is unclear, feel free to reach out.',
     // ── Eligibility ────────────────────────────────────
     'heading_eligibility' => 'Eligibility',
     'content_eligibility_1' => 'You must be at least 16 years old to use this Platform. If you are under 18, you confirm that a parent or legal guardian has reviewed and agrees to these Terms on your behalf.',

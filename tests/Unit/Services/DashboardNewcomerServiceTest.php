@@ -283,7 +283,7 @@ class DashboardNewcomerServiceTest extends TestCase
         $this->assertSame('profile.edit', $result['steps'][0]['route']);
         $this->assertSame('Preferences', $result['steps'][1]['name']);
         $this->assertSame('preferences.index', $result['steps'][1]['route']);
-        $this->assertSame('Find Game', $result['steps'][2]['name']);
+        $this->assertSame('Find a game', $result['steps'][2]['name']);
         $this->assertSame('games.index', $result['steps'][2]['route']);
         $this->assertSame('Attend Session', $result['steps'][3]['name']);
         $this->assertSame('games.index', $result['steps'][3]['route']);

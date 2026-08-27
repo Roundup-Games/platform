@@ -86,9 +86,9 @@ class ClaimVenue extends Component
     public function validationAttributes(): array
     {
         return [
-            'justification' => __('venue.field_justification'),
+            'justification' => __('venues.field_justification'),
             'website_url' => __('location.field_website_url'),
-            'contact_email' => __('venue.field_contact_email'),
+            'contact_email' => __('venues.field_contact_email'),
         ];
     }
 
@@ -102,7 +102,7 @@ class ClaimVenue extends Component
 
         // One pending claim per user per venue (mirrors hasPendingProposal).
         if ($service->hasPendingClaim($user, $this->location)) {
-            $this->addError('justification', __('venue.error_claim_duplicate'));
+            $this->addError('justification', __('venues.error_claim_duplicate'));
 
             return;
         }
@@ -113,7 +113,7 @@ class ClaimVenue extends Component
         if (! RateLimiter::attempt($rateLimitKey, 3, fn () => true, decaySeconds: 86400)) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
             $hours = ceil($seconds / 3600);
-            $this->addError('justification', __('venue.error_claim_rate_limit', ['hours' => $hours]));
+            $this->addError('justification', __('venues.error_claim_rate_limit', ['hours' => $hours]));
 
             return;
         }
@@ -128,7 +128,7 @@ class ClaimVenue extends Component
             $ticket = $service->createClaim($user, $this->location, $data);
         } catch (\RuntimeException $e) {
             report($e);
-            $this->addError('justification', __('venue.error_claim_submission_failed'));
+            $this->addError('justification', __('venues.error_claim_submission_failed'));
 
             return;
         }
@@ -137,7 +137,7 @@ class ClaimVenue extends Component
         $this->reset(['justification', 'website_url', 'contact_email']);
         $this->submitted = true;
 
-        session()->flash('success', __('venue.content_claim_success'));
+        session()->flash('success', __('venues.content_claim_success'));
     }
 
     // ── Render ───────────────────────────────────────

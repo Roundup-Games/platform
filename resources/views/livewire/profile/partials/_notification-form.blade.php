@@ -228,7 +228,7 @@
             <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">notifications_active</span>
                 <p class="text-sm text-on-surface">
-                    {{ __('pwa.push_enabled_on_devices', ['count' => $pushSubscriptionCount]) }}
+                    {{ trans_choice('pwa.push_enabled_on_devices', $pushSubscriptionCount, ['count' => $pushSubscriptionCount]) }}
                 </p>
             </div>
             <button type="button" data-push="unsubscribe"

@@ -49,21 +49,21 @@
             @endforeach
         </div>
     @else
-        <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('venue.content_no_reviews') }}</p>
+        <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('venues.content_no_reviews') }}</p>
     @endif
 
     {{-- Write affordance. Attendees see the form; authenticated non-attendees
          see a hint; guests see nothing here (they can still read the list). --}}
     @if($canReview)
         <form wire:submit="submit" class="mt-6 space-y-4 border-t border-outline-variant pt-6">
-            <h3 class="text-base font-heading font-semibold text-on-surface">{{ __('venue.action_submit_venue_review') }}</h3>
+            <h3 class="text-base font-heading font-semibold text-on-surface">{{ __('venues.action_submit_venue_review') }}</h3>
 
             {{-- Star rating selector --}}
             <div>
                 <span class="block text-sm font-medium text-on-surface mb-2">
-                    {{ __('venue.label_your_rating') }} <span class="text-error">*</span>
+                    {{ __('venues.label_your_rating') }} <span class="text-error">*</span>
                 </span>
-                <div class="flex items-center gap-1" role="radiogroup" aria-label="{{ __('venue.label_your_rating') }}">
+                <div class="flex items-center gap-1" role="radiogroup" aria-label="{{ __('venues.label_your_rating') }}">
                     @for($i = 1; $i <= 5; $i++)
                         <button type="button"
                                 wire:click="$set('rating', {{ $i }})"
@@ -95,7 +95,7 @@
                           rows="4"
                           maxlength="2000"
                           class="w-full rounded-lg border border-outline bg-surface-container-low text-on-surface px-4 py-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-primary transition-colors resize-y"
-                          placeholder="{{ __('venue.placeholder_venue_review') }}"></textarea>
+                          placeholder="{{ __('venues.placeholder_venue_review') }}"></textarea>
                 <div class="flex justify-between mt-1">
                     @error('body')
                         <p class="text-sm text-error">{{ $message }}</p>
@@ -110,13 +110,13 @@
                         wire:loading.attr="disabled"
                         class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity disabled:opacity-50">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
-                    {{ __('venue.action_submit_venue_review') }}
+                    {{ __('venues.action_submit_venue_review') }}
                 </button>
                 <span wire:loading class="text-sm text-on-surface-variant">{{ __('common.action_submitting') }}</span>
             </div>
         </form>
     @elseif(Auth::check())
         {{-- Authenticated but not eligible to review this venue. --}}
-        <p class="mt-6 text-sm text-on-surface-variant italic border-t border-outline-variant pt-6">{{ __('venue.content_not_eligible') }}</p>
+        <p class="mt-6 text-sm text-on-surface-variant italic border-t border-outline-variant pt-6">{{ __('venues.content_not_eligible') }}</p>
     @endif
 </div>
