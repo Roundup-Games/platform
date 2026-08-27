@@ -163,7 +163,7 @@ it('advances to step 4 (Preferences) from step 3 with optional phone', function 
         ->set('phone', '+15551234567')
         ->call('nextStep')
         ->assertSet('step', 4)
-        ->assertSee('Game preferences');
+        ->assertSee('Game Preferences');
 });
 
 it('goes back to previous step', function () {
