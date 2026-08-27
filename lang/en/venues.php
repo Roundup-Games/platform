@@ -80,7 +80,7 @@ return [
     'placeholder_directory_search' => 'Search by name, city, or address…',
     'field_directory_venue_type' => 'Venue type',
     'field_directory_min_rating' => 'Min Rating',
-    'label_directory_any_rating' => 'Any rating',
+    'label_directory_any_rating' => 'Any Rating',
     'sort_directory_nearest' => 'Nearest first',
     'sort_directory_active' => 'Most active',
     'sort_directory_rating' => 'Highest Rated',
