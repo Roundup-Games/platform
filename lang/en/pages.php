@@ -238,7 +238,7 @@ return [
     'content_pledge_algo_table_player_weight' => 'Player Weight',
     'content_pledge_algo_table_host_weight' => 'Host Weight',
     'content_pledge_algo_status_late_cancel' => 'Late Cancel (<24h)',
-    'content_pledge_algo_status_no_show' => 'No-show',
+    'content_pledge_algo_status_no_show' => 'No-Show',
     'content_pledge_algo_status_cancelled_early' => 'Cancelled Early (>24h)',
     'content_pledge_algo_tier_reliable_desc' => '≥ 95% and ≥ 5 games',
     'content_pledge_algo_tier_active_desc' => '≥ 5 games (any score)',
