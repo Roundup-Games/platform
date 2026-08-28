@@ -41,7 +41,7 @@ return [
     'nearby_reason_nearby' => 'Nearby player',
     'nearby_no_location' => 'Set your location to discover nearby players.',
     'nearby_no_results' => 'No nearby players found yet. Try expanding your search area.',
-    'nearby_action_set_location' => 'Set Location',
+    'nearby_action_set_location' => 'Set your location',
     'nearby_searching' => 'We\'re still looking for like-minded people you might want to follow.',
     'nearby_searching_hint' => 'Results will appear here automatically.',
     'content_showing_players_of_total' => 'Showing :shown of :total players',

@@ -33,7 +33,7 @@ return [
     'heading_all_links' => 'All Links',
     'label_total_links' => 'Total Links',
     'label_hits_30d' => 'Hits (30 days)',
-    'label_hits' => 'hits',
+    'label_hits' => 'Hits',
     'content_no_share_links' => 'No share links created yet. Create a link from any game or campaign page.',
     'link_col_code' => 'Code',
     'link_col_label' => 'Label',

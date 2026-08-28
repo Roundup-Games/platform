@@ -67,7 +67,7 @@ return [
     'label_digest_application_rejected' => 'Application Rejected',
     'label_digest_attendance_nudge' => 'Attendance nudge',
     'label_digest_attendance_reported' => 'Attendance reported',
-    'label_digest_attendance_resolved' => 'Attendance resolved',
+    'label_digest_attendance_resolved' => 'Attendance Resolved',
     'label_digest_below_min_players' => 'Below minimum players',
     'label_digest_bulletin_posted' => 'Bulletin posted',
     'label_digest_confirmation_expired' => 'Confirmation Expired',
@@ -139,7 +139,7 @@ return [
     'verb_campaign_cancelled' => 'Campaign cancelled',
     'verb_campaign_completed' => 'Campaign completed',
     'verb_game_system_request_approved' => 'Game system request approved',
-    'verb_game_system_request_rejected' => 'Game system request declined',
+    'verb_game_system_request_rejected' => 'Game system request rejected',
     'verb_game_system_request_duplicate' => 'Game system request marked as duplicate',
     // Participation lifecycle verbs (bench, waitlist, demotion)
     'verb_waitlist_placed' => 'placed you on the waitlist for',
