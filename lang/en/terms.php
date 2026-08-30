@@ -1,5 +1,4 @@
 <?php
-
 return [
     'seo_description' => 'The terms and conditions governing your use of the '.config('company.display_name').' platform. Clear, fair, and written in plain language.',
     // ── Introduction ───────────────────────────────────

@@ -1,5 +1,4 @@
 <?php
-
 return [
     'content_already_registered' => 'Already registered?',
     'content_forgot_your_password' => 'Forgot your password?',

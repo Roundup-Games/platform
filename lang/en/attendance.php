@@ -1,5 +1,4 @@
 <?php
-
 return [
     // Tier labels
     // Stats

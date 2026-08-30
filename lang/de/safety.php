@@ -1,5 +1,4 @@
 <?php
-
 return [
     'content_custom_safety_note' => 'Eigener Sicherheitshinweis',
     'content_everyone_deserves_to_feel_safe' => 'Jeder verdient es, sich am Tisch sicher und wohl zu fühlen. Sicherheitstools sind einfache Methoden, die Gruppen helfen, Grenzen zu kommunizieren und den Spaß im Fokus zu behalten.',

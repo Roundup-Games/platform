@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_change_location' => 'Change Location',
     'action_set_your_location' => 'Set your location',

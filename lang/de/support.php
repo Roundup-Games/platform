@@ -1,5 +1,4 @@
 <?php
-
 return [
     // Account Support page
     'title_account_support' => 'Konto-Support',

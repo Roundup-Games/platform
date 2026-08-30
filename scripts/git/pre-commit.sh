@@ -3,9 +3,12 @@
 # Pre-commit hook: quality gate for staged files.
 #
 # Policy:
-#   1. Secret detection (gitleaks)     → HARD FAIL   (never commit secrets)
+# 1. Secret detection (gitleaks)     → HARD FAIL   (never commit secrets)
 #   2. PHP syntax check (php -l)        → HARD FAIL   (unparseable code)
 #   3. PHP code style (Pint)            → AUTO-FIX    (fixes + re-stages; warns if anything remains)
+#      …applied to all staged PHP EXCEPT lang/ — Weblate owns that
+#      serialization (see pint.json exclude); Pint on lang/ re-adds the
+#      blank line after <?php that Weblate strips, so it must never run there.
 #   4. PHP static analysis (Larastan)   → WARN ONLY   (informs, never blocks)
 #
 # Auto-fix re-staging skips files that ALSO have unstaged (partial) changes —
@@ -36,7 +39,7 @@ skip()  { printf "  ${YLW}⏭️  %-8s${RST} %s\n" "$1" "$2"; skipped=1; }
 fail()  { printf "  ${RED}❌ %-8s${RST} %s\n" "$1" "$2"; failed=1; }
 
 # ── File lists ───────────────────────────────────────────────────────────────
-staged_php=$(git diff --cached --name-only --diff-filter=ACM -- '*.php' || true)
+staged_php=$(git diff --cached --name-only --diff-filter=ACM -- '*.php' ':(exclude)lang/' || true)
 
 php_count=$(echo "$staged_php" | grep -c . || true)
 

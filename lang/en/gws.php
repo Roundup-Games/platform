@@ -1,5 +1,4 @@
 <?php
-
 return [
     'title_gm_workspace' => 'GM Workspace',
     'description_your_gm_command_center' => 'Your Game Master command center — manage sessions, track reviews, and see your stats.',

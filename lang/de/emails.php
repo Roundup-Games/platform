@@ -1,5 +1,4 @@
 <?php
-
 return [
     'content_a_new_verification_link_has' => 'Ein neuer Bestätigungslink wurde an die bei der Registrierung angegebene E-Mail-Adresse gesendet.',
     'content_contact_the_organizer_at_email' => 'Kontaktiere den Organisator unter :email.',

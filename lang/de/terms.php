@@ -1,5 +1,4 @@
 <?php
-
 return [
     'seo_description' => 'Die Geschäftsbedingungen für die Nutzung der '.config('company.display_name').' Plattform. Klar, fair und in verständlicher Sprache verfasst.',
     // ── Einleitung ─────────────────────────────────────

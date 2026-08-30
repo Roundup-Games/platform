@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_join_roundup_games_today' => 'Join :brand today',
     'content_about' => 'About',

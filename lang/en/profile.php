@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_log_in_to_follow' => 'Log in to follow',
     'action_back_to_dashboard' => 'Back to Dashboard',

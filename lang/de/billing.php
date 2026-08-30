@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_back_to_billing' => 'Zurück zur Abrechnung',
     'action_cancel_subscription' => 'Abonnement kündigen',
