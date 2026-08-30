@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_log_in_to_follow' => 'Anmelden um zu folgen',
     'action_back_to_dashboard' => 'Zurück zum Dashboard',
@@ -115,7 +114,7 @@ return [
     'dashboard_prompt_view_invitations' => 'Einladungen ansehen',
     'dashboard_prompt_view_details' => 'Details ansehen',
     'dashboard_prompt_write_recap' => 'Zusammenfassung schreiben',
-    'dashboard_prompt_find_game' => 'Finde dein nächstes Spiel',
+    'dashboard_prompt_find_game' => 'Spiel finden',
     'dashboard_prompt_view_profile' => 'Profil ansehen',
     'dashboard_prompt_view_schedule' => 'Zeitplan ansehen',
     // Smart-Prompt-Nachrichten
@@ -140,7 +139,7 @@ return [
     // Deine Beiträge
     // Schnellaktionen
     // Deine-Woche-Sektion
-    'dashboard_your_week_find_game' => 'Spiel finden',
+    'dashboard_your_week_find_game' => 'Finde dein nächstes Spiel',
     // Zuverlässigkeitsstufen
     'label_reliability_tier_reliable' => 'Zuverlässig',
     'label_reliability_attendance_rate' => 'Anwesenheit',
@@ -200,7 +199,7 @@ return [
     'dashboard_action_center_all_clear' => 'Alles erledigt — nichts braucht deine Aufmerksamkeit',
     'dashboard_action_center_next_session' => 'Deine nächste Runde ist :name am :date',
     'dashboard_action_center_view_session' => 'Runde ansehen',
-    'dashboard_action_center_find_game' => 'Nächstes Spiel finden',
+    'dashboard_action_center_find_game' => 'Finde dein nächstes Spiel',
     'dashboard_action_center_view_all' => '{1} :count weiteren Eintrag in Meine Spiele ansehen|[2,*] :count weitere Einträge in Meine Spiele ansehen',
     // Action Center items
     'dashboard_action_waitlist_title' => 'Bestätige deinen Platz: :game',
