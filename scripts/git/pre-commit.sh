@@ -39,7 +39,12 @@ skip()  { printf "  ${YLW}⏭️  %-8s${RST} %s\n" "$1" "$2"; skipped=1; }
 fail()  { printf "  ${RED}❌ %-8s${RST} %s\n" "$1" "$2"; failed=1; }
 
 # ── File lists ───────────────────────────────────────────────────────────────
-staged_php=$(git diff --cached --name-only --diff-filter=ACM -- '*.php' ':(exclude)lang/' || true)
+staged_php=$(git diff --cached --name-only --diff-filter=ACM -- '*.php' || true)
+
+# Pint-only list: lang/ is excluded because Weblate owns that serialization
+# (see pint.json exclude); Pint on lang/ re-adds the blank line after <?php
+# that Weblate strips. php -l below still checks every staged PHP file.
+pint_php=$(git diff --cached --name-only --diff-filter=ACM -- '*.php' ':(exclude)lang/' || true)
 
 php_count=$(echo "$staged_php" | grep -c . || true)
 
@@ -53,8 +58,9 @@ fi
 
 # Partially-staged PHP files (staged AND with unstaged changes). Auto-fix will
 # skip re-staging these to avoid merging the unstaged hunks into the commit.
+# Intersected with the Pint list — only Pint-eligible files matter here.
 partially_staged=$(git diff --name-only -- '*.php' \
-    | grep -Fxf <(printf '%s\n' "$staged_php") || true)
+    | grep -Fxf <(printf '%s\n' "$pint_php") || true)
 
 # ── 1. Secret detection — HARD FAIL ──────────────────────────────────────────
 if command -v gitleaks &>/dev/null; then
@@ -85,10 +91,13 @@ fi
 
 # ── 3. PHP code style (Pint) — AUTO-FIX + RE-STAGE ───────────────────────────
 if [[ -x vendor/bin/pint ]]; then
+    if [[ -z "$pint_php" ]]; then
+        skip "style" "no Pint-eligible files staged (lang/ is excluded — Weblate owns its format)"
+    else
     step "style" "pint (auto-fix)"
     # Run Pint WITHOUT --test so it applies fixes in place. A non-zero exit
     # here means some issues could not be auto-fixed — warn, don't block.
-    if pint_out=$(echo "$staged_php" | xargs vendor/bin/pint 2>&1); then
+    if pint_out=$(echo "$pint_php" | xargs vendor/bin/pint 2>&1); then
         ok "style" "pint"
     else
         warn "style" "pint fixed what it could; some issues remain (non-blocking)"
@@ -113,7 +122,7 @@ if [[ -x vendor/bin/pint ]]; then
                 warn "style" "could not re-stage $file (fix left in working tree)"
             fi
         fi
-    done <<<"$staged_php"
+    done <<<"$pint_php"
     [[ "$restaged" -gt 0 ]] \
         && printf "  ${GRN}♻️  %-8s${RST} %s\n" "restage" "$restaged file(s) auto-fixed & re-staged"
 
@@ -125,6 +134,7 @@ if [[ -x vendor/bin/pint ]]; then
                 warn "style" "$pfile has staged + unstaged changes; fix left in working tree — review & \`git add\` manually"
             fi
         done <<<"$partially_staged"
+    fi
     fi
 else
     skip "style" "vendor/bin/pint not found — run composer install"
