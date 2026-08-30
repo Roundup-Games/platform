@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_add_competitive_divisions_for_your_event' => 'Füge Wettbewerbsdivisionen für deine Veranstaltung hinzu.',
     'action_add_division' => 'Division hinzufügen',

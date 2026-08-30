@@ -1,4 +1,5 @@
 <?php
+
 return [
     // Stufen-Bezeichnungen
     // Statistiken
