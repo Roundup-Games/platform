@@ -1,5 +1,4 @@
 <?php
-
 return [
     'content_public_unlocked_by_verified_venue' => 'Öffentliche Sichtbarkeit durch verifizierten Veranstaltungsort freigeschaltet',
     // ── Venue Picker ────────────────────────────────────────────────
@@ -19,7 +18,6 @@ return [
     // ── Edit Modal (compact) ────────────────────────────────
     'placeholder_instructions' => 'Ortsbeschreibung (z.B. Klingel 3 drücken)…',
     'content_no_venues_found_edit' => 'Keine Veranstaltungsorte gefunden. Versuche eine andere Suche.',
-
     // ── Detailseite des Veranstaltungsorts (aus venue.php zusammengeführt) ──
     // Back / nav
     // Link-Affordanz (M053/S02/T03 <x-venue-link>). Der sichtbare Text ist der
