@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_back_to_game' => 'Zurück zum Spiel',
     'action_choose_specific_game_or_expansion' => 'Spiel oder Erweiterung auswählen',
@@ -387,7 +386,6 @@ return [
     'field_cover_image' => 'Titelbild',
     'content_cover_image_hint' => 'Lade ein Titelbild hoch (JPEG, PNG oder WebP, max. 5 MB). Optional — wir verwenden das Cover des Spielsystems, wenn du keines angibst.',
     'action_remove_cover_image' => 'Titelbild entfernen',
-
     // Signup cutoff (D124)
     'error_signup_closed' => 'Anmeldungen für dieses Spiel sind geschlossen.',
     'label_signup_cutoff' => 'Anmeldeschluss',
