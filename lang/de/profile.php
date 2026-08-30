@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_log_in_to_follow' => 'Anmelden um zu folgen',
     'action_back_to_dashboard' => 'Zurück zum Dashboard',

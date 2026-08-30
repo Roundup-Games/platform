@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_discover_people' => 'Leute entdecken',
     'action_follow_back' => 'Zurück folgen',

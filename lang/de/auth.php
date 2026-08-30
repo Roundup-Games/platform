@@ -1,4 +1,5 @@
 <?php
+
 return [
     'content_already_registered' => 'Bereits registriert?',
     'content_forgot_your_password' => 'Passwort vergessen?',
