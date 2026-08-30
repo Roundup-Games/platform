@@ -199,7 +199,7 @@ return [
     'dashboard_action_center_all_clear' => 'All clear — nothing needs your attention',
     'dashboard_action_center_next_session' => 'Your next session is :name on :date',
     'dashboard_action_center_view_session' => 'View session',
-    'dashboard_action_center_find_game' => 'Find your next game',
+    'dashboard_action_center_find_game' => 'Find Your Next Game',
     'dashboard_action_center_view_all' => '{1} View :count more item in My Games|[2,*] View :count more items in My Games',
     // Action Center items
     'dashboard_action_waitlist_title' => 'Confirm your spot: :game',
