@@ -36,7 +36,7 @@ return [
     'seo_description_contact' => 'Nimm Kontakt mit dem :brand Team auf. Wir freuen uns auf deine Nachricht.',
     'seo_description_for_organizers' => 'Werkzeuge und Funktionen für Spielorganisatoren — plane Sessions, verwalte Spieler und baue deine Tabletop-Community auf.',
     'seo_description_home' => 'Finde Brettspiele, Tabletop-RPG-Sessions und Kampagnen in deiner Nähe. Entdecke lokale Spiel-Events, tritt einer Community bei und fang heute an.',
-    'seo_description_how_it_works' => 'Erfahre, wie :brand dir hilft, Brett- und Tabletop-RPG-Spiele in deiner Nähe zu finden und zu organisieren.',
+    'seo_description_how_it_works' => 'Erfahre, wie :brand dir hilft, Brett- und Tabletop-RPG-Spiele in deiner Nähe zu finden, beizutreten und zu organisieren. Erstelle Events, entdecke lokale Spieler und leg direkt los.',
     'seo_title_about' => 'Über uns — Unsere Vision & Werte',
     'seo_title_contact' => 'Kontakt – Fragen, Feedback & Partnerschaften',
     'seo_title_for_organizers' => 'Für Organisatoren – hoste Brettspiel- & RPG-Runden',
