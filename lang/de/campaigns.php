@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_browse_sessions' => 'Sitzungen durchsuchen',
     'action_create_a_session' => 'Session erstellen',
