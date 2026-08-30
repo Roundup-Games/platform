@@ -1,5 +1,4 @@
 <?php
-
 return [
     // WriteReview page
     'title_write_review' => 'Bewertung schreiben',
@@ -11,7 +10,7 @@ return [
     'content_star_count' => ':count Stern|:count Sterne',
     'placeholder_tell_us_about_experience' => 'Erzähl uns von deiner Erfahrung (optional)',
     'action_submit_review' => 'Bewertung absenden',
-    'action_write_review' => 'Bewertung schreiben',
+    'action_write_review' => 'Rezension schreiben',
     'action_go_back' => 'Zurück',
     // Validation
     'validation_rating_required' => 'Bitte wähle eine Bewertung aus.',
