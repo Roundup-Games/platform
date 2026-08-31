@@ -1,5 +1,4 @@
 <?php
-
 return [
     'seo_description' => 'Erfahre, wie '.config('company.display_name').' deine personenbezogenen Daten erfasst, verwendet und schützt. Unsere Datenschutzpraktiken verständlich erklärt.',
     // ── Einleitung ─────────────────────────────────────

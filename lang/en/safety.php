@@ -1,5 +1,4 @@
 <?php
-
 return [
     'content_custom_safety_note' => 'Custom Safety Note',
     'content_everyone_deserves_to_feel_safe' => 'Everyone deserves to feel safe and comfortable at the table. Safety tools are simple practices that help groups communicate boundaries and keep the focus on fun.',

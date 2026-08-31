@@ -1,5 +1,4 @@
 <?php
-
 return [
     'title_survey_created' => 'Session Zero Survey Created!',
     'description_build_your_session_zero_questionnaire' => 'Build a questionnaire to set expectations, discuss safety tools, and align your group before the first session.',

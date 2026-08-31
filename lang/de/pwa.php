@@ -1,5 +1,4 @@
 <?php
-
 return [
     // Manifest
     'manifest_name' => ':brand',

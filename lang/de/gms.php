@@ -1,5 +1,4 @@
 <?php
-
 return [
     'title_game_master_directory' => 'Game-Master-Verzeichnis',
     'description_find_your_perfect_gm' => 'Finde den perfekten Game Master für dein nächstes Abenteuer.',

@@ -1,9 +1,13 @@
 name: Weblate Pint Format
 
 # Auto-formats Weblate-authored PRs with Pint before CI runs, so translation
-# PRs land with clean diffs (no Pint-vs-Weblate formatting noise). Equivalent
-# to the local pre-commit Pint hook, but for bot-authored commits which bypass
-# local hooks.
+# PRs land with clean diffs. lang/ is EXCLUDED from Pint (pint.json) because
+# Weblate owns the serialization of those files: its Laravel PHP writer emits
+# "<?php\nreturn [" with no blank line after the opening tag, and Pint's
+# blank_line_after_opening_tag rule kept re-adding that line — producing an
+# endless add/remove cycle between this job and Weblate's next push. With lang/
+# excluded this job is a safety net for any non-lang paths a Weblate PR might
+# touch (normally none) and typically reports "no changes needed".
 #
 # Triggers on any PR targeting main whose head branch is weblate/translations.
 # Uses the automatically-provided GITHUB_TOKEN; no secrets to manage.

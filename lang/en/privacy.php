@@ -1,5 +1,4 @@
 <?php
-
 return [
     'seo_description' => 'Learn how '.config('company.display_name').' collects, uses, and protects your personal data. Our privacy practices explained in plain language.',
     // ── Introduction ───────────────────────────────────

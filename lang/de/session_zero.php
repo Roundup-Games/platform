@@ -1,5 +1,4 @@
 <?php
-
 return [
     'title_survey_created' => 'Session-Zero-Umfrage erstellt!',
     'description_build_your_session_zero_questionnaire' => 'Erstelle einen Fragebogen, um Erwartungen zu klären, Safety-Tools zu besprechen und deine Gruppe vor der ersten Sitzung abzustimmen.',

@@ -1,5 +1,4 @@
 <?php
-
 return [
     'seo_description' => 'Set up a new game session or recurring campaign.',
     'content_choose_frequency' => 'Choose whether this is a one-time session or a recurring event.',

@@ -1,5 +1,4 @@
 <?php
-
 return [
     'heading_title' => 'Impressum (Legal Notice)',
     'seo_description' => 'Legal notice and company information for '.config('company.legal_name').' as required by German law (TMG §5).',

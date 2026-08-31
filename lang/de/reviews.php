@@ -1,5 +1,4 @@
 <?php
-
 return [
     // WriteReview page
     'title_write_review' => 'Bewertung schreiben',

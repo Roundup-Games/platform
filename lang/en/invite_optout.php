@@ -1,5 +1,4 @@
 <?php
-
 return [
     'title_confirm' => 'Unsubscribe from invitations',
     'title_confirmed' => 'You\'ve been unsubscribed',

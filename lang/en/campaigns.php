@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_browse_sessions' => 'Browse Sessions',
     'action_create_a_session' => 'Create Session',

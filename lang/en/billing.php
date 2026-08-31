@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_back_to_billing' => 'Back to Billing',
     'action_cancel_subscription' => 'Cancel Subscription',

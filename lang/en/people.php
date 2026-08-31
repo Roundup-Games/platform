@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_discover_people' => 'Discover people',
     'action_follow_back' => 'Follow back',

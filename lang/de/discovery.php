@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_browse' => 'durchsuchen',
     'action_clear_search' => 'Suche löschen',

@@ -1,5 +1,4 @@
 <?php
-
 return [
     // Banner
     'content_banner_message' => 'Wir verwenden Cookies, um Ihre Erfahrung zu verbessern und die Seitennutzung zu analysieren.',

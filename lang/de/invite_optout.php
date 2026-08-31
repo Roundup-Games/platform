@@ -1,5 +1,4 @@
 <?php
-
 return [
     'title_confirm' => 'Einladungen abbestellen',
     'title_confirmed' => 'Du wurdest abgemeldet',

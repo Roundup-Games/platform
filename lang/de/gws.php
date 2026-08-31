@@ -1,5 +1,4 @@
 <?php
-
 return [
     'title_gm_workspace' => 'GM Arbeitsbereich',
     'description_your_gm_command_center' => 'Dein Game Master Kontrollzentrum — verwalte Sitzungen, verfolge Bewertungen und sieh deine Statistiken.',

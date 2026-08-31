@@ -1,5 +1,4 @@
 <?php
-
 return [
     'action_join_roundup_games_today' => 'Noch heute bei :brand anmelden',
     'content_about' => 'Über uns',

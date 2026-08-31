@@ -327,7 +327,6 @@ Each PHP file returns a flat associative array. Keys are sorted alphabetically:
 
 ```php
 <?php
-
 return [
     'action_add_division' => 'Add Division',
     'action_cancel_event' => 'Cancel Event',
@@ -338,6 +337,12 @@ return [
     'status_active' => 'Active',
 ];
 ```
+
+**No blank line after `<?php`.** Weblate's Laravel PHP writer serializes the
+files this way and owns their format — `lang/` is excluded from Pint
+(`pint.json`) so the two formatters never fight. When creating a new domain
+file, match the layout above exactly so Weblate's first write produces a
+minimal diff.
 
 ### Escaping Rules
 

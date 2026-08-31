@@ -1,5 +1,4 @@
 <?php
-
 return [
     // Category labels
     'action_browse_campaigns' => 'Browse Campaigns',

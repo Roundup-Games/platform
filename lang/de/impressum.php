@@ -1,5 +1,4 @@
 <?php
-
 return [
     'heading_title' => 'Impressum',
     'seo_description' => 'Rechtliche Hinweise und Unternehmensinformationen von '.config('company.legal_name').' gemäß deutschem Recht (TMG §5).',

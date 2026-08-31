@@ -1,5 +1,4 @@
 <?php
-
 return [
     'seo_description' => 'Erstelle eine neue Spielsitzung oder wiederkehrende Kampagne.',
     'content_choose_frequency' => 'Wähle, ob es eine einmalige Sitzung oder ein wiederkehrendes Event ist.',
