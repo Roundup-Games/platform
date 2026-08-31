@@ -1,381 +1,147 @@
 # Roundup Games
 
-Community gaming platform for the DACH region — find tabletop sessions, join campaigns, and discover players near you. Bilingual (English + German).
+Open-source, non-profit platform for finding, joining, and organizing in-person tabletop gaming — board games, tabletop RPGs, and card games. Players discover sessions, campaigns, events, venues, and compatible people nearby; organizers plan games, manage rosters, and collect fees. Bilingual (English/German), built for the DACH region.
 
-Built with Laravel, Livewire, and PostgreSQL.
+**License:** AGPL-3.0-or-later · **Repo:** [Roundup-Games/platform](https://github.com/Roundup-Games/platform)
 
----
+> For a complete feature-by-feature breakdown, see the [platform inventory](docs/PLATFORM_INVENTORY.md).
 
-## What It Does
+## Features
 
-Roundup Games connects tabletop gaming communities. Players discover nearby sessions, join campaigns, manage teams, and find compatible gaming partners. Organizers create games and events, manage rosters, collect fees via Paddle, and run recurring campaigns with session scheduling.
-
-**Core features:**
-- **Games & Campaigns** — Create one-shot games or recurring campaigns. Public/protected/private visibility. Application flows with auto-approve for public games. Campaign sessions inherit metadata from parent campaigns.
-- **Discovery** — Location-aware search with proximity sorting. Filter by game system, vibe flags, experience level, safety tools, language, price, and complexity. BGG-powered game system catalog with 500+ entries.
-- **Social Graph** — Follow players, manage friends/block lists. Friend-based game invitations. Public profiles with configurable field-level privacy.
-- **Events & Registration** — Multi-day events with divisions, registration windows, team/individual modes, early bird pricing, and Paddle payment integration.
-- **Teams** — Create teams with roster management (captain/coach/player/substitute roles). Invite, promote, demote, remove members.
-- **GM System** — Game Master profiles with specializations, star ratings, and proficiency-tagged reviews. Subscriber-only GM workspace. Public GM directory with search and filters.
-- **Waitlists & Benching** — Urgency-scaled waitlist for standalone games (FIFO with confirmation windows). Bench mechanics for campaigns and sessions.
-- **Attendance & Reliability** — Peer-reported attendance with grief resistance (weight stacking, corroboration, volume quarantine). Reliability scores and tier badges on public profiles.
-- **Notifications** — 33 notification types across 6 channels (database, mail, push). Preference-aware routing. Block-list filtering. Unsubscribe support.
-- **PWA** — Installable with service worker, offline support, web push notifications, session reminders.
-- **Admin Panel** — Filament-powered admin with 8 resources, BGG sync management, event attendance reports, membership reports, export capabilities.
-- **Bilingual (EN/DE)** — Full i18n with `/{locale}/` routing, 22 PHP domain translation files per locale, entity content translation for events/announcements/teams, locale-aware date/currency formatting, localized emails.
-
----
+- **Games & campaigns** — one-shot games or recurring campaigns with sessions; public/protected/private visibility; application, invitation, waitlist, and bench flows with confirmation windows and signup cutoffs.
+- **Events** — multi-day events with divisions, registration windows, early-bird pricing, announcements, and team/individual registration modes.
+- **Discovery** — proximity-based search for board games and TTRPG adventures; filterable by game system, experience, vibe, safety tools, language, price, and complexity.
+- **Game system catalog** — public pages per system (categories, mechanics, designers, publishers, active sessions), synced from BoardGameGeek plus a TTRPG seed, with a community request flow.
+- **People & social graph** — follow/block relationships, friend-based invitations, public profiles with field-level privacy, and taste-matching (Jaccard similarity on shared preferences).
+- **GM directory & workspace** — GM profiles with specializations and star ratings; subscriber-only workspace including a Session Zero builder and debriefing tooling.
+- **Attendance & reliability** — peer-reported attendance with grief-resistant scoring (weight stacking, corroboration, volume quarantine), auto-completion, nudges, dispute resolution, and reliability tiers.
+- **Teams** — team rosters with captain/coach/player/substitute roles, invites, and promotion flows.
+- **Venues** — community-proposed and claimable commercial venues with public directory pages.
+- **Discord integration** — OAuth login plus an optional bot: publish games to guilds, RSVP via interactions, daily calendar digest.
+- **Notifications** — preference-routed across database, mail, and web push; weekly digest; one-click unsubscribe; invite opt-out and bounce suppression.
+- **PWA** — installable, offline support, web push session reminders, personal iCal calendar feed.
+- **Billing** — Paddle subscriptions and one-time charges (the GM workspace is subscriber-funded).
+- **Support & admin** — Escalated-powered helpdesk with SLA automations; Filament admin panel with resources, reports, exports, and scheduled-task visibility.
+- **Platform ops** — PostHog analytics (consent-aware), SEO with sitemaps and structured data, Cloudflare CDN cache-rule sync, user data exports and privacy anonymization jobs.
 
 ## Architecture
 
-```
-app/
-├── Console/Commands/       # Artisan commands (BGG sync, geocoding, scheduled sweeps)
-├── Dto/                    # Data transfer objects (PushPayload, PwaEligibilityResult)
-├── Enums/                  # Backed string enums (EventStatus, Visibility, VibeFlag, etc.)
-├── Exceptions/             # BggApiException, BggParseException
-├── Filament/               # Admin panel resources, pages, relation managers, reports
-├── Http/
-│   ├── Controllers/        # PageController, PaddleBillingController, SitemapController
-│   └── Middleware/         # SetLocale, EnsureProfileComplete
-├── Jobs/                   # Queued jobs (UpdateUserDiscoveryCache, HandleExpiredConfirmation, etc.)
-├── Livewire/               # Full-page components + reusable widgets
-│   ├── Billing/            # BillingPortal, MembershipPage
-│   ├── Campaigns/          # CampaignsPage (hub), CreateCampaign, CampaignDetail
-│   ├── Components/         # Reusable widgets (NearbySessions, SafetyToolPicker)
-│   ├── Discovery/          # DiscoveryPage, DiscoveryPortal, BoardGamesDiscovery, AdventuresDiscovery
-│   ├── Events/             # EventListing, EventDetail, CreateEvent, ManageEvent
-│   ├── Games/              # GamesPage (hub), CreateGame, GameDetail, GameListing
-│   ├── GM/                 # GmDirectory, GmWorkspace, SessionZero
-│   ├── People/             # PeoplePage (following/followers/blocked/nearby tabs)
-│   ├── Profile/            # Show (view/edit), Onboarding
-│   ├── Reviews/            # WriteReview, ReportReview
-│   └── Teams/              # BrowseTeams, TeamDetail, ManageTeam, ManageRoster, PendingInvites
-├── Mail/                   # ContactFormSubmitted, localized mailables
-├── Models/                 # Eloquent models
-├── Notifications/          # Notification classes + custom PushChannel
-├── Observers/              # ActivityLogObserver, ReviewObserver
-├── Policies/               # Policies (User, Team, Game, Campaign, Event, Review, MembershipType, etc.)
-├── Relations/              # Custom StringKeyMorphMany for UUID morph relationships
-├── Services/               # Service classes (business logic layer)
-├── Traits/                 # HasTranslations, ManagesParticipants, HasGuestLocation, EscapesLikeWildcards
-└── Translation/            # HasTranslations trait implementation
+Classic Laravel monolith — one deployable app, Livewire for interactivity, services for domain logic.
 
-resources/
-├── views/
-│   ├── components/         # Blade components (x-gm-badge, x-user-link, x-registration-cta, etc.)
-│   ├── layouts/            # app.blade.php (authenticated), public-layout.blade.php (guest)
-│   ├── emails/             # Notification mail templates with shared layout
-│   └── livewire/           # Component Blade templates organized by feature
-├── js/                     # Alpine.js, guest-location helper, PWA install logic
-└── css/                    # Tailwind CSS with warm amber design system
+- **Livewire components** (`app/Livewire/`) — full-page components per feature namespace, Blade templates in `resources/views/livewire/`, Alpine.js for progressive enhancement.
+- **Service layer** (`app/Services/`) — all business logic; controllers and components orchestrate only.
+- **Enums** (`app/Enums/`) — backed string enums are the single source of truth for state machines (`EventStatus::VALID_TRANSITIONS`, the `ParticipantStatus` lifecycle, `Visibility`).
+- **Authorization** — model policies (`app/Policies/`) plus Spatie Permission with team/event-scoped roles (`ScopedRoleService`).
+- **Jobs & scheduling** — Redis-backed queues supervised by Horizon; an extensive scheduled suite in `routes/console.php` (attendance sweeps, digests, BGG sync, privacy pruning, data audits).
+- **Bilingual by construction** — every web route lives under `/{locale}/` (`en`/`de`); UI strings in `lang/{locale}/`; entity content translation via a polymorphic `translatable` table.
+- **Visibility model** — public/protected/private enforced twice: at policy level for single entities and at query level for listings. Both must stay in sync.
 
-lang/
-├── en/                     # Domain files (auth, events, teams, games, campaigns, etc.)
-└── de/                     # Matching German translations
+**Database:** PostgreSQL with a squashed schema baseline in [`database/schema/pgsql-schema.sql`](database/schema/pgsql-schema.sql) — fresh installs load the baseline via `psql`, new migrations stack on top. See [`database/schema/README.md`](database/schema/README.md) for the runbook. CHECK constraints (not native enum types) on status columns; mixed UUID and integer primary keys.
 
-database/
-└── migrations/             # 96 migrations
-```
-
-### Design Patterns
-
-- **Service Layer** — Business logic lives in dedicated services (AttendanceService, WaitlistService, BenchService, PeopleDiscoveryService, etc.). Controllers and Livewire components orchestrate services, never contain business rules.
-- **Trait Deduplication** — Shared patterns extracted to traits: `ManagesParticipants` (game + campaign invitations), `HasGuestLocation` (browser location bridge), `HasTranslations` (entity content translation), `EscapesLikeWildcards` (search query safety).
-- **Policy-Based Authorization** — 11 model policies with `before()` global admin bypass, scoped role checks via `ScopedRoleService`, and ownership fallback. Visibility enforcement at both policy level (single-entity) and listing level (query-time).
-- **Event-Driven Side Effects** — Observers for activity logging and review aggregate computation. Event dispatch for social actions (follow/block triggers discovery cache invalidation).
-- **Grief-Resistant Scoring** — Attendance reliability uses multiplicative weight stacking (low reliability × volume quarantine × timeliness decay) with auto-corroboration from independent reporters.
-- **Enum-Driven State Machines** — `EventStatus::VALID_TRANSITIONS`, `ParticipantStatus` lifecycle (approved/rejected/pending/waitlisted/benched), `AttendanceStatus` tracking. Enums are the single source of truth.
-
----
+**Domain language:** terms like *Game*, *Campaign*, *Session*, *Participant* have precise meanings — see [CONTEXT.md](CONTEXT.md) before writing docs or code that uses them. Architectural decisions are recorded in [`docs/adr/`](docs/adr/).
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Framework** | Laravel (PHP 8.5+) |
-| **Frontend** | Livewire, Alpine.js, Blade templates |
-| **Styling** | Tailwind CSS with Material Design color tokens |
-| **Typography** | Noto Serif (headings), Inter (body), Material Symbols Outlined (icons) |
-| **Database** | PostgreSQL (migrations, models, enums) |
-| **Cache/Queue** | Redis (predis) |
-| **Auth** | Laravel Breeze (Blade stack), Socialite (Google OAuth) |
-| **Billing** | Laravel Cashier (Paddle) — subscriptions, one-time charges, webhooks |
-| **Admin** | Filament — resources, relation managers, reports, exports |
-| **Media** | Spatie Media Library (avatars, BGG cover images) |
-| **Permissions** | Spatie Permission (roles, permissions, team + event scoping) |
-| **Testing** | Pest + PHPUnit |
-| **Email** | Resend |
-| **PWA** | Web Push (minishlink/web-push), service worker, install prompt |
-| **Infrastructure** | Docker, Vite |
-
----
+| Framework | Laravel 13 (PHP 8.5+) |
+| Frontend | Livewire 4, Alpine.js, Blade, Vite (Node 24) |
+| Styling | Tailwind CSS 4, subset Material Symbols icon font |
+| Database | PostgreSQL (squashed baseline + migrations) |
+| Queue / cache | Redis (predis) via Horizon |
+| Auth | Laravel Breeze (Blade), Socialite (Google, Discord), Sanctum (API) |
+| Billing | Laravel Cashier — Paddle |
+| Email | Resend (with delivery webhooks + suppression) |
+| Push | minishlink/web-push (VAPID) |
+| Analytics | PostHog (cookie-consent aware) |
+| Admin | Filament |
+| Helpdesk | Escalated (escalated-dev) |
+| Media | Spatie Media Library |
+| Permissions | Spatie Permission (global + scoped roles) |
+| Testing | Pest + PHPUnit |
 
 ## Getting Started
 
 ### Prerequisites
 
-- PHP 8.5+
-- PostgreSQL 15+
-- Redis 7+
-- Node.js 20+
-- Composer
+- PHP 8.5+, Composer
+- Node.js 24+ (see `.nvmrc`)
+- PostgreSQL (CI and production run 16; the schema baseline targets it) with the **`psql` client binary on PATH** — a fresh database bootstraps from the squashed schema via `psql`
+- Redis (queue, cache, and Horizon all assume it)
 
 ### Installation
 
 ```bash
-# Clone and install dependencies
-composer install
-npm install
-
-# Environment setup
-cp .env.example .env
-php artisan key:generate
-
-# Database (PostgreSQL 15+ required)
-createdb roundup_games
-php artisan migrate
-
-# Seed with sample data (roles, permissions, membership plans)
-php artisan db:seed
-
-# Frontend assets
-npm run build
+composer setup        # install, .env, key, migrate, npm install, build
 ```
 
-Configure `.env` with your PostgreSQL, Redis, Paddle, Google OAuth, and Resend credentials.
-
-### Running Locally
+Or step by step:
 
 ```bash
-# Start the dev server (includes Vite, queue worker, and log tail)
-composer dev
-
-# Or start services individually:
-php artisan serve                  # Web server
-php artisan queue:listen           # Process queued jobs (email, push, cache)
-npm run dev                        # Vite dev server with HMR
-```
-
-### Key Environment Variables
-
-```env
-DB_CONNECTION=pgsql
-DB_DATABASE=roundup_games
-CACHE_STORE=redis
-QUEUE_CONNECTION=redis
-REDIS_CLIENT=predis
-
-# Optional (features degrade gracefully without these)
-PADDLE_SANDBOX=true
-GOOGLE_CLIENT_ID=
-RESEND_KEY=
-VAPID_PUBLIC_KEY=
-VAPID_PRIVATE_KEY=
+composer install
+npm install
+cp .env.example .env && php artisan key:generate
+php artisan migrate
+npm run build
 ```
 
 ### Seed Data
 
 ```bash
-# Core roles, permissions, and membership plans
-php artisan db:seed
-
-# BGG game system catalog (500+ board games with categories/mechanics)
-php artisan bgg:seed-top500
-
-# TTRPG systems from StartPlaying.games (71 systems, 40 genres, 17 mechanics)
-php artisan db:seed --class=StartPlayingSeeder
+php artisan db:seed                       # roles, permissions, membership plans, TTRPG systems
+php artisan bgg:seed-top500               # board game catalog from BoardGameGeek
 ```
 
----
+### Running Locally
+
+```bash
+composer dev    # web server + queue listener + log tail + Vite, together
+```
+
+Or individually: `php artisan serve`, `php artisan queue:listen`, `npm run dev`.
+
+### Environment
+
+Copy `.env.example` and fill in your PostgreSQL/Redis connection details. Optional integrations — Paddle (sandbox default), Google/Discord OAuth, Discord bot, Resend, VAPID keys, PostHog, Cloudflare — disable themselves cleanly when unset.
 
 ## Testing
 
-### Smoke Tests
-
-Run the critical-path suite before every commit:
-
 ```bash
-composer smoke
-```
-
-Tests covering: authentication, registration, OAuth, billing, games, campaigns, events, teams, notifications, discovery, safety tools, and visibility policies. If `composer smoke` is green, you're safe to commit — the full suite is CI's job.
-
-**Adding a smoke test:** Tag any Pest test with `->group('smoke')` and add a `// smoke:` comment explaining why it's on the critical path:
-
-```php
-test('guest can view public game', function () {
-    // smoke: core visibility — guests must see public games
-})->group('smoke');
-```
-
-### Full Suite
-
-```bash
-php artisan test
-```
-
-Takes 10+ minutes. Some pre-existing failures exist in areas under active development.
-
-### Running Specific Tests
-
-```bash
-# Single file
-php artisan test tests/Feature/Games/GameTest.php
-
-# Multiple files (pipe-delimited)
+composer smoke        # smoke group only — run before every commit
+composer test         # full suite, parallel
 php artisan test --filter='GameTest|CampaignTest'
-
-# By directory
-php artisan test tests/Feature/Policies/
 ```
 
-### Test Infrastructure
-
-- PostgreSQL test database (`roundup_games_test`) — Testcontainers available but not required
-- PHPUnit memory limit: 1024MB (suite is large)
-- Test bootstrap: `tests/bootstrap.php` with locale URL defaults
-- Shared helpers: `tests/Pest.php` with `seedPermissions()` and `seedRoles()`
-
----
-
-## Key Concepts
-
-### Visibility Model
-
-Every game and campaign has one of three visibility levels:
-- **Public** — visible to everyone (guests included). Applications auto-approved.
-- **Protected** — visible to owner's friends and teammates. Applications require manual approval.
-- **Private** — visible to owner and participants only. No applications.
-
-Policies enforce single-entity access; listing components enforce query-time filtering. Both must stay in sync.
-
-### Locale Routing
-
-All web routes live under `/{locale}/` (`/en/`, `/de/`). The `SetLocale` middleware validates the locale, persists it to session, and injects it via `URL::defaults()` so all `route()` calls automatically include the locale parameter. Root `/` redirects based on session → Accept-Language → fallback.
-
-### Permission Scoping
-
-Spatie Permission is configured with team support. The `team_id` column (varchar 36) supports both integer Team IDs and UUID Event IDs. Global roles have `team_id=null`; scoped roles (Team Admin, Event Admin) use the entity's primary key. `ScopedRoleService` handles permission resolution with `try/finally` exception safety.
-
-### Discovery Pipeline
-
-PeopleDiscoveryService uses a 4-phase pipeline: geohash-based candidate retrieval → bulk preference loading → privacy-aware Jaccard similarity scoring → paginated results. Cached for 5 minutes per user+geohash tile. Invalidated on follow/unfollow/block.
-
----
-
-## Project Conventions
-
-### Translation Keys
-
-Translations use PHP group files at `lang/{locale}/{domain}.php` with semantic dotted keys:
-
-```php
-__('games.flash_game_created')       // Flash message
-__('events.field_registration_fee')  // Form label
-__('common.action_cancel')           // Shared button text
-```
-
-Key naming convention: `action_` (buttons), `field_` (labels), `status_` (states), `flash_` (messages), `error_` (validation), `content_` (marketing). See `lang/CONTRIBUTING_TRANSLATIONS.md` for full rules.
-
-### Livewire Components
-
-- Full-page components in feature namespaces (`App\Livewire\Games\GameDetail`)
-- Reusable widgets in `App\Livewire\Components\` (`NearbySessions`, `SafetyToolPicker`)
-- Never expose Eloquent models as public properties — use `#[Locked]` with primitive types
-- Use `rules()` method instead of `#[Validate]` attributes (Livewire v4 compatibility)
-
-### Database
-
-- PostgreSQL with CHECK constraints on enum columns (not native enum types)
-- UUID primary keys on Event, GMProfile, Review, SessionZeroSurvey/Confirmation models
-- Integer primary keys on Game, Campaign, Team, User models
-- All migration indexes explicitly named for reliable rollback
-- Polymorphic translations table (`translatable_type`/`translatable_id`) for entity content translation
-
-### Frontend
-
-- Warm amber design system: amber primary (#835500), cream surfaces (#fbf9f1), warm shadows
-- `wire:navigate` on all internal links for SPA-style page transitions
-- `font-heading` and `font-body` tokens — never reference font families directly
-- Decorative SVGs get `aria-hidden="true"`, icon-only buttons get `aria-label`
-- Mobile-first: all pages render correctly at 375px before desktop
-
----
+Tag critical-path tests with `->group('smoke')` (see [CONTRIBUTING.md](CONTRIBUTING.md)). CI additionally enforces Pint style, Eloquent best practices (`composer practices`), Larastan, and translation parity (`php artisan i18n:check`).
 
 ## Deployment
 
-### Icon Font Subsetting
+**Frontend assets:** `composer deploy:assets` — subsets the Material Symbols icon font (only glyphs actually used; rebuild after adding icons, or run `php artisan fonts:audit --fix`) and builds via Vite.
 
-Material Symbols Outlined is subset to only the icons used across templates, enums, and JS. This reduces the font from ~1.1 MB (full set) to ~160 KB.
+**CDN:** public pages are edge-cached at Cloudflare; cache rules are derived from Laravel routes and synced with `composer deploy:cdn` (needs `CF_ZONE_ID` + `CF_API_TOKEN`). Authenticated traffic always bypasses cache.
 
-```bash
-# Rebuild the subset (run after adding new icons to templates)
-bash build-tools/subset-icons.sh
-
-# Audit icon usage vs config/fonts.php
-php artisan fonts:audit          # report gaps
-php artisan fonts:audit --fix    # auto-add missing icons to config
-```
-
-When adding a new `material-symbols-outlined` icon to any Blade template, PHP enum, or JS file, run `bash build-tools/subset-icons.sh` to regenerate the subset. The build script also auto-discovers icons not yet in `config/fonts.php`.
-
-### Frontend Assets
+**Docker:**
 
 ```bash
-npm run build
-```
-
-### Cloudflare Cache Rules
-
-Cache rules are derived from Laravel routes and synced to Cloudflare automatically. Two rules are managed:
-
-| Rule | What | Edge TTL |
-|---|---|---|
-| Static assets (`/build/`, `/fonts/`, `/icons/`) | Immutable hashed assets | 1 year |
-| Public pages (anonymous visitors) | All locale-prefixed routes without auth middleware | 5 min |
-
-Authenticated users (session cookie present) always bypass cache. The `CachePublicPages` middleware controls origin headers.
-
-```bash
-# Preview what would change (no API calls)
-php artisan cloudflare:cache-rules --dry-run
-
-# Apply rules to Cloudflare
-php artisan cloudflare:cache-rules
-
-# Force re-apply
-php artisan cloudflare:cache-rules --force
-```
-
-**Setup:** Create a Cloudflare API token with **Zone → Cache Rules → Edit** and **Zone → Cache Purge → Purge** permissions. Add to `.env`:
-
-```
-CF_ZONE_ID=your_zone_id
-CF_API_TOKEN=your_api_token
-```
-
-Rules prefixed `[roundup-auto]` are managed by the command. Manual rules in the Cloudflare dashboard are preserved.
-
-When adding a new public route, just redeploy and run `php artisan cloudflare:cache-rules` — the expression regenerates from current routes.
-
-### Composer Deploy Shortcuts
-
-```bash
-composer deploy:assets   # subset icons + vite build
-composer deploy:cdn      # sync cloudflare cache rules
-```
-
----
-
-## Docker
-
-```bash
-# Production build
-docker compose up -d
-
-# With queue worker
 docker compose up -d app worker
 ```
 
-The app container serves on port 8199. The worker container runs `php artisan queue:work redis --queue=default,discovery`.
+The `app` container serves on port 8199 and runs migrations on boot; the `worker` container runs Horizon (queue) and the scheduler — no nginx/fpm.
+
+## Project Documentation
+
+| Document | Contents |
+|----------|----------|
+| [docs/PLATFORM_INVENTORY.md](docs/PLATFORM_INVENTORY.md) | Complete functional feature inventory |
+| [CONTEXT.md](CONTEXT.md) | Ubiquitous domain language (Game vs Campaign vs Session, dashboard terms) |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Workflow, code style, Eloquent practices, testing, DCO |
+| [lang/CONTRIBUTING_TRANSLATIONS.md](lang/CONTRIBUTING_TRANSLATIONS.md) | Translation conventions and Weblate flow |
+| [database/schema/README.md](database/schema/README.md) | Squashed schema baseline and re-squash runbook |
+| [docs/DESIGN-SYSTEM-SNAPSHOT.md](docs/DESIGN-SYSTEM-SNAPSHOT.md) | Design system: colors, typography, components |
+| [docs/adr/](docs/adr/) | Architecture decision records |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting policy |
+| [AI_POLICY.md](AI_POLICY.md) | Rules for AI-assisted contributions |
+
+## Contributing
+
+Contributions welcome — read [CONTRIBUTING.md](CONTRIBUTING.md) first (DCO sign-off required) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Licensed under [AGPL-3.0-or-later](LICENSE).
