@@ -39,6 +39,11 @@ return [
     'content_thread_starter_this_session' => 'this session',
     'content_thread_starter_welcome' => 'Welcome to the session: :name',
 
+    // Bulletin teaser pushed into session threads (M062/S01). Teaser-only by
+    // design (D132): public threads never carry the full participant-only
+    // bulletin body — just attribution, a snippet, and this read-more line.
+    'content_bulletin_read_more' => 'Read the full update on the session page.',
+
     // Unlinked "My seat" on-ramp ephemeral body (M059/S02)
     'content_unlinked_onramp_body' => "You're one tap from your seat. Link your Discord account and we'll drop you straight onto the roster — you can finish in a few seconds. (Next time, this button RSVPs you straight from Discord.)",
 

@@ -39,6 +39,12 @@ return [
     'content_thread_starter_this_session' => 'diese Sitzung',
     'content_thread_starter_welcome' => 'Willkommen zur Sitzung: :name',
 
+    // Bulletin-Teaser in Session-Threads (M062/S01). Bewusst nur ein Teaser
+    // (D132): öffentliche Threads tragen nie den vollständigen, nur für
+    // Teilnehmende bestimmten Bulletin-Text — nur Zuschreibung, einen
+    // Auszug und diesen Hinweis.
+    'content_bulletin_read_more' => 'Lies das vollständige Update auf der Session-Seite.',
+
     // Unlinked "My seat" on-ramp ephemeral body (M059/S02)
     'content_unlinked_onramp_body' => 'Du bist nur einen Klick von deinem Platz entfernt. Verbinde dein Discord-Konto und wir setzen dich direkt auf die Teilnehmerliste – es dauert nur wenige Sekunden. (Beim nächsten Mal zusagt dieser Button dich direkt aus Discord heraus.)',
 

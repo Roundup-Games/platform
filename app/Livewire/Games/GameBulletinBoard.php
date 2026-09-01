@@ -2,14 +2,9 @@
 
 namespace App\Livewire\Games;
 
-use App\Enums\NotificationCategory;
-use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameBulletin;
-use App\Models\User;
-use App\Notifications\BulletinPosted;
 use App\Policies\GameBulletinPolicy;
-use App\Services\NotificationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -118,54 +113,15 @@ class GameBulletinBoard extends Component
             'content_length' => Str::length($this->content),
         ]);
 
-        // Send push notification to all approved participants
-        // (also handles action center cache invalidation)
-        $this->notifyParticipants($bulletin);
+        // Fan-out (action-center invalidation, BulletinPosted cascade to
+        // approved participants, Discord session-thread teaser push) is
+        // centralized in GameBulletinObserver::created() so it runs on every
+        // creation path, not just this component.
 
         $this->content = '';
         unset($this->bulletins);
 
         session()->flash('success', __('games.flash_bulletin_created'));
-    }
-
-    // ── Internal helpers ────────────────────────────────
-
-    private function notifyParticipants(GameBulletin $bulletin): void
-    {
-        $host = authenticatedUser();
-        $notification = new BulletinPosted($this->game, $host, $bulletin);
-
-        $participants = $this->game->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->where('user_id', '!=', $host->id)
-            ->with('user')
-            ->get();
-
-        // Action center cache is already invalidated by GameBulletinObserver::created(),
-        // so we only need to dispatch notifications here.
-
-        // Send push notifications
-        $participantUsers = $participants->pluck('user')->filter();
-
-        foreach ($participantUsers as $participant) {
-            if (! ($participant instanceof User)) {
-                continue;
-            }
-            try {
-                app(NotificationService::class)->send(
-                    $participant,
-                    $notification,
-                    NotificationCategory::SessionContent
-                );
-            } catch (\Throwable $e) {
-                Log::error('bulletin.notification_dispatch_failed', [
-                    'game_id' => $this->game->id,
-                    'bulletin_id' => $bulletin->id,
-                    'participant_id' => $participant->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
     }
 
     public function render(): View

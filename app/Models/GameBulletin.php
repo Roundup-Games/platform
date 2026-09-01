@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Jobs\PublishGameBulletinToDiscord;
 use Database\Factories\GameBulletinFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -83,6 +85,21 @@ class GameBulletin extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The teaser messages pushed into per-session Discord threads for this
+     * bulletin (M062/S01) — one row per guild thread, the retry-idempotency
+     * gate for {@see PublishGameBulletinToDiscord}.
+     *
+     * @return HasMany<DiscordBulletinMessage, $this>
+     */
+    public function discordBulletinMessages(): HasMany
+    {
+        // Explicit FK: Laravel derives "game_bulletin_id" from the related
+        // model's basename ("DiscordBulletin" + _id) — same consecutive-caps
+        // naming trap as GMProfile (see KNOWLEDGE.md).
+        return $this->hasMany(DiscordBulletinMessage::class, 'bulletin_id');
     }
 
     // ── Scopes ─────────────────────────────────────────
