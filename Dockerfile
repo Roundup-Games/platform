@@ -107,6 +107,19 @@ RUN php artisan storage:link --force || true \
              storage/logs \
              bootstrap/cache
 
+# Warm the caches that do not read runtime env, at build time. route:cache and
+# event:cache write bootstrap/cache/*.php into the image, so they ship immutable
+# and are never rewritten on container start. This removes the deploy-window
+# race behind the boot-time ErrorException: running route:cache at runtime
+# deleted bootstrap/cache/routes-v7.php before rewriting it, and a
+# concurrently-booting artisan process (the worker healthcheck) could pass
+# routesAreCached() and then fatal on the require of the missing file.
+# config:cache stays at runtime (docker/s6/99-laravel-init) because it reads the
+# environment.
+RUN php artisan route:cache \
+ && php artisan view:cache \
+ && php artisan event:cache
+
 # S6 init script — runs migrations, caches config on every start
 # Must come after source is copied so artisan is available at runtime
 USER root

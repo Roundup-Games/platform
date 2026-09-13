@@ -41,8 +41,13 @@ services:
     # Worker has no nginx/fpm (stripped in the Dockerfile worker stage), so the
     # image's default HTTP healthcheck always fails with 'unhealthy'. Probe what
     # the worker actually does: Horizon is processing the queue.
+    #
+    # Gate the probe on the init-complete marker that 99-laravel-init writes when
+    # it finishes. Without the gate this artisan command booted Laravel every 30s
+    # from container start — while the init script was still rewriting caches —
+    # which is the concurrent process that hit the boot-time route-cache race.
     healthcheck:
-      test: ["CMD", "sh", "-c", "php artisan horizon:status 2>/dev/null | grep -qi running"]
+      test: ["CMD", "sh", "-c", "test -f /tmp/laravel-init-complete && php artisan horizon:status 2>/dev/null | grep -qi running"]
       interval: 30s
       timeout: 5s
       retries: 3
