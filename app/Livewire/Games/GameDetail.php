@@ -283,6 +283,11 @@ class GameDetail extends Component
 
         $game = $this->game;
 
+        // Eager-load users for the whole roster once — the paths below read
+        // $participant->user per row (re-hydrated Livewire model has no
+        // mount-time eager loads), which is an N+1 otherwise.
+        $game->participants->loadMissing('user');
+
         // Handle legacy single-report shorthand: (participantId, status)
         if (is_string($participantIdOrReports) && $status !== null) {
             $participant = $game->participants->first(fn ($p) => $p->id === $participantIdOrReports);
@@ -381,6 +386,10 @@ class GameDetail extends Component
 
             return;
         }
+
+        // The dispute service reads $participant->game — eager-load it here
+        // (the re-hydrated relation collection does not carry it).
+        $participant->loadMissing('game');
 
         $result = app(AttendanceService::class)->disputeAttendanceStatus(
             $participant,

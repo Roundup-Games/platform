@@ -186,11 +186,19 @@ class WaitlistService
             throw new \LogicException('Confirmation window has expired.');
         }
 
-        $participant->update([
+        // approved_at exists only on GameParticipant — CampaignParticipant
+        // has no such column, so passing it through this shared seam was
+        // silently discarded on the campaign path (surfaced by strict model
+        // mode's preventSilentlyDiscardingAttributes).
+        $update = [
             'status' => ParticipantStatus::Approved->value,
-            'approved_at' => now(),
             'confirmation_expires_at' => null,
-        ]);
+        ];
+        if ($participant->isFillable('approved_at')) {
+            $update['approved_at'] = now();
+        }
+
+        $participant->update($update);
 
         Log::info('waitlist.confirmed', [
             $meta->foreignKey => $participant->getAttribute($meta->foreignKey),
@@ -347,9 +355,8 @@ class WaitlistService
             'user_id' => $participant->getUserId(),
         ]);
 
-        $participant->update([
+        $update = [
             'status' => ParticipantStatus::Approved->value,
-            'approved_at' => now(),
             'confirmation_expires_at' => null,
             'waitlisted_at' => null,
             // promoted_manually distinguishes a host-intentional capacity
@@ -358,7 +365,14 @@ class WaitlistService
             // LIFO. Mass-assigned to game_participants only (Campaign's
             // $fillable excludes it, so Campaign rows are a safe no-op).
             'promoted_manually' => true,
-        ]);
+        ];
+
+        // approved_at exists only on GameParticipant (see confirm() above).
+        if ($participant->isFillable('approved_at')) {
+            $update['approved_at'] = now();
+        }
+
+        $participant->update($update);
     }
 
     /**

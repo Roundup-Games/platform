@@ -122,8 +122,9 @@
             </div>
         @endif
 
-        {{-- Reliability preference --}}
-        @if($entity->min_reliability_preference)
+        {{-- Reliability preference — a games-only column; Campaign entities
+             passed to this card have no such attribute (?? is isset-safe). --}}
+        @if(($entity->min_reliability_preference ?? null))
             <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
                 <span class="material-symbols-outlined text-sm" aria-hidden="true">verified</span>
                 {{ __('games.content_host_prefers_attendance', ['percent' => round($entity->min_reliability_preference)]) }}

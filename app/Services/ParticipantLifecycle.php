@@ -232,11 +232,19 @@ class ParticipantLifecycle
                 throw new \LogicException('Cannot promote: entity is full.');
             }
 
-            $locked->update([
+            // approved_at exists only on GameParticipant — CampaignParticipant
+            // has no such column, so passing it through this shared seam was
+            // silently discarded on the campaign path (surfaced by strict
+            // model mode's preventSilentlyDiscardingAttributes).
+            $update = [
                 'status' => ParticipantStatus::Approved->value,
-                'approved_at' => now(),
                 'benched_at' => null,
-            ]);
+            ];
+            if ($locked->isFillable('approved_at')) {
+                $update['approved_at'] = now();
+            }
+
+            $locked->update($update);
 
             Log::info('bench.promoted', [
                 'entity_type' => $meta->type,
@@ -343,12 +351,18 @@ class ParticipantLifecycle
             return ParticipantResult::fail('common.error_participant_not_applicant');
         }
 
-        $participant->update([
+        $update = [
             'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
-            'approved_at' => now(),
             'join_source' => JoinSource::Application,
-        ]);
+        ];
+        // approved_at exists only on GameParticipant (CampaignParticipant has
+        // no such column — silently discarded before strict model mode).
+        if ($participant->isFillable('approved_at')) {
+            $update['approved_at'] = now();
+        }
+
+        $participant->update($update);
 
         $entity->applications()
             ->where('user_id', $participant->getUserId())
@@ -627,11 +641,17 @@ class ParticipantLifecycle
                 return 'overflow';
             }
 
-            $lockedParticipant->update([
+            $update = [
                 'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Approved->value,
-                'approved_at' => now(),
-            ]);
+            ];
+            // approved_at exists only on GameParticipant (CampaignParticipant
+            // has no such column — silently discarded before strict model mode).
+            if ($lockedParticipant->isFillable('approved_at')) {
+                $update['approved_at'] = now();
+            }
+
+            $lockedParticipant->update($update);
 
             return 'approved';
         });

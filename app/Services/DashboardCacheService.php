@@ -524,7 +524,9 @@ class DashboardCacheService
 
         $sections = ['week', 'opportunities', 'host_again', 'milestone_cards'];
 
-        // If game has a location, also invalidate trending for its geohash
+        // If game has a location, also invalidate trending for its geohash.
+        // loadMissing: the game arrives from observers without eager loads.
+        $game->loadMissing('linkedLocation');
         $location = $game->linkedLocation;
         if ($location && $location->latitude && $location->longitude) {
             $geohash4 = Geohash::tilePrefix(
@@ -726,6 +728,10 @@ class DashboardCacheService
             ->orderByDesc('games.created_at')
             ->limit(5)
             ->get();
+
+        // Eager-load locations for the whole batch — the map below reads
+        // linkedLocation per game (an N+1 otherwise).
+        $games->loadMissing('linkedLocation');
 
         // Serialize each game to a cache-friendly array
         $data = [

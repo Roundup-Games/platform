@@ -168,7 +168,7 @@ class RegisterForEvent extends Component
         // Build roster for team registration (outside transaction — read-only)
         $roster = null;
         if ($registrationMode === 'team' && $selectedTeamId) {
-            $team = Team::with('activeMembers')->find($selectedTeamId);
+            $team = Team::with('activeMembers.user')->find($selectedTeamId);
             if ($team === null) {
                 session()->flash('error', __('events.error_team_not_found'));
 

@@ -118,7 +118,7 @@
                                 <span class="text-xs px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary font-medium">
                                     {{ __('games.content_base_game') }}
                                 </span>
-                                @if($system->expansions_count > 0)
+                                @if(($system->expansions_count ?? 0) > 0)
                                     <span class="text-xs text-on-surface-variant">
                                         + {{ trans_choice('games.content_count_expansions', $system->expansions_count) }}
                                     </span>

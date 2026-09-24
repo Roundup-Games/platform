@@ -363,8 +363,12 @@ class Event extends Model implements HasMedia
             if ($this->organizer) {
                 $organizer = (new SchemaPerson)
                     ->name($this->organizer->name);
-                if ($this->organizer->username) {
-                    $organizer->url(route('profile.public', $this->organizer->username));
+                // The public profile route binds by slug (User::getRouteKeyName()).
+                // This previously read ->username — a column that does not exist,
+                // so the organizer URL was silently never emitted; strict model
+                // mode surfaced the phantom attribute read.
+                if ($this->organizer->slug) {
+                    $organizer->url(route('profile.public', $this->organizer));
                 }
                 $event->organizer($organizer);
             }

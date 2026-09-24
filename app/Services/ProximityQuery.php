@@ -173,8 +173,11 @@ class ProximityQuery
             ]);
         }
 
-        // Hydrate models and attach computed distance
+        // Hydrate models and attach computed distance. loadMissing the
+        // location relationship once for the whole hydrate batch — the map
+        // below reads $entity->$relationship per row (an N+1 otherwise).
         $modelInstances = $model::hydrate($results->toArray());
+        $modelInstances->loadMissing($relationship);
         $distanceMap = $results->pluck('distance_km', 'id');
 
         return $modelInstances->map(function ($entity) use ($distanceMap, $relationship) {

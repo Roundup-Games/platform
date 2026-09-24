@@ -73,6 +73,7 @@ use Filament\Facades\Filament;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
@@ -198,6 +199,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Strict Eloquent in every non-production environment (Laravel
+        // best-practices skill: "Prevent Lazy Loading in Development").
+        // Throws on lazy-loaded relationships (N+1 detection), accesses of
+        // missing attributes, and silently discarded attributes — surfacing
+        // these as loud failures in dev and CI instead of silent bugs.
+        // Production is exempt: strict mode throws exceptions and must never
+        // take a live request down over a query-shape flaw.
+        Model::shouldBeStrict(! $this->app->isProduction());
+
         // Admin panel supplement stylesheet.
         // Filament's precompiled theme lacks the plain Tailwind utilities (h-12,
         // h-3.5, space-y-*, ...) used by the escalated-dev Livewire components, so

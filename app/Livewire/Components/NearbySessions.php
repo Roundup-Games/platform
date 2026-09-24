@@ -196,6 +196,13 @@ class NearbySessions extends Component
         // ONE query instead of one COUNT per item below.
         $this->preloadParticipantCounts($gameResults);
 
+        // Eager-load game systems for the batch — the game_system accessor
+        // below reads the gameSystems relation per game (an N+1 otherwise).
+        $gameResults
+            ->map(fn (mixed $result) => $result instanceof ProximityResult ? $result->entity : null)
+            ->filter(fn (mixed $entity): bool => $entity instanceof Game)
+            ->each(fn (Game $game) => $game->loadMissing('gameSystems'));
+
         $all = $gameResults->map(function (mixed $result) {
             if (! $result instanceof ProximityResult) {
                 return null;

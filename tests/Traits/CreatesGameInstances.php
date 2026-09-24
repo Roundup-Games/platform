@@ -68,11 +68,15 @@ trait CreatesGameInstances
             'game_system_id' => $system->id,
             'name' => ['en' => 'Test Campaign'],
             'description' => ['en' => 'A test campaign'],
-            'expected_duration' => 3,
+            // Campaigns carry session_duration (NOT NULL), not Game's
+            // expected_duration, and address venues via location_id — there
+            // is no JSON location column. The Game-shaped keys previously
+            // passed here were silently discarded; strict model mode
+            // surfaced the mass-assignment violation.
+            'session_duration' => 3,
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
-            'location' => ['details' => 'Online'],
             'min_players' => 2,
             'max_players' => $maxPlayers,
             ...$overrides,

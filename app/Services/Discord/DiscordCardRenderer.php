@@ -567,12 +567,17 @@ class DiscordCardRenderer
 
     private function profileUrl(User $owner, DiscordCardContext $context): ?string
     {
-        $username = $owner->username;
-        if (! is_string($username) || $username === '') {
+        // The public profile lives at /u/{slug} (User::getRouteKeyName()).
+        // This previously read ->username — a column that does not exist on
+        // users — and built /@{username}, so the host profile link on every
+        // Discord card was silently never emitted; strict model mode
+        // surfaced the phantom attribute read.
+        $slug = $owner->slug;
+        if (! is_string($slug) || $slug === '') {
             return null;
         }
 
-        return rtrim($this->appUrl($context), '/').'/@'.$username;
+        return rtrim($this->appUrl($context), '/').'/u/'.$slug;
     }
 
     private function deepLink(Game $game, DiscordCardContext $context): string

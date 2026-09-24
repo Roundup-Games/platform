@@ -35,7 +35,7 @@ class CampaignParticipant extends Pivot implements ParticipantContract
 
     protected $keyType = 'string';
 
-    protected $fillable = ['campaign_id', 'user_id', 'invitee_email', 'role', 'status', 'benched_at', 'join_source', 'created_at', 'waitlisted_at', 'confirmation_expires_at', 'confirmation_attempts', 'short_link_id', 'removed_by', 'removed_at'];
+    protected $fillable = ['id', 'campaign_id', 'user_id', 'invitee_email', 'role', 'status', 'benched_at', 'join_source', 'created_at', 'waitlisted_at', 'confirmation_expires_at', 'confirmation_attempts', 'short_link_id', 'removed_by', 'removed_at'];
 
     protected $casts = [
         'role' => ParticipantRole::class,

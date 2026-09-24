@@ -132,4 +132,19 @@ interface Participant
      * Drives FIFO ordering in WaitlistService::getWaitlistPosition.
      */
     public function getWaitlistedAt(): ?Carbon;
+
+    /**
+     * Whether an attribute key may be mass-assigned on the backing model.
+     *
+     * Mirrors {@see Model::isFillable()} — signature kept identical (untyped,
+     * no return type) because implementations inherit it from Eloquent Model.
+     * Lifecycle services use it to send entity-specific columns (e.g.
+     * approved_at, which exists on GameParticipant but not
+     * CampaignParticipant) only where the column exists — instead of relying
+     * on silent mass-assignment discarding.
+     *
+     * @param  string  $key
+     * @return bool
+     */
+    public function isFillable($key);
 }

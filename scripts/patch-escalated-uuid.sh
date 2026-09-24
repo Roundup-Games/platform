@@ -83,6 +83,19 @@ for SC in \
     fi
 done
 
+# =====================================================================
+# Eager-load the ticket requester in EscalationService::findMatchingTickets()
+# =====================================================================
+# evaluateRules() -> executeActions() -> TicketService::changeStatus() fires
+# TicketStatusChanged, whose SendStatusChangeNotification listener reads
+# $ticket->requester per ticket. Without the eager load that is one query per
+# escalated ticket in production, and a lazy-loading violation under the
+# app's strict model mode (Model::shouldBeStrict in non-production).
+ESCALATION_SERVICE="$VENDOR_DIR/Services/EscalationService.php"
+if [ -f "$ESCALATION_SERVICE" ] && ! grep -q "with('requester')" "$ESCALATION_SERVICE"; then
+    perl -0pi -e "s/(\s+)return \\\$query->get\(\);/\$1return \\\$query->with('requester')->get\(\);/" "$ESCALATION_SERVICE"
+fi
+
 # Clean up backups
 find "$VENDOR_DIR" -name "*.bak" -delete
 

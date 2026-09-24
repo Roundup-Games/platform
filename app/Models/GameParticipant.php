@@ -40,7 +40,7 @@ class GameParticipant extends Pivot implements ParticipantContract
 
     protected $keyType = 'string';
 
-    protected $fillable = ['game_id', 'user_id', 'invitee_email', 'role', 'status', 'created_at', 'approved_at', 'promoted_manually', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_disputed_at', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at', 'join_source', 'short_link_id', 'removed_by', 'removed_at'];
+    protected $fillable = ['id', 'game_id', 'user_id', 'invitee_email', 'role', 'status', 'created_at', 'approved_at', 'promoted_manually', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_disputed_at', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at', 'join_source', 'short_link_id', 'removed_by', 'removed_at'];
 
     protected $casts = [
         'role' => ParticipantRole::class,

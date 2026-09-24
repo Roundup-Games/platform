@@ -85,10 +85,14 @@ class AttendanceResolutionService
 
         $resolutionMethod = $method ?? AttendanceResolutionMethod::Timeout;
 
-        // Get all approved participants
+        // Get all approved participants. Eager-load user: the save in
+        // applyResolvedStatus() fires GameParticipantObserver::updated(),
+        // which reads $participant->user — without the eager load that is
+        // an N+1 lazy load per participant (surfaced by strict model mode).
         /** @var Collection<int, GameParticipant> $participants */
         $participants = $game->participants()
             ->where('status', ParticipantStatus::Approved->value)
+            ->with('user')
             ->get();
 
         // Pre-fetch all reports for the game once (avoids N+1 inside participant loop)

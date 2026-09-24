@@ -312,6 +312,7 @@ describe('below-min-player warning', function () {
         $players = $game->participants()
             ->where('status', ParticipantStatus::Approved->value)
             ->where('user_id', '!=', $game->owner_id)
+            ->with('user')
             ->get();
 
         foreach ($players as $player) {

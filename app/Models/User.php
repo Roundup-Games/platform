@@ -59,7 +59,6 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
  * @property Carbon|null $password_set_at
  * @property Carbon|null $disabled_at
  * @property string|null $slug
- * @property string|null $username
  * @property ContentLanguage|null $preferred_language
  * @property string|null $avatar_url
  * @property Collection<int, UserVibePreference>|null $vibePreferences

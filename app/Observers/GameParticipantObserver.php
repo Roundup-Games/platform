@@ -87,7 +87,12 @@ class GameParticipantObserver
         if ($participant->wasChanged('attendance_status')) {
             $this->cache->invalidateActionCenterForAttendance((string) $participant->user_id);
 
-            // Mode may transition (newcomer → established) when attendance is recorded
+            // Mode may transition (newcomer → established) when attendance is recorded.
+            // loadMissing: observers fire from many save sites, most of which do
+            // not eager-load user — this is the single defensive seam (no extra
+            // query when the relation is already loaded).
+            $participant->loadMissing('user');
+
             $user = $participant->user;
             if ($user) {
                 $this->modeService->invalidateForUser($user);

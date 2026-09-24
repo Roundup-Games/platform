@@ -48,7 +48,7 @@ class DiscordCardRendererTest extends TestCase
     {
         $owner = $this->makeOwner([
             'name' => 'Mara Voss',
-            'username' => 'maravoss',
+            'slug' => 'maravoss',
             'reliability_score' => ['score' => 98.0, 'game_count' => 12, 'tier' => 'reliable'],
         ]);
         $venue = $this->makeVenue([
@@ -95,7 +95,7 @@ class DiscordCardRendererTest extends TestCase
 
         // Author (organizer) with profile deep link + avatar omitted (none set).
         $this->assertSame('Mara Voss', $embed['author']['name']);
-        $this->assertSame('https://roundup.test/@maravoss', $embed['author']['url']);
+        $this->assertSame('https://roundup.test/u/maravoss', $embed['author']['url']);
 
         // Every wedge field present, by name.
         $fields = $this->fieldNames($embed);
@@ -541,7 +541,7 @@ class DiscordCardRendererTest extends TestCase
         return User::factory()->make(array_merge([
             'id' => Str::uuid()->toString(),
             'name' => 'Test Organizer',
-            'username' => 'organizer',
+            'slug' => 'organizer',
             'reliability_score' => null,
             'avatar_url' => null,
         ], $overrides));

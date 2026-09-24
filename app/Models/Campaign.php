@@ -395,8 +395,12 @@ class Campaign extends Model implements HasMedia, TicketSubject
             if ($this->owner) {
                 $organizer = (new SchemaPerson)
                     ->name($this->owner->name);
-                if ($this->owner->username) {
-                    $organizer->url(route('profile.public', $this->owner->username));
+                // The public profile route binds by slug (User::getRouteKeyName()).
+                // This previously read ->username — a column that does not exist,
+                // so the organizer URL was silently never emitted; strict model
+                // mode surfaced the phantom attribute read.
+                if ($this->owner->slug) {
+                    $organizer->url(route('profile.public', $this->owner));
                 }
                 $event->organizer($organizer);
             }

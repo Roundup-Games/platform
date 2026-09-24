@@ -30,6 +30,7 @@ class GameBulletin extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'id',
         'game_id',
         'user_id',
         'content',
