@@ -111,7 +111,9 @@ class LocationDriftSweep extends Command
             ($dryRun ? 'Dry-run complete' : 'Sweep complete')." in {$durationMs}ms"
         );
 
-        $flagged = $reports->sum('count');
+        /** @var int|float|numeric-string|null $sum */
+        $sum = $reports->sum('count');
+        $flagged = (int) $sum;
         if ($flagged > 0) {
             $this->warn(
                 ($dryRun ? 'Would flag' : 'Flagged')." {$flagged} location(s) for admin review."

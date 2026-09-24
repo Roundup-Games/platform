@@ -1343,9 +1343,11 @@ class DemoSeedCommand extends Command
         if ($count <= 0 || empty($arr)) {
             return [];
         }
-        $keys = array_rand($arr, $count);
 
-        return array_values(is_array($keys) ? $keys : [$keys]);
+        /** @var non-empty-list<int|string> $keys */
+        $keys = (array) array_rand($arr, $count);
+
+        return $keys;
     }
 
     /**

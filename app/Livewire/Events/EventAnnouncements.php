@@ -121,8 +121,8 @@ class EventAnnouncements extends Component
         $this->editingId = $id;
         $this->title = $announcement->title;
         $this->content = $announcement->content;
-        $this->is_pinned = $announcement->is_pinned;
-        $this->is_published = $announcement->is_published;
+        $this->is_pinned = $announcement->is_pinned ?? false;
+        $this->is_published = $announcement->is_published ?? false;
         $this->showForm = true;
 
         // Load secondary locale translations (uses event's language)

@@ -25,7 +25,7 @@ class UserPreferenceResolver
      *  - Handles circular safety: a system can be both a base (has expansions)
      *    and an expansion (has base_game_id).
      *
-     * @return array{favorites: Collection<int, GameSystem>, avoided: Collection<int, GameSystem>, implied_favorites: Collection<int, GameSystem>}
+     * @return array{favorites: Collection<int, GameSystem>, avoided: Collection<int, GameSystem>, implied_favorites: Collection<string, GameSystem>}
      */
     public function resolvedGameSystemPreferences(User $user): array
     {
@@ -38,6 +38,7 @@ class UserPreferenceResolver
 
         // Collect implied favorites from expansions of favorited base games
         // Only include expansions that are NOT explicitly avoided (avoid wins)
+        /** @var Collection<string, GameSystem> $impliedIds */
         $impliedIds = new Collection;
         foreach ($favorites as $system) {
             foreach ($system->expansions as $expansion) {

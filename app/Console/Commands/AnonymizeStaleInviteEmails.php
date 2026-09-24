@@ -90,7 +90,7 @@ class AnonymizeStaleInviteEmails extends Command
             ->where('invitee_email', 'not like', 'suppressed-%')
             ->whereHas('campaign', function ($q) use ($cutoff) {
                 $q->whereIn('status', [CampaignStatus::Completed->value, CampaignStatus::Cancelled->value])
-                    ->whereHas('games', function ($gq) use ($cutoff) {
+                    ->whereHas('sessions', function ($gq) use ($cutoff) {
                         $gq->where('date_time', '<', $cutoff)
                             ->orderByDesc('date_time')
                             ->limit(1);

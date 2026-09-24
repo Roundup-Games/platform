@@ -94,7 +94,7 @@ class I18nMissingCommand extends Command
             $this->table(
                 ['Key', 'Occurrences', 'Locales', 'First URL', 'First Seen'],
                 collect($confirmedMissing)->sortByDesc('total_count')->map(fn (array $e) => [
-                    is_string($e['key'] ?? null) ? $e['key'] : '',
+                    $e['key'],
                     is_int($e['total_count'] ?? 0) ? $e['total_count'] : 0,
                     implode(', ', array_filter(is_array($e['locales'] ?? null) ? $e['locales'] : [], fn (mixed $v) => is_string($v))),
                     mb_substr(is_string($e['first_url'] ?? '') ? $e['first_url'] : '', 0, 60),

@@ -159,7 +159,7 @@ class ManageEvent extends Component
         $this->name = $e->name;
         $this->short_description = $e->short_description ?? '';
         $this->description = $e->description ?? '';
-        $this->type = $e->type;
+        $this->type = $e->type ?? '';
         $this->status = $e->status->value ?? 'draft';
         $this->start_date = $e->start_date?->format('Y-m-d') ?? '';
         $this->end_date = $e->end_date?->format('Y-m-d') ?? '';
@@ -168,7 +168,7 @@ class ManageEvent extends Component
         $this->city = $e->city ?? '';
         $this->country = $e->country ?? '';
         $this->postal_code = $e->postal_code ?? '';
-        $this->registration_type = $e->registration_type;
+        $this->registration_type = $e->registration_type ?? '';
         $this->max_teams = $e->max_teams;
         $this->max_participants = $e->max_participants;
         $this->min_players_per_team = $e->min_players_per_team;
@@ -190,8 +190,8 @@ class ManageEvent extends Component
         $this->schedule = is_array($schedule) ? implode("\n", $schedule) : (string) ($schedule ?? '');
         $this->contact_email = $e->contact_email ?? '';
         $this->contact_phone = $e->contact_phone ?? '';
-        $this->is_public = $e->is_public;
-        $this->is_featured = $e->is_featured;
+        $this->is_public = $e->is_public ?? false;
+        $this->is_featured = $e->is_featured ?? false;
 
         // Content language
         $this->language = $e->language ?? 'en';

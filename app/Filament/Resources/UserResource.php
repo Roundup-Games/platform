@@ -319,7 +319,7 @@ class UserResource extends Resource
                     ->modalHeading('Disable User Account')
                     ->modalDescription('This user will be immediately logged out and cannot log back in. Their data will be preserved.')
                     ->visible(fn (User $record): bool => ! $record->is_disabled)
-                    ->action(function (User $record) {
+                    ->action(function (User $record): bool {
                         $record->update([
                             'is_disabled' => true,
                             'disabled_at' => now(),
@@ -328,6 +328,8 @@ class UserResource extends Resource
                             'user_id' => $record->id,
                             'disabled_by' => auth()->id(),
                         ]);
+
+                        return true;
                     }),
                 Action::make('enable')
                     ->label('Re-enable')
@@ -336,8 +338,8 @@ class UserResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Re-enable User Account')
                     ->modalDescription('This user will be able to log in again.')
-                    ->visible(fn (User $record): bool => $record->is_disabled)
-                    ->action(function (User $record) {
+                    ->visible(fn (User $record): bool => (bool) $record->is_disabled)
+                    ->action(function (User $record): bool {
                         $record->update([
                             'is_disabled' => false,
                             'disabled_at' => null,
@@ -346,6 +348,8 @@ class UserResource extends Resource
                             'user_id' => $record->id,
                             'enabled_by' => auth()->id(),
                         ]);
+
+                        return true;
                     }),
             ])
             ->toolbarActions([

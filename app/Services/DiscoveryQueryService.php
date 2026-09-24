@@ -758,6 +758,7 @@ class DiscoveryQueryService
 
         // Scope to a specific system type if requested
         if ($systemType !== null) {
+            /** @var list<string> $typeSystemIds */
             $typeSystemIds = GameSystem::where('type', $systemType)
                 ->pluck('id')
                 ->filter(fn (mixed $id) => is_string($id))
