@@ -20,8 +20,12 @@ describe('HomepageSEO', function () {
     it('renders the correct SEO title and description', function () {
         get(route('home'))
             ->assertOk()
+            // The title is visible text (<title>), so assertSeeText works.
+            // The description lives ONLY in meta attribute values, which
+            // assertSeeText strips away — assert the escaped form against
+            // the raw HTML instead.
             ->assertSeeText(__('pages.seo_title_home'))
-            ->assertSeeText(__('pages.seo_description_home'));
+            ->assertSee(e(__('pages.seo_description_home')), false);
     })->group('smoke');
 
     it('includes Organization schema markup', function () {

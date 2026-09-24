@@ -71,6 +71,7 @@ use Escalated\Laravel\Models\TicketStatus;
 use Escalated\Laravel\Models\Webhook;
 use Filament\Facades\Filament;
 use Filament\View\PanelsRenderHook;
+use GuzzleHttp\Client;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -128,16 +129,18 @@ class AppServiceProvider extends ServiceProvider
                 return null;
             }
 
-            // 10s POST timeout instead of the library's 30s default: a
-            // silently-hanging push endpoint otherwise stalls the queued
-            // notification job and delays zombie-endpoint cleanup 3×.
+            // web-push v11 dropped its constructor timeout parameter — timeouts
+            // are configured on the PSR-18 client instead. Keep the 10s POST
+            // timeout (was the library's 30s default): a silently-hanging push
+            // endpoint otherwise stalls the queued notification job and delays
+            // zombie-endpoint cleanup 3×.
             return new WebPush([
                 'VAPID' => [
                     'subject' => config('services.vapid.subject'),
                     'publicKey' => $publicKey,
                     'privateKey' => $privateKey,
                 ],
-            ], [], 10);
+            ], [], new Client(['timeout' => 10]));
         });
 
         // Missing translation tracking — only in local env
