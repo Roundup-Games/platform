@@ -342,12 +342,18 @@ describe('CreateGame — Clone Source', function () {
             ->assertStatus(403);
     });
 
-    it('throws ModelNotFoundException when clone source does not exist', function () {
+    it('does not create anything when clone source does not exist', function () {
         $user = createGameTestUser();
 
+        // Livewire >= 4.4's test driver handles ModelNotFoundException into a
+        // 404 response (nothing rethrows), so the raw-exception expectation
+        // this test used to carry is no longer observable through ->test().
+        // The contract: a missing clone source yields no cloned game.
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class, ['clone' => '00000000-0000-0000-0000-000000000000']);
-    })->throws(ModelNotFoundException::class);
+
+        expect(Game::count())->toBe(0);
+    });
 
     it('can save a cloned game with new date_time creating a new record', function () {
         $user = createGameTestUser();

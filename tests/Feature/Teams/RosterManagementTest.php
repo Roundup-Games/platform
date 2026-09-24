@@ -613,12 +613,15 @@ describe('PendingInvites', function () {
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
-        // findPendingInvite scopes to Auth::id(), so calling with wrong user throws
-        $this->expectException(ModelNotFoundException::class);
-
+        // findPendingInvite scopes to Auth::id(), so calling with wrong user
+        // cannot accept another user's invite. Livewire >= 4.4's test driver
+        // handles the ModelNotFoundException into a 404 response (nothing
+        // rethrows), so assert the contract directly: the invite is untouched.
         Livewire\Livewire::actingAs($user)
             ->test(PendingInvites::class)
             ->call('acceptInvite', $member->id);
+
+        expect($member->fresh()->status)->toBe('pending');
     });
 
     it('cannot decline invite belonging to another user', function () {
@@ -636,11 +639,14 @@ describe('PendingInvites', function () {
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
-        $this->expectException(ModelNotFoundException::class);
-
+        // Livewire >= 4.4's test driver handles the ModelNotFoundException
+        // into a 404 response (nothing rethrows), so assert the contract
+        // directly: the invite is untouched.
         Livewire\Livewire::actingAs($user)
             ->test(PendingInvites::class)
             ->call('declineInvite', $member->id);
+
+        expect($member->fresh()->status)->toBe('pending');
     });
 
     it('shows multiple pending invites from different teams', function () {
