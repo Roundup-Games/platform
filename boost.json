@@ -1,0 +1,18 @@
+{
+    "cloud": true,
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch": false,
+    "sail": false,
+    "skills": [
+        "infer-conventions",
+        "deploying-to-cloud",
+        "cashier-paddle-development",
+        "laravel-best-practices",
+        "testing-best-practices",
+        "configuring-horizon",
+        "socialite-development",
+        "livewire-development",
+        "tailwindcss-development"
+    ]
+}

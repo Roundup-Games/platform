@@ -76,3 +76,11 @@ com[1-9]
 com[1-9].*
 lpt[1-9]
 lpt[1-9].*
+
+# Laravel Boost / Claude Code local-only agent state
+.claude/settings.local.json
+
+# Laravel Boost: nothing generated is tracked (bootstrap: composer install && php artisan boost:install)
+AGENTS.md
+.claude/skills/
+.agents/skills/
