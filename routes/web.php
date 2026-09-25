@@ -24,6 +24,7 @@ use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Campaigns\CampaignsPage;
 use App\Livewire\Campaigns\CreateCampaign;
 use App\Livewire\Campaigns\PublicCampaignDetail;
+use App\Livewire\CityHubs\CityHubPage;
 use App\Livewire\Dashboard;
 use App\Livewire\Discord\GuildSettings;
 use App\Livewire\Discord\OrganizerGuilds;
@@ -222,6 +223,16 @@ Route::prefix('{locale}')
             ->middleware(['auth', 'not.disabled', 'profile.complete'])
             ->name('game-systems.requests.mine');
         Route::get('/game-systems/{slug}', GameSystemDetail::class)->name('game-systems.show')->where('slug', '[a-zA-Z0-9\-]+');
+
+        // ── City Hubs (M062) ────────────────────────────
+
+        // Programmatic-SEO city landing page. CityHubPage::mount() 404s any
+        // slug that does not resolve to a single qualifying city cluster via
+        // CityDirectoryService (upcoming-activity OR verified-venue threshold)
+        // — non-qualifying cities never render a soft empty page.
+        Route::get('/cities/{slug}', CityHubPage::class)
+            ->name('city-hubs.show')
+            ->where('slug', '[a-zA-Z0-9\-]+');
         Route::post('/contact', [PageController::class, 'submitContact'])
             ->middleware('throttle:5,1')
             ->name('contact.submit');
