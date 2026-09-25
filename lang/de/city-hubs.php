@@ -49,4 +49,11 @@ return [
         'venues_cta' => 'Veranstaltungsort-Verzeichnis ansehen',
     ],
 
+    // Locale-spezifisches SEO (T04). :city rendert den kanonischen
+    // Anzeigenamen des Clusters; der Seiten-Suffix kommt aus der SEO-Paket-Konfiguration.
+    'seo' => [
+        'title' => 'Tabletop-Spiele in :city',
+        'description' => 'Anstehende öffentliche Brettspiel-Runden, Kampagnen und Events in :city finden, plus verifizierte Orte zum Spielen.',
+    ],
+
 ];

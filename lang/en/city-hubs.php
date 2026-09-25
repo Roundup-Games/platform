@@ -47,4 +47,11 @@ return [
         'venues_cta' => 'Browse the venue directory',
     ],
 
+    // Per-locale SEO (T04). :city renders the canonical cluster display
+    // name; the site-name suffix is appended by the SEO package config.
+    'seo' => [
+        'title' => 'Tabletop gaming in :city',
+        'description' => 'Find upcoming public board game sessions, campaigns, and events in :city, plus verified venues to play at.',
+    ],
+
 ];

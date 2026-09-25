@@ -6,7 +6,12 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
+use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Mockery;
+use Tests\Helpers\TestablePostHogClient;
 
 use function Pest\Laravel\get;
 
@@ -263,5 +268,116 @@ describe('CityHubPage hub sections', function () {
             // venues empty state renders (translated, links onward).
             ->assertSee(__('city-hubs.empty.venues', ['city' => 'Berlin']))
             ->assertSee(__('city-hubs.empty.venues_cta'));
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// SEO + ANALYTICS (T04) — per-locale SEOData, cityhub.rendered log,
+// PostHog page-view, cityhub.rejected with 404 reason
+// ═══════════════════════════════════════════════════════════
+
+describe('CityHubPage SEO', function () {
+    it('renders the localized SEO title and description', function () {
+        cityHubQualifyingBerlin();
+
+        $response = get(route('city-hubs.show', ['slug' => 'berlin']))->assertOk();
+
+        assertPageTitle($response, __('city-hubs.seo.title', ['city' => 'Berlin']));
+        $response->assertSee(__('city-hubs.seo.description', ['city' => 'Berlin']));
+    });
+
+    it('renders the German SEO title and description under the de locale', function () {
+        cityHubQualifyingBerlin();
+
+        $response = get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))->assertOk();
+
+        assertPageTitle($response, __('city-hubs.seo.title', ['city' => 'Berlin'], 'de'));
+        $response->assertSee(__('city-hubs.seo.description', ['city' => 'Berlin'], 'de'));
+    });
+});
+
+describe('CityHubPage analytics', function () {
+    it('logs cityhub.rendered with the city slug and section counts', function () {
+        Log::spy();
+        cityHubQualifyingBerlin();
+
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertOk();
+
+        Log::shouldHaveReceived('info')
+            ->with('cityhub.rendered', Mockery::on(fn (array $context) => $context['slug'] === 'berlin'
+                && $context['session_count'] === 3
+                && $context['venue_count'] === 0))
+            ->once();
+    });
+
+    it('captures a consent-gated PostHog page-view with a guest fingerprint', function () {
+        $client = new TestablePostHogClient;
+        $this->app->instance(PostHogClient::class, $client);
+        $this->mock(PostHogConsentChecker::class)
+            ->shouldReceive('hasAnalyticsConsent')
+            ->andReturn(true);
+
+        cityHubQualifyingBerlin();
+
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertOk();
+
+        $event = collect($client->capturedCalls)->first(fn (array $call) => $call['event'] === 'cityhub.viewed');
+        expect($event)->not->toBeNull('cityhub.viewed was not captured')
+            ->and($event['distinctId'])->toStartWith('cityhub:')
+            ->and($event['properties']['slug'])->toBe('berlin')
+            ->and($event['properties']['session_count'])->toBe(3)
+            ->and($event['properties']['venue_count'])->toBe(0)
+            ->and($event['properties']['is_authenticated'])->toBeFalse();
+    });
+
+    it('skips the PostHog page-view without analytics consent', function () {
+        $client = new TestablePostHogClient;
+        $this->app->instance(PostHogClient::class, $client);
+        $this->mock(PostHogConsentChecker::class)
+            ->shouldReceive('hasAnalyticsConsent')
+            ->andReturn(false);
+
+        cityHubQualifyingBerlin();
+
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertOk();
+
+        expect($client->capturedCalls)->toBeEmpty();
+    });
+
+    it('logs cityhub.rejected with reason not_found before the 404', function () {
+        Log::spy();
+
+        get(route('city-hubs.show', ['slug' => 'no-such-city']))->assertNotFound();
+
+        Log::shouldHaveReceived('info')
+            ->with('cityhub.rejected', ['slug' => 'no-such-city', 'reason' => 'not_found'])
+            ->once();
+    });
+
+    it('logs cityhub.rejected with reason below_threshold', function () {
+        Log::spy();
+
+        $berlin = cityHubLocation('Berlin', 52.5200, 13.4050);
+        cityHubUpcomingGame($berlin);
+        cityHubUpcomingGame($berlin); // 2 sessions < 3, 0 venues < 2
+
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertNotFound();
+
+        Log::shouldHaveReceived('info')
+            ->with('cityhub.rejected', ['slug' => 'berlin', 'reason' => 'below_threshold'])
+            ->once();
+    });
+
+    it('logs cityhub.rejected with reason ambiguous', function () {
+        Log::spy();
+
+        cityHubLocation('Neustadt', 52.5200, 13.4050); // u33 (Berlin area)
+        cityHubLocation('Neustadt', 53.5511, 9.9937); // u1x (Hamburg area)
+
+        get(route('city-hubs.show', ['slug' => 'neustadt']))->assertNotFound();
+
+        Log::shouldHaveReceived('info')
+            ->with('cityhub.rejected', ['slug' => 'neustadt', 'reason' => 'ambiguous'])
+            ->once();
     });
 });
