@@ -167,7 +167,7 @@ Route::get('locale/switch/{locale}', [LocaleController::class, 'switch'])
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 Route::get('/sitemap-{type}.xml', [SitemapController::class, 'show'])
-    ->where('type', 'static|game-systems|events|games|campaigns|teams|profiles|venues');
+    ->where('type', 'static|game-systems|events|games|campaigns|teams|profiles|venues|cities');
 
 // ── Legacy API Redirects (backward compatibility) ────
 // Old /api/* routes redirect to /api/v1/* equivalents.

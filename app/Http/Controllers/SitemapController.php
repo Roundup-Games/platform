@@ -12,6 +12,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\CityDirectoryService;
 use App\Services\SeoCacheService;
 use Illuminate\Http\Response;
 
@@ -61,6 +62,7 @@ class SitemapController extends Controller
         'teams' => '0.6',
         'profiles' => '0.5',
         'venues' => '0.7',
+        'cities' => '0.7',
     ];
 
     /**
@@ -75,10 +77,12 @@ class SitemapController extends Controller
         'teams' => 'weekly',
         'profiles' => 'weekly',
         'venues' => 'weekly',
+        'cities' => 'daily',
     ];
 
     public function __construct(
         private readonly SeoCacheService $seoCache,
+        private readonly CityDirectoryService $cityDirectory,
     ) {}
 
     /**
@@ -184,6 +188,9 @@ class SitemapController extends Controller
             'venues' => Location::whereNotNull('slug')
                 ->publicVenuePage()
                 ->orderByDesc('updated_at'),
+            'cities' => Location::whereNotNull('city')
+                ->whereNotNull('geohash_4')
+                ->orderByDesc('updated_at'),
             default => null,
         };
 
@@ -209,6 +216,7 @@ class SitemapController extends Controller
             'teams' => $this->getTeamEntries(),
             'profiles' => $this->getProfileEntries(),
             'venues' => $this->getVenueEntries(),
+            'cities' => $this->getCityEntries(),
             default => [],
         };
 
@@ -453,6 +461,42 @@ class SitemapController extends Controller
                     'lastmod' => $venue->updated_at?->toDateString() ?? now()->toDateString(),
                     'changefreq' => self::TYPE_CHANGEFREQ['venues'],
                     'priority' => self::TYPE_PRIORITIES['venues'],
+                ];
+            }
+        }
+
+        return $entries;
+    }
+
+    // ── Cities ─────────────────────────────────────────
+
+    /**
+     * City hubs are session-driven landing pages: eligibility comes from
+     * CityDirectoryService::qualifyingCities() — the same OR-threshold
+     * guard that gates the /cities/{slug} 404 — so the indexed surface can
+     * never drift from what a crawler can actually fetch. lastmod is the
+     * hub's aggregate freshness (max updated_at across the cluster and its
+     * qualifying content), falling back to today for empty clusters.
+     *
+     * @return array<int, array{loc: string, lastmod: string, changefreq: string, priority: string}>
+     */
+    private function getCityEntries(): array
+    {
+        $baseUrl = $this->baseUrl();
+        $entries = [];
+
+        $cities = $this->cityDirectory->qualifyingCities()
+            ->take(self::MAX_ENTITIES_PER_SITEMAP);
+
+        foreach ($cities as $city) {
+            $lastmod = $this->cityDirectory->lastModifiedFor($city)?->toDateString() ?? now()->toDateString();
+
+            foreach ($this->locales() as $locale) {
+                $entries[] = [
+                    'loc' => "{$baseUrl}/{$locale}/cities/{$city->slug}",
+                    'lastmod' => $lastmod,
+                    'changefreq' => self::TYPE_CHANGEFREQ['cities'],
+                    'priority' => self::TYPE_PRIORITIES['cities'],
                 ];
             }
         }

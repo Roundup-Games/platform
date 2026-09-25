@@ -121,6 +121,62 @@ class CityDirectoryService
     }
 
     /**
+     * Sitemap lastmod for one city hub: the max updated_at across the
+     * cluster's locations and every entity the hub's content derives from
+     * — upcoming public games, active public campaigns with an upcoming
+     * in-cluster session, and public upcoming events. Mirrors the count
+     * queries' visibility/status/window semantics exactly, so lastmod moves
+     * exactly when qualifying hub content changes. Null when nothing
+     * relevant exists (the sitemap falls back to today).
+     *
+     * Each query uses orderByDesc + value (not max): value hydrates the
+     * model, so the datetime cast yields a Carbon instead of a raw string.
+     */
+    public function lastModifiedFor(CitySummary $city): ?Carbon
+    {
+        [$from, $to] = $this->upcomingWindow();
+
+        $candidates = [
+            Location::query()
+                ->whereIn('id', $city->locationIds)
+                ->orderByDesc('updated_at')
+                ->value('updated_at'),
+            Game::query()
+                ->whereIn('location_id', $city->locationIds)
+                ->where('visibility', Visibility::Public->value)
+                ->where('status', GameStatus::Scheduled->value)
+                ->whereBetween('date_time', [$from, $to])
+                ->orderByDesc('updated_at')
+                ->value('updated_at'),
+            Campaign::query()
+                ->where('visibility', Visibility::Public->value)
+                ->where('status', CampaignStatus::Active->value)
+                ->whereHas('sessions', fn ($query) => $query
+                    ->whereIn('location_id', $city->locationIds)
+                    ->where('status', GameStatus::Scheduled->value)
+                    ->whereBetween('date_time', [$from, $to]))
+                ->orderByDesc('updated_at')
+                ->value('updated_at'),
+            Event::query()
+                ->whereIn('location_id', $city->locationIds)
+                ->where('is_public', true)
+                ->whereIn('status', [
+                    EventStatus::Published->value,
+                    EventStatus::RegistrationOpen->value,
+                    EventStatus::RegistrationClosed->value,
+                    EventStatus::InProgress->value,
+                ])
+                ->whereBetween('start_date', [$from, $to])
+                ->orderByDesc('updated_at')
+                ->value('updated_at'),
+        ];
+
+        return collect($candidates)
+            ->filter(fn ($updatedAt) => $updatedAt !== null)
+            ->max();
+    }
+
+    /**
      * Upcoming public sessions for the hub's sessions section: future
      * scheduled public games (both discovery forks — the query is not
      * game-system-type scoped, so boardgame and ttrpg sessions surface

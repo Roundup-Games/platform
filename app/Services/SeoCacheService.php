@@ -51,6 +51,7 @@ class SeoCacheService
         'teams',
         'profiles',
         'venues',
+        'cities',
     ];
 
     /** @var array<string, class-string> Maps sitemap type to the model class that triggers invalidation */

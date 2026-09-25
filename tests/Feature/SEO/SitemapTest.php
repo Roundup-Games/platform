@@ -7,6 +7,7 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -39,7 +40,7 @@ describe('Sitemap Index', function () {
     it('lists all expected sub-sitemaps', function () {
         $content = get('/sitemap.xml')->content();
 
-        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'] as $type) {
+        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues', 'cities'] as $type) {
             expect($content)->toContain("/sitemap-{$type}.xml");
         }
     });
@@ -48,7 +49,7 @@ describe('Sitemap Index', function () {
         $content = get('/sitemap.xml')->content();
 
         preg_match_all('/<sitemap>(.*?)<\/sitemap>/s', $content, $blocks);
-        expect($blocks[0])->toHaveCount(8);
+        expect($blocks[0])->toHaveCount(9);
 
         foreach ($blocks[0] as $block) {
             expect($block)->toContain('<lastmod>');
@@ -82,7 +83,7 @@ describe('Sub-Sitemap Routing', function () {
     });
 
     it('returns 200 with XML content for each valid type', function () {
-        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'] as $type) {
+        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues', 'cities'] as $type) {
             get("/sitemap-{$type}.xml")
                 ->assertOk()
                 ->assertHeader('Content-Type', 'application/xml');
@@ -340,6 +341,19 @@ describe('XML Well-Formedness', function () {
             Team::factory()->create(['is_active' => true]);
         } elseif (str_contains($path, 'profiles')) {
             User::factory()->create(['profile_complete' => true, 'is_disabled' => false]);
+        } elseif (str_contains($path, 'cities')) {
+            // A sessions-qualified cluster (3 upcoming public games) so the
+            // cities urlset carries a real entry, not just an empty shell.
+            $cologne = Location::factory()->create([
+                'city' => 'Koeln',
+                'country' => 'DEU',
+                'latitude' => 50.9375,
+                'longitude' => 6.9603,
+            ]);
+            Game::factory()->count(3)->create([
+                'location_id' => $cologne->id,
+                'date_time' => now()->addDays(3),
+            ]);
         }
 
         $content = get($path)->content();
@@ -357,5 +371,6 @@ describe('XML Well-Formedness', function () {
         ['/sitemap-teams.xml', 'urlset'],
         ['/sitemap-profiles.xml', 'urlset'],
         ['/sitemap-venues.xml', 'urlset'],
+        ['/sitemap-cities.xml', 'urlset'],
     ]);
 });

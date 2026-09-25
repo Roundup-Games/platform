@@ -121,7 +121,7 @@ describe('Accessor methods', function () {
         // should not break the suite. The contract that matters is that the
         // known core types are all present and the list is non-empty.
         expect($types)->toBeArray()->not->toBeEmpty();
-        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues'] as $type) {
+        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues', 'cities'] as $type) {
             expect($types)->toContain($type);
         }
     });
