@@ -6,6 +6,7 @@ use App\Enums\GameStatus;
 use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\User;
 use App\Services\GameSystemLandingService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -152,9 +153,8 @@ describe('upcomingTables caching', function () {
         $service = app(GameSystemLandingService::class);
         expect($service->upcomingTables($system))->toBeEmpty();
 
-        // The empty Collection persists — otherwise every empty-system
-        // render would re-run the query (the null-return trap
-        // CityDirectoryService encodes around with its array shape).
+        // The empty result persists as an empty array — otherwise every
+        // empty-system render would re-run the query.
         $table = upcomingTable($system);
 
         expect($service->upcomingTables($system))->toBeEmpty();
@@ -162,5 +162,60 @@ describe('upcomingTables caching', function () {
         Cache::flush();
 
         expect($service->upcomingTables($system)->pluck('id')->all())->toBe([$table->id]);
+    });
+
+    it('stores an object-free payload that survives unserialize with allowed_classes disabled', function () {
+        $system = GameSystem::factory()->create();
+        upcomingTable($system);
+
+        app(GameSystemLandingService::class)->upcomingTables($system);
+
+        // config/cache.php sets 'serializable_classes' => false: the Redis
+        // store unserializes with allowed_classes => false, mangling any
+        // object payload into __PHP_Incomplete_Class. A plain-array payload
+        // must round-trip byte-identically through the same primitive.
+        $payload = Cache::get('gamesystem:upcoming-tables:'.$system->getKey());
+
+        expect($payload)->toBeArray()
+            ->and(unserialize(serialize($payload), ['allowed_classes' => false]))
+            ->toBe($payload);
+    });
+
+    it('hydrates games with relations and participants_count on a cache hit', function () {
+        $system = GameSystem::factory()->create();
+        $game = upcomingTable($system, ['date_time' => now()->addDays(5)]);
+
+        $service = app(GameSystemLandingService::class);
+        $service->upcomingTables($system); // prime the cache
+
+        // Make the row ineligible so any fresh query would exclude it —
+        // the result below can only come from the cached rows.
+        $game->update(['date_time' => now()->subDay()]);
+
+        $tables = $service->upcomingTables($system);
+
+        expect($tables)->toHaveCount(1)
+            ->and($tables->first()->id)->toBe($game->id)
+            ->and($tables->first()->owner)->toBeInstanceOf(User::class)
+            ->and($tables->first()->owner->is($game->owner))->toBeTrue()
+            ->and($tables->first()->gameSystems->pluck('id'))->toContain($system->id)
+            ->and($tables->first()->participants_count)->toBeInt()->toBe(0);
+    });
+
+    it('discards a legacy object cache entry and rebuilds from the database', function () {
+        $system = GameSystem::factory()->create();
+        $game = upcomingTable($system);
+
+        $cacheKey = 'gamesystem:upcoming-tables:'.$system->getKey();
+
+        // Simulate a pre-fix payload: an Eloquent Collection object. Under the
+        // serializable_classes hardening the Redis store hands such payloads
+        // back as __PHP_Incomplete_Class — either way, not an array.
+        Cache::put($cacheKey, collect(), now()->addHour());
+
+        $tables = app(GameSystemLandingService::class)->upcomingTables($system);
+
+        expect($tables->pluck('id')->all())->toBe([$game->id])
+            ->and(Cache::get($cacheKey))->toBeArray();
     });
 });
