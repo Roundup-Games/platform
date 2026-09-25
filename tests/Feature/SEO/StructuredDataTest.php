@@ -72,6 +72,103 @@ describe('JSON-LD Structural Validation', function () {
         expect($firstQuestion['acceptedAnswer']['@type'])->toBe('Answer');
     });
 
+    it('GameSystem page emits ItemList when upcoming public tables exist', function () {
+        $system = GameSystem::factory()->create([
+            'name' => ['en' => 'ItemList Host System'],
+            'slug' => 'itemlist-host-'.Str::random(6),
+            'bgg_average_rating' => null,
+            'bgg_users_rated' => null,
+        ]);
+
+        // Factory defaults are upcoming/public/scheduled; explicit date_time
+        // pins the date_time-asc ordering the positions must reflect.
+        $earlier = Game::factory()->create([
+            'name' => ['en' => 'Earlier Table'],
+            'game_system_id' => $system->id,
+            'date_time' => now()->addDays(3),
+        ]);
+        $later = Game::factory()->create([
+            'name' => ['en' => 'Later Table'],
+            'game_system_id' => $system->id,
+            'date_time' => now()->addDays(10),
+        ]);
+
+        $response = get(route('game-systems.show', $system->slug));
+        $response->assertOk();
+
+        $schemas = extractJsonLdSchemas($response->content());
+        $itemList = findSchemaByType($schemas, 'ItemList');
+        expect($itemList)->not->toBeNull('Missing ItemList schema');
+
+        expect($itemList['numberOfItems'])->toBe(2);
+        expect($itemList['itemListElement'])->toHaveCount(2);
+
+        [$first, $second] = $itemList['itemListElement'];
+
+        expect($first['@type'])->toBe('ListItem');
+        expect($first['position'])->toBe(1);
+        expect($first['name'])->toBe('Earlier Table');
+        expect($first['url'])->toBe(route('games.detail', ['locale' => app()->getLocale(), 'id' => $earlier]));
+        expect(str_starts_with($first['url'], 'http'))->toBeTrue('ListItem url must be absolute');
+
+        expect($second['@type'])->toBe('ListItem');
+        expect($second['position'])->toBe(2);
+        expect($second['name'])->toBe('Later Table');
+        expect($second['url'])->toBe(route('games.detail', ['locale' => app()->getLocale(), 'id' => $later]));
+    });
+
+    it('GameSystem page omits ItemList when no upcoming tables exist', function () {
+        $system = GameSystem::factory()->create([
+            'name' => ['en' => 'Quiet System'],
+            'slug' => 'quiet-system-'.Str::random(6),
+            'sp_rating' => 4.0,
+            'sp_review_count' => 5,
+            'bgg_average_rating' => null,
+            'bgg_users_rated' => null,
+        ]);
+
+        $response = get(route('game-systems.show', $system->slug));
+        $response->assertOk();
+
+        $schemas = extractJsonLdSchemas($response->content());
+        expect(findSchemaByType($schemas, 'ItemList'))->toBeNull('ItemList emitted for a system with no upcoming tables');
+        expect(findSchemaByType($schemas, 'Product'))->not->toBeNull('Product schema must remain present');
+    });
+
+    it('ItemList itemizes public tables only (D141)', function () {
+        $system = GameSystem::factory()->create([
+            'name' => ['en' => 'Mixed Visibility System'],
+            'slug' => 'mixed-visibility-'.Str::random(6),
+            'bgg_average_rating' => null,
+            'bgg_users_rated' => null,
+        ]);
+
+        $public = Game::factory()->create([
+            'name' => ['en' => 'Public Table'],
+            'game_system_id' => $system->id,
+            'visibility' => 'public',
+        ]);
+        Game::factory()->create([
+            'name' => ['en' => 'Protected Table'],
+            'game_system_id' => $system->id,
+            'visibility' => 'protected',
+        ]);
+
+        $response = get(route('game-systems.show', $system->slug));
+        $response->assertOk();
+
+        $schemas = extractJsonLdSchemas($response->content());
+        $itemList = findSchemaByType($schemas, 'ItemList');
+        expect($itemList)->not->toBeNull('Missing ItemList schema');
+
+        expect($itemList['numberOfItems'])->toBe(1);
+        expect($itemList['itemListElement'])->toHaveCount(1);
+        expect($itemList['itemListElement'][0]['@type'])->toBe('ListItem');
+        expect($itemList['itemListElement'][0]['name'])->toBe('Public Table');
+        expect($itemList['itemListElement'][0]['url'])->toBe(route('games.detail', ['locale' => app()->getLocale(), 'id' => $public]));
+        expect(json_encode($itemList))->not->toContain('Protected Table');
+    });
+
     it('Game page emits valid Event JSON-LD with all required properties', function () {
         // Verified commercial venue so Game::buildEventPlace() emits the Place/
         // PostalAddress in the Event schema (stranger disclosure rung = Exact).

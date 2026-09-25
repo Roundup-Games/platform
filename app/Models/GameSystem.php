@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\GameSystemLandingService;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\GameSystemFactory;
 use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
@@ -21,6 +22,8 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\SchemaOrg\AggregateRating;
+use Spatie\SchemaOrg\ItemList;
+use Spatie\SchemaOrg\ListItem;
 use Spatie\SchemaOrg\Product;
 use Spatie\Translatable\HasTranslations;
 
@@ -408,6 +411,26 @@ class GameSystem extends Model implements HasMedia, TicketSubject
                     $faqSchema->addQuestion($faq['question'], $faq['answer']);
                 }
             });
+        }
+
+        // ItemList of upcoming public tables (conditional — only when tables
+        // exist; an empty ItemList would flag the page as thin content, D142).
+        // PUBLIC-only visibility is deliberate (D141): crawlers are guests.
+        // TTL-cached by GameSystemLandingService, so after the component's own
+        // service call this is a cache hit, not a second query.
+        $tables = app(GameSystemLandingService::class)->upcomingTables($this);
+
+        if ($tables->isNotEmpty()) {
+            $itemList = (new ItemList)
+                ->numberOfItems($tables->count())
+                ->itemListElement(
+                    $tables->map(fn (Game $game, int $index) => (new ListItem)
+                        ->position($index + 1)
+                        ->name($game->name)
+                        ->url(route('games.detail', ['locale' => app()->getLocale(), 'id' => $game])))->all()
+                );
+
+            $schema->push($itemList->toArray());
         }
 
         return new SEOData(
