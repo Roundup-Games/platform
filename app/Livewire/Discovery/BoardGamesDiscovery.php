@@ -107,7 +107,7 @@ class BoardGamesDiscovery extends Component
         $this->reset([
             'search', 'game_system_id', 'experience_level', 'vibe_flags',
             'language', 'price', 'complexity_min', 'complexity_max',
-            'date', 'category_ids', 'mechanic_ids', 'radius',
+            'date', 'category_ids', 'mechanic_ids', 'radius', 'city',
         ]);
         $this->usingFallbackRadius = false;
         $this->displayCount = 12;
@@ -130,16 +130,23 @@ class BoardGamesDiscovery extends Component
             || $this->date
             || ! empty($this->category_ids)
             || ! empty($this->mechanic_ids)
-            || $this->radius > 0;
+            || $this->radius > 0
+            || $this->city;
     }
 
     // ── Render ─────────────────────────────────────────
 
     public function render(): View
     {
+        // ?city= folds the canonical to the city's hub when it resolves to a
+        // qualifying cluster; null keeps the transformer's path defaults.
+        [$cityCanonical, $cityAlternates] = $this->citySeo();
+
         seo(new SEOData(
             title: __('discovery.seo_title_browse_board_games'),
             description: __('discovery.seo_description_browse_board_games'),
+            canonical_url: $cityCanonical,
+            alternates: $cityAlternates,
         ));
 
         $service = app(DiscoveryQueryService::class);

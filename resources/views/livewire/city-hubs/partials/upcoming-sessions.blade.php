@@ -50,17 +50,17 @@
         </div>
     @endif
 
-    {{-- Onward links to the full discovery lists. Discovery has no
-         URL-addressable city filter yet (62-03 owns city-filter
-         canonicalization), so these link to the unfiltered forks; the
-         event listing's q filter matches city and stays city-scoped. --}}
+    {{-- Onward links to the full discovery lists, city-scoped via the
+         URL-addressable ?city= filter (62-03): qualifying values canonicalize
+         to this hub, so the links stay on-message for SEO. The event
+         listing's q filter matches city and stays city-scoped. --}}
     <div class="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        <a href="{{ route('discover.board-games', app()->getLocale()) }}" wire:navigate
+        <a href="{{ route('discover.board-games', app()->getLocale()).'?city='.$city->slug }}" wire:navigate
            class="inline-flex items-center gap-1 font-medium text-primary hover:underline">
             {{ __('city-hubs.lists.view_all_board_games') }}
             <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
         </a>
-        <a href="{{ route('discover.adventures', app()->getLocale()) }}" wire:navigate
+        <a href="{{ route('discover.adventures', app()->getLocale()).'?city='.$city->slug }}" wire:navigate
            class="inline-flex items-center gap-1 font-medium text-primary hover:underline">
             {{ __('city-hubs.lists.view_all_adventures') }}
             <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>

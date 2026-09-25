@@ -27,6 +27,8 @@ describe('DiscoveryFilters DTO', function () {
             public array $category_ids = [10, 20];
 
             public array $mechanic_ids = [3];
+
+            public ?string $city = 'koeln';
         };
 
         $dto = DiscoveryFilters::fromLivewire($component);
@@ -42,6 +44,28 @@ describe('DiscoveryFilters DTO', function () {
         expect($dto->price)->toBe('paid');
         expect($dto->categoryIds)->toBe(['10', '20']);
         expect($dto->mechanicIds)->toBe(['3']);
+        expect($dto->citySlug)->toBe('koeln');
+    });
+
+    it('maps the component city to citySlug across present, absent, and null cases', function () {
+        $present = new class
+        {
+            public ?string $city = 'koeln';
+        };
+
+        $null = new class
+        {
+            public ?string $city = null;
+        };
+
+        $absent = new class
+        {
+            // No city property at all (e.g. a component outside the trait)
+        };
+
+        expect(DiscoveryFilters::fromLivewire($present)->citySlug)->toBe('koeln')
+            ->and(DiscoveryFilters::fromLivewire($null)->citySlug)->toBeNull()
+            ->and(DiscoveryFilters::fromLivewire($absent)->citySlug)->toBeNull();
     });
 
     it('handles missing component properties gracefully', function () {

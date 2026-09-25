@@ -119,7 +119,7 @@ class AdventuresDiscovery extends Component
         $this->reset([
             'search', 'game_system_id', 'experience_level', 'vibe_flags',
             'safety_tools', 'language', 'price', 'complexity_min', 'complexity_max',
-            'play_styles', 'session_type', 'session_zero', 'radius',
+            'play_styles', 'session_type', 'session_zero', 'radius', 'city',
         ]);
         $this->usingFallbackRadius = false;
         $this->displayCount = 12;
@@ -143,16 +143,23 @@ class AdventuresDiscovery extends Component
             || ! empty($this->play_styles)
             || $this->session_type
             || $this->session_zero
-            || $this->radius > 0;
+            || $this->radius > 0
+            || $this->city;
     }
 
     // ── Render ─────────────────────────────────────────
 
     public function render(): View
     {
+        // ?city= folds the canonical to the city's hub when it resolves to a
+        // qualifying cluster; null keeps the transformer's path defaults.
+        [$cityCanonical, $cityAlternates] = $this->citySeo();
+
         seo(new SEOData(
             title: __('discovery.seo_title_browse_adventures'),
             description: __('discovery.seo_description_browse_adventures'),
+            canonical_url: $cityCanonical,
+            alternates: $cityAlternates,
         ));
 
         $service = app(DiscoveryQueryService::class);

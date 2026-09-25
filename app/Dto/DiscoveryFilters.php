@@ -16,6 +16,7 @@ class DiscoveryFilters
      * @param  array<int, string>  $safetyTools
      * @param  array<int, string>  $categoryIds  UUIDs of GameSystemCategory records
      * @param  array<int, string>  $mechanicIds  UUIDs of GameSystemMechanic records
+     * @param  string|null  $citySlug  City-hub filter (?city=) — applied only when CityDirectoryService resolves it to a qualifying cluster
      */
     public function __construct(
         public readonly string $search = '',
@@ -29,6 +30,7 @@ class DiscoveryFilters
         public readonly string $price = '',
         public readonly array $categoryIds = [],
         public readonly array $mechanicIds = [],
+        public readonly ?string $citySlug = null,
     ) {}
 
     /**
@@ -53,6 +55,7 @@ class DiscoveryFilters
             price: self::stringOr($component->price ?? ''),
             categoryIds: self::stringArray($component->category_ids ?? []),
             mechanicIds: self::stringArray($component->mechanic_ids ?? []),
+            citySlug: self::stringOrNull($component->city ?? null),
         );
     }
 
@@ -114,6 +117,7 @@ class DiscoveryFilters
             'price' => $this->price,
             'categoryIds' => $this->categoryIds,
             'mechanicIds' => $this->mechanicIds,
+            'citySlug' => $this->citySlug,
         ];
     }
 }

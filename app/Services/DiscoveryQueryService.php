@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Dto\CitySummary;
 use App\Dto\DiscoveryFilters;
 use App\Dto\ProximityResult;
 use App\Enums\GameType;
@@ -59,7 +60,20 @@ class DiscoveryQueryService
 
     public function __construct(
         private readonly ProximityQuery $proximity,
-    ) {}
+        ?CityDirectoryService $cityDirectory = null,
+    ) {
+        // Nullable default keeps manual construction with just a
+        // ProximityQuery working (tests); the container injects this
+        // explicitly. CityDirectoryService has no dependencies.
+        $this->cityDirectory = $cityDirectory ?? app(CityDirectoryService::class);
+    }
+
+    /** Memoized ?city= filter resolution for the current render (see resolveCityFilter). */
+    private readonly CityDirectoryService $cityDirectory;
+
+    private ?CitySummary $cityFilterSummary = null;
+
+    private bool $cityFilterResolved = false;
 
     // ── Shared filter application ──────────────────────
 
@@ -277,6 +291,13 @@ class DiscoveryQueryService
 
         $this->applySharedFilters($query, 'price', $filters);
 
+        // City-hub filter (?city=): a pure additive constraint — an absent or
+        // inert slug leaves the query untouched. The cluster location set
+        // always comes from CityDirectoryService (single authority), never
+        // re-derived here.
+        $citySummary = $this->resolveCityFilter($filters);
+        $query->when($citySummary !== null, fn ($q) => $q->whereIn('location_id', $citySummary->locationIds));
+
         // Games-specific: date range
         $query->when($date === 'upcoming', fn ($q) => $q->where('date_time', '>=', now()));
         $query->when($date === 'this_week', fn ($q) => $q->whereBetween('date_time', [now()->startOfWeek(), now()->endOfWeek()]));
@@ -320,6 +341,13 @@ class DiscoveryQueryService
 
         $this->applySharedFilters($query, 'price_per_session', $filters);
 
+        // City-hub filter mirrors CityDirectoryService::countUpcomingCampaigns():
+        // campaign city membership flows through session locations
+        // (games.location_id via the sessions relation), so a campaign based
+        // outside the city with sessions inside it still matches.
+        $citySummary = $this->resolveCityFilter($filters);
+        $query->when($citySummary !== null, fn ($q) => $q->whereHas('sessions', fn ($s) => $s->whereIn('location_id', $citySummary->locationIds)));
+
         // Campaigns-specific: recurrence
         if ($recurrence) {
             $query->where('recurrence', $recurrence);
@@ -331,6 +359,35 @@ class DiscoveryQueryService
         }
 
         return $query->orderBy('created_at', 'desc');
+    }
+
+    // ── City-filter resolution ────────────────────────
+
+    /**
+     * Resolve the ?city= filter to its qualifying cluster summary, or null.
+     *
+     * Only a slug that CityDirectoryService resolves to a single city
+     * cluster AND that passes the hub qualification thresholds filters
+     * results — a city without a hub must not silently narrow discovery.
+     * Memoized per service instance (per render via app()): both the games
+     * and campaigns builders in one render share one resolution, which is
+     * itself cached by the service (900s) so repeat calls are cache hits.
+     */
+    private function resolveCityFilter(DiscoveryFilters $filters): ?CitySummary
+    {
+        if (! $this->cityFilterResolved) {
+            $this->cityFilterResolved = true;
+
+            $summary = filled($filters->citySlug)
+                ? $this->cityDirectory->resolveCity($filters->citySlug)
+                : null;
+
+            $this->cityFilterSummary = ($summary !== null && $this->cityDirectory->isQualifying($summary))
+                ? $summary
+                : null;
+        }
+
+        return $this->cityFilterSummary;
     }
 
     // ── Proximity helpers ──────────────────────────────
