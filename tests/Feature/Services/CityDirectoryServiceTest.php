@@ -120,6 +120,53 @@ describe('resolveCity cluster resolution', function () {
             ->and($service->resolveStatus('neustadt'))->toBe(CityDirectoryService::STATUS_AMBIGUOUS);
     });
 
+    it('resolves an umlaut city under exactly its Str::slug output, keeping ASCII spellings distinct', function () {
+        cityLocation('München', 48.1351, 11.5820); // u28 (Munich region)
+
+        $service = app(CityDirectoryService::class);
+        $slug = Str::slug('München');
+
+        // Known value, not re-derived implementation logic: ü transliterates
+        // to a plain u, so the canonical URL slug is ASCII 'munchen'.
+        expect($slug)->toBe('munchen');
+
+        $summary = $service->resolveCity('München');
+
+        expect($summary)->not->toBeNull()
+            ->and($summary->slug)->toBe($slug)
+            ->and($summary->city)->toBe('München')
+            ->and($service->resolveCity('munchen')->slug)->toBe($slug)
+            ->and($service->resolveStatus($slug))->toBe(CityDirectoryService::STATUS_OK);
+
+        // The ASCII spelling 'Muenchen' slugs differently, so it must NOT
+        // alias into the München cluster — city matching is exact
+        // Str::slug equality, never fuzzy.
+        expect(Str::slug('Muenchen'))->toBe('muenchen')
+            ->and($service->resolveCity('muenchen'))->toBeNull()
+            ->and($service->resolveStatus('muenchen'))->toBe(CityDirectoryService::STATUS_NOT_FOUND);
+    });
+
+    it('never merges a city-name collision even when both regions independently qualify', function () {
+        // Two Neustadts, each with enough activity to qualify alone. A
+        // merge (or pick-the-active-cluster) regression would produce a
+        // resolvable 6-session cluster — resolution must stay null.
+        $berlinArea = cityLocation('Neustadt', 52.5200, 13.4050); // u33
+        $hamburgArea = cityLocation('Neustadt', 53.5511, 9.9937); // u1x
+        for ($i = 0; $i < 3; $i++) {
+            upcomingGame($berlinArea);
+            upcomingGame($hamburgArea);
+        }
+
+        $service = app(CityDirectoryService::class);
+
+        expect($service->resolveCity('neustadt'))->toBeNull()
+            ->and($service->resolveStatus('neustadt'))->toBe(CityDirectoryService::STATUS_AMBIGUOUS);
+
+        // And the collision is never surfaced as a qualifying hub city.
+        expect($service->qualifyingCities()->pluck('slug')->all())
+            ->not->toContain('neustadt');
+    });
+
     it('returns null with not_found for an empty slug', function () {
         $service = app(CityDirectoryService::class);
 
@@ -383,5 +430,52 @@ describe('per-city summary caching', function () {
 
         expect($service->resolveCity('kiel'))->not->toBeNull()
             ->and($service->resolveCity('kiel')->upcomingGamesCount)->toBe(3);
+    });
+
+    it('returns an identical summary across repeated resolutions', function () {
+        $berlin = cityLocation('Berlin', 52.5200, 13.4050);
+        upcomingGame($berlin);
+        upcomingGame($berlin);
+        upcomingGame($berlin);
+
+        $service = app(CityDirectoryService::class);
+        $first = $service->resolveCity('berlin');
+
+        // Consistent across requests: the cached round-trip
+        // (toArray/fromArray) must be lossless and stable, whether the
+        // summary came fresh from the DB or from the cache store (Redis
+        // in production, array under phpunit — expiry semantics are
+        // store-agnostic and asserted in the TTL test below).
+        expect($service->resolveCity('berlin')->toArray())->toEqual($first->toArray());
+    });
+
+    it('expires the per-city summary after the configured TTL and recomputes', function () {
+        config(['cityhubs.cache_ttl' => 60]);
+
+        $berlin = cityLocation('Berlin', 52.5200, 13.4050);
+        upcomingGame($berlin);
+        upcomingGame($berlin);
+        upcomingGame($berlin);
+
+        $service = app(CityDirectoryService::class);
+
+        expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(3);
+
+        upcomingGame($berlin);
+        upcomingGame($berlin);
+
+        // Still inside the TTL: the cached summary wins.
+        expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(3);
+
+        $this->travelTo(now()->addSeconds(61));
+
+        expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(5);
+    });
+
+    it('keeps the hub cache TTL aligned with the discovery cache TTL', function () {
+        // Same staleness class as discovery (T05 contract): both default
+        // to 900s and share the env-tuning pattern. Drift here changes
+        // how stale a hub can be relative to every discovery page.
+        expect((int) config('cityhubs.cache_ttl'))->toBe((int) config('discovery.cache_ttl'));
     });
 });

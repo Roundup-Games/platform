@@ -120,6 +120,24 @@ describe('CityHubPage render', function () {
             ->assertSee('München')
             ->assertSee(__('city-hubs.heading', ['city' => 'München']));
     });
+
+    it('switches heading and section copy between the en and de locales', function () {
+        cityHubQualifyingBerlin();
+
+        // Known literals from lang/en|de/city-hubs.php — asserting the
+        // files' actual copy, not a re-derivation of it.
+        $en = get(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee('Tabletop gaming in Berlin')
+            ->assertSee('Upcoming Sessions')
+            ->assertDontSee('Tabletop-Spiele in Berlin');
+
+        $de = get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee('Tabletop-Spiele in Berlin')
+            ->assertSee('Verifizierte Veranstaltungsorte')
+            ->assertDontSee('Tabletop gaming in Berlin');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -152,6 +170,44 @@ describe('CityHubPage 404 guard', function () {
     it('404s slugs outside the route regex', function () {
         // Underscores never match [a-zA-Z0-9\-]+ (same shape as game-systems).
         get('/en/cities/not_a_city')->assertNotFound();
+    });
+
+    it('404s a city-name collision even when each region would independently qualify', function () {
+        // Two Neustadts, each with 3 sessions: a merge regression would
+        // combine them into a resolvable 6-session cluster and render —
+        // it must 404 instead.
+        $berlinArea = cityHubLocation('Neustadt', 52.5200, 13.4050); // u33
+        $hamburgArea = cityHubLocation('Neustadt', 53.5511, 9.9937); // u1x
+        for ($i = 0; $i < 3; $i++) {
+            cityHubUpcomingGame($berlinArea);
+            cityHubUpcomingGame($hamburgArea);
+        }
+
+        get(route('city-hubs.show', ['slug' => 'neustadt']))->assertNotFound();
+    });
+
+    it('starts 404ing once activity falls out of the window and the cache TTL has passed', function () {
+        config(['cityhubs.cache_ttl' => 60]);
+
+        $berlin = cityHubLocation('Berlin', 52.5200, 13.4050);
+        cityHubUpcomingGame($berlin, ['date_time' => now()->addDays(3)]);
+        cityHubUpcomingGame($berlin, ['date_time' => now()->addDays(4)]);
+        cityHubUpcomingGame($berlin, ['date_time' => now()->addDays(5)]);
+
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertOk();
+
+        Log::spy();
+
+        // Beyond the TTL (60s) and past all three session dates: the
+        // recomputed summary has zero upcoming activity, so the guard
+        // 404s with the below_threshold reason.
+        $this->travelTo(now()->addDays(10));
+
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertNotFound();
+
+        Log::shouldHaveReceived('info')
+            ->with('cityhub.rejected', ['slug' => 'berlin', 'reason' => 'below_threshold'])
+            ->once();
     });
 });
 
@@ -379,5 +435,24 @@ describe('CityHubPage analytics', function () {
         Log::shouldHaveReceived('info')
             ->with('cityhub.rejected', ['slug' => 'neustadt', 'reason' => 'ambiguous'])
             ->once();
+    });
+
+    it('logs cityhub.rejected below_threshold on every request, cached or fresh', function () {
+        Log::spy();
+
+        $berlin = cityHubLocation('Berlin', 52.5200, 13.4050);
+        cityHubUpcomingGame($berlin);
+        cityHubUpcomingGame($berlin); // 2 sessions < 3, 0 venues < 2
+
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertNotFound();
+
+        // The second request resolves from the cached ok-status summary;
+        // the guard must re-evaluate it and reject again — a cached
+        // summary must never serve a hub to a below-threshold city.
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertNotFound();
+
+        Log::shouldHaveReceived('info')
+            ->with('cityhub.rejected', ['slug' => 'berlin', 'reason' => 'below_threshold'])
+            ->twice();
     });
 });
