@@ -163,6 +163,12 @@ return [
     'heading_game_sessions' => 'Active Sessions & Campaigns',
     'content_sessions_using_this_system' => 'There are currently :sessions game sessions and :campaigns campaigns using this system.',
     'action_find_sessions' => 'Find sessions',
+    // Upcoming tables module (M062 / 62-02)
+    'heading_upcoming_tables' => 'Upcoming Tables',
+    'content_upcoming_tables_intro' => 'These upcoming tables are open for players — reserve your seat and join a session.',
+    'empty_upcoming_tables_intro' => 'No tables for :system are scheduled right now. New sessions are posted all the time — check back soon.',
+    'empty_upcoming_tables_cta' => 'Explore sessions with this game',
+    'content_check_back_soon' => 'Check back soon for new sessions.',
     'action_add_to_favorites' => 'Add to favorites',
     'action_remove_from_favorites' => 'Remove from favorites',
     'action_add_to_avoid_list' => 'Add to avoid list',

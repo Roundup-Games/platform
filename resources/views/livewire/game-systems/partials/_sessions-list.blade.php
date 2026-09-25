@@ -32,7 +32,7 @@
                 </div>
             @else
                 <p class="text-sm text-on-surface-variant mb-4">
-                    {{ __('games.content_no_game_systems_available_yet_short') }}
+                    {{ __('games.content_check_back_soon') }}
                 </p>
                 <a href="{{ route($sessionRoute, ['game_system_id' => $system->id]) }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-container-high text-on-surface-variant rounded-xl text-sm font-medium hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">explore</span>

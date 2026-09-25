@@ -446,3 +446,93 @@ describe('GameSystemDetail - dispatches events', function () {
             ->assertDispatched('preference-updated');
     });
 });
+
+describe('GameSystemDetail - upcoming tables module', function () {
+    // GameFactory defaults are already upcoming/public/scheduled (future
+    // date_time 1-30 days), so positive cases only pass game_system_id — the
+    // Game write-side bridge syncs the offered-systems pivot (same convention
+    // as GameSystemLandingServiceTest).
+    it('renders upcoming tables as linked game cards', function () {
+        $system = GameSystem::factory()->create([
+            'slug' => 'upcoming-tables-system',
+            'name' => ['en' => 'Upcoming Tables System'],
+        ]);
+        $game = Game::factory()->create([
+            'game_system_id' => $system->id,
+            'name' => ['en' => 'Grand Open Table Night'],
+        ]);
+
+        get("/en/game-systems/{$system->slug}")
+            ->assertOk()
+            ->assertSee(__('games.heading_upcoming_tables'))
+            ->assertSee(__('games.content_upcoming_tables_intro'))
+            ->assertSee('Grand Open Table Night')
+            ->assertSee(route('games.detail', ['locale' => 'en', 'id' => $game]));
+    });
+
+    it('renders the evergreen fallback with a discovery link when no upcoming tables exist', function () {
+        $system = GameSystem::factory()->create([
+            'slug' => 'evergreen-system',
+            'name' => ['en' => 'Evergreen System'],
+        ]);
+
+        $en = get("/en/game-systems/{$system->slug}")
+            ->assertOk()
+            ->assertSee(__('games.empty_upcoming_tables_intro', ['system' => 'Evergreen System']))
+            ->assertSee(__('games.empty_upcoming_tables_cta'))
+            ->assertSee(route('discover.board-games', ['locale' => 'en', 'game_system_id' => $system->id]))
+            // The card grid must not render at all — the fallback replaces it.
+            ->assertDontSee('sm:grid-cols-2 lg:grid-cols-3 gap-4');
+
+        // German fallback renders the de copy (known literals from
+        // lang/de/games.php, CityHubPageTest's locale-switch pattern).
+        $de = get("/de/game-systems/{$system->slug}")
+            ->assertOk()
+            ->assertSee('Anstehende Spielrunden')
+            ->assertSee('Für Evergreen System sind gerade keine Runden geplant.')
+            ->assertSee('Sitzungen mit diesem Spiel entdecken');
+    });
+
+    it('links the ttrpg fallback to oneshot adventures discovery', function () {
+        $system = GameSystem::factory()->create([
+            'slug' => 'ttrpg-fallback-system',
+            'name' => ['en' => 'Ttrpg Fallback System'],
+            'type' => 'ttrpg',
+        ]);
+
+        get("/en/game-systems/{$system->slug}")
+            ->assertOk()
+            ->assertSee(__('games.empty_upcoming_tables_intro', ['system' => 'Ttrpg Fallback System']))
+            ->assertSee(route('discover.adventures', ['locale' => 'en', 'game_system_id' => $system->id, 'session_type' => 'oneshot']))
+            ->assertDontSee(route('discover.board-games', ['locale' => 'en', 'game_system_id' => $system->id]));
+    });
+
+    it('excludes private and protected games from the module', function () {
+        $system = GameSystem::factory()->create([
+            'slug' => 'visibility-system',
+            'name' => ['en' => 'Visibility System'],
+        ]);
+
+        Game::factory()->create([
+            'game_system_id' => $system->id,
+            'name' => ['en' => 'Open To Everyone'],
+            'visibility' => 'public',
+        ]);
+        Game::factory()->create([
+            'game_system_id' => $system->id,
+            'name' => ['en' => 'Friends Only Circle'],
+            'visibility' => 'protected',
+        ]);
+        Game::factory()->create([
+            'game_system_id' => $system->id,
+            'name' => ['en' => 'Hidden Secret Table'],
+            'visibility' => 'private',
+        ]);
+
+        get("/en/game-systems/{$system->slug}")
+            ->assertOk()
+            ->assertSee('Open To Everyone')
+            ->assertDontSee('Friends Only Circle')
+            ->assertDontSee('Hidden Secret Table');
+    });
+});

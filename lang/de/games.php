@@ -152,6 +152,12 @@ return [
     'heading_game_sessions' => 'Aktive Sitzungen & Kampagnen',
     'content_sessions_using_this_system' => 'Aktuell gibt es :sessions Spielsitzungen und :campaigns Kampagnen mit diesem System.',
     'action_find_sessions' => 'Sitzungen finden',
+    // Modul „Anstehende Spielrunden“ (M062 / 62-02)
+    'heading_upcoming_tables' => 'Anstehende Spielrunden',
+    'content_upcoming_tables_intro' => 'Diese anstehenden Runden sind offen für Mitspieler — sichere dir jetzt deinen Platz.',
+    'empty_upcoming_tables_intro' => 'Für :system sind gerade keine Runden geplant. Neue Sitzungen werden laufend eingestellt — schau bald wieder vorbei.',
+    'empty_upcoming_tables_cta' => 'Sitzungen mit diesem Spiel entdecken',
+    'content_check_back_soon' => 'Schau bald wieder vorbei — neue Sitzungen folgen.',
     'action_add_to_favorites' => 'Zu Favoriten hinzufügen',
     'action_remove_from_favorites' => 'Aus Favoriten entfernen',
     'action_add_to_avoid_list' => 'Zur Meideliste hinzufügen',

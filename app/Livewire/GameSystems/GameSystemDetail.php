@@ -3,6 +3,7 @@
 namespace App\Livewire\GameSystems;
 
 use App\Models\GameSystem;
+use App\Services\GameSystemLandingService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -179,8 +180,12 @@ class GameSystemDetail extends Component
 
         seo()->for($system);
 
+        // MEM164: derived values are explicit view data, never lazy Blade
+        // resolution. TTL-cached by GameSystemLandingService, so this call and
+        // the ItemList JSON-LD built inside seo()->for() above share one query.
         return view('livewire.game-systems.game-system-detail', [
             'system' => $system,
+            'upcomingTables' => app(GameSystemLandingService::class)->upcomingTables($system),
         ]);
     }
 }

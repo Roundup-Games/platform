@@ -24,6 +24,9 @@
         {{-- Base game + Expansions --}}
         @include('livewire.game-systems.partials._related-systems')
 
+        {{-- Upcoming public tables (SEO landing module, M062 / 62-02) --}}
+        @include('livewire.game-systems.partials._upcoming-tables')
+
         {{-- Active Sessions & Campaigns --}}
         @include('livewire.game-systems.partials._sessions-list')
     </div>
