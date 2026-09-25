@@ -389,7 +389,7 @@ describe('qualifyingCities', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('per-city summary caching', function () {
-    it('serves repeat resolutions from the cache until flushed', function () {
+    it('serves repeat resolutions from the cache until invalidated', function () {
         $berlin = cityLocation('Berlin', 52.5200, 13.4050);
         upcomingGame($berlin);
         upcomingGame($berlin);
@@ -398,16 +398,15 @@ describe('per-city summary caching', function () {
         $service = app(CityDirectoryService::class);
 
         expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(3);
-
-        // New activity after the first resolution must NOT leak into the
-        // cached summary — the TTL is the staleness bound until 62-03 wires
-        // invalidation.
-        upcomingGame($berlin);
-        upcomingGame($berlin);
-
+        // Repeat resolution with no intervening save: served from cache.
         expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(3);
 
-        Cache::flush();
+        // New activity surfaces immediately: since 62-03-T04 the
+        // CityHubCacheObserver flushes the affected summary on every
+        // Game/Event/Location save — the TTL is no longer the staleness
+        // bound for those models (campaign-side drift still rides it).
+        upcomingGame($berlin);
+        upcomingGame($berlin);
 
         expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(5);
     });
@@ -417,16 +416,17 @@ describe('per-city summary caching', function () {
 
         expect($service->resolveCity('kiel'))->toBeNull();
 
-        // The city springs into existence after the miss was cached.
+        // Repeat miss served from the negative cache.
+        expect($service->resolveCity('kiel'))->toBeNull()
+            ->and($service->resolveStatus('kiel'))->toBe(CityDirectoryService::STATUS_NOT_FOUND);
+
+        // The city springs into existence after the miss was cached. The
+        // Location/Game saves flush the negative entry (62-03-T04), so the
+        // city surfaces immediately instead of lingering until the TTL.
         $kiel = cityLocation('Kiel', 54.3233, 10.1394);
         upcomingGame($kiel);
         upcomingGame($kiel);
         upcomingGame($kiel);
-
-        expect($service->resolveCity('kiel'))->toBeNull()
-            ->and($service->resolveStatus('kiel'))->toBe(CityDirectoryService::STATUS_NOT_FOUND);
-
-        Cache::flush();
 
         expect($service->resolveCity('kiel'))->not->toBeNull()
             ->and($service->resolveCity('kiel')->upcomingGamesCount)->toBe(3);
@@ -461,15 +461,17 @@ describe('per-city summary caching', function () {
 
         expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(3);
 
-        upcomingGame($berlin);
-        upcomingGame($berlin);
+        // Drift that bypasses model events (mass QueryBuilder update —
+        // the same class as campaign-side changes, which deliberately
+        // ride the TTL): nothing flushes the summary, so inside the TTL
+        // the cached summary still wins.
+        Game::query()->where('location_id', $berlin->id)->update(['date_time' => now()->subDay()]);
 
-        // Still inside the TTL: the cached summary wins.
         expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(3);
 
         $this->travelTo(now()->addSeconds(61));
 
-        expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(5);
+        expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(0);
     });
 
     it('keeps the hub cache TTL aligned with the discovery cache TTL', function () {

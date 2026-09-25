@@ -17,6 +17,7 @@ use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\Review;
 use App\Models\Team;
 use App\Models\User;
@@ -26,6 +27,7 @@ use App\Notifications\Channels\PushChannel;
 use App\Observers\ActivityLogObserver;
 use App\Observers\CampaignObserver;
 use App\Observers\CampaignParticipantObserver;
+use App\Observers\CityHubCacheObserver;
 use App\Observers\GameBulletinObserver;
 use App\Observers\GameObserver;
 use App\Observers\GameParticipantObserver;
@@ -475,6 +477,14 @@ class AppServiceProvider extends ServiceProvider
         Campaign::observe($seoObserver);
         Team::observe($seoObserver);
         User::observe($seoObserver);
+
+        // City hub cache invalidation (M062/62-03): Game/Event/Location saves
+        // can move a city's qualifying counts — flush the affected city
+        // summary caches plus the cities sitemap and index.
+        $cityObserver = $this->app->make(CityHubCacheObserver::class);
+        Game::observe($cityObserver);
+        Event::observe($cityObserver);
+        Location::observe($cityObserver);
 
         // Activity logging observers — resilient, never block primary actions
         $activityObserver = $this->app->make(ActivityLogObserver::class);

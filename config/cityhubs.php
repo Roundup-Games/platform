@@ -40,8 +40,9 @@ return [
     |
     | Per-city summaries (cluster + activity counts) are cached for this many
     | seconds, aligned with the discovery cache TTL default (900 = 15 min).
-    | Invalidation wiring lands with the sitemap task (62-03); until then the
-    | TTL is the sole staleness bound.
+    | Game/Event/Location saves flush the affected summary eagerly via
+    | CityHubCacheObserver (62-03-T04); the TTL is now the staleness bound
+    | only for campaign-side drift, which deliberately rides it.
     |
     */
 

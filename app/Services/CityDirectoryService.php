@@ -230,6 +230,18 @@ class CityDirectoryService
     }
 
     /**
+     * Forget one city's cached resolution (summary + status). The single
+     * external flush hook for city summary caches: CACHE_PREFIX is private
+     * so callers cannot re-key the cache themselves — invalidation goes
+     * through here (CityHubCacheObserver, and 62-04's curated-city save
+     * flush). A plain Cache::forget; the next resolveCity() recomputes.
+     */
+    public function forget(string $slug): void
+    {
+        Cache::forget(self::CACHE_PREFIX.Str::slug($slug));
+    }
+
+    /**
      * Cache wrapper. The closure ALWAYS returns an array — Cache::remember
      * does not persist null returns (they re-run the closure), so negative
      * resolutions are encoded as status-only arrays instead.
