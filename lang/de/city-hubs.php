@@ -30,4 +30,23 @@ return [
         'venues' => 'Verifizierte Veranstaltungsorte',
     ],
 
+    // Weiterleitungs-Links am Ende jedes Abschnitts (T03).
+    'lists' => [
+        'view_all_board_games' => 'Alle Brettspiel-Sitzungen ansehen',
+        'view_all_adventures' => 'Alle Abenteuer ansehen',
+        'view_all_events' => 'Events in :city',
+        'view_all_venues' => 'Alle Veranstaltungsorte in :city',
+    ],
+
+    // Ein qualifizierter Cluster kann trotzdem einen leeren Abschnitt
+    // haben (über Venues qualifizierte Städte ohne Sitzungen; über
+    // Sitzungen qualifizierte Städte ohne Venues). Leerzustände verlinken
+    // immer weiter — nie ein totes Panel.
+    'empty' => [
+        'upcoming_sessions' => 'In :city sind derzeit keine öffentlichen Sitzungen geplant.',
+        'upcoming_sessions_cta' => 'Sitzung finden oder starten',
+        'venues' => 'Für :city sind noch keine verifizierten Veranstaltungsorte eingetragen.',
+        'venues_cta' => 'Veranstaltungsort-Verzeichnis ansehen',
+    ],
+
 ];

@@ -13,13 +13,15 @@ use Livewire\Component;
  * Public city hub page at /{locale}/cities/{slug} (M062/S01).
  *
  * Programmatic-SEO landing page aggregating a city cluster's upcoming
- * public activity and verified venues (the list sections land with T03).
- * Mirrors the GameSystemDetail/VenueDetail full-page pattern with a
- * safety-critical 404 gate: only slugs that resolve to a single
- * qualifying city cluster render. CityDirectoryService is the single
- * authority for both resolution and thresholds, so the "which cities get
- * a hub" rule can never drift across surfaces (this route, the sitemap,
- * and cross-links all ask it).
+ * public activity and verified venues: the sessions section merges
+ * games (both discovery forks), campaigns, and events chronologically,
+ * and the venues section lists public-venue-page locations via
+ * <x-venue-link>. Mirrors the GameSystemDetail/VenueDetail full-page
+ * pattern with a safety-critical 404 gate: only slugs that resolve to a
+ * single qualifying city cluster render. CityDirectoryService is the
+ * single authority for both resolution and thresholds, so the "which
+ * cities get a hub" rule can never drift across surfaces (this route,
+ * the sitemap, and cross-links all ask it).
  *
  * The route parameter is {slug} and mount() must match it by name —
  * Livewire binds route params to mount params by identifier (kebab-case
@@ -67,8 +69,13 @@ class CityHubPage extends Component
 
     public function render(): View
     {
+        $city = $this->resolveCity();
+        $directory = app(CityDirectoryService::class);
+
         return view('livewire.city-hubs.city-hub-page', [
-            'city' => $this->resolveCity(),
+            'city' => $city,
+            'sessions' => $directory->upcomingSessions($city),
+            'venues' => $directory->verifiedVenues($city),
         ]);
     }
 }

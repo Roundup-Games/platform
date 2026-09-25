@@ -6,11 +6,13 @@ use App\Dto\CitySummary;
 use App\Enums\CampaignStatus;
 use App\Enums\EventStatus;
 use App\Enums\GameStatus;
+use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -42,6 +44,14 @@ class CityDirectoryService
     private const CLUSTER_GEOHASH_PREFIX_LENGTH = 3;
 
     private const CACHE_PREFIX = 'city-hubs:summary:';
+
+    /**
+     * Max items rendered per hub section (T03). Each source query is
+     * SQL-limited to this size and the merged sessions section is re-cut
+     * to it after chronological sorting, so a hub render is bounded at
+     * 4 fixed-cost queries regardless of city size.
+     */
+    public const SECTION_LIMIT = 12;
 
     public const STATUS_OK = 'ok';
 
@@ -108,6 +118,59 @@ class CityDirectoryService
             ->filter(fn (?CitySummary $summary) => $summary !== null)
             ->filter(fn (CitySummary $summary) => $this->isQualifying($summary))
             ->values();
+    }
+
+    /**
+     * Upcoming public sessions for the hub's sessions section: future
+     * scheduled public games (both discovery forks — the query is not
+     * game-system-type scoped, so boardgame and ttrpg sessions surface
+     * together), active public campaigns with an upcoming in-cluster
+     * session, and public events at cluster locations. Matches the guard
+     * counts' visibility/status/window semantics exactly, so what a hub
+     * qualifies on is what it can list.
+     *
+     * Items are merged chronologically (game date_time / campaign next
+     * session / event start_date) and each is tagged with runtime
+     * attributes — hub_item_type ('game'|'campaign'|'event') and
+     * hub_sort_at (Carbon) — the same tagged-attribute pattern discovery
+     * uses for discoverable_type, letting one Blade loop render mixed
+     * entities with the existing card partials.
+     *
+     * @return Collection<int, Game|Campaign|Event>
+     */
+    public function upcomingSessions(CitySummary $city): Collection
+    {
+        [$from, $to] = $this->upcomingWindow();
+
+        $games = $this->upcomingGamesFor($city->locationIds, $from, $to);
+        $campaigns = $this->upcomingCampaignsFor($city->locationIds, $from, $to);
+        $events = $this->upcomingEventsFor($city->locationIds, $from, $to);
+
+        return $games
+            ->merge($campaigns)
+            ->merge($events)
+            ->sortBy(fn (Game|Campaign|Event $item) => $item->hub_sort_at)
+            ->take(self::SECTION_LIMIT)
+            ->values();
+    }
+
+    /**
+     * Verified venues for the hub's venues section — the same eligibility
+     * rule as countVerifiedVenues (publicVenuePage scope + slug), so the
+     * listed set can never disagree with the count that qualified the
+     * city. Ordered by name for a stable, deterministic listing.
+     *
+     * @return Collection<int, Location>
+     */
+    public function verifiedVenues(CitySummary $city): Collection
+    {
+        return Location::query()
+            ->whereIn('id', $city->locationIds)
+            ->publicVenuePage()
+            ->whereNotNull('slug')
+            ->orderBy('name')
+            ->limit(self::SECTION_LIMIT)
+            ->get();
     }
 
     /**
@@ -282,6 +345,120 @@ class CityDirectoryService
             ->publicVenuePage()
             ->whereNotNull('slug')
             ->count();
+    }
+
+    // ── Section list queries (T03) ────────────────────────────────────────
+
+    /**
+     * Upcoming public games list for the sessions section — the same query
+     * shape as countUpcomingGames plus discovery's eager loads (owner,
+     * gameSystems, campaign, linkedLocation, approved participant count) so
+     * the existing game-card partial renders hub items unchanged. Not
+     * scoped by game-system type: boardgame and ttrpg sessions (both
+     * discovery forks) surface together.
+     *
+     * @param  array<int, string>  $locationIds
+     * @return Collection<int, Game>
+     */
+    private function upcomingGamesFor(array $locationIds, Carbon $from, Carbon $to): Collection
+    {
+        return Game::query()
+            ->whereIn('location_id', $locationIds)
+            ->where('visibility', Visibility::Public->value)
+            ->where('status', GameStatus::Scheduled->value)
+            ->whereBetween('date_time', [$from, $to])
+            ->with(['owner', 'gameSystems', 'campaign', 'linkedLocation'])
+            ->withCount(['participants as participants_count' => fn ($query) => $query
+                ->where('status', ParticipantStatus::Approved->value)])
+            ->withCount(['participants as waitlisted_count' => fn ($query) => $query
+                ->where('status', ParticipantStatus::Waitlisted->value)])
+            ->withCount(['participants as benched_count' => fn ($query) => $query
+                ->where('status', ParticipantStatus::Benched->value)])
+            ->orderBy('date_time')
+            ->limit(self::SECTION_LIMIT)
+            ->get()
+            ->each(fn (Game $game) => $this->tagHubItem($game, 'game', $game->date_time));
+    }
+
+    /**
+     * Active public campaigns list for the sessions section — the same
+     * whereHas shape as countUpcomingCampaigns plus discovery's
+     * buildCampaignsQuery eager loads (constrained next-session relation,
+     * session/participant counts) so campaign-card renders unchanged. The
+     * sort key falls back to created_at when the constrained next-session
+     * relation hydrates empty (edge: sessions slipped past its now() bound
+     * between the whereHas and hydration).
+     *
+     * @param  array<int, string>  $locationIds
+     * @return Collection<int, Campaign>
+     */
+    private function upcomingCampaignsFor(array $locationIds, Carbon $from, Carbon $to): Collection
+    {
+        return Campaign::query()
+            ->where('visibility', Visibility::Public->value)
+            ->where('status', CampaignStatus::Active->value)
+            ->whereHas('sessions', fn ($query) => $query
+                ->whereIn('location_id', $locationIds)
+                ->where('status', GameStatus::Scheduled->value)
+                ->whereBetween('date_time', [$from, $to]))
+            ->with(['owner', 'gameSystems'])
+            ->with(['sessions' => fn ($query) => $query
+                ->where('status', GameStatus::Scheduled->value)
+                ->where('date_time', '>', now())
+                ->orderBy('date_time')
+                ->limit(1)])
+            ->withCount('sessions')
+            ->withCount('participants')
+            ->withCount(['participants as waitlisted_count' => fn ($query) => $query
+                ->where('status', ParticipantStatus::Waitlisted->value)])
+            ->withCount(['participants as benched_count' => fn ($query) => $query
+                ->where('status', ParticipantStatus::Benched->value)])
+            ->orderByDesc('created_at')
+            ->limit(self::SECTION_LIMIT)
+            ->get()
+            ->each(fn (Campaign $campaign) => $this->tagHubItem(
+                $campaign,
+                'campaign',
+                $campaign->sessions->first()?->date_time ?? $campaign->created_at,
+            ));
+    }
+
+    /**
+     * Public upcoming events list for the sessions section — the same
+     * public-visibility semantics as countUpcomingEvents. The standalone
+     * x-event-card component needs no relation eager loads.
+     *
+     * @param  array<int, string>  $locationIds
+     * @return Collection<int, Event>
+     */
+    private function upcomingEventsFor(array $locationIds, Carbon $from, Carbon $to): Collection
+    {
+        return Event::query()
+            ->whereIn('location_id', $locationIds)
+            ->where('is_public', true)
+            ->whereIn('status', [
+                EventStatus::Published->value,
+                EventStatus::RegistrationOpen->value,
+                EventStatus::RegistrationClosed->value,
+                EventStatus::InProgress->value,
+            ])
+            ->whereBetween('start_date', [$from, $to])
+            ->orderBy('start_date')
+            ->limit(self::SECTION_LIMIT)
+            ->get()
+            ->each(fn (Event $event) => $this->tagHubItem($event, 'event', $event->start_date));
+    }
+
+    /**
+     * Tag a hub section item with its render type and chronological sort
+     * key. Runtime attributes (not columns) — the same pattern discovery
+     * uses for discoverable_type on merged results, consumed by the
+     * sessions partial to pick the right card per item.
+     */
+    private function tagHubItem(Model $item, string $type, ?Carbon $sortAt): void
+    {
+        $item->hub_item_type = $type;
+        $item->hub_sort_at = $sortAt ?? now();
     }
 
     /**

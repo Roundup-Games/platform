@@ -29,4 +29,22 @@ return [
         'venues' => 'Verified Venues',
     ],
 
+    // Full-list onward links at the bottom of each section (T03).
+    'lists' => [
+        'view_all_board_games' => 'Browse all board game sessions',
+        'view_all_adventures' => 'Browse all adventures',
+        'view_all_events' => 'Events in :city',
+        'view_all_venues' => 'All venues in :city',
+    ],
+
+    // A qualifying cluster can still have an empty section (a
+    // venue-qualified city has no sessions; a sessions-qualified city may
+    // have no venues). Empty states always link onward — never a dead panel.
+    'empty' => [
+        'upcoming_sessions' => 'No public sessions are scheduled in :city right now.',
+        'upcoming_sessions_cta' => 'Find or start a session',
+        'venues' => 'No verified venues are listed for :city yet.',
+        'venues_cta' => 'Browse the venue directory',
+    ],
+
 ];

@@ -34,35 +34,15 @@
     </section>
 
     {{-- ── Sections ─────────────────────────────────────────────────────── --}}
-    {{-- T02 ships the section shells; T03 populates the bodies via partials
-         (upcoming-sessions, venues). Until then each section shows its live
-         count from the guarded summary — real data, never a dead panel. --}}
+    {{-- Each section is a partial (T03): the sessions section renders the
+         chronologically merged games/campaigns/events feed through the
+         existing discovery cards (empty state when a venue-qualified city
+         has no sessions), and the venues section lists public-venue-page
+         venues via <x-venue-link>. Both keep their live counts from the
+         guarded summary and link onward to the full lists. --}}
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        @include('livewire.city-hubs.partials.upcoming-sessions', ['city' => $city, 'sessions' => $sessions])
 
-        {{-- Upcoming sessions shell --}}
-        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6" aria-labelledby="city-hub-upcoming-heading">
-            <h2 id="city-hub-upcoming-heading" class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-xl" aria-hidden="true">event_upcoming</span>
-                {{ __('city-hubs.sections.upcoming_sessions') }}
-            </h2>
-
-            {{-- T03: replace with @include('livewire.city-hubs.partials.upcoming-sessions') --}}
-            <p class="text-sm text-on-surface-variant">
-                {{ __('city-hubs.stats.upcoming_sessions', ['count' => $city->upcomingActivityCount()]) }}
-            </p>
-        </section>
-
-        {{-- Verified venues shell --}}
-        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6" aria-labelledby="city-hub-venues-heading">
-            <h2 id="city-hub-venues-heading" class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-xl" aria-hidden="true">storefront</span>
-                {{ __('city-hubs.sections.venues') }}
-            </h2>
-
-            {{-- T03: replace with @include('livewire.city-hubs.partials.venues') --}}
-            <p class="text-sm text-on-surface-variant">
-                {{ __('city-hubs.stats.verified_venues', ['count' => $city->verifiedVenuesCount]) }}
-            </p>
-        </section>
+        @include('livewire.city-hubs.partials.venues', ['city' => $city, 'venues' => $venues])
     </div>
 </div>
