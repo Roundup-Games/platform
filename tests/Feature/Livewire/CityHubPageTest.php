@@ -352,6 +352,80 @@ describe('CityHubPage SEO', function () {
     });
 });
 
+// ═══════════════════════════════════════════════════════════
+// CANONICAL + HREFLANG — explicit self-canonical pins the clean hub URL;
+// transformer-derived en/de/x-default alternates; unprefixed /cities/{slug}
+// 302s to the locale-negotiated hub.
+//
+// Tag literals follow the package's attribute order (rel → hreflang → href);
+// expected URLs come from route() — never hardcoded hosts — so app.url
+// config changes cannot silently break these assertions.
+// ═══════════════════════════════════════════════════════════
+
+describe('CityHubPage canonical + hreflang', function () {
+    it('emits the de self-canonical with en/de alternates and an en x-default', function () {
+        cityHubQualifyingBerlin();
+
+        $deHub = route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']);
+        $enHub = route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']);
+
+        $response = get($deHub)->assertOk();
+
+        $response->assertSee('<link rel="canonical" href="'.$deHub.'">', false);
+        $response->assertSee('<link rel="alternate" hreflang="en" href="'.$enHub.'">', false);
+        $response->assertSee('<link rel="alternate" hreflang="de" href="'.$deHub.'">', false);
+        // x-default targets the first configured locale (en), not the de request locale.
+        $response->assertSee('<link rel="alternate" hreflang="x-default" href="'.$enHub.'">', false);
+        // The global transformer only fills canonical_url when null, so the
+        // explicit value must not produce a duplicate canonical tag.
+        expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
+    });
+
+    it('mirrors canonical and alternates on the en hub', function () {
+        cityHubQualifyingBerlin();
+
+        $deHub = route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']);
+        $enHub = route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']);
+
+        $response = get($enHub)->assertOk();
+
+        $response->assertSee('<link rel="canonical" href="'.$enHub.'">', false);
+        $response->assertSee('<link rel="alternate" hreflang="en" href="'.$enHub.'">', false);
+        $response->assertSee('<link rel="alternate" hreflang="de" href="'.$deHub.'">', false);
+        $response->assertSee('<link rel="alternate" hreflang="x-default" href="'.$enHub.'">', false);
+        expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
+    });
+
+    it('keeps the clean canonical hub URL on query-param variants', function () {
+        cityHubQualifyingBerlin();
+
+        $deHub = route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']);
+
+        $response = get($deHub.'?utm=foo')->assertOk();
+
+        // Explicit canonical wins: the pinned clean hub URL, no query string.
+        $response->assertSee('<link rel="canonical" href="'.$deHub.'">', false);
+        $response->assertDontSee('<link rel="canonical" href="'.$deHub.'?utm=foo">', false);
+        expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
+    });
+
+    it('redirects the unprefixed hub path 302 to the locale-negotiated hub', function () {
+        cityHubQualifyingBerlin();
+
+        $response = get('/cities/berlin');
+
+        // The platform-wide locale-negotiated catch-all (session >
+        // Accept-Language > fallback) 302s to /{locale}/cities/{slug} — the
+        // same semantics as every other unprefixed path, so a hub-specific
+        // 301-to-de would contradict the platform. Assert shape only: the
+        // resolved locale depends on session/Accept-Language negotiation.
+        $response->assertStatus(302);
+        // Location may be relative or absolute (URL generator prefixes the
+        // app root), so match the path shape only — host-agnostic.
+        expect($response->headers->get('Location'))->toMatch('#^(https?://[^/]+)?/(en|de)/cities/berlin$#');
+    });
+});
+
 describe('CityHubPage analytics', function () {
     it('logs cityhub.rendered with the city slug and section counts', function () {
         Log::spy();

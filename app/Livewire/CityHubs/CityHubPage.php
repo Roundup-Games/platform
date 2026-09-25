@@ -105,6 +105,12 @@ class CityHubPage extends Component
         seo()->for(new SEOData(
             title: __('city-hubs.seo.title', ['city' => $city->city]),
             description: __('city-hubs.seo.description', ['city' => $city->city]),
+            // Defense-in-depth: pin the clean hub URL so query-param variants
+            // can never drift from the canonical. The global SEODataTransformer
+            // only fills canonical_url when null (URL::to(request()->path())),
+            // and hreflang alternates derive from the request path itself — the
+            // hub path — so they stay correct without explicit alternates here.
+            canonical_url: route('city-hubs.show', ['locale' => app()->getLocale(), 'slug' => $city->slug]),
         ));
 
         // Page-view observability fires once per page load. Livewire update
