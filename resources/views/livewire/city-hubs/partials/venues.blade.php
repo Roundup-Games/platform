@@ -13,11 +13,11 @@
         <div>
             <h2 id="city-hub-venues-heading" class="text-xl font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">storefront</span>
-                {{ __('city-hubs.sections.venues') }}
+                {{ __('city-hubs.section_venues') }}
             </h2>
 
             <p class="mt-1 text-sm text-on-surface-variant">
-                {{ __('city-hubs.stats.verified_venues', ['count' => $city->verifiedVenuesCount]) }}
+                {{ __('city-hubs.label_verified_venues_count', ['count' => $city->verifiedVenuesCount]) }}
             </p>
         </div>
     </div>
@@ -73,11 +73,11 @@
         <div class="rounded-xl border border-dashed border-outline-variant/50 p-8 text-center">
             <span class="material-symbols-outlined text-3xl text-on-surface-variant/70" aria-hidden="true">storefront</span>
             <p class="mt-2 text-on-surface-variant">
-                {{ __('city-hubs.empty.venues', ['city' => $city->city]) }}
+                {{ __('city-hubs.empty_venues', ['city' => $city->city]) }}
             </p>
             <a href="{{ route('venues.directory', app()->getLocale()) }}" wire:navigate
                class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-                {{ __('city-hubs.empty.venues_cta') }}
+                {{ __('city-hubs.empty_venues_cta') }}
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
             </a>
         </div>
@@ -88,7 +88,7 @@
     <div class="mt-4 text-sm">
         <a href="{{ route('venues.directory', ['locale' => app()->getLocale(), 'q' => $city->city]) }}" wire:navigate
            class="inline-flex items-center gap-1 font-medium text-primary hover:underline">
-            {{ __('city-hubs.lists.view_all_venues', ['city' => $city->city]) }}
+            {{ __('city-hubs.action_view_all_venues', ['city' => $city->city]) }}
             <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
         </a>
     </div>

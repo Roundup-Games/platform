@@ -76,9 +76,9 @@ describe('CityHubPage render', function () {
 
         $response->assertOk();
         $response->assertSee('Berlin');
-        $response->assertSee(__('city-hubs.heading', ['city' => 'Berlin']));
-        $response->assertSee(__('city-hubs.sections.upcoming_sessions'));
-        $response->assertSee(__('city-hubs.sections.venues'));
+        $response->assertSee(__('city-hubs.heading_city_hub', ['city' => 'Berlin']));
+        $response->assertSee(__('city-hubs.section_upcoming_sessions'));
+        $response->assertSee(__('city-hubs.section_venues'));
     });
 
     it('renders live activity counts from the guarded summary', function () {
@@ -87,7 +87,7 @@ describe('CityHubPage render', function () {
         $response = get(route('city-hubs.show', ['slug' => 'berlin']));
 
         $response->assertOk();
-        $response->assertSee(__('city-hubs.stats.upcoming_sessions', ['count' => 3]));
+        $response->assertSee(__('city-hubs.label_upcoming_sessions_count', ['count' => 3]));
     });
 
     it('qualifies through the verified-venue threshold with no sessions', function () {
@@ -96,7 +96,7 @@ describe('CityHubPage render', function () {
 
         get(route('city-hubs.show', ['slug' => 'potsdam']))
             ->assertOk()
-            ->assertSee(__('city-hubs.stats.verified_venues', ['count' => 2]));
+            ->assertSee(__('city-hubs.label_verified_venues_count', ['count' => 2]));
     });
 
     it('renders the German heading and sections under the de locale', function () {
@@ -105,8 +105,8 @@ describe('CityHubPage render', function () {
         $response = get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']));
 
         $response->assertOk();
-        $response->assertSee(__('city-hubs.heading', ['city' => 'Berlin'], 'de'));
-        $response->assertSee(__('city-hubs.sections.venues', [], 'de'));
+        $response->assertSee(__('city-hubs.heading_city_hub', ['city' => 'Berlin'], 'de'));
+        $response->assertSee(__('city-hubs.section_venues', [], 'de'));
     });
 
     it('renders the canonical city name for an umlaut city from its ASCII slug', function () {
@@ -118,7 +118,7 @@ describe('CityHubPage render', function () {
         get(route('city-hubs.show', ['slug' => 'munchen']))
             ->assertOk()
             ->assertSee('München')
-            ->assertSee(__('city-hubs.heading', ['city' => 'München']));
+            ->assertSee(__('city-hubs.heading_city_hub', ['city' => 'München']));
     });
 
     it('switches heading and section copy between the en and de locales', function () {
@@ -289,11 +289,11 @@ describe('CityHubPage hub sections', function () {
 
         get(route('city-hubs.show', ['slug' => 'potsdam']))
             ->assertOk()
-            ->assertSee(__('city-hubs.empty.upcoming_sessions', ['city' => 'Potsdam']))
-            ->assertSee(__('city-hubs.empty.upcoming_sessions_cta'))
+            ->assertSee(__('city-hubs.empty_upcoming_sessions', ['city' => 'Potsdam']))
+            ->assertSee(__('city-hubs.empty_upcoming_sessions_cta'))
             // The venue section is populated here (the city qualified via
             // venues), so its empty state must NOT render.
-            ->assertDontSee(__('city-hubs.empty.venues', ['city' => 'Potsdam']));
+            ->assertDontSee(__('city-hubs.empty_venues', ['city' => 'Potsdam']));
     });
 
     it('lists verified venues as links to their public venue pages', function () {
@@ -315,15 +315,15 @@ describe('CityHubPage hub sections', function () {
 
         get(route('city-hubs.show', ['slug' => 'berlin']))
             ->assertOk()
-            ->assertSee(__('city-hubs.lists.view_all_board_games'))
-            ->assertSee(__('city-hubs.lists.view_all_adventures'))
-            ->assertSee(__('city-hubs.lists.view_all_events', ['city' => 'Berlin']))
+            ->assertSee(__('city-hubs.action_view_all_board_games'))
+            ->assertSee(__('city-hubs.action_view_all_adventures'))
+            ->assertSee(__('city-hubs.action_view_all_events', ['city' => 'Berlin']))
             ->assertSee('/venues?q=Berlin')
             ->assertSee('/events?q=Berlin')
             // Berlin qualified via sessions and has no venues, so the
             // venues empty state renders (translated, links onward).
-            ->assertSee(__('city-hubs.empty.venues', ['city' => 'Berlin']))
-            ->assertSee(__('city-hubs.empty.venues_cta'));
+            ->assertSee(__('city-hubs.empty_venues', ['city' => 'Berlin']))
+            ->assertSee(__('city-hubs.empty_venues_cta'));
     });
 });
 
@@ -338,8 +338,8 @@ describe('CityHubPage SEO', function () {
 
         $response = get(route('city-hubs.show', ['slug' => 'berlin']))->assertOk();
 
-        assertPageTitle($response, __('city-hubs.seo.title', ['city' => 'Berlin']));
-        $response->assertSee(__('city-hubs.seo.description', ['city' => 'Berlin']));
+        assertPageTitle($response, __('city-hubs.seo_title', ['city' => 'Berlin']));
+        $response->assertSee(__('city-hubs.seo_description', ['city' => 'Berlin']));
     });
 
     it('renders the German SEO title and description under the de locale', function () {
@@ -347,8 +347,8 @@ describe('CityHubPage SEO', function () {
 
         $response = get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))->assertOk();
 
-        assertPageTitle($response, __('city-hubs.seo.title', ['city' => 'Berlin'], 'de'));
-        $response->assertSee(__('city-hubs.seo.description', ['city' => 'Berlin'], 'de'));
+        assertPageTitle($response, __('city-hubs.seo_title', ['city' => 'Berlin'], 'de'));
+        $response->assertSee(__('city-hubs.seo_description', ['city' => 'Berlin'], 'de'));
     });
 });
 

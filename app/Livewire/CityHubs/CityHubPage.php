@@ -103,8 +103,8 @@ class CityHubPage extends Component
         $venues = $directory->verifiedVenues($city);
 
         seo()->for(new SEOData(
-            title: __('city-hubs.seo.title', ['city' => $city->city]),
-            description: __('city-hubs.seo.description', ['city' => $city->city]),
+            title: __('city-hubs.seo_title', ['city' => $city->city]),
+            description: __('city-hubs.seo_description', ['city' => $city->city]),
             // Defense-in-depth: pin the clean hub URL so query-param variants
             // can never drift from the canonical. The global SEODataTransformer
             // only fills canonical_url when null (URL::to(request()->path())),

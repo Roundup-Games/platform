@@ -17,9 +17,9 @@ CREATE TABLE public.attendance_reports (
     id varchar NOT NULL,
     game_id varchar NOT NULL,
     status varchar(255) NOT NULL,
-    weight_applied double precision DEFAULT '1'::double precision NOT NULL,
-    is_corroborated boolean DEFAULT false NOT NULL,
-    quarantined boolean DEFAULT false NOT NULL,
+    weight_applied double precision NOT NULL DEFAULT '1'::double precision,
+    is_corroborated boolean NOT NULL DEFAULT false,
+    quarantined boolean NOT NULL DEFAULT false,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     reported_id varchar NOT NULL,
@@ -31,8 +31,8 @@ CREATE TABLE public.attendance_reports (
 CREATE TABLE public.bgg_sync_logs (
     status varchar(255) NOT NULL,
     bgg_ids json NULL,
-    items_synced integer DEFAULT 0 NOT NULL,
-    items_failed integer DEFAULT 0 NOT NULL,
+    items_synced integer NOT NULL DEFAULT 0,
+    items_failed integer NOT NULL DEFAULT 0,
     error_message text NULL,
     started_at timestamp NOT NULL,
     completed_at timestamp NULL,
@@ -57,7 +57,7 @@ CREATE TABLE public.cache_locks (
 CREATE TABLE public.campaign_applications (
     id varchar NOT NULL,
     campaign_id varchar NOT NULL,
-    status varchar(255) DEFAULT 'pending'::varchar NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'pending'::varchar,
     message text NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
@@ -73,8 +73,8 @@ CREATE TABLE public.campaign_game_system (
 CREATE TABLE public.campaign_participants (
     id varchar NOT NULL,
     campaign_id varchar NOT NULL,
-    role varchar(255) DEFAULT 'player'::varchar NOT NULL,
-    status varchar(255) DEFAULT 'pending'::varchar NOT NULL,
+    role varchar(255) NOT NULL DEFAULT 'player'::varchar,
+    status varchar(255) NOT NULL DEFAULT 'pending'::varchar,
     benched_at timestamp NULL,
     user_id varchar NULL,
     join_source varchar NULL,
@@ -100,9 +100,9 @@ CREATE TABLE public.campaigns (
     session_duration double precision NOT NULL,
     price_per_session double precision NULL,
     language varchar(255) NOT NULL,
-    status varchar(255) DEFAULT 'active'::varchar NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'active'::varchar,
     minimum_requirements json NULL,
-    visibility varchar(255) DEFAULT 'public'::varchar NOT NULL,
+    visibility varchar(255) NOT NULL DEFAULT 'public'::varchar,
     safety_rules json NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
@@ -116,7 +116,7 @@ CREATE TABLE public.campaigns (
     share_token varchar NULL,
     share_token_expires_at timestamp NULL,
     location_instructions text NULL,
-    bench_mode boolean DEFAULT false NOT NULL,
+    bench_mode boolean NOT NULL DEFAULT false,
     game_type varchar(20) NULL,
     host_note text NULL,
     CONSTRAINT campaigns_recurrence_check CHECK (((recurrence)::text = ANY ((ARRAY['weekly'::varchar, 'bi-weekly'::varchar, 'monthly'::varchar])::text[]))),
@@ -138,9 +138,9 @@ CREATE TABLE public.customers (
 
 CREATE TABLE public.escalated_agent_capacity (
     id bigint NOT NULL,
-    channel varchar(255) DEFAULT 'default'::varchar NOT NULL,
-    max_concurrent integer DEFAULT 10 NOT NULL,
-    current_count integer DEFAULT 0 NOT NULL,
+    channel varchar(255) NOT NULL DEFAULT 'default'::varchar,
+    max_concurrent integer NOT NULL DEFAULT 10,
+    current_count integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     user_id varchar NULL
@@ -148,18 +148,18 @@ CREATE TABLE public.escalated_agent_capacity (
 
 CREATE TABLE public.escalated_agent_profiles (
     id bigint NOT NULL,
-    agent_type varchar(255) DEFAULT 'full'::varchar NOT NULL,
+    agent_type varchar(255) NOT NULL DEFAULT 'full'::varchar,
     max_tickets integer NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    chat_status varchar(255) DEFAULT 'offline'::varchar NOT NULL,
+    chat_status varchar(255) NOT NULL DEFAULT 'offline'::varchar,
     user_id varchar NULL
 );
 
 CREATE TABLE public.escalated_agent_skill (
     id bigint NOT NULL,
     skill_id bigint NOT NULL,
-    proficiency integer DEFAULT 1 NOT NULL,
+    proficiency integer NOT NULL DEFAULT 1,
     user_id varchar NULL
 );
 
@@ -182,7 +182,7 @@ CREATE TABLE public.escalated_article_categories (
     name varchar(255) NOT NULL,
     slug varchar(255) NOT NULL,
     parent_id bigint NULL,
-    "position" integer DEFAULT 0 NOT NULL,
+    "position" integer NOT NULL DEFAULT 0,
     description text NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL
@@ -194,10 +194,10 @@ CREATE TABLE public.escalated_articles (
     title varchar(255) NOT NULL,
     slug varchar(255) NOT NULL,
     body text NULL,
-    status varchar(255) DEFAULT 'draft'::varchar NOT NULL,
-    view_count integer DEFAULT 0 NOT NULL,
-    helpful_count integer DEFAULT 0 NOT NULL,
-    not_helpful_count integer DEFAULT 0 NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'draft'::varchar,
+    view_count integer NOT NULL DEFAULT 0,
+    helpful_count integer NOT NULL DEFAULT 0,
+    not_helpful_count integer NOT NULL DEFAULT 0,
     published_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
@@ -236,8 +236,8 @@ CREATE TABLE public.escalated_automations (
     name varchar(255) NOT NULL,
     conditions json NOT NULL,
     actions json NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    "position" integer DEFAULT 0 NOT NULL,
+    active boolean NOT NULL DEFAULT true,
+    "position" integer NOT NULL DEFAULT 0,
     last_run_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL
@@ -246,8 +246,8 @@ CREATE TABLE public.escalated_automations (
 CREATE TABLE public.escalated_business_schedules (
     id bigint NOT NULL,
     name varchar(255) NOT NULL,
-    timezone varchar(255) DEFAULT 'UTC'::varchar NOT NULL,
-    is_default boolean DEFAULT false NOT NULL,
+    timezone varchar(255) NOT NULL DEFAULT 'UTC'::varchar,
+    is_default boolean NOT NULL DEFAULT false,
     schedule json NOT NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL
@@ -258,7 +258,7 @@ CREATE TABLE public.escalated_canned_responses (
     title varchar(255) NOT NULL,
     body text NOT NULL,
     category varchar(255) NULL,
-    is_shared boolean DEFAULT true NOT NULL,
+    is_shared boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     created_by varchar NULL
@@ -267,15 +267,15 @@ CREATE TABLE public.escalated_canned_responses (
 CREATE TABLE public.escalated_chat_routing_rules (
     id bigint NOT NULL,
     department_id bigint NULL,
-    routing_strategy varchar(255) DEFAULT 'round_robin'::varchar NOT NULL,
-    offline_behavior varchar(255) DEFAULT 'ticket_fallback'::varchar NOT NULL,
-    max_queue_size integer DEFAULT 10 NOT NULL,
-    max_concurrent_per_agent integer DEFAULT 5 NOT NULL,
-    auto_close_after_minutes integer DEFAULT 30 NOT NULL,
+    routing_strategy varchar(255) NOT NULL DEFAULT 'round_robin'::varchar,
+    offline_behavior varchar(255) NOT NULL DEFAULT 'ticket_fallback'::varchar,
+    max_queue_size integer NOT NULL DEFAULT 10,
+    max_concurrent_per_agent integer NOT NULL DEFAULT 5,
+    auto_close_after_minutes integer NOT NULL DEFAULT 30,
     queue_message text NULL,
     offline_message text NULL,
-    is_active boolean DEFAULT true NOT NULL,
-    "position" integer DEFAULT 0 NOT NULL,
+    is_active boolean NOT NULL DEFAULT true,
+    "position" integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -284,7 +284,7 @@ CREATE TABLE public.escalated_chat_sessions (
     id bigint NOT NULL,
     ticket_id bigint NOT NULL,
     customer_session_id varchar(64) NOT NULL,
-    status varchar(255) DEFAULT 'waiting'::varchar NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'waiting'::varchar,
     started_at timestamp NOT NULL,
     ended_at timestamp NULL,
     customer_typing_at timestamp NULL,
@@ -322,14 +322,14 @@ CREATE TABLE public.escalated_custom_fields (
     name varchar(255) NOT NULL,
     slug varchar(255) NOT NULL,
     type varchar(255) NOT NULL,
-    context varchar(255) DEFAULT 'ticket'::varchar NOT NULL,
+    context varchar(255) NOT NULL DEFAULT 'ticket'::varchar,
     options json NULL,
-    required boolean DEFAULT false NOT NULL,
+    required boolean NOT NULL DEFAULT false,
     placeholder varchar(255) NULL,
     description text NULL,
     validation_rules json NULL,
-    "position" integer DEFAULT 0 NOT NULL,
-    active boolean DEFAULT true NOT NULL,
+    "position" integer NOT NULL DEFAULT 0,
+    active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     conditions json NULL
@@ -359,8 +359,8 @@ CREATE TABLE public.escalated_delayed_actions (
     action json NOT NULL,
     remaining_actions json NOT NULL,
     execute_at timestamp NOT NULL,
-    executed boolean DEFAULT false NOT NULL,
-    cancelled boolean DEFAULT false NOT NULL,
+    executed boolean NOT NULL DEFAULT false,
+    cancelled boolean NOT NULL DEFAULT false,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -375,7 +375,7 @@ CREATE TABLE public.escalated_departments (
     name varchar(255) NOT NULL,
     slug varchar(255) NOT NULL,
     description text NULL,
-    is_active boolean DEFAULT true NOT NULL,
+    is_active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -387,11 +387,11 @@ CREATE TABLE public.escalated_escalation_rules (
     trigger_type varchar(255) NOT NULL,
     conditions json NOT NULL,
     actions json NOT NULL,
-    "order" integer DEFAULT 0 NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
+    "order" integer NOT NULL DEFAULT 0,
+    is_active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    category varchar(255) DEFAULT 'Uncategorized'::varchar NOT NULL
+    category varchar(255) NOT NULL DEFAULT 'Uncategorized'::varchar
 );
 
 CREATE TABLE public.escalated_holidays (
@@ -399,7 +399,7 @@ CREATE TABLE public.escalated_holidays (
     schedule_id bigint NOT NULL,
     name varchar(255) NOT NULL,
     date date NOT NULL,
-    recurring boolean DEFAULT false NOT NULL,
+    recurring boolean NOT NULL DEFAULT false,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -407,7 +407,7 @@ CREATE TABLE public.escalated_holidays (
 CREATE TABLE public.escalated_import_jobs (
     id varchar NOT NULL,
     platform varchar(50) NOT NULL,
-    status varchar(30) DEFAULT 'pending'::varchar NOT NULL,
+    status varchar(30) NOT NULL DEFAULT 'pending'::varchar,
     credentials text NULL,
     field_mappings json NULL,
     progress json NULL,
@@ -425,7 +425,7 @@ CREATE TABLE public.escalated_import_source_maps (
     entity_type varchar(50) NOT NULL,
     source_id varchar(255) NOT NULL,
     escalated_id varchar(255) NOT NULL,
-    created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE public.escalated_inbound_emails (
@@ -440,7 +440,7 @@ CREATE TABLE public.escalated_inbound_emails (
     raw_headers text NULL,
     ticket_id bigint NULL,
     reply_id bigint NULL,
-    status varchar(255) DEFAULT 'pending'::varchar NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'pending'::varchar,
     adapter varchar(255) NOT NULL,
     error_message text NULL,
     processed_at timestamp NULL,
@@ -453,8 +453,8 @@ CREATE TABLE public.escalated_macros (
     name varchar(255) NOT NULL,
     description varchar(255) NULL,
     actions json NOT NULL,
-    is_shared boolean DEFAULT true NOT NULL,
-    "order" integer DEFAULT 0 NOT NULL,
+    is_shared boolean NOT NULL DEFAULT true,
+    "order" integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     created_by varchar NULL
@@ -490,7 +490,7 @@ CREATE TABLE public.escalated_plugin_store (
 CREATE TABLE public.escalated_plugins (
     id bigint NOT NULL,
     slug varchar(255) NOT NULL,
-    is_active boolean DEFAULT false NOT NULL,
+    is_active boolean NOT NULL DEFAULT false,
     activated_at timestamp NULL,
     deactivated_at timestamp NULL,
     created_at timestamp NULL,
@@ -502,13 +502,13 @@ CREATE TABLE public.escalated_replies (
     ticket_id bigint NOT NULL,
     author_type varchar(255) NULL,
     body text NOT NULL,
-    is_internal_note boolean DEFAULT false NOT NULL,
-    type varchar(255) DEFAULT 'reply'::varchar NOT NULL,
+    is_internal_note boolean NOT NULL DEFAULT false,
+    type varchar(255) NOT NULL DEFAULT 'reply'::varchar,
     metadata json NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     deleted_at timestamp NULL,
-    is_pinned boolean DEFAULT false NOT NULL,
+    is_pinned boolean NOT NULL DEFAULT false,
     author_id varchar NULL
 );
 
@@ -527,7 +527,7 @@ CREATE TABLE public.escalated_roles (
     name varchar(255) NOT NULL,
     slug varchar(255) NOT NULL,
     description text NULL,
-    is_system boolean DEFAULT false NOT NULL,
+    is_system boolean NOT NULL DEFAULT false,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -546,9 +546,9 @@ CREATE TABLE public.escalated_saved_views (
     id bigint NOT NULL,
     name varchar(255) NOT NULL,
     filters json NOT NULL,
-    is_shared boolean DEFAULT false NOT NULL,
-    is_default boolean DEFAULT false NOT NULL,
-    "position" integer DEFAULT 0 NOT NULL,
+    is_shared boolean NOT NULL DEFAULT false,
+    is_default boolean NOT NULL DEFAULT false,
+    "position" integer NOT NULL DEFAULT 0,
     icon varchar(255) NULL,
     color varchar(255) NULL,
     created_at timestamp NULL,
@@ -577,8 +577,8 @@ CREATE TABLE public.escalated_side_conversations (
     id bigint NOT NULL,
     ticket_id bigint NOT NULL,
     subject varchar(255) NOT NULL,
-    channel varchar(255) DEFAULT 'internal'::varchar NOT NULL,
-    status varchar(255) DEFAULT 'open'::varchar NOT NULL,
+    channel varchar(255) NOT NULL DEFAULT 'internal'::varchar,
+    status varchar(255) NOT NULL DEFAULT 'open'::varchar,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     created_by varchar NULL
@@ -596,11 +596,11 @@ CREATE TABLE public.escalated_sla_policies (
     id bigint NOT NULL,
     name varchar(255) NOT NULL,
     description text NULL,
-    is_default boolean DEFAULT false NOT NULL,
+    is_default boolean NOT NULL DEFAULT false,
     first_response_hours json NOT NULL,
     resolution_hours json NOT NULL,
-    business_hours_only boolean DEFAULT false NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
+    business_hours_only boolean NOT NULL DEFAULT false,
+    is_active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -609,7 +609,7 @@ CREATE TABLE public.escalated_tags (
     id bigint NOT NULL,
     name varchar(255) NOT NULL,
     slug varchar(255) NOT NULL,
-    color varchar(255) DEFAULT '#6B7280'::varchar NOT NULL,
+    color varchar(255) NOT NULL DEFAULT '#6B7280'::varchar,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -646,10 +646,10 @@ CREATE TABLE public.escalated_ticket_statuses (
     label varchar(255) NOT NULL,
     slug varchar(255) NOT NULL,
     category varchar(255) NOT NULL,
-    color varchar(255) DEFAULT '#6b7280'::varchar NOT NULL,
+    color varchar(255) NOT NULL DEFAULT '#6b7280'::varchar,
     description text NULL,
-    "position" integer DEFAULT 0 NOT NULL,
-    is_default boolean DEFAULT false NOT NULL,
+    "position" integer NOT NULL DEFAULT 0,
+    is_default boolean NOT NULL DEFAULT false,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -660,7 +660,7 @@ CREATE TABLE public.escalated_ticket_subjects (
     subject_type varchar(255) NOT NULL,
     subject_id varchar(255) NOT NULL,
     role varchar(255) NULL,
-    "position" integer DEFAULT 0 NOT NULL,
+    "position" integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -676,16 +676,16 @@ CREATE TABLE public.escalated_tickets (
     requester_type varchar(255) NULL,
     subject varchar(255) NOT NULL,
     description text NOT NULL,
-    status varchar(255) DEFAULT 'open'::varchar NOT NULL,
-    priority varchar(255) DEFAULT 'medium'::varchar NOT NULL,
-    channel varchar(255) DEFAULT 'web'::varchar NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'open'::varchar,
+    priority varchar(255) NOT NULL DEFAULT 'medium'::varchar,
+    channel varchar(255) NOT NULL DEFAULT 'web'::varchar,
     department_id bigint NULL,
     sla_policy_id bigint NULL,
     first_response_at timestamp NULL,
     first_response_due_at timestamp NULL,
     resolution_due_at timestamp NULL,
-    sla_first_response_breached boolean DEFAULT false NOT NULL,
-    sla_resolution_breached boolean DEFAULT false NOT NULL,
+    sla_first_response_breached boolean NOT NULL DEFAULT false,
+    sla_resolution_breached boolean NOT NULL DEFAULT false,
     resolved_at timestamp NULL,
     closed_at timestamp NULL,
     metadata json NULL,
@@ -696,8 +696,8 @@ CREATE TABLE public.escalated_tickets (
     guest_email varchar(255) NULL,
     guest_token varchar(64) NULL,
     merged_into_id bigint NULL,
-    type varchar(255) DEFAULT 'question'::varchar NOT NULL,
-    ticket_type varchar(255) DEFAULT 'question'::varchar NOT NULL,
+    type varchar(255) NOT NULL DEFAULT 'question'::varchar,
+    ticket_type varchar(255) NOT NULL DEFAULT 'question'::varchar,
     snoozed_until timestamp NULL,
     status_before_snooze varchar(255) NULL,
     chat_ended_at timestamp NULL,
@@ -725,7 +725,7 @@ CREATE TABLE public.escalated_webhook_deliveries (
     payload json NULL,
     response_code smallint NULL,
     response_body text NULL,
-    attempts smallint DEFAULT '0'::smallint NOT NULL,
+    attempts smallint NOT NULL DEFAULT '0'::smallint,
     delivered_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL
@@ -736,7 +736,7 @@ CREATE TABLE public.escalated_webhooks (
     url varchar(255) NOT NULL,
     events json NOT NULL,
     secret varchar(255) NULL,
-    active boolean DEFAULT true NOT NULL,
+    active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -762,10 +762,10 @@ CREATE TABLE public.escalated_workflows (
     trigger_event varchar(255) NOT NULL,
     conditions json NOT NULL,
     actions json NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
-    "position" integer DEFAULT 0 NOT NULL,
+    is_active boolean NOT NULL DEFAULT true,
+    "position" integer NOT NULL DEFAULT 0,
     last_triggered_at timestamp NULL,
-    trigger_count integer DEFAULT 0 NOT NULL,
+    trigger_count integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     created_by varchar NULL
@@ -776,9 +776,9 @@ CREATE TABLE public.event_announcements (
     event_id varchar NOT NULL,
     title json NOT NULL,
     content json NOT NULL,
-    is_pinned boolean DEFAULT false NOT NULL,
-    is_published boolean DEFAULT false NOT NULL,
-    visibility varchar(50) DEFAULT 'all'::varchar NOT NULL,
+    is_pinned boolean NOT NULL DEFAULT false,
+    is_published boolean NOT NULL DEFAULT false,
+    visibility varchar(50) NOT NULL DEFAULT 'all'::varchar,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     author_id varchar NOT NULL
@@ -789,8 +789,8 @@ CREATE TABLE public.event_registrations (
     event_id varchar NOT NULL,
     registration_type varchar(255) NOT NULL,
     division varchar(100) NULL,
-    status varchar(50) DEFAULT 'pending'::varchar NOT NULL,
-    payment_status varchar(50) DEFAULT 'pending'::varchar NOT NULL,
+    status varchar(50) NOT NULL DEFAULT 'pending'::varchar,
+    payment_status varchar(50) NOT NULL DEFAULT 'pending'::varchar,
     payment_id varchar(255) NULL,
     roster json NULL,
     notes text NULL,
@@ -810,8 +810,8 @@ CREATE TABLE public.events (
     slug varchar(255) NOT NULL,
     description json NULL,
     short_description json NULL,
-    type varchar(255) DEFAULT 'tournament'::varchar NOT NULL,
-    status varchar(255) DEFAULT 'draft'::varchar NOT NULL,
+    type varchar(255) NOT NULL DEFAULT 'tournament'::varchar,
+    status varchar(255) NOT NULL DEFAULT 'draft'::varchar,
     venue_name varchar(255) NULL,
     venue_address text NULL,
     city varchar(255) NULL,
@@ -821,13 +821,13 @@ CREATE TABLE public.events (
     end_date date NOT NULL,
     registration_opens_at timestamp NULL,
     registration_closes_at timestamp NULL,
-    registration_type varchar(255) DEFAULT 'team'::varchar NOT NULL,
+    registration_type varchar(255) NOT NULL DEFAULT 'team'::varchar,
     max_teams integer NULL,
     max_participants integer NULL,
-    min_players_per_team integer DEFAULT 7 NOT NULL,
-    max_players_per_team integer DEFAULT 21 NOT NULL,
-    team_registration_fee integer DEFAULT 0 NOT NULL,
-    individual_registration_fee integer DEFAULT 0 NOT NULL,
+    min_players_per_team integer NOT NULL DEFAULT 7,
+    max_players_per_team integer NOT NULL DEFAULT 21,
+    team_registration_fee integer NOT NULL DEFAULT 0,
+    individual_registration_fee integer NOT NULL DEFAULT 0,
     early_bird_discount integer NULL,
     early_bird_deadline timestamp NULL,
     contact_email varchar(255) NULL,
@@ -839,8 +839,8 @@ CREATE TABLE public.events (
     requirements json NULL,
     logo_url varchar(255) NULL,
     banner_url varchar(255) NULL,
-    is_public boolean DEFAULT true NOT NULL,
-    is_featured boolean DEFAULT false NOT NULL,
+    is_public boolean NOT NULL DEFAULT true,
+    is_featured boolean NOT NULL DEFAULT false,
     metadata json NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
@@ -859,13 +859,13 @@ CREATE TABLE public.failed_jobs (
     queue text NOT NULL,
     payload text NOT NULL,
     exception text NOT NULL,
-    failed_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL
+    failed_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE public.game_applications (
     id varchar NOT NULL,
     game_id varchar NOT NULL,
-    status varchar(255) DEFAULT 'pending'::varchar NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'pending'::varchar,
     message text NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
@@ -891,8 +891,8 @@ CREATE TABLE public.game_game_system (
 CREATE TABLE public.game_participants (
     id varchar NOT NULL,
     game_id varchar NOT NULL,
-    role varchar(255) DEFAULT 'player'::varchar NOT NULL,
-    status varchar(255) DEFAULT 'pending'::varchar NOT NULL,
+    role varchar(255) NOT NULL DEFAULT 'player'::varchar,
+    status varchar(255) NOT NULL DEFAULT 'pending'::varchar,
     attendance_status varchar(255) NULL,
     confirmation_expires_at timestamp NULL,
     waitlisted_at timestamp NULL,
@@ -910,7 +910,7 @@ CREATE TABLE public.game_participants (
     invitee_email varchar(255) NULL,
     attendance_disputed_at timestamp NULL,
     approved_at timestamp NULL,
-    promoted_manually boolean DEFAULT false NOT NULL,
+    promoted_manually boolean NOT NULL DEFAULT false,
     CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY ((ARRAY['attended'::varchar, 'no_show'::varchar, 'late_cancel'::varchar, 'excused'::varchar, 'cancelled_early'::varchar])::text[]))),
     CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::varchar)::text, ('share_link'::varchar)::text, ('application'::varchar)::text, ('email_invite'::varchar)::text, ('short_link'::varchar)::text]))),
     CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY ((ARRAY['owner'::varchar, 'player'::varchar, 'invited'::varchar, 'applicant'::varchar])::text[]))),
@@ -1019,7 +1019,7 @@ CREATE TABLE public.game_systems (
     bgg_users_rated integer NULL,
     bgg_average_weight numeric(4,2) NULL,
     bgg_last_synced_at timestamp NULL,
-    type varchar(255) DEFAULT 'boardgame'::varchar NOT NULL,
+    type varchar(255) NOT NULL DEFAULT 'boardgame'::varchar,
     source varchar(255) NULL,
     source_slug varchar(255) NULL,
     creator varchar(255) NULL,
@@ -1030,7 +1030,7 @@ CREATE TABLE public.game_systems (
     external_links text NULL,
     showcases text NULL,
     instructions text NULL,
-    platform_score integer DEFAULT 0 NOT NULL,
+    platform_score integer NOT NULL DEFAULT 0,
     id varchar NOT NULL,
     base_game_id varchar NULL
 );
@@ -1045,18 +1045,18 @@ CREATE TABLE public.games (
     price double precision NULL,
     language varchar(50) NOT NULL,
     location json NOT NULL,
-    status varchar(255) DEFAULT 'scheduled'::varchar NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'scheduled'::varchar,
     minimum_requirements json NULL,
-    visibility varchar(255) DEFAULT 'public'::varchar NOT NULL,
+    visibility varchar(255) NOT NULL DEFAULT 'public'::varchar,
     safety_rules json NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    min_players smallint DEFAULT '2'::smallint NOT NULL,
-    max_players smallint DEFAULT '6'::smallint NOT NULL,
+    min_players smallint NOT NULL DEFAULT '2'::smallint,
+    max_players smallint NOT NULL DEFAULT '6'::smallint,
     experience_level varchar(30) NULL,
     complexity numeric(3,2) NULL,
     vibe_flags json NULL,
-    game_type varchar(255) DEFAULT 'board_game'::varchar NOT NULL,
+    game_type varchar(255) NOT NULL DEFAULT 'board_game'::varchar,
     reminder_sent_at timestamp NULL,
     recap text NULL,
     min_reliability_preference numeric(5,2) NULL,
@@ -1066,7 +1066,7 @@ CREATE TABLE public.games (
     share_token varchar NULL,
     share_token_expires_at timestamp NULL,
     location_instructions text NULL,
-    bench_mode boolean DEFAULT false NOT NULL,
+    bench_mode boolean NOT NULL DEFAULT false,
     attendance_window_opens_at timestamp NULL,
     attendance_window_closes_at timestamp NULL,
     attendance_resolved_at timestamp NULL,
@@ -1083,8 +1083,8 @@ CREATE TABLE public.gm_profiles (
     specializations json NULL,
     slug varchar(255) NOT NULL,
     average_rating numeric(3,2) NULL,
-    review_count integer DEFAULT 0 NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
+    review_count integer NOT NULL DEFAULT 0,
+    is_active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     user_id varchar NOT NULL
@@ -1138,7 +1138,7 @@ CREATE TABLE public.linked_accounts (
 );
 
 CREATE TABLE public.local_subscriptions (
-    status varchar(255) DEFAULT 'active'::varchar NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'active'::varchar,
     starts_at timestamp NULL,
     ends_at timestamp NULL,
     canceled_at timestamp NULL,
@@ -1165,18 +1165,18 @@ CREATE TABLE public.locations (
     updated_at timestamp NULL,
     geohash_4 varchar(4) NULL,
     id varchar NOT NULL,
-    is_verified boolean DEFAULT false NOT NULL,
+    is_verified boolean NOT NULL DEFAULT false,
     venue_type varchar(50) NULL,
     venue_notes text NULL,
     website_url varchar(500) NULL,
     managed_by varchar NULL,
     venue_metadata json NULL,
     slug varchar(255) NULL,
-    drift_status varchar(20) DEFAULT 'clean'::varchar NOT NULL,
+    drift_status varchar(20) NOT NULL DEFAULT 'clean'::varchar,
     drift_detected_at timestamp NULL,
     drift_metadata json NULL,
     average_rating numeric(3,2) NULL,
-    review_count integer DEFAULT 0 NOT NULL
+    review_count integer NOT NULL DEFAULT 0
 );
 
 CREATE TABLE public.media (
@@ -1205,12 +1205,12 @@ CREATE TABLE public.membership_types (
     description varchar(1000) NULL,
     price_cents integer NOT NULL,
     duration_months integer NOT NULL,
-    status varchar(50) DEFAULT 'active'::varchar NOT NULL,
+    status varchar(50) NOT NULL DEFAULT 'active'::varchar,
     paddle_price_id varchar(255) NULL,
     metadata json NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    type varchar(255) DEFAULT 'paddle'::varchar NOT NULL,
+    type varchar(255) NOT NULL DEFAULT 'paddle'::varchar,
     id varchar NOT NULL
 );
 
@@ -1300,7 +1300,7 @@ CREATE TABLE public.reviews (
     rating smallint NOT NULL,
     body text NULL,
     proficiency_tags json NULL,
-    status varchar(255) DEFAULT 'published'::varchar NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'published'::varchar,
     reported_at timestamp NULL,
     reply text NULL,
     replied_at timestamp NULL,
@@ -1366,8 +1366,8 @@ CREATE TABLE public.session_zero_surveys (
     title varchar(255) NOT NULL,
     content json NULL,
     uuid varchar(255) NOT NULL,
-    status varchar(255) DEFAULT 'active'::varchar NOT NULL,
-    confirmation_count integer DEFAULT 0 NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'active'::varchar,
+    confirmation_count integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -1403,7 +1403,7 @@ CREATE TABLE public.short_links (
     purpose varchar(50) NULL,
     expires_at timestamp NULL,
     max_hits integer NULL,
-    hit_count integer DEFAULT 0 NOT NULL,
+    hit_count integer NOT NULL DEFAULT 0,
     last_hit_at timestamp NULL,
     deleted_at timestamp NULL,
     created_at timestamp NULL,
@@ -1438,12 +1438,12 @@ CREATE TABLE public.subscriptions (
 CREATE TABLE public.suppressed_invite_emails (
     id bigint NOT NULL,
     email_hash varchar(64) NOT NULL,
-    created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE public.team_members (
-    role varchar(255) DEFAULT 'player'::varchar NOT NULL,
-    status varchar(255) DEFAULT 'pending'::varchar NOT NULL,
+    role varchar(255) NOT NULL DEFAULT 'player'::varchar,
+    status varchar(255) NOT NULL DEFAULT 'pending'::varchar,
     jersey_number varchar(3) NULL,
     "position" varchar(50),
     joined_at timestamp NOT NULL,
@@ -1469,7 +1469,7 @@ CREATE TABLE public.teams (
     founded_year varchar(4) NULL,
     website varchar(255) NULL,
     social_links json NULL,
-    is_active boolean DEFAULT true NOT NULL,
+    is_active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL,
     id varchar NOT NULL,
@@ -1531,12 +1531,12 @@ CREATE TABLE public.users (
     email_verified_at timestamp NULL,
     password varchar(255) NULL,
     avatar_url varchar(255) NULL,
-    profile_complete boolean DEFAULT false NOT NULL,
+    profile_complete boolean NOT NULL DEFAULT false,
     gender varchar(255) NULL,
     pronouns varchar(255) NULL,
     phone varchar(255) NULL,
     privacy_settings json NULL,
-    profile_version integer DEFAULT 1 NOT NULL,
+    profile_version integer NOT NULL DEFAULT 1,
     profile_updated_at timestamp NULL,
     remember_token varchar(100) NULL,
     created_at timestamp NULL,
@@ -1550,9 +1550,9 @@ CREATE TABLE public.users (
     paddle_id varchar(255) NULL,
     trial_ends_at timestamp NULL,
     password_set_at timestamp NULL,
-    is_disabled boolean DEFAULT false NOT NULL,
+    is_disabled boolean NOT NULL DEFAULT false,
     disabled_at timestamp NULL,
-    can_create_public_entries boolean DEFAULT false NOT NULL,
+    can_create_public_entries boolean NOT NULL DEFAULT false,
     preferred_language varchar(10) NULL,
     location json NULL,
     notification_settings json NULL,
@@ -1562,12 +1562,12 @@ CREATE TABLE public.users (
     id varchar NOT NULL,
     bio text NULL,
     slug varchar(255) NULL,
-    max_links_per_entity integer DEFAULT 10 NOT NULL,
+    max_links_per_entity integer NOT NULL DEFAULT 10,
     anonymized_at timestamp NULL,
-    gender_consent boolean DEFAULT false NOT NULL,
+    gender_consent boolean NOT NULL DEFAULT false,
     privacy_policy_accepted_at timestamp NULL,
     terms_accepted_at timestamp NULL,
-    analytics_consent boolean DEFAULT false NOT NULL,
-    weekly_digest_enabled boolean DEFAULT true NOT NULL
+    analytics_consent boolean NOT NULL DEFAULT false,
+    weekly_digest_enabled boolean NOT NULL DEFAULT true
 );
 

@@ -64,6 +64,18 @@ $output .= "-- NOT loaded at runtime — psql loads pgsql-schema.sql for that.\n
 foreach ($matches[1] as $createTable) {
     $mapped = preg_replace(array_keys($typeMap), array_values($typeMap), $createTable);
 
+    // Reorder `DEFAULT ... NOT NULL` to `NOT NULL DEFAULT ...`. pg_dump
+    // always writes the default clause first, but Larastan's iamcal SQL
+    // parser only records NOT NULL when it PRECEDES the DEFAULT clause —
+    // in pg_dump order every defaulted NOT NULL column silently parses
+    // as nullable (games.max_players is the self-test canary). Verified
+    // against iamcal/sql-parser v0.7 via larastan 3.12.3's IamcalSqlParser.
+    $mapped = preg_replace(
+        '/^(\s+["a-z0-9_]+\s+.+?)\s+(DEFAULT\s+.+?)\s+NOT NULL(\s*,?\s*)$/mi',
+        '$1 NOT NULL $2$3',
+        $mapped
+    );
+
     // Ensure PostgreSQL nullable-by-default semantics are preserved.
     // The iamcal SQL parser defaults to NOT NULL when nullability is
     // unspecified (MySQL convention), but PostgreSQL defaults to nullable.

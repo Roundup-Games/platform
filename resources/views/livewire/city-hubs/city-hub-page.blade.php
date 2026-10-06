@@ -20,15 +20,15 @@
         <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-secondary-container/60 text-on-secondary-container">
                 <span class="material-symbols-outlined text-sm" aria-hidden="true">location_on</span>
-                {{ __('city-hubs.chip_city_hub') }}
+                {{ __('city-hubs.label_city_hub') }}
             </span>
 
             <h1 class="mt-3 text-3xl sm:text-4xl lg:text-5xl font-heading font-bold tracking-tight leading-tight text-on-surface">
-                {{ __('city-hubs.heading', ['city' => $city->city]) }}
+                {{ __('city-hubs.heading_city_hub', ['city' => $city->city]) }}
             </h1>
 
             <p class="mt-3 max-w-3xl text-on-surface-variant">
-                {{ __('city-hubs.intro', ['city' => $city->city]) }}
+                {{ __('city-hubs.content_intro', ['city' => $city->city]) }}
             </p>
         </div>
     </section>
