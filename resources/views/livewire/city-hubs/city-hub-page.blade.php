@@ -27,8 +27,11 @@
                 {{ __('city-hubs.heading_city_hub', ['city' => $city->city]) }}
             </h1>
 
+            {{-- Curated intro (cities.intro, 62-04) when this locale has one;
+                 otherwise the generated copy. introFor() trims and nulls
+                 empty translations, so ?? is the full emptiness check. --}}
             <p class="mt-3 max-w-3xl text-on-surface-variant">
-                {{ __('city-hubs.content_intro', ['city' => $city->city]) }}
+                {{ $intro ?? __('city-hubs.content_intro', ['city' => $city->city]) }}
             </p>
         </div>
     </section>

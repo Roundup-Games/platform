@@ -3,12 +3,14 @@
 namespace Tests\Feature\Livewire;
 
 use App\Models\Campaign;
+use App\Models\City;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Mockery;
 use Tests\Helpers\TestablePostHogClient;
@@ -528,5 +530,102 @@ describe('CityHubPage analytics', function () {
         Log::shouldHaveReceived('info')
             ->with('cityhub.rejected', ['slug' => 'berlin', 'reason' => 'below_threshold'])
             ->twice();
+    });
+});
+
+// ═════════════════════════════════════════════════════════
+// CURATION (62-04) — hidden guard reason, featured force-qualify,
+// curated locale intro in the hero, zero-cities-query warm renders
+// ═════════════════════════════════════════════════════════
+
+describe('CityHubPage curation', function () {
+    it('404s a hidden city that would otherwise qualify and logs the hidden reason', function () {
+        Log::spy();
+
+        cityHubQualifyingBerlin(); // 3 sessions: qualifies without curation
+        City::factory()->hidden()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertNotFound();
+
+        Log::shouldHaveReceived('info')
+            ->with('cityhub.rejected', ['slug' => 'berlin', 'reason' => 'hidden'])
+            ->once();
+    });
+
+    it('renders a featured city that sits below both thresholds', function () {
+        $berlin = cityHubLocation('Berlin', 52.5200, 13.4050);
+        cityHubUpcomingGame($berlin); // 1 session < 3, 0 venues < 2
+        City::factory()->featured()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+
+        get(route('city-hubs.show', ['slug' => 'berlin']))->assertOk();
+    });
+
+    it('renders the curated intro per locale in the hero instead of the generated copy', function () {
+        cityHubQualifyingBerlin();
+        City::factory()
+            ->withIntro('Curated Berlin hero intro.', 'Kuratierte Berlin-Einleitung.')
+            ->create(['slug' => 'berlin', 'city' => 'Berlin']);
+
+        get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee('Kuratierte Berlin-Einleitung.')
+            ->assertDontSee(__('city-hubs.content_intro', ['city' => 'Berlin'], 'de'));
+
+        get(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee('Curated Berlin hero intro.')
+            ->assertDontSee(__('city-hubs.content_intro', ['city' => 'Berlin']));
+    });
+
+    it('falls back to the generated hero copy when the locale has no curated intro', function () {
+        cityHubQualifyingBerlin();
+        City::factory()->create([
+            'slug' => 'berlin',
+            'city' => 'Berlin',
+            'intro' => ['en' => 'English-only curated intro.', 'de' => '   '],
+        ]);
+
+        // Whitespace-only de translation counts as absent (introFor
+        // trims and nulls): the generated copy renders, not the en text.
+        get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee(__('city-hubs.content_intro', ['city' => 'Berlin'], 'de'))
+            ->assertDontSee('English-only curated intro.');
+
+        get(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee('English-only curated intro.');
+    });
+
+    it('falls back to the generated hero copy for a city with no curated row', function () {
+        cityHubQualifyingBerlin();
+
+        get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee(__('city-hubs.content_intro', ['city' => 'Berlin'], 'de'));
+    });
+
+    it('serves the curated intro from the cached summary with no cities query on warm renders', function () {
+        cityHubQualifyingBerlin();
+        City::factory()
+            ->withIntro('Warm-cache intro.', 'Warm-Cache-Einleitung.')
+            ->create(['slug' => 'berlin', 'city' => 'Berlin']);
+
+        // Cold pass resolves and caches the summary (cities query included).
+        get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))->assertOk();
+
+        // Warm pass: the intro rides the cached resolution, so no query
+        // may touch the cities table (same query-log guard the caching
+        // tests use).
+        DB::enableQueryLog();
+        get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee('Warm-Cache-Einleitung.');
+        $cityQueries = collect(DB::getQueryLog())
+            ->pluck('query')
+            ->filter(fn (string $sql): bool => str_contains($sql, '"cities"'));
+        DB::disableQueryLog();
+
+        expect($cityQueries)->toBeEmpty();
     });
 });

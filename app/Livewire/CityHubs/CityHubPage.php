@@ -47,6 +47,8 @@ class CityHubPage extends Component
 
     public const REJECT_AMBIGUOUS = 'ambiguous';
 
+    public const REJECT_HIDDEN = 'hidden';
+
     #[Locked]
     public string $slug = '';
 
@@ -62,9 +64,11 @@ class CityHubPage extends Component
     /**
      * Resolve the slug to a qualifying city summary or abort 404.
      *
-     * Unknown slugs, ambiguous city names across regions
-     * (CityDirectoryService::STATUS_AMBIGUOUS), and below-threshold
-     * cities all fail identically: a real 404 — never a soft empty page.
+     * Unknown slugs, curated-hidden cities
+     * (CityDirectoryService::STATUS_HIDDEN), ambiguous city names across
+     * regions (CityDirectoryService::STATUS_AMBIGUOUS), and
+     * below-threshold cities all fail identically: a real 404 — never a
+     * soft empty page.
      * Every rejection is logged as cityhub.rejected with its reason
      * before the abort (T04). Re-run on later Livewire renders (the
      * service caches per city, so this is a cache hit) so a cluster that
@@ -81,10 +85,14 @@ class CityHubPage extends Component
 
         if ($summary === null) {
             // resolveStatus() re-reads the same cached resolution (no extra
-            // queries) and distinguishes the two null outcomes for the log.
-            $this->rejectHub($directory->resolveStatus($this->slug) === CityDirectoryService::STATUS_AMBIGUOUS
-                ? self::REJECT_AMBIGUOUS
-                : self::REJECT_NOT_FOUND);
+            // queries) and distinguishes the three null outcomes for the
+            // log: a curated hide (62-04) beats everything, ambiguity is
+            // next, and an unknown slug stays not_found.
+            $this->rejectHub(match ($directory->resolveStatus($this->slug)) {
+                CityDirectoryService::STATUS_HIDDEN => self::REJECT_HIDDEN,
+                CityDirectoryService::STATUS_AMBIGUOUS => self::REJECT_AMBIGUOUS,
+                default => self::REJECT_NOT_FOUND,
+            });
         }
 
         if (! $directory->isQualifying($summary)) {
@@ -121,17 +129,25 @@ class CityHubPage extends Component
             $this->trackPageView($city, $sessions->count(), $venues->count());
         }
 
+        // Curated hero intro (cities.intro, 62-04) rides the cached
+        // resolution: zero extra queries, and a Filament edit + flush shows
+        // immediately with no TTL wait. Null for uncurated locales — the
+        // hero then falls back to the generated lang-key copy.
+        $intro = $city->introFor(app()->getLocale());
+
         return view('livewire.city-hubs.city-hub-page', [
             'city' => $city,
             'sessions' => $sessions,
             'venues' => $venues,
+            'intro' => $intro,
         ]);
     }
 
     /**
      * Structured guard-rejection log, then the real 404. Logged BEFORE the
      * abort so every rejected request — crawler probes included — is
-     * visible with its reason (not_found, below_threshold, ambiguous).
+     * visible with its reason (not_found, below_threshold, ambiguous,
+     * hidden).
      */
     private function rejectHub(string $reason): never
     {
