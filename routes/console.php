@@ -119,6 +119,9 @@ Schedule::command('discovery:sweep-active --window=60')
     ->withoutOverlapping(10)
     ->onOneServer();
 
+// City hubs — re-warm summary caches + curated-city snapshot columns, keep the cities sitemap fresh
+Schedule::command('cityhubs:recompute')->hourly()->onOneServer();
+
 Schedule::command('pwa:send-session-reminders')
     ->everyFiveMinutes()
     ->withoutOverlapping(10)

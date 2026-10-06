@@ -309,6 +309,20 @@ class CityDirectoryService
     }
 
     /**
+     * Public known-slug accessor for the scheduled cityhubs:recompute
+     * command (62-04 T07): every city whose summary cache the command
+     * forgets and re-warms. A thin delegation so the derivation (distinct
+     * city values pulled and Str::slug'd in PHP — slug() cannot run in
+     * SQL) stays owned by knownCitySlugs() in one place.
+     *
+     * @return Collection<int, string>
+     */
+    public function citySlugs(): Collection
+    {
+        return $this->knownCitySlugs();
+    }
+
+    /**
      * Cache wrapper. The closure ALWAYS returns an array — Cache::remember
      * does not persist null returns (they re-run the closure), so negative
      * resolutions are encoded as status-only arrays instead.
