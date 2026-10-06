@@ -64,6 +64,9 @@ class ManageEvent extends Component
 
     public string $early_bird_deadline = '';
 
+    /** Paddle Billing price id backing the one-time ticket checkout (metadata.paddle_price_id). */
+    public ?string $paddle_price_id = null;
+
     public string $registration_opens_at = '';
 
     public string $registration_closes_at = '';
@@ -105,6 +108,7 @@ class ManageEvent extends Component
             'individual_registration_fee' => 'nullable|integer|min:0',
             'early_bird_discount' => 'nullable|integer|min:0',
             'early_bird_deadline' => 'nullable|date',
+            'paddle_price_id' => ['nullable', 'string', 'max:255', 'starts_with:pri_'],
             'registration_opens_at' => 'nullable|date',
             'registration_closes_at' => 'nullable|date|after:registration_opens_at',
             'contact_email' => 'nullable|email',
@@ -150,6 +154,7 @@ class ManageEvent extends Component
         $this->individual_registration_fee = $e->individual_registration_fee;
         $this->early_bird_discount = $e->early_bird_discount;
         $this->early_bird_deadline = $e->early_bird_deadline ? $e->early_bird_deadline->format('Y-m-d\TH:i') : '';
+        $this->paddle_price_id = $e->paddle_price_id;
         $this->registration_opens_at = $e->registration_opens_at ? $e->registration_opens_at->format('Y-m-d\TH:i') : '';
         $this->registration_closes_at = $e->registration_closes_at ? $e->registration_closes_at->format('Y-m-d\TH:i') : '';
         /** @var array<int, string>|string|null $rules */
@@ -183,6 +188,17 @@ class ManageEvent extends Component
     public function setActiveTab(string $tab): void
     {
         $this->activeTab = $tab;
+    }
+
+    /**
+     * Normalize the Paddle price id as it is typed: trim whitespace and
+     * collapse an emptied field to null so validation and save() see a
+     * clean nullable string instead of "".
+     */
+    public function updatedPaddlePriceId(?string $value): void
+    {
+        $trimmed = trim((string) $value);
+        $this->paddle_price_id = $trimmed !== '' ? $trimmed : null;
     }
 
     // ── Save ──────────────────────────────────────────
@@ -225,6 +241,17 @@ class ManageEvent extends Component
         $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules))) : null;
         $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule))) : null;
 
+        // Ticket payment: persist the Paddle price id through the Event
+        // accessor/mutator (metadata.paddle_price_id). Assigned before
+        // update() so it lands in the same save; only touched when the value
+        // actually changed so unrelated metadata keys (and a null metadata
+        // column) are never rewritten needlessly. Clearing maps to removing
+        // the key, which is why this cannot ride through array_filter below.
+        $paddlePriceId = filled($this->paddle_price_id) ? $this->paddle_price_id : null;
+        if ($this->event->paddle_price_id !== $paddlePriceId) {
+            $this->event->paddle_price_id = $paddlePriceId;
+        }
+
         $translatable = $this->buildTranslatableValues(
             ['name', 'description', 'short_description'],
             $this->language,
@@ -264,6 +291,7 @@ class ManageEvent extends Component
             'event_slug' => $this->event->slug,
             'updated_by' => Auth::id(),
             'status' => $this->status,
+            'paddle_price_id' => $paddlePriceId,
         ]);
 
         $this->saved = true;

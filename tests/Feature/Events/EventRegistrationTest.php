@@ -6,6 +6,7 @@ use App\Livewire\Events\RegisterForEvent;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\User;
+use Tests\Helpers\PaddleWebhooks;
 
 use function Pest\Laravel\actingAs;
 
@@ -86,6 +87,35 @@ describe('RegisterForEvent', function () {
             'user_id' => $user->id,
             'status' => 'pending',
             'payment_status' => 'pending',
+        ]);
+    });
+
+    it('dispatches a paddle checkout for a paid event with a price id and leaves payment_id unset', function () {
+        $user = User::factory()->create(['profile_complete' => true]);
+        // Pre-existing Paddle customer keeps createAsCustomer() local (no API call)
+        PaddleWebhooks::createCustomer($user, 'ctm_checkout_dispatch');
+        $event = Event::factory()->create([
+            'status' => 'registration_open',
+            'registration_opens_at' => now()->subDay(),
+            'registration_closes_at' => now()->addDays(7),
+            'is_public' => true,
+            'individual_registration_fee' => 2500,
+            'metadata' => ['paddle_price_id' => 'pri_event_ticket'],
+        ]);
+
+        actingAs($user);
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
+            ->call('register')
+            ->assertDispatched('open-paddle-checkout');
+
+        // payment_id stays null until the transaction.completed webhook
+        // confirms the registration — no placeholder is written at checkout.
+        $this->assertDatabaseHas('event_registrations', [
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+            'status' => 'pending',
+            'payment_status' => 'pending',
+            'payment_id' => null,
         ]);
     });
 

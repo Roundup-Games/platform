@@ -9,6 +9,7 @@ use App\Services\ShortLinkService;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -109,6 +110,43 @@ class Event extends Model implements HasMedia
             'status' => EventStatus::class,
             'type' => EventType::class,
         ];
+    }
+
+    // ── Paddle Ticketing ──────────────────────────────
+
+    /**
+     * Typed accessor/mutator for the Paddle one-time price id backing the
+     * individual registration fee, persisted as metadata.paddle_price_id.
+     *
+     * Reading: $event->paddle_price_id (null when unset).
+     * Writing: merges into metadata without clobbering other keys; assigning
+     * null (or an empty string) removes the key entirely instead of leaving
+     * a null entry behind.
+     *
+     * The set closure must JSON-encode the merged array itself: Laravel
+     * writes multi-attribute mutator return values into $this->attributes
+     * verbatim, so the 'array' cast on metadata never runs on this path.
+     * An emptied metadata map maps back to the column's null state.
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function paddlePriceId(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => ($this->metadata ?? [])['paddle_price_id'] ?? null,
+            set: function (?string $value): array {
+                $metadata = $this->metadata ?? [];
+                $trimmed = trim((string) $value);
+
+                if ($trimmed !== '') {
+                    $metadata['paddle_price_id'] = $trimmed;
+                } else {
+                    unset($metadata['paddle_price_id']);
+                }
+
+                return ['metadata' => $metadata === [] ? null : $this->asJson($metadata)];
+            },
+        );
     }
 
     protected static function booted(): void

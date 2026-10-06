@@ -121,7 +121,14 @@ class RegisterForEvent extends Component
                 ]);
             });
         } catch (QueryException $e) {
-            // Unique constraint violation from a concurrent insert — treat as duplicate
+            // Unique constraint violation from a concurrent insert — treat as
+            // duplicate. Any other database error (connectivity, deadlock, a
+            // future constraint) is rethrown so real failures are not masked
+            // by the already-registered flash.
+            if (! self::isDuplicateRegistrationViolation($e)) {
+                throw $e;
+            }
+
             Log::warning('Event registration race caught by unique constraint', [
                 'event_id' => $eventId,
                 'user_id' => $userId,
@@ -157,6 +164,46 @@ class RegisterForEvent extends Component
         }
     }
 
+    /**
+     * Map a QueryException to the duplicate-registration race for both
+     * database drivers the app can run on:
+     *
+     * - PostgreSQL (production + test harness): SQLSTATE 23505
+     *   (unique_violation) with the index name in the message.
+     * - SQLite (local file DB): SQLSTATE 23000 with driver code 19 or 2067
+     *   (SQLITE_CONSTRAINT / SQLITE_CONSTRAINT_UNIQUE) and a
+     *   "UNIQUE constraint failed: <table>.<cols>" message shape.
+     *
+     * Matching is scoped to the event_registrations active-registration
+     * index so unrelated unique violations (uuid pkey, future constraints)
+     * are not misreported as "already registered".
+     *
+     * Static: excluded from Livewire's frontend-callable method surface
+     * (Livewire only wires non-static public methods) and directly testable.
+     */
+    public static function isDuplicateRegistrationViolation(QueryException $e): bool
+    {
+        $sqlState = $e->errorInfo[0] ?? null;
+        $driverCode = $e->errorInfo[1] ?? null;
+        $message = $e->getMessage();
+
+        $isUniqueViolation = $sqlState === '23505'
+            || ($sqlState === '23000' && in_array($driverCode, [19, 2067], true));
+
+        return $isUniqueViolation && (
+            str_contains($message, 'event_registrations_event_user_active_unique')
+            || str_contains($message, 'UNIQUE constraint failed: event_registrations.event_id')
+        );
+    }
+
+    /**
+     * Initiate a Paddle checkout for a paid event registration.
+     *
+     * The checkout is tagged with custom_data {event_id, registration_id} so
+     * the transaction.completed webhook can resolve and confirm this exact
+     * registration. payment_id intentionally stays null here — the real Paddle
+     * transaction id is written by the webhook on payment, never a placeholder.
+     */
     private function initPaymentCheckout(EventRegistration $registration, int $fee): void
     {
         $user = authenticatedUser();
@@ -178,11 +225,6 @@ class RegisterForEvent extends Component
                     'registration' => $registration->id,
                 ]))
                 ->options();
-
-            // Store a reference on the registration for reconciliation after webhook
-            $registration->update([
-                'payment_id' => 'paddle_checkout_'.$registration->id,
-            ]);
 
             Log::info('Paddle checkout options prepared for registration', [
                 'registration_id' => $registration->id,

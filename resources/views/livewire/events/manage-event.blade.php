@@ -271,6 +271,27 @@
                                    class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                     </div>
+                    {{-- Ticket payment: only meaningful once a fee is charged --}}
+                    @if((int) $individual_registration_fee > 0)
+                        <h3 class="text-md font-medium text-on-surface pt-2">{{ __('events.content_ticket_payment') }}</h3>
+                        <div>
+                            <label for="event-paddle-price-id" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_paddle_price_id') }}</label>
+                            <input type="text" id="event-paddle-price-id" wire:model="paddle_price_id" maxlength="255"
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
+                            <p class="mt-1 text-xs text-on-surface-variant">
+                                {{ __('events.hint_paddle_price_id') }}
+                                <a href="https://vendors.paddle.com/products" target="_blank" rel="noopener"
+                                   class="text-primary hover:underline">{{ __('events.action_open_paddle_dashboard') }}</a>
+                            </p>
+                            @error('paddle_price_id') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                        </div>
+                        @if(blank($paddle_price_id))
+                            <div class="flex items-start gap-2 bg-error-container border border-error/20 rounded-lg p-3 text-sm text-on-error-container" role="alert">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">warning</span>
+                                <span>{{ __('events.content_missing_paddle_price_id_hint') }}</span>
+                            </div>
+                        @endif
+                    @endif
                     <h3 class="text-md font-medium text-on-surface pt-2">{{ __('events.content_registration_window') }}</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>

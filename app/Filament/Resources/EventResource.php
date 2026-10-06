@@ -24,6 +24,8 @@ use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -155,8 +157,19 @@ class EventResource extends Resource
                                 TextInput::make('individual_registration_fee')
                                     ->label('Individual Fee (cents)')
                                     ->numeric()
-                                    ->prefix('¢'),
+                                    ->prefix('¢')
+                                    ->live(onBlur: true),
                             ]),
+                        // Virtual attribute backed by Event::paddlePriceId()
+                        // (metadata.paddle_price_id). Hydrated from the record
+                        // explicitly because the accessor is not part of the
+                        // model's attributesToArray() payload.
+                        TextInput::make('paddle_price_id')
+                            ->label('Paddle Price ID')
+                            ->maxLength(255)
+                            ->helperText('Paddle Billing price ID (starts with "pri_") for the one-time ticket checkout. Create it under Products in the Paddle dashboard.')
+                            ->visible(fn (Get $get): bool => (int) $get('individual_registration_fee') > 0)
+                            ->afterStateHydrated(fn (Set $set, ?Event $record) => $set('paddle_price_id', $record?->paddle_price_id)),
                     ]),
 
                 Section::make('Visibility')

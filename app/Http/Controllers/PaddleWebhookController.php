@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EventRegistration;
 use App\Models\User;
 use App\Services\GmRoleService;
 use App\Services\PostHogAnalytics;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Http\Controllers\WebhookController as BaseWebhookController;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -150,6 +152,11 @@ class PaddleWebhookController extends BaseWebhookController
     /**
      * Handle transaction completed.
      *
+     * Cashier's parent handler syncs the transaction row for the paying
+     * customer (GM subscriptions, other one-time products); afterwards
+     * confirmEventRegistrationFromTransaction() auto-confirms the event
+     * registration the checkout was initiated for, if any.
+     *
      * @param  array<string, mixed>  $payload
      */
     protected function handleTransactionCompleted(array $payload): void
@@ -165,10 +172,472 @@ class PaddleWebhookController extends BaseWebhookController
         ]);
 
         parent::handleTransactionCompleted($payload);
+
+        $this->confirmEventRegistrationFromTransaction($payload);
+    }
+
+    /**
+     * Auto-confirm an event registration from a one-time payment.
+     *
+     * RegisterForEvent::initPaymentCheckout() tags the Paddle checkout with
+     * custom_data {event_id, registration_id}; when that checkout completes,
+     * Paddle echoes the custom_data back on transaction.completed and the
+     * pending registration is confirmed here: payment_status=paid,
+     * status=confirmed, confirmed_at=now(), payment_id=Paddle transaction id
+     * (no placeholder is written at checkout initiation — payment_id stays
+     * null until this webhook). Transactions without a registration_id in
+     * custom_data (GM subscriptions, support checkouts) are ignored.
+     *
+     * Safety semantics (T02 slice contract):
+     * - Idempotent under Paddle's at-least-once delivery: deduped on the
+     *   Paddle event_id via cache (same pattern as the PostHog event dedup)
+     *   plus a state guard (already paid with the same payment_id is a
+     *   logged no-op; a different payment_id is logged as a double payment).
+     * - The transaction must belong to the registration's owner: the
+     *   custom_data event_id must match the registration's event, and the
+     *   paying Paddle customer must resolve to the registration's user.
+     * - Unknown registrations and mismatches are structured warnings that
+     *   still return 200 (the parent __invoke does) so Paddle does not retry
+     *   forever on unfixable payloads.
+     * - A payment completing for a cancelled registration is NOT resurrected
+     *   (the partial unique index allows re-registration); it is logged for
+     *   manual reconciliation — refund vs. reinstatement is an organizer
+     *   decision, not a webhook decision.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function confirmEventRegistrationFromTransaction(array $payload): void
+    {
+        $data = $this->extractData($payload);
+
+        $customData = $data['custom_data'] ?? null;
+        if (! is_array($customData) || empty($customData['registration_id'])) {
+            return;
+        }
+
+        $paddleEventId = is_string($payload['event_id'] ?? null) ? $payload['event_id'] : null;
+        $transactionId = self::asString($data['id'] ?? null);
+        $registrationId = self::asString($customData['registration_id']);
+        $customEventId = self::asString($customData['event_id'] ?? null);
+
+        $context = [
+            'paddle_event_id' => $paddleEventId,
+            'paddle_transaction_id' => $transactionId,
+            'registration_id' => $registrationId,
+            'custom_data_event_id' => $customEventId,
+        ];
+
+        // Redelivery dedupe on the Paddle event id (at-least-once delivery).
+        // The state guard below would also no-op a redelivery, but this keeps
+        // the duplicate visible in logs and short-circuits before any lookup.
+        $dedupeKey = "paddle:registration_payment_confirmed:{$paddleEventId}";
+        if ($paddleEventId !== null && Cache::has($dedupeKey)) {
+            Log::info('Paddle webhook: event registration payment ignored (duplicate delivery)', $context);
+
+            return;
+        }
+
+        $registration = EventRegistration::find($registrationId);
+
+        if ($registration === null) {
+            Log::warning('Paddle webhook: event payment for unknown registration', $context);
+
+            return;
+        }
+
+        if ($customEventId === 'unknown' || (string) $registration->event_id !== $customEventId) {
+            Log::warning('Paddle webhook: event payment custom_data event_id mismatch', $context + [
+                'registration_event_id' => $registration->event_id,
+            ]);
+
+            return;
+        }
+
+        $paddleCustomerId = $data['customer_id'] ?? null;
+        $user = is_string($paddleCustomerId) && $paddleCustomerId !== ''
+            ? User::where('paddle_id', $paddleCustomerId)->first()
+            : null;
+
+        if ($user === null || (string) $user->id !== (string) $registration->user_id) {
+            Log::warning('Paddle webhook: event payment customer does not own registration', $context + [
+                'paddle_customer_id' => $paddleCustomerId,
+                'registration_user_id' => $registration->user_id,
+                'resolved_user_id' => $user?->id,
+            ]);
+
+            return;
+        }
+
+        // State guard: redelivery after the dedupe key expired. Same
+        // payment_id is a clean no-op; a different id means the registration
+        // was paid twice and needs manual reconciliation (refund one).
+        if ($registration->payment_status === 'paid') {
+            if ($registration->payment_id === $transactionId) {
+                Log::info('Paddle webhook: event registration already paid (no-op)', $context);
+
+                return;
+            }
+
+            Log::warning('Paddle webhook: event registration paid by a different transaction (needs manual reconciliation)', $context + [
+                'existing_payment_id' => $registration->payment_id,
+            ]);
+
+            return;
+        }
+
+        if ($registration->status === 'cancelled') {
+            Log::warning('Paddle webhook: payment completed for cancelled registration (needs manual reconciliation)', $context);
+
+            return;
+        }
+
+        $registration->update([
+            'payment_status' => 'paid',
+            'status' => 'confirmed',
+            'confirmed_at' => $registration->confirmed_at ?? now(),
+            'payment_id' => $transactionId,
+        ]);
+
+        Log::info('Paddle webhook: event registration confirmed from payment', $context + [
+            'user_id' => $user->id,
+            'event_id' => $registration->event_id,
+        ]);
+
+        if ($paddleEventId !== null) {
+            Cache::put($dedupeKey, true, now()->addDays(2));
+        }
+    }
+
+    /**
+     * Handle adjustment refunded (Paddle refunds of completed transactions).
+     *
+     * Cashier has no parent handler for adjustments — without this method
+     * the base __invoke would return an empty 200 and refunds of event
+     * tickets would never sync. Semantics (T03 slice contract):
+     *
+     * - The paying registration is resolved via payment_id === the
+     *   adjustment's transaction_id (the id written by the confirm path in
+     *   confirmEventRegistrationFromTransaction). Registrations confirmed
+     * manually by an organizer carry no payment_id and cannot be matched —
+     * those refunds are organizer territory by design.
+     * - FULL refund: payment_status flips to refunded; status deliberately
+     *   STAYS confirmed — attendance after a refund is an organizer
+     *   decision, and the refunded row stays visible in ManageRegistrations'
+     *   "refunded" payment filter/counts. S03 adds registrant-facing comms;
+     *   none are sent here.
+     * - PARTIAL refund (or a refund whose amounts cannot be compared to the
+     *   original transaction total): payment_status stays paid and a
+     *   timestamped flag is appended to internal_notes — the organizer-
+     *   visible per-registration surface. NO automatic cancellation — the
+     *   organizer decides (safe MVP semantic).
+     * - Idempotent under Paddle at-least-once delivery: cache dedupe on the
+     *   Paddle event_id (same pattern as the confirm path) plus durable
+     *   state guards (already refunded; flag marker already in notes).
+     * - Adjustments with status 'rejected' are skipped. Approval-state
+     *   changes arriving via adjustment.updated are not synced in this MVP.
+     * - Refunds without a matching registration (GM subscriptions, support
+     *   checkouts) are logged and otherwise ignored.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    protected function handleAdjustmentRefunded(array $payload): void
+    {
+        $data = $this->extractData($payload);
+
+        Log::info('Paddle webhook: adjustment.refunded', [
+            'paddle_adjustment_id' => $data['id'] ?? null,
+            'paddle_transaction_id' => $data['transaction_id'] ?? null,
+            'paddle_customer_id' => $data['customer_id'] ?? null,
+            'action' => $data['action'] ?? null,
+            'status' => $data['status'] ?? null,
+            'currency' => $data['currency_code'] ?? null,
+        ]);
+
+        $this->syncEventRegistrationRefund($payload);
+    }
+
+    /**
+     * Sync a Paddle refund to the event registration it paid for.
+     *
+     * Full refunds flip payment_status to refunded while status stays
+     * confirmed; partial (or uncomparable) refunds only append an
+     * organizer-visible internal_notes flag. See handleAdjustmentRefunded()
+     * for the full semantics contract.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function syncEventRegistrationRefund(array $payload): void
+    {
+        $data = $this->extractData($payload);
+
+        if (self::asString($data['status'] ?? null) === 'rejected') {
+            return;
+        }
+
+        $paddleEventId = is_string($payload['event_id'] ?? null) ? $payload['event_id'] : null;
+        $adjustmentId = self::asString($data['id'] ?? null);
+        $transactionId = self::asString($data['transaction_id'] ?? null);
+
+        $context = [
+            'paddle_event_id' => $paddleEventId,
+            'paddle_adjustment_id' => $adjustmentId,
+            'paddle_transaction_id' => $transactionId,
+        ];
+
+        $dedupeKey = "paddle:registration_refund_synced:{$paddleEventId}";
+        if ($paddleEventId !== null && Cache::has($dedupeKey)) {
+            Log::info('Paddle webhook: event registration refund ignored (duplicate delivery)', $context);
+
+            return;
+        }
+
+        $registration = EventRegistration::where('payment_id', $transactionId)->first();
+
+        if ($registration === null) {
+            Log::info('Paddle webhook: refund for transaction without event registration', $context);
+
+            return;
+        }
+
+        $context['registration_id'] = $registration->id;
+
+        $paddleCustomerId = $data['customer_id'] ?? null;
+        if (is_string($paddleCustomerId) && $paddleCustomerId !== '') {
+            $user = User::where('paddle_id', $paddleCustomerId)->first();
+            if ($user !== null && (string) $user->id !== (string) $registration->user_id) {
+                Log::warning('Paddle webhook: refund customer does not own registration', $context + [
+                    'paddle_customer_id' => $paddleCustomerId,
+                    'registration_user_id' => $registration->user_id,
+                    'resolved_user_id' => $user->id,
+                ]);
+
+                return;
+            }
+        }
+
+        if ($registration->payment_status === 'refunded') {
+            Log::info('Paddle webhook: event registration already refunded (no-op)', $context);
+
+            return;
+        }
+
+        $refundedCents = $this->sumAdjustmentItemsCents($data);
+        $transaction = Cashier::$transactionModel::where('paddle_id', $transactionId)->first();
+        $totalCents = $transaction === null ? null : self::amountToCents($transaction->total);
+
+        if ($refundedCents !== null && $totalCents !== null && $refundedCents >= $totalCents) {
+            $registration->update(['payment_status' => 'refunded']);
+
+            Log::info('Paddle webhook: event registration payment refunded (full)', $context + [
+                'refunded_amount' => $refundedCents,
+                'transaction_total' => $totalCents,
+                'status' => $registration->status,
+            ]);
+        } else {
+            $this->appendOrganizerFlag(
+                $registration,
+                $adjustmentId,
+                sprintf(
+                    'Paddle partial refund received (%s of %s cents) — payment kept as paid, organizer review required.',
+                    $refundedCents ?? 'unknown',
+                    $totalCents ?? 'unknown',
+                ),
+            );
+
+            Log::info('Paddle webhook: event registration partially refunded (organizer review required)', $context + [
+                'refunded_amount' => $refundedCents,
+                'transaction_total' => $totalCents,
+            ]);
+        }
+
+        if ($paddleEventId !== null) {
+            Cache::put($dedupeKey, true, now()->addDays(2));
+        }
+    }
+
+    /**
+     * Sum the refunded amounts of an adjustment's items, in integer cents.
+     *
+     * Returns null when no item carries a parseable amount — callers treat
+     * that as "scope cannot be determined" and take the conservative
+     * partial-refund path (flag only, never auto-cancel).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function sumAdjustmentItemsCents(array $data): ?int
+    {
+        $items = $data['items'] ?? null;
+        if (! is_array($items)) {
+            return null;
+        }
+
+        $total = 0;
+        $parsedAny = false;
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $cents = self::amountToCents($item['amount'] ?? null);
+            if ($cents === null) {
+                continue;
+            }
+
+            // Refund direction is fixed by the adjustment action; some
+            // payload variants express refunded amounts as negative
+            // decimals, so magnitude is what matters here.
+            $total += abs($cents);
+            $parsedAny = true;
+        }
+
+        return $parsedAny ? $total : null;
+    }
+
+    /**
+     * Parse a Paddle decimal money string ("25.00") into integer cents.
+     */
+    private static function amountToCents(mixed $value): ?int
+    {
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        return (int) round((float) $value * 100);
+    }
+
+    /**
+     * Append a timestamped, organizer-visible flag to a registration's
+     * internal_notes (the per-registration surface organizers see in
+     * ManageRegistrations). Idempotent per marker: a redelivery repeating
+     * the same marker leaves the notes untouched — durable dedupe that
+     * survives the 2-day cache TTL.
+     */
+    private function appendOrganizerFlag(EventRegistration $registration, string $marker, string $message): bool
+    {
+        $existing = (string) ($registration->internal_notes ?? '');
+
+        if ($marker !== '' && str_contains($existing, $marker)) {
+            return false;
+        }
+
+        $registration->internal_notes = trim($existing."\n".'['.now()->toIso8601String().'] '.$message.' ['.$marker.']');
+        $registration->save();
+
+        return true;
+    }
+
+    /**
+     * Flag an event registration whose ticket payment failed.
+     *
+     * The registration deliberately stays pending with payment_status=pending
+     * (a failed checkout is recoverable — the user can retry, or the
+     * organizer can confirm manually), but the organizer gets a durable,
+     * visible flag on the row via internal_notes. Semantics (T03 slice
+     * contract):
+     *
+     * - Only transactions tagged with event custom_data {event_id,
+     *   registration_id} (RegisterForEvent checkouts) are matched; GM
+     *   subscription failures are unaffected by this sync.
+     * - The paying customer must resolve to the registration's owner, and
+     *   the custom_data event_id must match the registration's event.
+     * - Already-paid registrations (paid via another transaction) and
+     *   cancelled registrations are only logged — no flag, no state change.
+     * - Idempotency is durable: the transaction id embedded in internal_notes
+     *   marks the flag as applied, so redeliveries (even after cache expiry,
+     *   under new Paddle event ids) do not duplicate the note.
+     * - The generic billing support ticket from createPaymentFailureTicket()
+     *   still fires for every payment failure, event tickets included.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function flagEventRegistrationPaymentFailure(array $payload): void
+    {
+        $data = $this->extractData($payload);
+
+        $customData = $data['custom_data'] ?? null;
+        if (! is_array($customData) || empty($customData['registration_id'])) {
+            return;
+        }
+
+        $paddleEventId = is_string($payload['event_id'] ?? null) ? $payload['event_id'] : null;
+        $transactionId = self::asString($data['id'] ?? null);
+        $registrationId = self::asString($customData['registration_id']);
+        $customEventId = self::asString($customData['event_id'] ?? null);
+
+        $context = [
+            'paddle_event_id' => $paddleEventId,
+            'paddle_transaction_id' => $transactionId,
+            'registration_id' => $registrationId,
+            'custom_data_event_id' => $customEventId,
+        ];
+
+        $registration = EventRegistration::find($registrationId);
+
+        if ($registration === null) {
+            Log::warning('Paddle webhook: event payment failure for unknown registration', $context);
+
+            return;
+        }
+
+        if ($customEventId === 'unknown' || (string) $registration->event_id !== $customEventId) {
+            Log::warning('Paddle webhook: event payment failure custom_data event_id mismatch', $context + [
+                'registration_event_id' => $registration->event_id,
+            ]);
+
+            return;
+        }
+
+        $paddleCustomerId = $data['customer_id'] ?? null;
+        $user = is_string($paddleCustomerId) && $paddleCustomerId !== ''
+            ? User::where('paddle_id', $paddleCustomerId)->first()
+            : null;
+
+        if ($user === null || (string) $user->id !== (string) $registration->user_id) {
+            Log::warning('Paddle webhook: event payment failure customer does not own registration', $context + [
+                'paddle_customer_id' => $paddleCustomerId,
+                'registration_user_id' => $registration->user_id,
+                'resolved_user_id' => $user?->id,
+            ]);
+
+            return;
+        }
+
+        if ($registration->payment_status === 'paid') {
+            Log::warning('Paddle webhook: payment failed for already-paid registration (needs manual reconciliation)', $context);
+
+            return;
+        }
+
+        if ($registration->status === 'cancelled') {
+            Log::warning('Paddle webhook: payment failed for cancelled registration', $context);
+
+            return;
+        }
+
+        $flagged = $this->appendOrganizerFlag(
+            $registration,
+            $transactionId,
+            'Paddle payment failed — registration left pending, organizer review required.',
+        );
+
+        if ($flagged) {
+            Log::info('Paddle webhook: event registration payment failure flagged for organizer review', $context + [
+                'user_id' => $user->id,
+                'event_id' => $registration->event_id,
+            ]);
+        } else {
+            Log::info('Paddle webhook: event registration payment failure already flagged (no-op)', $context);
+        }
     }
 
     /**
      * Handle transaction payment failed.
+     *
+     * Beyond the existing warning log, billing support ticket and analytics
+     * capture, event-ticket failures also flag the pending registration for
+     * its organizer (flagEventRegistrationPaymentFailure — registration
+     * state stays pending/pending).
      *
      * @param  array<string, mixed>  $payload
      */
@@ -193,6 +662,9 @@ class PaddleWebhookController extends BaseWebhookController
             'currency' => $data['currency_code'] ?? null,
             'subscription_id' => $data['subscription_id'] ?? null,
         ]);
+
+        // Event-ticket failures: durable organizer flag, state stays pending.
+        $this->flagEventRegistrationPaymentFailure($payload);
     }
 
     /**

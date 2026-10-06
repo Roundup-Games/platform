@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Event;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Spatie\Permission\PermissionRegistrar;
@@ -78,4 +79,18 @@ it('denies regular users access to every admin resource', function () use ($reso
     foreach (array_keys($resources) as $slug) {
         get("/admin/{$slug}")->assertForbidden();
     }
+})->group('smoke');
+
+it('renders the events Edit page and hydrates the Paddle price id field', function () {
+    $event = Event::factory()->create([
+        'individual_registration_fee' => 5000,
+        'metadata' => ['paddle_price_id' => 'pri_smoke_ticket'],
+    ]);
+
+    actingAs($this->platformAdmin);
+
+    get("/admin/events/{$event->id}/edit")
+        ->assertSuccessful()
+        ->assertSee('Paddle Price ID')
+        ->assertSee('pri_smoke_ticket');
 })->group('smoke');
