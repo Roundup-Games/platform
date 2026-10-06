@@ -56,15 +56,6 @@
                     <option value="pending">{{ __('common.status_pending') }}</option>
                     <option value="confirmed">{{ __('events.status_confirmed') }}</option>
                     <option value="cancelled">{{ __('common.status_cancelled') }}</option>
-                    <option value="waitlisted">{{ __('common.status_waitlisted') }}</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-on-surface-variant mb-1">{{ __('common.field_type') }}</label>
-                <select wire:model.live="filterType" class="bg-surface-container-high border border-transparent rounded-lg text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 text-sm py-2">
-                    <option value="">{{ __('discovery.content_all_types') }}</option>
-                    <option value="team">{{ __('events.content_team') }}</option>
-                    <option value="individual">{{ __('common.content_individual') }}</option>
                 </select>
             </div>
             <div>
@@ -95,8 +86,6 @@
                     <thead class="bg-surface-container">
                         <tr>
                             <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('common.content_registrant') }}</th>
-                            <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('common.field_type') }}</th>
-                            <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('events.content_division') }}</th>
                             <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('common.content_status') }}</th>
                             <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('billing.content_payment') }}</th>
                             <th class="text-left px-4 py-3 text-xs font-medium text-on-surface-variant tracking-wide">{{ __('events.status_registered') }}</th>
@@ -111,22 +100,7 @@
                                     <div>
                                         <x-user-link :user="$registration->user" :show-avatar="false" />
                                         <p class="text-xs text-on-surface-variant">{{ $registration->user?->email }}</p>
-                                        @if($registration->team)
-                                            <p class="text-xs text-primary">{{ __('events.field_team_display_name', ['name' => $registration->team?->name]) }}</p>
-                                        @endif
                                     </div>
-                                </td>
-
-                                {{-- Type --}}
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ $registration->registration_type === 'team' ? 'bg-primary/10 text-primary' : 'bg-tertiary/10 text-on-tertiary-container' }}">
-                                        {{ ucfirst($registration->registration_type) }}
-                                    </span>
-                                </td>
-
-                                {{-- Division --}}
-                                <td class="px-4 py-3 text-on-surface-variant">
-                                    {{ $registration->division ?? '—' }}
                                 </td>
 
                                 {{-- Status --}}
@@ -136,7 +110,6 @@
                                             'pending' => 'bg-tertiary/10 text-on-tertiary-container',
                                             'confirmed' => 'bg-secondary-container text-on-secondary-container',
                                             'cancelled' => 'bg-error-container text-on-error-container',
-                                            'waitlisted' => 'bg-surface-container text-on-surface-variant',
                                         ];
                                     @endphp
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ $statusColors[$registration->status] ?? 'bg-surface-container text-on-surface-variant' }}">
@@ -152,7 +125,6 @@
                                             'pending' => 'text-tertiary',
                                             'not_required' => 'text-on-surface-variant',
                                             'refunded' => 'text-primary',
-                                            'failed' => 'text-error',
                                         ];
                                     @endphp
                                     <span class="text-xs font-medium {{ $paymentColors[$registration->payment_status] ?? 'text-on-surface-variant' }}">
@@ -273,18 +245,6 @@
                                             <span class="material-symbols-outlined text-xs" aria-hidden="true">edit_note</span>
                                             {{ Str::limit($registration->internal_notes, 40) }}
                                         </p>
-                                    @endif
-
-                                    {{-- Roster info for team registrations --}}
-                                    @if($registration->roster && count($registration->roster) > 0)
-                                        <details class="mt-1">
-                                            <summary class="text-xs text-on-surface-variant cursor-pointer hover:text-on-surface">{{ trans_choice('events.content_roster_count', count($registration->roster)) }}</summary>
-                                            <div class="mt-1 pl-3 text-xs text-on-surface-variant space-y-0.5">
-                                                @foreach($registration->roster as $member)
-                                                    <p>{{ $member['name'] ?? __('common.content_unknown') }} <span class="text-on-surface-variant/60">({{ $member['role'] ?? '' }})</span></p>
-                                                @endforeach
-                                            </div>
-                                        </details>
                                     @endif
                                 </td>
                             </tr>

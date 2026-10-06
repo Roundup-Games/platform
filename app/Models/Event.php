@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EventStatus;
+use App\Enums\EventType;
 use App\Relations\StringKeyMorphMany;
 use App\Services\ShortLinkService;
 use App\Traits\StringMorphMediaKey;
@@ -37,11 +38,11 @@ use Spatie\Translatable\HasTranslations;
  * @property Carbon|null $registration_closes_at
  * @property Carbon|null $early_bird_deadline
  * @property EventStatus|null $status
+ * @property EventType|null $type
  * @property string|null $slug
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property int|null $individual_registration_fee
- * @property int|null $team_registration_fee
  * @property array{paddle_price_id?: string}|null $metadata
  */
 class Event extends Model implements HasMedia
@@ -79,12 +80,11 @@ class Event extends Model implements HasMedia
         'name', 'slug', 'description', 'short_description', 'type', 'status', 'language',
         'venue_name', 'venue_address', 'city', 'country', 'postal_code', 'location_id',
         'start_date', 'end_date', 'registration_opens_at', 'registration_closes_at',
-        'registration_type', 'max_teams', 'max_participants',
-        'min_players_per_team', 'max_players_per_team',
-        'team_registration_fee', 'individual_registration_fee',
+        'max_participants',
+        'individual_registration_fee',
         'early_bird_discount', 'early_bird_deadline',
         'organizer_id', 'contact_email', 'contact_phone',
-        'rules', 'schedule', 'divisions', 'amenities', 'requirements',
+        'rules', 'schedule', 'amenities', 'requirements',
         'is_public', 'is_featured', 'metadata',
     ];
 
@@ -96,22 +96,18 @@ class Event extends Model implements HasMedia
             'registration_opens_at' => 'datetime',
             'registration_closes_at' => 'datetime',
             'early_bird_deadline' => 'datetime',
-            'team_registration_fee' => 'integer',
             'individual_registration_fee' => 'integer',
             'early_bird_discount' => 'integer',
-            'min_players_per_team' => 'integer',
-            'max_players_per_team' => 'integer',
-            'max_teams' => 'integer',
             'max_participants' => 'integer',
             'rules' => 'array',
             'schedule' => 'array',
-            'divisions' => 'array',
             'amenities' => 'array',
             'requirements' => 'array',
             'is_public' => 'boolean',
             'is_featured' => 'boolean',
             'metadata' => 'array',
             'status' => EventStatus::class,
+            'type' => EventType::class,
         ];
     }
 
@@ -293,16 +289,8 @@ class Event extends Model implements HasMedia
 
     public function hasCapacity(): bool
     {
-        if ($this->registration_type === 'team' || $this->registration_type === 'both') {
-            if ($this->max_teams && $this->registrations()->where('registration_type', 'team')->count() >= $this->max_teams) {
-                return false;
-            }
-        }
-
-        if ($this->registration_type === 'individual' || $this->registration_type === 'both') {
-            if ($this->max_participants && $this->registrations()->where('registration_type', 'individual')->count() >= $this->max_participants) {
-                return false;
-            }
+        if ($this->max_participants && $this->registrations()->count() >= $this->max_participants) {
+            return false;
         }
 
         return true;
@@ -380,8 +368,8 @@ class Event extends Model implements HasMedia
                 $event->maximumAttendeeCapacity($this->max_participants);
             }
 
-            // Offers — individual or team registration fees
-            $fee = $this->individual_registration_fee ?: $this->team_registration_fee;
+            // Offers — individual registration fee
+            $fee = $this->individual_registration_fee;
             $event->isAccessibleForFree(empty($fee));
 
             if ($fee > 0) {

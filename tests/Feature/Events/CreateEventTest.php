@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\EventStatus;
+use App\Enums\EventType;
 use App\Livewire\Events\CreateEvent;
 use App\Livewire\Events\EventAnnouncements;
 use App\Livewire\Events\ManageEvent;
@@ -38,6 +39,35 @@ describe('CreateEvent', function () {
             ->assertHasErrors('name');
     });
 
+    it('rejects legacy event types outside the EventType vocabulary', function () {
+        seedPermissions();
+        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
+        $user->givePermissionTo('create event');
+
+        actingAs($user);
+
+        foreach (['tournament', 'league', 'camp', 'clinic'] as $legacyType) {
+            Livewire\Livewire::test(CreateEvent::class)
+                ->set('name', 'Legacy Type Event')
+                ->set('type', $legacyType)
+                ->set('start_date', now()->addDays(14)->format('Y-m-d'))
+                ->set('end_date', now()->addDays(16)->format('Y-m-d'))
+                ->call('nextStep')
+                ->assertHasErrors('type')
+                ->assertSet('step', 1);
+        }
+
+        foreach (EventType::values() as $validType) {
+            Livewire\Livewire::test(CreateEvent::class)
+                ->set('name', 'Valid Type Event')
+                ->set('type', $validType)
+                ->set('start_date', now()->addDays(14)->format('Y-m-d'))
+                ->set('end_date', now()->addDays(16)->format('Y-m-d'))
+                ->call('nextStep')
+                ->assertSet('step', 2);
+        }
+    });
+
     it('advances to step 2 with valid basic info', function () {
         seedPermissions();
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
@@ -45,15 +75,15 @@ describe('CreateEvent', function () {
 
         actingAs($user);
         Livewire\Livewire::test(CreateEvent::class)
-            ->set('name', 'Summer Tournament')
-            ->set('type', 'tournament')
+            ->set('name', 'Weekly Game Day')
+            ->set('type', 'game_day')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
             ->set('end_date', now()->addDays(16)->format('Y-m-d'))
             ->call('nextStep')
             ->assertSet('step', 2);
     });
 
-    it('validates step 1 through step 5 before skipping ahead', function () {
+    it('validates intermediate steps before skipping ahead', function () {
         seedPermissions();
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $user->givePermissionTo('create event');
@@ -66,22 +96,25 @@ describe('CreateEvent', function () {
             ->assertSet('step', 1);
     });
 
-    it('adds a division', function () {
+    it('rejects a negative or zero max participant count', function () {
         seedPermissions();
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $user->givePermissionTo('create event');
 
         actingAs($user);
         Livewire\Livewire::test(CreateEvent::class)
-            ->set('step', 4)
-            ->set('newDivisionName', 'Open Division')
-            ->set('newDivisionDescription', 'For all skill levels')
-            ->call('addDivision')
-            ->assertSet('divisions', [['name' => 'Open Division', 'description' => 'For all skill levels']])
-            ->assertSet('newDivisionName', '');
+            ->set('name', 'Capacity Event')
+            ->set('type', 'game_day')
+            ->set('start_date', now()->addDays(14)->format('Y-m-d'))
+            ->set('end_date', now()->addDays(16)->format('Y-m-d'))
+            ->call('nextStep')
+            ->set('step', 3)
+            ->set('max_participants', 0)
+            ->call('nextStep')
+            ->assertHasErrors('max_participants');
     });
 
-    it('creates an event and redirects', function () {
+    it('creates an event with capacity and fee settings and redirects', function () {
         seedPermissions();
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $user->givePermissionTo('create event');
@@ -92,57 +125,30 @@ describe('CreateEvent', function () {
         $endDate = now()->addDays(16)->format('Y-m-d');
 
         Livewire\Livewire::test(CreateEvent::class)
-            ->set('step', 5)
-            ->set('name', 'Test Tournament')
-            ->set('type', 'tournament')
+            ->set('step', 4)
+            ->set('name', 'Weekly Game Day')
+            ->set('type', 'game_day')
             ->set('start_date', $startDate)
             ->set('end_date', $endDate)
-            ->set('registration_type', 'both')
             ->set('venue_name', 'Test Arena')
             ->set('city', 'Austin')
             ->set('country', 'USA')
-            ->set('max_teams', 16)
-            ->set('team_registration_fee', 5000)
+            ->set('max_participants', 20)
             ->set('individual_registration_fee', 2500)
             ->set('is_public', true)
             ->set('contact_email', 'org@example.com')
             ->call('create')
             ->assertRedirect();
 
-        $event = Event::where('name->en', 'Test Tournament')->first();
+        $event = Event::where('name->en', 'Weekly Game Day')->first();
         expect($event)->not->toBeNull();
         expect($event->organizer_id)->toBe($user->id);
         expect($event->status)->toBe(EventStatus::Draft);
-        expect($event->type)->toBe('tournament');
+        expect($event->type)->toBe(EventType::GameDay);
         expect($event->venue_name)->toBe('Test Arena');
-        expect($event->max_teams)->toBe(16);
-        expect($event->team_registration_fee)->toBe(5000);
+        expect($event->max_participants)->toBe(20);
+        expect($event->individual_registration_fee)->toBe(2500);
     })->group('smoke');
-
-    it('stores divisions as JSON', function () {
-        seedPermissions();
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $user->givePermissionTo('create event');
-
-        actingAs($user);
-
-        Livewire\Livewire::test(CreateEvent::class)
-            ->set('step', 5)
-            ->set('name', 'Division Event')
-            ->set('type', 'tournament')
-            ->set('start_date', now()->addDays(14)->format('Y-m-d'))
-            ->set('end_date', now()->addDays(16)->format('Y-m-d'))
-            ->set('divisions', [
-                ['name' => 'Open', 'description' => 'All levels'],
-                ['name' => 'Pro', 'description' => 'Advanced only'],
-            ])
-            ->set('registration_type', 'team')
-            ->call('create');
-
-        $event = Event::where('name->en', 'Division Event')->first();
-        expect($event->divisions)->toHaveCount(2);
-        expect($event->divisions[0]['name'])->toBe('Open');
-    });
 
     it('stores rules as array from newline-separated text', function () {
         seedPermissions();
@@ -152,12 +158,11 @@ describe('CreateEvent', function () {
         actingAs($user);
 
         Livewire\Livewire::test(CreateEvent::class)
-            ->set('step', 5)
+            ->set('step', 4)
             ->set('name', 'Rules Event')
-            ->set('type', 'tournament')
+            ->set('type', 'game_day')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
             ->set('end_date', now()->addDays(16)->format('Y-m-d'))
-            ->set('registration_type', 'team')
             ->set('rules', "Rule one\nRule two\nRule three")
             ->call('create');
 
@@ -177,12 +182,11 @@ describe('CreateEvent', function () {
         $closesAt = now()->addDays(10)->format('Y-m-d\TH:i');
 
         Livewire\Livewire::test(CreateEvent::class)
-            ->set('step', 5)
+            ->set('step', 4)
             ->set('name', 'Window Event')
-            ->set('type', 'tournament')
+            ->set('type', 'game_day')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
             ->set('end_date', now()->addDays(16)->format('Y-m-d'))
-            ->set('registration_type', 'team')
             ->set('registration_opens_at', $opensAt)
             ->set('registration_closes_at', $closesAt)
             ->call('create');
@@ -211,14 +215,14 @@ describe('ManageEvent', function () {
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $event = Event::factory()->create([
             'organizer_id' => $user->id,
-            'name' => 'My Tournament',
+            'name' => 'My Game Day',
         ]);
 
         actingAs($user);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->assertOk()
             ->assertSee('Save Changes')
-            ->assertSet('name', 'My Tournament');
+            ->assertSet('name', 'My Game Day');
     });
 
     it('populates form from existing event', function () {
@@ -226,7 +230,7 @@ describe('ManageEvent', function () {
         $event = Event::factory()->create([
             'organizer_id' => $user->id,
             'name' => 'Existing Event',
-            'type' => 'league',
+            'type' => 'convention',
             'venue_name' => 'Main Arena',
             'city' => 'Dallas',
         ]);
@@ -234,7 +238,7 @@ describe('ManageEvent', function () {
         actingAs($user);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->assertSet('name', 'Existing Event')
-            ->assertSet('type', 'league')
+            ->assertSet('type', 'convention')
             ->assertSet('venue_name', 'Main Arena')
             ->assertSet('city', 'Dallas');
     });
@@ -257,6 +261,41 @@ describe('ManageEvent', function () {
         $component->assertHasNoErrors();
         expect(Event::find($event->id)->name)->toBe('New Name');
         expect(Event::find($event->id)->city)->toBe('New City');
+    });
+
+    it('saves capacity, fee, and early bird settings', function () {
+        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
+        $event = Event::factory()->create([
+            'organizer_id' => $user->id,
+            'max_participants' => null,
+            'individual_registration_fee' => 0,
+        ]);
+
+        actingAs($user);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
+            ->set('max_participants', 25)
+            ->set('individual_registration_fee', 1500)
+            ->set('early_bird_discount', 500)
+            ->set('early_bird_deadline', now()->addDays(5)->format('Y-m-d\TH:i'))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $fresh = $event->fresh();
+        expect($fresh->max_participants)->toBe(25);
+        expect($fresh->individual_registration_fee)->toBe(1500);
+        expect($fresh->early_bird_discount)->toBe(500);
+        expect($fresh->early_bird_deadline)->not->toBeNull();
+    });
+
+    it('rejects an invalid event type on save', function () {
+        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
+        $event = Event::factory()->create(['organizer_id' => $user->id]);
+
+        actingAs($user);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
+            ->set('type', 'tournament')
+            ->call('save')
+            ->assertHasErrors('type');
     });
 
     it('publishes an event', function () {

@@ -13,13 +13,13 @@ describe('EventListing', function () {
     // smoke: events listing shows public events
     it('lists public events', function () {
         $event = Event::factory()->create([
-            'name' => ['en' => 'Spring Tournament'],
+            'name' => ['en' => 'Spring Game Day'],
             'is_public' => true,
             'status' => 'registration_open',
         ]);
 
         Livewire\Livewire::test(EventListing::class)
-            ->assertSee('Spring Tournament');
+            ->assertSee('Spring Game Day');
     })->group('smoke');
 
     it('hides excluded events from listing', function ($overrides) {
@@ -38,23 +38,23 @@ describe('EventListing', function () {
     ]);
 
     it('searches by name', function () {
-        Event::factory()->create(['name' => ['en' => 'Alpha Tournament'], 'is_public' => true, 'status' => 'registration_open']);
-        Event::factory()->create(['name' => ['en' => 'Beta League'], 'is_public' => true, 'status' => 'registration_open']);
+        Event::factory()->create(['name' => ['en' => 'Alpha Game Day'], 'is_public' => true, 'status' => 'registration_open']);
+        Event::factory()->create(['name' => ['en' => 'Beta Social Night'], 'is_public' => true, 'status' => 'registration_open']);
 
         Livewire\Livewire::test(EventListing::class)
             ->set('search', 'Alpha')
-            ->assertSee('Alpha Tournament')
-            ->assertDontSee('Beta League');
+            ->assertSee('Alpha Game Day')
+            ->assertDontSee('Beta Social Night');
     });
 
     it('filters by type', function () {
-        Event::factory()->create(['name' => ['en' => 'Tourney A'], 'type' => 'tournament', 'is_public' => true, 'status' => 'registration_open']);
-        Event::factory()->create(['name' => ['en' => 'Camp B'], 'type' => 'camp', 'is_public' => true, 'status' => 'registration_open']);
+        Event::factory()->create(['name' => ['en' => 'Game Day A'], 'type' => 'game_day', 'is_public' => true, 'status' => 'registration_open']);
+        Event::factory()->create(['name' => ['en' => 'Other B'], 'type' => 'other', 'is_public' => true, 'status' => 'registration_open']);
 
         Livewire\Livewire::test(EventListing::class)
-            ->set('type', 'tournament')
-            ->assertSee('Tourney A')
-            ->assertDontSee('Camp B');
+            ->set('type', 'game_day')
+            ->assertSee('Game Day A')
+            ->assertDontSee('Other B');
     });
 
     it('filters by upcoming date', function () {
@@ -83,31 +83,14 @@ describe('EventListing', function () {
 describe('EventDetail', function () {
     it('renders the event detail page for a public event', function () {
         $event = Event::factory()->create([
-            'name' => ['en' => 'Grand Tournament'],
+            'name' => ['en' => 'Grand Convention'],
             'is_public' => true,
             'status' => 'registration_open',
         ]);
 
         Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertOk()
-            ->assertSee('Grand Tournament');
-    });
-
-    it('shows divisions', function () {
-        $event = Event::factory()->create([
-            'name' => ['en' => 'Division Event'],
-            'is_public' => true,
-            'status' => 'registration_open',
-            'divisions' => [
-                ['name' => 'Open Division', 'description' => 'All skill levels'],
-                ['name' => 'Pro Division', 'description' => 'Competitive only'],
-            ],
-        ]);
-
-        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Divisions')
-            ->assertSee('Open Division')
-            ->assertSee('Pro Division');
+            ->assertSee('Grand Convention');
     });
 
     it('shows schedule items', function () {
@@ -127,24 +110,22 @@ describe('EventDetail', function () {
             ->assertSee('Matches Begin');
     });
 
-    it('shows capacity bar with registration counts', function () {
+    it('shows participant capacity bar with registration counts', function () {
         $organizer = User::factory()->create();
         $event = Event::factory()->create([
             'name' => ['en' => 'Capacity Event'],
             'is_public' => true,
             'status' => 'registration_open',
-            'registration_type' => 'team',
-            'max_teams' => 10,
+            'max_participants' => 10,
             'organizer_id' => $organizer->id,
         ]);
 
-        // Create 3 team registrations
+        // Create 3 confirmed registrations
         for ($i = 0; $i < 3; $i++) {
             $user = User::factory()->create();
             EventRegistration::create([
                 'event_id' => $event->id,
                 'user_id' => $user->id,
-                'registration_type' => 'team',
                 'status' => 'confirmed',
                 'payment_status' => 'paid',
             ]);
@@ -154,17 +135,15 @@ describe('EventDetail', function () {
             ->assertSee('3/10');
     });
 
-    it('shows fees correctly', function () {
+    it('shows the individual fee correctly', function () {
         $event = Event::factory()->create([
             'name' => ['en' => 'Paid Event'],
             'is_public' => true,
             'status' => 'registration_open',
-            'team_registration_fee' => 25000, // $250.00
             'individual_registration_fee' => 5000, // $50.00
         ]);
 
         Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
-            ->assertSee(format_currency(25000))
             ->assertSee(format_currency(5000));
     });
 
@@ -233,7 +212,7 @@ describe('EventDetail', function () {
             'name' => ['en' => 'Early Bird Event'],
             'is_public' => true,
             'status' => 'registration_open',
-            'team_registration_fee' => 10000,
+            'individual_registration_fee' => 10000,
             'early_bird_discount' => 2000,
             'early_bird_deadline' => now()->addDays(7),
         ]);

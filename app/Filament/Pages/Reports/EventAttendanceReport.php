@@ -43,7 +43,7 @@ class EventAttendanceReport extends Page implements HasTable
         return $table
             ->query(
                 EventRegistration::query()
-                    ->with(['event', 'user', 'team'])
+                    ->with(['event', 'user'])
             )
             ->columns([
                 TextColumn::make('event.name')
@@ -70,27 +70,12 @@ class EventAttendanceReport extends Page implements HasTable
                     ->label('Email')
                     ->searchable()
                     ->toggleable(),
-                TextColumn::make('team.name')
-                    ->label('Team')
-                    ->searchable()
-                    ->toggleable()
-                    ->default('—'),
-                TextColumn::make('registration_type')
-                    ->label('Type')
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
-                TextColumn::make('division')
-                    ->label('Division')
-                    ->searchable()
-                    ->default('—')
-                    ->toggleable(),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'confirmed' => 'success',
                         'pending' => 'warning',
-                        'waitlisted' => 'info',
                         'cancelled' => 'danger',
                         'refunded' => 'gray',
                         default => 'gray',
@@ -103,9 +88,7 @@ class EventAttendanceReport extends Page implements HasTable
                     ->color(fn (string $state): string => match ($state) {
                         'paid' => 'success',
                         'pending' => 'warning',
-                        'failed' => 'danger',
                         'refunded' => 'info',
-                        'waived' => 'gray',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => ucfirst($state))
@@ -132,7 +115,6 @@ class EventAttendanceReport extends Page implements HasTable
                     ->options([
                         'pending' => 'Pending',
                         'confirmed' => 'Confirmed',
-                        'waitlisted' => 'Waitlisted',
                         'cancelled' => 'Cancelled',
                         'refunded' => 'Refunded',
                     ]),
@@ -142,14 +124,7 @@ class EventAttendanceReport extends Page implements HasTable
                         'pending' => 'Pending',
                         'paid' => 'Paid',
                         'refunded' => 'Refunded',
-                        'failed' => 'Failed',
-                        'waived' => 'Waived',
-                    ]),
-                SelectFilter::make('registration_type')
-                    ->label('Registration Type')
-                    ->options([
-                        'individual' => 'Individual',
-                        'team' => 'Team',
+                        'not_required' => 'Not Required',
                     ]),
                 Filter::make('created_at')
                     ->form([

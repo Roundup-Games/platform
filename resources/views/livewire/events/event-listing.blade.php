@@ -12,12 +12,9 @@
             <select wire:model.live="type" aria-label="Filter by event type"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.content_all_types') }}</option>
-                <option value="tournament">{{ __('events.field_tournament') }}</option>
-                <option value="league">{{ __('common.content_league') }}</option>
-                <option value="camp">{{ __('common.content_camp') }}</option>
-                <option value="clinic">{{ __('common.content_clinic') }}</option>
-                <option value="social">{{ __('common.content_social') }}</option>
-                <option value="other">{{ __('common.content_other') }}</option>
+                @foreach(\App\Enums\EventType::cases() as $typeCase)
+                    <option value="{{ $typeCase->value }}">{{ $typeCase->label() }}</option>
+                @endforeach
             </select>
             <select wire:model.live="status" aria-label="Filter by event status"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-xs focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
@@ -48,7 +45,7 @@
                 @endif
                 @if($type)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {{ __(ucfirst($type)) }}
+                        {{ \App\Enums\EventType::tryFrom($type)?->label() ?? ucfirst($type) }}
                     </span>
                 @endif
                 @if($status)
@@ -92,7 +89,7 @@
                             {{-- Type badge --}}
                             <div class="flex items-center gap-2 mb-3">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                                    {{ __(ucfirst($event->type)) }}
+                                    {{ $event->type?->label() }}
                                 </span>
                                 @if($event->status->value === 'registration_open')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
@@ -138,13 +135,9 @@
                             @endif
 
                             {{-- Fee info --}}
-                            @if($event->team_registration_fee > 0 || $event->individual_registration_fee > 0)
+                            @if($event->individual_registration_fee > 0)
                                 <p class="mt-2 text-xs text-on-surface-variant/70">
-                                    @if($event->individual_registration_fee > 0)
-                                        {{ __('common.field_from_amount_player', ['amount' => format_currency($event->individual_registration_fee)]) }}
-                                    @elseif($event->team_registration_fee > 0)
-                                        {{ __('teams.field_amount_team', ['amount' => format_currency($event->team_registration_fee)]) }}
-                                    @endif
+                                    {{ __('common.field_from_amount_player', ['amount' => format_currency($event->individual_registration_fee)]) }}
                                 </p>
                             @endif
                         </div>

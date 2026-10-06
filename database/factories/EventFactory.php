@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\EventType;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,7 +21,7 @@ class EventFactory extends Factory
     {
         return [
             'name' => ['en' => fake()->words(3, true)],
-            'type' => fake()->randomElement(['tournament', 'league', 'camp', 'clinic', 'social', 'other']),
+            'type' => fake()->randomElement(EventType::values()),
             'status' => 'registration_open',
             'start_date' => now()->addDays(fake()->numberBetween(7, 60)),
             'end_date' => now()->addDays(fake()->numberBetween(61, 63)),
@@ -28,8 +29,6 @@ class EventFactory extends Factory
             'city' => fake()->city(),
             'country' => fake()->countryCode(),
             'is_public' => true,
-            'registration_type' => 'individual',
-            'team_registration_fee' => 0,
             'individual_registration_fee' => 0,
         ];
     }

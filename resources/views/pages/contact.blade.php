@@ -146,10 +146,6 @@
                                 <h4 class="text-sm font-medium text-on-surface">{{ __('common.content_is_it_free_to_use') }}</h4>
                                 <p class="mt-1 text-sm text-on-surface-variant">{{ __('billing.content_creating_events_and_registering_for') }}</p>
                             </div>
-                            <div>
-                                <h4 class="text-sm font-medium text-on-surface">{{ __('events.content_can_i_register_a_team') }}</h4>
-                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('events.content_yes_many_events_support_team') }}</p>
-                            </div>
                         </div>
                     </div>
                 </div>

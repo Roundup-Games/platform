@@ -2,13 +2,15 @@
 -- PostgreSQL database dump
 --
 
+\restrict Ir3bKSc8wSkfxaVynyGf1Cbldhnauz1UzzSJJ43CJ1nT1iegWj1l1IZMAiDsSNU
 
--- Dumped from database version 17.10 (Debian 17.10-1.pgdg13+1)
+-- Dumped from database version 17.11 (Debian 17.11-1.pgdg13+2)
 -- Dumped by pg_dump version 18.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -136,7 +138,7 @@ CREATE TABLE public.attendance_reports (
     reported_id uuid NOT NULL,
     reporter_id uuid NOT NULL,
     reason text,
-    CONSTRAINT attendance_reports_status_check CHECK (((status)::text = ANY ((ARRAY['attended'::character varying, 'no_show'::character varying, 'late_cancel'::character varying, 'excused'::character varying, 'cancelled_early'::character varying])::text[])))
+    CONSTRAINT attendance_reports_status_check CHECK (((status)::text = ANY (ARRAY[('attended'::character varying)::text, ('no_show'::character varying)::text, ('late_cancel'::character varying)::text, ('excused'::character varying)::text, ('cancelled_early'::character varying)::text])))
 );
 
 
@@ -193,7 +195,7 @@ CREATE TABLE public.campaign_applications (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     user_id uuid NOT NULL,
-    CONSTRAINT campaign_applications_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying])::text[])))
+    CONSTRAINT campaign_applications_status_check CHECK (((status)::text = ANY (ARRAY[('pending'::character varying)::text, ('approved'::character varying)::text, ('rejected'::character varying)::text])))
 );
 
 
@@ -227,8 +229,8 @@ CREATE TABLE public.campaign_participants (
     confirmation_expires_at timestamp(0) without time zone,
     confirmation_attempts integer,
     created_at timestamp(0) without time zone,
-    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::character varying)::text, ('share_link'::character varying)::text, ('application'::character varying)::text, ('email_invite'::character varying)::text, ('short_link'::character varying)::text]))),
-    CONSTRAINT campaign_participants_role_check CHECK (((role)::text = ANY ((ARRAY['owner'::character varying, 'player'::character varying, 'invited'::character varying, 'applicant'::character varying])::text[]))),
+    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::character varying, 'share_link'::character varying, 'application'::character varying, 'email_invite'::character varying, 'short_link'::character varying, 'discord'::character varying])::text[]))),
+    CONSTRAINT campaign_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::character varying)::text, ('player'::character varying)::text, ('invited'::character varying)::text, ('applicant'::character varying)::text]))),
     CONSTRAINT campaign_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::character varying)::text, ('rejected'::character varying)::text, ('pending'::character varying)::text, ('waitlisted'::character varying)::text, ('benched'::character varying)::text, ('removed'::character varying)::text])))
 );
 
@@ -265,9 +267,42 @@ CREATE TABLE public.campaigns (
     bench_mode boolean DEFAULT false NOT NULL,
     game_type character varying(20),
     host_note text,
-    CONSTRAINT campaigns_recurrence_check CHECK (((recurrence)::text = ANY ((ARRAY['weekly'::character varying, 'bi-weekly'::character varying, 'monthly'::character varying])::text[]))),
-    CONSTRAINT campaigns_status_check CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'cancelled'::character varying, 'completed'::character varying])::text[]))),
-    CONSTRAINT campaigns_visibility_check CHECK (((visibility)::text = ANY ((ARRAY['public'::character varying, 'protected'::character varying, 'private'::character varying])::text[])))
+    CONSTRAINT campaigns_recurrence_check CHECK (((recurrence)::text = ANY ((ARRAY['weekly'::character varying, 'bi-weekly'::character varying, 'monthly'::character varying, 'custom'::character varying])::text[]))),
+    CONSTRAINT campaigns_status_check CHECK (((status)::text = ANY (ARRAY[('active'::character varying)::text, ('cancelled'::character varying)::text, ('completed'::character varying)::text]))),
+    CONSTRAINT campaigns_visibility_check CHECK (((visibility)::text = ANY (ARRAY[('public'::character varying)::text, ('protected'::character varying)::text, ('private'::character varying)::text])))
+);
+
+
+--
+-- Name: cities; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.cities (
+    id uuid NOT NULL,
+    slug character varying(255) NOT NULL,
+    city character varying(255) NOT NULL,
+    country character(3),
+    region_prefix character(3),
+    intro jsonb,
+    featured boolean DEFAULT false NOT NULL,
+    hidden boolean DEFAULT false NOT NULL,
+    upcoming_activity_count integer,
+    verified_venues_count integer,
+    recomputed_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: city_hub_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.city_hub_settings (
+    key character varying(255) NOT NULL,
+    value integer NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
 );
 
 
@@ -305,6 +340,99 @@ CREATE SEQUENCE public.customers_id_seq
 --
 
 ALTER SEQUENCE public.customers_id_seq OWNED BY public.customers.id;
+
+
+--
+-- Name: discord_bulletin_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.discord_bulletin_messages (
+    id uuid NOT NULL,
+    bulletin_id uuid NOT NULL,
+    guild_id uuid NOT NULL,
+    thread_id character varying(255) NOT NULL,
+    message_id character varying(255),
+    status character varying(20) DEFAULT 'posted'::character varying NOT NULL,
+    error_code smallint,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: discord_card_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.discord_card_messages (
+    id uuid NOT NULL,
+    game_id uuid NOT NULL,
+    guild_id uuid NOT NULL,
+    channel_id character varying(255) NOT NULL,
+    message_id character varying(255),
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    status character varying(20) DEFAULT 'posted'::character varying NOT NULL,
+    moderator_user_id uuid,
+    moderated_at timestamp(0) without time zone,
+    expires_at timestamp(0) without time zone,
+    thread_id character varying(255)
+);
+
+
+--
+-- Name: discord_guild_organizers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.discord_guild_organizers (
+    id uuid NOT NULL,
+    guild_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    publish_enabled boolean DEFAULT false NOT NULL,
+    opted_in_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: discord_guilds; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.discord_guilds (
+    id uuid NOT NULL,
+    guild_id character varying(255) NOT NULL,
+    name character varying(255) NOT NULL,
+    icon character varying(255),
+    owner_user_id uuid NOT NULL,
+    calendar_channel_id character varying(255),
+    games_channel_id character varying(255),
+    locale character varying(10),
+    paused boolean DEFAULT false NOT NULL,
+    moderation_mode character varying(50) DEFAULT 'open'::character varying NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    digest_message_id character varying(255),
+    digest_channel_id character varying(255),
+    digest_thread_date character varying(10),
+    digest_thread_channel_id character varying(255),
+    digest_thread_message_id character varying(255)
+);
+
+
+--
+-- Name: email_suppressions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.email_suppressions (
+    id uuid NOT NULL,
+    email character varying(255) NOT NULL,
+    reason character varying(255) NOT NULL,
+    source character varying(255) DEFAULT 'resend_webhook'::character varying NOT NULL,
+    trigger_message_id character varying(255),
+    suppressed_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
 
 
 --
@@ -2180,21 +2308,16 @@ CREATE TABLE public.event_announcements (
 CREATE TABLE public.event_registrations (
     id uuid NOT NULL,
     event_id uuid NOT NULL,
-    registration_type character varying(255) NOT NULL,
-    division character varying(100),
     status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
     payment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
     payment_id character varying(255),
-    roster json,
     notes text,
     internal_notes text,
     confirmed_at timestamp(0) without time zone,
     cancelled_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    team_id uuid,
-    user_id uuid NOT NULL,
-    CONSTRAINT event_registrations_registration_type_check CHECK (((registration_type)::text = ANY ((ARRAY['team'::character varying, 'individual'::character varying])::text[])))
+    user_id uuid NOT NULL
 );
 
 
@@ -2208,7 +2331,7 @@ CREATE TABLE public.events (
     slug character varying(255) NOT NULL,
     description jsonb,
     short_description jsonb,
-    type character varying(255) DEFAULT 'tournament'::character varying NOT NULL,
+    type character varying(255) DEFAULT 'game_day'::character varying NOT NULL,
     status character varying(255) DEFAULT 'draft'::character varying NOT NULL,
     venue_name character varying(255),
     venue_address text,
@@ -2219,12 +2342,7 @@ CREATE TABLE public.events (
     end_date date NOT NULL,
     registration_opens_at timestamp(0) without time zone,
     registration_closes_at timestamp(0) without time zone,
-    registration_type character varying(255) DEFAULT 'team'::character varying NOT NULL,
-    max_teams integer,
     max_participants integer,
-    min_players_per_team integer DEFAULT 7 NOT NULL,
-    max_players_per_team integer DEFAULT 21 NOT NULL,
-    team_registration_fee integer DEFAULT 0 NOT NULL,
     individual_registration_fee integer DEFAULT 0 NOT NULL,
     early_bird_discount integer,
     early_bird_deadline timestamp(0) without time zone,
@@ -2232,11 +2350,8 @@ CREATE TABLE public.events (
     contact_phone character varying(255),
     rules json,
     schedule json,
-    divisions json,
     amenities json,
     requirements json,
-    logo_url character varying(255),
-    banner_url character varying(255),
     is_public boolean DEFAULT true NOT NULL,
     is_featured boolean DEFAULT false NOT NULL,
     metadata json,
@@ -2245,9 +2360,8 @@ CREATE TABLE public.events (
     language character varying(7),
     location_id uuid,
     organizer_id uuid NOT NULL,
-    CONSTRAINT events_registration_type_check CHECK (((registration_type)::text = ANY ((ARRAY['team'::character varying, 'individual'::character varying, 'both'::character varying])::text[]))),
-    CONSTRAINT events_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'published'::character varying, 'registration_open'::character varying, 'registration_closed'::character varying, 'in_progress'::character varying, 'completed'::character varying, 'cancelled'::character varying])::text[]))),
-    CONSTRAINT events_type_check CHECK (((type)::text = ANY ((ARRAY['tournament'::character varying, 'league'::character varying, 'camp'::character varying, 'clinic'::character varying, 'social'::character varying, 'other'::character varying])::text[])))
+    CONSTRAINT events_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::character varying)::text, ('published'::character varying)::text, ('registration_open'::character varying)::text, ('registration_closed'::character varying)::text, ('in_progress'::character varying)::text, ('completed'::character varying)::text, ('cancelled'::character varying)::text]))),
+    CONSTRAINT events_type_check CHECK (((type)::text = ANY ((ARRAY['game_day'::character varying, 'social'::character varying, 'convention'::character varying, 'other'::character varying])::text[])))
 );
 
 
@@ -2297,7 +2411,7 @@ CREATE TABLE public.game_applications (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     user_id uuid NOT NULL,
-    CONSTRAINT game_applications_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying])::text[])))
+    CONSTRAINT game_applications_status_check CHECK (((status)::text = ANY (ARRAY[('pending'::character varying)::text, ('approved'::character varying)::text, ('rejected'::character varying)::text])))
 );
 
 
@@ -2353,9 +2467,9 @@ CREATE TABLE public.game_participants (
     attendance_disputed_at timestamp(0) without time zone,
     approved_at timestamp(0) without time zone,
     promoted_manually boolean DEFAULT false NOT NULL,
-    CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY ((ARRAY['attended'::character varying, 'no_show'::character varying, 'late_cancel'::character varying, 'excused'::character varying, 'cancelled_early'::character varying])::text[]))),
-    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::character varying)::text, ('share_link'::character varying)::text, ('application'::character varying)::text, ('email_invite'::character varying)::text, ('short_link'::character varying)::text]))),
-    CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY ((ARRAY['owner'::character varying, 'player'::character varying, 'invited'::character varying, 'applicant'::character varying])::text[]))),
+    CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY (ARRAY[('attended'::character varying)::text, ('no_show'::character varying)::text, ('late_cancel'::character varying)::text, ('excused'::character varying)::text, ('cancelled_early'::character varying)::text]))),
+    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::character varying, 'share_link'::character varying, 'application'::character varying, 'email_invite'::character varying, 'short_link'::character varying, 'discord'::character varying])::text[]))),
+    CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::character varying)::text, ('player'::character varying)::text, ('invited'::character varying)::text, ('applicant'::character varying)::text]))),
     CONSTRAINT game_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::character varying)::text, ('rejected'::character varying)::text, ('pending'::character varying)::text, ('waitlisted'::character varying)::text, ('benched'::character varying)::text, ('removed'::character varying)::text])))
 );
 
@@ -2507,7 +2621,7 @@ CREATE TABLE public.game_systems (
     name jsonb NOT NULL,
     slug character varying(255) NOT NULL,
     description jsonb,
-    images json,
+    images jsonb,
     min_players integer,
     max_players integer,
     optimal_players integer,
@@ -2584,9 +2698,10 @@ CREATE TABLE public.games (
     attendance_resolved_at timestamp(0) without time zone,
     attendance_resolution_method character varying(255),
     host_note text,
-    CONSTRAINT games_attendance_resolution_method_check CHECK (((attendance_resolution_method)::text = ANY ((ARRAY['early_consensus'::character varying, 'timeout'::character varying, 'manual'::character varying])::text[]))),
-    CONSTRAINT games_status_check CHECK (((status)::text = ANY ((ARRAY['scheduled'::character varying, 'canceled'::character varying, 'completed'::character varying])::text[]))),
-    CONSTRAINT games_visibility_check CHECK (((visibility)::text = ANY ((ARRAY['public'::character varying, 'protected'::character varying, 'private'::character varying])::text[])))
+    signup_cutoff_at timestamp(0) without time zone,
+    CONSTRAINT games_attendance_resolution_method_check CHECK (((attendance_resolution_method)::text = ANY (ARRAY[('early_consensus'::character varying)::text, ('timeout'::character varying)::text, ('manual'::character varying)::text]))),
+    CONSTRAINT games_status_check CHECK (((status)::text = ANY (ARRAY[('scheduled'::character varying)::text, ('canceled'::character varying)::text, ('completed'::character varying)::text]))),
+    CONSTRAINT games_visibility_check CHECK (((visibility)::text = ANY (ARRAY[('public'::character varying)::text, ('protected'::character varying)::text, ('private'::character varying)::text])))
 );
 
 
@@ -2944,15 +3059,15 @@ ALTER SEQUENCE public.permissions_id_seq OWNED BY public.permissions.id;
 
 CREATE TABLE public.personal_access_tokens (
     id bigint NOT NULL,
-    tokenable_type character varying(255) NOT NULL,
-    tokenable_id bigint NOT NULL,
     name text NOT NULL,
     token character varying(64) NOT NULL,
     abilities text,
     last_used_at timestamp(0) without time zone,
     expires_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tokenable_type character varying(255) NOT NULL,
+    tokenable_id uuid NOT NULL
 );
 
 
@@ -3110,7 +3225,7 @@ CREATE TABLE public.session_debriefings (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     user_id uuid NOT NULL,
-    CONSTRAINT session_debriefings_tool_type_check CHECK (((tool_type)::text = ANY ((ARRAY['debriefing'::character varying, 'stars-and-wishes'::character varying])::text[])))
+    CONSTRAINT session_debriefings_tool_type_check CHECK (((tool_type)::text = ANY (ARRAY[('debriefing'::character varying)::text, ('stars-and-wishes'::character varying)::text])))
 );
 
 
@@ -3354,8 +3469,8 @@ CREATE TABLE public.team_members (
     user_id uuid NOT NULL,
     invited_by uuid,
     id uuid NOT NULL,
-    CONSTRAINT team_members_role_check CHECK (((role)::text = ANY ((ARRAY['captain'::character varying, 'coach'::character varying, 'player'::character varying, 'substitute'::character varying])::text[]))),
-    CONSTRAINT team_members_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'active'::character varying, 'inactive'::character varying, 'removed'::character varying])::text[])))
+    CONSTRAINT team_members_role_check CHECK (((role)::text = ANY (ARRAY[('captain'::character varying)::text, ('coach'::character varying)::text, ('player'::character varying)::text, ('substitute'::character varying)::text]))),
+    CONSTRAINT team_members_status_check CHECK (((status)::text = ANY (ARRAY[('pending'::character varying)::text, ('active'::character varying)::text, ('inactive'::character varying)::text, ('removed'::character varying)::text])))
 );
 
 
@@ -3445,7 +3560,7 @@ CREATE TABLE public.user_game_system_preferences (
     preference_type character varying(255) NOT NULL,
     game_system_id uuid NOT NULL,
     user_id uuid NOT NULL,
-    CONSTRAINT user_game_system_preferences_preference_type_check CHECK (((preference_type)::text = ANY ((ARRAY['favorite'::character varying, 'avoid'::character varying])::text[])))
+    CONSTRAINT user_game_system_preferences_preference_type_check CHECK (((preference_type)::text = ANY (ARRAY[('favorite'::character varying)::text, ('avoid'::character varying)::text])))
 );
 
 
@@ -3460,7 +3575,7 @@ CREATE TABLE public.user_relationships (
     user_id uuid NOT NULL,
     related_user_id uuid NOT NULL,
     id uuid NOT NULL,
-    CONSTRAINT user_relationships_type_check CHECK (((type)::text = ANY ((ARRAY['follow'::character varying, 'block'::character varying])::text[])))
+    CONSTRAINT user_relationships_type_check CHECK (((type)::text = ANY (ARRAY[('follow'::character varying)::text, ('block'::character varying)::text])))
 );
 
 
@@ -3472,7 +3587,7 @@ CREATE TABLE public.user_vibe_preferences (
     vibe_preference_value character varying(255) NOT NULL,
     preference_type character varying(255) NOT NULL,
     user_id uuid NOT NULL,
-    CONSTRAINT user_vibe_preferences_preference_type_check CHECK (((preference_type)::text = ANY ((ARRAY['favorite'::character varying, 'avoid'::character varying])::text[])))
+    CONSTRAINT user_vibe_preferences_preference_type_check CHECK (((preference_type)::text = ANY (ARRAY[('favorite'::character varying)::text, ('avoid'::character varying)::text])))
 );
 
 
@@ -3496,12 +3611,6 @@ CREATE TABLE public.users (
     remember_token character varying(100),
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    last_login_at timestamp(0) without time zone,
-    signup_oauth_provider character varying(50),
-    first_touch_referer_domain character varying(255),
-    first_touch_path character varying(255),
-    signup_content_type character varying(50),
-    signup_content_slug character varying(255),
     paddle_id character varying(255),
     trial_ends_at timestamp(0) without time zone,
     password_set_at timestamp(0) without time zone,
@@ -3523,7 +3632,13 @@ CREATE TABLE public.users (
     privacy_policy_accepted_at timestamp(0) without time zone,
     terms_accepted_at timestamp(0) without time zone,
     analytics_consent boolean DEFAULT false NOT NULL,
-    weekly_digest_enabled boolean DEFAULT true NOT NULL
+    weekly_digest_enabled boolean DEFAULT true NOT NULL,
+    last_login_at timestamp(0) without time zone,
+    signup_oauth_provider character varying(50),
+    first_touch_referer_domain character varying(255),
+    first_touch_path character varying(255),
+    signup_content_type character varying(50),
+    signup_content_slug character varying(255)
 );
 
 
@@ -4048,6 +4163,30 @@ ALTER TABLE ONLY public.campaigns
 
 
 --
+-- Name: cities cities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cities
+    ADD CONSTRAINT cities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: cities cities_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cities
+    ADD CONSTRAINT cities_slug_unique UNIQUE (slug);
+
+
+--
+-- Name: city_hub_settings city_hub_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.city_hub_settings
+    ADD CONSTRAINT city_hub_settings_pkey PRIMARY KEY (key);
+
+
+--
 -- Name: customers customers_paddle_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4061,6 +4200,86 @@ ALTER TABLE ONLY public.customers
 
 ALTER TABLE ONLY public.customers
     ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: discord_bulletin_messages discord_bulletin_messages_bulletin_id_thread_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_bulletin_messages
+    ADD CONSTRAINT discord_bulletin_messages_bulletin_id_thread_id_unique UNIQUE (bulletin_id, thread_id);
+
+
+--
+-- Name: discord_bulletin_messages discord_bulletin_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_bulletin_messages
+    ADD CONSTRAINT discord_bulletin_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: discord_card_messages discord_card_messages_game_id_guild_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_card_messages
+    ADD CONSTRAINT discord_card_messages_game_id_guild_id_unique UNIQUE (game_id, guild_id);
+
+
+--
+-- Name: discord_card_messages discord_card_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_card_messages
+    ADD CONSTRAINT discord_card_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: discord_guild_organizers discord_guild_organizers_guild_id_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_guild_organizers
+    ADD CONSTRAINT discord_guild_organizers_guild_id_user_id_unique UNIQUE (guild_id, user_id);
+
+
+--
+-- Name: discord_guild_organizers discord_guild_organizers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_guild_organizers
+    ADD CONSTRAINT discord_guild_organizers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: discord_guilds discord_guilds_guild_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_guilds
+    ADD CONSTRAINT discord_guilds_guild_id_unique UNIQUE (guild_id);
+
+
+--
+-- Name: discord_guilds discord_guilds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_guilds
+    ADD CONSTRAINT discord_guilds_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: email_suppressions email_suppressions_email_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_suppressions
+    ADD CONSTRAINT email_suppressions_email_unique UNIQUE (email);
+
+
+--
+-- Name: email_suppressions email_suppressions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_suppressions
+    ADD CONSTRAINT email_suppressions_pkey PRIMARY KEY (id);
 
 
 --
@@ -5366,6 +5585,20 @@ CREATE INDEX activity_logs_user_id_created_at_index ON public.activity_logs USIN
 
 
 --
+-- Name: attendance_reports_game_reported_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX attendance_reports_game_reported_status_idx ON public.attendance_reports USING btree (game_id, reported_id, status);
+
+
+--
+-- Name: attendance_reports_reporter_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX attendance_reports_reporter_idx ON public.attendance_reports USING btree (reporter_id);
+
+
+--
 -- Name: cache_expiration_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5863,6 +6096,13 @@ CREATE INDEX game_participants_short_link_id_index ON public.game_participants U
 
 
 --
+-- Name: game_participants_user_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX game_participants_user_status_idx ON public.game_participants USING btree (user_id, status);
+
+
+--
 -- Name: game_systems_platform_score_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5881,6 +6121,13 @@ CREATE INDEX game_systems_type_index ON public.game_systems USING btree (type);
 --
 
 CREATE INDEX games_share_token_index ON public.games USING btree (share_token);
+
+
+--
+-- Name: games_status_date_time_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX games_status_date_time_idx ON public.games USING btree (status, date_time);
 
 
 --
@@ -5912,10 +6159,24 @@ CREATE INDEX gm_social_links_user_id_index ON public.gm_social_links USING btree
 
 
 --
+-- Name: idx_campaigns_description_de_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_campaigns_description_de_trgm ON public.campaigns USING gin (((description ->> 'de'::text)) public.gin_trgm_ops);
+
+
+--
 -- Name: idx_campaigns_description_en_trgm; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_campaigns_description_en_trgm ON public.campaigns USING gin (((description ->> 'en'::text)) public.gin_trgm_ops);
+
+
+--
+-- Name: idx_campaigns_name_de_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_campaigns_name_de_trgm ON public.campaigns USING gin (((name ->> 'de'::text)) public.gin_trgm_ops);
 
 
 --
@@ -5940,10 +6201,24 @@ CREATE INDEX idx_event_announcements_title_en_trgm ON public.event_announcements
 
 
 --
+-- Name: idx_events_description_de_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_events_description_de_trgm ON public.events USING gin (((description ->> 'de'::text)) public.gin_trgm_ops);
+
+
+--
 -- Name: idx_events_description_en_trgm; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_events_description_en_trgm ON public.events USING gin (((description ->> 'en'::text)) public.gin_trgm_ops);
+
+
+--
+-- Name: idx_events_name_de_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_events_name_de_trgm ON public.events USING gin (((name ->> 'de'::text)) public.gin_trgm_ops);
 
 
 --
@@ -5975,10 +6250,24 @@ CREATE INDEX idx_game_systems_name_en_trgm ON public.game_systems USING gin (((n
 
 
 --
+-- Name: idx_games_description_de_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_games_description_de_trgm ON public.games USING gin (((description ->> 'de'::text)) public.gin_trgm_ops);
+
+
+--
 -- Name: idx_games_description_en_trgm; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_games_description_en_trgm ON public.games USING gin (((description ->> 'en'::text)) public.gin_trgm_ops);
+
+
+--
+-- Name: idx_games_name_de_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_games_name_de_trgm ON public.games USING gin (((name ->> 'de'::text)) public.gin_trgm_ops);
 
 
 --
@@ -6084,6 +6373,13 @@ CREATE INDEX model_has_roles_team_foreign_key_index ON public.model_has_roles US
 --
 
 CREATE UNIQUE INDEX nearby_discovery_views_user_id_unique ON public.nearby_discovery_views USING btree (user_id);
+
+
+--
+-- Name: notifications_notifiable_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX notifications_notifiable_idx ON public.notifications USING btree (notifiable_type, notifiable_id);
 
 
 --
@@ -6332,11 +6628,6 @@ CREATE INDEX users_anonymized_at_index ON public.users USING btree (anonymized_a
 
 
 --
---
-
-
-
---
 -- Name: locations locations_geohash_4_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6461,6 +6752,70 @@ ALTER TABLE ONLY public.campaigns
 
 ALTER TABLE ONLY public.campaigns
     ADD CONSTRAINT campaigns_owner_id_foreign FOREIGN KEY (owner_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: discord_bulletin_messages discord_bulletin_messages_bulletin_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_bulletin_messages
+    ADD CONSTRAINT discord_bulletin_messages_bulletin_id_foreign FOREIGN KEY (bulletin_id) REFERENCES public.game_bulletins(id) ON DELETE CASCADE;
+
+
+--
+-- Name: discord_bulletin_messages discord_bulletin_messages_guild_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_bulletin_messages
+    ADD CONSTRAINT discord_bulletin_messages_guild_id_foreign FOREIGN KEY (guild_id) REFERENCES public.discord_guilds(id) ON DELETE CASCADE;
+
+
+--
+-- Name: discord_card_messages discord_card_messages_game_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_card_messages
+    ADD CONSTRAINT discord_card_messages_game_id_foreign FOREIGN KEY (game_id) REFERENCES public.games(id) ON DELETE CASCADE;
+
+
+--
+-- Name: discord_card_messages discord_card_messages_guild_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_card_messages
+    ADD CONSTRAINT discord_card_messages_guild_id_foreign FOREIGN KEY (guild_id) REFERENCES public.discord_guilds(id) ON DELETE CASCADE;
+
+
+--
+-- Name: discord_card_messages discord_card_messages_moderator_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_card_messages
+    ADD CONSTRAINT discord_card_messages_moderator_user_id_foreign FOREIGN KEY (moderator_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: discord_guild_organizers discord_guild_organizers_guild_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_guild_organizers
+    ADD CONSTRAINT discord_guild_organizers_guild_id_foreign FOREIGN KEY (guild_id) REFERENCES public.discord_guilds(id) ON DELETE CASCADE;
+
+
+--
+-- Name: discord_guild_organizers discord_guild_organizers_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_guild_organizers
+    ADD CONSTRAINT discord_guild_organizers_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: discord_guilds discord_guilds_owner_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.discord_guilds
+    ADD CONSTRAINT discord_guilds_owner_user_id_foreign FOREIGN KEY (owner_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -6757,14 +7112,6 @@ ALTER TABLE ONLY public.event_announcements
 
 ALTER TABLE ONLY public.event_registrations
     ADD CONSTRAINT event_registrations_event_id_foreign FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
-
-
---
--- Name: event_registrations event_registrations_team_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.event_registrations
-    ADD CONSTRAINT event_registrations_team_id_foreign FOREIGN KEY (team_id) REFERENCES public.teams(id) ON DELETE SET NULL;
 
 
 --
@@ -7299,18 +7646,21 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
+\unrestrict Ir3bKSc8wSkfxaVynyGf1Cbldhnauz1UzzSJJ43CJ1nT1iegWj1l1IZMAiDsSNU
 
 --
 -- PostgreSQL database dump
 --
 
+\restrict MvcDPWXc0d0QNnOV2vVS9Rq2ZCfgPrvOyRn5ublpNZkyap72CUx82zU3otwObeP
 
--- Dumped from database version 17.10 (Debian 17.10-1.pgdg13+1)
+-- Dumped from database version 17.11 (Debian 17.11-1.pgdg13+2)
 -- Dumped by pg_dump version 18.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -7523,6 +7873,30 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 197	2026_08_01_100000_drop_stale_notification_settings_default	1
 198	2026_08_01_110000_add_weekly_digest_enabled_to_users_table	1
 199	2026_08_02_100000_add_host_note_to_campaigns_table	1
+224	2026_10_06_110000_drop_event_team_machinery	3
+225	2026_07_15_120000_add_last_login_at_to_users_table	4
+226	2026_07_16_000000_backfill_blank_game_system_slugs	4
+227	2026_07_16_100000_convert_game_systems_images_to_jsonb	4
+228	2026_07_18_141828_backfill_gmail_canonical_invite_emails	4
+229	2026_07_18_145103_link_existing_users_to_gmail_invites	4
+230	2026_07_18_150000_add_signup_attribution_to_users_table	4
+231	2026_07_22_100000_create_discord_guilds_table	4
+232	2026_07_22_100100_create_discord_guild_organizers_table	4
+233	2026_07_22_100200_create_discord_card_messages_table	4
+234	2026_07_22_200000_add_digest_tracking_to_discord_guilds_table	4
+235	2026_07_22_210000_add_discord_to_join_source_check	4
+236	2026_07_23_000000_add_moderation_flex_columns_to_discord_card_messages_table	4
+237	2026_07_23_000000_add_signup_cutoff_at_to_games_table	4
+238	2026_07_24_000000_add_thread_id_to_discord_card_messages_table	4
+239	2026_07_29_000000_make_personal_access_tokens_tokenable_uuid	4
+240	2026_08_01_100000_add_digest_thread_tracking_to_discord_guilds_table	4
+241	2026_08_03_100000_create_email_suppressions_table	4
+242	2026_08_14_100000_add_hot_path_indexes	4
+243	2026_08_19_100000_add_custom_to_campaigns_recurrence_check	4
+244	2026_08_31_100000_create_discord_bulletin_messages_table	4
+245	2026_09_25_100000_create_cities_table	4
+246	2026_09_25_100100_create_city_hub_settings_table	4
+247	2026_10_06_100000_create_event_type_enum_and_align_check	4
 \.
 
 
@@ -7530,11 +7904,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 199, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 247, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
+\unrestrict MvcDPWXc0d0QNnOV2vVS9Rq2ZCfgPrvOyRn5ublpNZkyap72CUx82zU3otwObeP
 

@@ -203,7 +203,7 @@ describe('CreateEvent Translations', function () {
     it('creates event with language=en only without DE fields', function () {
         Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'English Only Event')
-            ->set('type', 'tournament')
+            ->set('type', 'game_day')
             ->set('language', 'en')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
             ->set('end_date', now()->addDays(16)->format('Y-m-d'))
@@ -222,7 +222,7 @@ describe('CreateEvent Translations', function () {
     it('creates event with language=de and stores content correctly', function () {
         Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'Deutsches Event')
-            ->set('type', 'tournament')
+            ->set('type', 'game_day')
             ->set('language', 'de')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
             ->set('end_date', now()->addDays(16)->format('Y-m-d'))

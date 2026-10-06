@@ -52,7 +52,7 @@
                 @if($event->type)
                     <div class="flex items-center gap-2 text-sm text-on-surface-variant">
                         <span class="material-symbols-outlined text-primary text-base" aria-hidden="true">sell</span>
-                        {{ ucfirst($event->type) }}
+                        {{ $event->type?->label() }}
                     </div>
                 @endif
 
@@ -64,9 +64,9 @@
 
             {{-- Fee / Capacity footer — tonal separation, no border --}}
             <div class="mt-4 pt-3 bg-surface-container-low bg-clip-padding flex items-center justify-between">
-                <span class="text-sm font-medium {{ ($event->individual_registration_fee || $event->team_registration_fee) ? 'text-primary' : 'text-secondary' }}">
-                    @if($event->individual_registration_fee || $event->team_registration_fee)
-                        {{ __('auth.field_amount_to_register', ['amount' => format_currency($event->individual_registration_fee ?: $event->team_registration_fee)]) }}
+                <span class="text-sm font-medium {{ $event->individual_registration_fee ? 'text-primary' : 'text-secondary' }}">
+                    @if($event->individual_registration_fee)
+                        {{ __('auth.field_amount_to_register', ['amount' => format_currency($event->individual_registration_fee)]) }}
                     @else
                         {{ __('billing.content_free_entry') }}
                     @endif

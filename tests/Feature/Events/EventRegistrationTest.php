@@ -1,13 +1,10 @@
 <?php
 
-use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Events\ManageRegistrations;
 use App\Livewire\Events\RegisterForEvent;
 use App\Models\Event;
 use App\Models\EventRegistration;
-use App\Models\Team;
-use App\Models\TeamMember;
 use App\Models\User;
 
 use function Pest\Laravel\actingAs;
@@ -31,21 +28,19 @@ describe('RegisterForEvent', function () {
     it('renders registration form for open events', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create([
-            'name' => ['en' => 'Open Tournament'],
+            'name' => ['en' => 'Open Game Day'],
             'status' => 'registration_open',
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'both',
         ]);
 
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertOk()
             ->assertSee('Register for Event')
-            ->assertSee('Open Tournament')
-            ->assertSee('Individual')
-            ->assertSee('Team');
+            ->assertSee('Open Game Day')
+            ->assertSee('Complete Registration');
     });
 
     it('registers an individual for a free event', function () {
@@ -55,46 +50,42 @@ describe('RegisterForEvent', function () {
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
             'individual_registration_fee' => 0,
         ]);
 
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->set('registrationMode', 'individual')
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
 
         $this->assertDatabaseHas('event_registrations', [
             'event_id' => $event->id,
             'user_id' => $user->id,
-            'registration_type' => 'individual',
             'status' => 'confirmed',
             'payment_status' => 'not_required',
         ]);
     })->group('smoke');
 
-    it('registers with a division', function () {
+    it('registers as pending payment for a paid event without a paddle price', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create([
             'status' => 'registration_open',
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
-            'individual_registration_fee' => 0,
-            'divisions' => [['name' => 'Division A']],
+            'individual_registration_fee' => 2500,
         ]);
 
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->set('division', 'Division A')
-            ->call('register');
+            ->call('register')
+            ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
 
         $this->assertDatabaseHas('event_registrations', [
             'event_id' => $event->id,
             'user_id' => $user->id,
-            'division' => 'Division A',
+            'status' => 'pending',
+            'payment_status' => 'pending',
         ]);
     });
 
@@ -105,7 +96,6 @@ describe('RegisterForEvent', function () {
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
             'individual_registration_fee' => 0,
         ]);
 
@@ -119,6 +109,8 @@ describe('RegisterForEvent', function () {
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
+
+        $this->assertDatabaseCount('event_registrations', 1);
     })->group('smoke');
 
     it('prevents registration when event is full', function () {
@@ -128,7 +120,6 @@ describe('RegisterForEvent', function () {
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
             'max_participants' => 1,
             'individual_registration_fee' => 0,
         ]);
@@ -136,7 +127,6 @@ describe('RegisterForEvent', function () {
         // Fill the event
         EventRegistration::factory()->create([
             'event_id' => $event->id,
-            'registration_type' => 'individual',
             'status' => 'confirmed',
         ]);
 
@@ -144,83 +134,31 @@ describe('RegisterForEvent', function () {
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
+
+        $this->assertDatabaseCount('event_registrations', 1);
     });
 
-    it('registers a team when user is captain', function () {
+    it('stores notes with the registration', function () {
         $user = User::factory()->create(['profile_complete' => true]);
-        $team = Team::factory()->create();
-        TeamMember::factory()->captain()->create([
-            'team_id' => $team->id,
-            'user_id' => $user->id,
-            'status' => 'active',
-        ]);
-
-        // Add another player to the team
-        $player = User::factory()->create();
-        TeamMember::factory()->create([
-            'team_id' => $team->id,
-            'user_id' => $player->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => 'active',
-        ]);
-
         $event = Event::factory()->create([
             'status' => 'registration_open',
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'team',
-            'team_registration_fee' => 0,
+            'individual_registration_fee' => 0,
         ]);
 
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->set('selectedTeamId', (string) $team->id)
+            ->set('notes', 'I need a vegetarian meal')
             ->call('register');
 
         $this->assertDatabaseHas('event_registrations', [
             'event_id' => $event->id,
             'user_id' => $user->id,
-            'team_id' => $team->id,
-            'registration_type' => 'team',
-            'status' => 'confirmed',
-            'payment_status' => 'not_required',
+            'notes' => 'I need a vegetarian meal',
         ]);
-
-        // Verify roster was saved
-        $registration = EventRegistration::where('event_id', $event->id)
-            ->where('team_id', $team->id)
-            ->first();
-        expect($registration->roster)->not->toBeNull();
-        expect(count($registration->roster))->toBe(2);
     });
-
-    it('prevents team registration by non-captain', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $team = Team::factory()->create();
-        TeamMember::factory()->create([
-            'team_id' => $team->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => 'active',
-        ]);
-
-        $event = Event::factory()->create([
-            'status' => 'registration_open',
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDays(7),
-            'is_public' => true,
-            'registration_type' => 'team',
-            'team_registration_fee' => 0,
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->set('selectedTeamId', (string) $team->id)
-            ->call('register')
-            ->assertHasErrors('selectedTeamId');
-    });
-
 });
 
 // ── ManageRegistrations ────────────────────────────────
@@ -351,22 +289,6 @@ describe('ManageRegistrations', function () {
             ->assertDontSee('Bob Beta');
     });
 
-    it('searches by team name', function () {
-        $organizer = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
-
-        $team = Team::factory()->create(['name' => 'Thunderbolts FC']);
-        EventRegistration::factory()->team()->create([
-            'event_id' => $event->id,
-            'team_id' => $team->id,
-        ]);
-
-        actingAs($organizer);
-        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
-            ->set('search', 'Thunderbolts')
-            ->assertSee('Thunderbolts FC');
-    });
-
     it('filters registrations by column', function ($filterField, $filterValue, $setup) {
         $organizer = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create(['organizer_id' => $organizer->id]);
@@ -384,13 +306,6 @@ describe('ManageRegistrations', function () {
             fn ($event) => [
                 EventRegistration::factory()->pending()->create(['event_id' => $event->id])->user->name,
                 EventRegistration::factory()->confirmed()->create(['event_id' => $event->id])->user->name,
-            ],
-        ],
-        'by type' => [
-            'filterType', 'team',
-            fn ($event) => [
-                EventRegistration::factory()->team()->create(['event_id' => $event->id])->user->name,
-                EventRegistration::factory()->individual()->create(['event_id' => $event->id])->user->name,
             ],
         ],
         'by payment status' => [
@@ -415,23 +330,5 @@ describe('ManageRegistrations', function () {
             ->call('saveInternalNotes', $registration->id);
 
         expect($registration->fresh()->internal_notes)->toBe('Special accommodation needed');
-    });
-
-    it('shows team roster in team registrations', function () {
-        $organizer = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
-
-        $registration = EventRegistration::factory()->team()->create([
-            'event_id' => $event->id,
-            'roster' => [
-                ['user_id' => 1, 'name' => 'Player One', 'role' => 'captain'],
-                ['user_id' => 2, 'name' => 'Player Two', 'role' => ParticipantRole::Player->value],
-            ],
-        ]);
-
-        actingAs($organizer);
-        Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug])
-            ->assertSee('Player One')
-            ->assertSee('Player Two');
     });
 });

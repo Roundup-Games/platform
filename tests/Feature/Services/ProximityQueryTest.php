@@ -158,8 +158,11 @@ class ProximityQueryTest extends TestCase
     }
 
     #[Test]
-    public function nearby_returns_events()
+    public function nearby_returns_empty_for_event_entity_type_after_team_era_removal()
     {
+        // 'event' was removed from ENTITY_MAP — proximity search is games-only now.
+        // This guards the removal: nearby events must silently return nothing,
+        // same contract as any other unknown entity type.
         $location = Location::factory()->create([
             'latitude' => 52.5230,
             'longitude' => 13.4120,
@@ -171,8 +174,7 @@ class ProximityQueryTest extends TestCase
 
         $results = $this->proximity->nearby($this->centerLat, $this->centerLng, 5, 'event');
 
-        $this->assertCount(1, $results);
-        $this->assertInstanceOf(Event::class, $results->first()->entity);
+        $this->assertCount(0, $results);
     }
 
     #[Test]

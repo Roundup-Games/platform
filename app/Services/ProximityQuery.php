@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Dto\BBox;
 use App\Dto\ProximityResult;
-use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
  * Proximity query builder with bounding box pre-filter and Haversine sort.
  *
  * Provides two main operations:
- * 1. nearby() — Find games or events near a point, sorted by distance.
+ * 1. nearby() — Find games near a point, sorted by distance.
  * 2. hubs() — Find locations with active session counts, cached by geohash tile.
  *
  * Architecture:
@@ -47,10 +47,6 @@ class ProximityQuery
             'model' => Game::class,
             'relationship' => 'linkedLocation',
             'status_scope' => 'scheduled',
-        ],
-        'event' => [
-            'model' => Event::class,
-            'relationship' => 'linkedLocation',
         ],
     ];
 
@@ -105,7 +101,7 @@ class ProximityQuery
      * @param  float  $lat  Center latitude
      * @param  float  $lng  Center longitude
      * @param  float  $radiusKm  Search radius in kilometers (default 50)
-     * @param  string  $entityType  'game' or 'event'
+     * @param  string  $entityType  'game'
      * @param  array{limit?: int, status_filter?: bool, visibility?: string|list<string>, with?: list<string>}  $options  Additional options: limit, status_filter, with
      * @param  array<string, mixed>  $options
      */
@@ -113,6 +109,7 @@ class ProximityQuery
     {
         $startTime = microtime(true);
 
+        /** @var array{model: class-string<Model>, relationship: string, status_scope?: string}|null $config */
         $config = self::ENTITY_MAP[$entityType] ?? null;
         if (! $config) {
             return collect();

@@ -34,15 +34,14 @@ class EventRegistration extends Model
     }
 
     protected $fillable = [
-        'event_id', 'team_id', 'user_id', 'registration_type', 'division',
-        'status', 'payment_status', 'payment_id', 'roster', 'notes',
-        'internal_notes', 'confirmed_at', 'cancelled_at',
+        'event_id', 'user_id',
+        'status', 'payment_status', 'payment_id',
+        'notes', 'internal_notes', 'confirmed_at', 'cancelled_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'roster' => 'array',
             'confirmed_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
@@ -54,14 +53,6 @@ class EventRegistration extends Model
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
-    }
-
-    /**
-     * @return BelongsTo<Team, $this>
-     */
-    public function team(): BelongsTo
-    {
-        return $this->belongsTo(Team::class);
     }
 
     /**

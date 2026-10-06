@@ -3,6 +3,7 @@
 namespace App\Livewire\Events;
 
 use App\Enums\ContentLanguage;
+use App\Enums\EventType;
 use App\Models\Event;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Contracts\View\View;
@@ -20,7 +21,7 @@ class CreateEvent extends Component
 
     public ?string $confirmingAction = null;
 
-    public const MAX_STEPS = 5;
+    public const MAX_STEPS = 4;
 
     public string $name = '';
 
@@ -28,7 +29,7 @@ class CreateEvent extends Component
 
     public string $description = '';
 
-    public string $type = 'tournament';
+    public string $type = 'game_day';
 
     public string $start_date = '';
 
@@ -46,17 +47,7 @@ class CreateEvent extends Component
 
     public string $postal_code = '';
 
-    public string $registration_type = 'team';
-
-    public ?int $max_teams = null;
-
     public ?int $max_participants = null;
-
-    public ?int $min_players_per_team = null;
-
-    public ?int $max_players_per_team = null;
-
-    public ?int $team_registration_fee = null;
 
     public ?int $individual_registration_fee = null;
 
@@ -67,13 +58,6 @@ class CreateEvent extends Component
     public string $registration_opens_at = '';
 
     public string $registration_closes_at = '';
-
-    /** @var array<int, array{name: string, description: string}> */
-    public array $divisions = [];
-
-    public string $newDivisionName = '';
-
-    public string $newDivisionDescription = '';
 
     public string $rules = '';
 
@@ -132,26 +116,6 @@ class CreateEvent extends Component
         }
     }
 
-    public function addDivision(): void
-    {
-        $this->validate([
-            'newDivisionName' => 'required|string|max:100',
-            'newDivisionDescription' => 'nullable|string|max:500',
-        ]);
-        $this->divisions[] = [
-            'name' => $this->newDivisionName,
-            'description' => $this->newDivisionDescription,
-        ];
-        $this->newDivisionName = '';
-        $this->newDivisionDescription = '';
-    }
-
-    public function removeDivision(int $index): void
-    {
-        unset($this->divisions[$index]);
-        $this->divisions = array_values($this->divisions);
-    }
-
     public function create(): void
     {
         $this->validateStep($this->step);
@@ -180,18 +144,12 @@ class CreateEvent extends Component
             'city' => $this->city ?: null,
             'country' => $this->country ?: null,
             'postal_code' => $this->postal_code ?: null,
-            'registration_type' => $this->registration_type,
-            'max_teams' => $this->max_teams,
             'max_participants' => $this->max_participants,
-            'min_players_per_team' => $this->min_players_per_team,
-            'max_players_per_team' => $this->max_players_per_team,
-            'team_registration_fee' => $this->team_registration_fee,
             'individual_registration_fee' => $this->individual_registration_fee,
             'early_bird_discount' => $this->early_bird_discount,
             'early_bird_deadline' => $this->early_bird_deadline ?: null,
             'registration_opens_at' => $this->registration_opens_at ?: null,
             'registration_closes_at' => $this->registration_closes_at ?: null,
-            'divisions' => ! empty($this->divisions) ? $this->divisions : null,
             'rules' => $parsedRules,
             'schedule' => $parsedSchedule,
             'contact_email' => $this->contact_email ?: null,
@@ -204,7 +162,7 @@ class CreateEvent extends Component
             'event_id' => $event->id,
             'event_slug' => $event->slug,
             'name' => $event->name,
-            'type' => $event->type,
+            'type' => $event->type?->value,
             'organizer_id' => Auth::id(),
         ]);
 
@@ -220,7 +178,7 @@ class CreateEvent extends Component
                     'name' => 'required|string|max:255',
                     'short_description' => 'nullable|string|max:500',
                     'description' => 'nullable|string',
-                    'type' => 'required|in:tournament,league,camp,clinic,social,other',
+                    'type' => 'required|in:'.implode(',', EventType::values()),
                     'start_date' => 'required|date|after:today',
                     'end_date' => 'required|date|after_or_equal:start_date',
                     'language' => 'required|in:'.implode(',', ContentLanguage::values()),
@@ -238,20 +196,14 @@ class CreateEvent extends Component
                 'postal_code' => 'nullable|string|max:20',
             ],
             3 => [
-                'registration_type' => 'required|in:team,individual,both',
-                'max_teams' => 'nullable|integer|min:1',
                 'max_participants' => 'nullable|integer|min:1',
-                'min_players_per_team' => 'nullable|integer|min:1',
-                'max_players_per_team' => 'nullable|integer|min:1',
-                'team_registration_fee' => 'nullable|integer|min:0',
                 'individual_registration_fee' => 'nullable|integer|min:0',
                 'early_bird_discount' => 'nullable|integer|min:0',
                 'early_bird_deadline' => 'nullable|date',
                 'registration_opens_at' => 'nullable|date',
                 'registration_closes_at' => 'nullable|date|after:registration_opens_at',
             ],
-            4 => null,
-            5 => [
+            4 => [
                 'rules' => 'nullable|string',
                 'schedule' => 'nullable|string',
                 'contact_email' => 'nullable|email',

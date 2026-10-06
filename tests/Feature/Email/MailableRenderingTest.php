@@ -56,7 +56,6 @@ describe('EventRegistrationEmail', function () {
         $registration = EventRegistration::factory()->create([
             'user_id' => $user->id,
             'event_id' => $event->id,
-            'division' => 'Open Division',
         ]);
 
         $rendered = (new EventRegistrationEmail($registration))->render();

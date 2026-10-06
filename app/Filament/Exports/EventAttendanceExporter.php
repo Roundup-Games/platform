@@ -29,18 +29,6 @@ class EventAttendanceExporter extends Exporter
             ExportColumn::make('user.email')
                 ->label('User Email')
                 ->enabledByDefault(true),
-            ExportColumn::make('team.name')
-                ->label('Team Name')
-                ->enabledByDefault(true)
-                ->formatStateUsing(fn ($state) => $state ?? '—'),
-            ExportColumn::make('registration_type')
-                ->label('Registration Type')
-                ->enabledByDefault(true)
-                ->formatStateUsing(fn (string $state): string => ucfirst($state)),
-            ExportColumn::make('division')
-                ->label('Division')
-                ->enabledByDefault(true)
-                ->formatStateUsing(fn ($state) => $state ?? '—'),
             ExportColumn::make('status')
                 ->label('Status')
                 ->enabledByDefault(true)
@@ -64,7 +52,7 @@ class EventAttendanceExporter extends Exporter
 
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['event', 'user', 'team']);
+        return $query->with(['event', 'user']);
     }
 
     public static function getCompletedNotificationBody(Export $export): string

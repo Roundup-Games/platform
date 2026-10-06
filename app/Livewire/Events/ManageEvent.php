@@ -3,6 +3,7 @@
 namespace App\Livewire\Events;
 
 use App\Enums\ContentLanguage;
+use App\Enums\EventType;
 use App\Models\Event;
 use App\Services\ScopedRoleService;
 use App\Traits\BuildsTranslatableFormFields;
@@ -35,7 +36,7 @@ class ManageEvent extends Component
 
     public string $description = '';
 
-    public string $type = 'tournament';
+    public string $type = 'game_day';
 
     public string $status = 'draft';
 
@@ -55,17 +56,7 @@ class ManageEvent extends Component
     public string $postal_code = '';
 
     // ── Registration & Fees ────────────────────────────
-    public string $registration_type = 'team';
-
-    public ?int $max_teams = null;
-
     public ?int $max_participants = null;
-
-    public ?int $min_players_per_team = null;
-
-    public ?int $max_players_per_team = null;
-
-    public ?int $team_registration_fee = null;
 
     public ?int $individual_registration_fee = null;
 
@@ -76,14 +67,6 @@ class ManageEvent extends Component
     public string $registration_opens_at = '';
 
     public string $registration_closes_at = '';
-
-    // ── Divisions ─────────────────────────────────────
-    /** @var array<int, array{name: string, description: string}> */
-    public array $divisions = [];
-
-    public string $newDivisionName = '';
-
-    public string $newDivisionDescription = '';
 
     // ── Rules & Settings ──────────────────────────────
     public string $rules = '';
@@ -109,7 +92,7 @@ class ManageEvent extends Component
             'name' => 'required|string|max:255',
             'short_description' => 'nullable|string|max:500',
             'description' => 'nullable|string',
-            'type' => 'required|in:tournament,league,camp,clinic,social,other',
+            'type' => 'required|in:'.implode(',', EventType::values()),
             'status' => 'required|in:draft,published,registration_open,registration_closed,in_progress,completed,cancelled',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
@@ -118,12 +101,7 @@ class ManageEvent extends Component
             'city' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:3',
             'postal_code' => 'nullable|string|max:20',
-            'registration_type' => 'required|in:team,individual,both',
-            'max_teams' => 'nullable|integer|min:1',
             'max_participants' => 'nullable|integer|min:1',
-            'min_players_per_team' => 'nullable|integer|min:1',
-            'max_players_per_team' => 'nullable|integer|min:1',
-            'team_registration_fee' => 'nullable|integer|min:0',
             'individual_registration_fee' => 'nullable|integer|min:0',
             'early_bird_discount' => 'nullable|integer|min:0',
             'early_bird_deadline' => 'nullable|date',
@@ -159,7 +137,7 @@ class ManageEvent extends Component
         $this->name = $e->name;
         $this->short_description = $e->short_description ?? '';
         $this->description = $e->description ?? '';
-        $this->type = $e->type ?? '';
+        $this->type = $e->type->value ?? 'game_day';
         $this->status = $e->status->value ?? 'draft';
         $this->start_date = $e->start_date?->format('Y-m-d') ?? '';
         $this->end_date = $e->end_date?->format('Y-m-d') ?? '';
@@ -168,20 +146,12 @@ class ManageEvent extends Component
         $this->city = $e->city ?? '';
         $this->country = $e->country ?? '';
         $this->postal_code = $e->postal_code ?? '';
-        $this->registration_type = $e->registration_type ?? '';
-        $this->max_teams = $e->max_teams;
         $this->max_participants = $e->max_participants;
-        $this->min_players_per_team = $e->min_players_per_team;
-        $this->max_players_per_team = $e->max_players_per_team;
-        $this->team_registration_fee = $e->team_registration_fee;
         $this->individual_registration_fee = $e->individual_registration_fee;
         $this->early_bird_discount = $e->early_bird_discount;
         $this->early_bird_deadline = $e->early_bird_deadline ? $e->early_bird_deadline->format('Y-m-d\TH:i') : '';
         $this->registration_opens_at = $e->registration_opens_at ? $e->registration_opens_at->format('Y-m-d\TH:i') : '';
         $this->registration_closes_at = $e->registration_closes_at ? $e->registration_closes_at->format('Y-m-d\TH:i') : '';
-        /** @var array<int, array{name: string, description: string}> $divisions */
-        $divisions = $e->divisions ?? [];
-        $this->divisions = $divisions;
         /** @var array<int, string>|string|null $rules */
         $rules = $e->rules;
         $this->rules = is_array($rules) ? implode("\n", $rules) : (string) ($rules ?? '');
@@ -213,33 +183,6 @@ class ManageEvent extends Component
     public function setActiveTab(string $tab): void
     {
         $this->activeTab = $tab;
-    }
-
-    // ── Division Management ───────────────────────────
-
-    public function addDivision(): void
-    {
-        $this->validate([
-            'newDivisionName' => 'required|string|max:100',
-            'newDivisionDescription' => 'nullable|string|max:500',
-        ]);
-
-        $divisions = $this->divisions;
-        $divisions[] = [
-            'name' => $this->newDivisionName,
-            'description' => $this->newDivisionDescription,
-        ];
-        $this->divisions = $divisions;
-
-        $this->newDivisionName = '';
-        $this->newDivisionDescription = '';
-    }
-
-    public function removeDivision(int $index): void
-    {
-        $divisions = $this->divisions;
-        unset($divisions[$index]);
-        $this->divisions = array_values($divisions);
     }
 
     // ── Save ──────────────────────────────────────────
@@ -302,18 +245,12 @@ class ManageEvent extends Component
             'city' => $this->city ?: null,
             'country' => $this->country ?: null,
             'postal_code' => $this->postal_code ?: null,
-            'registration_type' => $this->registration_type,
-            'max_teams' => $this->max_teams,
             'max_participants' => $this->max_participants,
-            'min_players_per_team' => $this->min_players_per_team,
-            'max_players_per_team' => $this->max_players_per_team,
-            'team_registration_fee' => $this->team_registration_fee,
             'individual_registration_fee' => $this->individual_registration_fee,
             'early_bird_discount' => $this->early_bird_discount,
             'early_bird_deadline' => $this->early_bird_deadline ?: null,
             'registration_opens_at' => $this->registration_opens_at ?: null,
             'registration_closes_at' => $this->registration_closes_at ?: null,
-            'divisions' => ! empty($this->divisions) ? $this->divisions : null,
             'rules' => $parsedRules,
             'schedule' => $parsedSchedule,
             'contact_email' => $this->contact_email ?: null,

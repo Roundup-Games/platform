@@ -27,118 +27,6 @@
         @endif
 
         <form wire:submit="register" class="space-y-6">
-            {{-- Registration Mode --}}
-            @if($event->registration_type === 'both')
-                <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                    <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('events.content_registration_type') }}</h2>
-                    <div class="grid grid-cols-2 gap-4">
-                        <button type="button"
-                            wire:click="$set('registrationMode', 'individual')"
-                            class="p-4 rounded-lg border-2 text-center transition-colors {{
-                                $registrationMode === 'individual'
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-outline-variant hover:border-outline'
-                            }}">
-                            <span class="material-symbols-outlined text-2xl mb-2 {{ $registrationMode === 'individual' ? 'text-primary' : 'text-on-surface-variant' }}" aria-hidden="true">person</span>
-                            <span class="block text-sm font-medium {{ $registrationMode === 'individual' ? 'text-primary' : 'text-on-surface-variant' }}">{{ __('common.content_individual') }}</span>
-                        </button>
-                        <button type="button"
-                            wire:click="$set('registrationMode', 'team')"
-                            class="p-4 rounded-lg border-2 text-center transition-colors {{
-                                $registrationMode === 'team'
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-outline-variant hover:border-outline'
-                            }}">
-                            <span class="material-symbols-outlined text-2xl mb-2 {{ $registrationMode === 'team' ? 'text-primary' : 'text-on-surface-variant' }}" aria-hidden="true">groups</span>
-                            <span class="block text-sm font-medium {{ $registrationMode === 'team' ? 'text-primary' : 'text-on-surface-variant' }}">{{ __('events.content_team') }}</span>
-                        </button>
-                    </div>
-                    @error('registrationMode')
-                        <p class="mt-2 text-sm text-error">{{ $message }}</p>
-                    @enderror
-                </div>
-            @endif
-
-            {{-- Team Selection (team mode only) --}}
-            @if($registrationMode === 'team')
-                <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                    <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('teams.action_select_team') }}</h2>
-
-                    @if($this->userTeams->isEmpty())
-                        <div class="text-center py-6">
-                            <p class="text-on-surface-variant text-sm">{{ __('teams.error_you_are_not_a_member_of_any_teams') }}</p>
-                            <a href="{{ route('teams.create') }}" wire:navigate class="mt-3 inline-block text-sm text-primary hover:underline">{{ __('teams.action_create_a_team') }}</a>
-                        </div>
-                    @else
-                        <div class="space-y-2">
-                            @foreach($this->userTeams as $team)
-                                <label class="flex items-center gap-3 p-3 rounded-lg border {{ $selectedTeamId === (string) $team->id ? 'border-primary bg-primary/5' : 'border-outline-variant' }} cursor-pointer hover:border-outline transition-colors">
-                                    <input type="radio" wire:model.live="selectedTeamId" value="{{ $team->id }}" class="text-primary focus:ring-primary/20" />
-                                    <div>
-                                        <p class="font-medium text-on-surface">{{ $team->name }}</p>
-                                        {{-- M053/S1/T06: routed through <x-location-display> (the sole
-                                             address-rendering authority). This is the viewer's own
-                                             team list; raw-city path renders city as-is. --}}
-                                        @if($team->city)
-                                            <p class="text-sm text-on-surface-variant">
-                                                <x-location-display :city="$team->city" without-icon />
-                                            </p>
-                                        @endif
-                                    </div>
-                                    @if(!$team->isCaptain(auth()->user()))
-                                        <span class="ml-auto text-xs text-tertiary bg-tertiary/10 px-2 py-0.5 rounded-sm">{{ __('teams.content_non_captain') }}</span>
-                                    @endif
-                                </label>
-                            @endforeach
-                        </div>
-                        @error('selectedTeamId')
-                            <p class="mt-2 text-sm text-error">{{ $message }}</p>
-                        @enderror
-
-                        {{-- Roster preview --}}
-                        @if($this->selectedTeam)
-                            <div class="mt-4 pt-4 border-t border-outline-variant">
-                                <h3 class="text-sm font-medium text-on-surface mb-2">{{ __('teams.content_team_roster_count_members', ['count' => $this->selectedTeam->activeMembers->count()]) }}</h3>
-                                <div class="max-h-48 overflow-y-auto space-y-1">
-                                    @foreach($this->selectedTeam->activeMembers as $member)
-                                        <div class="flex items-center justify-between py-1 text-sm">
-                                            <x-user-link :user="$member->user" :show-avatar="false" />
-                                            <span class="text-xs text-on-surface-variant/60 uppercase">{{ $member->role }}</span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                                @if($event->min_players_per_team || $event->max_players_per_team)
-                                    <p class="mt-2 text-xs text-on-surface-variant">
-                                        {{ __('events.field_team_size_min_max_players', ['min' => $event->min_players_per_team ?? 0, 'max' => $event->max_players_per_team ?? '∞']) }}
-                                    </p>
-                                @endif
-                            </div>
-                        @endif
-                    @endif
-                </div>
-            @endif
-
-            {{-- Division (if applicable) --}}
-            @if($event->divisions && count($event->divisions) > 0)
-                <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                    <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('events.content_division') }}</h2>
-                    <div class="space-y-2">
-                        @foreach($event->divisions as $div)
-                            @php $divName = is_array($div) ? ($div['name'] ?? '') : $div @endphp
-                            <label class="flex items-center gap-3 p-3 rounded-lg border {{ $division === $divName ? 'border-primary bg-primary/5' : 'border-outline-variant' }} cursor-pointer hover:border-outline transition-colors">
-                                <input type="radio" wire:model="division" value="{{ $divName }}" class="text-primary focus:ring-primary/20" />
-                                <div>
-                                    <p class="font-medium text-on-surface">{{ $divName }}</p>
-                                    @if(is_array($div) && isset($div['description']))
-                                        <p class="text-sm text-on-surface-variant">{{ $div['description'] }}</p>
-                                    @endif
-                                </div>
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
-
             {{-- Notes --}}
             <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('common.field_additional_notes') }}</h2>
@@ -155,13 +43,10 @@
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
                         <span class="text-on-surface-variant">
-                            {{ __(ucfirst($registrationMode)) . ' ' . __('events.content_registration') }}
+                            {{ __('events.content_registration') }}
                         </span>
                         <span class="text-on-surface">
-                            @php
-                                $baseFee = $registrationMode === 'team' ? ($event->team_registration_fee ?? 0) : ($event->individual_registration_fee ?? 0);
-                            @endphp
-                            {{ $baseFee > 0 ? format_currency($baseFee) : __('common.price_free') }}
+                            {{ ($event->individual_registration_fee ?? 0) > 0 ? format_currency($event->individual_registration_fee) : __('common.price_free') }}
                         </span>
                     </div>
                     @if($this->isEarlyBird && $event->early_bird_discount > 0)

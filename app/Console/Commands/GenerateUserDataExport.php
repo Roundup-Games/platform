@@ -328,8 +328,6 @@ class GenerateUserDataExport extends Command
                     'id' => $reg->id,
                     'event_id' => $reg->event_id,
                     'event_name' => $reg->event?->name,
-                    'registration_type' => $reg->registration_type,
-                    'division' => $reg->division,
                     'status' => $reg->status,
                     'payment_status' => $reg->payment_status,
                     'confirmed_at' => $reg->confirmed_at?->toIso8601String(),

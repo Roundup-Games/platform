@@ -3,8 +3,6 @@
 use App\Livewire\Events\RegisterForEvent;
 use App\Models\Event;
 use App\Models\EventRegistration;
-use App\Models\Team;
-use App\Models\TeamMember;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -22,96 +20,73 @@ function regCreateEvent(array $overrides = []): Event
 {
     return Event::factory()->create([
         'status' => 'registration_open',
-        'registration_type' => 'both',
+        'registration_opens_at' => now()->subDay(),
+        'registration_closes_at' => now()->addDays(7),
         'individual_registration_fee' => 0,
-        'team_registration_fee' => 0,
         'is_public' => true,
         ...$overrides,
     ]);
 }
 
-function regCreateTeam(User $captain): Team
-{
-    $team = Team::factory()->create([
-        'created_by' => $captain->id,
-    ]);
-
-    TeamMember::create([
-        'team_id' => $team->id,
-        'user_id' => $captain->id,
-        'role' => 'captain',
-        'status' => 'active',
-        'joined_at' => now(),
-    ]);
-
-    return $team;
-}
-
-function regActingAsUser(User $user, Event $event, string $mode = 'individual', ?string $teamId = null)
-{
-    $params = [
-        'registrationMode' => $mode,
-    ];
-
-    if ($teamId) {
-        $params['selectedTeamId'] = $teamId;
-    }
-
-    return Livewire::actingAs($user)
-        ->test(RegisterForEvent::class, ['slug' => $event->slug])
-        ->set($params)
-        ->call('register');
-}
-
-describe('Duplicate registration check — cross-user team registration', function () {
-    test('individual registration not blocked by existing team registration from different user', function () {
+describe('Duplicate registration check — individual registrations', function () {
+    test('registration by one user does not block another user', function () {
         $userA = regCreateUser();
         $event = regCreateEvent();
-        $team = regCreateTeam($userA);
 
-        EventRegistration::create([
+        EventRegistration::factory()->confirmed()->create([
             'event_id' => $event->id,
             'user_id' => $userA->id,
-            'team_id' => $team->id,
-            'registration_type' => 'team',
-            'status' => 'confirmed',
-            'payment_status' => 'not_required',
-            'confirmed_at' => now(),
         ]);
 
         $userB = regCreateUser();
 
-        regActingAsUser($userB, $event, 'individual');
+        Livewire::actingAs($userB)
+            ->test(RegisterForEvent::class, ['slug' => $event->slug])
+            ->call('register');
 
         expect(EventRegistration::where('event_id', $event->id)
             ->where('user_id', $userB->id)
-            ->where('registration_type', 'individual')
             ->where('status', '!=', 'cancelled')
             ->exists())->toBeTrue();
     })->group('smoke');
 
-    test('different teams can register independently', function () {
-        $captainA = regCreateUser();
-        $captainB = regCreateUser();
-        $event = regCreateEvent(['registration_type' => 'team', 'team_registration_fee' => 0]);
-        $teamA = regCreateTeam($captainA);
-        $teamB = regCreateTeam($captainB);
+    test('duplicate check is scoped per event', function () {
+        $user = regCreateUser();
+        $eventA = regCreateEvent();
+        $eventB = regCreateEvent();
 
-        EventRegistration::create([
-            'event_id' => $event->id,
-            'user_id' => $captainA->id,
-            'team_id' => $teamA->id,
-            'registration_type' => 'team',
-            'status' => 'confirmed',
-            'payment_status' => 'not_required',
-            'confirmed_at' => now(),
+        EventRegistration::factory()->confirmed()->create([
+            'event_id' => $eventA->id,
+            'user_id' => $user->id,
         ]);
 
-        regActingAsUser($captainB, $event, 'team', $teamB->id);
+        Livewire::actingAs($user)
+            ->test(RegisterForEvent::class, ['slug' => $eventB->slug])
+            ->call('register');
 
+        expect(EventRegistration::where('user_id', $user->id)->count())->toBe(2);
+    });
+
+    test('cancelled registration does not block re-registration', function () {
+        $user = regCreateUser();
+        $event = regCreateEvent();
+
+        EventRegistration::factory()->cancelled()->create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(RegisterForEvent::class, ['slug' => $event->slug])
+            ->call('register');
+
+        // One cancelled row plus one fresh confirmed row
         expect(EventRegistration::where('event_id', $event->id)
-            ->whereIn('team_id', [$teamA->id, $teamB->id])
-            ->where('status', '!=', 'cancelled')
+            ->where('user_id', $user->id)
             ->count())->toBe(2);
-    })->group('smoke');
+        expect(EventRegistration::where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'confirmed')
+            ->exists())->toBeTrue();
+    });
 });

@@ -132,12 +132,6 @@ class Team extends Model implements HasMedia
             ->where('status', 'active');
     }
 
-    /** @return HasMany<EventRegistration, $this> */
-    public function eventRegistrations(): HasMany
-    {
-        return $this->hasMany(EventRegistration::class);
-    }
-
     // ── Short Links ────────────────────────────────────
 
     /**

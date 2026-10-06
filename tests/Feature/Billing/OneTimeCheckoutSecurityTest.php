@@ -34,7 +34,6 @@ function checkoutCreateEvent(array $overrides = []): Event
 {
     return Event::factory()->create([
         'is_public' => true,
-        'registration_type' => 'individual',
         'metadata' => ['paddle_price_id' => 'pri_valid_event_price'],
         ...$overrides,
     ]);

@@ -28,18 +28,9 @@ class EventDetail extends Component
             'registrations',
         ]);
 
-        $counts = $this->event->registrations()
-            ->selectRaw('registration_type, count(*) as count')
-            ->groupBy('registration_type')
-            ->pluck('count', 'registration_type');
-
-        $teamCount = $counts->get('team', 0);
-        $individualCount = $counts->get('individual', 0);
-
         return view('livewire.events.event-detail', [
             'announcements' => $this->event->announcements,
-            'teamCount' => $teamCount,
-            'individualCount' => $individualCount,
+            'individualCount' => $this->event->registrations->count(),
         ]);
     }
 }

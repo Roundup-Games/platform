@@ -27,8 +27,6 @@ class ManageRegistrations extends Component
 
     public string $filterStatus = '';
 
-    public string $filterType = '';
-
     public string $filterPaymentStatus = '';
 
     #[Validate('nullable|string|max:1000')]
@@ -51,7 +49,7 @@ class ManageRegistrations extends Component
     public function registrations()
     {
         $query = EventRegistration::where('event_id', $this->event->id)
-            ->with(['user', 'team']);
+            ->with(['user']);
 
         if ($this->search) {
             $escaped = $this->escapeLikeWildcards($this->search);
@@ -59,18 +57,12 @@ class ManageRegistrations extends Component
                 $q->whereHas('user', function ($uq) use ($escaped) {
                     $uq->where('name', $this->likeOperator(), "%{$escaped}%")
                         ->orWhere('email', $this->likeOperator(), "%{$escaped}%");
-                })->orWhereHas('team', function ($tq) use ($escaped) {
-                    $tq->where('name', $this->likeOperator(), "%{$escaped}%");
                 });
             });
         }
 
         if ($this->filterStatus) {
             $query->where('status', $this->filterStatus);
-        }
-
-        if ($this->filterType) {
-            $query->where('registration_type', $this->filterType);
         }
 
         if ($this->filterPaymentStatus) {
@@ -93,7 +85,6 @@ class ManageRegistrations extends Component
             'pending' => (clone $base)->where('status', 'pending')->count(),
             'confirmed' => (clone $base)->where('status', 'confirmed')->count(),
             'cancelled' => (clone $base)->where('status', 'cancelled')->count(),
-            'waitlisted' => (clone $base)->where('status', 'waitlisted')->count(),
         ];
     }
 
@@ -246,7 +237,6 @@ class ManageRegistrations extends Component
     {
         $this->search = '';
         $this->filterStatus = '';
-        $this->filterType = '';
         $this->filterPaymentStatus = '';
     }
 

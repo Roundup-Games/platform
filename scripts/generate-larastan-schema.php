@@ -52,6 +52,7 @@ $typeMap = [
     // Types the parser accepts but MySqlDataTypeToPhpTypeConverter doesn't
     // recognise (falls through to 'mixed', causing type errors):
     '/\bcharacter varying\b/i' => 'varchar',
+    '/(\w)\s+character\((\d+)\)/i' => '$1 varchar($2)',
     '/\btimestamp(\(\d+\))? without time zone\b/i' => 'timestamp',
     '/\btime(\(\d+\))? without time zone\b/i' => 'time',
 ];

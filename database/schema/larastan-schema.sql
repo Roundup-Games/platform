@@ -25,7 +25,7 @@ CREATE TABLE public.attendance_reports (
     reported_id varchar NOT NULL,
     reporter_id varchar NOT NULL,
     reason text NULL,
-    CONSTRAINT attendance_reports_status_check CHECK (((status)::text = ANY ((ARRAY['attended'::varchar, 'no_show'::varchar, 'late_cancel'::varchar, 'excused'::varchar, 'cancelled_early'::varchar])::text[])))
+    CONSTRAINT attendance_reports_status_check CHECK (((status)::text = ANY (ARRAY[('attended'::varchar)::text, ('no_show'::varchar)::text, ('late_cancel'::varchar)::text, ('excused'::varchar)::text, ('cancelled_early'::varchar)::text])))
 );
 
 CREATE TABLE public.bgg_sync_logs (
@@ -62,7 +62,7 @@ CREATE TABLE public.campaign_applications (
     created_at timestamp NULL,
     updated_at timestamp NULL,
     user_id varchar NOT NULL,
-    CONSTRAINT campaign_applications_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::varchar, 'approved'::varchar, 'rejected'::varchar])::text[])))
+    CONSTRAINT campaign_applications_status_check CHECK (((status)::text = ANY (ARRAY[('pending'::varchar)::text, ('approved'::varchar)::text, ('rejected'::varchar)::text])))
 );
 
 CREATE TABLE public.campaign_game_system (
@@ -86,8 +86,8 @@ CREATE TABLE public.campaign_participants (
     confirmation_expires_at timestamp NULL,
     confirmation_attempts integer NULL,
     created_at timestamp NULL,
-    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::varchar)::text, ('share_link'::varchar)::text, ('application'::varchar)::text, ('email_invite'::varchar)::text, ('short_link'::varchar)::text]))),
-    CONSTRAINT campaign_participants_role_check CHECK (((role)::text = ANY ((ARRAY['owner'::varchar, 'player'::varchar, 'invited'::varchar, 'applicant'::varchar])::text[]))),
+    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::varchar, 'share_link'::varchar, 'application'::varchar, 'email_invite'::varchar, 'short_link'::varchar, 'discord'::varchar])::text[]))),
+    CONSTRAINT campaign_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::varchar)::text, ('player'::varchar)::text, ('invited'::varchar)::text, ('applicant'::varchar)::text]))),
     CONSTRAINT campaign_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::varchar)::text, ('rejected'::varchar)::text, ('pending'::varchar)::text, ('waitlisted'::varchar)::text, ('benched'::varchar)::text, ('removed'::varchar)::text])))
 );
 
@@ -119,9 +119,32 @@ CREATE TABLE public.campaigns (
     bench_mode boolean NOT NULL DEFAULT false,
     game_type varchar(20) NULL,
     host_note text NULL,
-    CONSTRAINT campaigns_recurrence_check CHECK (((recurrence)::text = ANY ((ARRAY['weekly'::varchar, 'bi-weekly'::varchar, 'monthly'::varchar])::text[]))),
-    CONSTRAINT campaigns_status_check CHECK (((status)::text = ANY ((ARRAY['active'::varchar, 'cancelled'::varchar, 'completed'::varchar])::text[]))),
-    CONSTRAINT campaigns_visibility_check CHECK (((visibility)::text = ANY ((ARRAY['public'::varchar, 'protected'::varchar, 'private'::varchar])::text[])))
+    CONSTRAINT campaigns_recurrence_check CHECK (((recurrence)::text = ANY ((ARRAY['weekly'::varchar, 'bi-weekly'::varchar, 'monthly'::varchar, 'custom'::varchar])::text[]))),
+    CONSTRAINT campaigns_status_check CHECK (((status)::text = ANY (ARRAY[('active'::varchar)::text, ('cancelled'::varchar)::text, ('completed'::varchar)::text]))),
+    CONSTRAINT campaigns_visibility_check CHECK (((visibility)::text = ANY (ARRAY[('public'::varchar)::text, ('protected'::varchar)::text, ('private'::varchar)::text])))
+);
+
+CREATE TABLE public.cities (
+    id varchar NOT NULL,
+    slug varchar(255) NOT NULL,
+    city varchar(255) NOT NULL,
+    country varchar(3) NULL,
+    region_prefix varchar(3) NULL,
+    intro json NULL,
+    featured boolean NOT NULL DEFAULT false,
+    hidden boolean NOT NULL DEFAULT false,
+    upcoming_activity_count integer NULL,
+    verified_venues_count integer NULL,
+    recomputed_at timestamp NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
+CREATE TABLE public.city_hub_settings (
+    key varchar(255) NOT NULL,
+    value integer NOT NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
 );
 
 CREATE TABLE public.customers (
@@ -134,6 +157,74 @@ CREATE TABLE public.customers (
     created_at timestamp NULL,
     updated_at timestamp NULL,
     billable_id varchar(36) NULL
+);
+
+CREATE TABLE public.discord_bulletin_messages (
+    id varchar NOT NULL,
+    bulletin_id varchar NOT NULL,
+    guild_id varchar NOT NULL,
+    thread_id varchar(255) NOT NULL,
+    message_id varchar(255) NULL,
+    status varchar(20) NOT NULL DEFAULT 'posted'::varchar,
+    error_code smallint NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
+CREATE TABLE public.discord_card_messages (
+    id varchar NOT NULL,
+    game_id varchar NOT NULL,
+    guild_id varchar NOT NULL,
+    channel_id varchar(255) NOT NULL,
+    message_id varchar(255) NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    status varchar(20) NOT NULL DEFAULT 'posted'::varchar,
+    moderator_user_id varchar NULL,
+    moderated_at timestamp NULL,
+    expires_at timestamp NULL,
+    thread_id varchar(255) NULL
+);
+
+CREATE TABLE public.discord_guild_organizers (
+    id varchar NOT NULL,
+    guild_id varchar NOT NULL,
+    user_id varchar NOT NULL,
+    publish_enabled boolean NOT NULL DEFAULT false,
+    opted_in_at timestamp NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
+CREATE TABLE public.discord_guilds (
+    id varchar NOT NULL,
+    guild_id varchar(255) NOT NULL,
+    name varchar(255) NOT NULL,
+    icon varchar(255) NULL,
+    owner_user_id varchar NOT NULL,
+    calendar_channel_id varchar(255) NULL,
+    games_channel_id varchar(255) NULL,
+    locale varchar(10) NULL,
+    paused boolean NOT NULL DEFAULT false,
+    moderation_mode varchar(50) NOT NULL DEFAULT 'open'::varchar,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    digest_message_id varchar(255) NULL,
+    digest_channel_id varchar(255) NULL,
+    digest_thread_date varchar(10) NULL,
+    digest_thread_channel_id varchar(255) NULL,
+    digest_thread_message_id varchar(255) NULL
+);
+
+CREATE TABLE public.email_suppressions (
+    id varchar NOT NULL,
+    email varchar(255) NOT NULL,
+    reason varchar(255) NOT NULL,
+    source varchar(255) NOT NULL DEFAULT 'resend_webhook'::varchar,
+    trigger_message_id varchar(255) NULL,
+    suppressed_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
 );
 
 CREATE TABLE public.escalated_agent_capacity (
@@ -787,21 +878,16 @@ CREATE TABLE public.event_announcements (
 CREATE TABLE public.event_registrations (
     id varchar NOT NULL,
     event_id varchar NOT NULL,
-    registration_type varchar(255) NOT NULL,
-    division varchar(100) NULL,
     status varchar(50) NOT NULL DEFAULT 'pending'::varchar,
     payment_status varchar(50) NOT NULL DEFAULT 'pending'::varchar,
     payment_id varchar(255) NULL,
-    roster json NULL,
     notes text NULL,
     internal_notes text NULL,
     confirmed_at timestamp NULL,
     cancelled_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    team_id varchar NULL,
-    user_id varchar NOT NULL,
-    CONSTRAINT event_registrations_registration_type_check CHECK (((registration_type)::text = ANY ((ARRAY['team'::varchar, 'individual'::varchar])::text[])))
+    user_id varchar NOT NULL
 );
 
 CREATE TABLE public.events (
@@ -810,7 +896,7 @@ CREATE TABLE public.events (
     slug varchar(255) NOT NULL,
     description json NULL,
     short_description json NULL,
-    type varchar(255) NOT NULL DEFAULT 'tournament'::varchar,
+    type varchar(255) NOT NULL DEFAULT 'game_day'::varchar,
     status varchar(255) NOT NULL DEFAULT 'draft'::varchar,
     venue_name varchar(255) NULL,
     venue_address text NULL,
@@ -821,12 +907,7 @@ CREATE TABLE public.events (
     end_date date NOT NULL,
     registration_opens_at timestamp NULL,
     registration_closes_at timestamp NULL,
-    registration_type varchar(255) NOT NULL DEFAULT 'team'::varchar,
-    max_teams integer NULL,
     max_participants integer NULL,
-    min_players_per_team integer NOT NULL DEFAULT 7,
-    max_players_per_team integer NOT NULL DEFAULT 21,
-    team_registration_fee integer NOT NULL DEFAULT 0,
     individual_registration_fee integer NOT NULL DEFAULT 0,
     early_bird_discount integer NULL,
     early_bird_deadline timestamp NULL,
@@ -834,11 +915,8 @@ CREATE TABLE public.events (
     contact_phone varchar(255) NULL,
     rules json NULL,
     schedule json NULL,
-    divisions json NULL,
     amenities json NULL,
     requirements json NULL,
-    logo_url varchar(255) NULL,
-    banner_url varchar(255) NULL,
     is_public boolean NOT NULL DEFAULT true,
     is_featured boolean NOT NULL DEFAULT false,
     metadata json NULL,
@@ -847,9 +925,8 @@ CREATE TABLE public.events (
     language varchar(7) NULL,
     location_id varchar NULL,
     organizer_id varchar NOT NULL,
-    CONSTRAINT events_registration_type_check CHECK (((registration_type)::text = ANY ((ARRAY['team'::varchar, 'individual'::varchar, 'both'::varchar])::text[]))),
-    CONSTRAINT events_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::varchar, 'published'::varchar, 'registration_open'::varchar, 'registration_closed'::varchar, 'in_progress'::varchar, 'completed'::varchar, 'cancelled'::varchar])::text[]))),
-    CONSTRAINT events_type_check CHECK (((type)::text = ANY ((ARRAY['tournament'::varchar, 'league'::varchar, 'camp'::varchar, 'clinic'::varchar, 'social'::varchar, 'other'::varchar])::text[])))
+    CONSTRAINT events_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::varchar)::text, ('published'::varchar)::text, ('registration_open'::varchar)::text, ('registration_closed'::varchar)::text, ('in_progress'::varchar)::text, ('completed'::varchar)::text, ('cancelled'::varchar)::text]))),
+    CONSTRAINT events_type_check CHECK (((type)::text = ANY ((ARRAY['game_day'::varchar, 'social'::varchar, 'convention'::varchar, 'other'::varchar])::text[])))
 );
 
 CREATE TABLE public.failed_jobs (
@@ -870,7 +947,7 @@ CREATE TABLE public.game_applications (
     created_at timestamp NULL,
     updated_at timestamp NULL,
     user_id varchar NOT NULL,
-    CONSTRAINT game_applications_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::varchar, 'approved'::varchar, 'rejected'::varchar])::text[])))
+    CONSTRAINT game_applications_status_check CHECK (((status)::text = ANY (ARRAY[('pending'::varchar)::text, ('approved'::varchar)::text, ('rejected'::varchar)::text])))
 );
 
 CREATE TABLE public.game_bulletins (
@@ -911,9 +988,9 @@ CREATE TABLE public.game_participants (
     attendance_disputed_at timestamp NULL,
     approved_at timestamp NULL,
     promoted_manually boolean NOT NULL DEFAULT false,
-    CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY ((ARRAY['attended'::varchar, 'no_show'::varchar, 'late_cancel'::varchar, 'excused'::varchar, 'cancelled_early'::varchar])::text[]))),
-    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::varchar)::text, ('share_link'::varchar)::text, ('application'::varchar)::text, ('email_invite'::varchar)::text, ('short_link'::varchar)::text]))),
-    CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY ((ARRAY['owner'::varchar, 'player'::varchar, 'invited'::varchar, 'applicant'::varchar])::text[]))),
+    CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY (ARRAY[('attended'::varchar)::text, ('no_show'::varchar)::text, ('late_cancel'::varchar)::text, ('excused'::varchar)::text, ('cancelled_early'::varchar)::text]))),
+    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::varchar, 'share_link'::varchar, 'application'::varchar, 'email_invite'::varchar, 'short_link'::varchar, 'discord'::varchar])::text[]))),
+    CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::varchar)::text, ('player'::varchar)::text, ('invited'::varchar)::text, ('applicant'::varchar)::text]))),
     CONSTRAINT game_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::varchar)::text, ('rejected'::varchar)::text, ('pending'::varchar)::text, ('waitlisted'::varchar)::text, ('benched'::varchar)::text, ('removed'::varchar)::text])))
 );
 
@@ -1072,9 +1149,10 @@ CREATE TABLE public.games (
     attendance_resolved_at timestamp NULL,
     attendance_resolution_method varchar(255) NULL,
     host_note text NULL,
-    CONSTRAINT games_attendance_resolution_method_check CHECK (((attendance_resolution_method)::text = ANY ((ARRAY['early_consensus'::varchar, 'timeout'::varchar, 'manual'::varchar])::text[]))),
-    CONSTRAINT games_status_check CHECK (((status)::text = ANY ((ARRAY['scheduled'::varchar, 'canceled'::varchar, 'completed'::varchar])::text[]))),
-    CONSTRAINT games_visibility_check CHECK (((visibility)::text = ANY ((ARRAY['public'::varchar, 'protected'::varchar, 'private'::varchar])::text[])))
+    signup_cutoff_at timestamp NULL,
+    CONSTRAINT games_attendance_resolution_method_check CHECK (((attendance_resolution_method)::text = ANY (ARRAY[('early_consensus'::varchar)::text, ('timeout'::varchar)::text, ('manual'::varchar)::text]))),
+    CONSTRAINT games_status_check CHECK (((status)::text = ANY (ARRAY[('scheduled'::varchar)::text, ('canceled'::varchar)::text, ('completed'::varchar)::text]))),
+    CONSTRAINT games_visibility_check CHECK (((visibility)::text = ANY (ARRAY[('public'::varchar)::text, ('protected'::varchar)::text, ('private'::varchar)::text])))
 );
 
 CREATE TABLE public.gm_profiles (
@@ -1270,15 +1348,15 @@ CREATE TABLE public.permissions (
 
 CREATE TABLE public.personal_access_tokens (
     id bigint NOT NULL,
-    tokenable_type varchar(255) NOT NULL,
-    tokenable_id bigint NOT NULL,
     name text NOT NULL,
     token varchar(64) NOT NULL,
     abilities text NULL,
     last_used_at timestamp NULL,
     expires_at timestamp NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tokenable_type varchar(255) NOT NULL,
+    tokenable_id varchar NOT NULL
 );
 
 CREATE TABLE public.push_subscriptions (
@@ -1349,7 +1427,7 @@ CREATE TABLE public.session_debriefings (
     created_at timestamp NULL,
     updated_at timestamp NULL,
     user_id varchar NOT NULL,
-    CONSTRAINT session_debriefings_tool_type_check CHECK (((tool_type)::text = ANY ((ARRAY['debriefing'::varchar, 'stars-and-wishes'::varchar])::text[])))
+    CONSTRAINT session_debriefings_tool_type_check CHECK (((tool_type)::text = ANY (ARRAY[('debriefing'::varchar)::text, ('stars-and-wishes'::varchar)::text])))
 );
 
 CREATE TABLE public.session_zero_confirmations (
@@ -1453,8 +1531,8 @@ CREATE TABLE public.team_members (
     user_id varchar NOT NULL,
     invited_by varchar NULL,
     id varchar NOT NULL,
-    CONSTRAINT team_members_role_check CHECK (((role)::text = ANY ((ARRAY['captain'::varchar, 'coach'::varchar, 'player'::varchar, 'substitute'::varchar])::text[]))),
-    CONSTRAINT team_members_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::varchar, 'active'::varchar, 'inactive'::varchar, 'removed'::varchar])::text[])))
+    CONSTRAINT team_members_role_check CHECK (((role)::text = ANY (ARRAY[('captain'::varchar)::text, ('coach'::varchar)::text, ('player'::varchar)::text, ('substitute'::varchar)::text]))),
+    CONSTRAINT team_members_status_check CHECK (((status)::text = ANY (ARRAY[('pending'::varchar)::text, ('active'::varchar)::text, ('inactive'::varchar)::text, ('removed'::varchar)::text])))
 );
 
 CREATE TABLE public.teams (
@@ -1505,7 +1583,7 @@ CREATE TABLE public.user_game_system_preferences (
     preference_type varchar(255) NOT NULL,
     game_system_id varchar NOT NULL,
     user_id varchar NOT NULL,
-    CONSTRAINT user_game_system_preferences_preference_type_check CHECK (((preference_type)::text = ANY ((ARRAY['favorite'::varchar, 'avoid'::varchar])::text[])))
+    CONSTRAINT user_game_system_preferences_preference_type_check CHECK (((preference_type)::text = ANY (ARRAY[('favorite'::varchar)::text, ('avoid'::varchar)::text])))
 );
 
 CREATE TABLE public.user_relationships (
@@ -1515,14 +1593,14 @@ CREATE TABLE public.user_relationships (
     user_id varchar NOT NULL,
     related_user_id varchar NOT NULL,
     id varchar NOT NULL,
-    CONSTRAINT user_relationships_type_check CHECK (((type)::text = ANY ((ARRAY['follow'::varchar, 'block'::varchar])::text[])))
+    CONSTRAINT user_relationships_type_check CHECK (((type)::text = ANY (ARRAY[('follow'::varchar)::text, ('block'::varchar)::text])))
 );
 
 CREATE TABLE public.user_vibe_preferences (
     vibe_preference_value varchar(255) NOT NULL,
     preference_type varchar(255) NOT NULL,
     user_id varchar NOT NULL,
-    CONSTRAINT user_vibe_preferences_preference_type_check CHECK (((preference_type)::text = ANY ((ARRAY['favorite'::varchar, 'avoid'::varchar])::text[])))
+    CONSTRAINT user_vibe_preferences_preference_type_check CHECK (((preference_type)::text = ANY (ARRAY[('favorite'::varchar)::text, ('avoid'::varchar)::text])))
 );
 
 CREATE TABLE public.users (
@@ -1541,12 +1619,6 @@ CREATE TABLE public.users (
     remember_token varchar(100) NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    last_login_at timestamp NULL,
-    signup_oauth_provider varchar(50) NULL,
-    first_touch_referer_domain varchar(255) NULL,
-    first_touch_path varchar(255) NULL,
-    signup_content_type varchar(50) NULL,
-    signup_content_slug varchar(255) NULL,
     paddle_id varchar(255) NULL,
     trial_ends_at timestamp NULL,
     password_set_at timestamp NULL,
@@ -1568,6 +1640,12 @@ CREATE TABLE public.users (
     privacy_policy_accepted_at timestamp NULL,
     terms_accepted_at timestamp NULL,
     analytics_consent boolean NOT NULL DEFAULT false,
-    weekly_digest_enabled boolean NOT NULL DEFAULT true
+    weekly_digest_enabled boolean NOT NULL DEFAULT true,
+    last_login_at timestamp NULL,
+    signup_oauth_provider varchar(50) NULL,
+    first_touch_referer_domain varchar(255) NULL,
+    first_touch_path varchar(255) NULL,
+    signup_content_type varchar(50) NULL,
+    signup_content_slug varchar(255) NULL
 );
 

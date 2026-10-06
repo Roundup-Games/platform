@@ -4,13 +4,9 @@ namespace App\Livewire\Events;
 
 use App\Models\Event;
 use App\Models\EventRegistration;
-use App\Models\Team;
-use App\Models\TeamMember;
-use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
@@ -27,20 +23,8 @@ class RegisterForEvent extends Component
 {
     public Event $event;
 
-    public string $registrationMode = 'individual'; // 'individual' or 'team'
-
-    #[Validate('nullable|string|max:100')]
-    public string $division = '';
-
     #[Validate('nullable|string|max:1000')]
     public string $notes = '';
-
-    // Team registration fields
-    #[Validate('nullable|exists:teams,id')]
-    public ?string $selectedTeamId = null;
-
-    /** @var array<int> */
-    public array $selectedRosterMemberIds = [];
 
     public function mount(string $slug): void
     {
@@ -52,48 +36,12 @@ class RegisterForEvent extends Component
 
             return;
         }
-
-        // Default to whatever the event allows
-        if ($this->event->registration_type === 'team') {
-            $this->registrationMode = 'team';
-        } elseif ($this->event->registration_type === 'individual') {
-            $this->registrationMode = 'individual';
-        }
-        // 'both' defaults to 'individual'
-    }
-
-    /**
-     * @return Collection<int, Team>
-     */
-    #[Computed]
-    public function userTeams(): Collection
-    {
-        $user = authenticatedUser();
-
-        return Team::whereHas('members', function ($q) use ($user) {
-            $q->whereBelongsTo($user)
-                ->where('status', 'active');
-        })->get();
-    }
-
-    #[Computed]
-    public function selectedTeam(): ?Team
-    {
-        if (! $this->selectedTeamId) {
-            return null;
-        }
-
-        return Team::with('activeMembers.user')->find($this->selectedTeamId);
     }
 
     #[Computed]
     public function effectiveFee(): int
     {
-        if ($this->registrationMode === 'team') {
-            $base = $this->event->team_registration_fee ?? 0;
-        } else {
-            $base = $this->event->individual_registration_fee ?? 0;
-        }
+        $base = $this->event->individual_registration_fee ?? 0;
 
         if ($this->event->early_bird_discount && $this->event->early_bird_deadline && ($deadline = $this->earlyBirdDeadline()) !== null && now()->lt($deadline)) {
             return max(0, $base - $this->event->early_bird_discount);
@@ -116,20 +64,6 @@ class RegisterForEvent extends Component
         return $this->event->early_bird_deadline;
     }
 
-    public function updatedRegistrationMode(string $value): void
-    {
-        if ($value === 'individual') {
-            $this->selectedTeamId = null;
-            $this->selectedRosterMemberIds = [];
-        }
-    }
-
-    public function updatedSelectedTeamId(): void
-    {
-        $this->selectedRosterMemberIds = [];
-        unset($this->selectedTeam);
-    }
-
     public function register(): void
     {
         $user = authenticatedUser();
@@ -143,51 +77,16 @@ class RegisterForEvent extends Component
             return;
         }
 
-        if ($this->registrationMode === 'team') {
-            $this->validateTeamRegistration($user);
-        } else {
-            $this->validateIndividualRegistration($user);
-        }
-
-        // If mode-specific validation added errors, stop here
-        if ($this->getErrorBag()->isNotEmpty()) {
-            return;
-        }
-
         $this->validate();
 
         $eventId = $this->event->id;
-        $registrationMode = $this->registrationMode;
-        $selectedTeamId = $this->selectedTeamId;
-        $division = $this->division;
         $notes = $this->notes;
         $fee = $this->effectiveFee;
         $isEarlyBird = $this->isEarlyBird;
         $userId = $user->id;
 
-        // Build roster for team registration (outside transaction — read-only)
-        $roster = null;
-        if ($registrationMode === 'team' && $selectedTeamId) {
-            $team = Team::with('activeMembers.user')->find($selectedTeamId);
-            if ($team === null) {
-                session()->flash('error', __('events.error_team_not_found'));
-
-                return;
-            }
-            $activeMembers = $team->activeMembers;
-            /** @var Collection<int, TeamMember> $activeMembers */
-            $roster = $activeMembers
-                ->map(function (TeamMember $member) {
-                    return [
-                        'user_id' => $member->user_id,
-                        'name' => $member->user->name ?? 'Unknown',
-                        'role' => $member->role,
-                    ];
-                })->toArray();
-        }
-
         try {
-            $registration = DB::transaction(function () use ($eventId, $userId, $selectedTeamId, $registrationMode, $division, $notes, $fee, $roster) {
+            $registration = DB::transaction(function () use ($eventId, $userId, $notes, $fee) {
                 // Pessimistic lock on the event row to serialize capacity checks
                 $event = Event::lockForUpdate()->find($eventId);
 
@@ -199,15 +98,10 @@ class RegisterForEvent extends Component
                     throw new \RuntimeException(__('events.content_this_event_is_now_full'));
                 }
 
-                // Check for duplicate registration (user or team, scoped to this event)
+                // Check for duplicate registration (user, scoped to this event)
                 $existing = EventRegistration::where('event_id', $eventId)
                     ->whereNotIn('status', ['cancelled'])
-                    ->where(function ($q) use ($userId, $registrationMode, $selectedTeamId) {
-                        $q->where('user_id', $userId);
-                        if ($registrationMode === 'team' && $selectedTeamId) {
-                            $q->orWhere('team_id', $selectedTeamId);
-                        }
-                    })
+                    ->where('user_id', $userId)
                     ->exists();
 
                 if ($existing) {
@@ -220,12 +114,8 @@ class RegisterForEvent extends Component
                 return EventRegistration::create([
                     'event_id' => $eventId,
                     'user_id' => $userId,
-                    'team_id' => $registrationMode === 'team' ? $selectedTeamId : null,
-                    'registration_type' => $registrationMode,
-                    'division' => $division ?: null,
                     'status' => $status,
                     'payment_status' => $paymentStatus,
-                    'roster' => $roster,
                     'notes' => $notes ?: null,
                     'confirmed_at' => $fee === 0 ? now() : null,
                 ]);
@@ -252,8 +142,6 @@ class RegisterForEvent extends Component
             'registration_id' => $registration->id,
             'event_id' => $eventId,
             'user_id' => $userId,
-            'type' => $registrationMode,
-            'team_id' => $selectedTeamId,
             'fee' => $fee,
             'status' => $registration->status,
             'payment_status' => $registration->payment_status,
@@ -266,29 +154,6 @@ class RegisterForEvent extends Component
         } else {
             session()->flash('success', __('events.flash_you_have_been_registered_successfully'));
             $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
-        }
-    }
-
-    private function validateTeamRegistration(User $user): void
-    {
-        if (! in_array($this->event->registration_type, ['team', 'both'])) {
-            $this->addError('registrationMode', __('events.error_this_event_does_not_support_team_registration'));
-        }
-
-        if (! $this->selectedTeamId) {
-            $this->addError('selectedTeamId', __('teams.content_please_select_a_team'));
-        }
-
-        $team = Team::find($this->selectedTeamId);
-        if ($team && ! $team->isCaptain($user)) {
-            $this->addError('selectedTeamId', __('teams.content_only_the_team_captain_can_register_a_team'));
-        }
-    }
-
-    private function validateIndividualRegistration(User $user): void
-    {
-        if (! in_array($this->event->registration_type, ['individual', 'both'])) {
-            $this->addError('registrationMode', __('events.error_this_event_does_not_support'));
         }
     }
 

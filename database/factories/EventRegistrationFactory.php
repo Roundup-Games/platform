@@ -19,32 +19,14 @@ class EventRegistrationFactory extends Factory
         return [
             'event_id' => Event::factory(),
             'user_id' => User::factory(),
-            'team_id' => null,
-            'registration_type' => 'individual',
-            'division' => null,
             'status' => 'pending',
             'payment_status' => 'pending',
             'payment_id' => null,
-            'roster' => null,
             'notes' => null,
             'internal_notes' => null,
             'confirmed_at' => null,
             'cancelled_at' => null,
         ];
-    }
-
-    public function team(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'registration_type' => 'team',
-        ]);
-    }
-
-    public function individual(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'registration_type' => 'individual',
-        ]);
     }
 
     public function confirmed(): static

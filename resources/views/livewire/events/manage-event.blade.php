@@ -123,7 +123,7 @@
     <div class="bg-surface-container-low rounded-xl shadow-ambient mb-6">
         <div class="border-b border-outline-variant">
             <nav class="flex -mb-px">
-                @foreach(['details' => __('common.content_details'), 'venue' => __('common.content_venue'), 'registration' => __('billing.field_registration_fees'), 'divisions' => __('events.content_divisions'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
+                @foreach(['details' => __('common.content_details'), 'venue' => __('common.content_venue'), 'registration' => __('billing.field_registration_fees'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
                     <button wire:click="setActiveTab('{{ $tab }}')"
                             class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === $tab ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant' }}">
                         {{ $label }}
@@ -167,12 +167,9 @@
                         <div>
                             <label for="event-type" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('discovery.content_type') }}</label>
                             <select id="event-type" wire:model="type" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs">
-                                <option value="tournament">{{ __('events.field_tournament') }}</option>
-                                <option value="league">{{ __('common.content_league') }}</option>
-                                <option value="camp">{{ __('common.content_camp') }}</option>
-                                <option value="clinic">{{ __('common.content_clinic') }}</option>
-                                <option value="social">{{ __('common.content_social') }}</option>
-                                <option value="other">{{ __('common.content_other') }}</option>
+                                @foreach(\App\Enums\EventType::cases() as $typeCase)
+                                    <option value="{{ $typeCase->value }}">{{ $typeCase->label() }}</option>
+                                @endforeach
                             </select>
                             @error('type') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
@@ -248,61 +245,21 @@
             {{-- Registration & Fees Tab --}}
             @if($activeTab === 'registration')
                 <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_registration_type') }}</label>
-                        <div class="flex gap-3 mt-1">
-                            @foreach(['team' => __('events.content_team_only'), 'individual' => __('common.content_individual_only'), 'both' => __('common.content_both')] as $val => $label)
-                                <button type="button" wire:click="$set('registration_type', '{{ $val }}')"
-                                        class="px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors {{ $registration_type === $val ? 'border-primary bg-primary/10 text-primary' : 'border-outline text-on-surface-variant' }}">
-                                    {{ $label }}
-                                </button>
-                            @endforeach
-                        </div>
-                    </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        @if(in_array($registration_type, ['team', 'both']))
-                        <div>
-                            <label for="event-max-teams" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_max_teams') }}</label>
-                            <input type="number" id="event-max-teams" wire:model="max_teams" min="1"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
-                            @error('max_teams') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label for="event-min-players" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_min_players_team') }}</label>
-                            <input type="number" id="event-min-players" wire:model="min_players_per_team" min="1"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
-                        </div>
-                        <div>
-                            <label for="event-max-players" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_max_players_team') }}</label>
-                            <input type="number" id="event-max-players" wire:model="max_players_per_team" min="1"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
-                        </div>
-                        @endif
-                        @if(in_array($registration_type, ['individual', 'both']))
                         <div>
                             <label for="event-max-participants" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_max_participants') }}</label>
                             <input type="number" id="event-max-participants" wire:model="max_participants" min="1"
                                    class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('max_participants') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
-                        @endif
                     </div>
                     <h3 class="text-md font-medium text-on-surface pt-2">{{ __('billing.field_fees') }} <span class="text-xs text-on-surface-variant">({{ __('common.action_enter_amount_in_cents_e_g_500_5_00') }})</span></h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        @if(in_array($registration_type, ['team', 'both']))
-                        <div>
-                            <label for="event-team-fee" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.field_team_fee') }}</label>
-                            <input type="number" id="event-team-fee" wire:model="team_registration_fee" min="0"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
-                        </div>
-                        @endif
-                        @if(in_array($registration_type, ['individual', 'both']))
                         <div>
                             <label for="event-individual-fee" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.field_individual_fee') }}</label>
                             <input type="number" id="event-individual-fee" wire:model="individual_registration_fee" min="0"
                                    class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
-                        @endif
                         <div>
                             <label for="event-early-bird-discount" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.content_early_bird_discount') }}</label>
                             <input type="number" id="event-early-bird-discount" wire:model="early_bird_discount" min="0"
@@ -328,58 +285,6 @@
                             @error('registration_closes_at') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
-                </div>
-            @endif
-
-            {{-- Divisions Tab --}}
-            @if($activeTab === 'divisions')
-                <div class="space-y-4">
-                    <p class="text-sm text-on-surface-variant">{{ __('events.action_add_competitive_divisions_for_your_event') }}</p>
-
-                    <div class="bg-surface-container rounded-lg p-4 space-y-3">
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div>
-                                <input type="text" wire:model="newDivisionName" placeholder="{{ __('events.placeholder_new_division_name') }}"
-                                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
-                                @error('newDivisionName') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <input type="text" wire:model="newDivisionDescription" placeholder="{{ __('common.field_description') }}"
-                                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
-                            </div>
-                            <button wire:click="addDivision" class="px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest text-sm font-medium transition-colors inline-flex items-center gap-1">
-                                <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
-                                {{ __('events.action_add_division') }}
-                            </button>
-                        </div>
-                    </div>
-
-                    @if(!empty($divisions))
-                        <div class="space-y-2">
-                            @foreach($divisions as $i => $division)
-                                <div class="flex items-center justify-between bg-surface border border-outline-variant rounded-lg px-4 py-3">
-                                    <div>
-                                        <p class="font-medium text-on-surface">{{ $division['name'] }}</p>
-                                        @if(!empty($division['description']))
-                                            <p class="text-sm text-on-surface-variant">{{ $division['description'] }}</p>
-                                        @endif
-                                    </div>
-                                    <x-confirm-action
-                                        action="removeDivision({{ $i }})"
-                                        id="remove-division-{{ $i }}"
-                                        :icon="'delete'"
-                                        trigger-class="text-on-surface-variant hover:text-error transition-colors"
-                                        :confirm-label="__('common.action_remove')"
-                                        :cancel-label="__('common.action_keep')"
-                                        variant="compact"
-                                        severity="destructive"
-                                    />
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-center text-on-surface-variant/50 text-sm py-4">{{ __('events.content_no_divisions_defined') }}</p>
-                    @endif
                 </div>
             @endif
 

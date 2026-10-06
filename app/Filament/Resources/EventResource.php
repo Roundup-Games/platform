@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Enums\ContentLanguage;
 use App\Enums\EventStatus;
+use App\Enums\EventType;
 use App\Filament\Components\SeoFields;
 use App\Filament\Resources\EventResource\Pages;
 use App\Filament\Resources\EventResource\RelationManagers\AnnouncementsRelationManager;
@@ -61,13 +62,7 @@ class EventResource extends Resource
                                     ->searchable()
                                     ->required(),
                                 Select::make('type')
-                                    ->options([
-                                        'tournament' => 'Tournament',
-                                        'convention' => 'Convention',
-                                        'game_day' => 'Game Day',
-                                        'league' => 'League',
-                                        'other' => 'Other',
-                                    ])
+                                    ->options(collect(EventType::cases())->mapWithKeys(fn (EventType $case) => [$case->value => $case->label()]))
                                     ->required(),
                                 Select::make('status')
                                     ->options([
@@ -151,40 +146,16 @@ class EventResource extends Resource
 
                 Section::make('Registration & Capacity')
                     ->schema([
-                        Grid::make(3)
+                        Grid::make(2)
                             ->schema([
-                                Select::make('registration_type')
-                                    ->options([
-                                        'individual' => 'Individual',
-                                        'team' => 'Team',
-                                        'both' => 'Both',
-                                    ])
-                                    ->default('individual')
-                                    ->required(),
                                 TextInput::make('max_participants')
                                     ->label('Max Participants')
                                     ->numeric()
                                     ->minValue(1),
-                                TextInput::make('max_teams')
-                                    ->label('Max Teams')
-                                    ->numeric()
-                                    ->minValue(1),
-                                TextInput::make('team_registration_fee')
-                                    ->label('Team Fee (cents)')
-                                    ->numeric()
-                                    ->prefix('¢'),
                                 TextInput::make('individual_registration_fee')
                                     ->label('Individual Fee (cents)')
                                     ->numeric()
                                     ->prefix('¢'),
-                                TextInput::make('min_players_per_team')
-                                    ->label('Min Players/Team')
-                                    ->numeric()
-                                    ->minValue(1),
-                                TextInput::make('max_players_per_team')
-                                    ->label('Max Players/Team')
-                                    ->numeric()
-                                    ->minValue(1),
                             ]),
                     ]),
 

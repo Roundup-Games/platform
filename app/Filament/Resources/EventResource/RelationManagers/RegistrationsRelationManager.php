@@ -32,24 +32,10 @@ class RegistrationsRelationManager extends RelationManager
                             ->relationship('user', 'name')
                             ->searchable()
                             ->required(),
-                        Select::make('team_id')
-                            ->label('Team')
-                            ->relationship('team', 'name')
-                            ->searchable(),
-                        Select::make('registration_type')
-                            ->options([
-                                'individual' => 'Individual',
-                                'team' => 'Team',
-                            ])
-                            ->required()
-                            ->default('individual'),
-                        TextInput::make('division')
-                            ->maxLength(100),
                         Select::make('status')
                             ->options([
                                 'pending' => 'Pending',
                                 'confirmed' => 'Confirmed',
-                                'waitlisted' => 'Waitlisted',
                                 'cancelled' => 'Cancelled',
                                 'refunded' => 'Refunded',
                             ])
@@ -60,8 +46,6 @@ class RegistrationsRelationManager extends RelationManager
                                 'pending' => 'Pending',
                                 'paid' => 'Paid',
                                 'refunded' => 'Refunded',
-                                'failed' => 'Failed',
-                                'waived' => 'Waived',
                                 'not_required' => 'Not Required',
                             ])
                             ->required()
@@ -86,19 +70,11 @@ class RegistrationsRelationManager extends RelationManager
                     ->label('User')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('team.name')
-                    ->label('Team')
-                    ->searchable()
-                    ->toggleable()
-                    ->default('—'),
-                TextColumn::make('registration_type')
-                    ->badge(),
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'confirmed' => 'success',
                         'pending' => 'warning',
-                        'waitlisted' => 'info',
                         'cancelled' => 'danger',
                         'refunded' => 'gray',
                         default => 'gray',
@@ -108,9 +84,7 @@ class RegistrationsRelationManager extends RelationManager
                     ->color(fn (string $state): string => match ($state) {
                         'paid' => 'success',
                         'pending' => 'warning',
-                        'failed' => 'danger',
                         'refunded' => 'info',
-                        'waived' => 'gray',
                         'not_required' => 'gray',
                         default => 'gray',
                     }),

@@ -14,7 +14,7 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
             <div class="flex flex-wrap items-center gap-2 mb-4">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
-                    {{ __(ucfirst($event->type)) }}
+                    {{ $event->type?->label() }}
                 </span>
                 @if($event->status->value === 'registration_open')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
@@ -66,12 +66,6 @@
                         />
                     </span>
                 @endif
-
-                {{-- Registration Type --}}
-                <span class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-lg" aria-hidden="true">groups</span>
-                    {{ __(ucfirst($event->registration_type) . ' Registration') }}
-                </span>
             </div>
         </div>
     </section>
@@ -93,27 +87,6 @@
                         <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('events.content_about_this_event') }}</h2>
                         <div class="prose prose-sm max-w-none text-on-surface-variant">
                             {{ $event->description }}
-                        </div>
-                    </section>
-                @endif
-
-                {{-- Divisions --}}
-                @if($event->divisions && count($event->divisions) > 0)
-                    <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                        <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('events.content_divisions') }}</h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            @foreach($event->divisions as $division)
-                                <div class="border border-outline-variant rounded-lg p-4">
-                                    @if(is_array($division))
-                                        <h3 class="font-semibold text-on-surface">{{ $division['name'] ?? 'Division' }}</h3>
-                                        @if(isset($division['description']))
-                                            <p class="text-sm text-on-surface-variant mt-1">{{ $division['description'] }}</p>
-                                        @endif
-                                    @else
-                                        <h3 class="font-semibold text-on-surface">{{ $division }}</h3>
-                                    @endif
-                                </div>
-                            @endforeach
                         </div>
                     </section>
                 @endif
@@ -203,34 +176,17 @@
                     {{-- Capacity --}}
                     <div class="mt-4">
                         <p class="text-sm font-medium text-on-surface mb-2">{{ __('location.field_capacity') }}</p>
-                        @if($event->registration_type === 'team' || $event->registration_type === 'both')
-                            <div class="flex items-center justify-between text-sm text-on-surface-variant">
-                                <span>{{ __('common.content_teams') }}</span>
-                                <span>{{ $teamCount }}{{ $event->max_teams ? '/' . $event->max_teams : '' }}</span>
+                        <div class="flex items-center justify-between text-sm text-on-surface-variant">
+                            <span>{{ __('common.content_participants') }}</span>
+                            <span>{{ $individualCount }}{{ $event->max_participants ? '/' . $event->max_participants : '' }}</span>
+                        </div>
+                        @if($event->max_participants)
+                            @php $indPct = min(100, ($individualCount / $event->max_participants) * 100) @endphp
+                            <div class="mt-1 w-full bg-outline-variant/30 rounded-full h-2">
+                                <div class="h-2 rounded-full {{ $indPct >= 90 ? 'bg-error' : ($indPct >= 70 ? 'bg-tertiary' : 'bg-secondary') }}" style="width: {{ $indPct }}%"></div>
                             </div>
-                            @if($event->max_teams)
-                                @php $teamPct = min(100, ($teamCount / $event->max_teams) * 100) @endphp
-                                <div class="mt-1 w-full bg-outline-variant/30 rounded-full h-2">
-                                    <div class="h-2 rounded-full {{ $teamPct >= 90 ? 'bg-error' : ($teamPct >= 70 ? 'bg-tertiary' : 'bg-secondary') }}" style="width: {{ $teamPct }}%"></div>
-                                </div>
-                                @if($teamPct >= 90)
-                                    <p class="text-xs text-error mt-1">{{ __('common.content_nearly_full') }}</p>
-                                @endif
-                            @endif
-                        @endif
-                        @if($event->registration_type === 'individual' || $event->registration_type === 'both')
-                            <div class="flex items-center justify-between text-sm text-on-surface-variant {{ ($event->registration_type === 'both') ? 'mt-2' : '' }}">
-                                <span>{{ __('common.content_participants') }}</span>
-                                <span>{{ $individualCount }}{{ $event->max_participants ? '/' . $event->max_participants : '' }}</span>
-                            </div>
-                            @if($event->max_participants)
-                                @php $indPct = min(100, ($individualCount / $event->max_participants) * 100) @endphp
-                                <div class="mt-1 w-full bg-outline-variant/30 rounded-full h-2">
-                                    <div class="h-2 rounded-full {{ $indPct >= 90 ? 'bg-error' : ($indPct >= 70 ? 'bg-tertiary' : 'bg-secondary') }}" style="width: {{ $indPct }}%"></div>
-                                </div>
-                                @if($indPct >= 90)
-                                    <p class="text-xs text-error mt-1">{{ __('common.content_nearly_full') }}</p>
-                                @endif
+                            @if($indPct >= 90)
+                                <p class="text-xs text-error mt-1">{{ __('common.content_nearly_full') }}</p>
                             @endif
                         @endif
                     </div>
@@ -238,14 +194,6 @@
                     {{-- Fees --}}
                     <div class="mt-4 pt-4 border-t border-outline-variant">
                         <p class="text-sm font-medium text-on-surface mb-2">{{ __('billing.field_fees') }}</p>
-                        @if($event->team_registration_fee > 0)
-                            <p class="text-sm text-on-surface-variant">
-                                {{ __('events.field_team_amount', ['amount' => format_currency($event->team_registration_fee)]) }}
-                                @if($event->early_bird_discount && $event->early_bird_deadline && now()->lt($event->early_bird_deadline))
-                                    <span class="text-secondary ml-1">{{ __('billing.content_early_bird_amount', ['amount' => format_currency($event->early_bird_discount)]) }}</span>
-                                @endif
-                            </p>
-                        @endif
                         @if($event->individual_registration_fee > 0)
                             <p class="text-sm text-on-surface-variant">
                                 {{ __('common.field_individual_amount', ['amount' => format_currency($event->individual_registration_fee)]) }}
@@ -253,8 +201,7 @@
                                     <span class="text-secondary ml-1">{{ __('billing.content_early_bird_amount', ['amount' => format_currency($event->early_bird_discount)]) }}</span>
                                 @endif
                             </p>
-                        @endif
-                        @if($event->team_registration_fee === 0 && $event->individual_registration_fee === 0)
+                        @else
                             <p class="text-sm text-secondary font-medium">{{ __('common.price_free') }}</p>
                         @endif
                     </div>
@@ -313,6 +260,7 @@
                         <h3 class="font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">mail</span>
                             {{ __('common.content_contact') }}
+                        </h3>
                         <div class="mt-3 text-sm space-y-1">
                             @if($event->contact_email)
                                 <p class="text-on-surface-variant">
@@ -328,5 +276,4 @@
             </div>
         </div>
     </div>
-</div>
 </div>

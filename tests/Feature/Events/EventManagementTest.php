@@ -6,8 +6,6 @@ use App\Livewire\Events\ManageRegistrations;
 use App\Livewire\Events\RegisterForEvent;
 use App\Models\Event;
 use App\Models\EventRegistration;
-use App\Models\Team;
-use App\Models\TeamMember;
 use App\Models\User;
 
 use function Pest\Laravel\actingAs;
@@ -22,7 +20,6 @@ describe('Registration Window Enforcement', function () {
             'registration_opens_at' => now()->subDays(7),
             'registration_closes_at' => now()->subDay(),
             'is_public' => true,
-            'registration_type' => 'individual',
             'individual_registration_fee' => 0,
         ]);
 
@@ -38,7 +35,6 @@ describe('Registration Window Enforcement', function () {
             'registration_opens_at' => now()->addDays(7),
             'registration_closes_at' => now()->addDays(30),
             'is_public' => true,
-            'registration_type' => 'individual',
             'individual_registration_fee' => 0,
         ]);
 
@@ -54,7 +50,6 @@ describe('Registration Window Enforcement', function () {
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
             'individual_registration_fee' => 0,
         ]);
 
@@ -65,92 +60,9 @@ describe('Registration Window Enforcement', function () {
     });
 });
 
-// ── Registration Mode Enforcement ─────────────────────
-
-describe('Registration Mode Enforcement', function () {
-    it('rejects individual registration for team-only event', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create([
-            'status' => 'registration_open',
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDays(7),
-            'is_public' => true,
-            'registration_type' => 'team',
-            'team_registration_fee' => 0,
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->assertSet('registrationMode', 'team')
-            ->set('registrationMode', 'individual')
-            ->call('register')
-            ->assertHasErrors('registrationMode');
-    });
-
-    it('rejects team registration for individual-only event', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $team = Team::factory()->create();
-        TeamMember::factory()->captain()->create([
-            'team_id' => $team->id,
-            'user_id' => $user->id,
-            'status' => 'active',
-        ]);
-
-        $event = Event::factory()->create([
-            'status' => 'registration_open',
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDays(7),
-            'is_public' => true,
-            'registration_type' => 'individual',
-            'individual_registration_fee' => 0,
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->set('registrationMode', 'team')
-            ->set('selectedTeamId', (string) $team->id)
-            ->call('register')
-            ->assertHasErrors('registrationMode');
-    });
-});
-
 // ── Capacity Enforcement ──────────────────────────────
 
 describe('Capacity Enforcement', function () {
-    it('prevents team registration when team capacity is full', function () {
-        $organizer = User::factory()->create();
-        $user = User::factory()->create(['profile_complete' => true]);
-        $team = Team::factory()->create();
-        TeamMember::factory()->captain()->create([
-            'team_id' => $team->id,
-            'user_id' => $user->id,
-            'status' => 'active',
-        ]);
-
-        $event = Event::factory()->create([
-            'status' => 'registration_open',
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDays(7),
-            'is_public' => true,
-            'registration_type' => 'team',
-            'max_teams' => 1,
-            'team_registration_fee' => 0,
-            'organizer_id' => $organizer->id,
-        ]);
-
-        // Fill team capacity
-        EventRegistration::factory()->team()->create([
-            'event_id' => $event->id,
-            'status' => 'confirmed',
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->set('selectedTeamId', (string) $team->id)
-            ->call('register')
-            ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-    })->group('smoke');
-
     it('counts all registrations toward capacity including cancelled', function () {
         $organizer = User::factory()->create();
         $event = Event::factory()->create([
@@ -158,7 +70,6 @@ describe('Capacity Enforcement', function () {
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
             'max_participants' => 1,
             'individual_registration_fee' => 0,
             'organizer_id' => $organizer->id,
@@ -167,7 +78,6 @@ describe('Capacity Enforcement', function () {
         // Even a cancelled registration counts toward capacity in hasCapacity()
         EventRegistration::factory()->cancelled()->create([
             'event_id' => $event->id,
-            'registration_type' => 'individual',
         ]);
 
         $user = User::factory()->create(['profile_complete' => true]);
@@ -175,28 +85,28 @@ describe('Capacity Enforcement', function () {
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
+
+        $this->assertDatabaseCount('event_registrations', 1);
     })->group('smoke');
 });
 
 // ── Early Bird Pricing ────────────────────────────────
 
 describe('Early Bird Pricing', function () {
-    it('applies early bird discount to team registration fee', function () {
+    it('applies early bird discount to the individual registration fee', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create([
             'status' => 'registration_open',
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'team',
-            'team_registration_fee' => 20000, // $200.00
+            'individual_registration_fee' => 20000, // $200.00
             'early_bird_discount' => 5000, // $50.00
             'early_bird_deadline' => now()->addDays(3),
         ]);
 
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->assertSet('registrationMode', 'team')
             ->assertSee('Early Bird Discount')
             ->assertSee('-'.format_currency(5000))
             ->assertSee(format_currency(15000));
@@ -209,7 +119,6 @@ describe('Early Bird Pricing', function () {
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
             'individual_registration_fee' => 5000,
             'early_bird_discount' => 1000,
             'early_bird_deadline' => now()->addDays(3),
@@ -234,7 +143,6 @@ describe('Registration with Notes', function () {
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
             'individual_registration_fee' => 0,
         ]);
 
@@ -317,7 +225,6 @@ describe('Event Detail Window Display', function () {
             'name' => ['en' => 'Near Full Event'],
             'is_public' => true,
             'status' => 'registration_open',
-            'registration_type' => 'individual',
             'max_participants' => 10,
             'organizer_id' => $organizer->id,
         ]);
@@ -327,14 +234,14 @@ describe('Event Detail Window Display', function () {
             EventRegistration::create([
                 'event_id' => $event->id,
                 'user_id' => User::factory()->create()->id,
-                'registration_type' => 'individual',
                 'status' => 'confirmed',
                 'payment_status' => 'paid',
             ]);
         }
 
         Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('9/10');
+            ->assertSee('9/10')
+            ->assertSee(__('common.content_nearly_full'));
     });
 });
 
@@ -348,7 +255,6 @@ describe('Duplicate Registration Edge Cases', function () {
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
             'individual_registration_fee' => 0,
         ]);
 
@@ -377,7 +283,6 @@ describe('Duplicate Registration Edge Cases', function () {
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
             'is_public' => true,
-            'registration_type' => 'individual',
             'individual_registration_fee' => 0,
         ]);
 
@@ -390,5 +295,7 @@ describe('Duplicate Registration Edge Cases', function () {
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
+
+        $this->assertDatabaseCount('event_registrations', 1);
     });
 });
