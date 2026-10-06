@@ -11,6 +11,7 @@ use App\Listeners\RecordUserSignIn;
 use App\Listeners\SuppressAutomatedTicketStatusNotifications;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
+use App\Models\City;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
@@ -480,11 +481,15 @@ class AppServiceProvider extends ServiceProvider
 
         // City hub cache invalidation (M062/62-03): Game/Event/Location saves
         // can move a city's qualifying counts — flush the affected city
-        // summary caches plus the cities sitemap and index.
+        // summary caches plus the cities sitemap and index. City (62-04):
+        // curated-row writes (feature/hide/intro/region/disambiguation)
+        // ride the same observer so every write path — Filament save,
+        // DeleteAction, future code — flushes in one place (MEM1026).
         $cityObserver = $this->app->make(CityHubCacheObserver::class);
         Game::observe($cityObserver);
         Event::observe($cityObserver);
         Location::observe($cityObserver);
+        City::observe($cityObserver);
 
         // Activity logging observers — resilient, never block primary actions
         $activityObserver = $this->app->make(ActivityLogObserver::class);

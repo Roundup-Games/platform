@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Models\City;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
@@ -87,13 +88,25 @@ class CityHubCacheObserver
      *
      * Game/Event: the cities of BOTH the original and current location
      * (a session can move between clusters). Location: BOTH the original
-     * and current city (a location can rename or move cities). Unknown
-     * model types: no slugs — the observer never throws on shape drift.
+     * and current city (a location can rename or move cities). City: BOTH
+     * the original and current slug (a curated row can be re-pointed at a
+     * different city on edit) — the curated row IS the slug authority, so
+     * its own slugs are already normalized and need no Str::slug pass.
+     * Unknown model types: no slugs — the observer never throws on shape
+     * drift.
      *
      * @return array<int, string>
      */
     private function affectedCitySlugs(object $model): array
     {
+        if ($model instanceof City) {
+            return collect([$model->getOriginal('slug'), $model->slug])
+                ->filter(fn ($slug): bool => is_string($slug) && $slug !== '')
+                ->unique()
+                ->values()
+                ->all();
+        }
+
         if ($model instanceof Location) {
             return collect([$model->getOriginal('city'), $model->city])
                 ->map(fn ($city): string => is_string($city) ? Str::slug($city) : '')

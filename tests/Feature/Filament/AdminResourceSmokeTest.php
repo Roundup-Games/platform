@@ -34,11 +34,12 @@ beforeEach(function () {
     Filament::setCurrentPanel('admin');
 });
 
-// All 13 Filament resources mapped to their admin slugs.
+// All 14 Filament resources mapped to their admin slugs.
 // Tickets is View-only (no Create page) — excluded from the create sweep.
 $resources = [
     'bgg-sync-logs' => false,      // List-only (log viewer)
     'campaigns' => true,
+    'cities' => true,
     'departments' => true,
     'events' => true,
     'game-system-categories' => true,
