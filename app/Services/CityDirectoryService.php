@@ -12,7 +12,6 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -68,9 +67,10 @@ class CityDirectoryService
     public function resolveCity(string $slug): ?CitySummary
     {
         $resolution = $this->cachedResolution($slug);
+        $summary = $resolution['summary'];
 
-        return $resolution['status'] === self::STATUS_OK
-            ? CitySummary::fromArray($resolution['summary'])
+        return $resolution['status'] === self::STATUS_OK && is_array($summary)
+            ? CitySummary::fromArray($summary)
             : null;
     }
 
@@ -92,8 +92,8 @@ class CityDirectoryService
      */
     public function isQualifying(CitySummary $summary): bool
     {
-        return $summary->upcomingActivityCount() >= (int) config('cityhubs.min_upcoming_sessions', 3)
-            || $summary->verifiedVenuesCount >= (int) config('cityhubs.min_verified_venues', 2);
+        return $summary->upcomingActivityCount() >= $this->configInt('cityhubs.min_upcoming_sessions', 3)
+            || $summary->verifiedVenuesCount >= $this->configInt('cityhubs.min_verified_venues', 2);
     }
 
     /**
@@ -111,7 +111,8 @@ class CityDirectoryService
             ->whereNotNull('geohash_4')
             ->distinct()
             ->pluck('city')
-            ->map(fn ($city) => Str::slug((string) $city))
+            ->filter(fn ($city): bool => is_string($city))
+            ->map(fn (string $city): string => Str::slug($city))
             ->filter()
             ->unique()
             ->map(fn (string $slug) => $this->resolveCity($slug))
@@ -171,9 +172,11 @@ class CityDirectoryService
                 ->value('updated_at'),
         ];
 
-        return collect($candidates)
-            ->filter(fn ($updatedAt) => $updatedAt !== null)
+        $latest = collect($candidates)
+            ->filter(fn ($updatedAt): bool => $updatedAt instanceof Carbon)
             ->max();
+
+        return $latest instanceof Carbon ? $latest : null;
     }
 
     /**
@@ -254,7 +257,7 @@ class CityDirectoryService
 
         return Cache::remember(
             self::CACHE_PREFIX.$slug,
-            now()->addSeconds((int) config('cityhubs.cache_ttl', 900)),
+            now()->addSeconds($this->configInt('cityhubs.cache_ttl', 900)),
             fn () => $this->computeResolution($slug),
         );
     }
@@ -285,14 +288,25 @@ class CityDirectoryService
         }
 
         $cluster = $clusters->first();
-        $locationIds = $cluster->pluck('id');
+
+        if ($cluster === null) {
+            return ['status' => self::STATUS_NOT_FOUND, 'summary' => null];
+        }
+
+        $firstLocation = $cluster->first();
+
+        if ($firstLocation === null) {
+            return ['status' => self::STATUS_NOT_FOUND, 'summary' => null];
+        }
+
+        $locationIds = $cluster->map(fn (Location $location): string => $location->id);
 
         $summary = new CitySummary(
             slug: $slug,
-            city: (string) $this->mostFrequent($cluster->pluck('city')),
-            country: $this->mostFrequent($cluster->pluck('country')),
-            regionPrefix: substr((string) $cluster->first()->geohash_4, 0, self::CLUSTER_GEOHASH_PREFIX_LENGTH),
-            geohashTiles: $cluster->pluck('geohash_4')->filter()->unique()->values()->all(),
+            city: (string) $this->mostFrequent($cluster->map(fn (Location $location): ?string => $location->city)),
+            country: $this->mostFrequent($cluster->map(fn (Location $location): ?string => $location->country)),
+            regionPrefix: substr((string) $firstLocation->geohash_4, 0, self::CLUSTER_GEOHASH_PREFIX_LENGTH),
+            geohashTiles: $this->nonEmptyStrings($cluster->map(fn (Location $location): ?string => $location->geohash_4)),
             locationIds: $locationIds->values()->all(),
             upcomingGamesCount: $this->countUpcomingGames($locationIds),
             upcomingCampaignsCount: $this->countUpcomingCampaigns($locationIds),
@@ -318,7 +332,7 @@ class CityDirectoryService
             ->whereNotNull('geohash_4')
             ->distinct()
             ->pluck('city')
-            ->filter(fn ($city) => Str::slug((string) $city) === $slug)
+            ->filter(fn ($city): bool => is_string($city) && Str::slug($city) === $slug)
             ->values();
 
         if ($matchingCities->isEmpty()) {
@@ -484,11 +498,15 @@ class CityDirectoryService
             ->orderByDesc('created_at')
             ->limit(self::SECTION_LIMIT)
             ->get()
-            ->each(fn (Campaign $campaign) => $this->tagHubItem(
-                $campaign,
-                'campaign',
-                $campaign->sessions->first()?->date_time ?? $campaign->created_at,
-            ));
+            ->each(function (Campaign $campaign): void {
+                $nextSession = $campaign->sessions->first();
+
+                $this->tagHubItem(
+                    $campaign,
+                    'campaign',
+                    $nextSession instanceof Game ? $nextSession->date_time : $campaign->created_at,
+                );
+            });
     }
 
     /**
@@ -523,7 +541,7 @@ class CityDirectoryService
      * uses for discoverable_type on merged results, consumed by the
      * sessions partial to pick the right card per item.
      */
-    private function tagHubItem(Model $item, string $type, ?Carbon $sortAt): void
+    private function tagHubItem(Game|Campaign|Event $item, string $type, ?Carbon $sortAt): void
     {
         $item->hub_item_type = $type;
         $item->hub_sort_at = $sortAt ?? now();
@@ -534,7 +552,7 @@ class CityDirectoryService
      */
     private function upcomingWindow(): array
     {
-        $days = (int) config('cityhubs.upcoming_window_days', 30);
+        $days = $this->configInt('cityhubs.upcoming_window_days', 30);
 
         return [now(), now()->addDays($days)];
     }
@@ -547,11 +565,44 @@ class CityDirectoryService
      */
     private function mostFrequent(Collection $values): ?string
     {
-        return $values
-            ->filter(fn ($value) => filled($value))
+        $top = $values
+            ->filter(fn ($value): bool => filled($value))
             ->countBy()
             ->sortDesc()
             ->keys()
             ->first();
+
+        return is_string($top) ? $top : null;
+    }
+
+    /**
+     * Non-empty distinct string values in encounter order (geohash tiles).
+     *
+     * @param  Collection<int, string|null>  $values
+     * @return array<int, string>
+     */
+    private function nonEmptyStrings(Collection $values): array
+    {
+        $strings = [];
+
+        foreach ($values as $value) {
+            if (is_string($value) && $value !== '') {
+                $strings[] = $value;
+            }
+        }
+
+        return array_values(array_unique($strings));
+    }
+
+    /**
+     * Integer config value keeping the historic (int) coercion semantics
+     * for numeric strings (env-provided values), defaulting when unset or
+     * non-numeric.
+     */
+    private function configInt(string $key, int $default): int
+    {
+        $value = config($key, $default);
+
+        return is_numeric($value) ? (int) $value : $default;
     }
 }

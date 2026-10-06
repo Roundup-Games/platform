@@ -57,8 +57,8 @@ class GameSystemLandingService
      */
     public function upcomingTables(GameSystem $system): Collection
     {
-        $cacheKey = self::CACHE_PREFIX.$system->getKey();
-        $ttl = now()->addSeconds((int) config('game-systems.cache_ttl', 900));
+        $cacheKey = self::CACHE_PREFIX.$system->id;
+        $ttl = now()->addSeconds($this->configInt('game-systems.cache_ttl', 900));
 
         /** @var mixed $rows */
         $rows = Cache::get($cacheKey);
@@ -91,8 +91,20 @@ class GameSystemLandingService
             ->withCount(['participants as participants_count' => fn ($query) => $query
                 ->where('status', ParticipantStatus::Approved->value)])
             ->orderBy('date_time')
-            ->limit((int) config('game-systems.upcoming_tables_limit', 12))
+            ->limit($this->configInt('game-systems.upcoming_tables_limit', 12))
             ->get();
+    }
+
+    /**
+     * Integer config value keeping the historic (int) coercion semantics
+     * for numeric strings (env-provided values), defaulting when unset or
+     * non-numeric.
+     */
+    private function configInt(string $key, int $default): int
+    {
+        $value = config($key, $default);
+
+        return is_numeric($value) ? (int) $value : $default;
     }
 
     /**

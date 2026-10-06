@@ -2233,7 +2233,7 @@ class ViewTicket extends BaseViewTicket
                 };
 
                 $ticketService->addNote($ticket, $admin, $removed
-                    ? ucfirst($entityType ?? 'content').' removed by admin.'
+                    ? ucfirst($entityType).' removed by admin.'
                     : 'Removal attempted but entity not found or already removed.');
                 $ticketService->close($ticket, $admin);
             });

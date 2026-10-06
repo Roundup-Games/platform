@@ -30,6 +30,8 @@ use Spatie\Translatable\HasTranslations;
 
 /**
  * @property Carbon|null $start_date
+ * @property string $hub_item_type
+ * @property Carbon $hub_sort_at
  * @property Carbon|null $end_date
  * @property Carbon|null $registration_opens_at
  * @property Carbon|null $registration_closes_at

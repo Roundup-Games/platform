@@ -77,7 +77,7 @@ class EntityCancelled extends BaseNotification
         ];
 
         // GameCancelled includes date_time; CampaignCancelled does not
-        if ($type === 'game') {
+        if ($type === 'game' && $this->entity instanceof Game) {
             $data['date_time'] = $this->entity->date_time?->toIso8601String();
         }
 

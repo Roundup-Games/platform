@@ -42,6 +42,9 @@ use Spatie\Translatable\HasTranslations;
  * @property CampaignStatus|null $status
  * @property GameType|null $game_type
  * @property Carbon|null $share_token_expires_at
+ * @property Carbon|null $created_at
+ * @property string $hub_item_type
+ * @property Carbon $hub_sort_at
  * @property bool $bench_mode
  * @property int|null $completed_games_count
  * @property int|null $approved_participant_count

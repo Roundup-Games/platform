@@ -71,21 +71,48 @@ final class CitySummary
     }
 
     /**
+     * Strict hydration: every field is narrowed with is_string/is_int
+     * checks (the ActionItem/DiscoveryFilters convention) instead of blind
+     * casts, so a malformed cache entry surfaces as the documented default
+     * rather than a silent (string) coercion of whatever was stored.
+     *
      * @param  array<string, mixed>  $array
      */
     public static function fromArray(array $array): self
     {
         return new self(
-            slug: (string) $array['slug'],
-            city: (string) $array['city'],
-            country: isset($array['country']) ? (string) $array['country'] : null,
-            regionPrefix: (string) $array['regionPrefix'],
-            geohashTiles: array_values(array_map('strval', $array['geohashTiles'] ?? [])),
-            locationIds: array_values(array_map('strval', $array['locationIds'] ?? [])),
-            upcomingGamesCount: (int) ($array['upcomingGamesCount'] ?? 0),
-            upcomingCampaignsCount: (int) ($array['upcomingCampaignsCount'] ?? 0),
-            upcomingEventsCount: (int) ($array['upcomingEventsCount'] ?? 0),
-            verifiedVenuesCount: (int) ($array['verifiedVenuesCount'] ?? 0),
+            slug: is_string($array['slug'] ?? null) ? $array['slug'] : '',
+            city: is_string($array['city'] ?? null) ? $array['city'] : '',
+            country: is_string($array['country'] ?? null) ? $array['country'] : null,
+            regionPrefix: is_string($array['regionPrefix'] ?? null) ? $array['regionPrefix'] : '',
+            geohashTiles: self::stringList($array['geohashTiles'] ?? []),
+            locationIds: self::stringList($array['locationIds'] ?? []),
+            upcomingGamesCount: is_int($array['upcomingGamesCount'] ?? null) ? $array['upcomingGamesCount'] : 0,
+            upcomingCampaignsCount: is_int($array['upcomingCampaignsCount'] ?? null) ? $array['upcomingCampaignsCount'] : 0,
+            upcomingEventsCount: is_int($array['upcomingEventsCount'] ?? null) ? $array['upcomingEventsCount'] : 0,
+            verifiedVenuesCount: is_int($array['verifiedVenuesCount'] ?? null) ? $array['verifiedVenuesCount'] : 0,
         );
+    }
+
+    /**
+     * Keep only the string entries of a cached list value.
+     *
+     * @return array<int, string>
+     */
+    private static function stringList(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $strings = [];
+
+        foreach ($value as $item) {
+            if (is_string($item)) {
+                $strings[] = $item;
+            }
+        }
+
+        return $strings;
     }
 }

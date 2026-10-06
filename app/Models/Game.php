@@ -44,6 +44,8 @@ use Spatie\Translatable\HasTranslations;
 
 /**
  * @property Carbon|null $date_time
+ * @property string $hub_item_type
+ * @property Carbon $hub_sort_at
  * @property Carbon|null $signup_cutoff_at
  * @property Carbon|null $reminder_sent_at
  * @property Carbon|null $reminder_24h_sent_at

@@ -96,7 +96,7 @@ class CityHubCacheObserver
     {
         if ($model instanceof Location) {
             return collect([$model->getOriginal('city'), $model->city])
-                ->map(fn ($city) => Str::slug((string) $city))
+                ->map(fn ($city): string => is_string($city) ? Str::slug($city) : '')
                 ->filter()
                 ->unique()
                 ->values()
@@ -112,7 +112,7 @@ class CityHubCacheObserver
                 ->whereKey($locationIds->values()->all())
                 ->whereNotNull('city')
                 ->pluck('city')
-                ->map(fn ($city) => Str::slug((string) $city))
+                ->map(fn ($city): string => is_string($city) ? Str::slug($city) : '')
                 ->filter()
                 ->unique()
                 ->values()

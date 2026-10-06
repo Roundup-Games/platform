@@ -296,7 +296,10 @@ class DiscoveryQueryService
         // always comes from CityDirectoryService (single authority), never
         // re-derived here.
         $citySummary = $this->resolveCityFilter($filters);
-        $query->when($citySummary !== null, fn ($q) => $q->whereIn('location_id', $citySummary->locationIds));
+
+        if ($citySummary !== null) {
+            $query->whereIn('location_id', $citySummary->locationIds);
+        }
 
         // Games-specific: date range
         $query->when($date === 'upcoming', fn ($q) => $q->where('date_time', '>=', now()));
@@ -346,7 +349,10 @@ class DiscoveryQueryService
         // (games.location_id via the sessions relation), so a campaign based
         // outside the city with sessions inside it still matches.
         $citySummary = $this->resolveCityFilter($filters);
-        $query->when($citySummary !== null, fn ($q) => $q->whereHas('sessions', fn ($s) => $s->whereIn('location_id', $citySummary->locationIds)));
+
+        if ($citySummary !== null) {
+            $query->whereHas('sessions', fn ($s) => $s->whereIn('location_id', $citySummary->locationIds));
+        }
 
         // Campaigns-specific: recurrence
         if ($recurrence) {
