@@ -128,6 +128,10 @@ return [
     'content_find_sessions_near_you' => 'Find board game sessions happening near you.',
     'content_join_campaigns_oneshots' => 'Join campaigns, one-shots, and everything in between.',
     'content_looking_for_players' => 'looking for players',
+    // Featured city hubs rail (62-04 T06)
+    'content_featured_city_hubs' => 'Featured city hubs',
+    'content_featured_city_hubs_teaser' => 'Curated local scenes with live sessions and venues.',
+    'action_view_city_hub' => 'View the :city city hub',
     // SEO
     'seo_description_discover' => 'Find board games and tabletop RPG sessions near you. Browse games, campaigns, and events in your area.',
     'seo_title_browse_games' => 'Browse Games',

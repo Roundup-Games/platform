@@ -128,6 +128,10 @@ return [
     'content_find_sessions_near_you' => 'Finde Brettspiel-Sessions in deiner Nähe.',
     'content_join_campaigns_oneshots' => 'Kampagnen, One-Shots und alles dazwischen.',
     'content_looking_for_players' => 'suchen Spieler',
+    // Featured city hubs rail (62-04 T06)
+    'content_featured_city_hubs' => 'Empfohlene Städte-Hubs',
+    'content_featured_city_hubs_teaser' => 'Kuratierte lokale Szenen mit aktuellen Sessions und Orten.',
+    'action_view_city_hub' => 'Städte-Hub von :city ansehen',
     // SEO
     'seo_description_discover' => 'Finde Brett- und Tabletop-RPG-Sessions in deiner Nähe. Durchsuche Spiele, Kampagnen und Events.',
     'seo_title_browse_games' => 'Spiele durchsuchen',

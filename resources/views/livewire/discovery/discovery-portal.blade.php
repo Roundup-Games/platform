@@ -54,4 +54,27 @@
             <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors shrink-0" aria-hidden="true">arrow_forward</span>
         </a>
     </div>
+
+    {{-- Featured city hubs rail (62-04): admin-curated featured cities whose
+         cluster still resolves to a servable hub. Mirrors the banner's
+         markup language — compact heading plus link chips — one hop to the
+         local landing pages; renders nothing at all when the set is empty. --}}
+    @if ($featuredCities->isNotEmpty())
+        <div class="max-w-4xl mx-auto px-4 pb-12">
+            <div class="bg-surface rounded-2xl shadow-ambient p-6">
+                <h2 class="text-base font-heading font-semibold text-on-surface">{{ __('discovery.content_featured_city_hubs') }}</h2>
+                <p class="mt-1 text-sm text-on-surface-variant">{{ __('discovery.content_featured_city_hubs_teaser') }}</p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    @foreach ($featuredCities as $featuredCity)
+                        <a href="{{ route('city-hubs.show', ['locale' => app()->getLocale(), 'slug' => $featuredCity->slug]) }}" wire:navigate
+                           aria-label="{{ __('discovery.action_view_city_hub', ['city' => $featuredCity->city]) }}"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-surface-container-low border border-outline-variant/15 text-on-surface hover:border-primary/40 hover:text-primary transition-all">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">location_city</span>
+                            {{ $featuredCity->city }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

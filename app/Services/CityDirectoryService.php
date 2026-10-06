@@ -142,6 +142,33 @@ class CityDirectoryService
     }
 
     /**
+     * Featured curated cities for the discovery portal's rail (62-04 T06):
+     * featured, unhidden rows — each resolved through the same cached
+     * resolution every other surface uses, then kept only when a real hub
+     * can serve it. Curation never conjures a hub: a featured row for a
+     * slug with no (or ambiguous or hidden) locations resolves null and
+     * drops out, and isQualifying() keeps only summaries a hub link can
+     * safely point at — featured ones force-qualify over both thresholds
+     * (MEM995), the rest pass on their own activity. The hidden filter in
+     * the query is defense-in-depth: hidden rows resolve null anyway.
+     *
+     * @return Collection<int, CitySummary>
+     */
+    public function featuredCities(): Collection
+    {
+        return City::query()
+            ->where('featured', true)
+            ->where('hidden', false)
+            ->orderBy('city')
+            ->limit(self::SECTION_LIMIT)
+            ->get()
+            ->map(fn (City $city): ?CitySummary => $this->resolveCity($city->slug))
+            ->filter(fn (?CitySummary $summary): bool => $summary !== null)
+            ->filter(fn (CitySummary $summary): bool => $this->isQualifying($summary))
+            ->values();
+    }
+
+    /**
      * Sitemap lastmod for one city hub: the max updated_at across the
      * cluster's locations and every entity the hub's content derives from
      * — upcoming public games, active public campaigns with an upcoming

@@ -4,6 +4,7 @@ namespace App\Livewire\Discovery;
 
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Services\CityDirectoryService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -37,6 +38,9 @@ class DiscoveryPortal extends Component
         return view('livewire.discovery.discovery-portal', [
             'boardGameCount' => $boardGameCount,
             'adventureCount' => $adventureCount,
+            // Uncached like the two counts above; each per-city resolution
+            // rides its own summary cache (62-04 T06).
+            'featuredCities' => app(CityDirectoryService::class)->featuredCities(),
         ]);
     }
 }
