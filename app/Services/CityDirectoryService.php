@@ -9,6 +9,7 @@ use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Campaign;
+use App\Models\City;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
@@ -25,12 +26,21 @@ use Illuminate\Support\Str;
  * prefix matches — Location.city plus geohash_4, per the M062 goal. A slug
  * that maps to locations in more than one geohash region is ambiguous
  * (same city name in different regions, e.g. multiple German Neustadts)
- * and resolves to null until 62-04 curation disambiguates it.
+ * and resolves to null unless a curated cities.region_prefix pins one
+ * region exactly (62-04).
+ *
+ * Curation (62-04) is enforced here — inside the resolution — so every
+ * consumer (the hub guard, the 62-03 sitemap + canonical folding, the
+ * featured-cities rail) inherits hide/feature semantics from one place
+ * (MEM1023): a hidden cities row sentinel-caches STATUS_HIDDEN, a featured
+ * row force-qualifies over both thresholds (MEM995), and its translatable
+ * intro rides the summary. A curated row for an unknown slug conjures
+ * nothing — no locations is still not_found.
  *
  * Qualification is OR-based: a city qualifies on either the upcoming public
- * activity threshold (config cityhubs.min_upcoming_sessions) or the verified
- * venue threshold (cityhubs.min_verified_venues). Non-qualifying cities get
- * a real 404 downstream — never a soft empty page.
+ * activity threshold or the verified-venue threshold — both read through
+ * CityHubSettings (DB rows over config cityhubs.*). Non-qualifying cities
+ * get a real 404 downstream — never a soft empty page.
  */
 class CityDirectoryService
 {
@@ -58,6 +68,12 @@ class CityDirectoryService
 
     public const STATUS_AMBIGUOUS = 'ambiguous';
 
+    public const STATUS_HIDDEN = 'hidden';
+
+    public function __construct(
+        private readonly CityHubSettings $hubSettings
+    ) {}
+
     /**
      * Resolve a city slug to its cluster summary, or null when the slug is
      * unknown or ambiguous. The full resolution (cluster + activity counts)
@@ -75,10 +91,11 @@ class CityDirectoryService
     }
 
     /**
-     * Resolution status for guard-rejection logging: 'ok', 'not_found', or
-     * 'ambiguous'. The third rejection reason, 'below_threshold', is derived
-     * by the caller when status is 'ok' but isQualifying() is false — the
-     * structured cityhub.rejected log composes all three (T04).
+     * Resolution status for guard-rejection logging: 'ok', 'not_found',
+     * 'ambiguous', or 'hidden' (a curated hide, 62-04). The remaining
+     * rejection reason, 'below_threshold', is derived by the caller when
+     * status is 'ok' but isQualifying() is false — the structured
+     * cityhub.rejected log composes all of these (T04).
      */
     public function resolveStatus(string $slug): string
     {
@@ -86,38 +103,41 @@ class CityDirectoryService
     }
 
     /**
-     * Does this city meet either qualification threshold? Either the
+     * Does this city meet a qualification threshold? A featured curated
+     * row force-qualifies over both thresholds (MEM995) — a curated hub
+     * ships even when its natural activity is quiet. Otherwise either the
      * upcoming public activity count (games + campaigns + events) or the
-     * verified-venue count suffices.
+     * verified-venue count suffices, with both thresholds read through
+     * CityHubSettings so admin rows override config without a deploy
+     * (62-04) — the config fallback keeps the no-row behavior identical.
      */
     public function isQualifying(CitySummary $summary): bool
     {
-        return $summary->upcomingActivityCount() >= $this->configInt('cityhubs.min_upcoming_sessions', 3)
-            || $summary->verifiedVenuesCount >= $this->configInt('cityhubs.min_verified_venues', 2);
+        if ($summary->featured) {
+            return true;
+        }
+
+        return $summary->upcomingActivityCount() >= $this->hubSettings->minUpcomingSessions()
+            || $summary->verifiedVenuesCount >= $this->hubSettings->minVerifiedVenues();
     }
 
     /**
      * All currently-qualifying city summaries, keyed by nothing in
      * particular — consumers (sitemap + cross-links, 62-03) iterate it.
-     * Each city's resolution is cached individually, so a warm call is one
-     * lookup per distinct city slug; the cold pass is the full computation.
+     * Hidden curated cities resolve null and drop out; featured ones pass
+     * isQualifying and stay — both automatically, because curation is
+     * enforced inside the resolution this iterates. Each city's
+     * resolution is cached individually, so a warm call is one lookup per
+     * distinct city slug; the cold pass is the full computation.
      *
      * @return Collection<int, CitySummary>
      */
     public function qualifyingCities(): Collection
     {
-        return Location::query()
-            ->whereNotNull('city')
-            ->whereNotNull('geohash_4')
-            ->distinct()
-            ->pluck('city')
-            ->filter(fn ($city): bool => is_string($city))
-            ->map(fn (string $city): string => Str::slug($city))
-            ->filter()
-            ->unique()
-            ->map(fn (string $slug) => $this->resolveCity($slug))
-            ->filter(fn (?CitySummary $summary) => $summary !== null)
-            ->filter(fn (CitySummary $summary) => $this->isQualifying($summary))
+        return $this->knownCitySlugs()
+            ->map(fn (string $slug): ?CitySummary => $this->resolveCity($slug))
+            ->filter(fn (?CitySummary $summary): bool => $summary !== null)
+            ->filter(fn (CitySummary $summary): bool => $this->isQualifying($summary))
             ->values();
     }
 
@@ -245,6 +265,23 @@ class CityDirectoryService
     }
 
     /**
+     * Forget every known city's cached resolution and return the count.
+     * The threshold-change invalidation path (CityHubSettings::set in
+     * Filament): threshold edits change which cached summaries belong in
+     * the qualifying set, so an admin change drops them all to recompute.
+     * Iterates the existing per-slug forget() — the single external flush
+     * hook — instead of Cache::tags, which this app never uses.
+     */
+    public function forgetAll(): int
+    {
+        $slugs = $this->knownCitySlugs();
+
+        $slugs->each(fn (string $slug) => $this->forget($slug));
+
+        return $slugs->count();
+    }
+
+    /**
      * Cache wrapper. The closure ALWAYS returns an array — Cache::remember
      * does not persist null returns (they re-run the closure), so negative
      * resolutions are encoded as status-only arrays instead.
@@ -274,6 +311,8 @@ class CityDirectoryService
         $locations = $this->locationsForSlug($slug);
 
         if ($locations->isEmpty()) {
+            // A curated row for an unknown slug must never conjure a hub:
+            // no locations is still not_found, however the row is flagged.
             return ['status' => self::STATUS_NOT_FOUND, 'summary' => null];
         }
 
@@ -281,13 +320,27 @@ class CityDirectoryService
             ->groupBy(fn (Location $location) => substr((string) $location->geohash_4, 0, self::CLUSTER_GEOHASH_PREFIX_LENGTH))
             ->filter(fn (Collection $cluster, string $prefix) => $prefix !== '');
 
-        if ($clusters->count() > 1) {
-            // Same city name in separated regions: never merge, never guess.
-            // Treated as non-qualifying (404) until 62-04 curation picks one.
-            return ['status' => self::STATUS_AMBIGUOUS, 'summary' => null];
+        $curated = City::query()->where('slug', $slug)->first();
+
+        if ($curated?->hidden === true) {
+            // Hidden beats every other flag — featured included — and every
+            // public surface: the hub, the sitemap, the rail (62-04).
+            // Sentinel-cached like the other negatives because
+            // Cache::remember cannot persist null.
+            return ['status' => self::STATUS_HIDDEN, 'summary' => null];
         }
 
-        $cluster = $clusters->first();
+        if ($clusters->count() > 1) {
+            $cluster = $this->disambiguatedCluster($clusters, $curated?->region_prefix);
+
+            if ($cluster === null) {
+                // Same city name in separated regions with no exact curated
+                // prefix pin: never merge, never guess.
+                return ['status' => self::STATUS_AMBIGUOUS, 'summary' => null];
+            }
+        } else {
+            $cluster = $clusters->first();
+        }
 
         if ($cluster === null) {
             return ['status' => self::STATUS_NOT_FOUND, 'summary' => null];
@@ -312,9 +365,54 @@ class CityDirectoryService
             upcomingCampaignsCount: $this->countUpcomingCampaigns($locationIds),
             upcomingEventsCount: $this->countUpcomingEvents($locationIds),
             verifiedVenuesCount: $this->countVerifiedVenues($locationIds),
+            featured: $curated?->featured === true,
+            intro: $curated instanceof City ? $curated->getTranslations('intro') : [],
         );
 
         return ['status' => self::STATUS_OK, 'summary' => $summary->toArray()];
+    }
+
+    /**
+     * The one cluster a curated region_prefix pins an ambiguous
+     * (multi-region) city to: the cluster whose 3-char geohash prefix
+     * EXACTLY equals the stored prefix (62-04). A wrong or missing prefix
+     * returns null — the city stays ambiguous rather than guessed.
+     *
+     * @param  Collection<string, Collection<int, Location>>  $clusters
+     * @return Collection<int, Location>|null
+     */
+    private function disambiguatedCluster(Collection $clusters, ?string $regionPrefix): ?Collection
+    {
+        if ($regionPrefix === null) {
+            return null;
+        }
+
+        $pinned = $clusters->get($regionPrefix);
+
+        return $pinned instanceof Collection ? $pinned : null;
+    }
+
+    /**
+     * Every distinct city slug derivable from geocoded locations — the
+     * candidate universe for qualifyingCities() and the invalidation
+     * universe for forgetAll(). Str::slug cannot run in SQL, so distinct
+     * city values are pulled and normalized in PHP (62-04 extraction of
+     * the iteration previously inline in qualifyingCities).
+     *
+     * @return Collection<int, string>
+     */
+    private function knownCitySlugs(): Collection
+    {
+        return Location::query()
+            ->whereNotNull('city')
+            ->whereNotNull('geohash_4')
+            ->distinct()
+            ->pluck('city')
+            ->filter(fn ($city): bool => is_string($city))
+            ->map(fn (string $city): string => Str::slug($city))
+            ->filter()
+            ->unique()
+            ->values();
     }
 
     /**

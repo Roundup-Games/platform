@@ -25,6 +25,8 @@ final class CitySummary
      * @param  int  $upcomingCampaignsCount  Active public campaigns with a future scheduled session at a cluster location.
      * @param  int  $upcomingEventsCount  Public events (is_public + public status) starting within the window at cluster locations.
      * @param  int  $verifiedVenuesCount  Cluster locations eligible for a public venue page (scopePublicVenuePage + slug).
+     * @param  bool  $featured  Admin curation flag (62-04): featured cities force-qualify over both thresholds and feed the featured-cities rail.
+     * @param  array<string, string>  $intro  Curated translatable hero intro (locale => string) from the cities.intro column; empty when uncurated.
      */
     public function __construct(
         public readonly string $slug,
@@ -37,6 +39,8 @@ final class CitySummary
         public readonly int $upcomingCampaignsCount,
         public readonly int $upcomingEventsCount,
         public readonly int $verifiedVenuesCount,
+        public readonly bool $featured = false,
+        public readonly array $intro = [],
     ) {}
 
     /**
@@ -49,6 +53,25 @@ final class CitySummary
         return $this->upcomingGamesCount
             + $this->upcomingCampaignsCount
             + $this->upcomingEventsCount;
+    }
+
+    /**
+     * Curated intro for one locale: the trimmed value, or null when the
+     * locale has no (non-empty) translation — the hub hero then falls
+     * back to its generated copy (62-04 decision: curated locale intro
+     * rendered from the cached resolution, MEM1023).
+     */
+    public function introFor(string $locale): ?string
+    {
+        $text = $this->intro[$locale] ?? null;
+
+        if (! is_string($text)) {
+            return null;
+        }
+
+        $trimmed = trim($text);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 
     /**
@@ -67,6 +90,8 @@ final class CitySummary
             'upcomingCampaignsCount' => $this->upcomingCampaignsCount,
             'upcomingEventsCount' => $this->upcomingEventsCount,
             'verifiedVenuesCount' => $this->verifiedVenuesCount,
+            'featured' => $this->featured,
+            'intro' => $this->intro,
         ];
     }
 
@@ -75,6 +100,8 @@ final class CitySummary
      * checks (the ActionItem/DiscoveryFilters convention) instead of blind
      * casts, so a malformed cache entry surfaces as the documented default
      * rather than a silent (string) coercion of whatever was stored.
+     * featured/intro default false/[] — pre-62-04 cache entries (written
+     * before curation existed) degrade safely instead of erroring.
      *
      * @param  array<string, mixed>  $array
      */
@@ -91,6 +118,8 @@ final class CitySummary
             upcomingCampaignsCount: is_int($array['upcomingCampaignsCount'] ?? null) ? $array['upcomingCampaignsCount'] : 0,
             upcomingEventsCount: is_int($array['upcomingEventsCount'] ?? null) ? $array['upcomingEventsCount'] : 0,
             verifiedVenuesCount: is_int($array['verifiedVenuesCount'] ?? null) ? $array['verifiedVenuesCount'] : 0,
+            featured: is_bool($array['featured'] ?? null) ? $array['featured'] : false,
+            intro: self::stringMap($array['intro'] ?? []),
         );
     }
 
@@ -110,6 +139,29 @@ final class CitySummary
         foreach ($value as $item) {
             if (is_string($item)) {
                 $strings[] = $item;
+            }
+        }
+
+        return $strings;
+    }
+
+    /**
+     * Keep only the string-keyed string entries of a cached map value
+     * (locale => intro text).
+     *
+     * @return array<string, string>
+     */
+    private static function stringMap(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $strings = [];
+
+        foreach ($value as $locale => $text) {
+            if (is_string($locale) && is_string($text)) {
+                $strings[$locale] = $text;
             }
         }
 

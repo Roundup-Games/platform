@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\Cache;
  *
  * Both rows are read in ONE Cache::rememberForever('city-hubs:settings')
  * lookup, so a warm accessor pair costs a single cache hit, never a query.
+ * The config fallback is resolved per read (outside the cache entry), so
+ * runtime config([...]) overrides stay observable until a settings row
+ * takes the key over — the exact behavior the CityDirectoryServiceTest
+ * baseline (no settings rows) pins.
  * CityDirectoryService will consume these accessors in place of its raw
  * configInt() threshold reads (62-04), making the cache the only hot-path
  * cost of admin-tunable thresholds.
@@ -64,32 +68,32 @@ class CityHubSettings
     }
 
     /**
-     * The cached resolution. One rememberForever wraps one query fetching
-     * both rows; each key then falls back to its config default
-     * independently, so a partially-populated table degrades per-key
-     * rather than all-or-nothing.
+     * The cached threshold rows, with the config fallback resolved per
+     * key on every read. Caching the config-derived resolution would
+     * freeze the runtime config([...]) overrides the no-row tests rely
+     * on; caching only the rows keeps a warm accessor pair at a single
+     * cache hit while config stays live. Each key falls back to its
+     * config default independently, so a partially-populated table
+     * degrades per-key rather than all-or-nothing.
      *
      * @return array{min_upcoming_sessions: int, min_verified_venues: int}
      */
     private function resolved(): array
     {
-        /** @var array{min_upcoming_sessions: int, min_verified_venues: int} $resolved */
-        $resolved = Cache::rememberForever(self::CACHE_KEY, function (): array {
-            $rows = CityHubSetting::query()
-                ->whereIn('key', [self::KEY_MIN_UPCOMING_SESSIONS, self::KEY_MIN_VERIFIED_VENUES])
-                ->pluck('value', 'key');
+        /** @var array<string, int> $rows */
+        $rows = Cache::rememberForever(self::CACHE_KEY, fn (): array => CityHubSetting::query()
+            ->whereIn('key', [self::KEY_MIN_UPCOMING_SESSIONS, self::KEY_MIN_VERIFIED_VENUES])
+            ->pluck('value', 'key')
+            ->all());
 
-            return [
-                self::KEY_MIN_UPCOMING_SESSIONS => $rows->has(self::KEY_MIN_UPCOMING_SESSIONS)
-                    ? (int) $rows->get(self::KEY_MIN_UPCOMING_SESSIONS)
-                    : $this->configInt('cityhubs.min_upcoming_sessions', 3),
-                self::KEY_MIN_VERIFIED_VENUES => $rows->has(self::KEY_MIN_VERIFIED_VENUES)
-                    ? (int) $rows->get(self::KEY_MIN_VERIFIED_VENUES)
-                    : $this->configInt('cityhubs.min_verified_venues', 2),
-            ];
-        });
-
-        return $resolved;
+        return [
+            self::KEY_MIN_UPCOMING_SESSIONS => array_key_exists(self::KEY_MIN_UPCOMING_SESSIONS, $rows)
+                ? (int) $rows[self::KEY_MIN_UPCOMING_SESSIONS]
+                : $this->configInt('cityhubs.min_upcoming_sessions', 3),
+            self::KEY_MIN_VERIFIED_VENUES => array_key_exists(self::KEY_MIN_VERIFIED_VENUES, $rows)
+                ? (int) $rows[self::KEY_MIN_VERIFIED_VENUES]
+                : $this->configInt('cityhubs.min_verified_venues', 2),
+        ];
     }
 
     /**
