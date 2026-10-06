@@ -12,6 +12,12 @@ beforeEach(function () {
     $this->service = app(LocationMergeService::class);
     $this->source = Location::factory()->create(['name' => 'Source Location']);
     $this->target = Location::factory()->create(['name' => 'Target Location']);
+
+    // Deleting the source location fires CityHubCacheObserver (debug) and
+    // creating fixture rows fires GameObserver (warning). These tests assert
+    // the merge-completed `info` contract, so let the incidental log noise
+    // through rather than breaking on every level the observers happen to use.
+    Log::shouldReceive('debug', 'warning', 'error', 'notice', 'critical', 'alert', 'emergency')->zeroOrMoreTimes();
 });
 
 // ── Core behaviour: FK reassignment + source deletion + counts ─────────
