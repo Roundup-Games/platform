@@ -5,6 +5,7 @@ namespace App\Livewire\Events;
 use App\Enums\ContentLanguage;
 use App\Enums\EventType;
 use App\Models\Event;
+use App\Models\Game;
 use App\Models\User;
 use App\Services\EventDelegationService;
 use App\Services\EventLifecycleService;
@@ -321,6 +322,50 @@ class ManageEvent extends Component
         }
 
         session()->flash('success', __('events.flash_co_organizer_revoked', ['name' => $target->name]));
+    }
+
+    // ── Tables (host-a-table, M063/S05) ────────────────
+
+    /**
+     * Tables (Games) hosted at this event, with everything the Tables tab
+     * rows render (host, system chips, seat state) eager-loaded to keep the
+     * tab at one query plus its eager loads.
+     *
+     * @return Collection<int, Game>
+     */
+    #[Computed]
+    public function tables(): Collection
+    {
+        return $this->event->tables()
+            ->with(['owner', 'gameSystems', 'participants'])
+            ->get();
+    }
+
+    /**
+     * Detach a table from this event: games.event_id is set to null and the
+     * game itself — its participants, systems, and status — is untouched
+     * (R059 detach-never-destroy semantics).
+     */
+    public function detachTable(string $gameId): void
+    {
+        $this->authorize('update', $this->event);
+
+        // Relation-scoped lookup: only a table actually hosted at THIS
+        // event can be detached from it — a stale request naming a game
+        // under another umbrella (or none) 404s instead of detaching.
+        $game = $this->event->tables()->findOrFail($gameId);
+
+        $name = $game->name;
+        $game->event()->dissociate();
+        $game->save();
+
+        Log::info('Table detached from event', [
+            'game_id' => $game->id,
+            'event_id' => $this->event->id,
+            'detached_by' => Auth::id(),
+        ]);
+
+        session()->flash('success', __('events.flash_table_detached', ['name' => $name]));
     }
 
     // ── Save ──────────────────────────────────────────

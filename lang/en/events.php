@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_back_to_event' => 'Back to :event',
     'action_back_to_events' => 'Back to Events',
@@ -146,4 +147,16 @@ return [
     'placeholder_username_or_email' => 'username or email…',
     'flash_co_organizer_added' => ':name added as co-organizer.',
     'flash_co_organizer_revoked' => ':name removed as co-organizer.',
+    // Host-a-table / event tables (M063/S05)
+    'action_host_a_table' => 'Host a table',
+    'action_host_a_table_at_event' => 'Host a Table at :event',
+    'action_detach' => 'Detach',
+    'content_tables' => 'Tables',
+    'content_tables_help' => 'Each table is a self-contained game session hosted under this event umbrella — a Gathering is the expected shape. Detaching a table keeps the game session and its participants untouched.',
+    'content_no_tables_yet' => 'No tables yet. Host a game session — typically a Gathering — as a table under this event.',
+    'content_host_a_table_at_event_help' => 'Your session will be listed as a table under this event. Everything else works like a regular game session.',
+    'content_hosted_at_event_hint' => 'This session is hosted as a table at :event.',
+    'content_detach_this_table_from_this_event' => 'Detach ":name" from this event? The game session itself stays untouched and becomes a standalone session.',
+    'flash_table_detached' => '":name" detached from the event.',
+    'error_event_not_accepting_tables' => 'Tables can only be hosted while an event is published or open for registration.',
 ];

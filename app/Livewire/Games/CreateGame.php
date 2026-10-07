@@ -8,6 +8,7 @@ use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\VibeFlag;
 use App\Enums\Visibility;
+use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Services\CreateDefaultsService;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -46,6 +48,15 @@ class CreateGame extends Component
     /** Optional query parameter: pre-selected game type (from the unified Plan flow) */
     #[Url]
     public ?string $type = null;
+
+    /**
+     * Optional query parameter: slug of the event this table is hosted at
+     * (M063/S05 host-a-table flow, from an event's Manage → Tables tab).
+     * Nothing on the form is pre-filled from it; event_id is attached on
+     * save after re-authorization.
+     */
+    #[Url]
+    public ?string $event = null;
 
     public string $name = '';
 
@@ -233,6 +244,13 @@ class CreateGame extends Component
 
     public function mount(): void
     {
+        // Host-a-table context (?event={slug}): the host must pass
+        // EventPolicy::update to even see the form. Checked again in save() —
+        // permission may have been revoked between load and submit.
+        if ($this->event !== null && $this->event !== '') {
+            $this->authorize('update', $this->resolveHostingEvent());
+        }
+
         // If a type was pre-selected via ?type= (e.g. from the Plan flow),
         // auto-advance to the form with smart defaults applied.
         if (($this->clone === null || $this->clone === '') && $this->type !== null) {
@@ -454,9 +472,59 @@ class CreateGame extends Component
 
     // ── Actions ──────────────────────────────────────────
 
+    /**
+     * The event this table will be hosted at, when the ?event={slug}
+     * context is present. Null on the regular creation path.
+     */
+    #[Computed]
+    public function hostingEvent(): ?Event
+    {
+        if ($this->event === null || $this->event === '') {
+            return null;
+        }
+
+        return Event::where('slug', $this->event)->first();
+    }
+
+    /**
+     * Resolve the host-a-table context (?event={slug}) to its Event.
+     *
+     * Events keep their default `id` route key (see Location's
+     * getRouteKeyName note) and are resolved manually by slug.
+     */
+    protected function resolveHostingEvent(): ?Event
+    {
+        if ($this->event === null || $this->event === '') {
+            return null;
+        }
+
+        return Event::where('slug', $this->event)->firstOrFail();
+    }
+
     public function save(): void
     {
         $this->authorize('create', Game::class);
+
+        // Re-resolve and re-authorize the host-a-table context on save:
+        // permission may have been revoked since form load, and the #[Url]
+        // param can change between load and submit. An event deleted mid-form
+        // 404s here (fail-closed) rather than silently creating a standalone
+        // table under a vanished umbrella.
+        $hostingEvent = $this->resolveHostingEvent();
+        if ($hostingEvent !== null) {
+            $this->authorize('update', $hostingEvent);
+
+            // Lifecycle gate (M063/S05/T03): tables attach only while the
+            // umbrella is published / registration_open (Event::canHostTables).
+            // A cancelled, completed, closed, or still-draft event rejects
+            // the attach with a clear validation error instead of silently
+            // creating a standalone table or linking under a dead umbrella.
+            if (! $hostingEvent->canHostTables()) {
+                throw ValidationException::withMessages([
+                    'event' => __('events.error_event_not_accepting_tables'),
+                ]);
+            }
+        }
 
         if ($this->game_type === null) {
             $this->addError('game_type', __('games.error_select_game_type'));
@@ -550,7 +618,7 @@ class CreateGame extends Component
             $validated,
         );
 
-        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode, $complexity, $minReliabilityPreference, $pivotSystemIds) {
+        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode, $complexity, $minReliabilityPreference, $pivotSystemIds, $hostingEvent) {
             $game = Game::create([
                 'owner_id' => Auth::id(),
                 'host_note' => $validated['host_note'] ?? null,
@@ -577,6 +645,16 @@ class CreateGame extends Component
                 'min_reliability_preference' => $minReliabilityPreference,
                 'bench_mode' => $benchMode,
             ]);
+
+            // Host-a-table context: link the new table to its umbrella
+            // event via the relation API (associate(), not a raw event_id
+            // write — Eloquent baseline R2). Detach-never-destroy semantics
+            // live on the FK (nullOnDelete); attaching here only ever sets
+            // the link.
+            if ($hostingEvent !== null) {
+                $game->event()->associate($hostingEvent);
+                $game->save();
+            }
 
             app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
 
@@ -633,6 +711,7 @@ class CreateGame extends Component
             'name' => $game->name,
             'game_type' => $game->game_type?->value,
             'owner_id' => Auth::id(),
+            'event_id' => $hostingEvent?->id,
         ];
 
         if ($this->clone !== null && $this->clone !== '') {

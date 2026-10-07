@@ -723,6 +723,39 @@ class GameDetail extends Component
         session()->flash('success', __('common.flash_share_link_revoked'));
     }
 
+    /**
+     * Detach this session from its host event (M063/S05, R059): the game
+     * itself — participants, systems, status — stays untouched and becomes
+     * standalone. Owner-side counterpart to ManageEvent::detachTable(),
+     * gated on game ownership rather than event permission so a host can
+     * always withdraw their own table.
+     */
+    public function detachFromEvent(): void
+    {
+        $this->authorize('update', $this->game);
+
+        // Standalone game (or already detached): nothing to do — the action
+        // is only rendered for hosted tables, this guards stale requests.
+        if ($this->game->event_id === null) {
+            return;
+        }
+
+        $name = $this->game->name;
+        $eventId = $this->game->event_id;
+
+        $this->game->event()->dissociate();
+        $this->game->save();
+
+        Log::info('Table detached from event', [
+            'game_id' => $this->game->id,
+            'event_id' => $eventId,
+            'detached_by' => Auth::id(),
+            'surface' => 'game_detail',
+        ]);
+
+        session()->flash('success', __('events.flash_table_detached', ['name' => $name]));
+    }
+
     public function regenerateShareLink(): void
     {
         $viewer = authenticatedUser();
@@ -1336,7 +1369,7 @@ class GameDetail extends Component
         // refreshed: actions that mutate them call ->load() themselves, but
         // render remains the guaranteed-fresh source for the roster UI.
         $this->game->loadMissing([
-            'owner', 'campaign',
+            'owner', 'campaign', 'event',
             'gameSystems.categories', 'gameSystems.mechanics',
             'gameSystems.publishers', 'gameSystems.baseGame', 'gameSystems.expansions',
             'linkedLocation',

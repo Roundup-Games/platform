@@ -150,6 +150,29 @@
                     </section>
                 @endif
 
+                {{-- Hosted at an event: owner can detach their table from their own manage surface (M063/S05) --}}
+                @auth
+                    @if($isOwner && $game->event)
+                        <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 flex items-center justify-between gap-3 flex-wrap">
+                            <span class="text-sm text-on-surface-variant">
+                                {{ __('events.content_hosted_at_event_hint', ['event' => $game->event->name]) }}
+                            </span>
+                            <x-confirm-action
+                                action="detachFromEvent()"
+                                id="detach-from-event"
+                                :trigger-label="__('events.action_detach')"
+                                trigger-class="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors whitespace-nowrap"
+                                :confirm-label="__('events.action_detach')"
+                                :cancel-label="__('common.action_cancel')"
+                                :message="__('events.content_detach_this_table_from_this_event', ['name' => $game->name])"
+                                variant="inline"
+                                severity="caution"
+                                confirm-icon="link_off"
+                            />
+                        </div>
+                    @endif
+                @endauth
+
                 {{-- Leave Game (non-owner participants only, scheduled games only) --}}
                 @auth
                     @if($isParticipant && !$isOwner && $game->status->value === 'scheduled')

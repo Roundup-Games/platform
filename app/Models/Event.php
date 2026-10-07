@@ -45,6 +45,7 @@ use Spatie\Translatable\HasTranslations;
  * @property Carbon|null $updated_at
  * @property int|null $individual_registration_fee
  * @property array{paddle_price_id?: string}|null $metadata
+ * @property int|null $tables_count
  */
 class Event extends Model implements HasMedia
 {
@@ -232,6 +233,40 @@ class Event extends Model implements HasMedia
     }
 
     /**
+     * The tables (Games) hosted at this event (R059).
+     *
+     * A "table" is a regular Game row linked via games.event_id — a Gathering
+     * is the expected shape, but no game_type restriction is enforced. Ordered
+     * by start time (date_time) with created_at as the deterministic tiebreaker
+     * for tables starting together. Games::event() is the inverse belongsTo.
+     *
+     * The link is lifecycle-neutral: event cancel/complete leaves tables
+     * untouched, and deleting the event only detaches them (FK nullOnDelete).
+     *
+     * @return HasMany<Game, $this>
+     */
+    public function tables(): HasMany
+    {
+        return $this->hasMany(Game::class)
+            ->orderBy('games.date_time')
+            ->orderBy('games.created_at');
+    }
+
+    /**
+     * Number of tables hosted at this event.
+     *
+     * Reads the withCount('tables') aggregate when present so card grids can
+     * eager-load all counts in one query; falls back to a count query when
+     * the aggregate was not selected.
+     */
+    public function tablesCount(): int
+    {
+        $count = $this->attributes['tables_count'] ?? null;
+
+        return $count !== null ? (int) $count : (int) $this->tables()->count();
+    }
+
+    /**
      * @return BelongsTo<Location, $this>
      */
     public function linkedLocation(): BelongsTo
@@ -332,6 +367,22 @@ class Event extends Model implements HasMedia
         }
 
         return true;
+    }
+
+    /**
+     * May new tables (Games) be hosted at this event? (M063/S05)
+     *
+     * Only while the event is published or open for registration — the
+     * two statuses where the umbrella is visible and taking sign-ups.
+     * registration_closed/cancelled/completed never accept new tables,
+     * and drafts are not public yet. This gates the ManageEvent Tables
+     * tab CTA and the CreateGame save-time attach check. Existing links
+     * are lifecycle-neutral: they survive cancel/complete untouched and
+     * only event deletion detaches them (FK nullOnDelete, R059).
+     */
+    public function canHostTables(): bool
+    {
+        return in_array($this->status, [EventStatus::Published, EventStatus::RegistrationOpen], true);
     }
 
     // ── SEO ────────────────────────────────────────────

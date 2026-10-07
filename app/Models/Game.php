@@ -134,7 +134,7 @@ class Game extends Model implements HasMedia, TicketSubject
 
     protected $fillable = [
         'id',
-        'owner_id', 'campaign_id', 'name', 'date_time',
+        'owner_id', 'campaign_id', 'event_id', 'name', 'date_time',
         'description', 'host_note', 'expected_duration', 'price', 'language', 'location', 'location_id', 'location_instructions',
         'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
@@ -235,6 +235,21 @@ class Game extends Model implements HasMedia, TicketSubject
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
+    }
+
+    /**
+     * The event umbrella this table is hosted at, when any.
+     *
+     * A "table" is just a regular Game whose event_id points at the hosting
+     * Event (R059): hosting changes neither ownership nor lifecycle, and the
+     * FK is nullOnDelete so losing the umbrella detaches — never destroys —
+     * the game.
+     *
+     * @return BelongsTo<Event, $this>
+     */
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(Event::class);
     }
 
     /**

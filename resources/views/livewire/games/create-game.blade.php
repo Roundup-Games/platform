@@ -1,14 +1,19 @@
 <div class="py-6 sm:py-8">
     <div class="max-w-2xl mx-auto">
         {{-- Page Header --}}
+        @php($hostingEvent = $this->hostingEvent)
         <div class="mb-6 sm:mb-8">
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('dashboard') }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
+                <a href="{{ $hostingEvent ? route('events.manage', ['slug' => $hostingEvent->slug]) : route('dashboard') }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>
-                <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.action_create_game_session') }}</h1>
+                <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">
+                    {{ $hostingEvent ? __('events.action_host_a_table_at_event', ['event' => $hostingEvent->name]) : __('games.action_create_game_session') }}
+                </h1>
             </div>
-            <p class="ml-8 sm:ml-9 text-sm text-on-surface-variant">{{ __('games.content_schedule_a_new_game_session_for_players_to_join') }}</p>
+            <p class="ml-8 sm:ml-9 text-sm text-on-surface-variant">
+                {{ $hostingEvent ? __('events.content_host_a_table_at_event_help') : __('games.content_schedule_a_new_game_session_for_players_to_join') }}
+            </p>
         </div>
 
         {{-- Step 1: Type Selector --}}
@@ -56,6 +61,13 @@
                     <span class="material-symbols-outlined text-base text-primary" aria-hidden="true">{{ $typeIcons[$game_type ?? 'board_game'] ?? 'casino' }}</span>
                     <span class="font-medium text-on-surface">{{ $this->gameTypeOptions[$game_type ?? 'board_game'] ?? '' }}</span>
                 </div>
+                @if($hostingEvent)
+                    {{-- Host-a-table context chip: keeps the event visible mid-form --}}
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-sm">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">festival</span>
+                        <span class="font-medium truncate max-w-[12rem]">{{ $hostingEvent->name }}</span>
+                    </div>
+                @endif
                 <div class="flex items-center gap-1">
                     @foreach(['board_game', 'ttrpg', 'gathering'] as $switchType)
                         <button type="button"

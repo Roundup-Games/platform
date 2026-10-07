@@ -35,6 +35,17 @@ use Illuminate\Support\Facades\Log;
  * dispatch observability apply per recipient; NotificationService is
  * error-resilient, so one recipient's dispatch failure never blocks the
  * remaining sends or the status write itself.
+ *
+ * Tables (Games linked via games.event_id) are lifecycle-neutral
+ * (M063/S05, R059): cancelling an event — or completing it — never
+ * touches its tables. The link survives the transition, and each
+ * table stays a fully working game with its own status, seats, and
+ * participants; a host who wants their session standalone detaches it
+ * themselves from the game's own manage surface. New tables stop being
+ * accepted (Event::canHostTables gates the CTA and the CreateGame
+ * attach), but existing ones are never modified or destroyed here.
+ * The link is only ever detached by explicit event deletion, enforced
+ * at the database level (FK nullOnDelete) — not by this service.
  */
 class EventLifecycleService
 {

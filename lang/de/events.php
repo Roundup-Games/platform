@@ -1,4 +1,5 @@
 <?php
+
 return [
     'action_back_to_event' => 'Zurück zu :event',
     'action_back_to_events' => 'Zurück zu Veranstaltungen',
@@ -146,4 +147,16 @@ return [
     'placeholder_username_or_email' => 'Benutzername oder E-Mail…',
     'flash_co_organizer_added' => ':name als Co-Organisator hinzugefügt.',
     'flash_co_organizer_revoked' => ':name als Co-Organisator entfernt.',
+    // Host-a-table / event tables (M063/S05)
+    'action_host_a_table' => 'Einen Tisch ausrichten',
+    'action_host_a_table_at_event' => 'Einen Tisch bei :event ausrichten',
+    'action_detach' => 'Abkoppeln',
+    'content_tables' => 'Tische',
+    'content_tables_help' => 'Jeder Tisch ist eine eigenständige Spielsitzung unter dem Dach dieses Events – ein Gathering ist die übliche Form. Beim Abkoppeln bleiben Spielsitzung und Teilnehmer unverändert.',
+    'content_no_tables_yet' => 'Noch keine Tische. Richte eine Spielsitzung – üblicherweise ein Gathering – als Tisch unter diesem Event aus.',
+    'content_host_a_table_at_event_help' => 'Deine Sitzung wird als Tisch unter diesem Event gelistet. Ansonsten funktioniert alles wie bei einer normalen Spielsitzung.',
+    'content_hosted_at_event_hint' => 'Diese Sitzung wird als Tisch bei :event ausgerichtet.',
+    'content_detach_this_table_from_this_event' => '„:name“ von diesem Event abkoppeln? Die Spielsitzung selbst bleibt unverändert und wird zu einer eigenständigen Sitzung.',
+    'flash_table_detached' => '„:name“ wurde vom Event abgekoppelt.',
+    'error_event_not_accepting_tables' => 'Tische können nur ausgerichtet werden, solange ein Event veröffentlicht oder für Registrierungen geöffnet ist.',
 ];

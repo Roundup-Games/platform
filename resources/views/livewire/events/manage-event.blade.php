@@ -128,7 +128,7 @@
     <div class="bg-surface-container-low rounded-xl shadow-ambient mb-6">
         <div class="border-b border-outline-variant">
             <nav class="flex -mb-px">
-                @foreach(['details' => __('common.content_details'), 'venue' => __('common.content_venue'), 'registration' => __('billing.field_registration_fees'), 'team' => __('events.content_team'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
+                @foreach(['details' => __('common.content_details'), 'venue' => __('common.content_venue'), 'registration' => __('billing.field_registration_fees'), 'team' => __('events.content_team'), 'tables' => __('events.content_tables'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
                     <button wire:click="setActiveTab('{{ $tab }}')"
                             class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === $tab ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant' }}">
                         {{ $label }}
@@ -368,6 +368,86 @@
                             <span wire:loading>{{ __('common.content_saving') }}</span>
                         </button>
                     </form>
+                </div>
+            @endif
+
+            {{-- Tables Tab (host-a-table, M063/S05) --}}
+            @if($activeTab === 'tables')
+                <div class="space-y-6">
+                    <div class="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                            <h3 class="text-md font-medium text-on-surface">{{ __('events.content_tables') }}</h3>
+                            <p class="text-sm text-on-surface-variant mt-1 max-w-prose">{{ __('events.content_tables_help') }}</p>
+                        </div>
+                        {{-- Hosting is offered only while the event is published / open for
+                             registration (Event::canHostTables) — closed, completed, cancelled,
+                             and draft umbrellas never take new tables. --}}
+                        @if($event->canHostTables())
+                            <a href="{{ route('games.create', ['type' => 'gathering', 'event' => $event->slug]) }}" wire:navigate
+                               class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium whitespace-nowrap">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                                {{ __('events.action_host_a_table') }}
+                            </a>
+                        @endif
+                    </div>
+
+                    @if($this->tables->isEmpty())
+                        <div class="rounded-lg border border-dashed border-outline-variant p-4 text-sm text-on-surface-variant">
+                            {{ __('events.content_no_tables_yet') }}
+                        </div>
+                    @else
+                        <ul class="divide-y divide-outline-variant">
+                            @foreach($this->tables as $table)
+                                <li class="py-3">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                                                <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $table]) }}" wire:navigate
+                                                   class="text-sm font-medium text-on-surface hover:text-secondary transition-colors truncate">
+                                                    {{ $table->name }}
+                                                </a>
+                                                @foreach($table->gameSystems as $system)
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+                                                        {{ $system->name }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-on-surface-variant">
+                                                @if($table->owner)
+                                                    <span class="flex items-center gap-1">
+                                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
+                                                        <x-user-link :user="$table->owner" truncate />
+                                                    </span>
+                                                @endif
+                                                @if($table->date_time)
+                                                    <span class="flex items-center gap-1">
+                                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">calendar_today</span>
+                                                        {{ format_date($table->date_time, 'datetime') }}
+                                                    </span>
+                                                @endif
+                                                <span class="flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
+                                                    {{ $table->participants->count() }}/{{ $table->max_players ?? '∞' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <x-confirm-action
+                                            action="detachTable('{{ $table->id }}')"
+                                            id="detach-table-{{ $table->id }}"
+                                            :trigger-label="__('events.action_detach')"
+                                            trigger-class="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors whitespace-nowrap"
+                                            :confirm-label="__('events.action_detach')"
+                                            :cancel-label="__('common.action_cancel')"
+                                            :message="__('events.content_detach_this_table_from_this_event', ['name' => $table->name])"
+                                            variant="inline"
+                                            severity="caution"
+                                            confirm-icon="link_off"
+                                        />
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
             @endif
 

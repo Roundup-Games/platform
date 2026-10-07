@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\GameType;
+use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
@@ -104,6 +105,21 @@ class GameFactory extends Factory
                         ->all()
                 );
             });
+    }
+
+    /**
+     * Host this game as a table at an event.
+     *
+     * Links games.event_id to the given Event; without an argument a new
+     * Event is created via its factory, so gathering()->event() yields a
+     * hosted table in one call. The state value may be a Model or a nested
+     * Factory — Factory::expandAttributes() resolves both to the key.
+     */
+    public function event(?Event $event = null): static
+    {
+        return $this->state(fn (): array => [
+            'event_id' => $event ?? Event::factory(),
+        ]);
     }
 
     /**

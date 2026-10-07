@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\GameType;
+use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
 
@@ -64,4 +65,53 @@ it('applies an explicit multi-system set via withGameSystems', function () {
     // to match input order) plus a representative accessor consistent with it.
     expect($offered)->toBe($expected)
         ->and($game->game_system_id)->toBe($game->gameSystems->first()->id);
+});
+
+// ── event() state (M063/S05: host a table at an event) ───────────────────
+
+it('links a game to an event via the event() state', function () {
+    $event = Event::factory()->create();
+    $game = Game::factory()->event($event)->create();
+
+    expect($game->event_id)->toBe($event->id)
+        ->and($game->event->is($event))->toBeTrue();
+});
+
+it('creates an event implicitly when event() gets no argument', function () {
+    $game = Game::factory()->gathering()->event()->create();
+
+    expect($game->event_id)->not->toBeNull()
+        ->and($game->event)->toBeInstanceOf(Event::class)
+        ->and($game->game_type)->toBe(GameType::Gathering);
+});
+
+it('leaves standalone games unlinked (nullable event_id)', function () {
+    $game = Game::factory()->create();
+
+    expect($game->event_id)->toBeNull()
+        ->and($game->event)->toBeNull();
+});
+
+it('lists event tables ordered by start time via Event::tables()', function () {
+    $event = Event::factory()->create();
+
+    $late = Game::factory()->event($event)->create(['date_time' => now()->addDays(2)]);
+    $early = Game::factory()->event($event)->create(['date_time' => now()->addDay()]);
+    $standalone = Game::factory()->create();
+
+    $tables = $event->tables()->get();
+
+    expect($tables)->toHaveCount(2)
+        ->and($tables->pluck('id')->all())->toBe([$early->id, $late->id])
+        ->and($tables->pluck('id'))->not->toContain($standalone->id);
+});
+
+it('counts tables via withCount aggregate and query fallback', function () {
+    $event = Event::factory()->create();
+    Game::factory()->event($event)->count(3)->create();
+
+    // Fallback path: no aggregate selected -> count query.
+    expect($event->tablesCount())->toBe(3)
+        // Aggregate path: withCount selects tables_count -> no extra query.
+        ->and(Event::withCount('tables')->findOrFail($event->id)->tablesCount())->toBe(3);
 });
