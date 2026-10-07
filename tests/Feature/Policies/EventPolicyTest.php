@@ -115,6 +115,59 @@ describe('Event Policy', function () {
         });
     });
 
+    describe('viewAny (global-context only — M063/S04/T03 any-scope leak fix)', function () {
+        test('globally-assigned Event Admin (curated organizer) can viewAny', function () {
+            setPermissionsTeamId(null);
+            $this->regularUser->assignRole('Event Admin');
+            $this->regularUser->unsetRelations();
+            setPermissionsTeamId(1);
+
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('viewAny', Event::class))->toBeTrue();
+        });
+
+        test('event-scoped co-organizer cannot viewAny: no full listing for scoped holders', function () {
+            $this->actingAs($this->eventAdmin);
+            expect(Gate::allows('viewAny', Event::class))->toBeFalse();
+        });
+
+        test('regular user cannot viewAny', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('viewAny', Event::class))->toBeFalse();
+        });
+    });
+
+    describe('RoleSeeder split (global assignment = create+view only)', function () {
+        beforeEach(function () {
+            setPermissionsTeamId(null);
+            $this->regularUser->assignRole('Event Admin');
+            $this->regularUser->unsetRelations();
+            setPermissionsTeamId(1);
+        });
+
+        test('globally-assigned Event Admin can create events', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('create', Event::class))->toBeTrue();
+        });
+
+        test('globally-assigned Event Admin cannot update an event they do not organize', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('update', $this->publicEvent))->toBeFalse()
+                ->and(Gate::allows('delete', $this->publicEvent))->toBeFalse();
+        });
+
+        test('event-scoped holder cannot create events: delegation is never a creation grant', function () {
+            $this->actingAs($this->eventAdmin);
+            expect(Gate::allows('create', Event::class))->toBeFalse();
+        });
+
+        test('organizer is unaffected: still updates and deletes their own event', function () {
+            $this->actingAs($this->organizer);
+            expect(Gate::allows('update', $this->publicEvent))->toBeTrue()
+                ->and(Gate::allows('delete', $this->publicEvent))->toBeTrue();
+        });
+    });
+
     describe('delete', function () {
         test('organizer can delete their own event', function () {
             $this->actingAs($this->organizer);

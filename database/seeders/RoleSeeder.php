@@ -16,7 +16,12 @@ class RoleSeeder extends Seeder
      *   - Platform Admin: full access to everything
      *   - Games Admin: manage games, campaigns, game systems
      *   - Team Admin: manage own team (scoped via team_id)
-     *   - Event Admin: manage own events (scoped via team_id used as event_id)
+     *   - Event Admin: two audiences share ONE role row (M063/S04/T03
+     *     split) — GLOBAL assignment (team_id=null) = curated organizers
+     *     (D154) with create+view; EVENT-SCOPED assignment (team_id =
+     *     event id via EventDelegationService) = co-organizers managing
+     *     exactly one event. Update/delete are inert in global context
+     *     because EventPolicy resolves them event-scope-only.
      *
      * Permissions follow the pattern: {action} {entity}
      * Entities: user, team, game, campaign, event, membership, game system
@@ -107,7 +112,25 @@ class RoleSeeder extends Seeder
             'view user',
         ]);
 
-        // Event Admin: manage own events (assigned with team_id used as event scope)
+        // Event Admin: ONE shared role row, two assignment audiences
+        // (M063/S04/T03 split).
+        //
+        // - GLOBAL assignment (team_id=null) = curated organizers (D154):
+        //   create events + view. They manage the events they organize via
+        //   organizer_id ownership, not via role permissions. 'update
+        //   event'/'delete event' on this row are deliberately INERT in the
+        //   global context — EventPolicy::update/delete resolve them only
+        //   through ScopedRoleService::hasEventScopedPermission(), so a
+        //   global holder can never manage every event.
+        // - EVENT-SCOPED assignment (model_has_roles.team_id = event id,
+        //   granted via EventDelegationService) = co-organizers who manage
+        //   exactly ONE event. This path NEEDS update/delete on the row —
+        //   Spatie resolves permissions from the shared role definition —
+        //   which is why they stay here and the split is enforced in the
+        //   policy instead.
+        //
+        // Filament EventResource is global-admin-only (canAccess); scoped
+        // holders use the Livewire manage surface (ManageEvent et al).
         $eventAdmin = Role::firstOrCreate([
             'name' => 'Event Admin',
             'guard_name' => 'web',

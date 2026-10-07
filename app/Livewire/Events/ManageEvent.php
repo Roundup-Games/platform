@@ -5,13 +5,19 @@ namespace App\Livewire\Events;
 use App\Enums\ContentLanguage;
 use App\Enums\EventType;
 use App\Models\Event;
+use App\Models\User;
+use App\Services\EventDelegationService;
 use App\Services\EventLifecycleService;
 use App\Services\ScopedRoleService;
 use App\Traits\BuildsTranslatableFormFields;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -71,6 +77,10 @@ class ManageEvent extends Component
     public string $registration_opens_at = '';
 
     public string $registration_closes_at = '';
+
+    // ── Team (co-organizer delegation, M063/S04) ──────
+    /** Invite input: a username (profile slug) or email address. */
+    public string $coOrganizerInvite = '';
 
     // ── Rules & Settings ──────────────────────────────
     public string $rules = '';
@@ -200,6 +210,117 @@ class ManageEvent extends Component
     {
         $trimmed = trim((string) $value);
         $this->paddle_price_id = $trimmed !== '' ? $trimmed : null;
+    }
+
+    // ── Team (Co-Organizer Delegation) ────────────────
+
+    /**
+     * Current co-organizers, each carrying a granted_at attribute
+     * (Carbon|null) powering the Team tab's granted-at column.
+     *
+     * @return Collection<int, User>
+     */
+    #[Computed]
+    public function coOrganizers(): Collection
+    {
+        return app(EventDelegationService::class)->coOrganizers($this->event);
+    }
+
+    /**
+     * Grant co-organizer access to the user resolved from the invite
+     * input (username = profile slug, or email address).
+     *
+     * Validation order mirrors the slice contract: user must exist,
+     * not be disabled, not already be delegated, and not be the
+     * organizer. The grant itself (and its notification, D156) is
+     * owned by EventDelegationService.
+     */
+    public function inviteCoOrganizer(): void
+    {
+        $this->authorize('update', $this->event);
+
+        $input = trim($this->coOrganizerInvite);
+
+        if ($input === '') {
+            $this->addError('coOrganizerInvite', __('validation.required'));
+
+            return;
+        }
+
+        $target = User::query()
+            ->whereNull('anonymized_at')
+            ->where(function (Builder $query) use ($input) {
+                $query->where('email', strtolower($input))
+                    ->orWhere('slug', $input);
+            })
+            ->first();
+
+        if ($target === null) {
+            $this->addError('coOrganizerInvite', __('events.error_no_user_found_with_that_username_or_email'));
+
+            return;
+        }
+
+        if ($target->is_disabled) {
+            $this->addError('coOrganizerInvite', __('events.error_this_account_is_disabled'));
+
+            return;
+        }
+
+        if ((string) $target->id === (string) $this->event->organizer_id) {
+            $this->addError('coOrganizerInvite', __('events.error_the_organizer_already_manages_this_event'));
+
+            return;
+        }
+
+        $delegation = app(EventDelegationService::class);
+
+        if ($delegation->isCoOrganizer($target, $this->event)) {
+            $this->addError('coOrganizerInvite', __('events.error_user_is_already_a_co_organizer', ['name' => $target->name]));
+
+            return;
+        }
+
+        try {
+            // D156: the grant is silent and immediate — the service
+            // assigns the scoped role and notifies the target itself.
+            $delegation->grantCoOrganizer($this->event, $target, authenticatedUser());
+        } catch (AuthorizationException) {
+            // Passed EventPolicy::update (a co-organizer) but lacks
+            // delegation authority — no cascade.
+            $this->addError('coOrganizerInvite', __('events.error_only_the_organizer_or_a_global_admin'));
+
+            return;
+        }
+
+        $this->reset('coOrganizerInvite');
+        session()->flash('success', __('events.flash_co_organizer_added', ['name' => $target->name]));
+    }
+
+    /**
+     * Revoke a co-organizer's event-scoped access. The listing never
+     * offers the organizer for revocation and the service refuses it,
+     * so a stale request targeting them is dropped silently.
+     */
+    public function revokeCoOrganizer(string $userId): void
+    {
+        $this->authorize('update', $this->event);
+
+        $target = User::find($userId);
+
+        if ($target === null || (string) $target->id === (string) $this->event->organizer_id) {
+            return;
+        }
+
+        try {
+            app(EventDelegationService::class)->revokeCoOrganizer($this->event, $target, authenticatedUser());
+        } catch (AuthorizationException) {
+            session()->flash('error', __('events.error_only_the_organizer_or_a_global_admin'));
+
+            return;
+        }
+
+        session()->flash('success', __('events.flash_co_organizer_revoked', ['name' => $target->name]));
     }
 
     // ── Save ──────────────────────────────────────────

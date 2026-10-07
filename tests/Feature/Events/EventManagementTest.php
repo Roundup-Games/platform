@@ -7,6 +7,11 @@ use App\Livewire\Events\RegisterForEvent;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\User;
+use App\Notifications\EventCoOrganizerAdded;
+use App\Services\EventDelegationService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Spatie\Permission\Models\Role;
 
 use function Pest\Laravel\actingAs;
 
@@ -417,5 +422,171 @@ describe('Duplicate Registration Edge Cases', function () {
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
 
         $this->assertDatabaseCount('event_registrations', 1);
+    });
+});
+
+// ── Co-Organizer Team Tab (M063/S04) ─────────────────
+
+describe('Co-organizer team tab', function () {
+    beforeEach(function () {
+        seedRoles();
+
+        $this->organizer = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
+        $this->event = Event::factory()->create(['organizer_id' => $this->organizer->id]);
+    });
+
+    it('shows the team tab with delegation-framed empty state and invite field', function () {
+        actingAs($this->organizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('activeTab', 'team')
+            ->assertSee(__('events.content_co_organizers'))
+            ->assertSee(__('events.content_no_co_organizers_yet'))
+            ->assertSee(__('events.field_co_organizer_invite'));
+    });
+
+    it('invites a co-organizer by email, grants scoped access, and notifies them exactly once', function () {
+        $coOrganizer = User::factory()->create(['profile_complete' => true]);
+        Notification::fake();
+
+        actingAs($this->organizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('activeTab', 'team')
+            ->set('coOrganizerInvite', $coOrganizer->email)
+            ->call('inviteCoOrganizer')
+            ->assertHasNoErrors()
+            ->assertSee($coOrganizer->name);
+
+        Notification::assertSentTo($coOrganizer, EventCoOrganizerAdded::class, 1);
+        Notification::assertNotSentTo($this->organizer, EventCoOrganizerAdded::class);
+
+        $roleId = Role::where('name', 'Event Admin')->whereNull('team_id')->value('id');
+        $this->assertDatabaseHas('model_has_roles', [
+            'role_id' => $roleId,
+            'team_id' => $this->event->id,
+            'model_type' => User::class,
+            'model_id' => $coOrganizer->id,
+        ]);
+
+        // Grant stamps the pivot's granted-at for the Team tab listing
+        expect(DB::table('model_has_roles')
+            ->where('model_id', $coOrganizer->id)
+            ->where('team_id', $this->event->id)
+            ->whereNotNull('created_at')
+            ->exists())->toBeTrue()
+            ->and(app(EventDelegationService::class)
+                ->coOrganizers($this->event)
+                ->firstWhere('id', $coOrganizer->id)
+                ->granted_at)->not->toBeNull();
+    });
+
+    it('resolves invite input by username (profile slug)', function () {
+        $coOrganizer = User::factory()->create(['profile_complete' => true, 'slug' => 'co-org-handle']);
+        Notification::fake();
+
+        actingAs($this->organizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('activeTab', 'team')
+            ->set('coOrganizerInvite', 'co-org-handle')
+            ->call('inviteCoOrganizer')
+            ->assertHasNoErrors();
+
+        expect($coOrganizer->fresh()->can('update', $this->event))->toBeTrue();
+    });
+
+    it('rejects an unknown username or email with no assignment', function () {
+        actingAs($this->organizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('coOrganizerInvite', 'nobody@nowhere.test')
+            ->call('inviteCoOrganizer')
+            ->assertHasErrors('coOrganizerInvite');
+
+        $this->assertDatabaseCount('model_has_roles', 0);
+    });
+
+    it('rejects an empty invite input', function () {
+        actingAs($this->organizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('coOrganizerInvite', '   ')
+            ->call('inviteCoOrganizer')
+            ->assertHasErrors('coOrganizerInvite');
+    });
+
+    it('rejects a disabled account', function () {
+        $disabled = User::factory()->create(['is_disabled' => true, 'disabled_at' => now()]);
+
+        actingAs($this->organizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('coOrganizerInvite', $disabled->email)
+            ->call('inviteCoOrganizer')
+            ->assertHasErrors('coOrganizerInvite');
+
+        expect(DB::table('model_has_roles')->where('model_id', $disabled->id)->where('team_id', $this->event->id)->exists())->toBeFalse();
+    });
+
+    it('rejects inviting the organizer themselves', function () {
+        actingAs($this->organizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('coOrganizerInvite', $this->organizer->email)
+            ->call('inviteCoOrganizer')
+            ->assertHasErrors('coOrganizerInvite');
+
+        $this->assertDatabaseCount('model_has_roles', 0);
+    });
+
+    it('rejects an already-delegated co-organizer without re-notifying', function () {
+        $coOrganizer = User::factory()->create(['profile_complete' => true]);
+        app(EventDelegationService::class)->grantCoOrganizer($this->event, $coOrganizer, $this->organizer);
+
+        Notification::fake();
+        actingAs($this->organizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('coOrganizerInvite', $coOrganizer->email)
+            ->call('inviteCoOrganizer')
+            ->assertHasErrors('coOrganizerInvite');
+
+        Notification::assertNotSentTo($coOrganizer, EventCoOrganizerAdded::class);
+    });
+
+    it('revokes a co-organizer from the team tab and cuts access immediately', function () {
+        $coOrganizer = User::factory()->create(['profile_complete' => true]);
+        app(EventDelegationService::class)->grantCoOrganizer($this->event, $coOrganizer, $this->organizer);
+        expect($coOrganizer->can('update', $this->event))->toBeTrue();
+
+        actingAs($this->organizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('activeTab', 'team')
+            ->assertSee($coOrganizer->name)
+            ->call('revokeCoOrganizer', $coOrganizer->id);
+
+        // The scoped assignment is purged and access is cut immediately
+        expect(DB::table('model_has_roles')
+            ->where('model_id', $coOrganizer->id)
+            ->where('team_id', $this->event->id)
+            ->exists())->toBeFalse()
+            ->and($coOrganizer->fresh()->can('update', $this->event))->toBeFalse();
+    });
+
+    it('lets a newly granted co-organizer open the manage surface through the existing update policy', function () {
+        $coOrganizer = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
+        app(EventDelegationService::class)->grantCoOrganizer($this->event, $coOrganizer, $this->organizer);
+
+        actingAs($coOrganizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('activeTab', 'team')
+            ->assertOk();
+    });
+
+    it('refuses a delegation attempt by a co-organizer: no cascade', function () {
+        $coOrganizer = User::factory()->create(['profile_complete' => true]);
+        $stranger = User::factory()->create(['profile_complete' => true]);
+        app(EventDelegationService::class)->grantCoOrganizer($this->event, $coOrganizer, $this->organizer);
+
+        actingAs($coOrganizer);
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
+            ->set('coOrganizerInvite', $stranger->email)
+            ->call('inviteCoOrganizer')
+            ->assertHasErrors('coOrganizerInvite');
+
+        expect(DB::table('model_has_roles')->where('model_id', $stranger->id)->where('team_id', $this->event->id)->exists())->toBeFalse();
     });
 });

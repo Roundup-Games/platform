@@ -125,6 +125,35 @@ class ScopedRoleService
     }
 
     /**
+     * Check a permission in the event scope ONLY — no global-context bypass.
+     *
+     * EventPolicy::update/delete resolve 'update event'/'delete event'
+     * exclusively through this method so those permissions are inert
+     * outside a concrete event scope: a globally-assigned 'Event Admin'
+     * (curated organizer, D154) holds the same shared role row but must
+     * not be able to manage every event (RoleSeeder split, M063/S04/T03).
+     * Global admins are unaffected — they bypass via EventPolicy::before().
+     */
+    public function hasEventScopedPermission(User $user, string $permission, Event $event): bool
+    {
+        setPermissionsTeamId($event->id);
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $user->unsetRelations();
+
+        try {
+            try {
+                return $user->hasPermissionTo($permission);
+            } catch (PermissionDoesNotExist) {
+                return false;
+            }
+        } finally {
+            setPermissionsTeamId(null);
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
+            $user->unsetRelations();
+        }
+    }
+
+    /**
      * Check if a user has a permission without throwing on missing permissions.
      *
      * Tries the current team context first, then falls back to team_id=null

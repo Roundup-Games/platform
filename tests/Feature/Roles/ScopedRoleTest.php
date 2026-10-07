@@ -291,8 +291,17 @@ describe('viewAny for Filament resource listing', function () {
         expect(Gate::allows('viewAny', Team::class))->toBeTrue();
     });
 
-    test('Event Admin can viewAny events (has view event permission)', function () {
+    test('event-scoped Event Admin cannot viewAny events: any-scope leak closed (M063/S04/T03)', function () {
         $this->actingAs($this->eventAdmin);
+        expect(Gate::allows('viewAny', Event::class))->toBeFalse();
+    });
+
+    test('globally-assigned Event Admin can viewAny events (curated organizer)', function () {
+        setPermissionsTeamId(null);
+        $this->regularUser->assignRole('Event Admin');
+        $this->regularUser->unsetRelations();
+
+        $this->actingAs($this->regularUser);
         expect(Gate::allows('viewAny', Event::class))->toBeTrue();
     });
 });

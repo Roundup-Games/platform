@@ -11,6 +11,7 @@ use App\Filament\Resources\EventResource\RelationManagers\AnnouncementsRelationM
 use App\Filament\Resources\EventResource\RelationManagers\RegistrationsRelationManager;
 use App\Models\Event;
 use App\Models\Location;
+use App\Services\ScopedRoleService;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -45,6 +46,24 @@ class EventResource extends Resource
     public static function getNavigationIcon(): string|BackedEnum|null
     {
         return Heroicon::OutlinedCalendar;
+    }
+
+    /**
+     * Global-admin-only management surface for events (M063/S04/T03).
+     *
+     * canAccess gates the entire resource — routes AND the navigation
+     * item — to global admins (Platform/Games Admin): the Filament
+     * listing shows every event, so event-scoped co-organizers must
+     * never reach it (the any-scope viewAny leak). Co-organizers
+     * manage their single event through the Livewire surface
+     * (ManageEvent / ManageRegistrations / EventAnnouncements); see
+     * the EventPolicy class docblock for the full scoping model.
+     */
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        return $user !== null && app(ScopedRoleService::class)->isGlobalAdmin($user);
     }
 
     public static function form(Schema $schema): Schema

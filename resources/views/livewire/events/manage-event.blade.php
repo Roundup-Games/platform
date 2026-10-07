@@ -35,6 +35,11 @@
             {{ __('common.flash_changes_saved_successfully') }}
         </div>
     @endif
+    @if(session()->has('error'))
+        <div class="mb-4 bg-error-container border border-error/20 rounded-lg p-3 text-sm text-on-error-container" role="alert">
+            {{ session('error') }}
+        </div>
+    @endif
 
     {{-- Status Bar --}}
     <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 mb-6">
@@ -123,7 +128,7 @@
     <div class="bg-surface-container-low rounded-xl shadow-ambient mb-6">
         <div class="border-b border-outline-variant">
             <nav class="flex -mb-px">
-                @foreach(['details' => __('common.content_details'), 'venue' => __('common.content_venue'), 'registration' => __('billing.field_registration_fees'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
+                @foreach(['details' => __('common.content_details'), 'venue' => __('common.content_venue'), 'registration' => __('billing.field_registration_fees'), 'team' => __('events.content_team'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
                     <button wire:click="setActiveTab('{{ $tab }}')"
                             class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === $tab ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant' }}">
                         {{ $label }}
@@ -306,6 +311,63 @@
                             @error('registration_closes_at') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
+                </div>
+            @endif
+
+            {{-- Team / Co-Organizers Tab (M063/S04) --}}
+            @if($activeTab === 'team')
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-md font-medium text-on-surface">{{ __('events.content_co_organizers') }}</h3>
+                        <p class="text-sm text-on-surface-variant mt-1">{{ __('events.content_team_invite_help') }}</p>
+                    </div>
+
+                    @if($this->coOrganizers->isEmpty())
+                        <div class="rounded-lg border border-dashed border-outline-variant p-4 text-sm text-on-surface-variant">
+                            {{ __('events.content_no_co_organizers_yet') }}
+                        </div>
+                    @else
+                        <ul class="divide-y divide-outline-variant">
+                            @foreach($this->coOrganizers as $coOrganizer)
+                                <li class="flex items-center justify-between gap-3 py-3">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <x-user-link :user="$coOrganizer" truncate />
+                                        <span class="text-xs text-on-surface-variant whitespace-nowrap">
+                                            {{ __('events.content_added') }} {{ $coOrganizer->granted_at?->translatedFormat('M j, Y') ?? '—' }}
+                                        </span>
+                                    </div>
+                                    <x-confirm-action
+                                        action="revokeCoOrganizer('{{ $coOrganizer->id }}')"
+                                        id="revoke-co-organizer-{{ $coOrganizer->id }}"
+                                        :trigger-label="__('common.action_remove')"
+                                        trigger-class="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors"
+                                        :confirm-label="__('common.action_remove')"
+                                        :cancel-label="__('common.action_cancel')"
+                                        :message="__('events.content_revoke_this_co_organizer', ['name' => $coOrganizer->name])"
+                                        variant="inline"
+                                        severity="destructive"
+                                        confirm-icon="person_remove"
+                                    />
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    {{-- Invite form: resolves by username (profile slug) or email --}}
+                    <form wire:submit="inviteCoOrganizer" class="flex items-end gap-3">
+                        <div class="flex-1">
+                            <label for="co-organizer-invite" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_co_organizer_invite') }}</label>
+                            <input type="text" id="co-organizer-invite" wire:model="coOrganizerInvite"
+                                   placeholder="{{ __('events.placeholder_username_or_email') }}"
+                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
+                            @error('coOrganizerInvite') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                        </div>
+                        <button type="submit" wire:loading.attr="disabled"
+                                class="px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium whitespace-nowrap">
+                            <span wire:loading.remove>{{ __('events.action_add_co_organizer') }}</span>
+                            <span wire:loading>{{ __('common.content_saving') }}</span>
+                        </button>
+                    </form>
                 </div>
             @endif
 
