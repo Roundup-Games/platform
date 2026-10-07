@@ -5,6 +5,7 @@ namespace App\Livewire\Events;
 use App\Enums\ContentLanguage;
 use App\Enums\EventType;
 use App\Models\Event;
+use App\Services\EventLifecycleService;
 use App\Services\ScopedRoleService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Contracts\View\View;
@@ -258,7 +259,7 @@ class ManageEvent extends Component
             ['name' => $this->name, 'description' => $this->description, 'short_description' => $this->short_description],
         );
 
-        $this->event->update(array_filter([
+        $updateData = array_filter([
             'name' => $translatable['name'],
             'short_description' => $translatable['short_description'],
             'description' => $translatable['description'],
@@ -284,7 +285,23 @@ class ManageEvent extends Component
             'contact_phone' => $this->contact_phone ?: null,
             'is_public' => $this->is_public,
             'is_featured' => $isFeatured,
-        ], fn ($value) => $value !== null));
+        ], fn ($value) => $value !== null);
+
+        // A cancellation submitted through the status <select> routes through
+        // the unified lifecycle service (like the Cancel action below): the
+        // service owns the transition and notifies active registrants exactly
+        // once. Status is stripped from this write because the service's
+        // already-cancelled guard must see the transition still pending.
+        $cancellingViaForm = $this->status === 'cancelled' && $oldStatusValue !== 'cancelled';
+        if ($cancellingViaForm) {
+            unset($updateData['status']);
+        }
+
+        $this->event->update($updateData);
+
+        if ($cancellingViaForm) {
+            app(EventLifecycleService::class)->cancel($this->event);
+        }
 
         Log::info('Event updated', [
             'event_id' => $this->event->id,
@@ -404,7 +421,7 @@ class ManageEvent extends Component
             ]);
         }
 
-        $this->event->update(['status' => 'cancelled']);
+        app(EventLifecycleService::class)->cancel($this->event);
         $this->status = 'cancelled';
 
         Log::info('Event cancelled', [

@@ -1,6 +1,5 @@
 <?php
 
-use App\Mail\EventRegistrationEmail;
 use App\Mail\MembershipConfirmationEmail;
 use App\Mail\TeamInvitationEmail;
 use App\Mail\WelcomeEmail;
@@ -8,6 +7,7 @@ use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\EventRegistrationConfirmed;
 
 describe('WelcomeEmail', function () {
     test('welcome email renders with correct content and locale-prefixed URLs', function () {
@@ -43,8 +43,8 @@ describe('MembershipConfirmationEmail', function () {
     });
 });
 
-describe('EventRegistrationEmail', function () {
-    test('event registration email renders with event details and locale-prefixed URLs', function () {
+describe('EventRegistrationConfirmed notification', function () {
+    test('registration confirmation mail renders with event details, locale-prefixed URLs, and unsubscribe link', function () {
         app()->setLocale('en');
         $user = User::factory()->create(['name' => 'Bob']);
         $event = Event::factory()->create([
@@ -53,16 +53,21 @@ describe('EventRegistrationEmail', function () {
             'end_date' => '2026-07-17',
             'venue_name' => 'Convention Center',
         ]);
-        $registration = EventRegistration::factory()->create([
+        $registration = EventRegistration::factory()->confirmed()->create([
             'user_id' => $user->id,
             'event_id' => $event->id,
         ]);
 
-        $rendered = (new EventRegistrationEmail($registration))->render();
+        $message = (new EventRegistrationConfirmed($registration))->toMail($user);
 
-        expect($rendered)->toContain('Event Registration Confirmed!');
+        expect($message->subject)->toContain('Event Registration Confirmed');
+        expect($message->subject)->toContain('Summer Open');
+
+        $rendered = $message->render()->toHtml();
         expect($rendered)->toContain('Summer Open');
+        expect($rendered)->toContain('Convention Center');
         expect($rendered)->toContain('/en/events/');
+        expect($rendered)->toContain('notifications/unsubscribe');
     });
 });
 

@@ -29,6 +29,7 @@ use App\Observers\ActivityLogObserver;
 use App\Observers\CampaignObserver;
 use App\Observers\CampaignParticipantObserver;
 use App\Observers\CityHubCacheObserver;
+use App\Observers\EventAnnouncementObserver;
 use App\Observers\GameBulletinObserver;
 use App\Observers\GameObserver;
 use App\Observers\GameParticipantObserver;
@@ -468,6 +469,7 @@ class AppServiceProvider extends ServiceProvider
         GameParticipant::observe(GameParticipantObserver::class);
         CampaignParticipant::observe(CampaignParticipantObserver::class);
         GameBulletin::observe(GameBulletinObserver::class);
+        EventAnnouncement::observe(EventAnnouncementObserver::class);
         UserRelationship::observe(UserRelationshipObserver::class);
 
         // SEO sitemap cache invalidation observer

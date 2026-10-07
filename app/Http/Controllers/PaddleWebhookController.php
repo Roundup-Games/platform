@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\NotificationCategory;
 use App\Models\EventRegistration;
 use App\Models\User;
+use App\Notifications\EventRegistrationConfirmed;
 use App\Services\GmRoleService;
+use App\Services\NotificationService;
 use App\Services\PostHogAnalytics;
 use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Enums\TicketChannel;
@@ -302,6 +305,18 @@ class PaddleWebhookController extends BaseWebhookController
             'user_id' => $user->id,
             'event_id' => $registration->event_id,
         ]);
+
+        // Paid path confirmation (S03): the registration just flipped to
+        // confirmed, so the registrant gets their confirmation through the
+        // channel stack. The dedupe + state guards above mean this runs
+        // exactly once per registration payment — Paddle's at-least-once
+        // redelivery cannot re-send it. NotificationService is
+        // error-resilient, so a dispatch failure never breaks the webhook.
+        app(NotificationService::class)->send(
+            $user,
+            new EventRegistrationConfirmed($registration),
+            NotificationCategory::EventRegistration,
+        );
 
         if ($paddleEventId !== null) {
             Cache::put($dedupeKey, true, now()->addDays(2));

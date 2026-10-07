@@ -4,6 +4,7 @@ namespace App\Livewire\Events;
 
 use App\Models\Event;
 use App\Models\EventAnnouncement;
+use App\Services\EventLifecycleService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -192,7 +193,12 @@ class EventAnnouncements extends Component
         $announcement = $this->findAnnouncement($id);
         $this->authorize('update', $this->event);
 
-        $announcement->update(['is_published' => true]);
+        // Routed through the lifecycle service: the is_published write is
+        // idempotent, and the registrant notification side effect fires via
+        // EventAnnouncementObserver on the actual transition — the same
+        // single chokepoint every other publish surface (edit form, Filament
+        // relation manager, direct-published creates) goes through.
+        app(EventLifecycleService::class)->publishAnnouncement($announcement);
 
         Log::info('Event announcement published', [
             'announcement_id' => $id,

@@ -42,6 +42,9 @@ enum NotificationCategory: string
     case CampaignUpdated = 'campaign_updated';
     case SessionContent = 'session_content';
 
+    // Events (M063 — registrant communications)
+    case EventRegistration = 'event_registration';
+
     // Content
     case GameSystemRequest = 'game_system_request';
 
@@ -94,6 +97,7 @@ enum NotificationCategory: string
             self::GameUpdated => __('notifications.category_game_updated'),
             self::CampaignUpdated => __('notifications.category_campaign_updated'),
             self::SessionContent => __('notifications.category_session_content'),
+            self::EventRegistration => __('notifications.category_event_registration'),
             self::GameSystemRequest => __('notifications.category_game_system_request'),
             self::BelowMinPlayers => __('notifications.category_below_min_players'),
             self::ConfirmationExpired => __('notifications.category_confirmation_expired'),
@@ -111,6 +115,7 @@ enum NotificationCategory: string
             self::NewApplication, self::ApplicationApproved, self::ApplicationRejected => 'applications',
             self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::WaitlistPromoted, self::WaitlistPlacement, self::BenchUpdates, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved => 'participation',
             self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent => 'status',
+            self::EventRegistration => 'events',
             self::GameSystemRequest => 'content',
             self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder => 'scheduling',
             self::ReviewReported, self::ModerationNotice => 'moderation',
@@ -144,6 +149,10 @@ enum NotificationCategory: string
             'status' => [
                 'label' => __('common.content_status'),
                 'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent],
+            ],
+            'events' => [
+                'label' => __('notifications.group_events'),
+                'categories' => [self::EventRegistration],
             ],
             'content' => [
                 'label' => __('common.content_content'),
@@ -221,6 +230,11 @@ enum NotificationCategory: string
             self::GameUpdated,
             self::CampaignUpdated,
             self::SessionContent => false,
+
+            // Events — a registration confirmation is the receipt for a seat
+            // the registrant just paid for or claimed; missing it costs them
+            // their plans (no bell-glance recovery once the browser closes).
+            self::EventRegistration => true,
 
             // Content / scheduling
             self::GameSystemRequest => false,

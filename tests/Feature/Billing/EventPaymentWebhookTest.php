@@ -1,25 +1,31 @@
 <?php
 
+use App\Livewire\Events\RegisterForEvent;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\User;
 use Illuminate\Log\Logger as IlluminateLogger;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Livewire\Livewire;
 use Monolog\Handler\TestHandler;
 use Monolog\Level;
 use Monolog\Logger as MonologLogger;
 use Tests\Helpers\PaddleWebhooks;
 
 use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\assertDatabaseMissing;
 use function Pest\Laravel\post;
 
 // Event-registration payment confirmation via transaction.completed webhooks,
 // plus refund sync (adjustment.refunded) and payment-failure flagging
-// (transaction.payment_failed). Signed-fixture variants extend this file
-// later.
+// (transaction.payment_failed). The signed-fixture describe block runs the
+// same flows with a configured webhook secret so Cashier's
+// VerifyWebhookSignature middleware is exercised end-to-end.
 
 // Helper names are `ep`-prefixed: Pest loads every test file into one process,
 // so top-level function names must not collide across files (same lesson as
@@ -84,9 +90,12 @@ function epTransactionData(EventRegistration $registration, string $paddleCustom
 }
 
 /**
+ * Full transaction.completed webhook payload for an event registration.
+ *
  * @param  array<string, mixed>  $customDataOverrides
+ * @return array<string, mixed>
  */
-function epPostCompleted(EventRegistration $registration, string $paddleCustomerId, string $transactionId, string $paddleEventId, array $customDataOverrides = []): TestResponse
+function epCompletedPayload(EventRegistration $registration, string $paddleCustomerId, string $transactionId, string $paddleEventId, array $customDataOverrides = []): array
 {
     $data = epTransactionData($registration, $paddleCustomerId, $transactionId);
 
@@ -94,11 +103,44 @@ function epPostCompleted(EventRegistration $registration, string $paddleCustomer
         $data['custom_data'] = array_merge($data['custom_data'], $customDataOverrides);
     }
 
-    return post('/paddle/webhook', [
+    return [
         'event_type' => 'transaction.completed',
         'event_id' => $paddleEventId,
         'data' => $data,
-    ]);
+    ];
+}
+
+/**
+ * @param  array<string, mixed>  $customDataOverrides
+ */
+function epPostCompleted(EventRegistration $registration, string $paddleCustomerId, string $transactionId, string $paddleEventId, array $customDataOverrides = []): TestResponse
+{
+    return post('/paddle/webhook', epCompletedPayload($registration, $paddleCustomerId, $transactionId, $paddleEventId, $customDataOverrides));
+}
+
+/**
+ * Post a webhook payload as a raw JSON body with a Paddle-Signature header,
+ * exercising Cashier's VerifyWebhookSignature middleware (registered by the
+ * base controller only when cashier.webhook_secret is configured).
+ *
+ * Signature scheme per Cashier's middleware (mirrors the production Paddle
+ * contract): ts={unix};h1=hmac_sha256("{ts}:{rawBody}", secret), with a
+ * 5-second freshness window — so the timestamp is real time(), not Carbon's
+ * test clock.
+ */
+function epPostSigned(array $payload, ?string $secret = null): TestResponse
+{
+    $secret ??= (string) config('cashier.webhook_secret');
+    $rawBody = json_encode($payload) ?: '{}';
+    $timestamp = time();
+    $signature = 'ts='.$timestamp.';h1='.hash_hmac('sha256', "{$timestamp}:{$rawBody}", $secret);
+
+    // Raw body via $this->call() so the HMAC is computed over the exact bytes
+    // the middleware sees in $request->getContent().
+    return test()->call('POST', '/paddle/webhook', [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_PADDLE_SIGNATURE' => $signature,
+    ], $rawBody);
 }
 
 /**
@@ -153,13 +195,14 @@ function epCreatePaddleTransaction(User $user, string $transactionId, string $to
 }
 
 /**
- * adjustment.refunded payload referencing a refunded transaction.
+ * Full adjustment.refunded webhook payload referencing a refunded transaction.
  *
  * @param  array<int, array<string, mixed>>  $items
+ * @return array<string, mixed>
  */
-function epPostRefunded(string $transactionId, string $paddleCustomerId, string $adjustmentId, string $paddleEventId, array $items): TestResponse
+function epRefundedPayload(string $transactionId, string $paddleCustomerId, string $adjustmentId, string $paddleEventId, array $items): array
 {
-    return post('/paddle/webhook', [
+    return [
         'event_type' => 'adjustment.refunded',
         'event_id' => $paddleEventId,
         'data' => [
@@ -172,18 +215,28 @@ function epPostRefunded(string $transactionId, string $paddleCustomerId, string 
             'currency_code' => 'USD',
             'items' => $items,
         ],
-    ]);
+    ];
 }
 
 /**
- * transaction.payment_failed payload shaped like RegisterForEvent's checkout
- * (same custom_data tagging as transaction.completed).
+ * @param  array<int, array<string, mixed>>  $items
+ */
+function epPostRefunded(string $transactionId, string $paddleCustomerId, string $adjustmentId, string $paddleEventId, array $items): TestResponse
+{
+    return post('/paddle/webhook', epRefundedPayload($transactionId, $paddleCustomerId, $adjustmentId, $paddleEventId, $items));
+}
+
+/**
+ * Full transaction.payment_failed webhook payload shaped like
+ * RegisterForEvent's checkout (same custom_data tagging as
+ * transaction.completed).
  *
  * @param  array<string, mixed>  $customDataOverrides
+ * @return array<string, mixed>
  */
-function epPostPaymentFailed(EventRegistration $registration, string $paddleCustomerId, string $transactionId, string $paddleEventId, array $customDataOverrides = []): TestResponse
+function epPaymentFailedPayload(EventRegistration $registration, string $paddleCustomerId, string $transactionId, string $paddleEventId, array $customDataOverrides = []): array
 {
-    return post('/paddle/webhook', [
+    return [
         'event_type' => 'transaction.payment_failed',
         'event_id' => $paddleEventId,
         'data' => [
@@ -205,7 +258,15 @@ function epPostPaymentFailed(EventRegistration $registration, string $paddleCust
                 'registration_id' => $registration->id,
             ], $customDataOverrides),
         ],
-    ]);
+    ];
+}
+
+/**
+ * @param  array<string, mixed>  $customDataOverrides
+ */
+function epPostPaymentFailed(EventRegistration $registration, string $paddleCustomerId, string $transactionId, string $paddleEventId, array $customDataOverrides = []): TestResponse
+{
+    return post('/paddle/webhook', epPaymentFailedPayload($registration, $paddleCustomerId, $transactionId, $paddleEventId, $customDataOverrides));
 }
 
 // ── Webhook — event registration transaction.completed ──
@@ -796,4 +857,277 @@ describe('Webhook — event registration transaction.payment_failed', function (
             ->and($context['registration_id'])->toBe($registration->id)
             ->and($context['paddle_transaction_id'])->toBe('txn_fail_cancel');
     });
+});
+// ── Webhook — signed event payment fixtures ──────────────
+
+describe('Webhook — signed event payment fixtures (signature verification enforced)', function () {
+    beforeEach(function () {
+        // A configured secret makes the base controller register Cashier's
+        // VerifyWebhookSignature middleware, so these requests must carry a
+        // valid Paddle-Signature header to reach the handler at all.
+        // (Fixture value is deliberately short: gitleaks' generic-api-key
+        // rule blocks commits pairing the webhook_secret keyword with a
+        // 10+ character literal.)
+        config(['cashier.webhook_secret' => 'evt2468']);
+        Cache::flush();
+        Carbon::setTestNow('2026-10-06 12:00:00');
+    });
+
+    afterEach(function () {
+        Carbon::setTestNow();
+        config(['cashier.webhook_secret' => null]);
+    });
+
+    it('confirms a pending registration from a signed transaction.completed webhook', function () {
+        $user = epCreateUser('ctm_sig_confirm');
+        $event = epCreatePaidEvent();
+        $registration = EventRegistration::factory()->pending()->create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+        ]);
+        $logs = epCaptureLogs();
+
+        epPostSigned(epCompletedPayload($registration, 'ctm_sig_confirm', 'txn_sig_confirm_1', 'evt_sig_confirm_1'))->assertStatus(200);
+
+        $fresh = $registration->fresh();
+        expect($fresh->status)->toBe('confirmed')
+            ->and($fresh->payment_status)->toBe('paid')
+            ->and($fresh->payment_id)->toBe('txn_sig_confirm_1')
+            ->and($fresh->confirmed_at)->not->toBeNull()
+            ->and($fresh->confirmed_at->timestamp)->toBe(now()->timestamp);
+
+        assertDatabaseHas('transactions', [
+            'paddle_id' => 'txn_sig_confirm_1',
+            'billable_id' => $user->id,
+        ]);
+
+        $context = epLogContext($logs, Level::Info, 'Paddle webhook: event registration confirmed from payment');
+        expect($context)->not->toBeNull()
+            ->and($context['paddle_event_id'])->toBe('evt_sig_confirm_1')
+            ->and($context['paddle_transaction_id'])->toBe('txn_sig_confirm_1')
+            ->and($context['registration_id'])->toBe($registration->id);
+    })->group('smoke');
+
+    it('ignores a signed redelivery of the same Paddle event', function () {
+        $user = epCreateUser('ctm_sig_redeliver');
+        $event = epCreatePaidEvent();
+        $registration = EventRegistration::factory()->pending()->create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+        ]);
+        $logs = epCaptureLogs();
+        $payload = epCompletedPayload($registration, 'ctm_sig_redeliver', 'txn_sig_redeliver_1', 'evt_sig_redeliver_1');
+
+        // Each delivery carries a fresh signature timestamp, like Paddle's
+        // own at-least-once redelivery.
+        epPostSigned($payload)->assertStatus(200);
+        $confirmedAt = $registration->fresh()->confirmed_at;
+
+        epPostSigned($payload)->assertStatus(200);
+
+        $fresh = $registration->fresh();
+        expect($fresh->payment_id)->toBe('txn_sig_redeliver_1')
+            ->and($fresh->confirmed_at->equalTo($confirmedAt))->toBeTrue();
+
+        $context = epLogContext($logs, Level::Info, 'Paddle webhook: event registration payment ignored (duplicate delivery)');
+        expect($context)->not->toBeNull()
+            ->and($context['paddle_event_id'])->toBe('evt_sig_redeliver_1')
+            ->and($context['registration_id'])->toBe($registration->id);
+    });
+
+    it('responds 200 with a warning for an unknown registration behind a valid signature', function () {
+        $user = epCreateUser('ctm_sig_unknown');
+        $event = epCreatePaidEvent();
+        $registration = EventRegistration::factory()->pending()->create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+        ]);
+        $logs = epCaptureLogs();
+
+        $registration->delete();
+
+        epPostSigned(epCompletedPayload($registration, 'ctm_sig_unknown', 'txn_sig_unknown_1', 'evt_sig_unknown_1'))->assertStatus(200);
+
+        expect(EventRegistration::count())->toBe(0);
+
+        $context = epLogContext($logs, Level::Warning, 'Paddle webhook: event payment for unknown registration');
+        expect($context)->not->toBeNull()
+            ->and($context['registration_id'])->toBe($registration->id)
+            ->and($context['paddle_event_id'])->toBe('evt_sig_unknown_1');
+    });
+
+    it('does not confirm a signed webhook whose paying customer is not the registration owner', function () {
+        $owner = PaddleWebhooks::createUser();
+        $payer = epCreateUser('ctm_sig_payer');
+        $event = epCreatePaidEvent();
+        $registration = EventRegistration::factory()->pending()->create([
+            'event_id' => $event->id,
+            'user_id' => $owner->id,
+        ]);
+        $logs = epCaptureLogs();
+
+        epPostSigned(epCompletedPayload($registration, 'ctm_sig_payer', 'txn_sig_mismatch', 'evt_sig_mismatch'))->assertStatus(200);
+
+        $fresh = $registration->fresh();
+        expect($fresh->status)->toBe('pending')
+            ->and($fresh->payment_status)->toBe('pending')
+            ->and($fresh->payment_id)->toBeNull()
+            ->and($fresh->confirmed_at)->toBeNull();
+
+        $context = epLogContext($logs, Level::Warning, 'Paddle webhook: event payment customer does not own registration');
+        expect($context)->not->toBeNull()
+            ->and($context['registration_user_id'])->toBe($owner->id)
+            ->and($context['resolved_user_id'])->toBe($payer->id);
+    });
+
+    it('syncs a full refund from a signed adjustment.refunded webhook', function () {
+        $user = epCreateUser('ctm_sig_refund');
+        $event = epCreatePaidEvent();
+        $registration = EventRegistration::factory()->paid()->create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+            'payment_id' => 'txn_sig_refund',
+        ]);
+        epCreatePaddleTransaction($user, 'txn_sig_refund', '25.00');
+        $confirmedAt = $registration->confirmed_at;
+        $logs = epCaptureLogs();
+
+        epPostSigned(epRefundedPayload('txn_sig_refund', 'ctm_sig_refund', 'adj_sig_refund', 'evt_sig_refund', [
+            ['price_id' => 'pri_event_ticket', 'amount' => '25.00', 'quantity' => 1],
+        ]))->assertStatus(200);
+
+        $fresh = $registration->fresh();
+        expect($fresh->payment_status)->toBe('refunded')
+            ->and($fresh->status)->toBe('confirmed')
+            ->and($fresh->payment_id)->toBe('txn_sig_refund')
+            ->and($fresh->confirmed_at->equalTo($confirmedAt))->toBeTrue()
+            ->and($fresh->internal_notes)->toBeNull();
+
+        $context = epLogContext($logs, Level::Info, 'Paddle webhook: event registration payment refunded (full)');
+        expect($context)->not->toBeNull()
+            ->and($context['paddle_event_id'])->toBe('evt_sig_refund')
+            ->and($context['paddle_adjustment_id'])->toBe('adj_sig_refund')
+            ->and($context['registration_id'])->toBe($registration->id)
+            ->and($context['refunded_amount'])->toBe(2500)
+            ->and($context['transaction_total'])->toBe(2500);
+    });
+
+    it('flags a payment failure from a signed transaction.payment_failed webhook', function () {
+        $user = epCreateUser('ctm_sig_fail');
+        $event = epCreatePaidEvent();
+        $registration = EventRegistration::factory()->pending()->create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+        ]);
+        $logs = epCaptureLogs();
+
+        epPostSigned(epPaymentFailedPayload($registration, 'ctm_sig_fail', 'txn_sig_fail', 'evt_sig_fail'))->assertStatus(200);
+
+        $fresh = $registration->fresh();
+        expect($fresh->status)->toBe('pending')
+            ->and($fresh->payment_status)->toBe('pending')
+            ->and($fresh->payment_id)->toBeNull()
+            ->and($fresh->confirmed_at)->toBeNull()
+            ->and($fresh->internal_notes)->toContain('txn_sig_fail')
+            ->and($fresh->internal_notes)->toContain('organizer review required');
+
+        $context = epLogContext($logs, Level::Info, 'Paddle webhook: event registration payment failure flagged for organizer review');
+        expect($context)->not->toBeNull()
+            ->and($context['paddle_event_id'])->toBe('evt_sig_fail')
+            ->and($context['paddle_transaction_id'])->toBe('txn_sig_fail')
+            ->and($context['registration_id'])->toBe($registration->id);
+    });
+
+    it('rejects a wrongly signed event payment webhook with 403 and no side effects', function () {
+        $user = epCreateUser('ctm_sig_bad');
+        $event = epCreatePaidEvent();
+        $registration = EventRegistration::factory()->pending()->create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+        ]);
+
+        epPostSigned(epCompletedPayload($registration, 'ctm_sig_bad', 'txn_sig_bad_1', 'evt_sig_bad_1'), 'not_the_configured_secret')->assertForbidden();
+
+        // The middleware refused before the controller ran: no state change.
+        $fresh = $registration->fresh();
+        expect($fresh->status)->toBe('pending')
+            ->and($fresh->payment_status)->toBe('pending')
+            ->and($fresh->payment_id)->toBeNull()
+            ->and($fresh->confirmed_at)->toBeNull();
+
+        assertDatabaseMissing('transactions', [
+            'paddle_id' => 'txn_sig_bad_1',
+        ]);
+    });
+});
+
+// ── Concurrent registration — Livewire vs unique index ──
+
+describe('Concurrent registration — unique index through the Livewire action', function () {
+    it('catches the real unique-index violation and flashes already-registered when the race is lost', function () {
+        $user = PaddleWebhooks::createUser();
+        // Free event: the register() path stays on plain confirmation, so no
+        // Paddle checkout is attempted.
+        $event = epCreatePaidEvent(['individual_registration_fee' => 0]);
+        $logs = epCaptureLogs();
+
+        // Simulate the concurrent winner: another request for the same
+        // (event, user) commits between this component's duplicate pre-check
+        // and its INSERT. A creating hook inserts the winning row through the
+        // query builder (no model events, so no recursion) inside the same
+        // DB::transaction savepoint; the component's own INSERT then collides
+        // with the REAL partial unique index — no synthetic exception.
+        $raceEventId = $event->id;
+        $raceUserId = $user->id;
+        EventRegistration::creating(function (EventRegistration $registration) use ($raceEventId, $raceUserId): void {
+            // Scoped to this test's event id, so the listener is a no-op for
+            // every later create in the process (event ids are unique per
+            // factory call, and this event rolls back with the test anyway).
+            //
+            // Returns void on purpose: model events dispatch with until()
+            // semantics — any non-null return (even true) halts the listener
+            // chain and would skip the model's own UUID-assigning creating
+            // hook.
+            if ($registration->event_id !== $raceEventId || $registration->user_id !== $raceUserId) {
+                return;
+            }
+
+            DB::table('event_registrations')->insert([
+                'id' => (string) Str::uuid(),
+                'event_id' => $raceEventId,
+                'user_id' => $raceUserId,
+                'status' => 'confirmed',
+                'payment_status' => 'not_required',
+                'confirmed_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        Livewire::actingAs($user)
+            ->test(RegisterForEvent::class, ['slug' => $event->slug])
+            ->call('register')
+            ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
+
+        // The loser is handled gracefully, exactly like the pre-check path.
+        expect(session('error'))->toBe(__('events.content_you_are_already_registered_for_this_event'));
+
+        // Proven real: the driver error in the race log names the partial
+        // unique index and its Postgres SQLSTATE.
+        $context = epLogContext($logs, Level::Warning, 'Event registration race caught by unique constraint');
+        expect($context)->not->toBeNull()
+            ->and($context['event_id'])->toBe($event->id)
+            ->and($context['user_id'])->toBe($user->id)
+            ->and($context['error'])->toContain('event_registrations_event_user_active_unique')
+            ->and($context['error'])->toContain('23505');
+
+        // No rows leak from the aborted savepoint — the loser's INSERT and
+        // the simulated winner both rolled back with it. (In production the
+        // winner commits on its own connection and survives;
+        // RegistrationDuplicateCheckTest's direct double-insert test proves
+        // exactly-one-active-row survival on that half of the race.)
+        expect(EventRegistration::where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->count())->toBe(0);
+    })->group('smoke');
 });

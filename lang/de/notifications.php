@@ -25,6 +25,7 @@ return [
     'category_below_min_players' => 'Mindestspielerzahl nicht erreicht',
     'category_confirmation_expired' => 'Bestätigung abgelaufen',
     'category_session_reminder' => 'Sitzungserinnerung',
+    'category_event_registration' => 'Veranstaltungsanmeldung bestätigt',
     // UI — Benachrichtigungsglocke
     'bell_label' => 'Benachrichtigungen (:count ungelesen)',
     'nav_label' => 'Benachrichtigungen',
@@ -36,6 +37,7 @@ return [
     // Group labels
     'group_invitations' => 'Einladungen',
     'group_participation' => 'Teilnahme',
+    'group_events' => 'Veranstaltungen',
     'group_scheduling' => 'Planung',
     // Benachrichtigungseinstellungen
     'content_notification_preferences' => 'Benachrichtigungseinstellungen',
@@ -68,6 +70,7 @@ return [
     'label_digest_content_report_warning' => 'Inhaltsmeldung – Warnung',
     'label_digest_debriefing_available' => 'Nachbesprechung verfügbar',
     'label_digest_dispute_resolved' => 'Einspruch geklärt',
+    'label_digest_event_registration' => 'Veranstaltungsanmeldung bestätigt',
     'label_digest_game_system_request_approved' => 'Spielsystem-Anfrage genehmigt',
     'label_digest_game_system_request_duplicate' => 'Spielsystem-Anfrage – Duplikat',
     'label_digest_game_system_request_rejected' => 'Spielsystem-Anfrage abgelehnt',
@@ -135,6 +138,8 @@ return [
     'verb_game_system_request_approved' => 'Spielsystem-Anfrage genehmigt',
     'verb_game_system_request_rejected' => 'Spielsystem-Anfrage abgelehnt',
     'verb_game_system_request_duplicate' => 'Spielsystem-Anfrage als Duplikat markiert',
+    // Veranstaltungen (M063 Registranten-Kommunikation)
+    'verb_event_registration' => 'Anmeldung bestätigt',
     // Teilnahme-Lebenszyklus-Verben (Bank, Warteliste, Degradierung)
     'verb_waitlist_placed' => 'hat dich auf die Warteliste gesetzt für',
     'verb_waitlist_promoted' => 'hat dich von der Warteliste befördert für',

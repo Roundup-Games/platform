@@ -2,8 +2,11 @@
 
 namespace App\Livewire\Events;
 
+use App\Enums\NotificationCategory;
 use App\Models\Event;
 use App\Models\EventRegistration;
+use App\Notifications\EventRegistrationConfirmed;
+use App\Services\NotificationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -159,6 +162,16 @@ class RegisterForEvent extends Component
             // Redirect to Paddle checkout for payment
             $this->initPaymentCheckout($registration, $fee);
         } else {
+            // Free path: the registration is already confirmed, so the
+            // registrant gets their confirmation immediately through the
+            // channel stack. Paid registrations are confirmed (and notified)
+            // by the Paddle webhook instead.
+            app(NotificationService::class)->send(
+                $user,
+                new EventRegistrationConfirmed($registration),
+                NotificationCategory::EventRegistration,
+            );
+
             session()->flash('success', __('events.flash_you_have_been_registered_successfully'));
             $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
         }

@@ -34,6 +34,7 @@ return [
     // Group labels
     'group_invitations' => 'Invitations',
     'group_participation' => 'Participation',
+    'group_events' => 'Events',
     'group_scheduling' => 'Scheduling',
     // Notification preferences UI
     'content_notification_preferences' => 'Notification Settings',
@@ -73,6 +74,7 @@ return [
     'label_digest_content_report_warning' => 'Content report warning',
     'label_digest_debriefing_available' => 'Debriefing available',
     'label_digest_dispute_resolved' => 'Dispute Resolved',
+    'label_digest_event_registration' => 'Event registration confirmed',
     'label_digest_game_system_request_approved' => 'Game system request approved',
     'label_digest_game_system_request_duplicate' => 'Game system request — duplicate',
     'label_digest_game_system_request_rejected' => 'Game system request rejected',
@@ -140,6 +142,8 @@ return [
     'verb_game_system_request_approved' => 'Game system request approved',
     'verb_game_system_request_rejected' => 'Game system request rejected',
     'verb_game_system_request_duplicate' => 'Game system request marked as duplicate',
+    // Events (M063 registrant communications)
+    'verb_event_registration' => 'Registration confirmed',
     // Participation lifecycle verbs (bench, waitlist, demotion)
     'verb_waitlist_placed' => 'placed you on the waitlist for',
     'verb_waitlist_promoted' => 'promoted you off the waitlist for',
@@ -208,6 +212,7 @@ return [
     'category_below_min_players' => 'Below Min Players',
     'category_confirmation_expired' => 'Confirmation Expired',
     'category_session_reminder' => 'Session Reminder',
+    'category_event_registration' => 'Event Registration Confirmed',
     'subject_game_system_request_approved' => 'Game System Added: :name',
     'body_game_system_request_approved' => 'Your game system request for **:name** has been approved! It\'s now available on the platform.',
     'action_create_game' => 'Create Game',
