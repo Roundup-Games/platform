@@ -665,6 +665,16 @@ class CreateGame extends Component
                 $game->gameSystems()->sync($pivotSystemIds);
             }
 
+            // M063/S06/T02: the pivot sync fires no model events, so the
+            // umbrella's derived offered-systems cache (aggregated across
+            // tables) is flushed here. GameObserver::saved already flushed on
+            // the associate+save above, but THIS sync is what changes the
+            // union — a concurrent read between the two would otherwise pin
+            // a stale offering for the cache TTL.
+            if ($hostingEvent !== null) {
+                $hostingEvent->flushOfferedSystemsCache();
+            }
+
             // Defense-in-depth invariant: every game must offer at least one
             // system. The validation checks above enforce this, but if a future
             // change bypasses them (or a new creation path skips this form),

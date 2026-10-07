@@ -345,6 +345,56 @@ describe('Event getDynamicSEOData unique assertions', function () {
 
         expect($seo->description)->toBeNull();
     });
+
+    it('names every system offered across tables via about() (M063/S06/T02)', function () {
+        // Two tables: one offers D&D only, the other D&D + CoC — the umbrella
+        // names the deduped union (2 Things), mirroring Game::getDynamicSEOData
+        // where a multi-system Gathering names its full offering.
+        $dnd = GameSystem::factory()->create(['name' => ['en' => 'Dungeons & Dragons'], 'slug' => 'dungeons-dragons']);
+        $coc = GameSystem::factory()->create(['name' => ['en' => 'Call of Cthulhu'], 'slug' => 'call-of-cthulhu']);
+
+        $event = Event::factory()->create([
+            'is_public' => true,
+            'status' => 'registration_open',
+        ]);
+
+        Game::factory()->gathering()->event($event)->withGameSystems([$dnd->id])->create([
+            'date_time' => now()->addWeek(),
+            'max_players' => 6,
+        ]);
+        Game::factory()->gathering()->event($event)->withGameSystems([$dnd->id, $coc->id])->create([
+            'date_time' => now()->addWeek()->addHour(),
+            'max_players' => 6,
+        ]);
+
+        $schema = collect($event->getDynamicSEOData()->schema->toArray());
+        $eventSchema = $schema->first(fn (array $item): bool => ($item['@type'] ?? null) === 'Event');
+
+        expect($eventSchema)->not->toBeNull()
+            ->and($eventSchema['about'] ?? null)->toBeArray()
+            ->and(array_column($eventSchema['about'], 'name'))
+            ->toContain('Dungeons & Dragons')
+            ->toContain('Call of Cthulhu')
+            ->toHaveCount(2)
+            // Spatie serializes identifier() as @id (same shape as Game about())
+            ->and(array_column($eventSchema['about'], '@id'))
+            ->toContain('dungeons-dragons')
+            ->toContain('call-of-cthulhu');
+    });
+
+    it('emits no about() for an event without tables', function () {
+        $event = Event::factory()->create([
+            'is_public' => true,
+            'status' => 'registration_open',
+        ]);
+
+        $schema = collect($event->getDynamicSEOData()->schema->toArray());
+        $eventSchema = $schema->first(fn (array $item): bool => ($item['@type'] ?? null) === 'Event');
+
+        // Fail-closed: no tables → no offering → no about() key at all.
+        expect($eventSchema)->not->toBeNull()
+            ->and($eventSchema)->not->toHaveKey('about');
+    });
 });
 
 // ── Game unique assertions ──────────────────────────────────────────────────

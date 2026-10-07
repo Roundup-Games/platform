@@ -490,3 +490,32 @@ describe('Table integrity', function () {
             ->and($standalone->status->value)->toBe('scheduled');
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// DERIVED OFFERING FLUSH ON HOST-A-TABLE (M063/S06/T02)
+// ═══════════════════════════════════════════════════════════
+//
+// Event::offeredSystems() (the cached union of every table's systems) must
+// not outlive the host-a-table flow: the pivot sync inside CreateGame fires
+// no model events, so the flow flushes the umbrella's cache explicitly next
+// to its sync().
+
+describe('Host-a-table derived offering flush', function () {
+    it('updates the derived offering after hosting a table through the real flow', function () {
+        $organizer = eventTablesHost();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
+
+        // Warm the cache while the event is still tableless (empty union).
+        expect(Event::find($event->id)->offeredSystems())->toBeEmpty();
+
+        hostTableAtEvent($organizer, $event, 'Fresh Table');
+
+        // The end-to-end contract a visitor sees: the derived offering on a
+        // fresh read includes the new table's systems immediately — no stale
+        // empty union pinned for the cache TTL.
+        $fresh = Event::find($event->id);
+        expect($fresh->offeredSystems())->toHaveCount(1)
+            ->and($fresh->offeredSystems()->first()->id)
+            ->toBe(Game::where('owner_id', $organizer->id)->firstOrFail()->gameSystems->first()->id);
+    });
+});

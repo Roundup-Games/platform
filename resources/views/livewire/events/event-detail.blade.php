@@ -66,12 +66,42 @@
                         />
                     </span>
                 @endif
+
+                {{-- Offering summary (M063/S06/T02, UI spec §3.3): the derived
+                     union of every table's systems — "N games on hand · M
+                     tables" — computed in memory by render()'s eager load
+                     (zero extra queries). Hidden when no offering exists. --}}
+                @if($offeredSystemsCount > 0)
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg" aria-hidden="true">casino</span>
+                        {{ trans_choice('games.content_n_games_on_offer', $offeredSystemsCount) }}
+                        · {{ trans_choice('events.content_n_tables', $tablesTotal) }}
+                    </span>
+                @endif
             </div>
         </div>
     </section>
 
     {{-- Content --}}
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 bg-surface">
+
+        {{-- Cancelled-event banner — sits above all content with release/refund
+             copy for visitors and registrants (UI spec §3.3). --}}
+        @if($event->status->value === 'cancelled')
+            <div class="mb-6 flex items-start gap-3 px-4 py-3 bg-error-container text-on-error-container rounded-xl" role="alert">
+                <span class="material-symbols-outlined text-xl shrink-0" aria-hidden="true">event_busy</span>
+                <div>
+                    <p class="text-sm font-medium">{{ __('events.content_this_get_together_was_cancelled') }}</p>
+                    <p class="mt-1 text-sm opacity-90">
+                        @if($userRegistration)
+                            {{ __('events.content_cancelled_your_registration_released') }}
+                        @else
+                            {{ __('events.content_cancelled_registrations_released') }}
+                        @endif
+                    </p>
+                </div>
+            </div>
+        @endif
 
         {{-- Language mismatch banner --}}
         <x-language-mismatch-banner :entity-language="$event->language" />
@@ -90,6 +120,167 @@
                         </div>
                     </section>
                 @endif
+
+                {{-- Tables — the map of the day (M063/S06/T01). Each table is an
+                     ordinary game hosted under this umbrella: host identity with the
+                     trust line from game cards, honest system chips (R051), seat
+                     state with the capacity-bar treatment, and the join CTA routed
+                     to the game's existing join flow. --}}
+                <section class="bg-surface-container-low rounded-xl shadow-ambient p-6" aria-labelledby="event-tables-heading">
+                    <div class="flex items-start justify-between gap-3 flex-wrap mb-4">
+                        <h2 id="event-tables-heading" class="text-xl font-heading font-bold tracking-tight text-on-surface">
+                            {{ __('events.content_tables_at_this_get_together') }}
+                            @if($tablesTotal > 0)
+                                <span class="ml-1 text-sm font-normal text-on-surface-variant">{{ trans_choice('events.content_n_tables', $tablesTotal) }}</span>
+                            @endif
+                        </h2>
+                        @if($isEventManager && $event->canHostTables())
+                            <a href="{{ route('games.create', ['type' => 'gathering', 'event' => $event->slug]) }}" wire:navigate
+                               class="inline-flex items-center gap-1.5 px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium whitespace-nowrap">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                                {{ __('events.action_host_a_table') }}
+                            </a>
+                        @endif
+                    </div>
+
+                    @if($tablesTotal === 0)
+                        <p class="text-sm text-on-surface-variant">
+                            {{ $isEventManager
+                                ? __('events.content_no_tables_yet_manager')
+                                : __('events.content_tables_still_being_planned') }}
+                        </p>
+                    @else
+                        <ul class="space-y-4">
+                            @foreach($tables as $table)
+                                @php
+                                    $approvedSeats = (int) ($table->approved_participants_count ?? 0);
+                                    $waitlistedSeats = (int) ($table->waitlisted_participants_count ?? 0);
+                                    $seatMax = $table->max_players;
+                                    $seatPct = $seatMax ? min(100, ($approvedSeats / $seatMax) * 100) : 0;
+                                    $tableIsFull = $seatMax !== null && $approvedSeats >= $seatMax;
+                                    $tableUrl = route('games.detail', ['locale' => app()->getLocale(), 'id' => $table]);
+                                @endphp
+                                <li class="rounded-lg border border-outline-variant/50 bg-surface p-4 sm:p-5">
+                                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                        <div class="min-w-0 flex-1">
+                                            {{-- Title + start time --}}
+                                            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                                <a href="{{ $tableUrl }}" wire:navigate
+                                                   class="font-medium text-on-surface hover:text-secondary transition-colors">
+                                                    {{ $table->name }}
+                                                </a>
+                                                @if($table->date_time)
+                                                    <span class="text-xs text-on-surface-variant">{{ format_date($table->date_time, 'datetime') }}</span>
+                                                @endif
+                                            </div>
+
+                                            {{-- Host with the game-card trust line (public profile + GM badge) --}}
+                                            @if($table->owner)
+                                                <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                                                    <span class="text-on-surface-variant">{{ __('common.content_hosted_by') }}:</span>
+                                                    <x-user-link :user="$table->owner" avatar-size="w-7 h-7" :truncate="true" />
+                                                    @if($table->owner->isGM())
+                                                        <x-gm-badge size="sm" />
+                                                    @endif
+                                                </div>
+                                            @endif
+
+                                            {{-- Honest multi-system chips (R051) --}}
+                                            @if($table->gameSystems->isNotEmpty())
+                                                <div class="mt-2.5 flex flex-wrap gap-1.5">
+                                                    @foreach($table->gameSystems as $system)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+                                                            {{ $system->name }}
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+
+                                            {{-- Seat state + capacity bar (secondary → tertiary → error as it fills) --}}
+                                            <div class="mt-3">
+                                                <div class="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
+                                                    <span class="flex items-center gap-1">
+                                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
+                                                        {{ $seatMax
+                                                            ? __('events.content_seats_taken_max', ['taken' => $approvedSeats, 'max' => $seatMax])
+                                                            : __('events.content_seats_taken', ['taken' => $approvedSeats]) }}
+                                                    </span>
+                                                    @if($waitlistedSeats > 0)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-tertiary">
+                                                            {{ trans_choice('common.content_n_waitlisted', $waitlistedSeats) }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                @if($seatMax)
+                                                    <div class="mt-1.5 w-full sm:max-w-xs bg-outline-variant/30 rounded-full h-1.5">
+                                                        <div class="h-1.5 rounded-full {{ $seatPct >= 100 ? 'bg-error' : ($seatPct >= 70 ? 'bg-tertiary' : 'bg-secondary') }}" style="width: {{ $seatPct }}%"></div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        {{-- Join CTA --}}
+                                        <div class="shrink-0 sm:self-center">
+                                            @guest
+                                                {{-- Guests: registration-cta sign-up variant — the join flow stays behind auth --}}
+                                                <a href="{{ route('register') }}" wire:navigate
+                                                   class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
+                                                    <span class="material-symbols-outlined text-base" aria-hidden="true">person_add</span>
+                                                    {{ __('events.content_sign_up_free_to_join_this_table') }}
+                                                </a>
+                                            @else
+                                                @if($userRegistration)
+                                                    {{-- Registered: straight into the game's join flow --}}
+                                                    <a href="{{ $tableUrl }}" wire:navigate
+                                                       class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                                                        {{ $tableIsFull ? __('events.action_join_waitlist') : __('events.action_join_table') }}
+                                                    </a>
+                                                @else
+                                                    {{-- D157 join nudge: authenticated but not registered — a
+                                                         confirm-action-style dialog, never a hard block. --}}
+                                                    <div x-data="{ confirming: false }" class="sm:text-right">
+                                                        <button type="button" x-show="!confirming" @click="confirming = true"
+                                                                class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                                                            {{ $tableIsFull ? __('events.action_join_waitlist') : __('events.action_join_table') }}
+                                                        </button>
+                                                        <div x-show="confirming" x-cloak style="display: none" x-transition.opacity role="alert" aria-live="polite"
+                                                             class="mt-2 p-3 rounded-lg bg-surface-container ring-1 ring-outline-variant/20 text-left">
+                                                            <p class="text-sm text-on-surface">{{ __('events.content_join_nudge_no_event_spot') }}</p>
+                                                            <div class="mt-3 flex flex-wrap gap-2">
+                                                                <a href="{{ route('events.register', ['slug' => $event->slug]) }}" wire:navigate
+                                                                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                                                                    {{ __('events.action_register_first') }}
+                                                                </a>
+                                                                <a href="{{ $tableUrl }}" wire:navigate
+                                                                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
+                                                                    {{ __('events.action_join_anyway') }}
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endguest
+                                        </div>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+
+                        {{-- Page-weight guard: cap the initial map; the full list
+                             stays one toggle away (UI spec §3.4). --}}
+                        @if($tables->count() < $tablesTotal)
+                            <button type="button" wire:click="$set('showAllTables', true)"
+                                    class="mt-4 w-full text-center px-4 py-2.5 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
+                                {{ __('events.action_show_all_n_tables', ['count' => $tablesTotal]) }}
+                            </button>
+                        @elseif($this->showAllTables)
+                            <button type="button" wire:click="$set('showAllTables', false)"
+                                    class="mt-4 w-full text-center px-4 py-2.5 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
+                                {{ __('events.action_show_fewer_tables') }}
+                            </button>
+                        @endif
+                    @endif
+                </section>
 
                 {{-- Schedule --}}
                 @if($event->schedule && is_array($event->schedule) && count($event->schedule) > 0)
@@ -206,9 +397,28 @@
                         @endif
                     </div>
 
-                    {{-- Register button --}}
+                    {{-- Register button / registrant self-state (UI spec §3.5):
+                         an authed registrant sees their own state instead of a
+                         register CTA; the payment-pending variant carries the
+                         instructions line. Cancelled events rely on the banner
+                         instead of a self-state that would read as still-on. --}}
                     <div class="mt-6">
-                        @if($event->isRegistrationOpen() && $event->hasCapacity())
+                        @if($userRegistration && $event->status->value !== 'cancelled')
+                            <div class="rounded-lg bg-secondary-container/50 px-4 py-3 text-center">
+                                @if($userRegistration->payment_status === 'pending')
+                                    <p class="text-sm font-medium text-on-secondary-container inline-flex items-center justify-center gap-1.5">
+                                        <span class="material-symbols-outlined text-base" aria-hidden="true">hourglass_top</span>
+                                        {{ __('events.content_your_spot_is_reserved_payment_pending') }}
+                                    </p>
+                                    <p class="mt-1 text-xs text-on-surface-variant">{{ __('events.content_payment_pending_hint') }}</p>
+                                @else
+                                    <p class="text-sm font-medium text-on-secondary-container inline-flex items-center justify-center gap-1.5">
+                                        <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
+                                        {{ __('events.content_you_re_registered') }}
+                                    </p>
+                                @endif
+                            </div>
+                        @elseif($event->isRegistrationOpen() && $event->hasCapacity())
                             @auth
                                 <a href="{{ route('events.register', ['slug' => $event->slug]) }}" wire:navigate class="block w-full text-center px-4 py-3 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity font-medium">
                                     {{ __('events.action_register_now') }}

@@ -6,6 +6,7 @@ use App\Enums\AttendanceResolutionMethod;
 use App\Enums\GameType;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameResource;
+use App\Models\Event;
 use App\Models\Game;
 use App\Services\AttendanceResolutionService;
 use App\Services\SeoCacheService;
@@ -99,6 +100,13 @@ class EditGame extends EditRecord
         $systemId = $this->data['game_system_id'] ?? null;
         if (is_string($systemId) && $systemId !== '' && $record->game_type !== GameType::Gathering) {
             $record->gameSystems()->sync([$systemId]);
+
+            // M063/S06/T02: pivot sync fires no model events — flush the
+            // umbrella's derived offered-systems cache when the edited game
+            // is a hosted table, mirroring the CreateGame host-a-table flush.
+            if ($record->event_id !== null) {
+                Event::flushOfferedSystemsCacheFor((string) $record->event_id);
+            }
         }
 
         app(SeoCacheService::class)->forgetByModel($record);

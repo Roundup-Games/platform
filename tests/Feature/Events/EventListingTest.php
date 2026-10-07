@@ -5,6 +5,8 @@ use App\Livewire\Events\EventListing;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\EventRegistration;
+use App\Models\Game;
+use App\Models\GameSystem;
 use App\Models\User;
 
 // ── EventListing ───────────────────────────────────────
@@ -75,6 +77,59 @@ describe('EventListing', function () {
         $events = $component->viewData('events');
 
         expect($events->first()->name)->toBe('Featured Event');
+    });
+
+    it('renders cards through the shared event-card component (M063/S06/T03 dedupe)', function () {
+        $catan = GameSystem::factory()->create(['name' => ['en' => 'Catan'], 'slug' => 'catan']);
+
+        $free = Event::factory()->create([
+            'name' => ['en' => 'Free Component Day'],
+            'is_public' => true,
+            'status' => 'registration_open',
+            'individual_registration_fee' => 0,
+        ]);
+        Game::factory()->gathering()->event($free)->withGameSystems([$catan->id])->create([
+            'date_time' => now()->addWeek(),
+        ]);
+
+        $paid = Event::factory()->create([
+            'name' => ['en' => 'Paid Component Gala'],
+            'is_public' => true,
+            'status' => 'registration_open',
+            'individual_registration_fee' => 2500,
+        ]);
+
+        Livewire\Livewire::test(EventListing::class)
+            ->assertSee('Free Component Day')
+            ->assertSee('Paid Component Gala')
+            // Component-only signatures: the derived offering line (T02),
+            // the free/fee footer, and the view-details link. If the listing
+            // ever re-grows its own card markup, these vanish.
+            ->assertSee(trans_choice('games.content_n_games_on_offer', 1))
+            ->assertSee(__('billing.content_free_entry'))
+            ->assertSee(__('auth.field_amount_to_register', ['amount' => format_currency(2500)]))
+            ->assertSee(__('common.action_view_details'));
+    });
+
+    it('eager-loads tables.gameSystems so card offering reads are zero-query', function () {
+        $event = Event::factory()->create([
+            'name' => ['en' => 'Eager Shape Day'],
+            'is_public' => true,
+            'status' => 'registration_open',
+        ]);
+        Game::factory()->gathering()->event($event)->withGameSystems([
+            GameSystem::factory()->create()->id,
+        ])->create(['date_time' => now()->addWeek()]);
+
+        $events = Livewire\Livewire::test(EventListing::class)->viewData('events');
+
+        // The exact load shape EventCardTest's N+1 guard pins: tables and
+        // every table's gameSystems in memory, so each card's offeredSystems()
+        // computes the union without touching the database.
+        expect($events->first()->relationLoaded('tables'))->toBeTrue()
+            ->and($events->first()->tables->every(
+                fn (Game $table): bool => $table->relationLoaded('gameSystems')
+            ))->toBeTrue();
     });
 });
 

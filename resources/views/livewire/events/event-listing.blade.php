@@ -66,82 +66,14 @@
         @if($events->count())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($events as $event)
-                    <a href="{{ route('events.detail', $event->slug) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
-                        {{-- Featured indicator --}}
-                        @if($event->is_featured)
-                            <div class="h-1.5 bg-primary"></div>
-                        @else
-                            <div class="h-1.5 bg-outline-variant/30"></div>
-                        @endif
-
-                        <div class="p-5">
-                            <div class="flex items-start justify-between mb-2">
-                                <h3 class="font-heading font-semibold text-lg text-on-surface tracking-tight group-hover:text-primary transition-colors">
-                                    {{ $event->name }}
-                                </h3>
-                                @if($event->is_featured)
-                                    <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                        {{ __('discovery.content_featured_badge') }}
-                                    </span>
-                                @endif
-                            </div>
-
-                            {{-- Type badge --}}
-                            <div class="flex items-center gap-2 mb-3">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                                    {{ $event->type?->label() }}
-                                </span>
-                                @if($event->status->value === 'registration_open')
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                                        {{ __('events.content_registration_open') }}
-                                    </span>
-                                @elseif($event->status->value === 'in_progress')
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
-                                        {{ __('common.content_in_progress') }}
-                                    </span>
-                                @elseif($event->status->value === 'registration_closed')
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                        {{ __('events.content_registration_closed') }}
-                                    </span>
-                                @endif
-                            </div>
-
-                            {{-- Date --}}
-                            <p class="text-sm text-on-surface-variant flex items-center gap-1">
-                                <span class="material-symbols-outlined text-base" aria-hidden="true">calendar_today</span>
-                                {{ format_date($event->start_date, 'date') }}
-                                @if($event->end_date && $event->end_date->ne($event->start_date))
-                                    – {{ format_date($event->end_date, 'date') }}
-                                @endif
-                            </p>
-
-                            {{-- Location — M053/S1/T06: routed through <x-location-display>
-                                 (the sole address-rendering authority) so no raw city leaks.
-                                 Events carry denormalized fields (no Location owner), so this
-                                 uses the raw-city path at City granularity. --}}
-                            @if($event->city || $event->venue_name)
-                                <p class="mt-1 text-sm text-on-surface-variant">
-                                    <x-location-display
-                                        :venue-name="$event->venue_name"
-                                        :city="$event->city"
-                                        icon-class="text-base"
-                                    />
-                                </p>
-                            @endif
-
-                            {{-- Short description --}}
-                            @if($event->short_description)
-                                <p class="mt-2 text-sm text-on-surface-variant line-clamp-2">{{ $event->short_description }}</p>
-                            @endif
-
-                            {{-- Fee info --}}
-                            @if($event->individual_registration_fee > 0)
-                                <p class="mt-2 text-xs text-on-surface-variant/70">
-                                    {{ __('common.field_from_amount_player', ['amount' => format_currency($event->individual_registration_fee)]) }}
-                                </p>
-                            @endif
-                        </div>
-                    </a>
+                    {{-- M063/S06/T03: dedupe — the listing renders the shared
+                         <x-event-card> (the city-hub upcoming partial's card,
+                         carrying the T02 derived-offering line) instead of its
+                         own drift-prone copy. The component is the sole event
+                         card markup authority; the listing supplies only the
+                         grid. EventListing eager-loads tables.gameSystems so
+                         each card's offering read stays zero-query. --}}
+                    <x-event-card :event="$event" />
                 @endforeach
             </div>
 

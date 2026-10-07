@@ -60,6 +60,12 @@ class EventListing extends Component
     public function render(): View
     {
         $query = Event::query()
+            // M063/S06/T03: the grid renders the shared <x-event-card>, whose
+            // derived-offering line reads Event::offeredSystems(). Eager-loading
+            // this shape — the one EventCardTest's N+1 guard pins — keeps every
+            // card's read zero-query instead of a cold per-event aggregation
+            // per card on a 12-event page.
+            ->with('tables.gameSystems')
             ->where('is_public', true)
             ->whereIn('status', [
                 EventStatus::Published,

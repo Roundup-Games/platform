@@ -48,6 +48,19 @@
                     </div>
                 @endif
 
+                {{-- Derived offering — M063/S06/T02: the umbrella's honest full
+                     offering (cached union of every table's gameSystems, R051
+                     applied across the get-together). Only when non-empty —
+                     every table offers ≥1 system by invariant, so an empty
+                     union means no tables yet (fail-closed, no phantom line). --}}
+                @php($offeredSystems = $event->offeredSystems())
+                @if($offeredSystems->isNotEmpty())
+                    <div class="flex items-center gap-2 text-sm text-on-surface-variant">
+                        <span class="material-symbols-outlined text-primary text-base" aria-hidden="true">casino</span>
+                        {{ trans_choice('games.content_n_games_on_offer', $offeredSystems->count()) }}
+                    </div>
+                @endif
+
                 {{-- Type --}}
                 @if($event->type)
                     <div class="flex items-center gap-2 text-sm text-on-surface-variant">

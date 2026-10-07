@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Enums\ParticipantStatus;
 use App\Jobs\PublishGameToDiscord;
+use App\Models\Event;
 use App\Models\Game;
 use App\Services\DashboardCacheService;
 use App\Services\Discord\DiscordPublisher;
@@ -31,6 +32,7 @@ class GameObserver
     {
         $this->cache->invalidateForGameEvent($game, 'saved');
         $this->cache->invalidateActionCenterForGameEvent($game->id);
+        $this->flushEventOfferedSystems($game, 'saved');
 
         // M057/T05: dispatch the DiscordPublisher chokepoint (queued, so the
         // Discord REST latency + 429 backoff never blocks this request). The
@@ -77,6 +79,7 @@ class GameObserver
     public function deleted(Game $game): void
     {
         $this->cache->invalidateForGameEvent($game, 'deleted');
+        $this->flushEventOfferedSystems($game, 'deleted');
 
         // Invalidate action center and schedule for all former participants + owner.
         // Participants were eager-loaded in deleting() before cascade delete.
@@ -89,6 +92,35 @@ class GameObserver
 
         if (! empty($affectedUserIds)) {
             $this->cache->invalidateForUsers($affectedUserIds, ['action_center', 'week', 'host_again']);
+        }
+    }
+
+    /**
+     * Flush the derived offered-systems cache of every event this game is
+     * (or was) hosted at (M063/S06/T02).
+     *
+     * The union aggregates this game's gameSystems pivot, so any save or
+     * delete of a hosted table makes the cached offering stale. Detach is
+     * covered through the PRE-SAVE event id: `getOriginal()` still holds
+     * the old value inside the `saved` hook (Model::save fires 'saved'
+     * before syncOriginal), so dissociate+save flushes the umbrella it
+     * left. Attach (associate+save) flushes through the current id. Pivot
+     * syncs fire no model events — the host-a-table flow and the admin
+     * editor flush explicitly next to their sync() calls.
+     */
+    private function flushEventOfferedSystems(Game $game, string $event): void
+    {
+        $eventIds = collect([
+            $game->getAttribute('event_id'),
+            $game->getOriginal('event_id'),
+        ])
+            ->filter(fn (mixed $id): bool => filled($id))
+            ->map(fn (mixed $id): string => to_string_id($id))
+            ->unique()
+            ->values();
+
+        foreach ($eventIds as $eventId) {
+            Event::flushOfferedSystemsCacheFor($eventId);
         }
     }
 

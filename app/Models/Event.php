@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
@@ -28,6 +30,7 @@ use Spatie\SchemaOrg\Offer;
 use Spatie\SchemaOrg\Person as SchemaPerson;
 use Spatie\SchemaOrg\Place;
 use Spatie\SchemaOrg\PostalAddress;
+use Spatie\SchemaOrg\Thing;
 use Spatie\Translatable\HasTranslations;
 
 /**
@@ -266,6 +269,117 @@ class Event extends Model implements HasMedia
         return $count !== null ? (int) $count : (int) $this->tables()->count();
     }
 
+    // ── Derived Offering (M063/S06/T02) ────────────────
+
+    /**
+     * Cache key for the derived offering, namespaced per event.
+     */
+    public static function offeredSystemsCacheKey(string $eventId): string
+    {
+        return "event:{$eventId}:offered-systems";
+    }
+
+    /**
+     * Flush this event's derived-offering cache (static form — callers that
+     * only hold an event id, e.g. GameObserver on a detach, use this).
+     */
+    public static function flushOfferedSystemsCacheFor(string $eventId): void
+    {
+        Cache::forget(static::offeredSystemsCacheKey($eventId));
+    }
+
+    /**
+     * Flush this event's derived-offering cache (instance form).
+     */
+    public function flushOfferedSystemsCache(): void
+    {
+        static::flushOfferedSystemsCacheFor((string) $this->getKey());
+    }
+
+    /**
+     * Every GameSystem offered across this event's tables — the umbrella's
+     * honest full offering as a derived union of the per-table gameSystems
+     * pivots (R051 applied across the whole get-together, mirroring
+     * Campaign::gameSystems / Game::gameSystems).
+     *
+     * Per-table honesty is untouched: each table keeps its own pivot; this
+     * unions and dedupes them. Reads are zero-query when the caller already
+     * eager-loaded tables.gameSystems (the event detail page does); cold
+     * reads hit a per-event cache (TTL matching the discovery cache
+     * convention) so card grids don't re-aggregate per request. GameObserver
+     * flushes the key when a hosted game is saved/deleted (covers table
+     * attach/detach via the original event id) and the host-a-table sync
+     * site flushes on system attach/detach.
+     *
+     * The cached payload is the deduped system ID list, NOT model objects:
+     * Eloquent payloads don't survive real cache-store serialization
+     * round-trips (the dev stack's redis store serves __PHP_Incomplete_Class
+     * reads where the array test driver kept passing). A warm read therefore
+     * costs one bounded primary-key hydration query instead of the two-query
+     * aggregation — the eager-loaded zero-query path is unaffected.
+     *
+     * @return Collection<int, GameSystem>
+     */
+    public function offeredSystems(): Collection
+    {
+        $cacheKey = static::offeredSystemsCacheKey((string) $this->getKey());
+        $ttl = now()->addSeconds((int) config('discovery.cache_ttl', 900));
+
+        // Zero-query path: tables and their systems already in memory
+        // (EventDetail::render eager-loads exactly this shape). The union
+        // is written through to the per-event cache (as scalar ids) because
+        // other consumers of this request hydrate a FRESH copy of the event
+        // (the SEO row's morphTo inverse in seo()->for()) and re-read the
+        // offering — a warm key keeps those down to one PK hydration.
+        if ($this->relationLoaded('tables')) {
+            $tables = $this->tables;
+
+            if ($tables->every(fn (Game $table): bool => $table->relationLoaded('gameSystems'))) {
+                $union = $this->unionOfferedSystems($tables);
+
+                Cache::put($cacheKey, $union->pluck('id')->all(), $ttl);
+
+                return $union;
+            }
+        }
+
+        /** @var array<int, string> $ids */
+        $ids = Cache::remember(
+            $cacheKey,
+            $ttl,
+            fn (): array => $this->unionOfferedSystems(
+                $this->tables()->with('gameSystems')->get()
+            )->pluck('id')->all(),
+        );
+
+        if ($ids === []) {
+            return collect();
+        }
+
+        // Rehydrate in cached order so chip grids render deterministically.
+        $position = array_flip($ids);
+
+        return GameSystem::query()
+            ->whereKey($ids)
+            ->get()
+            ->sortBy(fn (GameSystem $system): int => $position[$system->id] ?? PHP_INT_MAX)
+            ->values();
+    }
+
+    /**
+     * Union + dedupe the offered systems across a set of tables.
+     *
+     * @param  Collection<int, Game>  $tables
+     * @return Collection<int, GameSystem>
+     */
+    private function unionOfferedSystems(Collection $tables): Collection
+    {
+        return $tables
+            ->flatMap(fn (Game $table): Collection => $table->gameSystems)
+            ->unique('id')
+            ->values();
+    }
+
     /**
      * @return BelongsTo<Location, $this>
      */
@@ -468,6 +582,25 @@ class Event extends Model implements HasMedia
                         ->priceCurrency('EUR')
                         ->availability('InStock')
                 );
+            }
+
+            // schema.org about: name EVERY system offered across the event's
+            // tables (the derived offeredSystems union) so the umbrella's
+            // structured data is as honest as its tables map — mirrors
+            // Game::getDynamicSEOData. Spatie\SchemaOrg\Type::__call stores
+            // arbitrary properties, so about() is safe even when not
+            // auto-generated. Additive enrichment; a tableless event emits
+            // no about().
+            $about = $this->offeredSystems()->map(function (GameSystem $system) {
+                $thing = (new Thing)->name($system->name);
+                if ($system->slug) {
+                    $thing->identifier($system->slug);
+                }
+
+                return $thing;
+            })->values()->all();
+            if (! empty($about)) {
+                $event->about($about);
             }
 
             $schema->push($event->toArray());
