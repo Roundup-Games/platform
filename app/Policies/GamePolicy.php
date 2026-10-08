@@ -60,6 +60,17 @@ class GamePolicy
             return true;
         }
 
+        // Event oversight (M063 follow-up): managers of the umbrella event may
+        // view every table hosted under it. They already see the table listed
+        // in the event's manage surface, and the event page's join flow routes
+        // here — without this, a non-public table 403'd the event's own
+        // organizer off their own event page.
+        if ($user !== null
+            && $game->event !== null
+            && $user->can('update', $game->event)) {
+            return true;
+        }
+
         if ($game->visibility === Visibility::Protected) {
             return $user !== null
                 && ((string) $game->owner_id === (string) $user->id

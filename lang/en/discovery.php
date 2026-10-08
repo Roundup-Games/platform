@@ -40,7 +40,6 @@ return [
     'content_serious' => 'Serious',
     'content_story_rich' => 'Story-Rich',
     'content_tactical' => 'Tactical',
-    'content_type' => 'Type *',
     'content_type_word_to_confirm' => 'Type :word to confirm',
     'content_what_s_happening_near_you' => 'What\'s happening near you?',
     'field_any_date' => 'Any Date',

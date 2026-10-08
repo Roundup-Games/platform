@@ -47,6 +47,18 @@
             </div>
         @endif
 
+        {{-- Umbrella context: the table's parent get-together, visible to every
+             viewer — previously only the owner saw event context (a detach
+             control), so the event was invisible from the table page. --}}
+        @if($game->event)
+            <a href="{{ route('events.detail', ['slug' => $game->event->slug]) }}" wire:navigate
+               class="flex items-center gap-3 rounded-xl bg-surface-container-low border border-outline-variant/30 px-4 py-3 hover:border-primary/40 transition-colors group">
+                <span class="material-symbols-outlined text-primary" aria-hidden="true">festival</span>
+                <span class="text-sm text-on-surface min-w-0 truncate">{{ __('events.content_part_of_event', ['event' => $game->event->name]) }}</span>
+                <span class="material-symbols-outlined text-on-surface-variant ml-auto shrink-0 text-base" aria-hidden="true">chevron_right</span>
+            </a>
+        @endif
+
         <x-registration-cta :message="__('games.guest_nudge_game_detail')" />
 
         @include('livewire.games.partials._invitation-banner')

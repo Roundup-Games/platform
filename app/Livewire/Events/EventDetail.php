@@ -4,7 +4,9 @@ namespace App\Livewire\Events;
 
 use App\Models\Event;
 use App\Models\EventRegistration;
+use App\Models\Game;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -38,7 +40,9 @@ class EventDetail extends Component
             // The map of the day: every table with its host, the offered
             // systems (R051 honest rendering) and the seat aggregates in one
             // eager pass — the section renders without per-table queries.
-            'tables' => fn ($q) => $q->with(['owner', 'gameSystems'])->withCount([
+            // `event` is loaded per table so the viewability filter below can
+            // run the GamePolicy event-oversight bypass without N+1s.
+            'tables' => fn ($q) => $q->with(['owner', 'gameSystems', 'event'])->withCount([
                 'participants as approved_participants_count' => fn ($q) => $q->where('status', 'approved'),
                 'participants as waitlisted_participants_count' => fn ($q) => $q->where('status', 'waitlisted'),
             ]),
@@ -50,7 +54,7 @@ class EventDetail extends Component
         // row's morphTo inverse), so the warm key keeps its about()
         // enrichment zero-query on this pass (same pattern as
         // PublicGameDetail's load-then-seo ordering).
-        $offeredSystems = $this->event->offeredSystems();
+        $this->event->offeredSystems();
 
         seo()->for($this->event);
 
@@ -67,16 +71,26 @@ class EventDetail extends Component
                     && $registration->status !== 'cancelled'
             );
 
-        $tables = $this->event->tables;
+        // Tables map shows only what the viewer may actually open: the join
+        // CTA routes to the game's detail page, so rendering a table the
+        // policy would 403 produced a promise-then-wall journey (protected
+        // legacy tables 403'd the event's own organizer). Gate::forUser(null)
+        // lets guests through for public tables via the same policy path.
+        $tables = $this->event->tables->filter(
+            fn (Game $table): bool => Gate::forUser($user)->allows('view', $table)
+        );
+
+        // Derived offering for the hero summary — the union over the VIEWABLE
+        // set (zero extra queries; gameSystems are eager-loaded). The cached
+        // full union stays primed above for the seo()/event-card path.
+        $offeredSystemsCount = $tables->flatMap(fn (Game $table) => $table->gameSystems)->unique('id')->count();
 
         return view('livewire.events.event-detail', [
             'announcements' => $this->event->announcements,
             'individualCount' => $this->event->registrations->count(),
             'tables' => $this->showAllTables ? $tables : $tables->take(self::TABLES_PAGE_SIZE),
             'tablesTotal' => $tables->count(),
-            // Derived offering for the hero offering summary (M063/S06/T02).
-            // Zero extra queries: computed above from the eager load.
-            'offeredSystemsCount' => $offeredSystems->count(),
+            'offeredSystemsCount' => $offeredSystemsCount,
             'userRegistration' => $userRegistration,
             'isEventManager' => $user !== null && $user->can('update', $this->event),
         ]);

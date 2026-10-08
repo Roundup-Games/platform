@@ -2,6 +2,7 @@
 
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -9,6 +10,7 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Services\EventDelegationService;
 use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {
@@ -272,4 +274,70 @@ describe('Private game visibility', function () {
         expect(Gate::allows('view', $game))->toBeFalse();
     })->group('smoke');
 
+});
+
+// ═══════════════════════════════════════════════════════════
+// EVENT OVERSIGHT — MANAGERS OF THE UMBRELLA EVENT (M063 follow-up)
+//
+// The event page's tables map routes its join CTA to the game's detail
+// page, so a non-public table 403'd the event's own organizer. Managers
+// of the event may view every table hosted under it.
+// ═══════════════════════════════════════════════════════════
+
+describe('Event oversight visibility', function () {
+    it('lets the event organizer view a protected table hosted at their event', function () {
+        $organizer = User::factory()->create();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
+        $game = Game::factory()->event($event)->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'protected',
+        ]);
+
+        $this->actingAs($organizer);
+        expect(Gate::allows('view', $game))->toBeTrue();
+    })->group('smoke');
+
+    it('lets a co-organizer (event-scoped update permission) view the table', function () {
+        $organizer = User::factory()->create();
+        $coOrganizer = User::factory()->create();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
+        app(EventDelegationService::class)->grantCoOrganizer($event, $coOrganizer, $organizer);
+
+        $game = Game::factory()->event($event)->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'private',
+        ]);
+
+        $this->actingAs($coOrganizer);
+        expect(Gate::allows('view', $game))->toBeTrue();
+    });
+
+    it('does not grant strangers access via the event attachment', function () {
+        $organizer = User::factory()->create();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
+        $game = Game::factory()->event($event)->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'protected',
+        ]);
+        $stranger = User::factory()->create();
+
+        $this->actingAs($stranger);
+        expect(Gate::allows('view', $game))->toBeFalse();
+    })->group('smoke');
+
+    it('does not affect tables without an umbrella event', function () {
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'protected',
+        ]);
+        $organizer = User::factory()->create();
+        Event::factory()->create(['organizer_id' => $organizer->id]);
+
+        $this->actingAs($organizer);
+        expect(Gate::allows('view', $game))->toBeFalse();
+    });
 });

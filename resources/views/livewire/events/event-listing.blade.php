@@ -2,6 +2,18 @@
     <x-hero title="Events" :subtitle="__('events.content_discover_tournaments_leagues_camps_and')" />
 
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        {{-- Organizer entry point: /events/create had zero inbound links —
+             the only paths in were a URL or the post-create redirect. --}}
+        @auth
+            <div class="flex justify-end">
+                <a href="{{ route('events.create') }}" wire:navigate
+                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold shadow-xs hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                    {{ __('events.action_create_event') }}
+                </a>
+            </div>
+        @endauth
+
         {{-- Search & Filters --}}
         <div class="flex flex-col sm:flex-row gap-3">
             <div class="flex-1 relative">

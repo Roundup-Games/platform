@@ -40,7 +40,6 @@ return [
     'content_serious' => 'Ernst',
     'content_story_rich' => 'Geschichtsreich',
     'content_tactical' => 'Taktisch',
-    'content_type' => 'Art *',
     'content_type_word_to_confirm' => 'Tippe :word zur Bestätigung',
     'content_what_s_happening_near_you' => 'Was passiert in deiner Nähe?',
     'field_any_date' => 'Jedes Datum',

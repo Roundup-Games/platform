@@ -1,18 +1,25 @@
+@section('title', __('events.action_manage_registrations'))
+
 <div>
-    {{-- Header --}}
-    <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="font-semibold text-xl text-on-surface leading-tight">
-                    {{ __('events.action_manage_registrations') }}
-                </h2>
-                <p class="text-sm text-on-surface-variant mt-1">{{ $event->name }}</p>
-            </div>
-            <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" wire:navigate class="text-sm text-primary hover:underline">
-                {{ __('events.content_back_to_event') }}
-            </a>
-        </div>
-    </x-slot>
+    {{-- Page header: back returns to the manage hub (the manager's parent
+         surface) rather than the public page; public page stays available as
+         an action. In-page so it survives on mobile. --}}
+    <x-page-header
+        :title="__('events.action_manage_registrations')"
+        :subtitle="$event->name"
+        :backUrl="route('events.manage', ['slug' => $event->slug])"
+        :backLabel="__('events.action_back_to_manage')"
+    >
+        <x-slot:actions>
+            @if($event->is_public)
+                <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" wire:navigate target="_blank"
+                   class="text-sm text-primary hover:underline inline-flex items-center gap-1 px-3 py-2">
+                    {{ __('common.action_view_public_page') }}
+                    <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
+                </a>
+            @endif
+        </x-slot:actions>
+    </x-page-header>
 
     {{-- Flash messages --}}
     @if(session()->has('success'))

@@ -1,28 +1,23 @@
+@section('title', __('events.action_manage_event'))
+
 <div>
-    {{-- Header --}}
-    <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="font-semibold text-xl text-on-surface leading-tight">
-                    {{ __('events.action_manage_event') }}
-                </h2>
-                <p class="text-sm text-on-surface-variant mt-1">{{ $event->name }}</p>
-            </div>
-            <div class="flex items-center gap-3">
-                @if($event->is_public)
-                    <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" wire:navigate target="_blank"
-                       class="text-sm text-primary hover:underline flex items-center gap-1">
-                        {{ __('common.action_view_public_page') }}
-                        <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
-                    </a>
-                @endif
-                <a href="{{ route('events.manage-registrations', ['slug' => $event->slug]) }}" wire:navigate
-                   class="text-sm px-3 py-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors">
-                    {{ __('events.action_manage_registrations') }}
-                </a>
-            </div>
-        </div>
-    </x-slot>
+    {{-- Page header: in-page at every breakpoint (the layout `header` slot is
+         desktop-only, which stranded the registrations link on mobile). Back
+         goes to the public event page; the secondary "View Public Page" link
+         was removed — same destination. --}}
+    <x-page-header
+        :title="__('events.action_manage_event')"
+        :subtitle="$event->name"
+        :backUrl="route('events.detail', ['slug' => $event->slug])"
+        :backLabel="__('events.action_back_to_event', ['event' => $event->name])"
+    >
+        <x-slot:actions>
+            <a href="{{ route('events.manage-registrations', ['slug' => $event->slug]) }}" wire:navigate
+               class="text-sm px-3 py-2 rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                {{ __('events.action_manage_registrations') }}
+            </a>
+        </x-slot:actions>
+    </x-page-header>
 
     {{-- Flash --}}
     @if(session()->has('success'))
@@ -127,12 +122,25 @@
     {{-- Tabs --}}
     <div class="bg-surface-container-low rounded-xl shadow-ambient mb-6">
         <div class="border-b border-outline-variant">
-            <nav class="flex -mb-px">
-                @foreach(['details' => __('common.content_details'), 'venue' => __('common.content_venue'), 'registration' => __('billing.field_registration_fees'), 'team' => __('events.content_team'), 'tables' => __('events.content_tables'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
-                    <button wire:click="setActiveTab('{{ $tab }}')"
-                            class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === $tab ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant' }}">
-                        {{ $label }}
-                    </button>
+            {{-- Scrollable rail: six tabs exceed a phone viewport; without
+                 overflow handling the last tabs render off-screen and drag the
+                 whole page into horizontal scroll (settings/show pattern). --}}
+            <nav class="flex overflow-x-auto scrollbar-none" role="tablist" aria-label="{{ __('events.action_manage_event') }} sections">
+                @foreach(['details' => __('common.content_details'), 'venue' => __('common.content_venue'), 'registration' => __('billing.field_registration_fees'), 'team' => __('events.content_team'), 'tables' => __('events.content_tables'), 'announcements' => __('events.content_announcements'), 'rules' => __('profile.content_rules_settings')] as $tab => $label)
+                    @if($tab === 'announcements')
+                        {{-- Announcements management lives on its own page (draft/
+                             published workflow, per-announcement actions); the tab
+                             routes there so the feature is reachable from the hub. --}}
+                        <a href="{{ route('events.announcements', ['slug' => $event->slug]) }}" wire:navigate
+                           class="px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap shrink-0 border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant transition-colors">
+                            {{ $label }}
+                        </a>
+                    @else
+                        <button wire:click="setActiveTab('{{ $tab }}')" role="tab" aria-selected="{{ $activeTab === $tab ? 'true' : 'false' }}"
+                                class="px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap shrink-0 transition-colors {{ $activeTab === $tab ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant' }}">
+                            {{ $label }}
+                        </button>
+                    @endif
                 @endforeach
             </nav>
         </div>
@@ -142,7 +150,7 @@
             @if($activeTab === 'details')
                 <div class="space-y-4">
                     <div>
-                        <label for="content-language" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_content_language') }}</label>
+                        <label for="content-language" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_content_language') }} <span class="text-error" title="{{ __('common.content_required') }}">*</span></label>
                         <select id="content-language" wire:model="language" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs">
                             @foreach(\App\Enums\ContentLanguage::cases() as $lang)
                                 <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
@@ -170,7 +178,7 @@
                     />
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label for="event-type" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('discovery.content_type') }}</label>
+                            <label for="event-type" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.content_event_type') }} <span class="text-error" title="{{ __('common.content_required') }}">*</span></label>
                             <select id="event-type" wire:model="type" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs">
                                 @foreach(\App\Enums\EventType::cases() as $typeCase)
                                     <option value="{{ $typeCase->value }}">{{ $typeCase->label() }}</option>
@@ -194,13 +202,13 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label for="event-start-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_start_date') }}</label>
+                            <label for="event-start-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_start_date') }} <span class="text-error" title="{{ __('common.content_required') }}">*</span></label>
                             <input type="date" id="event-start-date" wire:model="start_date"
                                    class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('start_date') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label for="event-end-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_end_date') }}</label>
+                            <label for="event-end-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_end_date') }} <span class="text-error" title="{{ __('common.content_required') }}">*</span></label>
                             <input type="date" id="event-end-date" wire:model="end_date"
                                    class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                             @error('end_date') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror

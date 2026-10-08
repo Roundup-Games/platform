@@ -193,6 +193,8 @@ return [
     'content_social' => 'Sozial',
     'content_spots_available' => '{0} Keine Plätze verfügbar (voll)|{1} 1 Platz verfügbar von :max|[2,*] :count Plätze verfügbar von :max',
     'content_status' => 'Status',
+    'content_required' => 'Erforderlich',
+    'content_step_x_of_y' => 'Schritt :current von :total',
     'content_subject' => 'Betreff',
     'content_subscribe' => 'Abonnieren',
     'content_substitute' => 'Ersatzspieler',

@@ -79,6 +79,19 @@
                     </span>
                 @endif
             </div>
+
+            {{-- Manager entry point: the manage hub previously had no link from
+                 the event itself — organizers who navigated away could not find
+                 their way back without the co-organizer notification. --}}
+            @if($isEventManager)
+                <div class="mt-6">
+                    <a href="{{ route('events.manage', ['slug' => $event->slug]) }}" wire:navigate
+                       class="inline-flex items-center gap-1.5 min-h-11 px-4 py-2 rounded-lg border border-on-primary/40 text-on-primary hover:bg-on-primary/10 transition-colors text-sm font-medium">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">tune</span>
+                        {{ __('events.action_manage_event') }}
+                    </a>
+                </div>
+            @endif
         </div>
     </section>
 
@@ -136,7 +149,7 @@
                         </h2>
                         @if($isEventManager && $event->canHostTables())
                             <a href="{{ route('games.create', ['type' => 'gathering', 'event' => $event->slug]) }}" wire:navigate
-                               class="inline-flex items-center gap-1.5 px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium whitespace-nowrap">
+                               class="inline-flex items-center gap-1.5 min-h-11 px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium whitespace-nowrap">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
                                 {{ __('events.action_host_a_table') }}
                             </a>
@@ -224,7 +237,7 @@
                                             @guest
                                                 {{-- Guests: registration-cta sign-up variant — the join flow stays behind auth --}}
                                                 <a href="{{ route('register') }}" wire:navigate
-                                                   class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
+                                                   class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
                                                     <span class="material-symbols-outlined text-base" aria-hidden="true">person_add</span>
                                                     {{ __('events.content_sign_up_free_to_join_this_table') }}
                                                 </a>
@@ -232,7 +245,7 @@
                                                 @if($userRegistration)
                                                     {{-- Registered: straight into the game's join flow --}}
                                                     <a href="{{ $tableUrl }}" wire:navigate
-                                                       class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                                                       class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
                                                         {{ $tableIsFull ? __('events.action_join_waitlist') : __('events.action_join_table') }}
                                                     </a>
                                                 @else
@@ -240,7 +253,7 @@
                                                          confirm-action-style dialog, never a hard block. --}}
                                                     <div x-data="{ confirming: false }" class="sm:text-right">
                                                         <button type="button" x-show="!confirming" @click="confirming = true"
-                                                                class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                                                                class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
                                                             {{ $tableIsFull ? __('events.action_join_waitlist') : __('events.action_join_table') }}
                                                         </button>
                                                         <div x-show="confirming" x-cloak style="display: none" x-transition.opacity role="alert" aria-live="polite"
@@ -248,11 +261,11 @@
                                                             <p class="text-sm text-on-surface">{{ __('events.content_join_nudge_no_event_spot') }}</p>
                                                             <div class="mt-3 flex flex-wrap gap-2">
                                                                 <a href="{{ route('events.register', ['slug' => $event->slug]) }}" wire:navigate
-                                                                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                                                                   class="inline-flex items-center gap-1.5 min-h-11 px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
                                                                     {{ __('events.action_register_first') }}
                                                                 </a>
                                                                 <a href="{{ $tableUrl }}" wire:navigate
-                                                                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
+                                                                   class="inline-flex items-center gap-1.5 min-h-11 px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
                                                                     {{ __('events.action_join_anyway') }}
                                                                 </a>
                                                             </div>
@@ -270,12 +283,12 @@
                              stays one toggle away (UI spec §3.4). --}}
                         @if($tables->count() < $tablesTotal)
                             <button type="button" wire:click="$set('showAllTables', true)"
-                                    class="mt-4 w-full text-center px-4 py-2.5 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
+                                    class="mt-4 w-full min-h-11 text-center px-4 py-2.5 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
                                 {{ __('events.action_show_all_n_tables', ['count' => $tablesTotal]) }}
                             </button>
                         @elseif($this->showAllTables)
                             <button type="button" wire:click="$set('showAllTables', false)"
-                                    class="mt-4 w-full text-center px-4 py-2.5 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
+                                    class="mt-4 w-full min-h-11 text-center px-4 py-2.5 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
                                 {{ __('events.action_show_fewer_tables') }}
                             </button>
                         @endif
@@ -326,8 +339,10 @@
                 @endif
             </div>
 
-            {{-- Sidebar --}}
-            <div class="space-y-6">
+            {{-- Sidebar: registration/venue/contact cards. On mobile the
+                 registration card leads (order-first) — the primary conversion
+                 action previously sat ~1.5 screens down, below About + Tables. --}}
+            <div class="order-first lg:order-none space-y-6">
                 {{-- Registration Card --}}
                 <div class="bg-surface-container-low rounded-xl shadow-ambient p-6 sticky top-6">
                     <h3 class="font-heading font-bold tracking-tight text-on-surface">{{ __('events.content_registration') }}</h3>

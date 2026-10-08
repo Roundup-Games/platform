@@ -19,7 +19,7 @@
                 <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('plan.content_how_often') }}</h2>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {{-- One-time session --}}
                 <a href="{{ route('games.create') }}" wire:navigate
                         class="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-outline-variant/30 bg-surface-container-lowest hover:border-primary/50 hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer text-center">
@@ -34,6 +34,15 @@
                     <span class="material-symbols-outlined text-4xl text-primary group-hover:scale-110 transition-transform" aria-hidden="true">repeat</span>
                     <span class="text-base font-heading font-semibold text-on-surface">{{ __('plan.content_recurring') }}</span>
                     <span class="text-xs text-on-surface-variant">{{ __('plan.content_recurring_desc') }}</span>
+                </a>
+
+                {{-- Get-together (M063): events.create had no entry point in the
+                     creation hub — the funnel started only from a URL. --}}
+                <a href="{{ route('events.create') }}" wire:navigate
+                        class="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-outline-variant/30 bg-surface-container-lowest hover:border-primary/50 hover:bg-surface-container-high transition-all active:scale-[0.98] cursor-pointer text-center">
+                    <span class="material-symbols-outlined text-4xl text-primary group-hover:scale-110 transition-transform" aria-hidden="true">festival</span>
+                    <span class="text-base font-heading font-semibold text-on-surface">{{ __('plan.content_get_together') }}</span>
+                    <span class="text-xs text-on-surface-variant">{{ __('plan.content_get_together_desc') }}</span>
                 </a>
             </div>
         </section>

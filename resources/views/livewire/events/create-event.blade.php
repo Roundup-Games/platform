@@ -1,9 +1,11 @@
+@section('title', __('events.action_create_event'))
+
 <div class="py-8 bg-surface">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 space-y-6">
         {{-- Page Header --}}
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('events.index') }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
+                <a href="{{ route('events.index') }}" wire:navigate aria-label="{{ __('events.action_back_to_events') }}" class="text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>
                 <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('events.action_create_event') }}</h1>
@@ -18,7 +20,7 @@
                     $stepLabels = [1 => __('profile.content_basic_info'), 2 => __('common.content_venue'), 3 => __('billing.field_fees_registration'), 4 => __('profile.content_rules_settings')];
                 @endphp
                 @foreach($stepLabels as $num => $label)
-                    <button wire:click="goToStep({{ $num }})"
+                    <button wire:click="goToStep({{ $num }})" aria-label="{{ __('common.content_step_x_of_y', ['current' => $num, 'total' => count($stepLabels)]) }}: {{ $label }}"
                             class="flex items-center gap-2 text-sm {{ $step === $num ? 'text-primary font-semibold' : ($step > $num ? 'text-secondary' : 'text-on-surface-variant/50') }}">
                         <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 {{ $step === $num ? 'border-primary bg-primary text-on-primary' : ($step > $num ? 'border-secondary bg-secondary text-on-secondary' : 'border-outline text-on-surface-variant/50') }}">
                             @if($step > $num)
@@ -34,6 +36,11 @@
                     @endif
                 @endforeach
             </div>
+            {{-- Current-step name: labels hide below sm, leaving four bare
+                 circles on phones — surface the active step explicitly. --}}
+            <p class="mt-2 text-xs text-on-surface-variant sm:hidden" aria-live="polite">
+                {{ __('common.content_step_x_of_y', ['current' => $step, 'total' => count($stepLabels)]) }} · {{ $stepLabels[$step] }}
+            </p>
         </div>
 
         {{-- Flash --}}
@@ -49,7 +56,7 @@
             <h2 class="text-lg font-medium text-on-surface font-heading">{{ __('profile.content_basic_information') }}</h2>
 
             <div>
-                <label for="content-language" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_content_language') }}</label>
+                <label for="content-language" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_content_language') }} <span class="text-error" title="{{ __('common.content_required') }}">*</span></label>
                 <select id="content-language" wire:model="language" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs">
                     @foreach(\App\Enums\ContentLanguage::cases() as $lang)
                         <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
@@ -77,7 +84,7 @@
             />
 
             <div>
-                <label for="event-type" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.content_event_type') }}</label>
+                <label for="event-type" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.content_event_type') }} <span class="text-error" title="{{ __('common.content_required') }}">*</span></label>
                 <select id="event-type" wire:model="type" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs">
                     @foreach(\App\Enums\EventType::cases() as $typeCase)
                         <option value="{{ $typeCase->value }}">{{ $typeCase->label() }}</option>
@@ -88,13 +95,13 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="event-start-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_start_date') }}</label>
+                    <label for="event-start-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_start_date') }} <span class="text-error" title="{{ __('common.content_required') }}">*</span></label>
                     <input type="date" id="event-start-date" wire:model="start_date"
                            class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                     @error('start_date') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label for="event-end-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_end_date') }}</label>
+                    <label for="event-end-date" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_end_date') }} <span class="text-error" title="{{ __('common.content_required') }}">*</span></label>
                     <input type="date" id="event-end-date" wire:model="end_date"
                            class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                     @error('end_date') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
@@ -248,12 +255,12 @@
             <div>
                 @if($step > 1)
                     <button wire:click="previousStep"
-                            class="px-4 py-2.5 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
+                            class="inline-flex items-center min-h-11 px-4 py-2.5 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
                         {{ __('common.content_back') }}
                     </button>
                 @else
                     <a href="{{ route('events.index') }}" wire:navigate
-                       class="px-4 py-2.5 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
+                       class="inline-flex items-center min-h-11 px-4 py-2.5 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
                         {{ __('common.action_cancel') }}
                     </a>
                 @endif
@@ -261,12 +268,12 @@
             <div>
                 @if($step < self::MAX_STEPS)
                     <button wire:click="nextStep"
-                            class="px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                            class="inline-flex items-center min-h-11 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
                         {{ __('common.action_next') }}
                     </button>
                 @else
                     <button wire:click="create" wire:loading.attr="disabled"
-                            class="px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                            class="inline-flex items-center min-h-11 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
                         <span wire:loading.remove>{{ __('events.action_create_event') }}</span>
                         <span wire:loading>{{ __('common.content_creating') }}</span>
                     </button>

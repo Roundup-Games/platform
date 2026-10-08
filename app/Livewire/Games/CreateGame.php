@@ -247,8 +247,10 @@ class CreateGame extends Component
         // Host-a-table context (?event={slug}): the host must pass
         // EventPolicy::update to even see the form. Checked again in save() —
         // permission may have been revoked between load and submit.
+        $hostingEvent = null;
         if ($this->event !== null && $this->event !== '') {
-            $this->authorize('update', $this->resolveHostingEvent());
+            $hostingEvent = $this->resolveHostingEvent();
+            $this->authorize('update', $hostingEvent);
         }
 
         // If a type was pre-selected via ?type= (e.g. from the Plan flow),
@@ -258,10 +260,14 @@ class CreateGame extends Component
                 $this->selectType($this->type);
             }
 
+            $this->applyHostingEventVisibilityDefault($hostingEvent);
+
             return;
         }
 
         if ($this->clone === null || $this->clone === '') {
+            $this->applyHostingEventVisibilityDefault($hostingEvent);
+
             return;
         }
 
@@ -331,6 +337,12 @@ class CreateGame extends Component
             'source_game_id' => $source->id,
             'user_id' => Auth::id(),
         ]);
+
+        // Cloning into a host-a-table context follows the same public-event
+        // visibility rule as a fresh table.
+        if ($this->event !== null && $this->event !== '') {
+            $this->applyHostingEventVisibilityDefault($this->resolveHostingEvent());
+        }
     }
 
     // ── Type Selection Actions ───────────────────────────
@@ -501,6 +513,20 @@ class CreateGame extends Component
         return Event::where('slug', $this->event)->firstOrFail();
     }
 
+    /**
+     * Tables hosted at a public get-together default to public visibility:
+     * the event page is a public surface and its join CTA routes through the
+     * game's detail page, so the old 'protected' default produced tables most
+     * event guests (and the event's own organizer) could not open. save()
+     * still guards the case where the host re-selects a restricted option.
+     */
+    protected function applyHostingEventVisibilityDefault(?Event $hostingEvent): void
+    {
+        if ($hostingEvent !== null && $hostingEvent->is_public) {
+            $this->visibility = Visibility::Public->value;
+        }
+    }
+
     public function save(): void
     {
         $this->authorize('create', Game::class);
@@ -524,6 +550,16 @@ class CreateGame extends Component
                     'event' => __('events.error_event_not_accepting_tables'),
                 ]);
             }
+
+            // Visibility guard (M063 follow-up): a table at a PUBLIC event must
+            // stay publicly visible — the event page advertises it and links
+            // here, so a restricted table would 403 for the guests it invites.
+            // Non-public (unlisted) events may keep restricted tables.
+            if ($hostingEvent->is_public && $this->visibility !== Visibility::Public->value) {
+                throw ValidationException::withMessages([
+                    'visibility' => __('events.error_event_table_visibility_public'),
+                ]);
+            }
         }
 
         if ($this->game_type === null) {
@@ -532,8 +568,12 @@ class CreateGame extends Component
             return;
         }
 
-        // Gate public visibility
-        if ($this->visibility === 'public' && ! $this->canCreatePublic) {
+        // Gate public visibility. Standalone games need venue trust; a table at
+        // a public get-together is exempt — the umbrella event is itself
+        // public, and its page routes guests to this table's detail page.
+        if ($this->visibility === 'public'
+            && ! $this->canCreatePublic
+            && ! ($hostingEvent !== null && $hostingEvent->is_public)) {
             $this->visibility = 'private';
         }
 

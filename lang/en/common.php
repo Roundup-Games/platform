@@ -195,6 +195,8 @@ return [
     'aria_main_navigation' => 'Main navigation',
     'content_social' => 'Social',
     'content_status' => 'Status',
+    'content_required' => 'Required',
+    'content_step_x_of_y' => 'Step :current of :total',
     'content_subject' => 'Subject',
     'content_subscribe' => 'Subscribe',
     'content_substitute' => 'Substitute',

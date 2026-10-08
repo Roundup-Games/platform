@@ -357,13 +357,21 @@
                             <label for="game-visibility" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_visibility') }} <span class="text-error">*</span></label>
                             <select id="game-visibility" wire:model="visibility"
                                     class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
-                                @if($this->canCreatePublic)
+                                @php($hostingEvent = $this->hostingEvent)
+                                @if($this->canCreatePublic || $hostingEvent?->is_public)
+                                    {{-- Public-event tables may always be public: the umbrella
+                                         event is itself public, so the venue-trust gate that
+                                         guards standalone public discovery does not apply. --}}
                                     <option value="public">{{ __('common.content_public_anyone_can_find_and_join') }}</option>
                                 @endif
                                 <option value="protected">{{ __('common.field_protected_only_with_link') }}</option>
                                 <option value="private">{{ __('common.content_private_invite_only') }}</option>
                             </select>
-                            @if(!$this->canCreatePublic)
+                            @if($hostingEvent?->is_public)
+                                {{-- Public-event rule: save() rejects restricted tables at
+                                     public get-togethers — say so before submit, not after. --}}
+                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('events.content_table_visibility_hint') }}</p>
+                            @elseif(!$this->canCreatePublic)
                                 <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('common.content_public_visibility_requires_admin_approval') }}</p>
                             @endif
                             @if($this->publicViaVenue)

@@ -7,6 +7,8 @@ return [
     'content_one_time_desc' => 'A single game — board game night, a one-shot adventure, or a casual gathering.',
     'content_recurring' => 'Recurring event',
     'content_recurring_desc' => 'A campaign or regular game night that repeats weekly, bi-weekly, or monthly.',
+    'content_get_together' => 'Get-together',
+    'content_get_together_desc' => 'A game day or convention with a registration list and hosted tables.',
     'content_smart_defaults_hint' => 'We\'ll pre-fill details from your previous sessions and preferences.',
     'action_plan_something' => 'Plan something',
 ];

@@ -1,26 +1,24 @@
+@section('title', __('events.content_announcements'))
+
 <div>
-    {{-- Header --}}
-    <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="font-semibold text-xl text-on-surface leading-tight">
-                    {{ __('events.content_announcements') }}
-                </h2>
-                <p class="text-sm text-on-surface-variant mt-1">{{ $event->name }}</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('events.manage', ['slug' => $event->slug]) }}" wire:navigate
-                   class="text-sm text-on-surface-variant hover:text-on-surface transition-colors">
-                    {{ __('events.content_back_to_event') }}
-                </a>
-                <button wire:click="showCreateForm"
-                        class="px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium inline-flex items-center gap-1">
-                    <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
-                    {{ __('events.content_new_announcement') }}
-                </button>
-            </div>
-        </div>
-    </x-slot>
+    {{-- Page header: back returns to the manage hub (label previously claimed
+         "Back to Event" while routing to manage). "New Announcement" lives in
+         the actions slot so creation is reachable on mobile — it was stranded
+         in the desktop-only header bar before. --}}
+    <x-page-header
+        :title="__('events.content_announcements')"
+        :subtitle="$event->name"
+        :backUrl="route('events.manage', ['slug' => $event->slug])"
+        :backLabel="__('events.action_back_to_manage')"
+    >
+        <x-slot:actions>
+            <button wire:click="showCreateForm"
+                    class="px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                {{ __('events.content_new_announcement') }}
+            </button>
+        </x-slot:actions>
+    </x-page-header>
 
     {{-- Flash --}}
     @if(session()->has('success'))

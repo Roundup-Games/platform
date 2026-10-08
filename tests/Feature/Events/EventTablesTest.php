@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Events\EventDetail;
 use App\Livewire\Events\ManageEvent;
 use App\Livewire\Games\CreateGame;
 use App\Livewire\Games\GameDetail;
@@ -517,5 +518,83 @@ describe('Host-a-table derived offering flush', function () {
         expect($fresh->offeredSystems())->toHaveCount(1)
             ->and($fresh->offeredSystems()->first()->id)
             ->toBe(Game::where('owner_id', $organizer->id)->firstOrFail()->gameSystems->first()->id);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// PUBLIC-EVENT TABLE VISIBILITY (M063 follow-up)
+//
+// The event page advertises tables and routes their join CTA through the
+// game detail page, so a restricted-visibility default produced tables
+// most event guests (and the event's own organizer) could not open.
+// ═══════════════════════════════════════════════════════════
+
+describe('Public-event table visibility', function () {
+    it('defaults tables at public events to public visibility', function () {
+        $organizer = eventTablesHost();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id, 'is_public' => true]);
+
+        $game = hostTableAtEvent($organizer, $event);
+
+        expect($game->visibility->value)->toBe('public');
+    });
+
+    it('keeps the protected default for tables at non-public events', function () {
+        $organizer = eventTablesHost();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id, 'is_public' => false]);
+
+        $game = hostTableAtEvent($organizer, $event);
+
+        expect($game->visibility->value)->toBe('protected');
+    });
+
+    it('rejects a restricted visibility for a table at a public event', function () {
+        $organizer = eventTablesHost();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id, 'is_public' => true]);
+
+        Livewire\Livewire::actingAs($organizer)
+            ->withQueryParams(['event' => $event->slug, 'type' => 'gathering'])
+            ->test(CreateGame::class)
+            ->set('name', 'Hidden Table')
+            ->set('game_systems', [GameSystem::factory()->create()->id])
+            ->set('date_time', now()->addWeek()->format('Y-m-d\TH:i'))
+            ->set('max_players', 12)
+            ->set('visibility', 'protected')
+            ->call('save')
+            ->assertHasErrors(['visibility' => __('events.error_event_table_visibility_public')]);
+
+        expect(Game::where('owner_id', $organizer->id)->exists())->toBeFalse();
+    });
+
+    it('hides tables the viewer cannot open from the event tables map', function () {
+        $organizer = eventTablesHost();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id, 'is_public' => true]);
+        $tableHost = eventTablesHost();
+
+        Game::factory()->gathering()->event($event)->create([
+            'owner_id' => $tableHost->id,
+            'visibility' => 'public',
+            'name' => 'Open Table',
+            'date_time' => now()->addDays(3),
+        ]);
+        Game::factory()->gathering()->event($event)->create([
+            'owner_id' => $tableHost->id,
+            'visibility' => 'private',
+            'name' => 'Secret Table',
+            'date_time' => now()->addDays(3),
+        ]);
+        // Flush the derived-offering cache the component and card read.
+        $event->flushOfferedSystemsCache();
+
+        // A guest sees only the public table; the private one never renders.
+        $html = Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])->html();
+        expect($html)->toContain('Open Table')
+            ->and($html)->not->toContain('Secret Table');
+
+        // The organizer sees both through the event-oversight policy bypass.
+        $htmlAsOrganizer = Livewire\Livewire::actingAs($organizer)
+            ->test(EventDetail::class, ['slug' => $event->slug])->html();
+        expect($htmlAsOrganizer)->toContain('Open Table')
+            ->and($htmlAsOrganizer)->toContain('Secret Table');
     });
 });
