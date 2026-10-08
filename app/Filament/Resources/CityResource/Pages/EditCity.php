@@ -30,7 +30,8 @@ class EditCity extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $data['slug'] = Str::slug((string) ($data['city'] ?? ''));
+        $city = $data['city'] ?? null;
+        $data['slug'] = Str::slug(is_string($city) ? $city : '');
 
         return $data;
     }

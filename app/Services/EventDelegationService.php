@@ -260,13 +260,18 @@ class EventDelegationService
      */
     private function scopedCoOrganizerAssignments(Event $event): Collection
     {
-        return DB::table('model_has_roles')
+        // Raw pivot rows straight from the DB; the column contract is a
+        // uuid string key and a nullable string grant timestamp.
+        /** @var Collection<int, object{model_id: string, created_at: string|null}> $rows */
+        $rows = DB::table('model_has_roles')
             ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
             ->where('roles.name', self::ROLE_NAME)
             ->whereNull('roles.team_id')
             ->where('model_has_roles.team_id', $event->id)
             ->where('model_has_roles.model_type', User::class)
             ->get(['model_has_roles.model_id', 'model_has_roles.created_at']);
+
+        return $rows;
     }
 
     /**

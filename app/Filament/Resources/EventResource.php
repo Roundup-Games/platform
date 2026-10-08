@@ -187,7 +187,7 @@ class EventResource extends Resource
                             ->label('Paddle Price ID')
                             ->maxLength(255)
                             ->helperText('Paddle Billing price ID (starts with "pri_") for the one-time ticket checkout. Create it under Products in the Paddle dashboard.')
-                            ->visible(fn (Get $get): bool => (int) $get('individual_registration_fee') > 0)
+                            ->visible(fn (Get $get): bool => is_numeric($fee = $get('individual_registration_fee')) && (int) $fee > 0)
                             ->afterStateHydrated(fn (Set $set, ?Event $record) => $set('paddle_price_id', $record?->paddle_price_id)),
                     ]),
 

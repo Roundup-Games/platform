@@ -27,7 +27,8 @@ class CreateCity extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['slug'] = Str::slug((string) ($data['city'] ?? ''));
+        $city = $data['city'] ?? null;
+        $data['slug'] = Str::slug(is_string($city) ? $city : '');
 
         return $data;
     }

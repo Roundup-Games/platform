@@ -148,6 +148,16 @@ class EventLifecycleService
         }
 
         $event = $announcement->loadMissing(['event', 'author'])->event;
+
+        if (! $event instanceof Event) {
+            Log::error('event.announcement_notifications_skipped_missing_event', [
+                'announcement_id' => $announcement->id,
+                'event_id' => $announcement->event_id,
+            ]);
+
+            return;
+        }
+
         $recipients = User::query()
             ->whereHas('eventRegistrations', fn ($query) => $query
                 ->where('event_id', $announcement->event_id)

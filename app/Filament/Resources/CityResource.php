@@ -70,8 +70,8 @@ class CityResource extends Resource
                                     ->helperText('Derived from the selected city (/cities/{slug}) — München slugs to munchen.'),
                                 Select::make('region_prefix')
                                     ->label('Region prefix')
-                                    ->options(fn (Get $get): array => static::regionPrefixOptions($get('city')))
-                                    ->visible(fn (Get $get): bool => count(static::regionPrefixOptions($get('city'))) > 1)
+                                    ->options(fn (Get $get): array => static::regionPrefixOptions(is_string($city = $get('city')) ? $city : null))
+                                    ->visible(fn (Get $get): bool => count(static::regionPrefixOptions(is_string($city = $get('city')) ? $city : null)) > 1)
                                     ->helperText('Offered only when this city spans multiple geohash regions — pins an ambiguous cluster to one.'),
                             ]),
                     ]),
@@ -169,6 +169,7 @@ class CityResource extends Resource
             ->distinct()
             ->orderBy('city')
             ->pluck('city', 'city')
+            ->filter(fn ($city): bool => is_string($city))
             ->all();
 
         if (is_string($include) && $include !== '' && ! array_key_exists($include, $options)) {
@@ -198,6 +199,7 @@ class CityResource extends Resource
             ->where('city', $city)
             ->whereNotNull('geohash_4')
             ->pluck('geohash_4')
+            ->filter(fn ($geohash): bool => is_string($geohash))
             ->map(fn (string $geohash): string => substr($geohash, 0, 3))
             ->countBy()
             ->sortKeys()

@@ -3,10 +3,12 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
+use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\User;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
+use LogicException;
 
 /**
  * Registration confirmation for an event (M063/S03).
@@ -32,12 +34,23 @@ class EventRegistrationConfirmed extends BaseNotification
     ) {}
 
     /**
+     * The confirmed event, guaranteed present. Every render channel needs
+     * it; a registration whose event vanished is a data-integrity failure
+     * worth a named exception, not a string-collapse of null into copy.
+     */
+    private function event(): Event
+    {
+        return $this->registration->event
+            ?? throw new LogicException('Event registration is missing its event: '.$this->registration->id);
+    }
+
+    /**
      * Get the mail representation of the notification.
      */
     public function toMail(User $notifiable): MailMessage
     {
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $event = $this->registration->event;
+        $event = $this->event();
 
         $mail = (new MailMessage)
             ->subject(__('emails.field_event_registration_confirmed_name', [
@@ -87,7 +100,7 @@ class EventRegistrationConfirmed extends BaseNotification
     public function toDatabase(User $notifiable): array
     {
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $event = $this->registration->event;
+        $event = $this->event();
 
         return [
             'type' => 'event_registration',
@@ -108,7 +121,7 @@ class EventRegistrationConfirmed extends BaseNotification
     public function toPush(User $notifiable): PushPayload
     {
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $event = $this->registration->event;
+        $event = $this->event();
 
         return new PushPayload(
             title: __('emails.content_event_registration_confirmed'),
@@ -127,7 +140,7 @@ class EventRegistrationConfirmed extends BaseNotification
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
         $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $event = $this->registration->event;
+        $event = $this->event();
 
         return DiscordWebhookPayload::embed([
             'title' => __('emails.content_event_registration_confirmed'),

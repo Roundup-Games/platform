@@ -266,7 +266,7 @@ class Event extends Model implements HasMedia
     {
         $count = $this->attributes['tables_count'] ?? null;
 
-        return $count !== null ? (int) $count : (int) $this->tables()->count();
+        return is_numeric($count) ? (int) $count : (int) $this->tables()->count();
     }
 
     // ── Derived Offering (M063/S06/T02) ────────────────
@@ -293,7 +293,7 @@ class Event extends Model implements HasMedia
      */
     public function flushOfferedSystemsCache(): void
     {
-        static::flushOfferedSystemsCacheFor((string) $this->getKey());
+        static::flushOfferedSystemsCacheFor($this->id);
     }
 
     /**
@@ -322,8 +322,9 @@ class Event extends Model implements HasMedia
      */
     public function offeredSystems(): Collection
     {
-        $cacheKey = static::offeredSystemsCacheKey((string) $this->getKey());
-        $ttl = now()->addSeconds((int) config('discovery.cache_ttl', 900));
+        $cacheKey = static::offeredSystemsCacheKey($this->id);
+        $configuredTtl = config('discovery.cache_ttl', 900);
+        $ttl = now()->addSeconds(is_numeric($configuredTtl) ? (int) $configuredTtl : 900);
 
         // Zero-query path: tables and their systems already in memory
         // (EventDetail::render eager-loads exactly this shape). The union

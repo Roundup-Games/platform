@@ -16,9 +16,13 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use LaraZeus\SpatieTranslatable\Actions\LocaleSwitcher;
+use LaraZeus\SpatieTranslatable\Resources\RelationManagers\Concerns\Translatable;
 
 class AnnouncementsRelationManager extends RelationManager
 {
+    use Translatable;
+
     protected static string $relationship = 'announcements';
 
     protected static ?string $title = 'Announcements';
@@ -88,6 +92,12 @@ class AnnouncementsRelationManager extends RelationManager
                 DeleteAction::make(),
             ])
             ->toolbarActions([
+                // Locale switcher: EditAction fills/saves the announcement's
+                // translatable title/content for the selected locale (via the
+                // plugin's SpatieTranslatableContentDriver wired by the
+                // Translatable concern above). Without it only the default
+                // locale would be editable here.
+                LocaleSwitcher::make(),
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

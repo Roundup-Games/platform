@@ -5,6 +5,7 @@ namespace App\Filament\Resources\EventResource\Pages;
 use App\Enums\EventStatus;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\EventResource;
+use App\Models\Event;
 use App\Services\EventLifecycleService;
 use App\Services\SeoCacheService;
 use Filament\Actions\DeleteAction;
@@ -17,9 +18,28 @@ class EditEvent extends EditRecord
 {
     use TransformsLocaleSwitchWithoutValidation, Translatable {
         TransformsLocaleSwitchWithoutValidation::updatedActiveLocale insteadof Translatable;
+        Translatable::mountTranslatable as mountTranslatableFromPlugin;
     }
 
     protected static string $resource = EventResource::class;
+
+    /**
+     * Livewire runs trait mount hooks AFTER the class mount(), so the
+     * plugin's mountTranslatable unconditionally resets activeLocale to the
+     * resource-default locale — after fillForm already resolved the
+     * record-aware default (HasTranslatableFormWithExistingRecordData) via
+     * `??=`. That stomp mislabels the form's locale: content filled from a
+     * de-only record would render under "English" and edits would be
+     * written to the wrong translation. fillForm always seeds the property,
+     * so only fall back to the plugin's seeding when it somehow stayed
+     * blank.
+     */
+    public function mountTranslatable(): void
+    {
+        if (blank($this->activeLocale)) {
+            $this->mountTranslatableFromPlugin();
+        }
+    }
 
     protected function getHeaderActions(): array
     {
@@ -50,6 +70,13 @@ class EditEvent extends EditRecord
      */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
+        // This resource only edits events; the narrowing keeps the
+        // lifecycle write type-safe under strict analysis without
+        // changing the parent contract.
+        if (! $record instanceof Event) {
+            return parent::handleRecordUpdate($record, $data);
+        }
+
         $cancelling = ($data['status'] ?? null) === EventStatus::Cancelled->value
             && $record->status !== EventStatus::Cancelled;
 
@@ -57,7 +84,9 @@ class EditEvent extends EditRecord
             unset($data['status']);
         }
 
-        $record = parent::handleRecordUpdate($record, $data);
+        // parent saves and returns the same instance; keeping our narrowed
+        // $record (Event) lets the lifecycle call below stay type-safe.
+        parent::handleRecordUpdate($record, $data);
 
         if ($cancelling) {
             app(EventLifecycleService::class)->cancel($record);

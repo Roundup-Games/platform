@@ -444,7 +444,8 @@ class CityDirectoryService
      */
     private function knownCitySlugs(): Collection
     {
-        return Location::query()
+        /** @var Collection<int, string> $slugs */
+        $slugs = Location::query()
             ->whereNotNull('city')
             ->whereNotNull('geohash_4')
             ->distinct()
@@ -454,6 +455,8 @@ class CityDirectoryService
             ->filter()
             ->unique()
             ->values();
+
+        return $slugs;
     }
 
     /**

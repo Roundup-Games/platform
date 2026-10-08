@@ -136,9 +136,16 @@ class CityHubSettingsPage extends Page
     {
         $data = $this->form->getState();
 
-        app(CityHubSettings::class)->set(
-            (int) $data['min_upcoming_sessions'],
-            (int) $data['min_verified_venues'],
+        $minUpcomingSessions = $data['min_upcoming_sessions'] ?? null;
+        $minVerifiedVenues = $data['min_verified_venues'] ?? null;
+
+        // Validation (numeric + required) guarantees numeric state; the
+        // fallback keeps the service's resolved config defaults rather
+        // than silently zeroing a threshold if that ever changes.
+        $settings = app(CityHubSettings::class);
+        $settings->set(
+            is_numeric($minUpcomingSessions) ? (int) $minUpcomingSessions : $settings->minUpcomingSessions(),
+            is_numeric($minVerifiedVenues) ? (int) $minVerifiedVenues : $settings->minVerifiedVenues(),
         );
 
         // A threshold change re-rates every city: drop all cached
