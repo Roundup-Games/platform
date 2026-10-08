@@ -6,8 +6,8 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -30,7 +30,7 @@ class AnnouncementsRelationManager extends RelationManager
                 Grid::make(1)
                     ->schema([
                         TextInput::make('title')->required()->maxLength(255),
-                        RichEditor::make('content')->required()->columnSpanFull(),
+                        Textarea::make('content')->required()->columnSpanFull(),
                         Grid::make(3)
                             ->schema([
                                 Select::make('author_id')

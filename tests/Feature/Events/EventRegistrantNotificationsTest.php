@@ -1,6 +1,7 @@
 <?php
 
 use App\Filament\Resources\EventResource\Pages\EditEvent;
+use App\Filament\Resources\EventResource\RelationManagers\AnnouncementsRelationManager;
 use App\Livewire\Events\EventAnnouncements;
 use App\Livewire\Events\ManageEvent;
 use App\Livewire\Events\RegisterForEvent;
@@ -618,5 +619,47 @@ describe('Unsubscribe links in registrant mail', function () {
             ->toContain('/en/events/'.$event->slug)
             ->toContain('/notifications/unsubscribe/'.$user->id.'/event_registration')
             ->toContain('signature=');
+    });
+});
+
+// ── Announcement relation manager cross-surface hydration (M063/S07/T04) ──
+
+describe('Announcement relation manager — Filament admin path', function () {
+    beforeEach(function () {
+        seedRoles();
+
+        setPermissionsTeamId(null);
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $this->platformAdmin = User::factory()->create();
+        $this->platformAdmin->assignRole('Platform Admin');
+        $this->platformAdmin->unsetRelations();
+
+        Filament::setCurrentPanel('admin');
+    });
+
+    it('mounts the edit action for announcements authored through the organizer surface without error', function () {
+        // Regression (M063/S07/T04): the relation manager previously used a
+        // RichEditor for content, whose state cast feeds the stored value
+        // into Tiptap's document parser — a 500 for every announcement
+        // stored as plain translatable text by the Livewire organizer
+        // surface. The form must hydrate from that shape.
+        $organizer = User::factory()->create();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
+        $announcement = $event->announcements()->create([
+            'author_id' => $organizer->id,
+            'title' => ['en' => 'Livewire-authored announcement'],
+            'content' => ['en' => 'Plain text stored by the organizer announcements form.'],
+            'is_published' => false,
+        ]);
+
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(AnnouncementsRelationManager::class, [
+            'ownerRecord' => $event,
+            'pageClass' => EditEvent::class,
+        ])
+            ->mountTableAction('edit', $announcement)
+            ->assertSuccessful();
     });
 });
