@@ -140,6 +140,9 @@ return [
     'verb_game_system_request_duplicate' => 'Spielsystem-Anfrage als Duplikat markiert',
     // Veranstaltungen (M063 Registranten-Kommunikation)
     'verb_event_registration' => 'Anmeldung bestätigt',
+    'verb_event_cancelled' => 'Veranstaltung abgesagt',
+    'verb_event_announcement_published' => 'Neue Ankündigung',
+    'verb_event_co_organizer_added' => 'Als Co-Organisator hinzugefügt',
     // Teilnahme-Lebenszyklus-Verben (Bank, Warteliste, Degradierung)
     'verb_waitlist_placed' => 'hat dich auf die Warteliste gesetzt für',
     'verb_waitlist_promoted' => 'hat dich von der Warteliste befördert für',

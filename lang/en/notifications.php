@@ -144,6 +144,9 @@ return [
     'verb_game_system_request_duplicate' => 'Game system request marked as duplicate',
     // Events (M063 registrant communications)
     'verb_event_registration' => 'Registration confirmed',
+    'verb_event_cancelled' => 'Event cancelled',
+    'verb_event_announcement_published' => 'New announcement',
+    'verb_event_co_organizer_added' => 'Added as co-organizer',
     // Participation lifecycle verbs (bench, waitlist, demotion)
     'verb_waitlist_placed' => 'placed you on the waitlist for',
     'verb_waitlist_promoted' => 'promoted you off the waitlist for',

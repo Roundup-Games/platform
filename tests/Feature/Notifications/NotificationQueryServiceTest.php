@@ -1,9 +1,14 @@
 <?php
 
+use App\Models\Event;
+use App\Models\EventAnnouncement;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\EntityCancelled;
 use App\Notifications\EntityInvitation;
+use App\Notifications\EventAnnouncementPublished;
+use App\Notifications\EventCancelled;
+use App\Notifications\EventCoOrganizerAdded;
 use App\Notifications\NewFollower;
 use App\Notifications\ParticipantJoined;
 use App\Services\NotificationQueryService;
@@ -187,6 +192,35 @@ describe('display strings', function () {
 
         expect($group->actorNames)->toBeEmpty();
         expect($group->displayString)->toBe('Game cancelled: Epic Quest');
+    });
+
+    it('labels each event notification type with its own verb instead of the shared registration-category verb', function () {
+        $organizer = User::factory()->create();
+        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
+        $announcement = EventAnnouncement::create([
+            'event_id' => $event->id,
+            'author_id' => $organizer->id,
+            'title' => ['en' => 'Schedule update'],
+            'content' => ['en' => 'Doors open at 10:00.'],
+            'is_published' => true,
+            'visibility' => 'registered',
+        ]);
+
+        // All three share data.type 'event_registration' for category grouping;
+        // their bell-row display must still resolve a type-specific verb.
+        $this->user->notify(new EventCoOrganizerAdded($event, $organizer));
+        $this->user->notify(new EventCancelled($event));
+        $this->user->notify(new EventAnnouncementPublished($announcement, $event));
+
+        $byType = $this->service->getGroupedForUser($this->user)->keyBy('type');
+
+        expect($byType['EventCoOrganizerAdded']->displayString)->toBe('Added as co-organizer: '.$event->name);
+        expect($byType['EventCancelled']->displayString)->toBe('Event cancelled: '.$event->name);
+        expect($byType['EventAnnouncementPublished']->displayString)->toBe('New announcement: '.$event->name);
+
+        foreach ($byType as $display) {
+            expect($display->displayString)->not->toContain('Registration confirmed');
+        }
     });
 
     it('handles invitation display strings with entity context', function () {
