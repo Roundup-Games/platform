@@ -24,6 +24,22 @@ tests
 .php-cs-fixer.cache
 docker/entrypoint.sh
 
+# Build artifacts and dev-server state — the frontend stage produces
+# public/build inside the image; a local copy would ship stale hashed assets
+# only for the next layer to overwrite them. public/hot is the vite dev
+# marker: baking it in makes Laravel load assets from the dev server URL in
+# production.
+/public/build
+/public/hot
+
+# Dev-only runtime state (logs, framework caches, converted media). Nothing
+# under storage/ is tracked except .gitignore placeholders; the app stage
+# creates the runtime dirs and production data lives on volumes.
+/storage
+
+# Local agent-tooling files, not runtime content.
+/.agents
+
 # Local Laravel cache files — generated in dev, must not leak into the prod image.
 # bootstrap/cache/packages.php & services.php are regenerated at build time from
 # the prod vendor; shipping the dev version (which references laravel/pail etc.)

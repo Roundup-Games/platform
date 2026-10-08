@@ -82,7 +82,7 @@ class EventLifecycleService
     {
         $recipients = User::query()
             ->whereHas('eventRegistrations', fn ($query) => $query
-                ->where('event_id', $event->id)
+                ->whereBelongsTo($event)
                 ->whereNotIn('status', ['cancelled']))
             ->get();
 

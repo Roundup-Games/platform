@@ -57,14 +57,34 @@ if ! command -v rg &>/dev/null; then
 fi
 
 # scan <label> <pattern> <path>
+#
+# Line-based rules honour an inline exemption: append `// baseline-ignore`
+# (with a reason) to the offending line. Exempted hits are REPORTED, not
+# silenced — an exemption that nobody can see is a hole in the guardrail.
+# This exists for raw pivots where the model-aware API genuinely does not
+# apply (e.g. the Spatie model_has_roles team discriminator, which stores a
+# non-FK id by design). It is NOT a waiver for lazy id-plumbing on model
+# queries. Applies to scan() only; scan_ml() counts matches inside a single
+# multiline match and cannot filter embedded lines.
 scan() {
     local label="$1" pattern="$2" path="$3"
     local matches
     matches=$(rg -n -e "${pattern}" "${path}" 2>/dev/null || true)
     # Drop non-Eloquent query-builder contexts (no model-aware API available).
-    matches=$(printf '%s\n' "${matches}" | grep -v -e 'DB::table(' -e '->from(' || true)
+    matches=$(printf '%s\n' "${matches}" \
+        | grep -v -e 'DB::table(' -e '->from(' || true)
+    # Count annotation exemptions on what survived the builder filter, then
+    # drop them too — the message reports only deliberate baseline-ignore
+    # exemptions, not the builder-line exclusions that always existed.
+    local exempted
+    exempted=$(printf '%s\n' "${matches}" | grep -c 'baseline-ignore' || true)
+    matches=$(printf '%s\n' "${matches}" | grep -v -e 'baseline-ignore' || true)
     if [[ -z "${matches}" ]]; then
-        printf '  %b✅ %-9s%b %s\n' "${GRN}" "${label}" "${RST}" "clean"
+        if [[ "${exempted}" -gt 0 ]]; then
+            printf '  %b⭕ %-9s%b %s (%d exempted via baseline-ignore)\n' "${YLW}" "${label}" "${RST}" "clean" "${exempted}"
+        else
+            printf '  %b✅ %-9s%b %s\n' "${GRN}" "${label}" "${RST}" "clean"
+        fi
         return 0
     fi
     local count

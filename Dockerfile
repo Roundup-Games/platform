@@ -85,7 +85,11 @@ FROM base AS app
 COPY --chown=www-data:www-data composer.json composer.lock ./
 # Create autoload.files entries before install — source isn't copied yet
 RUN mkdir -p app && touch app/helpers.php
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+# Cache mount keeps package downloads across lockfile bumps; the layer
+# itself only re-runs when composer.json/lock change.
+RUN --mount=type=cache,target=/tmp/composer-cache \
+    COMPOSER_CACHE_DIR=/tmp/composer-cache \
+    composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 
 # Copy application source
 COPY --chown=www-data:www-data . .
@@ -97,15 +101,15 @@ RUN bash scripts/patch-escalated-uuid.sh
 # Regenerate the package-discovery cache from the prod vendor. Any host cache
 # (which may reference dev-only providers like laravel/pail, absent under
 # --no-dev) is discarded so artisan boots cleanly. Belt-and-suspenders with
-# the .dockerignore exclusion of bootstrap/cache/*.php.
+# the .dockerignore exclusion of bootstrap/cache/*.php. Needs the writable
+# runtime dirs — the build context no longer ships dev storage/.
 RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php \
+ && mkdir -p storage/framework/sessions storage/framework/views \
+             storage/framework/cache storage/logs bootstrap/cache \
  && php artisan package:discover --ansi
 
-# Storage link and ensure writable dirs
-RUN php artisan storage:link --force || true \
- && mkdir -p storage/framework/{sessions,views,cache} \
-             storage/logs \
-             bootstrap/cache
+# Storage link (public/storage -> storage/app/public)
+RUN php artisan storage:link --force || true
 
 # S6 init script — runs migrations, caches config on every start
 # Must come after source is copied so artisan is available at runtime
@@ -121,9 +125,19 @@ FROM app AS worker
 
 USER root
 
-# Remove nginx and php-fpm from the user bundle
-RUN rm /etc/s6-overlay/s6-rc.d/user/contents.d/nginx \
-   && rm /etc/s6-overlay/s6-rc.d/user/contents.d/php-fpm
+# Remove nginx and php-fpm from the service tree. serversideup restructured
+# their s6 layout (found 2026-10): nginx/php-fpm are now top-level services
+# with bundle markers in /etc/s6-overlay/user-bundles.d/user/contents.d; the
+# old /etc/s6-overlay/s6-rc.d/user/contents.d location is gone. Strip both
+# layouts — a surviving bundle marker pointing at a removed service makes
+# s6-rc-compile fail at container start, crash-looping the worker. The final
+# assertion fails the build if any nginx/php-fpm artifact survives anywhere
+# under /etc/s6-overlay.
+RUN set -eux; \
+    rm -rf /etc/s6-overlay/s6-rc.d/nginx /etc/s6-overlay/s6-rc.d/php-fpm; \
+    find /etc/s6-overlay -depth -type d -name contents.d \
+        -exec rm -f {}/nginx {}/php-fpm \; ; \
+    ! find /etc/s6-overlay \( -name nginx -o -name php-fpm \) | grep -q .
 
 # Raise PHP memory limit for image conversion jobs — GD decompresses large
 # images into bitmaps that can exceed the default 256 MB limit.
@@ -133,8 +147,12 @@ COPY --chown=www-data:www-data docker/s6-worker/queue/php-memory.ini /usr/local/
 COPY --chmod=755 docker/s6-worker/queue/ /etc/s6-overlay/s6-rc.d/queue/
 COPY --chmod=755 docker/s6-worker/scheduler/ /etc/s6-overlay/s6-rc.d/scheduler/
 
-# Register queue and scheduler in the user bundle
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/queue \
-   && touch /etc/s6-overlay/s6-rc.d/user/contents.d/scheduler
+# Register queue and scheduler in the bundle s6 starts. Its location
+# depends on the base image layout (new: user-bundles.d/user; legacy:
+# s6-rc.d/user).
+RUN set -eux; \
+    reg=/etc/s6-overlay/s6-rc.d/user/contents.d; \
+    [ -d "$reg" ] || reg=/etc/s6-overlay/user-bundles.d/user/contents.d; \
+    mkdir -p "$reg"; touch "$reg/queue" "$reg/scheduler"
 
 USER www-data
