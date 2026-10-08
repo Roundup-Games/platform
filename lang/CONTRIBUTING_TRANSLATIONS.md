@@ -62,7 +62,7 @@ Each domain file returns a **flat associative array** mapping `prefix_slug` → 
 | **common** | `common.php` | Strings shared across 3+ domains (generic labels, buttons) |
 | **discovery** | `discovery.php` | Search, filtering, browse/discovery UI |
 | **emails** | `emails.php` | Email templates, notification body copy |
-| **events** | `events.php` | Events, tournaments, registrations, announcements |
+| **events** | `events.php` | Events, game days, registrations, announcements |
 | **games** | `games.php` | Board games, RPGs, game details, BGG integration |
 | **location** | `location.php` | Venues, addresses, maps, geographic data |
 | **pages** | `pages.php` | Static/landing page content, marketing copy |
@@ -94,7 +94,7 @@ Derive the slug from the English value: lowercase, strip special characters, rep
 
 | English value | Key |
 |---------------|-----|
-| Add competitive divisions for your event. | `action_add_competitive_divisions_for_your_event` |
+| Join waitlist | `action_join_waitlist` |
 | Browse Events → | `action_browse_events` |
 | About this event | `content_about_this_event` |
 
@@ -328,7 +328,7 @@ Each PHP file returns a flat associative array. Keys are sorted alphabetically:
 ```php
 <?php
 return [
-    'action_add_division' => 'Add Division',
+    'action_browse_events' => 'Browse Events',
     'action_cancel_event' => 'Cancel Event',
     'content_about_this_event' => 'About this event',
     'error_registration_closed' => 'Registration is closed for this event.',

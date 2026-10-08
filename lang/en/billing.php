@@ -67,8 +67,6 @@ return [
     'field_next_billing_date' => 'Next billing date',
     'field_payment_pending' => 'Payment Pending',
     'field_registration_fees' => 'Registration & Fees',
-    'field_team_fee' => 'Team Fee',
-    'field_team_registration_fee' => 'Team Registration Fee',
     'field_update_payment_method' => 'Update Payment Method',
     'flash_are_you_sure_you_want_to_resume_your_subscription' => 'Are you sure you want to resume your subscription?',
     'flash_mark_payment_as_received' => 'Mark payment as received?',

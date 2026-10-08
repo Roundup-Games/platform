@@ -67,8 +67,6 @@ return [
     'field_next_billing_date' => 'Nächstes Abbuchungsdatum',
     'field_payment_pending' => 'Zahlung ausstehend',
     'field_registration_fees' => 'Anmeldung & Gebühren',
-    'field_team_fee' => 'Teamgebühr',
-    'field_team_registration_fee' => 'Team-Anmeldegebühr',
     'field_update_payment_method' => 'Zahlungsmethode aktualisieren',
     'flash_are_you_sure_you_want_to_resume_your_subscription' => 'Bist du sicher, dass du dein Abonnement fortsetzen möchtest?',
     'flash_mark_payment_as_received' => 'Zahlung als eingegangen markieren?',
