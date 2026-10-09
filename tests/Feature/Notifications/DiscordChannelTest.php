@@ -222,7 +222,6 @@ class DiscordChannelTest extends TestCase
     #[Test]
     public function send_skips_with_no_linked_account_reason_when_user_has_no_discord_account(): void
     {
-        Http::fake(); // no calls should happen
 
         Log::spy();
 
@@ -243,8 +242,6 @@ class DiscordChannelTest extends TestCase
     {
         config()->set('services.discord.publishing_enabled', false);
 
-        Http::fake();
-
         Log::spy();
 
         $user = $this->linkedUser();
@@ -264,8 +261,6 @@ class DiscordChannelTest extends TestCase
     {
         config()->set('services.discord.bot_token', '');
 
-        Http::fake();
-
         Log::spy();
 
         $user = $this->linkedUser();
@@ -283,7 +278,6 @@ class DiscordChannelTest extends TestCase
     #[Test]
     public function send_skips_with_bot_token_missing_reason_when_client_is_null(): void
     {
-        Http::fake();
 
         Log::spy();
 
@@ -303,7 +297,6 @@ class DiscordChannelTest extends TestCase
     #[Test]
     public function send_skips_with_dm_opt_out_reason_when_to_discord_returns_null(): void
     {
-        Http::fake();
 
         Log::spy();
 

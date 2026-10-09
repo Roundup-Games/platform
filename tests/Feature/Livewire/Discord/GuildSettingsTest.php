@@ -211,8 +211,6 @@ class GuildSettingsTest extends TestCase
     {
         $landlord = $this->landlord();
 
-        Http::fake();
-
         $response = $this->actingAs($landlord)
             ->withSession(['locale' => 'en', 'discord_install_state' => 'valid-install-state'])
             ->get('/discord/install/callback?'.http_build_query([

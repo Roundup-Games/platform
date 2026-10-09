@@ -99,6 +99,14 @@ it('validates gender is optional on step 2', function () {
 });
 
 it('stores gender as null when consent is not given during onboarding', function () {
+    // Complete-profile geocodes the submitted city; keep it off the network.
+    Http::fake(['*nominatim*' => Http::response([[
+        'lat' => '52.5200',
+        'lon' => '13.4050',
+        'display_name' => 'Berlin, Germany',
+        'place_id' => 12345,
+        'address' => ['city' => 'Berlin'],
+    ]])]);
     $user = User::factory()->create(['profile_complete' => false]);
 
     startAtStep2($user)
@@ -115,6 +123,14 @@ it('stores gender as null when consent is not given during onboarding', function
 });
 
 it('stores gender when consent is given during onboarding', function () {
+    // Complete-profile geocodes the submitted city; keep it off the network.
+    Http::fake(['*nominatim*' => Http::response([[
+        'lat' => '52.5200',
+        'lon' => '13.4050',
+        'display_name' => 'Berlin, Germany',
+        'place_id' => 12345,
+        'address' => ['city' => 'Berlin'],
+    ]])]);
     $user = User::factory()->create(['profile_complete' => false]);
 
     startAtStep2($user)
@@ -179,6 +195,14 @@ it('goes back to previous step', function () {
 
 // smoke: core onboarding flow completes and redirects to dashboard
 it('completes profile and redirects to dashboard', function () {
+    // Complete-profile geocodes the submitted city; keep it off the network.
+    Http::fake(['*nominatim*' => Http::response([[
+        'lat' => '52.5200',
+        'lon' => '13.4050',
+        'display_name' => 'Berlin, Germany',
+        'place_id' => 12345,
+        'address' => ['city' => 'Berlin'],
+    ]])]);
     $user = User::factory()->create(['profile_complete' => false]);
 
     startAtStep2($user)
@@ -202,6 +226,14 @@ it('completes profile and redirects to dashboard', function () {
 })->group('smoke');
 
 it('syncs favorite game systems on completion', function () {
+    // Complete-profile geocodes the submitted city; keep it off the network.
+    Http::fake(['*nominatim*' => Http::response([[
+        'lat' => '52.5200',
+        'lon' => '13.4050',
+        'display_name' => 'Berlin, Germany',
+        'place_id' => 12345,
+        'address' => ['city' => 'Berlin'],
+    ]])]);
     $user = User::factory()->create(['profile_complete' => false]);
     $gs1 = GameSystem::create(['name' => ['en' => 'D&D 5e'], 'slug' => 'dnd-5e']);
     $gs2 = GameSystem::create(['name' => ['en' => 'Pathfinder'], 'slug' => 'pathfinder']);
@@ -304,6 +336,14 @@ it('pre-fills existing user data from OAuth on mount', function () {
 });
 
 it('replaces game system preferences on re-sync', function () {
+    // Complete-profile geocodes the submitted city; keep it off the network.
+    Http::fake(['*nominatim*' => Http::response([[
+        'lat' => '52.5200',
+        'lon' => '13.4050',
+        'display_name' => 'Berlin, Germany',
+        'place_id' => 12345,
+        'address' => ['city' => 'Berlin'],
+    ]])]);
     $user = User::factory()->create(['profile_complete' => false]);
     $gs1 = GameSystem::create(['name' => ['en' => 'D&D 5e'], 'slug' => 'dnd-5e']);
     $gs2 = GameSystem::create(['name' => ['en' => 'Pathfinder'], 'slug' => 'pathfinder']);
@@ -381,6 +421,14 @@ it('rejects all non-existent game system IDs during onboarding', function () {
 });
 
 it('accepts valid game system IDs during onboarding', function () {
+    // Complete-profile geocodes the submitted city; keep it off the network.
+    Http::fake(['*nominatim*' => Http::response([[
+        'lat' => '52.5200',
+        'lon' => '13.4050',
+        'display_name' => 'Berlin, Germany',
+        'place_id' => 12345,
+        'address' => ['city' => 'Berlin'],
+    ]])]);
     $user = User::factory()->create(['profile_complete' => false]);
     $gs1 = GameSystem::create(['name' => ['en' => 'D&D 5e'], 'slug' => 'dnd-5e']);
     $gs2 = GameSystem::create(['name' => ['en' => 'Pathfinder'], 'slug' => 'pathfinder']);

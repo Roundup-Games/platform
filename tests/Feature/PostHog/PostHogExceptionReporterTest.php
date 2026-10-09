@@ -10,11 +10,19 @@ use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\Helpers\TestablePostHogClient;
+
+beforeEach(function () {
+    // TestCase arms Exceptions::fake() suite-wide (global guard). This file
+    // exercises the real reporting pipeline — exceptions forwarded to the
+    // PostHog client — so put the concrete handler back for each test here.
+    Exceptions::swap(app(ExceptionHandler::class)->handler());
+});
 
 beforeEach(function () {
     config(['posthog.enabled' => true]);

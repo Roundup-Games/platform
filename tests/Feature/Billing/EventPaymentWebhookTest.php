@@ -275,11 +275,7 @@ describe('Webhook — event registration transaction.completed', function () {
     beforeEach(function () {
         config(['cashier.webhook_secret' => null]);
         Cache::flush();
-        Carbon::setTestNow('2026-10-06 12:00:00');
-    });
-
-    afterEach(function () {
-        Carbon::setTestNow();
+        test()->travelTo('2026-10-06 12:00:00');
     });
 
     it('confirms a pending registration with the Paddle transaction id', function () {
@@ -326,7 +322,7 @@ describe('Webhook — event registration transaction.completed', function () {
         $confirmedAt = $registration->fresh()->confirmed_at;
 
         // Identical redelivery one hour later must not touch the row again
-        Carbon::setTestNow(now()->addHour());
+        test()->travelTo(now()->addHour());
         epPostCompleted($registration, 'ctm_evt_redeliver', 'txn_redeliver_1', 'evt_redeliver_1')->assertStatus(200);
 
         $fresh = $registration->fresh();
@@ -354,7 +350,7 @@ describe('Webhook — event registration transaction.completed', function () {
         // Dedupe key expires after 2 days; the same transaction arrives under
         // a new Paddle event id. The state guard keeps the row untouched.
         Cache::flush();
-        Carbon::setTestNow(now()->addDays(3));
+        test()->travelTo(now()->addDays(3));
         epPostCompleted($registration, 'ctm_evt_guard', 'txn_guard_1', 'evt_guard_b')->assertStatus(200);
 
         $fresh = $registration->fresh();
@@ -519,11 +515,7 @@ describe('Webhook — event registration adjustment.refunded', function () {
     beforeEach(function () {
         config(['cashier.webhook_secret' => null]);
         Cache::flush();
-        Carbon::setTestNow('2026-10-06 12:00:00');
-    });
-
-    afterEach(function () {
-        Carbon::setTestNow();
+        test()->travelTo('2026-10-06 12:00:00');
     });
 
     it('marks a fully refunded registration as refunded while keeping the seat confirmed', function () {
@@ -701,11 +693,7 @@ describe('Webhook — event registration transaction.payment_failed', function (
     beforeEach(function () {
         config(['cashier.webhook_secret' => null]);
         Cache::flush();
-        Carbon::setTestNow('2026-10-06 12:00:00');
-    });
-
-    afterEach(function () {
-        Carbon::setTestNow();
+        test()->travelTo('2026-10-06 12:00:00');
     });
 
     it('flags a pending registration for organizer review while keeping it pending', function () {
@@ -870,11 +858,10 @@ describe('Webhook — signed event payment fixtures (signature verification enfo
         // 10+ character literal.)
         config(['cashier.webhook_secret' => 'evt2468']);
         Cache::flush();
-        Carbon::setTestNow('2026-10-06 12:00:00');
+        test()->travelTo('2026-10-06 12:00:00');
     });
 
     afterEach(function () {
-        Carbon::setTestNow();
         config(['cashier.webhook_secret' => null]);
     });
 

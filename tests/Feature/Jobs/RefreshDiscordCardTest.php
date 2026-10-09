@@ -175,7 +175,11 @@ class RefreshDiscordCardTest extends TestCase
     {
         [$owner, $game] = $this->gameWithPostedCard();
 
-        Http::fake([$this->cardEditUrl() => Http::response(['id' => self::CARD_MESSAGE_ID], 200)]);
+        Http::fake([
+            $this->cardEditUrl().'/threads' => Http::response(['id' => 'thread-1', 'type' => 11], 200),
+            $this->cardEditUrl() => Http::response(['id' => self::CARD_MESSAGE_ID], 200),
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => 'starter'], 200),
+        ]);
         $log = Log::spy();
 
         (new RefreshDiscordCard((string) $game->id))->handle(app(DiscordPublisher::class));
@@ -213,12 +217,14 @@ class RefreshDiscordCardTest extends TestCase
     #[Test]
     public function a_missing_game_is_logged_for_tracing(): void
     {
-        Http::fake();
         $log = Log::spy();
 
         $missingGameId = (string) Str::orderedUuid();
 
         (new RefreshDiscordCard($missingGameId))->handle(app(DiscordPublisher::class));
+
+        // A missing game must not touch Discord either.
+        Http::assertNothingSent();
 
         $log->shouldHaveReceived('info')
             ->withArgs(fn (string $m, array $c) => $m === 'discord_card_refresh.job.game_missing'

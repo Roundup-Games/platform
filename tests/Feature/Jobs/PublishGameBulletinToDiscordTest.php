@@ -298,8 +298,6 @@ class PublishGameBulletinToDiscordTest extends TestCase
     {
         [$game, $bulletin] = $this->gameWithBulletin(noThreadCard: true, pendingCard: true);
 
-        Http::fake();
-
         $this->runJob($bulletin->id);
 
         Http::assertNothingSent();
@@ -313,8 +311,6 @@ class PublishGameBulletinToDiscordTest extends TestCase
 
         [$game, $bulletin] = $this->gameWithBulletin(threadACard: true);
 
-        Http::fake();
-
         $this->runJob($bulletin->id);
 
         Http::assertNothingSent();
@@ -327,8 +323,6 @@ class PublishGameBulletinToDiscordTest extends TestCase
 
         [$game, $bulletin] = $this->gameWithBulletin(threadACard: true);
 
-        Http::fake();
-
         $this->runJob($bulletin->id);
 
         Http::assertNothingSent();
@@ -337,7 +331,6 @@ class PublishGameBulletinToDiscordTest extends TestCase
     #[Test]
     public function exits_cleanly_when_the_bulletin_was_deleted(): void
     {
-        Http::fake();
 
         $this->runJob((string) Str::orderedUuid());
 

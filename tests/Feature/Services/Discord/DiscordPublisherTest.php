@@ -152,7 +152,7 @@ class DiscordPublisherTest extends TestCase
         config(['services.discord.publishing_enabled' => false]);
         [$game, $guild] = $this->publicGameInOptedInGuild();
         config(['services.discord.publishing_enabled' => true]);
-        $this->fakePostSuccess();
+        $this->fakePostAndThreadSuccess();
 
         $publisher = $this->makePublisher();
         $publisher->publish($game);
@@ -227,7 +227,7 @@ class DiscordPublisherTest extends TestCase
         ]);
 
         config(['services.discord.publishing_enabled' => true]);
-        $this->fakePostSuccess();
+        $this->fakePostAndThreadSuccess();
 
         $this->makePublisher()->publish($game);
 
@@ -267,8 +267,6 @@ class DiscordPublisherTest extends TestCase
             'user_id' => $owner->id,
         ]);
 
-        Http::fake(); // No Discord call expected.
-
         Log::spy();
 
         $this->makePublisher()->publish($game);
@@ -301,8 +299,6 @@ class DiscordPublisherTest extends TestCase
             'user_id' => $owner->id,
         ]);
 
-        Http::fake();
-
         $this->makePublisher()->publish($game);
 
         Http::assertNothingSent();
@@ -318,8 +314,6 @@ class DiscordPublisherTest extends TestCase
     {
         [$game, $guild, $organizer] = $this->publicGameInOptedInGuild();
         $guild->update(['paused' => true]);
-
-        Http::fake();
 
         $this->makePublisher()->publish($game);
 
@@ -346,8 +340,6 @@ class DiscordPublisherTest extends TestCase
             'user_id' => $owner->id,
         ]);
 
-        Http::fake();
-
         $this->makePublisher()->publish($game);
 
         Http::assertNothingSent();
@@ -372,9 +364,11 @@ class DiscordPublisherTest extends TestCase
         ]);
 
         Http::fake([
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => 'thread-1', 'type' => 11], 200),
             self::BASE_URL.'/channels/*/messages/111000000000000000' => Http::response([
                 'id' => self::MESSAGE_ID,
             ], 200),
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => self::MESSAGE_ID], 200),
         ]);
 
         $this->makePublisher()->publish($game);
@@ -408,8 +402,10 @@ class DiscordPublisherTest extends TestCase
         ]);
 
         Http::fake([
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => 'thread-1', 'type' => 11], 200),
             self::BASE_URL."/channels/{$oldChannel}/messages/111000000000000000" => Http::response([], 204),
             self::BASE_URL."/channels/{$newChannel}/messages" => Http::response(['id' => self::MESSAGE_ID], 200),
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => self::MESSAGE_ID], 200),
         ]);
 
         $this->makePublisher()->publish($game);
@@ -515,9 +511,12 @@ class DiscordPublisherTest extends TestCase
         DiscordGuildOrganizer::factory()->optedIn()->create(['guild_id' => $badGuild->id, 'user_id' => $owner->id]);
 
         Http::fake([
+            self::BASE_URL."/channels/{$badGuild->games_channel_id}/messages/*/threads" => Http::response(['message' => 'Missing Access'], 403),
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => 'thread-1', 'type' => 11], 200),
             // good guild channel succeeds, bad guild channel 403s.
             self::BASE_URL.'/channels/'.$goodGuild->games_channel_id.'/messages' => Http::response(['id' => self::MESSAGE_ID], 200),
             self::BASE_URL.'/channels/'.$badGuild->games_channel_id.'/messages' => Http::response(['message' => 'Forbidden'], 403),
+            self::BASE_URL.'/channels/*/messages' => Http::response(['id' => self::MESSAGE_ID], 200),
         ]);
 
         $threw = false;
@@ -567,8 +566,17 @@ class DiscordPublisherTest extends TestCase
 
         $posted = null;
         Http::fake([
+            self::BASE_URL.'/channels/*/messages/*/threads' => Http::response(['id' => 'thread-1', 'type' => 11], 200),
             self::BASE_URL.'/channels/*/messages' => function (Request $request) use (&$posted) {
-                $posted = $request->data();
+                // The thread starter message is posted into the session thread
+                // before the card; only capture the card payload (embeds).
+                // The client sends asJson(); Client\Request exposes the raw
+                // body, so decode it here.
+                $payload = json_decode($request->body(), true) ?? [];
+                if (empty($payload['embeds'])) {
+                    return Http::response(['id' => 'starter'], 200);
+                }
+                $posted = $payload;
 
                 return Http::response(['id' => self::MESSAGE_ID], 200);
             },
@@ -594,7 +602,6 @@ class DiscordPublisherTest extends TestCase
     public function observer_does_not_dispatch_when_publishing_disabled()
     {
         config(['services.discord.publishing_enabled' => false]);
-        Http::fake();
 
         $game = Game::factory()->create(['visibility' => Visibility::Public->value]);
 
@@ -643,8 +650,6 @@ class DiscordPublisherTest extends TestCase
         // Force the relation to reload as null.
         $game->unsetRelation('owner');
 
-        Http::fake();
-
         // Should no-op cleanly (no targets), not throw.
         $this->makePublisher()->publish($game);
 
@@ -666,8 +671,6 @@ class DiscordPublisherTest extends TestCase
             'user_id' => $owner->id,
         ]);
 
-        Http::fake();
-
         $this->makePublisher()->publish($game);
 
         Http::assertNothingSent();
@@ -688,8 +691,6 @@ class DiscordPublisherTest extends TestCase
         // Flip to Review via the factory state (the only v1 path to a
         // non-Open guild — no landlord UI ships this in S07).
         $guild->update(['moderation_mode' => DiscordModerationMode::Review->value]);
-
-        Http::fake(); // No Discord call must be made.
 
         // Capture at the Monolog layer (see CapturesLogRecords). Log::listen()
         // does not fire with the test env's single-driver stderr channel.
@@ -725,7 +726,7 @@ class DiscordPublisherTest extends TestCase
         // invariant that keeps v1 behavior identical to S01.
         $this->assertSame(DiscordModerationMode::Open, $guild->moderation_mode);
 
-        $this->fakePostSuccess();
+        $this->fakePostAndThreadSuccess();
 
         $this->captureLogRecords();
 

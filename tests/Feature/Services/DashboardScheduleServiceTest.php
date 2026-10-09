@@ -35,7 +35,7 @@ class DashboardScheduleServiceTest extends TestCase
         // week boundaries (Sunday evening / Monday UTC) — see the original
         // convoluted conditional date-placement that still flaked. A Wednesday
         // afternoon leaves safe room on either side of the current week.
-        Carbon::setTestNow(Carbon::parse('2026-01-14 14:00:00'));
+        $this->travelTo(Carbon::parse('2026-01-14 14:00:00'));
 
         $this->service = new DashboardScheduleService;
         Cache::flush();
@@ -44,13 +44,6 @@ class DashboardScheduleServiceTest extends TestCase
 
         $this->user = User::factory()->create();
         $this->gameSystem = GameSystem::factory()->create();
-    }
-
-    protected function tearDown(): void
-    {
-        // Release the frozen clock so it can't leak into other test classes.
-        Carbon::setTestNow();
-        parent::tearDown();
     }
 
     // ── getUpcomingGames ────────────────────────────────

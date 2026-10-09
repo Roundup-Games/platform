@@ -134,7 +134,6 @@ class PublishDiscordDigestTest extends TestCase
     #[Test]
     public function missing_guild_is_skipped_cleanly_without_posting()
     {
-        Http::fake();
         Log::spy();
 
         // A valid-format UUID that does not exist — mirrors the production path

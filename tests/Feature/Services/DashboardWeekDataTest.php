@@ -34,19 +34,12 @@ class DashboardWeekDataTest extends TestCase
         // endOfWeek()-2h is solidly in the future at every hour of the
         // frozen Wednesday. Without this the suite flakes when CI runs in
         // the Sunday 22:00–Monday 02:00 UTC window.
-        Carbon::setTestNow(Carbon::parse('2026-01-14 14:00:00'));
+        $this->travelTo(Carbon::parse('2026-01-14 14:00:00'));
 
         $this->service = app(DashboardEstablishedService::class);
         Cache::flush();
         Queue::fake();
         Log::spy();
-    }
-
-    protected function tearDown(): void
-    {
-        // Release the frozen clock so it can't leak into other test classes.
-        Carbon::setTestNow();
-        parent::tearDown();
     }
 
     // ── Structure ──────────────────────────────────────────────

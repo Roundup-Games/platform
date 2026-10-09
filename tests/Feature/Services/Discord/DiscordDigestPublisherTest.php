@@ -487,7 +487,6 @@ class DiscordDigestPublisherTest extends TestCase
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
         $guild->update(['paused' => true]);
 
-        Http::fake();
         Log::spy();
 
         $this->makePublisher()->publish($guild);
@@ -508,7 +507,6 @@ class DiscordDigestPublisherTest extends TestCase
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
         $guild->update(['calendar_channel_id' => null]);
 
-        Http::fake();
         Log::spy();
 
         $this->makePublisher()->publish($guild);
@@ -525,8 +523,6 @@ class DiscordDigestPublisherTest extends TestCase
     {
         config(['services.discord.publishing_enabled' => false]);
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
-
-        Http::fake();
 
         $this->makePublisher()->publish($guild);
 
