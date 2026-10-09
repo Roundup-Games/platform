@@ -108,7 +108,9 @@ RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php \
              storage/framework/cache storage/logs bootstrap/cache \
  && php artisan package:discover --ansi
 
-# Storage link (public/storage -> storage/app/public)
+# Storage link (public/storage -> storage/app/public). Runs with no
+# environment configured, so the webhook-secret fail-fast is inert here by
+# design (build-time boot, see AppServiceProvider).
 RUN php artisan storage:link --force || true
 
 # S6 init script — runs migrations, caches config on every start
