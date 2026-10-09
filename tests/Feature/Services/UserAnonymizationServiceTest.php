@@ -312,7 +312,8 @@ describe('UserAnonymizationService integration', function () {
             ->and($fresh->pronouns)->toBeNull()
             ->and($fresh->avatar_url)->toBeNull()
             ->and($fresh->bio)->toBeNull()
-            ->and($fresh->location)->toBeNull()
+            // users.location JSON column was dropped — location_id is the only
+            // geographic field left to strip.
             ->and($fresh->location_id)->toBeNull()
             ->and($fresh->anonymized_at)->not->toBeNull()
             ->and($fresh->email_verified_at)->toBeNull()
@@ -553,7 +554,8 @@ describe('UserAnonymizationService integration', function () {
             ->and($fresh->pronouns)->toBeNull()
             ->and($fresh->avatar_url)->toBeNull()
             ->and($fresh->bio)->toBeNull()
-            ->and($fresh->location)->toBeNull()
+            // users.location JSON column was dropped — location_id is the only
+            // geographic field left to strip.
             ->and($fresh->location_id)->toBeNull()
             ->and($fresh->anonymized_at)->not->toBeNull()
             ->and($fresh->isAnonymized())->toBeTrue();

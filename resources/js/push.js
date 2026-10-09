@@ -122,6 +122,22 @@ export async function subscribeToPush() {
 }
 
 /**
+ * Remap Web Push standard key names to the short names the project API uses.
+ *
+ * The server's PushChannel maps 'p256h' back to 'p256dh' when constructing
+ * Minishlink Subscription objects (the Web Push standard).
+ *
+ * @param {{ p256dh?: string, auth?: string }|undefined} keys
+ * @returns {{ p256h: string, auth: string }}
+ */
+export function toApiKeys(keys) {
+    return {
+        p256h: keys?.p256dh || '',
+        auth: keys?.auth || '',
+    };
+}
+
+/**
  * Send (or re-send) a PushSubscription to the server.
  */
 async function syncSubscription(subscription) {
@@ -138,13 +154,7 @@ async function syncSubscription(subscription) {
             },
             body: JSON.stringify({
                 endpoint: payload.endpoint,
-                keys: {
-                    // Project uses 'p256h' as a short name for the DB column and API
-                    // payload. The server's PushChannel maps this to 'p256dh' when
-                    // constructing Minishlink Subscription objects (the Web Push standard).
-                    p256h: payload.keys?.p256dh || '',
-                    auth: payload.keys?.auth || '',
-                },
+                keys: toApiKeys(payload.keys),
             }),
         });
 
@@ -211,45 +221,25 @@ export async function unsubscribeFromPush() {
 }
 
 /**
- * Initialize push subscription UI bindings.
+ * Initialize push subscription UI bindings (morph-proof).
  *
- * Finds elements with data-push="subscribe" and data-push="unsubscribe" and
- * attaches click handlers. Also updates UI state on page load.
+ * The [data-push] buttons live inside a Livewire component whose DOM is
+ * replaced on morph, which orphans per-element listeners. We therefore bind a
+ * single document-level click listener (event delegation): it survives morphs
+ * and repeated initPushSubscriptions() calls are no-ops.
  */
+let delegationBound = false;
+
 export function initPushSubscriptions() {
     if (!isPushSupported()) {
         updateUIState('unsupported');
         return;
     }
 
-    // Attach click handlers
-    document.querySelectorAll('[data-push="subscribe"]').forEach((el) => {
-        el.addEventListener('click', async (e) => {
-            e.preventDefault();
-            el.disabled = true;
-            const result = await subscribeToPush();
-            el.disabled = false;
-
-            if (result.success) {
-                updateUIState('subscribed');
-            } else if (result.error) {
-                updateUIState(getPermissionStatus() === 'denied' ? 'denied' : 'default');
-            }
-        });
-    });
-
-    document.querySelectorAll('[data-push="unsubscribe"]').forEach((el) => {
-        el.addEventListener('click', async (e) => {
-            e.preventDefault();
-            el.disabled = true;
-            const result = await unsubscribeFromPush();
-            el.disabled = false;
-
-            if (result.success) {
-                updateUIState('default');
-            }
-        });
-    });
+    if (!delegationBound) {
+        delegationBound = true;
+        document.addEventListener('click', onPushTriggerClick);
+    }
 
     // Set initial UI state
     const perm = getPermissionStatus();
@@ -263,6 +253,33 @@ export function initPushSubscriptions() {
                 updateUIState(sub ? 'subscribed' : 'default');
             })
             .catch(() => updateUIState('default'));
+    }
+}
+
+/**
+ * Delegated click handler for [data-push="subscribe"] / [data-push="unsubscribe"].
+ * @param {MouseEvent} event
+ */
+async function onPushTriggerClick(event) {
+    const trigger = event.target.closest('[data-push]');
+    if (!trigger) return;
+
+    const mode = trigger.dataset.push;
+    if (mode !== 'subscribe' && mode !== 'unsubscribe') return;
+
+    event.preventDefault();
+    trigger.disabled = true;
+    const result = mode === 'subscribe' ? await subscribeToPush() : await unsubscribeFromPush();
+    trigger.disabled = false;
+
+    if (mode === 'subscribe') {
+        if (result.success) {
+            updateUIState('subscribed');
+        } else if (result.error) {
+            updateUIState(getPermissionStatus() === 'denied' ? 'denied' : 'default');
+        }
+    } else if (result.success) {
+        updateUIState('default');
     }
 }
 
@@ -286,9 +303,12 @@ function updateUIState(state) {
 }
 
 /**
- * Convert a base64-encoded VAPID key to a Uint8Array for PushManager.
+ * Convert a base64url-encoded VAPID key to a Uint8Array for PushManager.
+ *
+ * @param {string} base64String Base64url (RFC 4648 §5) encoded key, padding optional.
+ * @returns {Uint8Array}
  */
-function urlBase64ToUint8Array(base64String) {
+export function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding)
         .replace(/-/g, '+')

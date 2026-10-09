@@ -45,7 +45,7 @@ class DiscordChannelDispatchTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new NotificationService;
+        $this->service = app(NotificationService::class);
     }
 
     // ── Matrix: defaultSettings carries the discord key ──

@@ -286,7 +286,7 @@ class GamesPage extends Component
             ])
             ->first();
 
-        if (! $participant) {
+        if (! $participant || ! $user->can('leave', $game)) {
             session()->flash('error', __('games.error_not_a_game_participant'));
 
             return;

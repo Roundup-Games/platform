@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\GameStatus;
+use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\User;
@@ -115,6 +116,49 @@ class GamePolicy
         }
 
         return $this->checkPermission($user, 'delete game');
+    }
+
+    /**
+     * Manage the share link (generate/revoke/regenerate): the owner.
+     *
+     * Note: before() grants global admins bypass here too — consistent with
+     * update/delete, and harmless (admins can already write the share_token
+     * columns through admin surfaces).
+     */
+    public function manageShareToken(User $user, Game $game): bool
+    {
+        return (string) $game->owner_id === (string) $user->id;
+    }
+
+    /**
+     * Leave the game: an active participant (approved, waitlisted, benched,
+     * or pending) who is not the owner. Owners exit via cancel/delete instead.
+     * GameDetail::leaveGame and GamesPage::leaveGame both authorize through
+     * this ability so the rule is defined exactly once.
+     */
+    public function leave(User $user, Game $game): bool
+    {
+        if ((string) $game->owner_id === (string) $user->id) {
+            return false;
+        }
+
+        return $game->participants()
+            ->whereBelongsTo($user)
+            ->whereIn('status', [
+                ParticipantStatus::Approved->value,
+                ParticipantStatus::Waitlisted->value,
+                ParticipantStatus::Benched->value,
+                ParticipantStatus::Pending->value,
+            ])
+            ->exists();
+    }
+
+    /**
+     * Clone a game as the template for a new one: the owner.
+     */
+    public function clone(User $user, Game $game): bool
+    {
+        return (string) $game->owner_id === (string) $user->id;
     }
 
     private function checkPermission(User $user, string $permission): bool

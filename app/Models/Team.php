@@ -2,10 +2,8 @@
 
 namespace App\Models;
 
-use App\Relations\StringKeyMorphMany;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\TeamFactory;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -130,22 +128,6 @@ class Team extends Model implements HasMedia
         return $this->hasMany(TeamMember::class)
             ->where('role', 'captain')
             ->where('status', 'active');
-    }
-
-    // ── Short Links ────────────────────────────────────
-
-    /**
-     * @return Builder<ShortLink>
-     */
-    public function shortLinks()
-    {
-        return (new StringKeyMorphMany(
-            $this->newRelatedInstance(ShortLink::class)->newQuery(),
-            $this,
-            'linkable_type',
-            'linkable_id',
-            'id'
-        ))->getQuery()->where('linkable_type', $this->getMorphClass());
     }
 
     // ── Helpers ────────────────────────────────────────

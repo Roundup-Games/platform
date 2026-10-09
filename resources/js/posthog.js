@@ -26,8 +26,11 @@ let posthogInitPromise = null;
 
 /**
  * Read the cookie_consent cookie and check if a specific category is granted.
+ *
+ * @param {string} category Consent category, e.g. 'analytics' or 'marketing'.
+ * @returns {boolean} True only when the cookie parses and that category is exactly true.
  */
-function hasConsented(category) {
+export function hasConsented(category) {
     const match = document.cookie.match('(^|;)\\s*cookie_consent\\s*=\\s*([^;]+)');
     if (!match) return false;
     try {

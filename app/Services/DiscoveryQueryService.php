@@ -71,9 +71,10 @@ class DiscoveryQueryService
     /** Memoized ?city= filter resolution for the current render (see resolveCityFilter). */
     private readonly CityDirectoryService $cityDirectory;
 
-    private ?CitySummary $cityFilterSummary = null;
-
-    private bool $cityFilterResolved = false;
+    /** @var array<string, ?CitySummary> Memo keyed by the requested slug — a
+     *     single boolean flag would poison a second slug resolved on the same
+     *     instance (e.g. if this service is ever bound as a singleton). */
+    private array $cityFilterMemo = [];
 
     // ── Shared filter application ──────────────────────
 
@@ -281,7 +282,7 @@ class DiscoveryQueryService
     public function buildGamesQuery(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date): Builder
     {
         $query = Game::query()
-            ->where($this->buildVisibilityClause($user))
+            ->visibleTo($user)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->with(['owner', 'gameSystems', 'campaign', 'linkedLocation'])
@@ -333,7 +334,7 @@ class DiscoveryQueryService
     public function buildCampaignsQuery(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence): Builder
     {
         $query = Campaign::query()
-            ->where($this->buildVisibilityClause($user))
+            ->visibleTo($user)
             ->where('status', 'active')
             ->with(['owner', 'gameSystems'])
             ->with(['sessions' => fn ($q) => $q->where('status', 'scheduled')->where('date_time', '>', now())->orderBy('date_time')->limit(1)])
@@ -381,19 +382,19 @@ class DiscoveryQueryService
      */
     private function resolveCityFilter(DiscoveryFilters $filters): ?CitySummary
     {
-        if (! $this->cityFilterResolved) {
-            $this->cityFilterResolved = true;
+        $slug = (string) $filters->citySlug;
 
-            $summary = filled($filters->citySlug)
-                ? $this->cityDirectory->resolveCity($filters->citySlug)
+        if (! array_key_exists($slug, $this->cityFilterMemo)) {
+            $summary = filled($slug)
+                ? $this->cityDirectory->resolveCity($slug)
                 : null;
 
-            $this->cityFilterSummary = ($summary !== null && $this->cityDirectory->isQualifying($summary))
+            $this->cityFilterMemo[$slug] = ($summary !== null && $this->cityDirectory->isQualifying($summary))
                 ? $summary
                 : null;
         }
 
-        return $this->cityFilterSummary;
+        return $this->cityFilterMemo[$slug];
     }
 
     // ── Proximity helpers ──────────────────────────────
@@ -834,8 +835,6 @@ class DiscoveryQueryService
             return null;
         }
 
-        $visibilityClause = $this->buildVisibilityClause($user);
-
         // Exclude user's own games/campaigns and ones they're already in or applied to
         $excludeUser = function ($query) use ($user) {
             $query->where('owner_id', '!=', $user->id)
@@ -855,7 +854,7 @@ class DiscoveryQueryService
         $boostedCampaigns = collect();
         if (! empty($favoriteVibes)) {
             $boostedGames = Game::query()
-                ->where($visibilityClause)
+                ->visibleTo($user)
                 ->where('status', 'scheduled')
                 ->where('date_time', '>', now())
                 ->where($this->matchAllowedSystems($allowedSystemIds))
@@ -878,7 +877,7 @@ class DiscoveryQueryService
             // Only include campaign recommendations when not scoped to a specific type
             if ($systemType === null) {
                 $boostedCampaigns = Campaign::query()
-                    ->where($visibilityClause)
+                    ->visibleTo($user)
                     ->where('status', 'active')
                     ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds))
                     ->where(function ($q) use ($favoriteVibes) {
@@ -903,7 +902,7 @@ class DiscoveryQueryService
 
         // Fallback: favorite systems regardless of vibes
         $fallbackGames = Game::query()
-            ->where($visibilityClause)
+            ->visibleTo($user)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->where($this->matchAllowedSystems($allowedSystemIds))
@@ -921,7 +920,7 @@ class DiscoveryQueryService
         $fallbackCampaigns = collect();
         if ($systemType === null) {
             $fallbackCampaigns = Campaign::query()
-                ->where($visibilityClause)
+                ->visibleTo($user)
                 ->where('status', 'active')
                 ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds))
                 ->where('owner_id', '!=', $user->id)
@@ -1071,35 +1070,6 @@ class DiscoveryQueryService
     {
         return function (Builder $q) use ($allowedSystemIds): void {
             $q->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds));
-        };
-    }
-
-    /**
-     * Build a connection-aware visibility clause for games and campaigns.
-     *
-     * Public items are visible to everyone. Protected items are visible only to the
-     * owner's connections (friends, teammates) and existing participants. The single
-     * shared builder for both discovery query paths (the former
-     * buildVisibilityClauseCallback was a byte-identical duplicate).
-     *
-     * @param  User|null  $user  Current viewer
-     */
-    private function buildVisibilityClause(?User $user): \Closure
-    {
-        return function ($q) use ($user) {
-            $q->where('visibility', 'public');
-
-            if ($user) {
-                $q->orWhere(function ($q) use ($user) {
-                    $q->where('visibility', 'protected')
-                        ->where(function ($q) use ($user) {
-                            $allowedOwnerIds = app(SocialGraphService::class)
-                                ->getAllowedOwnerIdsForProtectedContent($user);
-                            $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($user));
-                        });
-                });
-            }
         };
     }
 }

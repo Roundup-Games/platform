@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\CampaignStatus;
+use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\User;
@@ -104,6 +105,41 @@ class CampaignPolicy
         }
 
         return $this->checkPermission($user, 'delete campaign');
+    }
+
+    /**
+     * Manage the share link (generate/revoke/regenerate): the owner.
+     *
+     * Note: before() grants global admins bypass here too — consistent with
+     * update/delete, and harmless (admins can already write the share_token
+     * columns through admin surfaces).
+     */
+    public function manageShareToken(User $user, Campaign $campaign): bool
+    {
+        return (string) $campaign->owner_id === (string) $user->id;
+    }
+
+    /**
+     * Leave the campaign: an active participant (approved, waitlisted,
+     * benched, or pending) who is not the owner. CampaignDetail::leaveCampaign
+     * and CampaignsPage::leaveCampaign both authorize through this ability so
+     * the rule is defined exactly once.
+     */
+    public function leave(User $user, Campaign $campaign): bool
+    {
+        if ((string) $campaign->owner_id === (string) $user->id) {
+            return false;
+        }
+
+        return $campaign->participants()
+            ->whereBelongsTo($user)
+            ->whereIn('status', [
+                ParticipantStatus::Approved->value,
+                ParticipantStatus::Waitlisted->value,
+                ParticipantStatus::Benched->value,
+                ParticipantStatus::Pending->value,
+            ])
+            ->exists();
     }
 
     private function checkPermission(User $user, string $permission): bool

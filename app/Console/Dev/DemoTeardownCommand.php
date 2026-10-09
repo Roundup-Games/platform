@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Dev;
 
 use App\Models\Campaign;
 use App\Models\Game;
@@ -22,6 +22,14 @@ class DemoTeardownCommand extends Command
 
     public function handle(): int
     {
+        // Registration-gated to non-production (AppServiceProvider), but guard
+        // here too so direct instantiation can never run against live data.
+        if (app()->environment('production')) {
+            $this->error('demo:teardown is a development tool and is disabled in production.');
+
+            return self::FAILURE;
+        }
+
         $dryRun = (bool) $this->option('dry-run');
         $marker = DemoSeedCommand::MARKER;
 

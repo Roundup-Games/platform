@@ -84,7 +84,7 @@ class PublicGameDetail extends Component
     #[Computed]
     public function isOwner(): bool
     {
-        return ($id = Auth::id()) && $this->game->owner_id === $id;
+        return ($id = Auth::id()) !== null && (string) $this->game->owner_id === (string) $id;
     }
 
     #[Computed]

@@ -24,6 +24,10 @@ use Illuminate\Support\Facades\Log;
  */
 class NotificationService
 {
+    public function __construct(
+        private readonly PostHogAnalytics $posthogAnalytics,
+    ) {}
+
     /**
      * Send a notification to a user, respecting their channel preferences
      * and block list.
@@ -115,7 +119,7 @@ class NotificationService
             // Retention analytics: capture that a notification was sent to this
             // user, with its category and channels. Enables correlation of
             // 'received attendance nudge' with attendance outcomes.
-            app(PostHogAnalytics::class)->capture(
+            $this->posthogAnalytics->capture(
                 $notifiable,
                 'notification.sent',
                 [
@@ -133,7 +137,7 @@ class NotificationService
 
             // Retention analytics: capture notification dispatch failures for
             // channel-health monitoring (e.g. push tokens going stale).
-            app(PostHogAnalytics::class)->capture(
+            $this->posthogAnalytics->capture(
                 $notifiable,
                 'notification.failed',
                 ['category' => $categoryValue, 'reason' => 'dispatch_error'],

@@ -111,9 +111,7 @@ class UserAnonymizationService
             // a deleted paddle_id must be handled gracefully by the webhook
             // controller (lookup returns null → log and skip).
             //
-            // Note: 'location' is the JSON column (cast as array) that shadows
-            // the location() BelongsTo relationship. Both location (JSON PII)
-            // and location_id (FK) must be nulled to fully strip geographic data.
+            // location_id (FK) must be nulled to fully strip geographic data.
             $user->forceFill([
                 'name' => 'Deleted User',
                 'email' => "deleted-{$uuid}@deleted.roundup.games",
@@ -123,7 +121,6 @@ class UserAnonymizationService
                 'pronouns' => null,
                 'avatar_url' => null,
                 'bio' => null,
-                'location' => null,
                 'location_id' => null,
                 'paddle_id' => null,
                 'slug' => "deleted-{$uuid}",

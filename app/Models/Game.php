@@ -8,11 +8,11 @@ use App\Enums\GameType;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
-use App\Relations\StringKeyMorphMany;
+use App\Models\Concerns\HasShareToken;
+use App\Models\Concerns\VisibleToScope;
 use App\Services\Geohash;
 use App\Services\LocationDisclosureService;
 use App\Services\ShortLinkService;
-use App\Services\SocialGraphService;
 use App\Traits\ResolvesCoverImage;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\GameFactory;
@@ -76,6 +76,7 @@ class Game extends Model implements HasMedia, TicketSubject
     use HasFactory;
 
     use HasSEO;
+    use HasShareToken;
     use HasTranslations;
 
     // Spatie MediaLibrary: host-uploaded cover images. StringMorphMediaKey
@@ -92,6 +93,9 @@ class Game extends Model implements HasMedia, TicketSubject
         ResolvesCoverImage::registerMediaCollections insteadof InteractsWithMedia;
         ResolvesCoverImage::registerMediaConversions insteadof InteractsWithMedia;
     }
+
+    /** @use VisibleToScope<static> */
+    use VisibleToScope;
 
     /**
      * Deep link into the host app for this game when attached as a ticket
@@ -500,46 +504,6 @@ class Game extends Model implements HasMedia, TicketSubject
         return null;
     }
 
-    // ── Short Links ────────────────────────────────────
-
-    /**
-     * @return StringKeyMorphMany<ShortLink, $this>
-     */
-    public function shortLinks(): StringKeyMorphMany
-    {
-        $relation = new StringKeyMorphMany(
-            $this->newRelatedInstance(ShortLink::class)->newQuery(),
-            $this,
-            'linkable_type',
-            'linkable_id',
-            'id'
-        );
-        $relation->getQuery()->where('linkable_type', static::class);
-
-        return $relation;
-    }
-
-    // ── Share Token ────────────────────────────────────
-
-    /**
-     * Check whether the current request carries a valid share token for this entity.
-     * Validates that: the query param 'share' matches the stored token AND the token hasn't expired.
-     */
-    public function hasValidShareToken(?string $token = null): bool
-    {
-        $token = $token ?? request()->query('share');
-
-        if (! $token || ! $this->share_token) {
-            return false;
-        }
-
-        if ($this->share_token_expires_at !== null && $this->share_token_expires_at->isPast()) {
-            return false;
-        }
-
-        return hash_equals($this->share_token, $token);
-    }
-
     // ── Scopes ─────────────────────────────────────────
 
     /**
@@ -549,37 +513,6 @@ class Game extends Model implements HasMedia, TicketSubject
     public function scopePublic(Builder $query)
     {
         return $query->where('visibility', 'public');
-    }
-
-    /**
-     * Scope to games visible to a given user (or guest).
-     *
-     * Guests see public only. Authenticated users see public + protected
-     * items owned by their connections (friends, teammates) or where they
-     * are a participant. Private items are never included in listings.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeVisibleTo(Builder $query, ?User $viewer = null)
-    {
-        if ($viewer === null) {
-            return $query->where('visibility', 'public');
-        }
-
-        $allowedOwnerIds = app(SocialGraphService::class)
-            ->getAllowedOwnerIdsForProtectedContent($viewer);
-
-        return $query->where(function ($q) use ($allowedOwnerIds, $viewer) {
-            $q->where('visibility', 'public')
-                ->orWhere(function ($q) use ($allowedOwnerIds, $viewer) {
-                    $q->where('visibility', 'protected')
-                        ->where(function ($q) use ($allowedOwnerIds, $viewer) {
-                            $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($viewer));
-                        });
-                });
-        });
     }
 
     /**
@@ -601,45 +534,55 @@ class Game extends Model implements HasMedia, TicketSubject
     }
 
     /**
-     * Scope to nearby scheduled games with open spots in a geohash tile.
+     * Scope to nearby scheduled games in a geohash tile.
      *
-     * The shared scaffold behind the dashboard "nearby noteworthy" and "newcomer
-     * matches" computers: locations join + geohash bbox + scheduled status +
-     * 14-day window + available-spots SQL filter + participant_count subquery.
-     * Callers compose their own exclude-sets, visibility, eager-loads, limit,
-     * and scoring on top.
+     * The shared scaffold behind the dashboard "nearby noteworthy",
+     * "newcomer matches", and "trending nearby" computers: locations join +
+     * geohash bbox + scheduled status + 14-day window + participant_count
+     * subquery. Callers compose their own exclude-sets, visibility,
+     * eager-loads, limit, and scoring on top.
      *
      * @param  Builder<static>  $query
      * @param  string  $geohash4  The geohash tile prefix (4 chars)
+     * @param  \DateTimeInterface|null  $until  Window end (default: +14 days)
+     * @param  bool  $requireCapacity  When true (default), only games with
+     *                                 available spots (or unlimited capacity) pass. "Trending nearby"
+     *                                 is the documented exception (requireCapacity: false) — it ranks
+     *                                 by participation as social proof of activity, not as a join
+     *                                 target, so full games are intentionally surfaced.
      * @return Builder<static>
      */
-    public function scopeNearbyOpen(Builder $query, string $geohash4): Builder
+    public function scopeNearbyOpen(Builder $query, string $geohash4, ?\DateTimeInterface $until = null, bool $requireCapacity = true): Builder
     {
-        $bounds = Geohash::prefixBounds($geohash4);
-
         $participantCountSubquery = DB::table('game_participants')
             ->selectRaw('COUNT(*)')
             ->whereColumn('game_participants.game_id', 'games.id')
             ->where('game_participants.status', ParticipantStatus::Approved->value);
 
-        return $query
-            ->select('games.*')
-            ->selectSub($participantCountSubquery, 'participant_count')
-            ->join('locations', 'games.location_id', '=', 'locations.id')
-            ->whereNotNull('locations.latitude')
-            ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
-            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
+        $query = Geohash::applyBounds(
+            $query
+                ->select('games.*')
+                ->selectSub($participantCountSubquery, 'participant_count')
+                ->join('locations', 'games.location_id', '=', 'locations.id'),
+            $geohash4,
+        );
+
+        $query
             ->where('games.status', GameStatus::Scheduled->value)
             ->where('games.date_time', '>=', now())
-            ->where('games.date_time', '<=', now()->addDays(14))
-            ->where(function ($q) {
+            ->where('games.date_time', '<=', $until ?? now()->addDays(14));
+
+        if ($requireCapacity) {
+            $query->where(function ($q) {
                 $q->whereNull('games.max_players')
                     ->orWhereRaw(
                         '(SELECT COUNT(*) FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
                         [ParticipantStatus::Approved->value],
                     );
             });
+        }
+
+        return $query;
     }
 
     // ── Bench ──────────────────────────────────────────

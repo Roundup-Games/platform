@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\EventStatus;
 use App\Enums\EventType;
-use App\Relations\StringKeyMorphMany;
 use App\Services\ShortLinkService;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\EventFactory;
@@ -387,25 +386,6 @@ class Event extends Model implements HasMedia
     public function linkedLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'location_id');
-    }
-
-    // ── Short Links ────────────────────────────────────
-
-    /**
-     * @return StringKeyMorphMany<ShortLink, $this>
-     */
-    public function shortLinks(): StringKeyMorphMany
-    {
-        $relation = new StringKeyMorphMany(
-            $this->newRelatedInstance(ShortLink::class)->newQuery(),
-            $this,
-            'linkable_type',
-            'linkable_id',
-            'id'
-        );
-        $relation->getQuery()->where('linkable_type', static::class);
-
-        return $relation;
     }
 
     // ── Scopes ─────────────────────────────────────────

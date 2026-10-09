@@ -6,28 +6,21 @@ use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
-use App\Enums\VibeFlag;
 use App\Enums\Visibility;
+use App\Livewire\Concerns\BuildsSessionForm;
 use App\Models\Event;
 use App\Models\Game;
-use App\Models\GameSystem;
 use App\Services\CreateDefaultsService;
-use App\Services\OwnerParticipantService;
-use App\Services\ShortLinkService;
-use App\Services\VenueTrustService;
+use App\Services\SessionCreationService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -36,6 +29,9 @@ use Livewire\WithFileUploads;
 #[Layout('layouts.app')]
 class CreateGame extends Component
 {
+    use BuildsSessionForm {
+        BuildsSessionForm::getTranslatableFields insteadof BuildsTranslatableFormFields;
+    }
     use BuildsTranslatableFormFields;
 
     // Livewire file-upload support for the host-uploaded cover image (S07).
@@ -58,27 +54,7 @@ class CreateGame extends Component
     #[Url]
     public ?string $event = null;
 
-    public string $name = '';
-
-    // ── Translatable fields ──
-    /**
-     * @return array<int, string>
-     */
-    public function getTranslatableFields(): array
-    {
-        return ['name', 'description'];
-    }
-
     public ?string $game_type = null;
-
-    public string $step = 'type';
-
-    public ?string $game_system_id = null;
-
-    /** @var array<int, string> Game systems for a Gathering (multi-select; save() syncs them to the gameSystems pivot directly) */
-    public array $game_systems = [];
-
-    public ?string $host_note = null;
 
     public string $date_time = '';
 
@@ -90,48 +66,13 @@ class CreateGame extends Component
      */
     public ?string $signup_cutoff_at = null;
 
-    public string $description = '';
-
     public ?string $expected_duration = '';
 
     public ?string $price = '';
 
-    public string $language = 'en';
-
-    public ?string $location_id = null;
-
-    public string $location_instructions = '';
-
-    public string $visibility = 'protected';
-
-    /** @var array<string, mixed> */
-    public array $minimum_requirements = [];
-
-    /** @var array<string, mixed> */
-    public array $safety_rules = [];
-
-    public ?int $min_players = null;
-
-    public ?int $max_players = null;
-
-    public ?string $experience_level = null;
-
-    public ?string $complexity = null;
-
-    /** @var array<int|string, mixed> VibeFlag value → null|'favorite'|'avoid', from VibePreferencePicker */
-    public array $vibePreferences = [];
-
     public string $comfort_notes = '';
 
     public ?string $min_reliability_preference = null;
-
-    public bool $bench_mode = false;
-
-    /**
-     * Optional host-uploaded cover image (S07). Stored to the Spatie 'cover'
-     * media collection after create via addMedia()->toMediaCollection('cover').
-     */
-    public ?UploadedFile $cover_image = null;
 
     /**
      * @return array<string, mixed>
@@ -181,65 +122,6 @@ class CreateGame extends Component
         ));
     }
 
-    // ── Event Listeners ──────────────────────────────────
-
-    #[On('location-selected')]
-    public function onLocationSelected(string $locationId, string $city, ?string $address = null): void
-    {
-        $this->location_id = $locationId;
-    }
-
-    #[On('location-removed')]
-    public function onLocationRemoved(): void
-    {
-        $this->location_id = null;
-    }
-
-    #[On('location-instructions-updated')]
-    public function onLocationInstructionsUpdated(string $instructions): void
-    {
-        $this->location_instructions = $instructions;
-    }
-
-    /**
-     * @param  array<string, mixed>  $preferences
-     */
-    #[On('vibe-preferences-changed')]
-    public function onVibePreferencesChanged(array $preferences): void
-    {
-        $this->vibePreferences = $preferences;
-    }
-
-    /**
-     * @param  array<string, mixed>  $safetyRules
-     */
-    #[On('safety-tools-changed')]
-    public function onSafetyToolsChanged(array $safetyRules): void
-    {
-        $this->safety_rules = $safetyRules;
-    }
-
-    #[On('value-updated')]
-    public function onGameSystemPicked(mixed $value): void
-    {
-        $id = is_string($value) && Str::isUuid($value) ? $value : null;
-        $this->game_system_id = $id;
-        $this->autofillFromGameSystem($id);
-    }
-
-    /**
-     * Multi-select game systems from the GameSystemPreferencePicker (creation
-     * mode) — used by Gatherings. preferenceType is ignored here because the
-     * creation picker has no favorites/avoids.
-     *
-     * @param  array<int, string>  $selectedIds
-     */
-    #[On('selection-changed')]
-    public function onGameSystemsChanged(array $selectedIds): void
-    {
-        $this->game_systems = array_map('strval', $selectedIds);
-    }
-
     // ── Lifecycle ─────────────────────────────────────────
 
     public function mount(): void
@@ -273,8 +155,11 @@ class CreateGame extends Component
 
         $source = Game::findOrFail($this->clone);
 
-        // Only the owner can clone their own game
-        Gate::allowIf($source->owner_id === Auth::id(), __('games.error_clone_own_only'));
+        // Only the owner can clone their own game — the rule lives in
+        // GamePolicy::clone; the localized message stays at the surface.
+        if (! authenticatedUser()->can('clone', $source)) {
+            Gate::allowIf(false, __('games.error_clone_own_only'));
+        }
 
         // Verify the user can still create games (permission may have been revoked)
         $this->authorize('create', Game::class);
@@ -345,45 +230,7 @@ class CreateGame extends Component
         }
     }
 
-    // ── Type Selection Actions ───────────────────────────
-
-    public function selectType(string $type): void
-    {
-        if (! in_array($type, GameType::values())) {
-            return;
-        }
-
-        $this->game_type = $type;
-        $this->step = 'form';
-        $this->applyTypeDefaults($type);
-        $this->applySmartDefaults($type);
-    }
-
-    public function changeType(string $type): void
-    {
-        if (! in_array($type, GameType::values())) {
-            return;
-        }
-
-        $this->game_type = $type;
-        // Reset type-specific fields when type changes
-        $this->game_system_id = null;
-        $this->game_systems = [];
-        $this->host_note = null;
-        $this->vibePreferences = [];
-        $this->safety_rules = [];
-        $this->comfort_notes = '';
-        $this->experience_level = null;
-        $this->complexity = null;
-        $this->applyTypeDefaults($type);
-    }
-
     // ── Lifecycle Hooks ──────────────────────────────────
-
-    public function updatedGameSystemId(?string $id): void
-    {
-        $this->autofillFromGameSystem($id);
-    }
 
     public function updatedExpectedDuration(): void
     {
@@ -396,59 +243,7 @@ class CreateGame extends Component
         $this->expected_duration = (string) max($rounded, 0.5);
     }
 
-    public function updatedMinPlayers(): void
-    {
-        $this->validatePlayerCounts();
-    }
-
-    public function updatedMaxPlayers(): void
-    {
-        $this->validatePlayerCounts();
-    }
-
     // ── Computed ─────────────────────────────────────────
-
-    /**
-     * @return array<string, mixed>
-     */
-    #[Computed]
-    public function languageOptions(): array
-    {
-        $options = [];
-        foreach (ContentLanguage::cases() as $case) {
-            $options[$case->value] = $case->label();
-        }
-
-        return $options;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    #[Computed]
-    public function gameTypeOptions(): array
-    {
-        $options = [];
-        foreach (GameType::cases() as $case) {
-            $options[$case->value] = $case->label();
-        }
-
-        return $options;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    #[Computed]
-    public function experienceLevelOptions(): array
-    {
-        $options = ['' => __('discovery.content_any')];
-        foreach (ExperienceLevel::cases() as $case) {
-            $options[$case->value] = $case->label();
-        }
-
-        return $options;
-    }
 
     /**
      * @return array<int|string, string>
@@ -462,24 +257,6 @@ class CreateGame extends Component
             '85' => (string) __('games.content_attendance_moderate'),
             '95' => (string) __('games.content_attendance_strict'),
         ];
-    }
-
-    #[Computed]
-    public function canCreatePublic(): bool
-    {
-        $user = authenticatedUser();
-
-        return app(VenueTrustService::class)->canCreatePublic($user, $this->location_id);
-    }
-
-    #[Computed]
-    public function publicViaVenue(): bool
-    {
-        if ($this->canCreatePublic && authenticatedUser()->can_create_public_entries) {
-            return false; // GM — doesn't need venue indicator
-        }
-
-        return $this->canCreatePublic; // true only via venue bypass
     }
 
     // ── Actions ──────────────────────────────────────────
@@ -562,9 +339,7 @@ class CreateGame extends Component
             }
         }
 
-        if ($this->game_type === null) {
-            $this->addError('game_type', __('games.error_select_game_type'));
-
+        if ($this->guardGameTypeSelected()) {
             return;
         }
 
@@ -579,41 +354,9 @@ class CreateGame extends Component
 
         $validated = $this->validate();
 
-        // Gatherings require at least one game system (the host picks what to
-        // play). Enforced here rather than via a rule because it is conditional
-        // on game_type. game_system_id is intentionally NOT set for gatherings —
-        // the Game saving event (S01) derives it from game_systems[0].
-        if ($this->game_type === 'gathering' && empty($validated['game_systems'])) {
-            $this->addError('game_systems', __('games.error_gathering_requires_system'));
-
+        if ($this->guardCrossFieldSessionRules($validated)) {
             return;
         }
-
-        // Focused sessions (board_game / ttrpg) require exactly one game system
-        // via the single-select picker. Without this guard, a host can submit
-        // the form without picking a system and a systemless game is persisted —
-        // which breaks discovery ranking, the activity feed, profile listings,
-        // and cover-image resolution, all of which assume at least one offered
-        // system. Enforced here (not as a static rule) because it is conditional
-        // on game_type, mirroring the gathering check above.
-        if ($this->game_type !== 'gathering' && empty($validated['game_system_id'])) {
-            $this->addError('game_system_id', __('games.error_system_required'));
-
-            return;
-        }
-
-        // Cross-field validation after individual field validation
-        if (
-            isset($validated['min_players'], $validated['max_players'])
-            && $validated['min_players'] > $validated['max_players']
-        ) {
-            $this->addError('min_players', __('games.error_min_players_cannot_exceed_max_players'));
-
-            return;
-        }
-
-        // Extract favorite vibe flags for storage
-        $vibeFlags = $this->selectedVibeFlags();
 
         // Handle safety data based on game type
         $safetyRules = $validated['safety_rules'] ?? null;
@@ -621,169 +364,90 @@ class CreateGame extends Component
             $safetyRules = ! empty($this->comfort_notes) ? ['comfort_notes' => $this->comfort_notes] : null;
         }
 
-        // Gate bench_mode to GM users only (defense-in-depth; UI disables toggle for non-GMs)
-        $benchMode = $this->bench_mode;
-        if ($benchMode && ! authenticatedUser()->isGM()) {
-            Log::warning('Non-GM user attempted to enable bench_mode on game creation', [
-                'user_id' => Auth::id(),
-                'attempted_bench_mode' => true,
-            ]);
-            $benchMode = false;
-        }
-
-        // Gatherings are multi-system social sessions: force complexity/bench/
-        // reliability clean so the warm form can't persist GM-complexity state.
-        $isGathering = $this->game_type === 'gathering';
-        $complexity = $isGathering ? null : ($this->complexity ?: null);
-        $minReliabilityPreference = $isGathering ? null : ($validated['min_reliability_preference'] ?: null);
-        $benchMode = $isGathering ? false : $benchMode;
-
-        // Canonical system set: the game_game_system pivot is the
-        // source of truth for which systems this game offers. For a Gathering
-        // the host picks a set via the multi-select; for a focused board_book /
-        // ttrpg the single picker carries one system.
-        if ($isGathering) {
-            $pivotSystemIds = array_map('strval', $validated['game_systems'] ?? []);
-        } else {
-            $pivotSystemIds = array_filter(
-                [$validated['game_system_id'] ?? null],
-                fn (?string $id): bool => $id !== null,
-            );
-        }
-
-        // Build translatable values for name and description only
-        $translatable = $this->buildTranslatableValues(
-            ['name', 'description'],
-            $validated['language'],
-            $validated,
-        );
-
-        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode, $complexity, $minReliabilityPreference, $pivotSystemIds, $hostingEvent) {
-            $game = Game::create([
-                'owner_id' => Auth::id(),
-                'host_note' => $validated['host_note'] ?? null,
-                'name' => $translatable['name'],
-                'game_type' => $validated['game_type'],
-                'date_time' => $validated['date_time'],
-                'signup_cutoff_at' => $validated['signup_cutoff_at'] ?: null,
-                'description' => $translatable['description'],
-                'expected_duration' => $validated['expected_duration'] ?: 2,
-                'price' => $validated['price'] ?: 0,
-                'language' => $validated['language'],
-                'location_id' => $this->location_id,
-                'location' => ['details' => ''],
-                'location_instructions' => $validated['location_instructions'] ?? null,
-                'status' => GameStatus::Scheduled,
-                'visibility' => $validated['visibility'],
-                'minimum_requirements' => $validated['minimum_requirements'] ?: null,
+        $game = app(SessionCreationService::class)->create(
+            authenticatedUser(),
+            'game',
+            [
+                'validated' => $validated,
+                'translatable' => $this->buildTranslatableValues(
+                    ['name', 'description'],
+                    $validated['language'],
+                    $validated,
+                ),
                 'safety_rules' => $safetyRules,
-                'min_players' => $validated['min_players'] ?? 2,
-                'max_players' => $validated['max_players'] ?? 6,
-                'experience_level' => $validated['experience_level'],
-                'complexity' => $complexity,
-                'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
-                'min_reliability_preference' => $minReliabilityPreference,
-                'bench_mode' => $benchMode,
-            ]);
+                'vibe_flags' => $this->selectedVibeFlags(),
+                'bench_mode' => $this->bench_mode,
+                'complexity' => $this->complexity ?: null,
+                'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
+                'cover_image' => $this->cover_image,
+            ],
+            makeModel: function (array $context) use ($hostingEvent): Game {
+                $game = Game::create([
+                    'owner_id' => $context['owner_id'],
+                    'host_note' => $context['validated']['host_note'] ?? null,
+                    'name' => $context['translatable']['name'],
+                    'game_type' => $context['validated']['game_type'],
+                    'date_time' => $context['validated']['date_time'],
+                    'signup_cutoff_at' => $context['validated']['signup_cutoff_at'] ?: null,
+                    'description' => $context['translatable']['description'],
+                    'expected_duration' => $context['validated']['expected_duration'] ?: 2,
+                    'price' => $context['validated']['price'] ?: 0,
+                    'language' => $context['validated']['language'],
+                    'location_id' => $this->location_id,
+                    'location' => ['details' => ''],
+                    'location_instructions' => $context['validated']['location_instructions'] ?? null,
+                    'status' => GameStatus::Scheduled,
+                    'visibility' => $context['validated']['visibility'],
+                    'minimum_requirements' => $context['validated']['minimum_requirements'] ?: null,
+                    'safety_rules' => $context['safety_rules'],
+                    'min_players' => $context['validated']['min_players'] ?? 2,
+                    'max_players' => $context['validated']['max_players'] ?? 6,
+                    'experience_level' => $context['validated']['experience_level'],
+                    'complexity' => $context['complexity'],
+                    'vibe_flags' => ! empty($context['vibe_flags']) ? $context['vibe_flags'] : null,
+                    'min_reliability_preference' => $context['min_reliability_preference'],
+                    'bench_mode' => $context['bench_mode'],
+                ]);
 
-            // Host-a-table context: link the new table to its umbrella
-            // event via the relation API (associate(), not a raw event_id
-            // write — Eloquent baseline R2). Detach-never-destroy semantics
-            // live on the FK (nullOnDelete); attaching here only ever sets
-            // the link.
-            if ($hostingEvent !== null) {
-                $game->event()->associate($hostingEvent);
-                $game->save();
-            }
+                // Host-a-table context: link the new table to its umbrella
+                // event via the relation API (associate(), not a raw event_id
+                // write — Eloquent baseline R2). Detach-never-destroy semantics
+                // live on the FK (nullOnDelete); attaching here only ever sets
+                // the link.
+                if ($hostingEvent !== null) {
+                    $game->event()->associate($hostingEvent);
+                    $game->save();
+                }
 
-            app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
-
-            // Sync the canonical pivot. Runs inside the create transaction so a
-            // failure rolls the whole game back. empty() would detach everything,
-            // so guard against an empty set (single-system games always have one).
-            if (! empty($pivotSystemIds)) {
-                $game->gameSystems()->sync($pivotSystemIds);
-            }
-
-            // M063/S06/T02: the pivot sync fires no model events, so the
-            // umbrella's derived offered-systems cache (aggregated across
-            // tables) is flushed here. GameObserver::saved already flushed on
-            // the associate+save above, but THIS sync is what changes the
-            // union — a concurrent read between the two would otherwise pin
-            // a stale offering for the cache TTL.
-            if ($hostingEvent !== null) {
-                $hostingEvent->flushOfferedSystemsCache();
-            }
-
-            // Defense-in-depth invariant: every game must offer at least one
-            // system. The validation checks above enforce this, but if a future
-            // change bypasses them (or a new creation path skips this form),
-            // this assertion throws and rolls back the entire transaction
-            // rather than persisting a systemless game — the exact data
-            // corruption discovered in production (game 62a41a7e).
-            if ($game->gameSystems()->count() === 0) {
-                throw new \RuntimeException('Game created without a game system.');
-            }
-
-            return $game;
-        });
-
-        // Persist the host-uploaded cover to the Spatie 'cover' collection.
-        // singleFile() on the collection means a fresh upload replaces any
-        // prior cover. Runs OUTSIDE the create transaction: media storage
-        // writes files and a media row, neither of which the game row depends
-        // on, and Spatie's medialibrary does not participate in the caller's
-        // DB transaction safely.
-        if ($this->cover_image instanceof UploadedFile) {
-            try {
-                $game->addMedia($this->cover_image)->toMediaCollection('cover');
-
-                Log::info('Game cover image uploaded', [
+                return $game;
+            },
+            afterSync: function (Game $game) use ($hostingEvent): void {
+                // M063/S06/T02: the pivot sync fires no model events, so the
+                // umbrella's derived offered-systems cache (aggregated across
+                // tables) is flushed here. GameObserver::saved already flushed on
+                // the associate+save above, but THIS sync is what changes the
+                // union — a concurrent read between the two would otherwise pin
+                // a stale offering for the cache TTL.
+                if ($hostingEvent !== null) {
+                    $hostingEvent->flushOfferedSystemsCache();
+                }
+            },
+            onCreated: function (Game $game) use ($hostingEvent): void {
+                $logContext = [
                     'game_id' => $game->id,
+                    'name' => $game->name,
+                    'game_type' => $game->game_type?->value,
                     'owner_id' => Auth::id(),
-                    'mime' => $this->cover_image->getMimeType(),
-                    'size' => $this->cover_image->getSize(),
-                ]);
-            } catch (\Throwable $e) {
-                // Upload failures are non-fatal: the game is already created
-                // and resolveCoverUrl() falls back to the representative
-                // system cover. Surface the failure for follow-up.
-                Log::warning('Game cover image upload failed', [
-                    'game_id' => $game->id,
-                    'owner_id' => Auth::id(),
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+                    'event_id' => $hostingEvent?->id,
+                ];
 
-        $logContext = [
-            'game_id' => $game->id,
-            'name' => $game->name,
-            'game_type' => $game->game_type?->value,
-            'owner_id' => Auth::id(),
-            'event_id' => $hostingEvent?->id,
-        ];
+                if ($this->clone !== null && $this->clone !== '') {
+                    $logContext['source_game_id'] = $this->clone;
+                }
 
-        if ($this->clone !== null && $this->clone !== '') {
-            $logContext['source_game_id'] = $this->clone;
-        }
-
-        Log::info('Game created', $logContext);
-
-        // Auto-generate short link for GMs
-        if (authenticatedUser()->isGM()) {
-            try {
-                app(ShortLinkService::class)->createLink($game, authenticatedUser(), [
-                    'label' => 'Default',
-                    'expires_at' => now()->addDays(30),
-                ]);
-            } catch (\Throwable $e) {
-                Log::warning('Failed to auto-generate short link for game', [
-                    'game_id' => $game->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+                Log::info('Game created', $logContext);
+            },
+        );
 
         session()->flash('success', __('games.flash_game_name_created_successfully', ['name' => $game->name]));
 
@@ -798,24 +462,6 @@ class CreateGame extends Component
     }
 
     // ── Private Helpers ──────────────────────────────────
-
-    protected function applyTypeDefaults(string $type): void
-    {
-        $this->expected_duration = match ($type) {
-            'board_game' => '1.5',
-            'ttrpg' => '3',
-            default => '2',
-        };
-
-        // Gatherings are larger, warmer, all-welcome social sessions (R047):
-        // a raised venue-size capacity default and an "all welcome" experience
-        // level. Autofill never overrides these for gatherings because the
-        // single-system picker (which drives autofill) is hidden on this branch.
-        if ($type === 'gathering') {
-            $this->max_players = 12;
-            $this->experience_level = 'all';
-        }
-    }
 
     /**
      * Layer smart defaults from the user's last session of the same type
@@ -880,80 +526,25 @@ class CreateGame extends Component
         }
     }
 
-    protected function autofillFromGameSystem(?string $id): void
+    // ── BuildsSessionForm hooks ──────────────────────────
+
+    protected function sessionDuration(): ?string
     {
-        if ($id === null) {
-            return;
-        }
-
-        $system = GameSystem::find($id);
-        if ($system === null) {
-            return;
-        }
-
-        // Allow autofill to override type-default durations but not manual input
-        $typeDefault = match ($this->game_type) {
-            'board_game' => '1.5',
-            'ttrpg' => '3',
-            default => '',
-        };
-
-        if ($system->average_play_time && ($this->expected_duration === '' || $this->expected_duration === $typeDefault)) {
-            $hours = $system->average_play_time / 60;
-            $rounded = round($hours * 2) / 2;
-            $this->expected_duration = (string) max($rounded, 0.5);
-        }
-
-        if ($system->min_players && $this->min_players === null) {
-            $this->min_players = $system->min_players;
-        }
-        if ($system->max_players && $this->max_players === null) {
-            $this->max_players = $system->max_players;
-        }
-
-        if ($system->bgg_average_weight && $this->complexity === null) {
-            $this->complexity = (string) round((float) $system->bgg_average_weight, 2);
-        }
-
-        if ($this->experience_level === null && $system->bgg_average_weight) {
-            $weight = (float) $system->bgg_average_weight;
-            if ($weight <= 2.0) {
-                $this->experience_level = 'beginner';
-            } elseif ($weight <= 3.5) {
-                $this->experience_level = 'intermediate';
-            } else {
-                $this->experience_level = 'advanced';
-            }
-        }
+        return $this->expected_duration;
     }
 
-    protected function validatePlayerCounts(): void
+    protected function setSessionDuration(string $value): void
     {
-        if (
-            $this->min_players !== null
-            && $this->max_players !== null
-            && $this->min_players > $this->max_players
-        ) {
-            $this->addError('min_players', __('games.error_min_players_cannot_exceed_max_players'));
-        }
+        $this->expected_duration = $value;
     }
 
-    /**
-     * Extract favorite flags from the picker as a flat array for DB storage.
-     * Validates against the VibeFlag enum to prevent tampering.
-     *
-     * @return array<int, string>
-     */
-    protected function selectedVibeFlags(): array
+    protected function afterTypeSelected(string $type): void
     {
-        $validValues = VibeFlag::values();
+        $this->applySmartDefaults($type);
+    }
 
-        return collect($this->vibePreferences)
-            ->filter(fn ($value) => $value === 'favorite')
-            ->keys()
-            ->filter(fn ($key) => in_array($key, $validValues, true))
-            ->map(fn (mixed $k): string => (string) $k)
-            ->values()
-            ->all();
+    protected function resetTypeSpecificState(): void
+    {
+        $this->comfort_notes = '';
     }
 }

@@ -1,10 +1,8 @@
 import './bootstrap';
 import './guest-location';
-import './offline-queue';
-import './logout-cleanup';
 import './image-fallback';
 import { initPushSubscriptions } from './push';
-import { showOfflineToast as showOfflineActionToast } from './offline-queue';
+import { showOfflineToast as showOfflineActionToast, showToast } from './toast';
 
 // ── Offline indicator immediate bridge ────────────────────────────────────────
 // Ensures the offline indicator is visible before Alpine bootstraps.
@@ -111,44 +109,25 @@ function showUpdateToast(waitingWorker) {
     const i18n = window.__pwaUpdateToast || {};
     const message = i18n.message || 'A new version is available';
     const action = i18n.action || 'Update';
-    const icon = 'system_update';
 
-    const toast = document.createElement('div');
-    toast.id = 'sw-update-toast';
-    toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', 'polite');
-    toast.className = 'fixed bottom-4 right-4 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg bg-primary text-on-primary pointer-events-auto';
-
-    toast.innerHTML =
-        '<span class="material-symbols-outlined text-lg" aria-hidden="true">' + icon + '</span>' +
-        '<span class="text-sm font-medium">' + message + '</span>' +
-        '<button id="sw-update-action" class="underline font-semibold text-sm hover:opacity-80 transition-opacity">' + action + '</button>' +
-        '<button id="sw-update-dismiss" class="ml-1 text-lg leading-none hover:opacity-80 transition-opacity" aria-label="Dismiss">&times;</button>';
-
-    document.body.appendChild(toast);
-
-    // Reload flag prevents duplicate controllerchange listeners
-    let reloadPending = false;
-
-    // Send SKIP_WAITING on user action, then reload on controllerchange
-    document.getElementById('sw-update-action').addEventListener('click', () => {
-        if (reloadPending) return;
-        reloadPending = true;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (reloadPending) window.location.reload();
-        }, { once: true });
-        waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-        document.getElementById('sw-update-action').disabled = true;
-        document.getElementById('sw-update-action').textContent = '…';
+    showToast({
+        id: 'sw-update-toast',
+        message,
+        icon: 'system_update',
+        variant: 'primary',
+        actionLabel: action,
+        ttlMs: 30000,
+        onAction: (toast) => {
+            // Send SKIP_WAITING on user action, then reload once the new
+            // worker takes control. The { once: true } listener plus the
+            // synchronously disabled button guarantee a single reload.
+            const actionButton = toast.querySelector('[data-toast-action]');
+            actionButton.disabled = true;
+            actionButton.textContent = '…';
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            }, { once: true });
+            waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+        },
     });
-
-    // Dismiss
-    document.getElementById('sw-update-dismiss').addEventListener('click', () => {
-        toast.remove();
-    });
-
-    // Auto-dismiss after 30 seconds
-    setTimeout(() => {
-        if (toast.parentNode) toast.remove();
-    }, 30000);
 }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Dto\BBox;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Lightweight geohash encoder for tile-prefix generation.
@@ -147,5 +148,33 @@ class Geohash
             minLng: $lngRange[0],
             maxLng: $lngRange[1],
         );
+    }
+
+    /**
+     * Apply the geohash tile bounding-box constraint to a query that joins
+     * `locations` and filters on locations.latitude / locations.longitude.
+     *
+     * The single definition of the bbox clause behind every nearby-* query
+     * (scopeNearbyOpen, the dashboard computers, proximity retrieval) so the
+     * tile math exists exactly once. Never inline the four where clauses —
+     * a second copy drifts silently from the tile geometry.
+     *
+     * ProximityQuery is the one deliberate exception: its bbox derives from
+     * a center+radius (not a tile prefix) and runs on a Query\Builder.
+     *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    public static function applyBounds(Builder $query, string $geohash4): Builder
+    {
+        $bounds = self::prefixBounds($geohash4);
+
+        return $query
+            ->whereNotNull('locations.latitude')
+            ->whereNotNull('locations.longitude')
+            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
+            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng]);
     }
 }

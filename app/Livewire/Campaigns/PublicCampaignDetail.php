@@ -84,7 +84,7 @@ class PublicCampaignDetail extends Component
     #[Computed]
     public function isOwner(): bool
     {
-        return ($id = Auth::id()) && $this->campaign->owner_id === $id;
+        return ($id = Auth::id()) !== null && (string) $this->campaign->owner_id === (string) $id;
     }
 
     #[Computed]

@@ -44,8 +44,8 @@ function createGameWithOwner(GameSystem $system, int $maxPlayers, array $extra =
 describe('Capacity and Counting Correctness', function () {
 
     beforeEach(function () {
-        $this->service = new ParticipantService;
-        $this->lifecycle = new ParticipantLifecycle;
+        $this->service = app(ParticipantService::class);
+        $this->lifecycle = app(ParticipantLifecycle::class);
         $this->system = GameSystem::factory()->create();
     });
 

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\DashboardSection;
-use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Jobs\WarmDashboardCache;
 use App\Jobs\WarmTrendingNearby;
@@ -13,7 +12,6 @@ use Illuminate\Cache\Lock;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -34,6 +32,11 @@ use Illuminate\Support\Facades\Log;
  */
 class DashboardCacheService
 {
+    public function __construct(
+        private readonly DashboardEstablishedService $established,
+        private readonly DashboardNewcomerService $newcomer,
+    ) {}
+
     /**
      * Retrieve an array from the cache, returning null if missing or not an array.
      *
@@ -168,17 +171,20 @@ class DashboardCacheService
     private function dispatchCompute(DashboardSection $section, User $user, ?string $geohash4): array
     {
         return match ($section) {
-            DashboardSection::Week => app(DashboardEstablishedService::class)->computeWeekData($user),
-            DashboardSection::Feed => app(DashboardEstablishedService::class)->computeFeedData($user),
-            DashboardSection::Opportunities => app(DashboardEstablishedService::class)->computeOpportunities($user, (string) $geohash4),
-            DashboardSection::Contributions => app(DashboardEstablishedService::class)->computeContributions($user),
-            DashboardSection::Recaps => app(DashboardEstablishedService::class)->computeRecaps($user),
-            DashboardSection::ActionCenter => app(DashboardEstablishedService::class)->computeActionCenter($user),
-            DashboardSection::NewcomerWelcome => app(DashboardNewcomerService::class)->computeWelcomeData($user),
-            DashboardSection::ProgressTracker => app(DashboardNewcomerService::class)->computeProgressTracker($user),
-            DashboardSection::NearbyPeople => app(DashboardNewcomerService::class)->computeNearbyPeople($user, (string) $geohash4),
-            DashboardSection::NewcomerMatches => app(DashboardNewcomerService::class)->computePreferenceWeightedMatches($user, (string) $geohash4),
-            DashboardSection::HostAgain => app(DashboardEstablishedService::class)->computeHostAgain($user),
+            DashboardSection::Week => $this->established->computeWeekData($user),
+            DashboardSection::Feed => $this->established->computeFeedData($user),
+            DashboardSection::Opportunities => $this->established->computeOpportunities($user, (string) $geohash4),
+            DashboardSection::Contributions => $this->established->computeContributions($user),
+            DashboardSection::Recaps => $this->established->computeRecaps($user),
+            DashboardSection::ActionCenter => $this->established->computeActionCenter($user),
+            DashboardSection::NewcomerWelcome => $this->newcomer->computeWelcomeData($user),
+            DashboardSection::ProgressTracker => $this->newcomer->computeProgressTracker($user),
+            DashboardSection::NearbyPeople => $this->newcomer->computeNearbyPeople($user, (string) $geohash4),
+            DashboardSection::NewcomerMatches => $this->newcomer->computePreferenceWeightedMatches($user, (string) $geohash4),
+            DashboardSection::HostAgain => $this->established->computeHostAgain($user),
+            // DashboardDiscoveryService stays lazy via app(): real cycle — it
+            // calls back into this cache service, so constructor-injecting it
+            // would not resolve.
             DashboardSection::MilestoneCards => app(DashboardDiscoveryService::class)->computeMilestoneCardsPublic($user),
         };
     }
@@ -700,30 +706,17 @@ class DashboardCacheService
     {
         $cacheKey = "dashboard:trending:{$geohash4}";
 
-        // Get bounding box for the geohash-4 tile
-        $bounds = Geohash::prefixBounds($geohash4);
-
-        // Query games within the tile: scheduled, next 14 days, with location
-        // Subquery counts confirmed participants for sorting (owner is an explicit participant)
-        $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*)')
-            ->whereColumn('game_participants.game_id', 'games.id')
-            ->where('game_participants.status', ParticipantStatus::Approved->value);
-
+        // Shared nearby-games scaffold (locations join, geohash bbox, scheduled
+        // status, 14-day window, participant_count subquery).
+        // requireCapacity: false is the DOCUMENTED exception to the scaffold
+        // default: trending ranks by confirmed participation as social proof of
+        // activity — a full game is still worth surfacing, it is not presented
+        // as a join target.
         /** @var Collection<int, Game> $games */
         $games = Game::query()
-            ->select('games.*')
-            ->selectSub($participantCountSubquery, 'participant_count')
-            ->with('gameSystems')
-            ->join('locations', 'games.location_id', '=', 'locations.id')
-            ->whereNotNull('locations.latitude')
-            ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
-            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
-            ->where('games.status', GameStatus::Scheduled->value)
+            ->nearbyOpen($geohash4, requireCapacity: false)
             ->where('games.visibility', 'public')
-            ->where('games.date_time', '>=', now())
-            ->where('games.date_time', '<=', now()->addDays(14))
+            ->with('gameSystems')
             ->orderByDesc('participant_count')
             ->orderByDesc('games.created_at')
             ->limit(5)

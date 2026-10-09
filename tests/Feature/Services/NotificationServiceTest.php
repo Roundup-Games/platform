@@ -19,7 +19,7 @@ use Tests\Feature\Services\Fixtures\TestNotificationWithActor;
 
 describe('NotificationService', function () {
     beforeEach(function () {
-        $this->service = new NotificationService;
+        $this->service = app(NotificationService::class);
     });
 
     // ── resolveChannels ──────────────────────────────────────────

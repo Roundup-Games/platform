@@ -14,7 +14,6 @@ use App\Models\GameParticipant;
 use App\Models\Review;
 use App\Models\SessionDebriefing;
 use App\Models\SessionZeroConfirmation;
-use App\Models\ShortLink;
 use App\Services\AttendanceService;
 use App\Services\CapacityService;
 use App\Services\DebriefingService;
@@ -22,6 +21,7 @@ use App\Services\OverflowRouter;
 use App\Services\ParticipantLifecycle;
 use App\Services\ReviewEligibilityService;
 use App\Services\Roster;
+use App\Services\ShareLinkJoinService;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
 use App\Support\DiscordJoinIntent;
@@ -35,7 +35,6 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
@@ -666,7 +665,7 @@ class GameDetail extends Component
                     ParticipantStatus::Pending->value,
                 ]));
 
-        if (! $participant) {
+        if (! $participant || ! $user->can('leave', $this->game)) {
             session()->flash('error', __('games.error_not_a_game_participant'));
 
             return;
@@ -687,7 +686,9 @@ class GameDetail extends Component
 
     public function generateShareLink(): void
     {
-        if (! $this->isOwner()) {
+        // Rule lives in GamePolicy::manageShareToken — one definition shared
+        // by generate/revoke/regenerate and the CampaignDetail twins.
+        if (! authenticatedUser()->can('manageShareToken', $this->game)) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -706,7 +707,7 @@ class GameDetail extends Component
 
     public function revokeShareLink(): void
     {
-        if (! $this->isOwner()) {
+        if (! authenticatedUser()->can('manageShareToken', $this->game)) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -758,8 +759,7 @@ class GameDetail extends Component
 
     public function regenerateShareLink(): void
     {
-        $viewer = authenticatedUser();
-        if ((string) $this->game->owner_id !== (string) $viewer->id) {
+        if (! authenticatedUser()->can('manageShareToken', $this->game)) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -773,7 +773,7 @@ class GameDetail extends Component
         Log::info('Share link regenerated', [
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
-            'user_id' => $viewer->id,
+            'user_id' => Auth::id(),
         ]);
         session()->flash('success', __('common.flash_share_link_generated'));
     }
@@ -809,88 +809,16 @@ class GameDetail extends Component
         }
         RateLimiter::hit($rateLimitKey, 60);
 
-        // Determine join source and short link ID.
-        // Try short link first, but fall back to share token if the short link
-        // is revoked mid-session (caught during transactional revalidation).
         $shortLinkId = $this->validatedShortLinkId;
-        $joinSource = $shortLinkId !== null
-            ? JoinSource::ShortLink
-            : JoinSource::ShareLink;
-
-        $overflowFlash = null;
 
         try {
-            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId, &$overflowFlash) {
-                $game = Game::lockForUpdate()->find($this->game->id);
-
-                if ($game === null) {
-                    throw new \RuntimeException('Game not found during join transaction.');
-                }
-
-                // Revalidate short link under lock to catch mid-session revocation.
-                // If revoked, fall back to share token if one is still valid.
-                if ($shortLinkId !== null) {
-                    $freshLink = ShortLink::where('id', $shortLinkId)
-                        ->whereNull('deleted_at')
-                        ->first();
-                    if ($freshLink === null || $freshLink->isExpired()) {
-                        // Short link gone — fall back to share token if valid.
-                        if ($this->isShareTokenStillValid()) {
-                            $shortLinkId = null;
-                            $joinSource = JoinSource::ShareLink;
-                        } else {
-                            throw new \RuntimeException('Short link revoked or expired during join.');
-                        }
-                    }
-                }
-
-                $isFull = $this->participantService()->isAtCapacity($game);
-
-                $baseData = [
-                    'game_id' => $game->id,
-                    'user_id' => $viewer->id,
-                    'role' => ParticipantRole::Player->value,
-                    'join_source' => $joinSource->value,
-                ];
-
-                if ($shortLinkId !== null) {
-                    $baseData['short_link_id'] = $shortLinkId;
-                }
-
-                if ($isFull) {
-                    $overflow = app(OverflowRouter::class)->resolve($game);
-                    $baseData['status'] = $overflow->statusValue();
-                    $baseData[$overflow->timestampColumn] = now();
-
-                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
-
-                    $overflowFlash = app(OverflowRouter::class)->flashResult($game);
-
-                    Log::info('Player '.$overflow->statusValue().' via share link (game full)', [
-                        'game_id' => $game->id,
-                        'user_id' => $viewer->id,
-                        'join_source' => $joinSource->value,
-                        'short_link_id' => $shortLinkId,
-                    ]);
-                } else {
-                    $baseData['status'] = ParticipantStatus::Approved->value;
-                    // Stamp approved_at so LIFO capacity-demotion ordering is
-                    // correct for share-link direct joins — without this, the
-                    // demote query's `approved_at IS NULL ASC` ordering would
-                    // shield these players from demotion (MEM: stamp every
-                    // Approved transition). Mirrors WaitlistService::confirmPromotion.
-                    $baseData['approved_at'] = now();
-
-                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
-
-                    Log::info('Player joined via share link', [
-                        'game_id' => $game->id,
-                        'user_id' => $viewer->id,
-                        'join_source' => $joinSource->value,
-                        'short_link_id' => $shortLinkId,
-                    ]);
-                }
-            });
+            $overflowFlash = $this->shareLinkJoinService()->join(
+                $this->game,
+                $viewer,
+                $shortLinkId !== null ? JoinSource::ShortLink : JoinSource::ShareLink,
+                $shortLinkId,
+                $this->validatedShareToken,
+            );
 
             // Clear the intent cookies since the user has now joined
             Cookie::queue(Cookie::forget('share_intent'));
@@ -921,11 +849,11 @@ class GameDetail extends Component
     /**
      * Join the game from a Discord "My seat" intent (M059/S02).
      *
-     * Mirrors {@see joinViaShareLink()} exactly EXCEPT: no share-token / short-
-     * link requirement (the member arrived via the Discord on-ramp, not a
-     * share link), and the join is attributed {@see JoinSource::Discord} so the
-     * acquisition funnel is measured. Same participant pipeline, same capacity /
-     * overflow / approved_at stamping. Driven either by the auto-trigger on
+     * Same pipeline as joinViaShareLink() (ShareLinkJoinService) — same lock,
+     * capacity re-check, overflow routing and approved_at stamping — minus the
+     * share-token / short-link requirement (the member arrived via the Discord
+     * on-ramp, not a share link) and attributed JoinSource::Discord so the
+     * acquisition funnel is measured. Driven either by the auto-trigger on
      * mount (?discord_join=1 + canJoinViaDiscord) or by an explicit Join button.
      */
     public function joinViaDiscord(): void
@@ -952,54 +880,12 @@ class GameDetail extends Component
         }
         RateLimiter::hit($rateLimitKey, 60);
 
-        $overflowFlash = null;
-
         try {
-            DB::transaction(function () use ($viewer, &$overflowFlash): void {
-                $game = Game::lockForUpdate()->find($this->game->id);
-
-                if ($game === null) {
-                    throw new \RuntimeException('Game not found during Discord join transaction.');
-                }
-
-                $isFull = $this->participantService()->isAtCapacity($game);
-
-                $baseData = [
-                    'game_id' => $game->id,
-                    'user_id' => $viewer->id,
-                    'role' => ParticipantRole::Player->value,
-                    'join_source' => JoinSource::Discord->value,
-                ];
-
-                if ($isFull) {
-                    $overflow = app(OverflowRouter::class)->resolve($game);
-                    $baseData['status'] = $overflow->statusValue();
-                    $baseData[$overflow->timestampColumn] = now();
-
-                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
-
-                    $overflowFlash = app(OverflowRouter::class)->flashResult($game);
-
-                    Log::info('Player '.$overflow->statusValue().' via Discord intent (game full)', [
-                        'game_id' => $game->id,
-                        'user_id' => $viewer->id,
-                        'join_source' => JoinSource::Discord->value,
-                    ]);
-                } else {
-                    $baseData['status'] = ParticipantStatus::Approved->value;
-                    // Stamp approved_at so LIFO capacity-demotion ordering is
-                    // correct — mirrors joinViaShareLink / ProcessDiscordRsvp.
-                    $baseData['approved_at'] = now();
-
-                    app(ParticipantLifecycle::class)->createOrReactivate($baseData);
-
-                    Log::info('Player joined via Discord intent', [
-                        'game_id' => $game->id,
-                        'user_id' => $viewer->id,
-                        'join_source' => JoinSource::Discord->value,
-                    ]);
-                }
-            });
+            $overflowFlash = $this->shareLinkJoinService()->join(
+                $this->game,
+                $viewer,
+                JoinSource::Discord,
+            );
 
             // The intent has been fulfilled — clear it so a later visit to this
             // or another game does not replay the join.
@@ -1049,6 +935,11 @@ class GameDetail extends Component
      * requirement. Full games route to the OverflowRouter (waitlist/bench)
      * inside joinViaDiscord().
      */
+    protected function shareLinkJoinService(): ShareLinkJoinService
+    {
+        return app(ShareLinkJoinService::class);
+    }
+
     #[Computed]
     public function canJoinViaDiscord(): bool
     {
@@ -1387,7 +1278,6 @@ class GameDetail extends Component
             'userInvitation' => $this->userInvitation(),
             'canApply' => $this->canApply(),
             'hasExistingApplication' => $this->hasExistingApplication(),
-            'isGuest' => false,
             'reviews' => $this->reviews(),
             'canReview' => $this->canReview(),
             'activeSessionZero' => $sz['active'],

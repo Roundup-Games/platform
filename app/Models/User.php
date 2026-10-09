@@ -9,6 +9,7 @@ use App\Notifications\Channels\DiscordChannel;
 use App\Services\Geohash;
 use App\Services\ProfileVisibilityResolver;
 use App\Services\ScopedRoleService;
+use App\Services\SlugService;
 use App\Services\SocialGraphService;
 use App\Services\UserPreferenceResolver;
 use App\Traits\StringMorphMediaKey;
@@ -220,7 +221,6 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             'disabled_at' => 'datetime',
             'can_create_public_entries' => 'boolean',
             'preferred_language' => ContentLanguage::class,
-            'location' => 'array',
             'reliability_score' => 'array',
             'reliability_computed_at' => 'datetime',
             'max_links_per_entity' => 'integer',
@@ -343,14 +343,6 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function preferredLocale(): ?string
     {
         return $this->preferred_language?->value;
-    }
-
-    /**
-     * @return BelongsTo<Location, $this>
-     */
-    public function location()
-    {
-        return $this->belongsTo(Location::class, 'location_id');
     }
 
     /**
@@ -761,113 +753,24 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
      * Generate a URL-friendly slug from a name.
      * Strips emojis and special characters, lowercases, replaces spaces with hyphens.
      * Allows letters, numbers, hyphens, underscores, and dots.
+     *
+     * Delegates to {@see SlugService::generate()} — the single shared slug
+     * algorithm (User and Location must slug byte-identically).
      */
     public static function generateSlug(string $name): string
     {
-        // Transliterate to ASCII first (ü→ue, ö→oe, ä→ae, é→e, etc.)
-        $slug = static::transliterate($name);
-        // Remove anything that's not ASCII letters, numbers, spaces, or hyphens
-        $slug = (string) preg_replace('/[^a-zA-Z0-9\s-]/', '', $slug);
-        // Replace spaces with hyphens
-        $slug = (string) preg_replace('/\s+/', '-', trim($slug));
-        // Collapse consecutive hyphens
-        $slug = (string) preg_replace('/-+/', '-', $slug);
-        // Lowercase
-        $slug = mb_strtolower($slug);
-        // Trim leading/trailing hyphens
-        $slug = trim($slug, '-');
-
-        return $slug;
-    }
-
-    /**
-     * Transliterate Unicode characters to ASCII equivalents.
-     * Covers Germanic (ä→ae, ö→oe, ü→ue, ß→ss), Nordic, Slavic,
-     * and other common European characters using iconv with //TRANSLIT.
-     */
-    protected static function transliterate(string $text): string
-    {
-        // Deterministic, platform-independent transliteration.
-        //
-        // The previous implementation pre-expanded only German umlauts and
-        // then relied on iconv('UTF-8', 'ASCII//TRANSLIT') for the rest. iconv's
-        // output is locale- and system-dependent — on macOS it produces
-        // combining-character sequences (e.g. é → 'e with a combining acute)
-        // that the downstream preg_replace strips inconsistently, making
-        // User::generateSlug non-deterministic across platforms. Apply the full
-        // Latin transliteration map here so iconv never sees the common cases.
-        $map = [
-            // German expansions (multi-char)
-            'ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss',
-            'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue',
-            // Nordic
-            'æ' => 'ae', 'ø' => 'oe', 'å' => 'aa',
-            'Æ' => 'Ae', 'Ø' => 'Oe', 'Å' => 'Aa',
-            // Latin accented vowels
-            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
-            'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a',
-            'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
-            'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o',
-            'ú' => 'u', 'ù' => 'u', 'û' => 'u',
-            'ý' => 'y', 'ÿ' => 'y',
-            'ñ' => 'n', 'ç' => 'c',
-            // Slavic / Central European
-            'ž' => 'z', 'š' => 's', 'č' => 'c', 'ř' => 'r',
-            'ď' => 'd', 'ť' => 't', 'ň' => 'n',
-            'ł' => 'l', 'ś' => 's', 'ź' => 'z',
-            'Ž' => 'Z', 'Š' => 'S', 'Č' => 'C', 'Ř' => 'R',
-            'Ď' => 'D', 'Ť' => 'T', 'Ň' => 'N',
-            'Ł' => 'L', 'Ś' => 'S', 'Ź' => 'Z',
-            // Uppercase accented vowels
-            'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
-            'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A',
-            'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
-            'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O',
-            'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U',
-            'Ý' => 'Y', 'Ñ' => 'N', 'Ç' => 'C',
-        ];
-        $text = strtr($text, $map);
-
-        // iconv handles any remaining characters the map doesn't cover.
-        // Worst case (no TRANSLIT support / unmappable char) it returns false
-        // and we keep the pre-mapped text as-is.
-        $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-
-        return $transliterated !== false ? $transliterated : $text;
+        return SlugService::generate($name);
     }
 
     /**
      * Generate a unique slug for the given name, appending incremental digits on collision.
+     *
+     * Delegates to {@see SlugService::unique()} — the single shared uniqueness
+     * loop (User fallback: 'user').
      */
     public static function generateUniqueSlug(string $name, ?string $ignoreId = null): string
     {
-        $baseSlug = static::generateSlug($name);
-
-        if ($baseSlug === '') {
-            $baseSlug = 'user';
-        }
-
-        $slug = $baseSlug;
-        $counter = 1;
-
-        $query = static::where('slug', $slug);
-
-        if ($ignoreId !== null) {
-            $query->where('id', '!=', $ignoreId);
-        }
-
-        while ($query->exists()) {
-            $counter++;
-            $slug = $baseSlug.'-'.$counter;
-
-            $query = static::where('slug', $slug);
-
-            if ($ignoreId !== null) {
-                $query->where('id', '!=', $ignoreId);
-            }
-        }
-
-        return $slug;
+        return SlugService::unique(static::query(), 'slug', $name, 'user', $ignoreId);
     }
 
     // ── Anonymization ──────────────────────────────────

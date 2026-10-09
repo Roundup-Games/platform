@@ -46,6 +46,10 @@ use Illuminate\Support\Facades\Mail;
  */
 class OverflowRouter
 {
+    public function __construct(
+        private readonly NotificationService $notificationService,
+    ) {}
+
     /**
      * The overflow routing decision for a full entity.
      *
@@ -131,7 +135,7 @@ class OverflowRouter
                         ? NotificationCategory::CampaignInvitation
                         : NotificationCategory::GameInvitation;
 
-                    app(NotificationService::class)->send($existingUser, $notificationClass, $category);
+                    $this->notificationService->send($existingUser, $notificationClass, $category);
                 } catch (\Throwable $e) {
                     Log::error('notification.entity_invitation_dispatch_failed', [
                         'entity_type' => $meta->type,
@@ -182,7 +186,7 @@ class OverflowRouter
             $user = $participant->getUser();
             if ($user !== null) {
                 try {
-                    app(NotificationService::class)->send(
+                    $this->notificationService->send(
                         $user,
                         new PlayerBenched($entity, $meta->type),
                         NotificationCategory::BenchUpdates,
@@ -200,7 +204,7 @@ class OverflowRouter
             $user = $participant->getUser();
             if ($user !== null) {
                 try {
-                    app(NotificationService::class)->send(
+                    $this->notificationService->send(
                         $user,
                         new WaitlistPlaced($entity),
                         NotificationCategory::WaitlistPlacement,

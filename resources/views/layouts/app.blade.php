@@ -399,9 +399,7 @@
 
         {{-- PWA Install Prompt (only for authenticated + eligible users) --}}
         @auth
-            @php
-                $pwaEligible = app(App\Services\PwaEligibilityService::class)->isEligible(Auth::user())->eligible;
-            @endphp
+            {{-- $pwaEligible comes from the layouts.app view composer (AppServiceProvider) — no service location in views. --}}
             <x-pwa-install-prompt :eligible="$pwaEligible" />
         @endauth
     </body>

@@ -131,7 +131,7 @@ class GmWorkspace extends Component
         // user_id AND entity ownership. Uses isset() because owner_id is an
         // Eloquent dynamic property (column accessor), not a declared method.
         $entity = $link->linkable;
-        if ($entity && isset($entity->owner_id) && $entity->owner_id !== $user->id) {
+        if ($entity && isset($entity->owner_id) && (string) $entity->owner_id !== (string) $user->id) {
             Log::warning('GM workspace: revoke denied — entity not owned by user', [
                 'link_id' => $linkId, 'user_id' => $user->id,
                 'linkable_type' => $link->linkable_type, 'linkable_id' => $link->linkable_id,

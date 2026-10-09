@@ -23,8 +23,8 @@ uses(DatabaseTransactions::class);
 describe('ParticipantService', function () {
 
     beforeEach(function () {
-        $this->service = new ParticipantService;
-        $this->lifecycle = new ParticipantLifecycle;
+        $this->service = app(ParticipantService::class);
+        $this->lifecycle = app(ParticipantLifecycle::class);
         $this->owner = User::factory()->create();
         $this->friend = User::factory()->create();
         $this->stranger = User::factory()->create();

@@ -7,10 +7,10 @@ use App\Enums\DisclosureLevel;
 use App\Enums\GameType;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
-use App\Relations\StringKeyMorphMany;
+use App\Models\Concerns\HasShareToken;
+use App\Models\Concerns\VisibleToScope;
 use App\Services\LocationDisclosureService;
 use App\Services\ShortLinkService;
-use App\Services\SocialGraphService;
 use App\Traits\ResolvesCoverImage;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\CampaignFactory;
@@ -62,6 +62,8 @@ class Campaign extends Model implements HasMedia, TicketSubject
     /** @use HasFactory<CampaignFactory> */
     use HasFactory;
 
+    use HasShareToken;
+
     // Spatie MediaLibrary: host-uploaded cover images. StringMorphMediaKey
     // overrides media() so the varchar(36) model_id column compares correctly
     // against this model's string PK. Mirrors GameSystem's trait resolution.
@@ -76,6 +78,9 @@ class Campaign extends Model implements HasMedia, TicketSubject
         ResolvesCoverImage::registerMediaCollections insteadof InteractsWithMedia;
         ResolvesCoverImage::registerMediaConversions insteadof InteractsWithMedia;
     }
+
+    /** @use VisibleToScope<static> */
+    use VisibleToScope;
 
     /**
      * Deep link into the host app for this campaign when attached as a
@@ -262,79 +267,6 @@ class Campaign extends Model implements HasMedia, TicketSubject
     public function applications(): HasMany
     {
         return $this->hasMany(CampaignApplication::class);
-    }
-
-    // ── Short Links ────────────────────────────────────
-
-    /**
-     * @return StringKeyMorphMany<ShortLink, $this>
-     */
-    public function shortLinks(): StringKeyMorphMany
-    {
-        $relation = new StringKeyMorphMany(
-            $this->newRelatedInstance(ShortLink::class)->newQuery(),
-            $this,
-            'linkable_type',
-            'linkable_id',
-            'id'
-        );
-        $relation->getQuery()->where('linkable_type', static::class);
-
-        return $relation;
-    }
-
-    // ── Share Token ────────────────────────────────────
-
-    /**
-     * Check whether the current request carries a valid share token for this entity.
-     * Validates that: the query param 'share' matches the stored token AND the token hasn't expired.
-     */
-    public function hasValidShareToken(?string $token = null): bool
-    {
-        $token = $token ?? request()->query('share');
-
-        if (! $token || ! $this->share_token) {
-            return false;
-        }
-
-        if ($this->share_token_expires_at !== null && $this->share_token_expires_at->isPast()) {
-            return false;
-        }
-
-        return hash_equals($this->share_token, $token);
-    }
-
-    // ── Scopes ─────────────────────────────────────────
-
-    /**
-     * Scope to campaigns visible to a given user (or guest).
-     *
-     * Guests see public only. Authenticated users see public + protected
-     * items owned by their connections (friends, teammates) or where they
-     * are a participant. Private campaigns are never included in listings.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeVisibleTo(Builder $query, ?User $viewer = null)
-    {
-        if ($viewer === null) {
-            return $query->where('visibility', 'public');
-        }
-
-        $allowedOwnerIds = app(SocialGraphService::class)
-            ->getAllowedOwnerIdsForProtectedContent($viewer);
-
-        return $query->where(function ($q) use ($allowedOwnerIds, $viewer) {
-            $q->where('visibility', 'public')
-                ->orWhere(function ($q) use ($allowedOwnerIds, $viewer) {
-                    $q->where('visibility', 'protected')
-                        ->where(function ($q) use ($allowedOwnerIds, $viewer) {
-                            $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($viewer));
-                        });
-                });
-        });
     }
 
     // ── Bench ──────────────────────────────────────────

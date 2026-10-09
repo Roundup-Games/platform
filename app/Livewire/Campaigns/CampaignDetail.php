@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Campaigns;
 
-use App\Dto\OverflowStatus;
 use App\Enums\CampaignStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
@@ -11,12 +10,11 @@ use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Review;
-use App\Models\ShortLink;
-use App\Services\OverflowRouter;
 use App\Services\ParticipantLifecycle;
 use App\Services\RecurrenceService;
 use App\Services\ReviewEligibilityService;
 use App\Services\Roster;
+use App\Services\ShareLinkJoinService;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
 use App\Traits\HandlesBench;
@@ -80,9 +78,9 @@ class CampaignDetail extends Component
 
     public function generateShareLink(): void
     {
-        $viewer = authenticatedUser();
-
-        if ((string) $this->campaign->owner_id !== (string) $viewer->id) {
+        // Rule lives in CampaignPolicy::manageShareToken — one definition
+        // shared by generate/revoke/regenerate and the GameDetail twins.
+        if (! authenticatedUser()->can('manageShareToken', $this->campaign)) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -101,9 +99,7 @@ class CampaignDetail extends Component
 
     public function revokeShareLink(): void
     {
-        $viewer = authenticatedUser();
-
-        if ((string) $this->campaign->owner_id !== (string) $viewer->id) {
+        if (! authenticatedUser()->can('manageShareToken', $this->campaign)) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -122,8 +118,7 @@ class CampaignDetail extends Component
 
     public function regenerateShareLink(): void
     {
-        $viewer = authenticatedUser();
-        if ((string) $this->campaign->owner_id !== (string) $viewer->id) {
+        if (! authenticatedUser()->can('manageShareToken', $this->campaign)) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -137,7 +132,7 @@ class CampaignDetail extends Component
         Log::info('Share link regenerated', [
             'entity_type' => 'campaign',
             'entity_id' => $this->campaign->id,
-            'user_id' => $viewer->id,
+            'user_id' => Auth::id(),
         ]);
         session()->flash('success', __('common.flash_share_link_generated'));
     }
@@ -162,85 +157,16 @@ class CampaignDetail extends Component
         }
         RateLimiter::hit($rateLimitKey, 60);
 
-        // Determine join source and short link ID.
-        // Try short link first, but fall back to share token if the short link
-        // is revoked mid-session (caught during transactional revalidation).
         $shortLinkId = $this->validatedShortLinkId;
-        $joinSource = $shortLinkId !== null
-            ? JoinSource::ShortLink
-            : JoinSource::ShareLink;
-
-        $overflowFlash = null;
 
         try {
-            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId, &$overflowFlash) {
-                $campaign = Campaign::lockForUpdate()->find($this->campaign->id);
-
-                if ($campaign === null) {
-                    throw new \RuntimeException('Campaign not found during join transaction.');
-                }
-
-                // Revalidate short link under lock to catch mid-session revocation.
-                // If revoked, fall back to share token if one is still valid.
-                if ($shortLinkId !== null) {
-                    $freshLink = ShortLink::where('id', $shortLinkId)
-                        ->whereNull('deleted_at')
-                        ->first();
-                    if ($freshLink === null || $freshLink->isExpired()) {
-                        // Short link gone — fall back to share token if valid.
-                        if ($this->isShareTokenStillValid()) {
-                            $shortLinkId = null;
-                            $joinSource = JoinSource::ShareLink;
-                        } else {
-                            throw new \RuntimeException('Short link revoked or expired during join.');
-                        }
-                    }
-                }
-
-                $isFull = $this->participantService()->isAtCapacity($campaign);
-
-                $baseData = [
-                    'campaign_id' => $campaign->id,
-                    'user_id' => $viewer->id,
-                    'role' => ParticipantRole::Player->value,
-                    'join_source' => $joinSource->value,
-                ];
-
-                if ($shortLinkId !== null) {
-                    $baseData['short_link_id'] = $shortLinkId;
-                }
-
-                if ($isFull) {
-                    // Full campaign: route to bench or waitlist via OverflowStatus
-                    $overflow = OverflowStatus::for($campaign->isBenchMode());
-                    $baseData['status'] = $overflow->statusValue();
-                    $baseData[$overflow->timestampColumn] = now();
-
-                    CampaignParticipant::create($baseData);
-
-                    // Capture overflow-aware flash message (mirrors GameDetail)
-                    $overflowFlash = app(OverflowRouter::class)->flashResult($campaign);
-
-                    Log::info('Player '.$overflow->statusValue().' via share link (campaign full)', [
-                        'campaign_id' => $campaign->id,
-                        'user_id' => $viewer->id,
-                        'join_source' => $joinSource->value,
-                        'short_link_id' => $shortLinkId,
-                    ]);
-                } else {
-                    // Direct join
-                    $baseData['status'] = ParticipantStatus::Approved->value;
-
-                    CampaignParticipant::create($baseData);
-
-                    Log::info('Player joined campaign via share link', [
-                        'campaign_id' => $campaign->id,
-                        'user_id' => $viewer->id,
-                        'join_source' => $joinSource->value,
-                        'short_link_id' => $shortLinkId,
-                    ]);
-                }
-            });
+            $overflowFlash = $this->shareLinkJoinService()->join(
+                $this->campaign,
+                $viewer,
+                $shortLinkId !== null ? JoinSource::ShortLink : JoinSource::ShareLink,
+                $shortLinkId,
+                $this->validatedShareToken,
+            );
 
             // Clear the intent cookies since the user has now joined
             Cookie::queue(Cookie::forget('share_intent'));
@@ -263,6 +189,11 @@ class CampaignDetail extends Component
             ]);
             session()->flash('error', __('campaigns.error_join_via_share_link_failed'));
         }
+    }
+
+    protected function shareLinkJoinService(): ShareLinkJoinService
+    {
+        return app(ShareLinkJoinService::class);
     }
 
     #[Computed]
@@ -330,7 +261,7 @@ class CampaignDetail extends Component
                     ParticipantStatus::Pending->value,
                 ]));
 
-        if (! $participant) {
+        if (! $participant || ! $user->can('leave', $this->campaign)) {
             session()->flash('error', __('campaigns.error_not_a_participant'));
 
             return;

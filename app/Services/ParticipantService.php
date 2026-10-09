@@ -27,6 +27,11 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class ParticipantService
 {
+    public function __construct(
+        private readonly OverflowRouter $overflowRouter,
+        private readonly NotificationService $notificationService,
+    ) {}
+
     // ── Entity metadata helper ─────────────────────────
 
     /**
@@ -188,9 +193,9 @@ class ParticipantService
         }
 
         if ($this->isAtCapacity($entity)) {
-            app(OverflowRouter::class)->placeEmailInvitee($entity, $meta, $normalizedEmail, $inviter, $existingUser->id);
+            $this->overflowRouter->placeEmailInvitee($entity, $meta, $normalizedEmail, $inviter, $existingUser->id);
 
-            return app(OverflowRouter::class)->flashResult($entity);
+            return $this->overflowRouter->flashResult($entity);
         }
 
         $entity->participants()->create([
@@ -247,9 +252,9 @@ class ParticipantService
         }
 
         if ($this->isAtCapacity($entity)) {
-            app(OverflowRouter::class)->placeEmailInvitee($entity, $meta, $normalizedEmail, $inviter);
+            $this->overflowRouter->placeEmailInvitee($entity, $meta, $normalizedEmail, $inviter);
 
-            return app(OverflowRouter::class)->flashResult($entity);
+            return $this->overflowRouter->flashResult($entity);
         }
 
         if ($isSuppressed) {
@@ -486,7 +491,7 @@ class ParticipantService
                 ? NotificationCategory::CampaignInvitation
                 : NotificationCategory::GameInvitation;
 
-            app(NotificationService::class)->send($target, $notificationClass, $category);
+            $this->notificationService->send($target, $notificationClass, $category);
         } catch (\Throwable $e) {
             Log::error('notification.invite_dispatch_failed', [
                 'entity_type' => $meta->type,

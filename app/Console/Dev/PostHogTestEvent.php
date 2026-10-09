@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Dev;
 
 use App\Services\PostHogClient;
 use Illuminate\Console\Command;

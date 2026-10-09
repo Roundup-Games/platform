@@ -51,6 +51,12 @@ use Illuminate\Support\Facades\Log;
  */
 class ParticipantLifecycle
 {
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly OverflowRouter $overflowRouter,
+        private readonly PostHogAnalytics $posthogAnalytics,
+    ) {}
+
     /**
      * Create a participant OR reactivate an existing departed row.
      *
@@ -266,7 +272,7 @@ class ParticipantLifecycle
         // captureParticipantTransition for the same richer entity enrichment
         // (game_system, visibility, is_online) and consent gating the other
         // lifecycle transitions use.
-        app(PostHogAnalytics::class)->captureParticipantTransition(
+        $this->posthogAnalytics->captureParticipantTransition(
             $participant,
             $entity,
             'participant.promoted',
@@ -274,7 +280,7 @@ class ParticipantLifecycle
         );
         if ($user !== null) {
             try {
-                app(NotificationService::class)->send(
+                $this->notificationService->send(
                     $user,
                     new PromotedFromBench($entity),
                     NotificationCategory::BenchUpdates,
@@ -381,7 +387,7 @@ class ParticipantLifecycle
             ? (int) round(now()->diffInSeconds($pendingApplication->created_at) / 3600)
             : null;
 
-        app(PostHogAnalytics::class)->captureParticipantTransition(
+        $this->posthogAnalytics->captureParticipantTransition(
             $participant, $entity, 'application.approved',
             ['approved_by' => $approver->id, 'time_to_decision_hours' => $timeToDecision],
         );
@@ -390,7 +396,7 @@ class ParticipantLifecycle
         try {
             $applicant = User::find($participant->getUserId());
             if ($applicant) {
-                app(NotificationService::class)->send(
+                $this->notificationService->send(
                     $applicant,
                     new ApplicationApproved($entity, strtolower($meta->type), $approver),
                     NotificationCategory::ApplicationApproved
@@ -440,7 +446,7 @@ class ParticipantLifecycle
         ]);
 
         // Matching-quality funnel: the host rejected this application.
-        app(PostHogAnalytics::class)->captureParticipantTransition(
+        $this->posthogAnalytics->captureParticipantTransition(
             $participant, $entity, 'application.rejected',
             ['rejected_by' => $rejecter->id],
         );
@@ -449,7 +455,7 @@ class ParticipantLifecycle
         try {
             $applicant = User::find($rejectedUserId);
             if ($applicant) {
-                app(NotificationService::class)->send(
+                $this->notificationService->send(
                     $applicant,
                     new ApplicationRejected($entity, strtolower($meta->type), $rejecter),
                     NotificationCategory::ApplicationRejected
@@ -526,14 +532,14 @@ class ParticipantLifecycle
         ]);
 
         // Churn signal: a host removed this participant.
-        app(PostHogAnalytics::class)->captureParticipantTransition(
+        $this->posthogAnalytics->captureParticipantTransition(
             $participant, $entity, 'participant.removed',
             ['removed_by' => $remover->id, 'previous_status' => $previousStatus?->value],
         );
 
         try {
             if ($removedUser) {
-                app(NotificationService::class)->send(
+                $this->notificationService->send(
                     $removedUser,
                     new ParticipantRemoved($removedUser, $entity, strtolower($meta->type)),
                     NotificationCategory::ParticipantRemoved
@@ -636,7 +642,7 @@ class ParticipantLifecycle
             }
 
             if ($lockedEntity->isAtCapacity()) {
-                app(OverflowRouter::class)->placeAcceptedInvitee($lockedParticipant, $lockedEntity, $meta);
+                $this->overflowRouter->placeAcceptedInvitee($lockedParticipant, $lockedEntity, $meta);
 
                 return 'overflow';
             }
@@ -668,7 +674,7 @@ class ParticipantLifecycle
             $this->notifyOwnerOfAcceptedInvitation($entity, $user, $meta);
             $this->markInvitationNotificationRead($entity, $user, $meta);
 
-            return app(OverflowRouter::class)->flashResult($entity);
+            return $this->overflowRouter->flashResult($entity);
         }
 
         Log::info($meta->type.' invitation accepted', [
@@ -720,7 +726,7 @@ class ParticipantLifecycle
         try {
             $owner = User::find((string) $entity->owner_id);
             if ($owner && $owner->isNot($acceptingUser)) {
-                app(NotificationService::class)->send(
+                $this->notificationService->send(
                     $owner,
                     new ParticipantJoined($acceptingUser, $entity, strtolower($meta->type)),
                     NotificationCategory::ParticipantJoined
@@ -744,7 +750,7 @@ class ParticipantLifecycle
         try {
             $invitationType = EntityInvitation::class;
             $dataKey = $meta->isCampaign() ? 'campaign_id' : 'game_id';
-            app(NotificationService::class)->markReadByType($user, $invitationType, $entity->id, $dataKey);
+            $this->notificationService->markReadByType($user, $invitationType, $entity->id, $dataKey);
         } catch (\Throwable $e) {
             Log::error('notification.mark_read_on_accept_failed', [
                 'entity_type' => $meta->type,

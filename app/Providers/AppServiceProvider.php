@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Console\Dev\DemoSeedCommand;
+use App\Console\Dev\DemoTeardownCommand;
+use App\Console\Dev\PostHogTestEvent;
 use App\Listeners\DropDemoDomainMail;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
@@ -47,6 +50,7 @@ use App\Services\EscalatedBladeRenderer;
 use App\Services\ICal\ICalFeedRenderer;
 use App\Services\PostHogClient;
 use App\Services\PostHogFeatureFlag;
+use App\Services\PwaEligibilityService;
 use App\Services\ReliabilityScoreService;
 use App\Services\ScopedRoleService;
 use App\Services\WaitlistService;
@@ -86,6 +90,7 @@ use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
@@ -94,6 +99,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Paddle\Cashier;
@@ -214,6 +220,40 @@ class AppServiceProvider extends ServiceProvider
         // Production is exempt: strict mode throws exceptions and must never
         // take a live request down over a query-shape flaw.
         Model::shouldBeStrict(! $this->app->isProduction());
+
+        // Fail fast in production when Paddle webhook signature verification is
+        // unconfigured. Cashier registers VerifyWebhookSignature only when
+        // cashier.webhook_secret resolves truthy — a missing PADDLE_WEBHOOK_SECRET
+        // would otherwise silently accept unverified webhook payloads on
+        // paddle/webhook.
+        if ($this->app->isProduction() && ! filled(config('cashier.webhook_secret'))) {
+            throw new \RuntimeException(
+                'cashier.webhook_secret (PADDLE_WEBHOOK_SECRET) must be set in production: without it, Paddle webhook signature verification is skipped entirely.'
+            );
+        }
+
+        // Dev-only tooling (demo seeding/teardown, PostHog test events) never
+        // registers in production: the commands disappear from `artisan list`,
+        // so the old --force-in-production bypass and its blast radius become
+        // unreachable by construction. (DropDemoDomainMail below remains as
+        // defense-in-depth for non-production environments.)
+        if (! $this->app->isProduction()) {
+            $this->commands([
+                DemoSeedCommand::class,
+                DemoTeardownCommand::class,
+                PostHogTestEvent::class,
+            ]);
+        }
+
+        // PWA install-prompt eligibility is resolved in PHP once per layout
+        // render (view composer), not via service location inside Blade.
+        View::composer('layouts.app', function ($view): void {
+            $user = Auth::user();
+
+            $view->with('pwaEligible', $user !== null
+                ? app(PwaEligibilityService::class)->isEligible($user)->eligible
+                : false);
+        });
 
         // Admin panel supplement stylesheet.
         // Filament's precompiled theme lacks the plain Tailwind utilities (h-12,
@@ -357,12 +397,16 @@ class AppServiceProvider extends ServiceProvider
 
             // Long-running queue workers never destruct the SDK client, so
             // buffered events would flush inline mid-job (or be lost at worker
-            // restart). Flush at every idle loop boundary instead.
+            // restart). Flush at every idle loop boundary instead. Workers also
+            // never fire HTTP terminating callbacks, so the PostHogFeatureFlag
+            // per-instance cache must be cleared on the same boundary or its
+            // first flag decision would stick for the worker's lifetime.
             Queue::looping(function (): void {
                 try {
                     PostHog::flush();
+                    app(PostHogFeatureFlag::class)->clearCache();
                 } catch (\Throwable) {
-                    // Best-effort telemetry — never break the worker loop.
+                    // Best-effort telemetry/caching — never break the worker loop.
                 }
             });
         }

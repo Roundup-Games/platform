@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Dev;
 
 use App\Enums\ActivityType;
 use App\Enums\AttendanceStatus;
@@ -29,7 +29,6 @@ use Illuminate\Support\Str;
 class DemoSeedCommand extends Command
 {
     protected $signature = 'demo:seed
-        {--force : Skip environment check}
         {--users=10000 : Total users to create}
         {--gms=500 : Number of game organizers}
         {--subscribers=100 : GMs with paid membership}
@@ -158,7 +157,7 @@ class DemoSeedCommand extends Command
      * Player counts and play times come from the DB record when available,
      * with the values below as fallbacks.
      */
-    private const BOARD_GAME_SLUGS = [
+    public const BOARD_GAME_SLUGS = [
         // weight 5 — casual staples everyone plays
         'catan' => ['min' => 3, 'max' => 4, 'dur' => 120, 'w' => 5],
         'carcassonne' => ['min' => 2, 'max' => 5, 'dur' => 45,  'w' => 5],
@@ -200,7 +199,7 @@ class DemoSeedCommand extends Command
      * TTRPGs to look up by slug from the database.
      * Weight (w) controls how often each system is picked.
      */
-    private const TTRPG_SLUGS = [
+    public const TTRPG_SLUGS = [
         // weight 6 — the biggest
         'dungeons-and-dragons-5e' => ['min' => 3, 'max' => 7, 'w' => 6],
         // weight 5 — the big three minus D&D
@@ -500,13 +499,6 @@ class DemoSeedCommand extends Command
 
     private function validate(): bool
     {
-        if (app()->environment('production') && ! $this->option('force')) {
-            $this->warn('Running in production. Use --force to proceed.');
-            if (! $this->confirm('Continue?')) {
-                return false;
-            }
-        }
-
         if (! $this->dryRun) {
             $existing = User::where('email', 'like', '%@example.org')
                 ->where('bio', 'like', '%'.self::MARKER.'%')
@@ -625,8 +617,17 @@ class DemoSeedCommand extends Command
             $this->warn('TTRPG slugs not found in DB (skipped): '.implode(', ', $missingTtrpg));
         }
 
-        if (empty($this->boardGamePool) && empty($this->ttrpgPool)) {
-            $this->error('No game systems resolved at all. Check game_systems table and slug values.');
+        if (empty($this->boardGamePool) || empty($this->ttrpgPool)) {
+            // Fail explicitly instead of crashing later with array_rand([]) mid-
+            // campaign generation — a partially seeded DB (one type present) is
+            // the realistic case and used to surface as an opaque TypeError.
+            $this->error(sprintf(
+                'Game system pool empty (board resolved: %d, ttrpg resolved: %d). demo:seed needs game_systems rows for its slugs — run bgg:seed-top500 / the TTRPG seeder first. Missing board slugs: %s. Missing ttrpg slugs: %s',
+                $resolvedBoard,
+                $resolvedTtrpg,
+                implode(', ', $missingBoard) ?: 'none',
+                implode(', ', $missingTtrpg) ?: 'none',
+            ));
 
             return false;
         }

@@ -649,12 +649,7 @@ Three-tier scoped RBAC via `ScopedRoleService`:
 | `platform-scores:compute` | Compute all platform popularity scores |
 | `export:user-data {user}` | Generate GDPR user data export ZIP |
 | `pwa:generate-vapid-keys` | Generate VAPID key pairs for web push |
-| `short-links:hash-ips` | Hash raw IPs in analytics for PII compliance |
 | `short-links:prune` | Expire/soft-delete old short links + analytics |
-| `location:add-geohash` | Backfill geohash columns for locations |
-| `location:migrate` | Migrate location JSON to normalized table |
-| `migrate:share-tokens` | Migrate share tokens to ShortLink records |
-| `users:backfill-slugs` | Generate slugs for users missing them |
 | `anonymize:stale-invite-emails` | Privacy: anonymize old invite emails |
 | `exports:prune` | Delete expired GDPR export ZIPs |
 | `pwa:prune-visits` | Remove old app visit tracking data |
@@ -668,8 +663,15 @@ Three-tier scoped RBAC via `ScopedRoleService`:
 | `i18n:dead-strings` | Find unused translation keys |
 | `i18n:missing` | Report missing translation keys |
 | `fonts:audit` | Audit icon usage vs config |
-| `posthog:test-event` | Test PostHog connectivity |
-| `startplaying:crawl` | Crawl StartPlaying.games for TTRPG metadata |
+| `posthog:test-event` | Test PostHog connectivity (non-production only) |
+
+One-off migration/backfill commands (`locations:backfill-slugs`, `users:backfill-slugs`,
+`tickets:backfill-subjects`, `short-links:hash-ips`, `migrate:share-tokens`,
+`location:add-geohash`, `location:migrate`, `invites:canonicalize-gmail`,
+`startplaying:crawl`) completed their migrations and were removed — recover them
+from git history if a fresh environment ever needs them. `demo:seed`, `demo:teardown`,
+and `posthog:test-event` live in `App\Console\Dev` and are registered only outside
+production (see AppServiceProvider::boot).
 
 ---
 

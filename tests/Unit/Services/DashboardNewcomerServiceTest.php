@@ -10,6 +10,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\DashboardCacheService;
+use App\Services\DashboardEstablishedService;
 use App\Services\DashboardNewcomerService;
 use App\Services\Geohash;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -27,7 +28,10 @@ class DashboardNewcomerServiceTest extends TestCase
     {
         parent::setUp();
         $this->service = new DashboardNewcomerService(
-            new DashboardCacheService,
+            new DashboardCacheService(
+                new DashboardEstablishedService,
+                new DashboardNewcomerService,
+            ),
         );
         Cache::flush();
     }

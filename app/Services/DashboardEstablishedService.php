@@ -174,9 +174,6 @@ class DashboardEstablishedService
             ];
         }
 
-        // Get bounding box for the geohash tile
-        $bounds = Geohash::prefixBounds($geohash4);
-
         // Games the user already owns or participates in
         $ownedGameIds = Game::whereBelongsTo($user, 'owner')->pluck('id');
         $participatingGameIds = GameParticipant::whereBelongsTo($user)
@@ -184,54 +181,18 @@ class DashboardEstablishedService
             ->pluck('game_id');
         $excludeGameIds = $ownedGameIds->merge($participatingGameIds)->unique()->values()->toArray();
 
-        // Collect allowed owner IDs for protected content (friends + teammates)
-        // Computed once and reused for both games and campaigns visibility scoping.
-        $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
-
         // ── Games query ─────────────────────────────────
-        // Owner is an explicit participant, counted naturally
-        $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*)')
-            ->whereColumn('game_participants.game_id', 'games.id')
-            ->where('game_participants.status', ParticipantStatus::Approved->value);
-
+        // Composes the canonical nearby-games scaffold (locations join, geohash
+        // bbox, scheduled status, 14-day window, capacity filter, and the
+        // participant_count subquery) and the single visibility rule — no
+        // inline re-implementations. Owner is an explicit participant, counted
+        // naturally by the scaffold's subquery.
         /** @var Collection<int, Game> $games */
         $games = Game::query()
-            ->select('games.*')
-            ->selectSub($participantCountSubquery, 'participant_count')
-            ->join('locations', 'games.location_id', '=', 'locations.id')
-            ->whereNotNull('locations.latitude')
-            ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
-            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
-            ->where('games.status', GameStatus::Scheduled->value)
-            ->where('games.date_time', '>=', now())
-            ->where('games.date_time', '<=', now()->addDays(14))
+            ->nearbyOpen($geohash4)
             ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $preferredSystemIds))
             ->whereNotIn('games.id', $excludeGameIds)
-            ->where(function ($q) {
-                // Only games with available spots (or unlimited capacity).
-                // Filtering at SQL level avoids fetching rows only to discard them,
-                // and ensures the limit applies to visible results, not pre-filter.
-                $q->whereNull('games.max_players')
-                    ->orWhereRaw(
-                        '(SELECT COUNT(*) FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
-                        [ParticipantStatus::Approved->value],
-                    );
-            })
-            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                // public = visible to everyone
-                // protected = visible to friends/teammates of the owner, or participants
-                // private = never visible here (user is already excluded via $excludeGameIds for their own games)
-                $q->where('games.visibility', 'public')
-                    ->orWhere(function ($q) use ($user, $allowedOwnerIds) {
-                        $q->where('games.visibility', 'protected')
-                            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                                $q->whereIn('games.owner_id', $allowedOwnerIds)
-                                    ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($user));
-                            });
-                    });
-            })
+            ->visibleTo($user)
             ->with(['gameSystems', 'owner', 'linkedLocation'])
             ->get();
 
@@ -317,16 +278,7 @@ class DashboardEstablishedService
             ->where('status', CampaignStatus::Active->value)
             ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $preferredSystemIds))
             ->whereNotIn('id', $excludeCampaignIds)
-            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                $q->where('visibility', 'public')
-                    ->orWhere(function ($q) use ($user, $allowedOwnerIds) {
-                        $q->where('visibility', 'protected')
-                            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                                $q->whereIn('owner_id', $allowedOwnerIds)
-                                    ->orWhereHas('participants', fn ($pq) => $pq->whereBelongsTo($user));
-                            });
-                    });
-            })
+            ->visibleTo($user)
             ->with(['gameSystems', 'owner'])
             ->withCount(['participants as approved_participant_count' => function ($query) {
                 $query->where('status', ParticipantStatus::Approved->value);

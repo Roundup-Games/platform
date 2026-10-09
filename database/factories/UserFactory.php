@@ -73,7 +73,6 @@ class UserFactory extends Factory
             'last_login_at' => null,
             'slug' => null,
             'location_id' => null,
-            'location' => null,
             'bio' => null,
             'avatar_url' => null,
             'pronouns' => null,

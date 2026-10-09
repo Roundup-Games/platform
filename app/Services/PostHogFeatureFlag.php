@@ -7,9 +7,12 @@ namespace App\Services;
  *
  * All flag evaluations are wrapped in try/catch — PostHog failures never
  * propagate to calling code. Results are cached per request via an instance
- * property on the singleton, cleared by AppServiceProvider's terminating
- * callback between requests so long-running processes (Octane, queue workers)
- * don't serve stale flag decisions.
+ * property on the singleton. The cache is cleared at HTTP request end
+ * (AppServiceProvider's terminating callback) and at every queue-worker idle
+ * loop boundary (Queue::looping), so no consumer — HTTP request or queued
+ * job — ever sees a flag decision older than its own evaluation cycle.
+ * Without the Queue::looping clear, a worker would cache its first decision
+ * for the process lifetime.
  *
  * Usage:
  *   $flags = app(PostHogFeatureFlag::class);

@@ -272,7 +272,7 @@ class CampaignsPage extends Component
             ])
             ->first();
 
-        if (! $participant) {
+        if (! $participant || ! $user->can('leave', $campaign)) {
             session()->flash('error', __('campaigns.error_not_a_participant'));
 
             return;

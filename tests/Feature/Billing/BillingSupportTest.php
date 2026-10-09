@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Billing;
 
-use App\Http\Controllers\PaddleWebhookController;
 use App\Models\User;
+use App\Services\PaddleWebhookHandler;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
@@ -112,11 +112,9 @@ class BillingSupportTest extends TestCase
     /** @test */
     public function payment_failure_auto_creates_billing_ticket(): void
     {
-        $controller = new PaddleWebhookController;
-        $method = new \ReflectionMethod($controller, 'createPaymentFailureTicket');
-        $method->setAccessible(true);
+        $handler = $this->app->make(PaddleWebhookHandler::class);
 
-        $method->invoke($controller, [
+        $handler->createPaymentFailureTicket([
             'id' => 'txn_12345',
             'customer_id' => 'test_customer_123',
             'currency_code' => 'USD',
@@ -142,22 +140,18 @@ class BillingSupportTest extends TestCase
     /** @test */
     public function payment_failure_skips_ticket_if_no_customer_id(): void
     {
-        $controller = new PaddleWebhookController;
-        $method = new \ReflectionMethod($controller, 'createPaymentFailureTicket');
-        $method->setAccessible(true);
+        $handler = $this->app->make(PaddleWebhookHandler::class);
 
-        $method->invoke($controller, ['id' => 'txn_12345']);
+        $handler->createPaymentFailureTicket(['id' => 'txn_12345']);
         $this->assertEquals(0, Ticket::where('ticket_type', 'billing_support')->count());
     }
 
     /** @test */
     public function payment_failure_skips_ticket_if_user_not_found(): void
     {
-        $controller = new PaddleWebhookController;
-        $method = new \ReflectionMethod($controller, 'createPaymentFailureTicket');
-        $method->setAccessible(true);
+        $handler = $this->app->make(PaddleWebhookHandler::class);
 
-        $method->invoke($controller, [
+        $handler->createPaymentFailureTicket([
             'id' => 'txn_12345',
             'customer_id' => 'nonexistent_customer',
             'currency_code' => 'USD',

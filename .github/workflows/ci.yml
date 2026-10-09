@@ -76,6 +76,20 @@ jobs:
       - name: Check Eloquent best-practices baseline
         run: composer practices
 
+  invariants:
+    # Platform invariants — the "rule of one" guardrail from the 2026-10
+    # sustainability audit: query shapes/logic that encode security- or
+    # race-sensitive rules (visibility, geohash bbox, slug algorithm,
+    # share-token predicate, join pipeline) must exist exactly once. Uses
+    # plain grep — no ripgrep, no vendor install needed.
+    name: Platform Invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check platform invariants
+        run: bash scripts/check_platform_invariants.sh
+
   stan:
     name: Static Analysis (Larastan)
     runs-on: ubuntu-latest
@@ -164,21 +178,11 @@ jobs:
     name: Tests (Pest)
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: roundup_games_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+    # No database service container: tests/bootstrap.php starts an ephemeral
+    # testcontainers Postgres (the primary parallel worker owns it, siblings
+    # reuse it) AND runs `artisan migrate` against it. A services: postgres
+    # here was provisioned, health-checked, and migrated — then thrown away
+    # when pest booted, costing a second DB + second full migration every run.
     steps:
       - uses: actions/checkout@v5
 
@@ -231,27 +235,20 @@ jobs:
         # used and the Vite manifest is still produced.
         run: npm run build
 
+      - name: JS unit tests
+        # Vitest covers the exported pure functions in resources/js (VAPID key
+        # conversion, push consent gating, toast module) — the only client
+        # logic with no other safety net.
+        run: npm test
+
       - name: Copy environment file
         run: cp .env.example .env
 
       - name: Generate application key
         run: php artisan key:generate
 
-      - name: Run migrations
-        env:
-          DB_PASSWORD: postgres
-          CACHE_STORE: array
-          QUEUE_CONNECTION: sync
-          SESSION_DRIVER: array
-        run: php artisan migrate --force
-
       - name: Run tests
-        env:
-          DB_PASSWORD: postgres
-        # --parallel: pest 4.x ships parallel support in-core
-        # (vendor/pestphp/pest/src/Plugins/Parallel.php). tests/bootstrap.php
-        # is already wired for it (PARATEST/TEST_TOKEN, primary worker owns
-        # the Testcontainers Postgres, siblings reuse it via a cache file).
-        # GitHub Actions ubuntu-latest has 4 vCPU — --parallel picks that
-        # automatically; --ci keeps the concise PR-friendly output.
+        # DB credentials are injected by tests/bootstrap.php (applyConnection →
+        # test/test on the testcontainers instance); anything set here would be
+        # overridden and mislead readers.
         run: vendor/bin/pest --ci --parallel

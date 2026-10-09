@@ -324,19 +324,16 @@ class DashboardNewcomerService
      */
     public function computeNearbyPeople(User $user, string $geohash4): array
     {
-        $bounds = Geohash::prefixBounds($geohash4);
-
         // Viewer's preferred game system IDs
         $viewerSystemIds = to_string_id_array($user->gameSystemPreferences()->pluck('game_systems.id'));
         /** @var array<string> $viewerSystemIds */
 
-        // Query nearby users with public profiles
-        $nearbyUsers = User::query()
-            ->join('locations', 'users.location_id', '=', 'locations.id')
-            ->whereNotNull('locations.latitude')
-            ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
-            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
+        // Query nearby users with public profiles — bbox via the shared tile
+        // math (Geohash::applyBounds), never inlined here.
+        $nearbyUsers = Geohash::applyBounds(
+            User::query()->join('locations', 'users.location_id', '=', 'locations.id'),
+            $geohash4,
+        )
             ->where('users.id', '!=', $user->id)
             ->where('users.profile_complete', true)
             ->whereNull('users.anonymized_at')
@@ -443,19 +440,14 @@ class DashboardNewcomerService
             (float) $location->longitude,
             4,
         );
-        $bounds = Geohash::prefixBounds($geohash4);
 
         $excludeGameIds = $this->getExcludedGameIds($user);
 
+        // Shared nearby-games scaffold; requireCapacity: false — this is a
+        // "how much is happening near you" count, not a join-target list, so
+        // full games still count toward the badge.
         return Game::query()
-            ->join('locations', 'games.location_id', '=', 'locations.id')
-            ->whereNotNull('locations.latitude')
-            ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
-            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
-            ->where('games.status', GameStatus::Scheduled->value)
-            ->where('games.date_time', '>=', now())
-            ->where('games.date_time', '<=', now()->addDays(14))
+            ->nearbyOpen($geohash4, requireCapacity: false)
             // The cached games.game_system_id anchor was dropped in S06/T06;
             // match via the canonical belongsToMany pivot so a multi-system
             // Gathering offering a preferred system is counted correctly.
