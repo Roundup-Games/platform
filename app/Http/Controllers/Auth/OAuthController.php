@@ -12,9 +12,11 @@ use App\Services\PostHogAnalytics;
 use App\Support\DiscordJoinIntent;
 use App\Support\FirstTouch;
 use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -188,38 +190,14 @@ class OAuthController
         $user = User::where('email', $socialiteUser->getEmail())->first();
 
         if ($user) {
-            if (! $this->isEmailVerified($socialiteUser)) {
-                Log::warning('OAuth email-match login rejected — IdP reports email unverified', [
-                    'provider' => $provider,
-                    'user_id' => $user->id,
-                    'provider_user_id' => $providerUserId,
-                ]);
-
-                return redirect($this->localeUrl('login'))->withErrors(['oauth' => ucfirst($provider).' reports this email as unverified. Please verify it with '.ucfirst($provider).' or sign in another way.']);
-            }
-
-            // Existing user by email — create linked account
-            $this->createLinkedAccount($user, $provider, $socialiteUser, $providerUserId);
-
-            if ($socialiteUser->getAvatar() && ! $user->avatar_url) {
-                $user->update(['avatar_url' => $socialiteUser->getAvatar()]);
-            }
-
-            Auth::login($user);
-            Log::info('OAuth login — email matched, account linked', [
-                'provider' => $provider,
-                'user_id' => $user->id,
-                'provider_user_id' => $providerUserId,
-            ]);
-
-            return $this->redirectAfterLogin($user);
+            return $this->linkProviderAndLogin($user, $provider, $socialiteUser, $providerUserId, 'email-match');
         }
 
         // New user — register and link (no password — OAuth-only until they set one)
         $rawName = $socialiteUser->getName() ?? Str::before((string) $socialiteUser->getEmail(), '@');
         $sanitizedName = ValidUserName::sanitize($rawName);
 
-        $user = User::create([
+        $attributes = [
             'name' => $sanitizedName,
             'email' => $socialiteUser->getEmail(),
             'password' => null,
@@ -232,7 +210,52 @@ class OAuthController
             'first_touch_path' => $firstTouch['path'],
             'signup_content_type' => $firstTouch['content_type'],
             'signup_content_slug' => $firstTouch['content_slug'],
-        ]);
+        ];
+
+        try {
+            // Wrapped in its own transaction: under an outer transaction
+            // (per-test RefreshDatabase today, request-wrapping middleware or
+            // a queued context tomorrow) a failed INSERT poisons that
+            // transaction with 25P02 and every recovery query below would
+            // abort. The savepoint contains the failure so the catch block
+            // can query and retry on a healthy connection.
+            $user = DB::transaction(fn () => User::create($attributes));
+        } catch (UniqueConstraintViolationException $e) {
+            // The email lookup above and this insert are two statements: a
+            // concurrent request may have claimed the email between them
+            // (users_email_unique — a second OAuth callback for the same
+            // provider account, or an email signup) or the slug
+            // (users_slug_unique — generateUniqueSlug()'s check-then-insert
+            // race with an identical display name). Distinguish by
+            // re-fetching: an email race finds the row, a slug race does not.
+            $existing = User::where('email', $socialiteUser->getEmail())->first();
+
+            if ($existing !== null) {
+                return $this->linkProviderAndLogin(
+                    $existing,
+                    $provider,
+                    $socialiteUser,
+                    $providerUserId,
+                    'signup race',
+                );
+            }
+
+            // Slug race: retry once with a randomized suffix. The suffix is
+            // what guarantees no collision with the slug the concurrent
+            // signup claimed between this request's scan and its insert —
+            // re-scanning cannot improve on it (same reasoning as
+            // RegisteredUserController::store).
+            try {
+                $user = DB::transaction(fn () => User::create([
+                    ...$attributes,
+                    'slug' => $attributes['slug'].'-'.Str::lower(Str::random(4)),
+                ]));
+            } catch (UniqueConstraintViolationException $retry) {
+                // The competing request claimed the email between the first
+                // attempt and the retry — surface rather than loop.
+                throw $retry;
+            }
+        }
 
         $this->createLinkedAccount($user, $provider, $socialiteUser, $providerUserId);
 
@@ -381,8 +404,54 @@ class OAuthController
     }
 
     /**
-     * Create a LinkedAccount record from OAuth data.
+     * Link the provider to an existing account and log in — the shared tail
+     * of the email-match path and the signup-race resolution.
+     *
+     * The IdP must assert the email as verified before an OAuth identity may
+     * attach to an account it did not create. Without the gate, a raced
+     * signup (or an email-match login) on an unverified claim would hand the
+     * OAuth user a login to someone else's account — the account-takeover
+     * vector the email-match path has guarded against since M056.
      */
+    private function linkProviderAndLogin(
+        User $user,
+        string $provider,
+        \Laravel\Socialite\Two\User $socialiteUser,
+        string $providerUserId,
+        string $context,
+    ): RedirectResponse {
+        if (! $this->isEmailVerified($socialiteUser)) {
+            Log::warning('OAuth '.$context.' login rejected — IdP reports email unverified', [
+                'provider' => $provider,
+                'user_id' => $user->id,
+                'provider_user_id' => $providerUserId,
+            ]);
+
+            return redirect($this->localeUrl('login'))->withErrors(['oauth' => ucfirst($provider).' reports this email as unverified. Please verify it with '.ucfirst($provider).' or sign in another way.']);
+        }
+
+        try {
+            $this->createLinkedAccount($user, $provider, $socialiteUser, $providerUserId);
+        } catch (UniqueConstraintViolationException) {
+            // Reachable on the signup-race path: the concurrent callback
+            // already linked this provider account — the desired end state;
+            // nothing left to do.
+        }
+
+        if ($socialiteUser->getAvatar() && ! $user->avatar_url) {
+            $user->update(['avatar_url' => $socialiteUser->getAvatar()]);
+        }
+
+        Auth::login($user);
+        Log::info('OAuth login — '.$context.', account linked', [
+            'provider' => $provider,
+            'user_id' => $user->id,
+            'provider_user_id' => $providerUserId,
+        ]);
+
+        return $this->redirectAfterLogin($user);
+    }
+
     private function createLinkedAccount(User $user, string $provider, \Laravel\Socialite\Two\User $socialiteUser, string $providerUserId): LinkedAccount
     {
         $linkedAccount = $user->linkedAccounts()->create([

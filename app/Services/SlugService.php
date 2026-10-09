@@ -44,6 +44,19 @@ class SlugService
      * Generate a unique slug within the given query's table, appending
      * incremental digits on collision.
      *
+     * Race contract: this loop is check-then-insert — two concurrent creates
+     * with the same name can both pass the probe, and the users_slug_unique /
+     * locations_slug_unique indexes are the backstop that keeps duplicates
+     * impossible (the loser gets a constraint violation, never a silent
+     * dupe). The signup paths that can race at human frequency handle that
+     * violation explicitly: RegisteredUserController::store retries once
+     * with a randomized slug suffix, OAuthController::callback re-fetches
+     * by email (email race → link + login) or retries with a suffix (slug
+     * race). The remaining callers (venue claims and admin-side location
+     * writes) are low-frequency operator flows where a rare violation
+     * surfacing as an error the operator can retry is the accepted trade-
+     * off — do not add per-caller retries without revisiting this note.
+     *
      * @template TModel of \Illuminate\Database\Eloquent\Model
      *
      * @param  Builder<TModel>  $query  A fresh query for the target model

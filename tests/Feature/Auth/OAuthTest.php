@@ -9,7 +9,9 @@ use App\Models\LinkedAccount;
 use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Tests\Helpers\TestablePostHogClient;
 
@@ -867,6 +869,155 @@ describe('OAuth email_verified enforcement', function () {
         Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
 
         $this->get('/auth/discord/callback');
+
+        $this->assertAuthenticatedAs($user);
+    });
+});
+
+// ── User-creation race resolution (signup vs unique indexes) ──
+//
+// The email-match lookup and the User::create insert are two statements, so
+// a concurrent request can claim the email or the slug between them. The
+// controller resolves the real 23505 (no synthetic exceptions) inside a
+// savepoint (DB::transaction), which keeps the connection usable after the
+// failed insert — the recovery queries and the retry below run on a healthy
+// transaction, both in production and under RefreshDatabase's wrapping
+// transaction.
+//
+// Test-shape note: a winner row inserted from a creating hook lands INSIDE
+// the same savepoint, so the rollback that contains the failure also
+// reverts it — the email-race branch that finds a surviving winner cannot
+// be produced with the real constraint under a wrapping transaction (the
+// same limitation AuthenticationSmokeTest documents). Its behavior is the
+// shared linkProviderAndLogin tail, which the email-match tests above
+// cover for both the verified and unverified claims; the races below pin
+// the catch mechanics: violation caught, connection recovered, retry
+// completed, correct end state.
+
+describe('OAuth signup unique-index races', function () {
+    it('links and logs into the winning account when the email race is lost with a verified claim', function () {
+        // The concurrent winner: an email signup for the same address that
+        // committed just after this request's email lookup — approximated
+        // here by a pre-existing row, which routes through the same shared
+        // linkProviderAndLogin tail the race resolution calls.
+        $winner = User::factory()->create([
+            'email' => 'raced@google.com',
+            'profile_complete' => true,
+        ]);
+
+        $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
+        $socialiteUser->shouldReceive('getId')->andReturn('424242424242424242');
+        $socialiteUser->shouldReceive('getEmail')->andReturn('raced@google.com');
+        $socialiteUser->shouldReceive('getName')->andReturn('Race Loser');
+        $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+        $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+        $socialiteUser->token = 'tok';
+        $socialiteUser->refreshToken = null;
+        $socialiteUser->user = ['email_verified' => true];
+
+        Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+        $this->get('/auth/google/callback');
+
+        // The loser is logged into the winner's account with the provider
+        // linked — not a 500, and no duplicate user row was created.
+        $this->assertAuthenticatedAs($winner);
+        $this->assertDatabaseHas('linked_accounts', [
+            'user_id' => $winner->id,
+            'provider' => 'google',
+            'provider_user_id' => '424242424242424242',
+        ]);
+        expect(User::where('email', 'raced@google.com')->count())->toBe(1);
+    });
+
+    it('recovers the connection and completes the signup when the email constraint fires mid-flight', function () {
+        $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
+        $socialiteUser->shouldReceive('getId')->andReturn('848484848484848484');
+        $socialiteUser->shouldReceive('getEmail')->andReturn('midflight@google.com');
+        $socialiteUser->shouldReceive('getName')->andReturn('Mid Flight');
+        $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+        $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+        $socialiteUser->token = 'tok';
+        $socialiteUser->refreshToken = null;
+
+        Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+        // The winner commits between the callback's email lookup and its
+        // INSERT. Scoped to this email so the hook is inert elsewhere, armed
+        // for the first insert only (the catch's retry would otherwise
+        // re-collide with the re-inserted winner), and returns void so the
+        // model's own creating hooks still run. The savepoint rollback
+        // reverts this row (see the note above) — the recovery re-fetch
+        // finds nothing and the retry completes.
+        $winnerInserted = false;
+        User::creating(function (User $creating) use (&$winnerInserted): void {
+            if ($winnerInserted || $creating->email !== 'midflight@google.com') {
+                return;
+            }
+            $winnerInserted = true;
+
+            DB::table('users')->insert([
+                'id' => (string) Str::uuid(),
+                'name' => 'Concurrent Winner',
+                'email' => 'midflight@google.com',
+                'slug' => 'concurrent-winner',
+                'profile_complete' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        // Without the savepoint the recovery queries would abort with
+        // 25P02 (failed sql transaction) and this request would 500.
+        $this->get('/auth/google/callback');
+
+        $user = User::where('email', 'midflight@google.com')->first();
+        expect($user)->not->toBeNull()
+            ->and($user->name)->toBe('Mid Flight')
+            ->and(User::where('email', 'midflight@google.com')->count())->toBe(1);
+
+        $this->assertAuthenticatedAs($user);
+    });
+
+    it('retries with a randomized slug suffix when the slug race is lost', function () {
+        $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
+        $socialiteUser->shouldReceive('getId')->andReturn('686868686868686868');
+        $socialiteUser->shouldReceive('getEmail')->andReturn('slug-loser@google.com');
+        $socialiteUser->shouldReceive('getName')->andReturn('Slug Twin');
+        $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+        $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+        $socialiteUser->token = 'tok';
+        $socialiteUser->refreshToken = null;
+
+        Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+        // The winner claimed generateUniqueSlug('Slug Twin') === 'slug-twin'
+        // under a different email; force the callback's insert onto the same
+        // slug so users_slug_unique (not the email) fires — the re-fetch
+        // then finds nothing and the randomized retry must win.
+        User::factory()->create([
+            'name' => 'Slug Twin Winner',
+            'email' => 'slug-winner@google.com',
+            'slug' => 'slug-twin',
+        ]);
+
+        $forced = false;
+        User::creating(function (User $creating) use (&$forced): void {
+            if ($forced || $creating->email !== 'slug-loser@google.com') {
+                return;
+            }
+            $forced = true;
+            $creating->slug = 'slug-twin';
+        });
+
+        $this->get('/auth/google/callback');
+
+        $user = User::where('email', 'slug-loser@google.com')->first();
+        expect($user)->not->toBeNull()
+            // Deterministic base + randomized suffix, not a 500 and not a
+            // duplicate slug with the winner.
+            ->and($user->slug)->toStartWith('slug-twin-')
+            ->and($user->slug)->not->toBe('slug-twin');
 
         $this->assertAuthenticatedAs($user);
     });
