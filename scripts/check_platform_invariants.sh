@@ -23,7 +23,8 @@
 #                                 ShareLinkJoinService (no inline transactions)
 #   INV-7  removed footguns stay removed (demo --force, inspire, queueAction,
 #                                 one-off backfill signatures)
-#   INV-8  webhook secret guard → production fail-fast stays in place
+#   INV-8  webhook secret       → unconfigured secret refuses the route
+#                                 (site degrades; never processes unverified)
 #   INV-9  no reflection into app internals from tests (use real APIs;
 #                                 LegacyLocationJsonLeakTest's ReflectionClass
 #                                 read of buildEventPlace is allowlisted)
@@ -129,12 +130,19 @@ for sig in "location:migrate" "location:add-geohash" "users:backfill-slugs" "loc
 done
 [ "$footguns" = "0" ] && pass "INV-7 removed footguns stay removed"
 
-# --- INV-8: the Paddle webhook secret guard stays ---------------------------
-if grep -q "cashier.webhook_secret" app/Providers/AppServiceProvider.php \
-    && grep -q "VerifyWebhookSignature\|webhook_secret" app/Providers/AppServiceProvider.php; then
-    pass "INV-8 production webhook-secret fail-fast present"
+# --- INV-8: unconfigured Paddle webhooks are refused at the route -----------
+# With PADDLE_WEBHOOK_SECRET absent, Cashier skips VerifyWebhookSignature
+# entirely — the production /paddle/webhook route must refuse traffic
+# (EnsurePaddleWebhookConfigured) instead of processing unverified payloads.
+# The site itself degrades, it does not block: AppServiceProvider logs the
+# boot-time warning instead of throwing.
+if grep -q "cashier.webhook_secret" app/Http/Middleware/EnsurePaddleWebhookConfigured.php \
+    && grep -qF "abort(503" app/Http/Middleware/EnsurePaddleWebhookConfigured.php \
+    && grep -q "EnsurePaddleWebhookConfigured" routes/web.php \
+    && grep -q "cashier.webhook_secret" app/Providers/AppServiceProvider.php; then
+    pass "INV-8 unconfigured webhook secret refuses /paddle/webhook (route-level) + boot warning"
 else
-    fail "INV-8 the cashier.webhook_secret production guard in AppServiceProvider::boot was removed — without it a missing PADDLE_WEBHOOK_SECRET silently disables webhook signature verification."
+    fail "INV-8 unconfigured-secret handling drifted: the EnsurePaddleWebhookConfigured middleware (abort 503 when cashier.webhook_secret is empty in production), its routes/web.php wiring, or the AppServiceProvider boot warning is missing. Production must never process unverified Paddle payloads — and must not fail boot either: the site runs, the route refuses."
 fi
 
 # --- INV-9: no reflection into app internals from tests ---------------------

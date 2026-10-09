@@ -221,32 +221,15 @@ class AppServiceProvider extends ServiceProvider
         // take a live request down over a query-shape flaw.
         Model::shouldBeStrict(! $this->app->isProduction());
 
-        // Fail fast in production when Paddle webhook signature verification is
-        // unconfigured. Cashier registers VerifyWebhookSignature only when
-        // cashier.webhook_secret resolves truthy — a missing PADDLE_WEBHOOK_SECRET
-        // would otherwise silently accept unverified webhook payloads on
-        // paddle/webhook.
-        //
-        // Enforced only when the production environment is actually
-        // configured: a real APP_ENV in the process environment or a .env
-        // file. Composer's post-autoload-dump hooks (package:discover,
-        // filament:upgrade, …) boot this provider during `composer install`
-        // in CI jobs and Docker image builds, where no environment exists
-        // yet and APP_ENV=production is merely the config fallback —
-        // dependencies are being installed, not served. Every configured
-        // deployment (container env vars, .env file) still fails hard:
-        // config:cache at container start, queue workers, web serving.
-        $envExplicitlyConfigured = getenv('APP_ENV') !== false
-            || isset($_ENV['APP_ENV'])
-            || isset($_SERVER['APP_ENV'])
-            || file_exists($this->app->basePath('.env'));
-
-        if ($envExplicitlyConfigured
-            && $this->app->isProduction()
-            && ! filled(config('cashier.webhook_secret'))) {
-            throw new \RuntimeException(
-                'cashier.webhook_secret (PADDLE_WEBHOOK_SECRET) must be set in production: without it, Paddle webhook signature verification is skipped entirely.'
-            );
+        // Paddle billing degrades, it does not block. A production deployment
+        // without PADDLE_WEBHOOK_SECRET (billing not yet rolled out, or the
+        // secret simply absent) boots and serves normally — Cashier skips
+        // VerifyWebhookSignature in that state, so EnsurePaddleWebhookConfigured
+        // refuses /paddle/webhook instead of letting unverified payloads
+        // through. The warning keeps the gap visible in the logs; the
+        // invariant is enforced by composer invariants (INV-8).
+        if ($this->app->isProduction() && ! filled(config('cashier.webhook_secret'))) {
+            Log::warning('Paddle billing unconfigured: /paddle/webhook refuses traffic until PADDLE_WEBHOOK_SECRET is set.');
         }
 
         // Dev-only tooling (demo seeding/teardown, PostHog test events) never

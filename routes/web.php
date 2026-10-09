@@ -15,6 +15,7 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\ResendWebhookController;
 use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Middleware\EnsurePaddleWebhookConfigured;
 use App\Livewire\Billing\BillingPortal;
 use App\Livewire\Billing\Checkout;
 use App\Livewire\Billing\MembershipPage;
@@ -102,8 +103,12 @@ Route::get('/calendar/{code}', [ICalFeedController::class, 'show'])
     ->where('code', '[a-zA-Z0-9\-]{7,36}');
 
 // ── Paddle Webhook (no auth — called by Paddle) ──────
-
+// Authenticity is enforced by Cashier's VerifyWebhookSignature (registered
+// when PADDLE_WEBHOOK_SECRET is set) — and when billing is NOT configured,
+// EnsurePaddleWebhookConfigured refuses the traffic instead of letting an
+// unverified payload through (the route degrades; the site does not).
 Route::post('paddle/webhook', PaddleWebhookController::class)
+    ->middleware(EnsurePaddleWebhookConfigured::class)
     ->name('cashier.webhook');
 
 // ── Resend mail webhook (no auth — called by Resend) ───
