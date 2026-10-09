@@ -38,6 +38,23 @@ warn()  { printf "  ${YLW}⚠️  %-8s${RST} %s\n" "$1" "$2"; warned=1; }
 skip()  { printf "  ${YLW}⏭️  %-8s${RST} %s\n" "$1" "$2"; skipped=1; }
 fail()  { printf "  ${RED}❌ %-8s${RST} %s\n" "$1" "$2"; failed=1; }
 
+# ── Commit signature ───────────────────────────────────────────────────────
+# All commits on this repo are cryptographically signed (SSH signing keys
+# since 2026-10). Signing must be unconditional — commit.gpgsign=true — so
+# the guarantee does not depend on remembering -S. Hard fail with the fix
+# in the message; `git commit --no-verify` remains the documented emergency
+# bypass (see the hook header).
+gpgsign=$(git config --get commit.gpgsign || true)
+if [[ "$gpgsign" != "true" ]]; then
+    printf "  ${RED}❌ signature${RST} commits must be signed: commit.gpgsign is not enabled. Fix once per machine:\n"
+    printf "         git config --global gpg.format ssh\n"
+    printf "         git config --global user.signingkey 'key::ssh-ed25519 AAAA... your-email'\n"
+    printf "         git config --global commit.gpgsign true\n"
+    printf "         (bypass once with git commit --no-verify)\n\n"
+    exit 1
+fi
+ok "signature" "commit.gpgsign enabled — commit will be signed"
+
 # ── File lists ───────────────────────────────────────────────────────────────
 staged_php=$(git diff --cached --name-only --diff-filter=ACM -- '*.php' || true)
 
