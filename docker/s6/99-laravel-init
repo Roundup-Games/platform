@@ -4,6 +4,12 @@
 
 cd /var/www/html
 
+# Close the init-complete gate first thing. The marker lives in /tmp
+# (container-local) and survives a container restart, so a stale one from the
+# previous boot must be cleared before this run starts rewriting caches. The
+# worker healthcheck waits for this marker before it boots artisan.
+rm -f /tmp/laravel-init-complete
+
 # Create the database if it doesn't exist (external Postgres)
 if [ "${DB_CONNECTION}" = "pgsql" ] && [ -n "${DB_HOST}" ]; then
     echo "Ensuring database '${DB_DATABASE}' exists on ${DB_HOST}:${DB_PORT}..."
@@ -44,12 +50,14 @@ else
     echo "RUN_MIGRATIONS=0 — skipping migrations (owner service runs them)."
 fi
 
-# Cache config, routes, views, events for production
-echo "Caching config, routes, views, events..."
+# Cache config for production. config:cache reads the environment, so it must
+# run here at container start, not at build time. The route/view/event caches
+# do not read the environment and are baked into the image at build time (see
+# Dockerfile) — running route:cache here deleted and rewrote
+# bootstrap/cache/routes-v7.php, and a concurrently-booting artisan process
+# could pass routesAreCached() and then fatal on the missing file.
+echo "Caching config..."
 php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan event:cache
 
 # Seed Escalated helpdesk data (departments, tags, SLA policies) — idempotent
 # Allow errors to surface in container logs for debugging; || true prevents script failure
@@ -60,5 +68,12 @@ fi
 
 # Write deploy timestamp for admin dashboard
 date -u +"%Y-%m-%d %H:%M:%S UTC" > /var/www/html/storage/framework/deploy-timestamp
+
+# Open the init-complete gate. Caches are warm and config:cache has finished, so
+# it is now safe for the worker healthcheck to boot artisan. The marker is kept
+# in /tmp (container-local), not storage/ — that volume is shared between the app
+# and worker containers, so a marker there would leak one container's state to
+# the other.
+touch /tmp/laravel-init-complete
 
 echo "Laravel startup complete."
