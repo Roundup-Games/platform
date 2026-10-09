@@ -14,7 +14,6 @@
 
 use App\Services\LangFileParser;
 use Illuminate\Support\Arr;
-use SplFileInfo;
 
 it('keeps banned tournament-era vocabulary out of app, resources, tests, and lang', function () {
     // Assembled from fragments so this guard file itself never contains a
