@@ -42,7 +42,12 @@ class PostHogTestEvent extends Command
             return self::FAILURE;
         }
 
+        // option() is array|bool|float|int|string|null at the stub level (a
+        // repeated --type=a --type=b arrives as array); narrow to the string
+        // the interpolation at the capture/info lines requires, falling back
+        // to the signature default for anything else.
         $type = $this->option('type');
+        $type = is_string($type) ? $type : 'server';
 
         try {
             $this->posthogClient->capture([
