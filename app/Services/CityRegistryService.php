@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\Location;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -81,6 +82,8 @@ class CityRegistryService
         if ($slug === '') {
             return;
         }
+
+        DB::select('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', ['city-registry:'.$slug]);
 
         $registry = $this->registryFor($slug, $region, $city, $location->country);
 
