@@ -9,7 +9,6 @@ use App\Models\Location;
 use App\Services\CityDirectoryService;
 use App\Services\SeoCacheService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
  * Observes Game/Event/Location changes that can move a city hub's
@@ -84,16 +83,17 @@ class CityHubCacheObserver
     }
 
     /**
-     * Unique non-empty city slugs whose hub content this model can move.
+     * Unique non-empty registry slugs whose hub content this model can
+     * move.
      *
      * Game/Event: the cities of BOTH the original and current location
      * (a session can move between clusters). Location: BOTH the original
-     * and current city (a location can rename or move cities). City: BOTH
-     * the original and current slug (a curated row can be re-pointed at a
-     * different city on edit) — the curated row IS the slug authority, so
-     * its own slugs are already normalized and need no Str::slug pass.
-     * Unknown model types: no slugs — the observer never throws on shape
-     * drift.
+     * and current registry row (a location can rename its city or move
+     * clusters — CityRegistryService relinks on save and flushes the
+     * freshly-linked side itself, so the union here is correct regardless
+     * of listener order). City: BOTH the original and current slug — the
+     * registry row IS the slug authority, already normalized. Unknown
+     * model types: no slugs — the observer never throws on shape drift.
      *
      * @return array<int, string>
      */
@@ -108,9 +108,13 @@ class CityHubCacheObserver
         }
 
         if ($model instanceof Location) {
-            return collect([$model->getOriginal('city'), $model->city])
-                ->map(fn ($city): string => is_string($city) ? Str::slug($city) : '')
-                ->filter()
+            return City::query()
+                ->whereKey(array_filter([
+                    $model->getOriginal('city_id'),
+                    $model->city_id,
+                ], fn ($id): bool => is_string($id) && $id !== ''))
+                ->pluck('slug')
+                ->filter(fn ($slug): bool => is_string($slug))
                 ->unique()
                 ->values()
                 ->all();
@@ -119,14 +123,14 @@ class CityHubCacheObserver
         if ($model instanceof Game || $model instanceof Event) {
             $locationIds = collect([$model->getOriginal('location_id'), $model->location_id])
                 ->filter()
-                ->unique();
+                ->unique()
+                ->values()
+                ->all();
 
-            return Location::query()
-                ->whereKey($locationIds->values()->all())
-                ->whereNotNull('city')
-                ->pluck('city')
-                ->map(fn ($city): string => is_string($city) ? Str::slug($city) : '')
-                ->filter()
+            return City::query()
+                ->whereIn('id', Location::query()->select('city_id')->whereKey($locationIds))
+                ->pluck('slug')
+                ->filter(fn ($slug): bool => is_string($slug))
                 ->unique()
                 ->values()
                 ->all();

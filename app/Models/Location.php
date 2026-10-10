@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\VenueType;
 use App\Models\Concerns\HasPlatformUuid;
+use App\Services\CityRegistryService;
 use App\Services\Geohash;
 use App\Services\LocationDisclosureService;
 use App\Services\ProximityQuery;
@@ -163,9 +164,42 @@ class Location extends Model implements TicketSubject
                 $location->slug = static::generateUniqueSlug($location->name, $ignoreId);
             }
         });
+
+        // City registry link (D171): after the saving hook above has
+        // computed geohash_4, derive the cluster (slug + 3-char region)
+        // and relink city_id through the single write authority. Mass
+        // update inside — no events, so it cannot recurse; the registry
+        // service flushes the affected hub caches itself.
+        static::saved(function (self $location): void {
+            if ($location->wasChanged(['city', 'geohash_4', 'latitude', 'longitude']) || $location->city_id === null) {
+                app(CityRegistryService::class)->syncLocation($location);
+            }
+        });
+    }
+
+    /**
+     * Geocoder provenance is trimmed on write — "Berlin " and "Berlin"
+     * must land in one cluster identity, not luck. Trim only: casing and
+     * spelling stay exactly as the geocoder returned them. (Classic
+     * mutator: the city() name is reserved for the registry relation.)
+     */
+    protected function setCityAttribute(?string $value): void
+    {
+        $this->attributes['city'] = is_string($value) ? trim($value) : $value;
     }
 
     // ── Relationships ──────────────────────────────────
+
+    /**
+     * The registry entity this location's cluster resolves to (D171).
+     * Nullable for rows that are not yet geocoded (no region derivable).
+     *
+     * @return BelongsTo<City, $this>
+     */
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
+    }
 
     /**
      * @return HasMany<Game, $this>

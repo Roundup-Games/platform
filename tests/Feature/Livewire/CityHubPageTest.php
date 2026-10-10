@@ -161,12 +161,17 @@ describe('CityHubPage 404 guard', function () {
         get(route('city-hubs.show', ['slug' => 'berlin']))->assertNotFound();
     });
 
-    it('404s an ambiguous city name across regions', function () {
-        cityHubLocation('Neustadt', 52.5200, 13.4050); // u33 (Berlin area)
-        cityHubLocation('Neustadt', 53.5511, 9.9937); // u1x (Hamburg area)
-        cityHubUpcomingGame(cityHubLocation('Neustadt', 52.5300, 13.4100));
+    it('serves same-name clusters as two independent hubs (D171 registry)', function () {
+        // u33 Neustadt (created first) keeps the bare slug and qualifies;
+        // the u1x Neustadt is a separate hub under its region-suffixed slug.
+        $neustadt = cityHubLocation('Neustadt', 52.5200, 13.4050); // u33
+        for ($i = 0; $i < 3; $i++) {
+            cityHubUpcomingGame($neustadt);
+        }
+        cityHubLocation('Neustadt', 53.5511, 9.9937); // u1x, no activity
 
-        get(route('city-hubs.show', ['slug' => 'neustadt']))->assertNotFound();
+        get(route('city-hubs.show', ['slug' => 'neustadt']))->assertOk();
+        get(route('city-hubs.show', ['slug' => 'neustadt-u1x']))->assertNotFound(); // below threshold
     });
 
     it('404s slugs outside the route regex', function () {
@@ -174,18 +179,18 @@ describe('CityHubPage 404 guard', function () {
         get('/en/cities/not_a_city')->assertNotFound();
     });
 
-    it('404s a city-name collision even when each region would independently qualify', function () {
-        // Two Neustadts, each with 3 sessions: a merge regression would
-        // combine them into a resolvable 6-session cluster and render —
-        // it must 404 instead.
-        $berlinArea = cityHubLocation('Neustadt', 52.5200, 13.4050); // u33
+    it('serves both independently qualifying same-name clusters under their own URLs', function () {
+        // Both Neustadts qualify alone — post-D171 both are live hubs,
+        // never merged: the bare slug serves the first-provisioned cluster.
+        $berlinArea = cityHubLocation('Neustadt', 52.5200, 13.4050); // u33, first
         $hamburgArea = cityHubLocation('Neustadt', 53.5511, 9.9937); // u1x
         for ($i = 0; $i < 3; $i++) {
             cityHubUpcomingGame($berlinArea);
             cityHubUpcomingGame($hamburgArea);
         }
 
-        get(route('city-hubs.show', ['slug' => 'neustadt']))->assertNotFound();
+        get(route('city-hubs.show', ['slug' => 'neustadt']))->assertOk();
+        get(route('city-hubs.show', ['slug' => 'neustadt-u1x']))->assertOk();
     });
 
     it('starts 404ing once activity falls out of the window and the cache TTL has passed', function () {
@@ -500,16 +505,18 @@ describe('CityHubPage analytics', function () {
             ->once();
     });
 
-    it('logs cityhub.rejected with reason ambiguous', function () {
+    it('never logs the pre-D171 ambiguous reason — same-name clusters resolve independently', function () {
         Log::spy();
 
         cityHubLocation('Neustadt', 52.5200, 13.4050); // u33 (Berlin area)
         cityHubLocation('Neustadt', 53.5511, 9.9937); // u1x (Hamburg area)
 
+        // No activity: the bare slug serves the u33 cluster and rejects
+        // with below_threshold, not ambiguous — each cluster is its own hub.
         get(route('city-hubs.show', ['slug' => 'neustadt']))->assertNotFound();
 
         Log::shouldHaveReceived('info')
-            ->with('cityhub.rejected', ['slug' => 'neustadt', 'reason' => 'ambiguous'])
+            ->with('cityhub.rejected', ['slug' => 'neustadt', 'reason' => 'below_threshold'])
             ->once();
     });
 
@@ -538,12 +545,17 @@ describe('CityHubPage analytics', function () {
 // curated locale intro in the hero, zero-cities-query warm renders
 // ═════════════════════════════════════════════════════════
 
+function cityHubCurate(string $slug, array $attributes): City
+{
+    return City::updateOrCreate(['slug' => $slug], $attributes);
+}
+
 describe('CityHubPage curation', function () {
     it('404s a hidden city that would otherwise qualify and logs the hidden reason', function () {
         Log::spy();
 
         cityHubQualifyingBerlin(); // 3 sessions: qualifies without curation
-        City::factory()->hidden()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        cityHubCurate('berlin', ['city' => 'Berlin', 'hidden' => true]);
 
         get(route('city-hubs.show', ['slug' => 'berlin']))->assertNotFound();
 
@@ -555,16 +567,17 @@ describe('CityHubPage curation', function () {
     it('renders a featured city that sits below both thresholds', function () {
         $berlin = cityHubLocation('Berlin', 52.5200, 13.4050);
         cityHubUpcomingGame($berlin); // 1 session < 3, 0 venues < 2
-        City::factory()->featured()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        cityHubCurate('berlin', ['city' => 'Berlin', 'featured' => true]);
 
         get(route('city-hubs.show', ['slug' => 'berlin']))->assertOk();
     });
 
     it('renders the curated intro per locale in the hero instead of the generated copy', function () {
         cityHubQualifyingBerlin();
-        City::factory()
-            ->withIntro('Curated Berlin hero intro.', 'Kuratierte Berlin-Einleitung.')
-            ->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        cityHubCurate('berlin', [
+            'city' => 'Berlin',
+            'intro' => ['en' => 'Curated Berlin hero intro.', 'de' => 'Kuratierte Berlin-Einleitung.'],
+        ]);
 
         get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))
             ->assertOk()
@@ -579,8 +592,7 @@ describe('CityHubPage curation', function () {
 
     it('falls back to the generated hero copy when the locale has no curated intro', function () {
         cityHubQualifyingBerlin();
-        City::factory()->create([
-            'slug' => 'berlin',
+        cityHubCurate('berlin', [
             'city' => 'Berlin',
             'intro' => ['en' => 'English-only curated intro.', 'de' => '   '],
         ]);
@@ -607,9 +619,10 @@ describe('CityHubPage curation', function () {
 
     it('serves the curated intro from the cached summary with no cities query on warm renders', function () {
         cityHubQualifyingBerlin();
-        City::factory()
-            ->withIntro('Warm-cache intro.', 'Warm-Cache-Einleitung.')
-            ->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        cityHubCurate('berlin', [
+            'city' => 'Berlin',
+            'intro' => ['en' => 'Warm-cache intro.', 'de' => 'Warm-Cache-Einleitung.'],
+        ]);
 
         // Cold pass resolves and caches the summary (cities query included).
         get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))->assertOk();

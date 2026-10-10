@@ -21,13 +21,13 @@ use Illuminate\Support\Str;
 /**
  * Resolves city clusters and guards city hub eligibility (M062).
  *
- * A city cluster is the set of locations whose normalized city name
- * (Str::slug(city)) matches the requested slug AND whose geohash region
- * prefix matches — Location.city plus geohash_4, per the M062 goal. A slug
- * that maps to locations in more than one geohash region is ambiguous
- * (same city name in different regions, e.g. multiple German Neustadts)
- * and resolves to null unless a curated cities.region_prefix pins one
- * region exactly (62-04).
+ * A city cluster is one registry row (D171): the set of locations linked
+ * to a cities row via locations.city_id, provisioned by
+ * CityRegistryService from Str::slug(city) + the 3-char geohash region —
+ * Location.city plus geohash_4, per the M062 goal. Resolution is pure
+ * SQL over that link; membership is never re-derived from strings.
+ * Same-name clusters in different regions are separate addressable hubs
+ * (berlin and berlin-{region}) — the pre-D171 ambiguous 404 is gone.
  *
  * Curation (62-04) is enforced here — inside the resolution — so every
  * consumer (the hub guard, the 62-03 sitemap + canonical folding, the
@@ -44,14 +44,6 @@ use Illuminate\Support\Str;
  */
 class CityDirectoryService
 {
-    /**
-     * Geohash prefix length that delimits one city cluster. 3 chars ≈ a
-     * 156km × 156km cell — regional scale: Berlin and its districts share a
-     * prefix while Berlin/Hamburg/Munich each get their own. A 4-char prefix
-     * (~39km) would false-positive on metros straddling a tile boundary.
-     */
-    private const CLUSTER_GEOHASH_PREFIX_LENGTH = 3;
-
     private const CACHE_PREFIX = 'city-hubs:summary:';
 
     /**
@@ -66,6 +58,12 @@ class CityDirectoryService
 
     public const STATUS_NOT_FOUND = 'not_found';
 
+    /**
+     * No longer produced post-D171: registry rows are per-cluster, so a
+     * same-name/different-region city resolves as two distinct hubs
+     * (berlin and berlin-{region}) instead of 404ing. Kept for the
+     * CityHubPage rejection-log mapping and any log consumer expecting it.
+     */
     public const STATUS_AMBIGUOUS = 'ambiguous';
 
     public const STATUS_HIDDEN = 'hidden';
@@ -311,11 +309,10 @@ class CityDirectoryService
     /**
      * Public known-slug accessor for the scheduled cityhubs:recompute
      * command (62-04 T07): every city whose summary cache the command
-     * forgets and re-warms. A thin delegation so the derivation (distinct
-     * city values pulled and Str::slug'd in PHP — slug() cannot run in
-     * SQL) stays owned by knownCitySlugs() in one place.
+     * forgets and re-warms. A thin delegation so the universe (the
+     * registry) stays owned by knownCitySlugs() in one place.
      *
-     * @return Collection<int, string>
+     * @return Collection<int, non-empty-string>
      */
     public function citySlugs(): Collection
     {
@@ -349,21 +346,13 @@ class CityDirectoryService
             return ['status' => self::STATUS_NOT_FOUND, 'summary' => null];
         }
 
-        $locations = $this->locationsForSlug($slug);
+        $city = City::query()->where('slug', $slug)->first();
 
-        if ($locations->isEmpty()) {
-            // A curated row for an unknown slug must never conjure a hub:
-            // no locations is still not_found, however the row is flagged.
+        if ($city === null) {
             return ['status' => self::STATUS_NOT_FOUND, 'summary' => null];
         }
 
-        $clusters = $locations
-            ->groupBy(fn (Location $location) => substr((string) $location->geohash_4, 0, self::CLUSTER_GEOHASH_PREFIX_LENGTH))
-            ->filter(fn (Collection $cluster, string $prefix) => $prefix !== '');
-
-        $curated = City::query()->where('slug', $slug)->first();
-
-        if ($curated?->hidden === true) {
+        if ($city->hidden === true) {
             // Hidden beats every other flag — featured included — and every
             // public surface: the hub, the sitemap, the rail (62-04).
             // Sentinel-cached like the other negatives because
@@ -371,120 +360,58 @@ class CityDirectoryService
             return ['status' => self::STATUS_HIDDEN, 'summary' => null];
         }
 
-        if ($clusters->count() > 1) {
-            $cluster = $this->disambiguatedCluster($clusters, $curated?->region_prefix);
+        // Registry-linked locations — pure SQL (D171). Cluster identity
+        // was fixed at provisioning (CityRegistryService); resolution
+        // never re-derives membership from city strings.
+        $locations = Location::query()
+            ->where('city_id', $city->id)
+            ->whereNotNull('geohash_4')
+            ->get(['id', 'geohash_4']);
 
-            if ($cluster === null) {
-                // Same city name in separated regions with no exact curated
-                // prefix pin: never merge, never guess.
-                return ['status' => self::STATUS_AMBIGUOUS, 'summary' => null];
-            }
-        } else {
-            $cluster = $clusters->first();
-        }
-
-        if ($cluster === null) {
+        if ($locations->isEmpty()) {
+            // A registry row with no linked locations conjures nothing —
+            // no locations is still not_found, however the row is flagged.
             return ['status' => self::STATUS_NOT_FOUND, 'summary' => null];
         }
 
-        $firstLocation = $cluster->first();
-
-        if ($firstLocation === null) {
-            return ['status' => self::STATUS_NOT_FOUND, 'summary' => null];
-        }
-
-        $locationIds = $cluster->map(fn (Location $location): string => $location->id);
+        $locationIds = $locations
+            ->map(fn (Location $location): string => $location->id)
+            ->values();
 
         $summary = new CitySummary(
             slug: $slug,
-            city: (string) $this->mostFrequent($cluster->map(fn (Location $location): ?string => $location->city)),
-            country: $this->mostFrequent($cluster->map(fn (Location $location): ?string => $location->country)),
-            regionPrefix: substr((string) $firstLocation->geohash_4, 0, self::CLUSTER_GEOHASH_PREFIX_LENGTH),
-            geohashTiles: $this->nonEmptyStrings($cluster->map(fn (Location $location): ?string => $location->geohash_4)),
-            locationIds: $locationIds->values()->all(),
+            city: (string) $city->city,
+            country: $city->country,
+            regionPrefix: (string) $city->region_prefix,
+            geohashTiles: $this->nonEmptyStrings($locations->map(fn (Location $location): ?string => $location->geohash_4)),
+            locationIds: $locationIds->all(),
             upcomingGamesCount: $this->countUpcomingGames($locationIds),
             upcomingCampaignsCount: $this->countUpcomingCampaigns($locationIds),
             upcomingEventsCount: $this->countUpcomingEvents($locationIds),
             verifiedVenuesCount: $this->countVerifiedVenues($locationIds),
-            featured: $curated?->featured === true,
-            intro: $curated instanceof City ? $curated->getTranslations('intro') : [],
+            featured: $city->featured === true,
+            intro: $city->getTranslations('intro'),
         );
 
         return ['status' => self::STATUS_OK, 'summary' => $summary->toArray()];
     }
 
     /**
-     * The one cluster a curated region_prefix pins an ambiguous
-     * (multi-region) city to: the cluster whose 3-char geohash prefix
-     * EXACTLY equals the stored prefix (62-04). A wrong or missing prefix
-     * returns null — the city stays ambiguous rather than guessed.
+     * Every registry slug — the candidate universe for qualifyingCities()
+     * and the invalidation universe for forgetAll(). Post-D171 the cities
+     * table IS the cluster universe: one row per resolved cluster,
+     * provisioned by CityRegistryService. No derivation, no PHP slugging.
      *
-     * @param  Collection<string, Collection<int, Location>>  $clusters
-     * @return Collection<int, Location>|null
-     */
-    private function disambiguatedCluster(Collection $clusters, ?string $regionPrefix): ?Collection
-    {
-        if ($regionPrefix === null) {
-            return null;
-        }
-
-        $pinned = $clusters->get($regionPrefix);
-
-        return $pinned instanceof Collection ? $pinned : null;
-    }
-
-    /**
-     * Every distinct city slug derivable from geocoded locations — the
-     * candidate universe for qualifyingCities() and the invalidation
-     * universe for forgetAll(). Str::slug cannot run in SQL, so distinct
-     * city values are pulled and normalized in PHP (62-04 extraction of
-     * the iteration previously inline in qualifyingCities).
-     *
-     * @return Collection<int, string>
+     * @return Collection<int, non-empty-string>
      */
     private function knownCitySlugs(): Collection
     {
-        /** @var Collection<int, string> $slugs */
-        $slugs = Location::query()
-            ->whereNotNull('city')
-            ->whereNotNull('geohash_4')
-            ->distinct()
-            ->pluck('city')
-            ->filter(fn ($city): bool => is_string($city))
-            ->map(fn (string $city): string => Str::slug($city))
-            ->filter()
-            ->unique()
+        return City::query()
+            ->orderBy('slug')
+            ->pluck('slug')
+            ->filter(fn ($slug): bool => is_string($slug) && $slug !== '')
+            ->map(fn (string $slug): string => $slug)
             ->values();
-
-        return $slugs;
-    }
-
-    /**
-     * All geocoded locations whose city column normalizes to the slug.
-     * Str::slug cannot run in SQL, so distinct city values are pulled and
-     * matched in PHP, then the matching (exact) values are re-queried.
-     *
-     * @param  string  $slug  Pre-normalized (already Str::slug'd).
-     * @return Collection<int, Location>
-     */
-    private function locationsForSlug(string $slug): Collection
-    {
-        $matchingCities = Location::query()
-            ->whereNotNull('city')
-            ->whereNotNull('geohash_4')
-            ->distinct()
-            ->pluck('city')
-            ->filter(fn ($city): bool => is_string($city) && Str::slug($city) === $slug)
-            ->values();
-
-        if ($matchingCities->isEmpty()) {
-            return collect();
-        }
-
-        return Location::query()
-            ->whereIn('city', $matchingCities->all())
-            ->whereNotNull('geohash_4')
-            ->get(['id', 'city', 'country', 'geohash_4']);
     }
 
     /**
@@ -697,24 +624,6 @@ class CityDirectoryService
         $days = $this->configInt('cityhubs.upcoming_window_days', 30);
 
         return [now(), now()->addDays($days)];
-    }
-
-    /**
-     * Most frequent non-empty value (canonical display form), null when all
-     * values are empty.
-     *
-     * @param  Collection<int, string|null>  $values
-     */
-    private function mostFrequent(Collection $values): ?string
-    {
-        $top = $values
-            ->filter(fn ($value): bool => filled($value))
-            ->countBy()
-            ->sortDesc()
-            ->keys()
-            ->first();
-
-        return is_string($top) ? $top : null;
     }
 
     /**

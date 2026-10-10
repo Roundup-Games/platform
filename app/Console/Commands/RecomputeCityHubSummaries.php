@@ -3,9 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Models\City;
+use App\Models\Location;
 use App\Services\CityDirectoryService;
 use App\Services\SeoCacheService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -78,7 +80,21 @@ class RecomputeCityHubSummaries extends Command
                 'upcoming_activity_count' => $summary->upcomingActivityCount(),
                 'verified_venues_count' => $summary->verifiedVenuesCount,
                 'recomputed_at' => now(),
+                // Keep the display label in step with the cluster's current
+                // geocoder data (most frequent city/country among linked
+                // locations) — the registry stays canonical without an
+                // admin visit. Identity (slug, region, link) never changes.
+                'city' => $this->mostFrequent($this->locationColumn($city, 'city')) ?? $city->city,
+                'country' => $this->mostFrequent($this->locationColumn($city, 'country')) ?? $city->country,
             ]);
+
+            if ($city->locations()->doesntExist()) {
+                Log::warning('cityhubs.orphaned_registry_row', [
+                    'slug' => $slug,
+                    'city_id' => $city->getKey(),
+                    'hint' => 'Registry row has no linked locations (cluster moved or data pruned); hide it or investigate before it confuses triage.',
+                ]);
+            }
 
             $snapshots++;
         }
@@ -100,5 +116,30 @@ class RecomputeCityHubSummaries extends Command
         );
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @return Collection<int, string|null>
+     */
+    private function locationColumn(City $city, string $column): Collection
+    {
+        return $city->locations()
+            ->get([$column])
+            ->map(fn (Location $location): ?string => is_string($value = $location->getAttribute($column)) ? $value : null);
+    }
+
+    /**
+     * @param  Collection<int, string|null>  $values
+     */
+    private function mostFrequent(Collection $values): ?string
+    {
+        $top = $values
+            ->filter(fn ($value): bool => filled($value))
+            ->countBy()
+            ->sortDesc()
+            ->keys()
+            ->first();
+
+        return is_string($top) ? $top : null;
     }
 }

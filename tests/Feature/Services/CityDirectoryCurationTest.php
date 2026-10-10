@@ -64,6 +64,12 @@ function curationBerlin(int $games = 1): Location
     return $berlin;
 }
 
+/** Curate the registry row for a cluster — mirrors the product flow: discovered rows are edited, never duplicated. */
+function curationCurate(string $slug, array $attributes): City
+{
+    return City::updateOrCreate(['slug' => $slug], $attributes);
+}
+
 // ═══════════════════════════════════════════════════════════
 // HIDDEN CURATION
 // ═══════════════════════════════════════════════════════════
@@ -71,7 +77,7 @@ function curationBerlin(int $games = 1): Location
 describe('hidden curation', function () {
     it('404s a hidden city on every surface: hidden status, null summary, no qualifying entry', function () {
         curationBerlin(3); // would qualify via sessions uncurated
-        City::factory()->hidden()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        curationCurate('berlin', ['city' => 'Berlin', 'hidden' => true]);
 
         $service = app(CityDirectoryService::class);
 
@@ -82,7 +88,7 @@ describe('hidden curation', function () {
 
     it('lets hidden win over featured', function () {
         curationBerlin(3);
-        City::factory()->featured()->hidden()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        curationCurate('berlin', ['city' => 'Berlin', 'featured' => true, 'hidden' => true]);
 
         $service = app(CityDirectoryService::class);
 
@@ -109,7 +115,7 @@ describe('hidden curation', function () {
 describe('featured curation', function () {
     it('force-qualifies a featured city below both thresholds', function () {
         curationBerlin(); // 1 game (< 3), 0 verified venues (< 2)
-        City::factory()->featured()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        curationCurate('berlin', ['city' => 'Berlin', 'featured' => true]);
 
         $service = app(CityDirectoryService::class);
         $summary = $service->resolveCity('berlin');
@@ -123,10 +129,11 @@ describe('featured curation', function () {
 
     it('attaches the curated translatable intro onto the summary', function () {
         curationBerlin(3);
-        City::factory()->featured()->withIntro(
-            'Board game nights in Berlin.',
-            'Brettspielabende in Berlin.',
-        )->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        curationCurate('berlin', [
+            'city' => 'Berlin',
+            'featured' => true,
+            'intro' => ['en' => 'Board game nights in Berlin.', 'de' => 'Brettspielabende in Berlin.'],
+        ]);
 
         $summary = app(CityDirectoryService::class)->resolveCity('berlin');
 
@@ -153,7 +160,7 @@ describe('featured curation', function () {
 describe('summary cache round-trip', function () {
     it('carries featured and intro through the cached resolution', function () {
         curationBerlin(3);
-        City::factory()->featured()->withIntro('EN intro', 'DE intro')->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        curationCurate('berlin', ['city' => 'Berlin', 'featured' => true, 'intro' => ['en' => 'EN intro', 'de' => 'DE intro']]);
 
         $service = app(CityDirectoryService::class);
         $first = $service->resolveCity('berlin');
@@ -206,54 +213,57 @@ describe('summary cache round-trip', function () {
 // REGION_PREFIX DISAMBIGUATION
 // ═══════════════════════════════════════════════════════════
 
-describe('region_prefix disambiguation', function () {
-    it('pins an ambiguous two-region city to the prefixed cluster alone', function () {
-        $berlinArea = curationLocation('Neustadt', 52.5200, 13.4050); // u33
+describe('registry identity (D171)', function () {
+    it('provisions same-name clusters as two hubs and curation affects only the curated one', function () {
+        $berlinArea = curationLocation('Neustadt', 52.5200, 13.4050); // u33, created first: keeps bare slug
         curationUpcomingGame($berlinArea);
         curationUpcomingGame($berlinArea);
 
-        $hamburgArea = curationLocation('Neustadt', 53.5511, 9.9937); // u1x
+        $hamburgArea = curationLocation('Neustadt', 53.5511, 9.9937); // u1x: suffixed slug
         curationUpcomingGame($hamburgArea);
         curationUpcomingGame($hamburgArea);
         curationUpcomingGame($hamburgArea);
 
         $service = app(CityDirectoryService::class);
 
-        // Uncurated: same city name in two regions — ambiguous (404).
-        expect($service->resolveCity('neustadt'))->toBeNull()
-            ->and($service->resolveStatus('neustadt'))->toBe(CityDirectoryService::STATUS_AMBIGUOUS);
+        // Both clusters resolve independently — no ambiguity, no merge.
+        $primary = $service->resolveCity('neustadt');
+        $secondary = $service->resolveCity('neustadt-u1x');
+        expect($primary)->not->toBeNull()
+            ->and($secondary)->not->toBeNull()
+            ->and($primary->locationIds)->toEqual([$berlinArea->id])
+            ->and($secondary->locationIds)->toEqual([$hamburgArea->id])
+            ->and($primary->upcomingGamesCount)->toBe(2)
+            ->and($secondary->upcomingGamesCount)->toBe(3);
 
-        // Curated pin to the u1x region (the save + forget flush path).
-        City::factory()->create(['slug' => 'neustadt', 'city' => 'Neustadt', 'region_prefix' => 'u1x']);
-        $service->forget('neustadt');
+        // Featuring the suffixed hub force-qualifies only that hub.
+        curationCurate('neustadt-u1x', ['city' => 'Neustadt', 'featured' => true]);
+        $service->forget('neustadt-u1x');
 
-        $summary = $service->resolveCity('neustadt');
-
-        expect($summary)->not->toBeNull()
-            ->and($summary->regionPrefix)->toBe('u1x')
-            ->and($summary->locationIds)->toEqual([$hamburgArea->id])
-            ->and($summary->upcomingGamesCount)->toBe(3)
-            ->and($service->resolveStatus('neustadt'))->toBe(CityDirectoryService::STATUS_OK)
-            ->and($service->qualifyingCities()->pluck('slug')->all())->toContain('neustadt');
+        $qualifying = $service->qualifyingCities()->pluck('slug')->all();
+        expect($qualifying)->toContain('neustadt-u1x')
+            ->and($qualifying)->not->toContain('neustadt'); // 2 games < 3 threshold, 0 venues
     });
 
-    it('keeps the city ambiguous when the curated prefix matches no cluster', function () {
+    it('treats region_prefix as descriptive identity — editing it never moves cluster membership', function () {
         curationLocation('Neustadt', 52.5200, 13.4050); // u33
         curationLocation('Neustadt', 53.5511, 9.9937);  // u1x
-        $pin = City::factory()->create(['slug' => 'neustadt', 'city' => 'Neustadt']); // no prefix
 
         $service = app(CityDirectoryService::class);
 
-        // Missing prefix: stays ambiguous.
-        expect($service->resolveStatus('neustadt'))->toBe(CityDirectoryService::STATUS_AMBIGUOUS);
+        $before = $service->resolveCity('neustadt');
+        expect($before)->not->toBeNull()
+            ->and($before->regionPrefix)->toBe('u33');
 
-        // Wrong prefix (Munich's region): still ambiguous — never guess.
-        $pin->update(['region_prefix' => 'u28']);
+        // Even a nonsensical prefix edit (Munich's region) cannot steal or
+        // move locations: membership is owned by locations.city_id, not by
+        // any derivable string or admin-editable column.
+        City::query()->where('slug', 'neustadt')->update(['region_prefix' => 'u28']);
         $service->forget('neustadt');
 
-        expect($service->resolveCity('neustadt'))->toBeNull()
-            ->and($service->resolveStatus('neustadt'))->toBe(CityDirectoryService::STATUS_AMBIGUOUS)
-            ->and($service->qualifyingCities()->pluck('slug')->all())->not->toContain('neustadt');
+        $after = $service->resolveCity('neustadt');
+        expect($after->locationIds)->toEqual($before->locationIds)
+            ->and($after->regionPrefix)->toBe('u28'); // label follows the row, membership does not
     });
 });
 
@@ -302,7 +312,7 @@ describe('forgetAll', function () {
     it('flushes every known city slug and returns the count', function () {
         curationBerlin(3);
         curationLocation('Hamburg', 53.5511, 9.9937);
-        City::factory()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        // berlin + hamburg registry rows already auto-provisioned above.
 
         $service = app(CityDirectoryService::class);
 
@@ -310,8 +320,7 @@ describe('forgetAll', function () {
         expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(3)
             ->and($service->resolveCity('hamburg'))->not->toBeNull();
 
-        // Mass curation change with no model events (no City observer
-        // exists — the Filament save hook is T05), so the cached ok
+        // Mass curation change with no model events, so the cached ok
         // resolution keeps winning until an explicit flush.
         City::query()->where('slug', 'berlin')->update(['hidden' => true]);
 

@@ -34,6 +34,10 @@
 #   INV-11 morph writers          -> raw *_type writes/queries use
 #                                 getMorphClass()/whereMorphedTo, never
 #                                 get_class()/::class constants
+#   INV-12 city cluster identity  -> locations cluster through the city
+#                                 registry (CityRegistryService + FK);
+#                                 Str::slug string-matching on location
+#                                 city outside the registry splits data
 #
 # Scope: app/, resources/, routes/, tests/ as noted per check. Patterns use
 # fixed strings where possible (grep -F) to stay bash-safe.
@@ -169,6 +173,18 @@ if [ -z "$hits" ]; then
     pass "INV-10 no hand-rolled PK id assignment in app/Models (HasPlatformUuid only)"
 else
     fail "INV-10 hand-rolled id assignment found (use App\\Models\\Concerns\\HasPlatformUuid): $(echo "$hits" | tr '\n' ' ')"
+fi
+
+# --- INV-12: city clusters resolve through the registry, not strings ------
+# D171: cluster membership lives in locations.city_id (FK to the cities
+# registry). Deriving clusters by Str::slug()-matching raw city strings
+# outside CityRegistryService (the single write authority) reintroduces
+# the geocoder-variant data split the registry cured.
+hits=$(grep -rnE "Str::slug\(.{0,30}\$city" app/ --include='*.php' 2>/dev/null | grep -v "Services/CityRegistryService.php" | sort)
+if [ -z "$hits" ]; then
+    pass "INV-12 no string-matched city clustering outside CityRegistryService (registry FK only)"
+else
+    fail "INV-12 Str::slug() applied to a location city value outside CityRegistryService: $(echo "$hits" | tr '\n' ' ')"
 fi
 
 # --- INV-11: raw morph-type writes/queries go through the morph map ------

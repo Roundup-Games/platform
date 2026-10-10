@@ -6,17 +6,28 @@ use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\CityFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Spatie\Translatable\HasTranslations;
 
 /**
- * Admin-curated city hub row (62-04) — the curation layer that sits on top
- * of CityDirectoryService's runtime cluster resolution.
+ * City hub registry row (D171, evolving 62-04) — one real entity per
+ * resolved location cluster (same Str::slug(city), same 3-char geohash
+ * region), auto-provisioned by CityRegistryService on location save and
+ * linked from locations.city_id.
  *
- * One row per curated city slug. featured/hidden steer the hub guard, the
- * sitemap, and the featured-cities rail; intro is translatable hero copy;
- * region_prefix pins ambiguous clusters to one geohash region; the snapshot
- * columns are kept fresh by the scheduled cityhubs:recompute command.
+ * Curation is triage on top of identity: curation_state promotes
+ * discovered -> curated on first admin touch (intro/featured/hidden —
+ * the City::saving hook), never demotes. featured force-qualifies a hub
+ * over both thresholds and feeds the featured rail; hidden removes it
+ * from every public surface (enforced inside CityDirectoryService's
+ * resolution); intro is translatable hero copy. region_prefix records
+ * the cluster's geohash region cell. The snapshot columns are kept
+ * fresh by the scheduled cityhubs:recompute command.
+ *
+ * Rows are provisioned automatically — never hand-created. Slugs are a
+ * frozen public URL contract (/cities/{slug}); same-name clusters in
+ * other regions get slug-{region}.
  *
  * @property string $id
  * @property string $slug
@@ -26,6 +37,7 @@ use Spatie\Translatable\HasTranslations;
  * @property string|null $intro
  * @property bool $featured
  * @property bool $hidden
+ * @property string $curation_state
  * @property int|null $upcoming_activity_count
  * @property int|null $verified_venues_count
  * @property Carbon|null $recomputed_at
@@ -58,5 +70,29 @@ class City extends Model
             'verified_venues_count' => 'integer',
             'recomputed_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Curation state promotion (D171): a discovered row becomes
+        // curated the first time an admin touches a curation field. Never
+        // demotes — reverting an edit leaves the row curated, which is the
+        // honest audit state (an admin has reviewed it).
+        static::saving(function (self $city): void {
+            if ($city->curation_state === 'discovered' && $city->isDirty(['intro', 'featured', 'hidden'])) {
+                $city->curation_state = 'curated';
+            }
+        });
+    }
+
+    /**
+     * Locations linked to this registry cluster (D171) — the evidence
+     * behind the hub.
+     *
+     * @return HasMany<Location, $this>
+     */
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class);
     }
 }

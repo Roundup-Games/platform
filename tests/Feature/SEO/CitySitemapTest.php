@@ -108,12 +108,11 @@ describe('Cities Sitemap — exclusion', function () {
         expect($content)->not->toContain('/cities/hamburg');
     });
 
-    it('excludes an ambiguous city (same name in two geohash regions)', function () {
-        // Two German Neustadts, ~290km apart: distinct regions, and both
-        // clusters independently qualify — an ambiguous slug must still
-        // never surface as an indexable hub.
-        $berlinArea = citySitemapLocation('Neustadt', 52.5200, 13.4050); // u33
-        $hamburgArea = citySitemapLocation('Neustadt', 53.5511, 9.9937); // u1x
+    it('indexes same-name clusters as two distinct hub URLs (D171 registry)', function () {
+        // Two German Neustadts, ~290km apart, both independently qualify —
+        // each gets its own indexable URL instead of the pre-D171 404.
+        $berlinArea = citySitemapLocation('Neustadt', 52.5200, 13.4050); // u33, first: bare slug
+        $hamburgArea = citySitemapLocation('Neustadt', 53.5511, 9.9937); // u1x: suffixed
         for ($i = 0; $i < 3; $i++) {
             citySitemapUpcomingGame($berlinArea);
             citySitemapUpcomingGame($hamburgArea);
@@ -121,7 +120,8 @@ describe('Cities Sitemap — exclusion', function () {
 
         $content = get('/sitemap-cities.xml')->content();
 
-        expect($content)->not->toContain('/cities/neustadt');
+        expect($content)->toContain('/cities/neustadt')
+            ->and($content)->toContain('/cities/neustadt-u1x');
     });
 });
 

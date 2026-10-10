@@ -108,16 +108,29 @@ describe('resolveCity cluster resolution', function () {
             ->and($service->resolveStatus('no-such-city'))->toBe(CityDirectoryService::STATUS_NOT_FOUND);
     });
 
-    it('returns null with ambiguous when the same city name exists in two regions', function () {
+    it('resolves same-name cities in different regions as two distinct hubs', function () {
         // Two German Neustadts, ~290km apart: distinct geohash regions.
+        // D171 registry: never merge, never 404 — the larger cluster keeps
+        // the bare slug, the other is addressable under slug-{region}.
         cityLocation('Neustadt', 52.5200, 13.4050); // u33 (Berlin area)
         cityLocation('Neustadt', 53.5511, 9.9937);  // u1x (Hamburg area)
-        upcomingGame(cityLocation('Neustadt', 52.5300, 13.4100));
+        upcomingGame(cityLocation('Neustadt', 52.5300, 13.4100)); // u33 again
 
         $service = app(CityDirectoryService::class);
 
-        expect($service->resolveCity('neustadt'))->toBeNull()
-            ->and($service->resolveStatus('neustadt'))->toBe(CityDirectoryService::STATUS_AMBIGUOUS);
+        // The u33 cluster is larger (2 locations vs 1), so it owns 'neustadt'.
+        $primary = $service->resolveCity('neustadt');
+        expect($primary)->not->toBeNull()
+            ->and($primary->regionPrefix)->toBe('u33')
+            ->and(count($primary->locationIds))->toBe(2)
+            ->and($service->resolveStatus('neustadt'))->toBe(CityDirectoryService::STATUS_OK);
+
+        // The Hamburg-area Neustadt is separately addressable and separate
+        // data — resolving it never mixes in the u33 locations.
+        $secondary = $service->resolveCity('neustadt-u1x');
+        expect($secondary)->not->toBeNull()
+            ->and($secondary->regionPrefix)->toBe('u1x')
+            ->and(count($secondary->locationIds))->toBe(1);
     });
 
     it('resolves an umlaut city under exactly its Str::slug output, keeping ASCII spellings distinct', function () {
@@ -148,8 +161,8 @@ describe('resolveCity cluster resolution', function () {
 
     it('never merges a city-name collision even when both regions independently qualify', function () {
         // Two Neustadts, each with enough activity to qualify alone. A
-        // merge (or pick-the-active-cluster) regression would produce a
-        // resolvable 6-session cluster — resolution must stay null.
+        // merge (or pick-the-active-cluster) regression would produce one
+        // 6-session cluster — the registry must keep two 3-session hubs.
         $berlinArea = cityLocation('Neustadt', 52.5200, 13.4050); // u33
         $hamburgArea = cityLocation('Neustadt', 53.5511, 9.9937); // u1x
         for ($i = 0; $i < 3; $i++) {
@@ -159,12 +172,23 @@ describe('resolveCity cluster resolution', function () {
 
         $service = app(CityDirectoryService::class);
 
-        expect($service->resolveCity('neustadt'))->toBeNull()
-            ->and($service->resolveStatus('neustadt'))->toBe(CityDirectoryService::STATUS_AMBIGUOUS);
+        // Runtime provisioning is first-come: the u33 cluster was created
+        // first, so it keeps the bare slug; the u1x cluster gets the
+        // region-suffixed slug.
+        $primary = $service->resolveCity('neustadt');
+        $secondary = $service->resolveCity('neustadt-u1x');
 
-        // And the collision is never surfaced as a qualifying hub city.
-        expect($service->qualifyingCities()->pluck('slug')->all())
-            ->not->toContain('neustadt');
+        expect($primary)->not->toBeNull()
+            ->and($secondary)->not->toBeNull()
+            ->and($primary->upcomingGamesCount)->toBe(3)
+            ->and($secondary->upcomingGamesCount)->toBe(3)
+            ->and($primary->locationIds)->not->toBe($secondary->locationIds);
+
+        // Both surface independently as qualifying hubs — a visitor can
+        // reach each Neustadt under its own URL.
+        $qualifyingSlugs = $service->qualifyingCities()->pluck('slug')->all();
+        expect($qualifyingSlugs)->toContain('neustadt')
+            ->and($qualifyingSlugs)->toContain('neustadt-u1x');
     });
 
     it('returns null with not_found for an empty slug', function () {

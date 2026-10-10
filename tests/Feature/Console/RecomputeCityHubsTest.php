@@ -89,16 +89,16 @@ describe('cityhubs:recompute command', function () {
         createVerifiedVenue(['city' => 'Berlin', 'latitude' => 52.5250, 'longitude' => 13.4100]);
         createVerifiedVenue(['city' => 'Berlin', 'latitude' => 52.5300, 'longitude' => 13.4200]);
 
-        $city = City::factory()
-            ->withIntro('Berlin intro EN', 'Berlin Intro DE')
-            ->create([
-                'slug' => 'berlin',
-                'city' => 'Berlin',
-                // Stale sentinel values proving the run overwrites them.
-                'upcoming_activity_count' => 99,
-                'verified_venues_count' => 99,
-                'recomputed_at' => null,
-            ]);
+        // Curate the auto-provisioned registry row (D171: rows are edited,
+        // never created) and plant stale sentinel values proving the run
+        // overwrites them.
+        $city = City::query()->where('slug', 'berlin')->firstOrFail();
+        $city->setTranslations('intro', ['en' => 'Berlin intro EN', 'de' => 'Berlin Intro DE']);
+        $city->forceFill([
+            'upcoming_activity_count' => 99,
+            'verified_venues_count' => 99,
+            'recomputed_at' => null,
+        ])->save();
 
         $this->artisan('cityhubs:recompute')->assertSuccessful();
 
@@ -128,7 +128,7 @@ describe('cityhubs:recompute command', function () {
         recomputeUpcomingGame($hamburg);
         recomputeUpcomingGame($hamburg);
 
-        City::factory()->hidden()->create(['slug' => 'hamburg', 'city' => 'Hamburg']);
+        City::query()->where('slug', 'hamburg')->update(['hidden' => true]); // curate the registry row
 
         $this->artisan('cityhubs:recompute')->assertSuccessful();
 

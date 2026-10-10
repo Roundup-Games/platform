@@ -3,31 +3,35 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CityResource\Pages;
+use App\Filament\Resources\CityResource\RelationManagers;
 use App\Models\City;
-use App\Models\Location;
 use BackedEnum;
-use Closure;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Str;
 use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
 
+/**
+ * City hub registry (D171). Rows are auto-provisioned from location
+ * clusters — never hand-created — so this resource has no create flow:
+ * curation is triage (edit a discovered row), not row creation. The
+ * triage queue (discovered rows) surfaces as the navigation badge.
+ */
 class CityResource extends Resource
 {
     use Translatable;
@@ -41,38 +45,41 @@ class CityResource extends Resource
         return Heroicon::OutlinedBuildingOffice2;
     }
 
+    /**
+     * Triage queue size: discovered-but-never-curated hubs. Admins act on
+     * this number; a steady zero means the registry is fully curated.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $count = City::query()->where('curation_state', 'discovered')->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make('City Curation')
-                    ->description('One row per curated city hub. The slug is the join key against the runtime cluster resolution — always derived, never typed.')
+                Section::make('Discovered Hub')
+                    ->description('Identity is derived from linked locations. Curation steers visibility and copy only — identity fields never change here.')
                     ->schema([
                         Grid::make(2)
                             ->schema([
-                                Select::make('city')
+                                // Placeholders: display-only, never dehydrated —
+                                // a readOnly() TextInput would still submit its
+                                // (formatted) state and overwrite identity.
+                                Placeholder::make('city')
                                     ->label('City')
-                                    ->required()
-                                    ->searchable()
-                                    ->live()
-                                    ->options(fn (?City $record): array => static::locationCityOptions($record?->city))
-                                    ->afterStateUpdated(function (Set $set, ?string $state): void {
-                                        $set('slug', Str::slug((string) $state));
-                                    })
-                                    ->rules([
-                                        fn (?City $record): Closure => static::derivedSlugCollisionRule($record),
-                                    ])
-                                    ->helperText('Real location cities only — the hub slug is derived from this value.'),
-                                TextInput::make('slug')
-                                    ->label('Slug')
-                                    ->readOnly()
-                                    ->unique(ignoreRecord: true)
-                                    ->helperText('Derived from the selected city (/cities/{slug}) — München slugs to munchen.'),
-                                Select::make('region_prefix')
-                                    ->label('Region prefix')
-                                    ->options(fn (Get $get): array => static::regionPrefixOptions(is_string($city = $get('city')) ? $city : null))
-                                    ->visible(fn (Get $get): bool => count(static::regionPrefixOptions(is_string($city = $get('city')) ? $city : null)) > 1)
-                                    ->helperText('Offered only when this city spans multiple geohash regions — pins an ambiguous cluster to one.'),
+                                    ->content(fn (?City $record): string => (string) $record?->city),
+                                Placeholder::make('slug')
+                                    ->label('Hub URL')
+                                    ->content(fn (?City $record): string => $record ? "/cities/{$record->slug} (frozen at discovery)" : ''),
+                                Placeholder::make('region_prefix')
+                                    ->label('Region cell')
+                                    ->content(fn (?City $record): string => (string) $record?->region_prefix),
+                                Placeholder::make('curation_state')
+                                    ->label('Curation state')
+                                    ->content(fn (?City $record): string => $record?->curation_state === 'curated' ? 'Curated' : 'Discovered — awaiting triage'),
                             ]),
                     ]),
 
@@ -81,7 +88,7 @@ class CityResource extends Resource
                         Grid::make(2)
                             ->schema([
                                 Toggle::make('featured')
-                                    ->helperText('Force-qualifies the hub over the activity thresholds and surfaces it on the /discover featured rail.'),
+                                    ->helperText('Force-qualifies the hub over the activity thresholds and surfaces it on the /discover featured rail. Marking a discovered row featured also promotes it to curated.'),
                                 Toggle::make('hidden')
                                     ->helperText('Removes the hub from every public surface (hub, sitemap entry, rail). Hidden wins over featured.'),
                             ]),
@@ -102,11 +109,24 @@ class CityResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('slug')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('city')
                     ->searchable()
+                    ->sortable(),
+                TextColumn::make('slug')
+                    ->label('Hub URL')
+                    ->searchable()
+                    ->sortable()
+                    ->formatStateUsing(fn (City $record): string => "/cities/{$record->slug}")
+                    ->copyable(),
+                TextColumn::make('locations_count')
+                    ->counts('locations')
+                    ->label('Locations')
+                    ->sortable(),
+                TextColumn::make('curation_state')
+                    ->label('State')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => $state === 'curated' ? 'Curated' : 'Discovered')
+                    ->color(fn (string $state): string => $state === 'curated' ? 'success' : 'warning')
                     ->sortable(),
                 TextColumn::make('upcoming_activity_count')
                     ->label('Upcoming Activity')
@@ -129,12 +149,21 @@ class CityResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('curation_state')
+                    ->options([
+                        'discovered' => 'Discovered (triage queue)',
+                        'curated' => 'Curated',
+                    ]),
                 TernaryFilter::make('featured'),
                 TernaryFilter::make('hidden'),
             ])
             ->defaultSort('city', 'asc')
+            ->emptyStateHeading('No city hubs discovered yet')
+            ->emptyStateDescription('Hubs appear here automatically as geocoded locations form clusters — nothing to create by hand. Check the Locations resource if you expected some.')
             ->recordActions([
                 EditAction::make(),
+                DeleteAction::make()
+                    ->visible(fn (City $record): bool => $record->locations()->doesntExist()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -147,94 +176,14 @@ class CityResource extends Resource
     {
         return [
             'index' => Pages\ListCities::route('/'),
-            'create' => Pages\CreateCity::route('/create'),
             'edit' => Pages\EditCity::route('/{record}/edit'),
         ];
     }
 
-    /**
-     * Distinct real Location city values as select options. The city is
-     * ALWAYS chosen from what locations actually carry — the slug is
-     * derived, not hand-picked, so free text would let admins curate
-     * cities that resolve to no cluster. On edit, the row's stored
-     * display name stays selectable even when no location spells it that
-     * way anymore (renames must not strand the form on an empty select).
-     *
-     * @return array<string, string>
-     */
-    public static function locationCityOptions(?string $include = null): array
+    public static function getRelations(): array
     {
-        $options = Location::query()
-            ->whereNotNull('city')
-            ->distinct()
-            ->orderBy('city')
-            ->pluck('city', 'city')
-            ->filter(fn ($city): bool => is_string($city))
-            ->all();
-
-        if (is_string($include) && $include !== '' && ! array_key_exists($include, $options)) {
-            $options[$include] = $include;
-            ksort($options);
-        }
-
-        return $options;
-    }
-
-    /**
-     * Geohash region candidates for one city, keyed by the 3-char prefix
-     * with per-prefix location counts as labels ("u33 — 4 locations").
-     * Offered only when a city spans more than one region — the exact
-     * shape CityDirectoryService calls ambiguous (same city name in
-     * different regions) and region_prefix disambiguates.
-     *
-     * @return array<string, string>
-     */
-    public static function regionPrefixOptions(?string $city): array
-    {
-        if (! is_string($city) || $city === '') {
-            return [];
-        }
-
-        return Location::query()
-            ->where('city', $city)
-            ->whereNotNull('geohash_4')
-            ->pluck('geohash_4')
-            ->filter(fn ($geohash): bool => is_string($geohash))
-            ->map(fn (string $geohash): string => substr($geohash, 0, 3))
-            ->countBy()
-            ->sortKeys()
-            ->mapWithKeys(fn (int $count, string $prefix): array => [
-                $prefix => sprintf('%s — %d %s', $prefix, $count, Str::plural('location', $count)),
-            ])
-            ->all();
-    }
-
-    /**
-     * Validation rule for the city select: the slug this city derives
-     * (Str::slug — ASCII-folds umlauts, never guesses "oe") must not
-     * already be curated on another row. Anchored on the city value (not
-     * the derived slug field) so collisions surface as an admin-visible
-     * error on every write path, independent of client-side state; the
-     * current record's own slug is ignored on edit.
-     */
-    public static function derivedSlugCollisionRule(?City $record): Closure
-    {
-        return function (string $attribute, mixed $value, Closure $fail) use ($record): void {
-            if (! is_string($value) || $value === '') {
-                return;
-            }
-
-            $slug = Str::slug($value);
-
-            $query = City::query()->where('slug', $slug);
-
-            if ($record instanceof City) {
-                $query->whereKeyNot($record->getKey());
-            }
-
-            if ($query->exists()) {
-                $fail("The city \"{$value}\" derives the slug \"{$slug}\", which is already curated. Edit the existing row instead.");
-            }
-        };
+        return [
+            RelationManagers\LocationsRelationManager::class,
+        ];
     }
 }
