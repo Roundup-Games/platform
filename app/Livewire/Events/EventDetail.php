@@ -56,7 +56,7 @@ class EventDetail extends Component
         // PublicGameDetail's load-then-seo ordering).
         $this->event->offeredSystems();
 
-        seo()->for($this->event);
+        seo()->for($this->event->entitySeoData(app()->getLocale()));
 
         $user = auth()->user();
 

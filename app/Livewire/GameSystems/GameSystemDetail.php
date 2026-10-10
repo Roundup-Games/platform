@@ -178,7 +178,7 @@ class GameSystemDetail extends Component
             abort(404);
         }
 
-        seo()->for($system);
+        seo()->for($system->entitySeoData(app()->getLocale()));
 
         // MEM164: derived values are explicit view data, never lazy Blade
         // resolution. TTL-cached by GameSystemLandingService, so this call and

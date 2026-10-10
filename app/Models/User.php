@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ContentLanguage;
 use App\Enums\OAuthProvider;
 use App\Enums\RelationshipType;
+use App\Models\Concerns\HasEntitySeo;
 use App\Models\Concerns\HasPlatformUuid;
 use App\Notifications\Channels\DiscordChannel;
 use App\Services\Geohash;
@@ -50,6 +51,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\SchemaOrg\Person as SchemaPerson;
+use Spatie\Translatable\HasTranslations;
 
 /**
  * @property-read Game[] $ownedGames
@@ -112,6 +114,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 {
     use Billable;
     use HasApiTokens;
+    use HasEntitySeo;
 
     /** @use HasFactory<UserFactory> */
     use HasFactory;
@@ -120,6 +123,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     use HasRoles;
     use HasSEO;
     use HasTickets;
+    use HasTranslations;
     use InteractsWithMedia;
     use Notifiable;
     use PresentsAsTicketSubject;
@@ -201,6 +205,9 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         'signup_content_type',
         'signup_content_slug',
     ];
+
+    /** @var array<int, string> */
+    public array $translatable = ['seo_title', 'seo_description'];
 
     protected function casts(): array
     {

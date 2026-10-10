@@ -2,78 +2,45 @@
 
 namespace App\Filament\Components;
 
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 
 /**
- * Reusable Filament form section for editing SEO overrides on any model
- * that uses the HasSEO trait (RalphJSmit\Laravel\SEO).
+ * Reusable Filament form section for editing per-locale SEO overrides on
+ * any model using the HasEntitySeo concern (D172).
  *
- * Usage in a Resource form():
- *   SeoFields::make(),
+ * Usage in a Resource form():  SeoFields::make(),
  *
- * The section uses ->relationship('seo') to bind to the MorphOne seo
- * relationship. Fields left empty fall through to getDynamicSEOData().
+ * Writes the translatable seo_title/seo_description model columns —
+ * per-locale editing follows the resource's Translatable concern (locale
+ * switcher). Fields left empty (or whitespace-only) fall through to the
+ * model's generated metadata (getDynamicSEOData()); one locale's curated
+ * value never serves another locale.
+ *
+ * The retired seo-table row layer also offered image/canonical/robots
+ * overrides — dropped deliberately: verified against the live deployment
+ * that no row ever used them, and images, robots, and JSON-LD schema are
+ * generator-owned by design (D172).
  */
 class SeoFields
 {
-    /**
-     * Create the SEO editing section.
-     *
-     * The section is collapsible and collapsed by default, since most
-     * models derive SEO from their content automatically.
-     */
     public static function make(): Section
     {
         return Section::make('SEO Overrides')
-            ->description('Override the dynamically generated SEO metadata. Leave fields empty to use defaults.')
-            ->relationship('seo')
+            ->description('Per-locale overrides for the search-result title and snippet. Leave empty to use the generated metadata — switch locales to curate each language.')
             ->schema([
-                Grid::make(2)
-                    ->schema([
-                        TextInput::make('title')
-                            ->label('SEO Title')
-                            ->nullable()
-                            ->maxLength(255)
-                            ->helperText('Override the page title. Leave empty for default.')
-                            ->columnSpanFull(),
-
-                        Textarea::make('description')
-                            ->label('SEO Description')
-                            ->nullable()
-                            ->maxLength(160)
-                            ->rows(2)
-                            ->helperText('Recommended: 120–160 characters. Leave empty for default.')
-                            ->columnSpanFull(),
-
-                        TextInput::make('image')
-                            ->label('SEO Image URL')
-                            ->nullable()
-                            ->url()
-                            ->maxLength(500)
-                            ->helperText('Override OG/Twitter image. Leave empty for default.'),
-
-                        TextInput::make('canonical_url')
-                            ->label('Canonical URL')
-                            ->nullable()
-                            ->url()
-                            ->maxLength(500)
-                            ->helperText('Explicit canonical URL if needed.'),
-
-                        Select::make('robots')
-                            ->label('Robots Directive')
-                            ->nullable()
-                            ->options([
-                                'index, follow' => 'Index, Follow (default)',
-                                'noindex, follow' => 'Noindex, Follow',
-                                'index, nofollow' => 'Index, Nofollow',
-                                'noindex, nofollow' => 'Noindex, Nofollow',
-                            ])
-                            ->helperText('Controls search engine indexing behavior.'),
-                    ]),
+                TextInput::make('seo_title')
+                    ->label('SEO title')
+                    ->nullable()
+                    ->maxLength(70)
+                    ->helperText('Search-result headline (~50-60 chars visible). Empty = generated.'),
+                Textarea::make('seo_description')
+                    ->label('Meta description')
+                    ->nullable()
+                    ->maxLength(170)
+                    ->rows(2)
+                    ->helperText('Search-result snippet (~150-160 chars visible). Empty = generated.'),
             ])
             ->collapsible()
             ->collapsed();

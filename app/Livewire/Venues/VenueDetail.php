@@ -92,7 +92,7 @@ class VenueDetail extends Component
             ->limit(10)
             ->get();
 
-        seo()->for($this->location);
+        seo()->for($this->location->entitySeoData(app()->getLocale()));
 
         return view('livewire.venues.venue-detail', [
             'location' => $this->location,

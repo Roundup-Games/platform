@@ -7,6 +7,7 @@ use App\Enums\DisclosureLevel;
 use App\Enums\GameType;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
+use App\Models\Concerns\HasEntitySeo;
 use App\Models\Concerns\HasPlatformUuid;
 use App\Models\Concerns\HasShareToken;
 use App\Models\Concerns\VisibleToScope;
@@ -94,11 +95,12 @@ class Campaign extends Model implements HasMedia, TicketSubject
         return route('campaigns.detail', $this, absolute: false);
     }
 
+    use HasEntitySeo;
     use HasSEO;
     use HasTranslations;
 
     /** @var array<int, string> */
-    public array $translatable = ['name', 'description'];
+    public array $translatable = ['name', 'description', 'seo_title', 'seo_description'];
 
     protected $keyType = 'string';
 
@@ -128,6 +130,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
         // Bridge: the dropped game_system_id column is captured by
         // setGameSystemIdAttribute and synced to the gameSystems pivot.
         'game_system_id',
+        'seo_title', 'seo_description',
     ];
 
     protected function casts(): array

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEntitySeo;
 use App\Models\Concerns\HasPlatformUuid;
 use App\Services\GameSystemLandingService;
 use App\Traits\StringMorphMediaKey;
@@ -42,6 +43,8 @@ use Spatie\Translatable\HasTranslations;
  */
 class GameSystem extends Model implements HasMedia, TicketSubject
 {
+    use HasEntitySeo;
+
     /** @use HasFactory<GameSystemFactory> */
     use HasFactory;
 
@@ -63,7 +66,7 @@ class GameSystem extends Model implements HasMedia, TicketSubject
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
 
     /** @var array<int, string> */
-    public array $translatable = ['name', 'description'];
+    public array $translatable = ['name', 'description', 'seo_title', 'seo_description'];
 
     protected $keyType = 'string';
 
@@ -79,6 +82,7 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         'type', 'source', 'source_slug', 'creator', 'player_range',
         'sp_rating', 'sp_review_count', 'platform_score', 'faq_content', 'external_links',
         'showcases', 'instructions',
+        'seo_title', 'seo_description',
     ];
 
     protected function casts(): array

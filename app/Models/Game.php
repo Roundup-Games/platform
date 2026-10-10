@@ -8,6 +8,7 @@ use App\Enums\GameType;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
+use App\Models\Concerns\HasEntitySeo;
 use App\Models\Concerns\HasPlatformUuid;
 use App\Models\Concerns\HasShareToken;
 use App\Models\Concerns\VisibleToScope;
@@ -73,6 +74,7 @@ use Spatie\Translatable\HasTranslations;
 class Game extends Model implements HasMedia, TicketSubject
 {
     use HasCapacity;
+    use HasEntitySeo;
 
     /** @use HasFactory<GameFactory> */
     use HasFactory;
@@ -110,7 +112,7 @@ class Game extends Model implements HasMedia, TicketSubject
     }
 
     /** @var array<int, string> */
-    public array $translatable = ['name', 'description'];
+    public array $translatable = ['name', 'description', 'seo_title', 'seo_description'];
 
     protected $keyType = 'string';
 
@@ -146,6 +148,7 @@ class Game extends Model implements HasMedia, TicketSubject
         'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
         'reminder_sent_at', 'reminder_24h_sent_at', 'recap', 'min_reliability_preference',
+        'seo_title', 'seo_description',
         'share_token', 'share_token_expires_at', 'bench_mode',
         'attendance_window_opens_at', 'attendance_window_closes_at',
         'attendance_resolved_at', 'attendance_resolution_method',

@@ -38,6 +38,10 @@
 #                                 registry (CityRegistryService + FK);
 #                                 Str::slug string-matching on location
 #                                 city outside the registry splits data
+#   INV-13 entity SEO rendering   -> seo()->for() receives an SEOData
+#                                 from HasEntitySeo::entitySeoData()
+#                                 (or an explicit SEOData), never a bare
+#                                 model (the retired seo-table row layer)
 #
 # Scope: app/, resources/, routes/, tests/ as noted per check. Patterns use
 # fixed strings where possible (grep -F) to stay bash-safe.
@@ -173,6 +177,17 @@ if [ -z "$hits" ]; then
     pass "INV-10 no hand-rolled PK id assignment in app/Models (HasPlatformUuid only)"
 else
     fail "INV-10 hand-rolled id assignment found (use App\\Models\\Concerns\\HasPlatformUuid): $(echo "$hits" | tr '\n' ' ')"
+fi
+
+# --- INV-13: entity SEO renders through HasEntitySeo, not the seo table ---
+# D172: a bare seo()->for($model) call reads the retired single-language
+# seo-table row layer and silently bypasses the per-locale curated
+# overrides. Model SEO must resolve via entitySeoData(locale).
+hits=$(grep -rnE "seo\(\)->for\(\s*\\$" app/ --include='*.php' 2>/dev/null | grep -v "entitySeoData" | grep -vE ":[0-9]+:\s*(\*|//)" | sort)
+if [ -z "$hits" ]; then
+    pass "INV-13 no bare-model seo()->for() calls (HasEntitySeo::entitySeoData only)"
+else
+    fail "INV-13 seo()->for() called with a model (use \$model->entitySeoData(app()->getLocale())): $(echo "$hits" | tr '\n' ' ')"
 fi
 
 # --- INV-12: city clusters resolve through the registry, not strings ------

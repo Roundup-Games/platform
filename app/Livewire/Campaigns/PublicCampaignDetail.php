@@ -158,7 +158,7 @@ class PublicCampaignDetail extends Component
         }
         $this->campaign->load($relations);
 
-        seo()->for($this->campaign);
+        seo()->for($this->campaign->entitySeoData(app()->getLocale()));
 
         return view('livewire.campaigns.public-campaign-detail', [
             'campaign' => $this->campaign,

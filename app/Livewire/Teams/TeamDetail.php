@@ -24,7 +24,7 @@ class TeamDetail extends Component
     {
         $this->team->load(['activeMembers.user', 'activeMembers' => fn ($q) => $q->orderBy('role')->orderBy('jersey_number')]);
 
-        seo()->for($this->team);
+        seo()->for($this->team->entitySeoData(app()->getLocale()));
 
         return view('livewire.teams.team-detail', [
             'team' => $this->team,

@@ -64,7 +64,7 @@ beforeEach(function () {
 describe('DiscoveryPortal featured-cities rail', function () {
     it('renders a featured qualifying city as a hub link chip labeled with its display name', function () {
         discoveryRailBerlin(); // 3 sessions: qualifies without curation
-        City::factory()->featured()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        City::updateOrCreate(['slug' => 'berlin'], ['city' => 'Berlin', 'featured' => true]);
 
         get(route('discover'))
             ->assertOk()
@@ -75,7 +75,7 @@ describe('DiscoveryPortal featured-cities rail', function () {
 
     it('omits a featured-but-hidden city', function () {
         discoveryRailBerlin(); // would qualify on its own; hidden wins over featured
-        City::factory()->featured()->hidden()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        City::updateOrCreate(['slug' => 'berlin'], ['city' => 'Berlin', 'featured' => true, 'hidden' => true]);
 
         get(route('discover'))
             ->assertOk()
@@ -85,7 +85,7 @@ describe('DiscoveryPortal featured-cities rail', function () {
 
     it('renders a featured city below both thresholds via force-qualification', function () {
         discoveryRailBerlin(1); // 1 session < 3, 0 verified venues < 2
-        City::factory()->featured()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        City::updateOrCreate(['slug' => 'berlin'], ['city' => 'Berlin', 'featured' => true]);
 
         get(route('discover'))
             ->assertOk()
@@ -94,7 +94,7 @@ describe('DiscoveryPortal featured-cities rail', function () {
 
     it('omits a qualifying city that has no featured curation row', function () {
         discoveryRailBerlin(); // qualifies via sessions, but the curated row is unfeatured
-        City::factory()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        City::updateOrCreate(['slug' => 'berlin'], ['city' => 'Berlin']);
 
         get(route('discover'))
             ->assertOk()
@@ -125,7 +125,7 @@ describe('DiscoveryPortal featured-cities rail', function () {
 
     it('renders the heading copy per locale', function () {
         discoveryRailBerlin();
-        City::factory()->featured()->create(['slug' => 'berlin', 'city' => 'Berlin']);
+        City::updateOrCreate(['slug' => 'berlin'], ['city' => 'Berlin', 'featured' => true]);
 
         get(route('discover', ['locale' => 'en']))
             ->assertOk()

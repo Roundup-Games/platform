@@ -204,7 +204,7 @@ class PublicProfile extends Component
         $showReliabilityDetails = in_array('stats', $this->visibleFields);
 
         // Set SEO metadata from model
-        seo()->for($this->profileUser);
+        seo()->for($this->profileUser->entitySeoData(app()->getLocale()));
 
         return view('livewire.profile.public', [
             'profileUser' => $this->profileUser,

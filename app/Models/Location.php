@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\VenueType;
+use App\Models\Concerns\HasEntitySeo;
 use App\Models\Concerns\HasPlatformUuid;
 use App\Services\CityRegistryService;
 use App\Services\Geohash;
@@ -25,6 +26,7 @@ use RalphJSmit\Laravel\SEO\Support\HasSEO;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Spatie\SchemaOrg\LocalBusiness;
 use Spatie\SchemaOrg\PostalAddress;
+use Spatie\Translatable\HasTranslations;
 
 /**
  * @property string $id
@@ -58,15 +60,17 @@ use Spatie\SchemaOrg\PostalAddress;
  */
 class Location extends Model implements TicketSubject
 {
+    use HasEntitySeo;
+
     /** @use HasFactory<LocationFactory> */
     use HasFactory;
 
     use HasPlatformUuid;
-
     // Location has no public-facing route; ticketSubjectUrl() returns null
     // (the trait default), so subjects render without a link in the ticket UI.
 
     use HasSEO;
+    use HasTranslations;
     use PresentsAsTicketSubject;
 
     protected $keyType = 'string';
@@ -100,6 +104,9 @@ class Location extends Model implements TicketSubject
         'drift_detected_at',
         'drift_metadata',
     ];
+
+    /** @var array<int, string> */
+    public array $translatable = ['seo_title', 'seo_description'];
 
     protected function casts(): array
     {
@@ -430,12 +437,18 @@ class Location extends Model implements TicketSubject
 
         $schema = SchemaCollection::initialize();
 
-        $business = (new LocalBusiness)
-            ->name($this->name)
-            ->url(route('venues.detail', [
+        // A location without a public venue-page slug has no URL to emit —
+        // route() with a null slug throws, so url() is set only when the
+        // public page exists (D172 made every entitySeoData() call reach
+        // this generator, including slug-less rows).
+        $business = (new LocalBusiness)->name($this->name);
+
+        if (is_string($this->slug) && $this->slug !== '') {
+            $business->url(route('venues.detail', [
                 'locale' => app()->getLocale(),
                 'slug' => $this->slug,
             ]));
+        }
 
         // The schema description is only meaningful when content exists — an
         // empty value would produce a useless description node, and the

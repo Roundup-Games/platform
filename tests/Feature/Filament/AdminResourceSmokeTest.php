@@ -40,7 +40,7 @@ beforeEach(function () {
 $resources = [
     'bgg-sync-logs' => false,      // List-only (log viewer)
     'campaigns' => true,
-    'cities' => true,
+    'cities' => false,           // Registry rows are auto-provisioned from location clusters (D171) — no create page
     'departments' => true,
     'events' => true,
     'game-system-categories' => true,

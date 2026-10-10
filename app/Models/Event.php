@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EventStatus;
 use App\Enums\EventType;
+use App\Models\Concerns\HasEntitySeo;
 use App\Models\Concerns\HasPlatformUuid;
 use App\Services\ShortLinkService;
 use App\Traits\StringMorphMediaKey;
@@ -52,6 +53,8 @@ use Spatie\Translatable\HasTranslations;
  */
 class Event extends Model implements HasMedia
 {
+    use HasEntitySeo;
+
     /** @use HasFactory<EventFactory> */
     use HasFactory;
 
@@ -62,7 +65,7 @@ class Event extends Model implements HasMedia
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
 
     /** @var array<int, string> */
-    public array $translatable = ['name', 'description', 'short_description'];
+    public array $translatable = ['name', 'description', 'short_description', 'seo_title', 'seo_description'];
 
     protected $keyType = 'string';
 
@@ -92,6 +95,7 @@ class Event extends Model implements HasMedia
         'organizer_id', 'contact_email', 'contact_phone',
         'rules', 'schedule', 'amenities', 'requirements',
         'is_public', 'is_featured', 'metadata',
+        'seo_title', 'seo_description',
     ];
 
     protected function casts(): array

@@ -151,7 +151,7 @@ class PublicGameDetail extends Component
         }
         $this->game->load($relations);
 
-        seo()->for($this->game);
+        seo()->for($this->game->entitySeoData(app()->getLocale()));
 
         return view('livewire.games.public-game-detail', [
             'game' => $this->game,
