@@ -391,6 +391,8 @@ class CityDirectoryService
             verifiedVenuesCount: $this->countVerifiedVenues($locationIds),
             featured: $city->featured === true,
             intro: $city->getTranslations('intro'),
+            seoTitle: $city->getTranslations('seo_title'),
+            seoDescription: $city->getTranslations('seo_description'),
         );
 
         return ['status' => self::STATUS_OK, 'summary' => $summary->toArray()];

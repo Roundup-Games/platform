@@ -110,9 +110,14 @@ class CityHubPage extends Component
         $sessions = $directory->upcomingSessions($city);
         $venues = $directory->verifiedVenues($city);
 
+        $locale = app()->getLocale();
+
+        // Curated per-locale SEO overrides (cities.seo_title/seo_description,
+        // D171) ride the cached resolution; uncurated locales fall back to
+        // the generated lang-key copy. Same shape as the intro fallback.
         seo()->for(new SEOData(
-            title: __('city-hubs.seo_title', ['city' => $city->city]),
-            description: __('city-hubs.seo_description', ['city' => $city->city]),
+            title: $city->seoTitleFor($locale) ?? __('city-hubs.seo_title', ['city' => $city->city]),
+            description: $city->seoDescriptionFor($locale) ?? __('city-hubs.seo_description', ['city' => $city->city]),
             // Defense-in-depth: pin the clean hub URL so query-param variants
             // can never drift from the canonical. The global SEODataTransformer
             // only fills canonical_url when null (URL::to(request()->path())),

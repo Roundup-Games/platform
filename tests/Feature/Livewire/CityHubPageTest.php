@@ -609,6 +609,28 @@ describe('CityHubPage curation', function () {
             ->assertSee('English-only curated intro.');
     });
 
+    it('renders curated per-locale SEO overrides and falls back to generated copy for uncurated locales', function () {
+        cityHubQualifyingBerlin();
+        cityHubCurate('berlin', [
+            'city' => 'Berlin',
+            'seo_title' => ['en' => 'Curated Berlin SEO title'],
+            'seo_description' => ['en' => 'Curated Berlin meta description.'],
+        ]);
+
+        // Curated locale: the overrides win.
+        get(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee('Curated Berlin SEO title', false)
+            ->assertSee('Curated Berlin meta description.', false);
+
+        // Uncurated locale: the generated lang-key copy renders (with the
+        // city name interpolated), never the English override.
+        get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))
+            ->assertOk()
+            ->assertSee(__('city-hubs.seo_title', ['city' => 'Berlin'], 'de'), false)
+            ->assertDontSee('Curated Berlin SEO title', false);
+    });
+
     it('falls back to the generated hero copy for a city with no curated row', function () {
         cityHubQualifyingBerlin();
 

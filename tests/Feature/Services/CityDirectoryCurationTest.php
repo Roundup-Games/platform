@@ -173,6 +173,25 @@ describe('summary cache round-trip', function () {
             ->and($cached->introFor('de'))->toBe('DE intro');
     });
 
+    it('carries per-locale SEO overrides through the cached resolution with intro-style null semantics', function () {
+        curationBerlin(3);
+        curationCurate('berlin', [
+            'city' => 'Berlin',
+            'seo_title' => ['en' => '  Berlin board game nights  ', 'de' => '   '],
+            'seo_description' => ['en' => 'Sessions and venues in Berlin.', 'de' => 'Brettspiele in Berlin.'],
+        ]);
+
+        $summary = app(CityDirectoryService::class)->resolveCity('berlin');
+
+        expect($summary->seoTitleFor('en'))->toBe('Berlin board game nights') // trimmed
+            ->and($summary->seoTitleFor('de'))->toBeNull() // whitespace-only counts as absent
+            ->and($summary->seoDescriptionFor('de'))->toBe('Brettspiele in Berlin.');
+
+        // The cached pass returns the identical hydrated overrides.
+        expect(app(CityDirectoryService::class)->resolveCity('berlin')->toArray())
+            ->toEqual($summary->toArray());
+    });
+
     it('degrades pre-curation cache entries to the documented defaults', function () {
         // A cache entry written before 62-04 lacks the new keys: fromArray
         // must hydrate featured=false / intro=[] and introFor must fall
@@ -193,6 +212,9 @@ describe('summary cache round-trip', function () {
         expect($legacy->featured)->toBeFalse()
             ->and($legacy->intro)->toBe([])
             ->and($legacy->introFor('en'))->toBeNull()
+            ->and($legacy->seoTitle)->toBe([])
+            ->and($legacy->seoTitleFor('en'))->toBeNull()
+            ->and($legacy->seoDescriptionFor('en'))->toBeNull()
             ->and($legacy->upcomingGamesCount)->toBe(3); // rest of the entry intact
     });
 

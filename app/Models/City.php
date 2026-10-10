@@ -17,7 +17,7 @@ use Spatie\Translatable\HasTranslations;
  * linked from locations.city_id.
  *
  * Curation is triage on top of identity: curation_state promotes
- * discovered -> curated on first admin touch (intro/featured/hidden —
+ * discovered -> curated on first admin touch (intro/seo/featured/hidden —
  * the City::saving hook), never demotes. featured force-qualifies a hub
  * over both thresholds and feeds the featured rail; hidden removes it
  * from every public surface (enforced inside CityDirectoryService's
@@ -35,6 +35,8 @@ use Spatie\Translatable\HasTranslations;
  * @property string|null $country
  * @property string|null $region_prefix
  * @property string|null $intro
+ * @property string|null $seo_title
+ * @property string|null $seo_description
  * @property bool $featured
  * @property bool $hidden
  * @property string $curation_state
@@ -53,7 +55,7 @@ class City extends Model
     use HasTranslations;
 
     /** @var array<int, string> */
-    public array $translatable = ['intro'];
+    public array $translatable = ['intro', 'seo_title', 'seo_description'];
 
     protected $keyType = 'string';
 
@@ -79,7 +81,7 @@ class City extends Model
         // demotes — reverting an edit leaves the row curated, which is the
         // honest audit state (an admin has reviewed it).
         static::saving(function (self $city): void {
-            if ($city->curation_state === 'discovered' && $city->isDirty(['intro', 'featured', 'hidden'])) {
+            if ($city->curation_state === 'discovered' && $city->isDirty(['intro', 'seo_title', 'seo_description', 'featured', 'hidden'])) {
                 $city->curation_state = 'curated';
             }
         });

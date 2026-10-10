@@ -102,6 +102,20 @@ class CityResource extends Resource
                             ->maxLength(2000)
                             ->columnSpanFull(),
                     ]),
+
+                Section::make('SEO')
+                    ->description('Per-locale overrides for the hub title tag and meta description. Uncurated locales fall back to the generated copy — edit per locale with the switcher above.')
+                    ->schema([
+                        TextInput::make('seo_title')
+                            ->label('SEO title')
+                            ->maxLength(70)
+                            ->helperText('Search-result headline (~50-60 chars visible). Empty = generated.'),
+                        Textarea::make('seo_description')
+                            ->label('Meta description')
+                            ->rows(2)
+                            ->maxLength(170)
+                            ->helperText('Search-result snippet (~150-160 chars visible). Empty = generated.'),
+                    ]),
             ]);
     }
 

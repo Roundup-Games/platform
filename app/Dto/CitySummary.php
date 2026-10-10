@@ -27,6 +27,8 @@ final class CitySummary
      * @param  int  $verifiedVenuesCount  Cluster locations eligible for a public venue page (scopePublicVenuePage + slug).
      * @param  bool  $featured  Admin curation flag (62-04): featured cities force-qualify over both thresholds and feed the featured-cities rail.
      * @param  array<string, string>  $intro  Curated translatable hero intro (locale => string) from the cities.intro column; empty when uncurated.
+     * @param  array<string, string>  $seoTitle  Curated translatable SEO title override (locale => string) from cities.seo_title; empty when uncurated (D171).
+     * @param  array<string, string>  $seoDescription  Curated translatable meta description override (locale => string) from cities.seo_description; empty when uncurated (D171).
      */
     public function __construct(
         public readonly string $slug,
@@ -41,6 +43,8 @@ final class CitySummary
         public readonly int $verifiedVenuesCount,
         public readonly bool $featured = false,
         public readonly array $intro = [],
+        public readonly array $seoTitle = [],
+        public readonly array $seoDescription = [],
     ) {}
 
     /**
@@ -75,6 +79,41 @@ final class CitySummary
     }
 
     /**
+     * Curated SEO title for one locale: the trimmed value, or null when
+     * the locale has no curated override — the hub then falls back to the
+     * generated lang-key title.
+     */
+    public function seoTitleFor(string $locale): ?string
+    {
+        return $this->localizedSeoText($this->seoTitle, $locale);
+    }
+
+    /**
+     * Curated meta description for one locale (same null-when-absent
+     * semantics as seoTitleFor).
+     */
+    public function seoDescriptionFor(string $locale): ?string
+    {
+        return $this->localizedSeoText($this->seoDescription, $locale);
+    }
+
+    /**
+     * @param  array<string, string>  $map
+     */
+    private function localizedSeoText(array $map, string $locale): ?string
+    {
+        $text = $map[$locale] ?? null;
+
+        if (! is_string($text)) {
+            return null;
+        }
+
+        $trimmed = trim($text);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -92,6 +131,8 @@ final class CitySummary
             'verifiedVenuesCount' => $this->verifiedVenuesCount,
             'featured' => $this->featured,
             'intro' => $this->intro,
+            'seoTitle' => $this->seoTitle,
+            'seoDescription' => $this->seoDescription,
         ];
     }
 
@@ -120,6 +161,8 @@ final class CitySummary
             verifiedVenuesCount: is_int($array['verifiedVenuesCount'] ?? null) ? $array['verifiedVenuesCount'] : 0,
             featured: is_bool($array['featured'] ?? null) ? $array['featured'] : false,
             intro: self::stringMap($array['intro'] ?? []),
+            seoTitle: self::stringMap($array['seoTitle'] ?? []),
+            seoDescription: self::stringMap($array['seoDescription'] ?? []),
         );
     }
 

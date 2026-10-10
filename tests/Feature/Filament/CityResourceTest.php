@@ -133,6 +133,28 @@ describe('CityResource — curation', function () {
             ->and($city->getTranslation('intro', 'de'))->toBe('Brettspielabende in Berlin.');
     });
 
+    test('saves SEO overrides per locale across an active-locale switch', function () {
+        cityResourceLocation('Berlin', 52.5200, 13.4050);
+        $city = City::query()->where('slug', 'berlin')->firstOrFail();
+
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(EditCity::class, ['record' => $city->getKey()])
+            ->fillForm(['seo_title' => 'Berlin SEO EN'])
+            ->fillForm(['seo_description' => 'Berlin meta EN.'])
+            ->set('activeLocale', 'de')
+            ->fillForm(['seo_title' => 'Berlin SEO DE'])
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $city->refresh();
+
+        expect($city->getTranslation('seo_title', 'en'))->toBe('Berlin SEO EN')
+            ->and($city->getTranslation('seo_title', 'de'))->toBe('Berlin SEO DE')
+            ->and($city->getTranslation('seo_description', 'en'))->toBe('Berlin meta EN.')
+            ->and($city->curation_state)->toBe('curated');
+    });
+
     test('promotes a discovered row to curated on first curation and never demotes', function () {
         cityResourceLocation('Berlin', 52.5200, 13.4050);
 
