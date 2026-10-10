@@ -40,8 +40,33 @@ class CityRegistryService
      * already correct. Uses a mass update (no model events) so it cannot
      * recurse and cannot disturb other dirty state; the affected hub
      * caches are flushed explicitly for both the old and new cluster.
+     *
+     * Retries the whole resolution on Postgres deadlock (40P01): the
+     * UPDATE-locations -> INSERT-cities sequence on a shared slug can
+     * form a lock cycle under concurrent writers (parallel test workers,
+     * concurrent requests) — deadlocks are transient by definition, and
+     * the operation is idempotent so a retry is always safe.
      */
     public function syncLocation(Location $location): void
+    {
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            try {
+                $this->doSyncLocation($location);
+
+                return;
+            } catch (QueryException $e) {
+                $sqlstate = (string) ($e->errorInfo[0] ?? '');
+                if ($sqlstate !== '40001' && $sqlstate !== '40P01') {
+                    throw $e;
+                }
+
+                // Deadlock: back off briefly and retry.
+                usleep(50000 * ($attempt + 1));
+            }
+        }
+    }
+
+    private function doSyncLocation(Location $location): void
     {
         $city = is_string($location->city) ? trim($location->city) : null;
         $geohash = is_string($location->geohash_4) ? $location->geohash_4 : null;
