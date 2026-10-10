@@ -36,7 +36,7 @@ beforeEach(function () {
 function createVenueProposalTicket(Department $department, User $user, array $metadataOverrides = []): Ticket
 {
     return Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $user->id,
         'subject' => 'Venue Proposal: '.($metadataOverrides['venue_name'] ?? 'Test Venue'),
         'description' => 'A venue proposal',
@@ -152,7 +152,7 @@ it('venue proposal actions only appear on venue_proposal tickets', function () {
 
 it('venue proposal actions do not appear on regular tickets', function () {
     $regularTicket = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $this->user->id,
         'subject' => 'General Inquiry',
         'description' => 'A regular support request',
@@ -175,7 +175,7 @@ it('does not treat tickets from other departments as venue proposals', function 
     );
 
     $wrongDeptTicket = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $this->user->id,
         'subject' => 'Venue Proposal: Test',
         'description' => 'A venue proposal in wrong department',

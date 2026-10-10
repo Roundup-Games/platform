@@ -17,7 +17,7 @@ class AdminUserListCommand extends Command
     {
         $adminUserIds = DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_type', User::class)
+            ->where('model_has_roles.model_type', (new User)->getMorphClass())
             ->whereNull('model_has_roles.team_id')
             ->whereIn('roles.name', ['Platform Admin', 'Games Admin'])
             ->pluck('model_has_roles.model_id')
@@ -39,7 +39,7 @@ class AdminUserListCommand extends Command
 
         $rolesByUser = DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_type', User::class)
+            ->where('model_has_roles.model_type', (new User)->getMorphClass())
             ->whereNull('model_has_roles.team_id')
             ->whereIn('model_has_roles.model_id', $users->pluck('id'))
             ->groupBy('model_has_roles.model_id')

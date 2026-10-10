@@ -463,7 +463,7 @@ describe('Co-organizer team tab', function () {
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $roleId,
             'team_id' => $this->event->id,
-            'model_type' => User::class,
+            'model_type' => (new User)->getMorphClass(),
             'model_id' => $coOrganizer->id,
         ]);
 

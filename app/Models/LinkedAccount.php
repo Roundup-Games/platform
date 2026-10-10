@@ -4,12 +4,12 @@ namespace App\Models;
 
 use App\Casts\OAuthProviderCast;
 use App\Enums\OAuthProvider;
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\LinkedAccountFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property string $id
@@ -24,6 +24,8 @@ class LinkedAccount extends Model
     /** @use HasFactory<LinkedAccountFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -32,15 +34,6 @@ class LinkedAccount extends Model
         'id', 'user_id', 'provider', 'provider_user_id',
         'token', 'refresh_token', 'token_expires_at', 'provider_meta',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::orderedUuid();
-            }
-        });
-    }
 
     protected function casts(): array
     {

@@ -218,7 +218,7 @@ it('creates a safety ticket for a reported game', function () {
     expect($ticket->priority)->toBe(TicketPriority::High);
     expect($ticket->status)->toBe(TicketStatus::Open);
     expect($ticket->requester_id)->toBe($reporter->id);
-    expect($ticket->requester_type)->toBe(User::class);
+    expect($ticket->requester_type)->toBe((new User)->getMorphClass());
     expect($ticket->channel->value)->toBe('web');
 
     // Verify metadata

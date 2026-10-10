@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use App\Services\ReviewAggregateService;
 use Database\Factories\GMProfileFactory;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -23,6 +24,8 @@ class GMProfile extends Model
 {
     /** @use HasFactory<GMProfileFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     protected $table = 'gm_profiles';
 
@@ -53,10 +56,6 @@ class GMProfile extends Model
     protected static function booted(): void
     {
         static::creating(function (self $profile) {
-            if (empty($profile->id)) {
-                $profile->id = (string) Str::uuid();
-            }
-
             if (empty($profile->slug)) {
                 $name = $profile->user->name ?? 'gm';
                 $profile->slug = Str::slug($name).'-'.Str::random(6);

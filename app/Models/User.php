@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ContentLanguage;
 use App\Enums\OAuthProvider;
 use App\Enums\RelationshipType;
+use App\Models\Concerns\HasPlatformUuid;
 use App\Notifications\Channels\DiscordChannel;
 use App\Services\Geohash;
 use App\Services\ProfileVisibilityResolver;
@@ -115,6 +116,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
     use HasRoles;
     use HasSEO;
     use HasTickets;
@@ -130,9 +132,6 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     protected static function booted(): void
     {
         static::creating(function (User $user) {
-            if (empty($user->id)) {
-                $user->id = (string) Str::orderedUuid();
-            }
             if (empty($user->slug)) {
                 $user->slug = static::generateUniqueSlug($user->name);
             }

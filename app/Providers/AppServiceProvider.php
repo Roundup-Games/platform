@@ -488,21 +488,33 @@ class AppServiceProvider extends ServiceProvider
             });
         }
 
-        // NOTE: User (ticket requester) and Location (review reviewable) are
-        // INTENTIONALLY absent from this map. They are written and queried via
-        // model-aware APIs (User::escalatedTickets() morphMany, whereMorphedTo)
-        // which resolve to the fully-qualified class name. Aliasing them here
-        // (e.g. 'user' => User::class) would store the short alias on new rows
-        // while all existing rows keep the FQCN — silently splitting the data
-        // so every ticket/review query misses pre-existing records.
-        // The CI guardrail (scripts/check_eloquent_practices.sh) asserts this.
-        Relation::morphMap([
+        // Enforced morph map (D170): every model that can appear as a
+        // polymorphic target has a stable, permanent alias. These strings
+        // are a public data contract — never rename an alias once shipped.
+        // enforcement (vs the previous partial morphMap) makes writing an
+        // unmapped morph target throw at runtime, so a new morph relation
+        // without an alias fails loudly instead of silently storing an
+        // FQCN that splits the dataset.
+        //
+        // The old "User and Location must stay unmapped" prohibition existed
+        // only because aliasing without migrating stored rows orphans
+        // ticket/review data (new rows alias, old rows FQCN, queries miss).
+        // The 2026_10_09_migrate_morph_types_to_aliases migration converts
+        // every stored FQCN to its alias atomically with this map, which
+        // dissolves that blocker. Raw *_type reads/writes must use
+        // getMorphClass()/whereMorphedTo (INV-11 pins the writers).
+        Relation::enforceMorphMap([
+            'campaign' => Campaign::class,
             'event' => Event::class,
             'event_announcement' => EventAnnouncement::class,
             'game' => Game::class,
-            'campaign' => Campaign::class,
-            'team' => Team::class,
+            'game_participant' => GameParticipant::class,
             'game_system' => GameSystem::class,
+            'location' => Location::class,
+            'review' => Review::class,
+            'team' => Team::class,
+            'user' => User::class,
+            'user_relationship' => UserRelationship::class,
         ]);
 
         Review::observe(ReviewObserver::class);

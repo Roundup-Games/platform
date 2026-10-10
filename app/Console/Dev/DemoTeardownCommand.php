@@ -123,8 +123,8 @@ class DemoTeardownCommand extends Command
         $this->info("Deleted {$szcDeleted} from session_zero_confirmations.");
 
         // Step 2: Reviews
-        $reviewCount = $this->chunkedDeleteWith('reviews', 'reviewable_id', $demoGameIds, 'reviewable_type', Game::class);
-        $reviewCount += $this->chunkedDeleteWith('reviews', 'reviewable_id', $demoCampaignIds, 'reviewable_type', Campaign::class);
+        $reviewCount = $this->chunkedDeleteWith('reviews', 'reviewable_id', $demoGameIds, 'reviewable_type', (new Game)->getMorphClass());
+        $reviewCount += $this->chunkedDeleteWith('reviews', 'reviewable_id', $demoCampaignIds, 'reviewable_type', (new Campaign)->getMorphClass());
         if ($gmProfileIds->isNotEmpty()) {
             $reviewCount += $this->chunkedDelete('reviews', 'gm_profile_id', $gmProfileIds);
         }
@@ -137,7 +137,7 @@ class DemoTeardownCommand extends Command
         $this->info('Deleted '.$this->chunkedDelete('campaign_applications', 'campaign_id', $demoCampaignIds).' from campaign_applications.');
 
         // Step 4: Notifications + activity logs
-        $this->info('Deleted '.$this->chunkedDeleteWith('notifications', 'notifiable_id', $demoUserIds, 'notifiable_type', User::class).' from notifications.');
+        $this->info('Deleted '.$this->chunkedDeleteWith('notifications', 'notifiable_id', $demoUserIds, 'notifiable_type', (new User)->getMorphClass()).' from notifications.');
         $this->info('Deleted '.$this->chunkedDelete('activity_logs', 'user_id', $demoUserIds).' from activity_logs.');
 
         // Step 5: Social graph — follows to and from demo users
@@ -155,18 +155,18 @@ class DemoTeardownCommand extends Command
         foreach ($userTables as $table) {
             $this->info('Deleted '.$this->chunkedDelete($table, 'user_id', $demoUserIds)." from {$table}.");
         }
-        $this->info('Deleted '.$this->chunkedDeleteWith('model_has_roles', 'model_id', $demoUserIds, 'model_type', User::class).' from model_has_roles.');
-        $this->info('Deleted '.$this->chunkedDeleteWith('model_has_permissions', 'model_id', $demoUserIds, 'model_type', User::class).' from model_has_permissions.');
+        $this->info('Deleted '.$this->chunkedDeleteWith('model_has_roles', 'model_id', $demoUserIds, 'model_type', (new User)->getMorphClass()).' from model_has_roles.');
+        $this->info('Deleted '.$this->chunkedDeleteWith('model_has_permissions', 'model_id', $demoUserIds, 'model_type', (new User)->getMorphClass()).' from model_has_permissions.');
 
         // Step 7: Media + short links
-        $mediaCount = $this->chunkedDeleteWith('media', 'model_id', $demoUserIds, 'model_type', User::class);
-        $mediaCount += $this->chunkedDeleteWith('media', 'model_id', $demoGameIds, 'model_type', Game::class);
-        $mediaCount += $this->chunkedDeleteWith('media', 'model_id', $demoCampaignIds, 'model_type', Campaign::class);
+        $mediaCount = $this->chunkedDeleteWith('media', 'model_id', $demoUserIds, 'model_type', (new User)->getMorphClass());
+        $mediaCount += $this->chunkedDeleteWith('media', 'model_id', $demoGameIds, 'model_type', (new Game)->getMorphClass());
+        $mediaCount += $this->chunkedDeleteWith('media', 'model_id', $demoCampaignIds, 'model_type', (new Campaign)->getMorphClass());
         $this->info("Deleted {$mediaCount} media records.");
 
         $slCount = $this->chunkedDelete('short_links', 'user_id', $demoUserIds);
-        $slCount += $this->chunkedDeleteWith('short_links', 'linkable_id', $demoGameIds, 'linkable_type', Game::class);
-        $slCount += $this->chunkedDeleteWith('short_links', 'linkable_id', $demoCampaignIds, 'linkable_type', Campaign::class);
+        $slCount += $this->chunkedDeleteWith('short_links', 'linkable_id', $demoGameIds, 'linkable_type', (new Game)->getMorphClass());
+        $slCount += $this->chunkedDeleteWith('short_links', 'linkable_id', $demoCampaignIds, 'linkable_type', (new Campaign)->getMorphClass());
         $this->info("Deleted {$slCount} short links.");
 
         // Step 8: Games and campaigns (root entities)

@@ -65,7 +65,7 @@ it('provisions a new subscription via the parent Cashier handler and invokes GM-
     // Cashier parent handler persisted the subscription row (the core
     // provisioning path that the existing test short-circuits).
     assertDatabaseHas('subscriptions', [
-        'billable_type' => User::class,
+        'billable_type' => (new User)->getMorphClass(),
         'billable_id' => $user->id,
         'paddle_id' => $subId,
         'status' => 'active',

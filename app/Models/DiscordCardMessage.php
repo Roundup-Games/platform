@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\DiscordCardStatus;
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\DiscordCardMessageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * Tracks the Discord message id for a posted roundup Game card.
@@ -34,6 +34,8 @@ class DiscordCardMessage extends Model
     /** @use HasFactory<DiscordCardMessageFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -57,15 +59,6 @@ class DiscordCardMessage extends Model
             'moderated_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $card) {
-            if (empty($card->id)) {
-                $card->id = (string) Str::orderedUuid();
-            }
-        });
     }
 
     // ── Relationships ──────────────────────────────────

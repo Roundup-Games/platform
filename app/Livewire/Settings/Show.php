@@ -197,8 +197,7 @@ class Show extends Component
      */
     private function activeCalendarToken(User $user): ?ShortLink
     {
-        return ShortLink::where('linkable_type', User::class)
-            ->where('linkable_id', $user->id)
+        return ShortLink::whereMorphedTo('linkable', $user)
             ->where('purpose', 'ical')
             ->first();
     }

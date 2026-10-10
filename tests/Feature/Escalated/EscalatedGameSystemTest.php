@@ -99,7 +99,7 @@ class EscalatedGameSystemTest extends TestCase
         $this->assertNull($ticket->metadata['game_system_id']);
 
         // Requester is the authenticated user
-        $this->assertEquals(User::class, $ticket->requester_type);
+        $this->assertEquals((new User)->getMorphClass(), $ticket->requester_type);
         $this->assertEquals($this->user->id, $ticket->requester_id);
 
         // BGG sync tag applied when bgg_url provided
@@ -221,7 +221,7 @@ class EscalatedGameSystemTest extends TestCase
     public function test_approval_ignores_non_game_system_tickets(): void
     {
         $otherTicket = Ticket::create([
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'General support question',
             'description' => 'Help me',
@@ -409,7 +409,7 @@ class EscalatedGameSystemTest extends TestCase
     public function test_bgg_sync_throws_for_non_game_system_ticket(): void
     {
         $nonGsrTicket = Ticket::create([
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'Help',
             'description' => 'desc',

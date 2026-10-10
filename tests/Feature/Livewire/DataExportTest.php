@@ -297,7 +297,7 @@ describe('Signed Download URL', function () {
         // Create a resolved ticket with export_path metadata (mirrors production flow)
         $department = Department::factory()->create(['name' => 'Account Support']);
         Ticket::factory()->create([
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'ticket_type' => 'data_export_request',
             'status' => 'resolved',

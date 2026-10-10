@@ -33,7 +33,7 @@ function setupGameWithReview(): array
         'status' => ParticipantStatus::Approved->value,
     ]);
     $review = Review::factory()->create([
-        'reviewable_type' => Game::class,
+        'reviewable_type' => (new Game)->getMorphClass(),
         'reviewable_id' => $game->id,
         'reviewer_id' => $reviewer->id,
         'gm_profile_id' => $gmProfile->id,
@@ -67,7 +67,7 @@ function setupCampaignWithReview(): array
         'status' => ParticipantStatus::Approved->value,
     ]);
     $review = Review::factory()->create([
-        'reviewable_type' => Campaign::class,
+        'reviewable_type' => (new Campaign)->getMorphClass(),
         'reviewable_id' => $campaign->id,
         'reviewer_id' => $reviewer->id,
         'gm_profile_id' => $gmProfile->id,
@@ -222,7 +222,7 @@ describe('Game Detail — Review Display', function () {
             'status' => ParticipantStatus::Approved->value,
         ]);
         Review::factory()->create([
-            'reviewable_type' => Campaign::class,
+            'reviewable_type' => (new Campaign)->getMorphClass(),
             'reviewable_id' => $campaign->id,
             'reviewer_id' => $player->id,
             'gm_profile_id' => $gmProfile->id,

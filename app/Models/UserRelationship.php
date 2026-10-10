@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\NotificationCategory;
 use App\Enums\RelationshipType;
 use App\Jobs\UpdateUserDiscoveryCache;
+use App\Models\Concerns\HasPlatformUuid;
 use App\Notifications\NewFollower;
 use App\Services\NotificationService;
 use App\Services\PeopleDiscoveryService;
@@ -13,7 +14,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
  * @property string $id
@@ -26,6 +26,8 @@ class UserRelationship extends Model
     /** @use HasFactory<Factory> */
     use HasFactory;
 
+    use HasPlatformUuid;
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -37,15 +39,6 @@ class UserRelationship extends Model
         return [
             'type' => RelationshipType::class,
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $rel) {
-            if (empty($rel->id)) {
-                $rel->id = (string) Str::orderedUuid();
-            }
-        });
     }
 
     // ── Relationships ──────────────────────────────────

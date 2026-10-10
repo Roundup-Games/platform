@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EventStatus;
 use App\Enums\EventType;
+use App\Models\Concerns\HasPlatformUuid;
 use App\Services\ShortLinkService;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\EventFactory;
@@ -54,6 +55,7 @@ class Event extends Model implements HasMedia
     /** @use HasFactory<EventFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
     use HasSEO;
     use HasTranslations;
     use InteractsWithMedia;
@@ -155,9 +157,6 @@ class Event extends Model implements HasMedia
     protected static function booted(): void
     {
         static::creating(function (self $event) {
-            if (empty($event->id)) {
-                $event->id = (string) Str::uuid();
-            }
             if (empty($event->slug)) {
                 // name is a spatie JSON column — getTranslation extracts the locale key.
                 // Falls back to the raw attribute if the value isn't JSON yet (spatie handles this).

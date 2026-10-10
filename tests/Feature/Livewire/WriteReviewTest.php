@@ -145,7 +145,7 @@ describe('WriteReview — Game Session', function () {
             ->assertRedirect();
 
         $this->assertDatabaseHas('reviews', [
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => $data['game']->id,
             'reviewer_id' => $data['player']->id,
             'gm_profile_id' => $data['gmProfile']->id,
@@ -163,7 +163,7 @@ describe('WriteReview — Game Session', function () {
 
         // Submit first review
         Review::factory()->create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => $data['game']->id,
             'reviewer_id' => $data['player']->id,
             'gm_profile_id' => $data['gmProfile']->id,

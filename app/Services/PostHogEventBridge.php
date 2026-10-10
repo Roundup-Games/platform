@@ -10,6 +10,7 @@ use App\Models\GameParticipant;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -98,7 +99,7 @@ class PostHogEventBridge
                 EnrichPostHogProfile::dispatch(
                     $type->value,
                     (string) $user->id,
-                    $subject ? get_class($subject) : null,
+                    $subject?->getMorphClass(),
                     $subject?->getKey(),
                     true, // hasConsent — already verified above
                 );
@@ -107,7 +108,7 @@ class PostHogEventBridge
             Log::warning('posthog.event_bridge.failed', [
                 'event_type' => $type->value,
                 'user_id' => $user->id,
-                'subject_type' => $subject ? get_class($subject) : null,
+                'subject_type' => $subject?->getMorphClass(),
                 'subject_id' => $subject?->getKey(),
                 'error' => $e->getMessage(),
             ]);
@@ -306,7 +307,9 @@ class PostHogEventBridge
         $sourceType = match (true) {
             $subject instanceof Game => 'game',
             $subject instanceof Campaign => 'campaign',
-            default => class_basename($subject),
+            // Map-alias-aware basename: analytics continuity (D170) — existing
+            // PostHog dashboards filter on class basenames like 'Game'.
+            default => class_basename(Relation::getMorphedModel($subject->getMorphClass()) ?? $subject::class),
         };
 
         return [
@@ -353,7 +356,7 @@ class PostHogEventBridge
             'rating' => $subject->rating,
             'game_system' => $gameSystem,
             'reviewable_type' => $subject->reviewable_type
-                ? class_basename($subject->reviewable_type)
+                ? class_basename(Relation::getMorphedModel($subject->reviewable_type) ?? $subject->reviewable_type)
                 : null,
         ];
     }

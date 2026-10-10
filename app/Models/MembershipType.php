@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\MembershipTypeFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 /**
  * @property string $id
@@ -17,6 +17,8 @@ class MembershipType extends Model
     /** @use HasFactory<MembershipTypeFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -25,15 +27,6 @@ class MembershipType extends Model
         'id', 'name', 'description', 'price_cents', 'duration_months',
         'status', 'type', 'paddle_price_id', 'metadata',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::orderedUuid();
-            }
-        });
-    }
 
     protected function casts(): array
     {

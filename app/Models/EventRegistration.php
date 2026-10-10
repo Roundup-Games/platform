@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\EventRegistrationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property Carbon|null $confirmed_at
@@ -20,18 +20,11 @@ class EventRegistration extends Model
     /** @use HasFactory<EventRegistrationFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
+
     protected $keyType = 'string';
 
     public $incrementing = false;
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $registration) {
-            if (empty($registration->id)) {
-                $registration->id = (string) Str::uuid();
-            }
-        });
-    }
 
     protected $fillable = [
         'event_id', 'user_id',

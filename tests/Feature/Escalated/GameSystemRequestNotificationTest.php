@@ -35,7 +35,7 @@ beforeEach(function () {
 function createGameSystemRequestTicket(User $user, Department $department, array $overrides = []): Ticket
 {
     $defaults = [
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $user->id,
         'subject' => 'Game System Request: Catan',
         'description' => 'Please add Catan.',

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 /**
  * @property string $id
@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
  */
 class NearbyDiscoveryView extends Model
 {
+    use HasPlatformUuid;
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -19,15 +21,6 @@ class NearbyDiscoveryView extends Model
     protected $fillable = [
         'id', 'user_id', 'last_discovery_view', 'geohash_4',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::orderedUuid();
-            }
-        });
-    }
 
     protected function casts(): array
     {

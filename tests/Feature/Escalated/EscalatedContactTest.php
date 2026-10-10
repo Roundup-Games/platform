@@ -113,14 +113,14 @@ describe('Authenticated Contact Submission', function () {
             ->assertRedirect(route('contact'));
 
         $this->assertDatabaseHas('escalated_tickets', [
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $user->id,
             'subject' => 'Auth inquiry',
             'description' => 'I am logged in.',
             'department_id' => $department?->id,
         ]);
 
-        $ticket = Ticket::where('requester_type', User::class)
+        $ticket = Ticket::where('requester_type', (new User)->getMorphClass())
             ->where('requester_id', $user->id)
             ->first();
 
@@ -199,7 +199,7 @@ describe('Reply Notification', function () {
             'message' => 'Reply notification test.',
         ]);
 
-        $ticket = Ticket::where('requester_type', User::class)
+        $ticket = Ticket::where('requester_type', (new User)->getMorphClass())
             ->where('requester_id', $user->id)
             ->first();
 

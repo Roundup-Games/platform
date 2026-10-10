@@ -19,7 +19,7 @@ class ShortLinkFactory extends Factory
         return [
             'code' => Str::random(7),
             'url' => 'https://example.com/'.Str::random(6),
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => Game::factory(),
             'user_id' => null,
             'label' => fake()->optional()->words(2, true),

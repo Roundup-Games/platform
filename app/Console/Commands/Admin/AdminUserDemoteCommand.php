@@ -59,7 +59,7 @@ class AdminUserDemoteCommand extends Command
     {
         $adminUserIds = DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_type', User::class)
+            ->where('model_has_roles.model_type', (new User)->getMorphClass())
             ->whereNull('model_has_roles.team_id')
             ->whereIn('roles.name', ['Platform Admin', 'Games Admin'])
             ->pluck('model_has_roles.model_id')
@@ -87,7 +87,7 @@ class AdminUserDemoteCommand extends Command
     {
         return DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_type', User::class)
+            ->where('model_has_roles.model_type', (new User)->getMorphClass())
             ->where('model_has_roles.model_id', $user->id)
             ->whereNull('model_has_roles.team_id')
             ->pluck('roles.name')->filter(fn (mixed $name) => is_string($name))->map(fn (mixed $name): string => (string) $name);

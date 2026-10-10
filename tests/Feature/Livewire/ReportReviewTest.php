@@ -32,7 +32,7 @@ function createReportableReview(): array
     ]);
 
     $review = Review::factory()->create([
-        'reviewable_type' => Game::class,
+        'reviewable_type' => (new Game)->getMorphClass(),
         'reviewable_id' => $game->id,
         'reviewer_id' => $reviewer->id,
         'gm_profile_id' => $gmProfile->id,
@@ -231,7 +231,7 @@ it('creates a safety ticket when a review is reported', function () {
     expect($ticket->priority)->toBe(TicketPriority::High);
     expect($ticket->status)->toBe(TicketStatus::Open);
     expect($ticket->requester_id)->toBe($reporter->id);
-    expect($ticket->requester_type)->toBe(User::class);
+    expect($ticket->requester_type)->toBe((new User)->getMorphClass());
 
     // Verify metadata
     $metadata = $ticket->metadata;

@@ -81,7 +81,7 @@ function coverReportTicket(Game|Campaign $entity, string $type, User $reporter):
     $department = Department::where('name', 'Safety')->first();
 
     $ticket = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $reporter->id,
         'subject' => ucfirst($type).' Report: Inappropriate Content',
         'description' => 'Offensive cover image.',

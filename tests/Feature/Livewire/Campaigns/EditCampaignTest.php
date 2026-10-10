@@ -71,7 +71,7 @@ describe('Save Campaign Edit', function () {
             ->set('edit_name', 'Changed Name')
             ->call('saveCampaignEdit');
 
-        $log = ActivityLog::where('subject_type', Campaign::class)
+        $log = ActivityLog::where('subject_type', (new Campaign)->getMorphClass())
             ->where('subject_id', $campaign->id)
             ->where('event_type', ActivityType::CampaignUpdated)
             ->first();

@@ -45,7 +45,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
     private function createGameSystemTicket(array $overrides = []): Ticket
     {
         $defaults = [
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'Game System Request: Wingspan',
             'description' => 'Please add Wingspan to the catalog.',
@@ -79,7 +79,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
     public function test_rejects_non_game_system_ticket_type(): void
     {
         $ticket = Ticket::create([
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'General support question',
             'description' => 'A general support question.',
@@ -207,7 +207,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
     public function test_sync_bgg_from_ticket_throws_for_non_game_system_ticket(): void
     {
         $ticket = Ticket::create([
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'General question',
             'description' => 'Not a game system request.',
@@ -321,7 +321,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
     public function test_create_manual_from_ticket_throws_for_non_game_system_ticket(): void
     {
         $ticket = Ticket::create([
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'General question',
             'description' => 'Not a game system request.',

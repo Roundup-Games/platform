@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Enums\DiscordModerationMode;
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\DiscordGuildFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * One row per Discord guild ("server") that has installed the roundup bot.
@@ -36,6 +36,8 @@ class DiscordGuild extends Model
 {
     /** @use HasFactory<DiscordGuildFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     public $incrementing = false;
 
@@ -64,15 +66,6 @@ class DiscordGuild extends Model
             'paused' => 'boolean',
             'moderation_mode' => DiscordModerationMode::class,
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $guild) {
-            if (empty($guild->id)) {
-                $guild->id = (string) Str::orderedUuid();
-            }
-        });
     }
 
     // ── Relationships ──────────────────────────────────

@@ -740,11 +740,11 @@ class DemoSeedCommand extends Command
             $this->locationsByCity[$city] = [];
             foreach ($venues as $v) {
                 if ($this->dryRun) {
-                    $locId = (string) Str::orderedUuid();
+                    $locId = (string) Str::uuid7();
                     $this->dryCounts['locations'] = ($this->dryCounts['locations'] ?? 0) + 1;
                 } else {
                     $loc = Location::create([
-                        'id' => $locId = (string) Str::orderedUuid(),
+                        'id' => $locId = (string) Str::uuid7(),
                         'name' => (is_string($v['name'] ?? null) ? $v['name'] : '').' '.self::MARKER,
                         'description' => (is_string($ds = $v['desc'] ?? '') ? $ds : '').' '.self::MARKER,
                         'address' => ($v['address'] ?? null),
@@ -938,7 +938,7 @@ class DemoSeedCommand extends Command
                 $usedEmails[$email] = true;
 
                 $batch[] = [
-                    'id' => $uid = (string) Str::orderedUuid(),
+                    'id' => $uid = (string) Str::uuid7(),
                     'name' => "{$first} {$last}",
                     'email' => $email,
                     'password' => $password,
@@ -1005,7 +1005,7 @@ class DemoSeedCommand extends Command
         if ($role) {
             $rows = array_map(fn ($uid) => [
                 'role_id' => $role->id,
-                'model_type' => User::class,
+                'model_type' => (new User)->getMorphClass(),
                 'model_id' => $uid,
             ], $gmUserIds);
             foreach (array_chunk($rows, 500) as $chunk) {
@@ -1033,7 +1033,7 @@ class DemoSeedCommand extends Command
             $city = $this->cityForUser($uid);
             $userName = $this->userNameMap[$uid] ?? 'gm';
 
-            $profileId = (string) Str::orderedUuid();
+            $profileId = (string) Str::uuid7();
             $specCount = random_int(1, 3);
             $specKeys = $this->randomKeys($proficiencies, min($specCount, count($proficiencies)));
             $specs = array_values(array_intersect_key(
@@ -1086,7 +1086,7 @@ class DemoSeedCommand extends Command
             // Games start ~7-180 days ago, campaigns ~14-60 days ago.
             // Subscriptions start 60-150 days ago to always come first.
             $rows = array_map(fn ($uid) => [
-                'id' => (string) Str::orderedUuid(),
+                'id' => (string) Str::uuid7(),
                 'user_id' => $uid,
                 'membership_type_id' => $gmPlan->id,
                 'status' => 'active',
@@ -1273,7 +1273,7 @@ class DemoSeedCommand extends Command
             return;
         }
         $insertRows[] = [
-            'id' => (string) Str::orderedUuid(),
+            'id' => (string) Str::uuid7(),
             'user_id' => $from,
             'related_user_id' => $to,
             'type' => RelationshipType::Follow->value,
@@ -1455,7 +1455,7 @@ class DemoSeedCommand extends Command
                 $dateTime = Carbon::now()->subDays($daysAgo)->setTime(random_int(14, 20), random_int(0, 3) * 15);
 
                 $language = random_int(0, 2) > 0 ? 'de' : 'en'; // ~66% DE, ~33% EN
-                $gameId = (string) Str::orderedUuid();
+                $gameId = (string) Str::uuid7();
                 $suffixes = self::SESSION_SUFFIXES[$language];
                 $suffix = $suffixes[array_rand($suffixes)];
                 $descs = self::BOARD_DESCRIPTIONS[$language];
@@ -1503,7 +1503,7 @@ class DemoSeedCommand extends Command
                 // GM as owner
                 $gmJoinedAt = $dateTime->copy()->subDays(random_int(1, 7));
                 $participantBatch[] = [
-                    'id' => (string) Str::orderedUuid(),
+                    'id' => (string) Str::uuid7(),
                     'game_id' => $gameId,
                     'user_id' => $gm['id'],
                     'role' => ParticipantRole::Owner->value,
@@ -1529,7 +1529,7 @@ class DemoSeedCommand extends Command
 
                     $playerJoinedAt = $dateTime->copy()->subDays(random_int(1, 7));
                     $participantBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'game_id' => $gameId,
                         'user_id' => $pid,
                         'role' => ParticipantRole::Player->value,
@@ -1547,7 +1547,7 @@ class DemoSeedCommand extends Command
                     }
 
                     $applicationBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'game_id' => $gameId,
                         'user_id' => $pid,
                         'status' => ParticipantStatus::Approved->value,
@@ -1567,7 +1567,7 @@ class DemoSeedCommand extends Command
                     $status = $isBench ? ParticipantStatus::Benched->value : ParticipantStatus::Waitlisted->value;
 
                     $participantBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'game_id' => $gameId,
                         'user_id' => $pid,
                         'role' => ParticipantRole::Player->value,
@@ -1585,7 +1585,7 @@ class DemoSeedCommand extends Command
 
                     // Application matching the overflow participant's status
                     $applicationBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'game_id' => $gameId,
                         'user_id' => $pid,
                         'status' => $isBench ? 'rejected' : 'pending',
@@ -1710,8 +1710,8 @@ class DemoSeedCommand extends Command
                 ));
 
                 $batch[] = [
-                    'id' => (string) Str::orderedUuid(),
-                    'reviewable_type' => Game::class,
+                    'id' => (string) Str::uuid7(),
+                    'reviewable_type' => (new Game)->getMorphClass(),
                     'reviewable_id' => $game['game_id'],
                     'reviewer_id' => $participants[(int) $k],
                     'gm_profile_id' => $gmProfileId,
@@ -1822,8 +1822,8 @@ class DemoSeedCommand extends Command
                 ));
 
                 $batch[] = [
-                    'id' => (string) Str::orderedUuid(),
-                    'reviewable_type' => Campaign::class,
+                    'id' => (string) Str::uuid7(),
+                    'reviewable_type' => (new Campaign)->getMorphClass(),
                     'reviewable_id' => $campaign['campaign_id'],
                     'reviewer_id' => $participants[$k],
                     'gm_profile_id' => $gmProfileId,
@@ -2006,7 +2006,7 @@ class DemoSeedCommand extends Command
                 $statusRoll = mt_rand() / mt_getrandmax();
                 $campaignStatus = $statusRoll < 0.65 ? 'active' : ($statusRoll < 0.75 ? 'cancelled' : 'completed');
 
-                $campaignId = (string) Str::orderedUuid();
+                $campaignId = (string) Str::uuid7();
                 $language = random_int(0, 2) > 0 ? 'de' : 'en'; // ~66% DE
                 $campaignNames = self::CAMPAIGN_NAMES[$language];
                 $campaignDescs = self::CAMPAIGN_DESCRIPTIONS[$language];
@@ -2063,7 +2063,7 @@ class DemoSeedCommand extends Command
 
                 // Owner participant
                 $campaignParticipantBatch[] = [
-                    'id' => (string) Str::orderedUuid(),
+                    'id' => (string) Str::uuid7(),
                     'campaign_id' => $campaignId,
                     'user_id' => $gm['id'],
                     'role' => ParticipantRole::Owner->value,
@@ -2080,7 +2080,7 @@ class DemoSeedCommand extends Command
                     $playerJoinedAt = $campaignCreatedAt->copy()->addDays(random_int(0, 5));
 
                     $campaignParticipantBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'campaign_id' => $campaignId,
                         'user_id' => $pid,
                         'role' => ParticipantRole::Player->value,
@@ -2094,7 +2094,7 @@ class DemoSeedCommand extends Command
 
                     // Campaign application — tracks the application lifecycle
                     $campaignApplicationBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'campaign_id' => $campaignId,
                         'user_id' => $pid,
                         'status' => ParticipantStatus::Approved->value,
@@ -2114,7 +2114,7 @@ class DemoSeedCommand extends Command
                     $overflowJoinedAt = $campaignCreatedAt->copy()->addDays(random_int(3, 10));
 
                     $campaignParticipantBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'campaign_id' => $campaignId,
                         'user_id' => $pid,
                         'role' => ParticipantRole::Player->value,
@@ -2128,7 +2128,7 @@ class DemoSeedCommand extends Command
 
                     // Application matching the overflow participant's status
                     $campaignApplicationBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'campaign_id' => $campaignId,
                         'user_id' => $pid,
                         'status' => $isBench ? 'rejected' : 'pending',
@@ -2152,7 +2152,7 @@ class DemoSeedCommand extends Command
 
                 if (! $isGathering) {
                     $baseDate = now()->subDays(random_int(7, 21));
-                    $szId = (string) Str::orderedUuid();
+                    $szId = (string) Str::uuid7();
                     $szDate = $baseDate->copy()->addDays(random_int(0, 7))->setTime($timeHour, $timeMinute);
                     // Cancelled campaigns have cancelled session zeros; otherwise 75% completed
                     $szCompleted = $campaignStatus !== 'cancelled' && mt_rand() / mt_getrandmax() < 0.75;
@@ -2206,7 +2206,7 @@ class DemoSeedCommand extends Command
 
                         $szParticipantCreatedAt = $szDate->copy()->subDays(random_int(1, 7));
                         $gameParticipantBatch[] = [
-                            'id' => (string) Str::orderedUuid(),
+                            'id' => (string) Str::uuid7(),
                             'game_id' => $szId,
                             'user_id' => $pid,
                             'role' => $pid === $gm['id'] ? ParticipantRole::Owner->value : ParticipantRole::Player->value,
@@ -2225,7 +2225,7 @@ class DemoSeedCommand extends Command
                         // Game application for each campaign session participant (skip GM — owners don't apply)
                         if ($pid !== $gm['id']) {
                             $gameApplicationBatch[] = [
-                                'id' => (string) Str::orderedUuid(),
+                                'id' => (string) Str::uuid7(),
                                 'game_id' => $szId,
                                 'user_id' => $pid,
                                 'status' => ParticipantStatus::Approved->value,
@@ -2301,7 +2301,7 @@ class DemoSeedCommand extends Command
                 for ($p = 1; $p <= $pastSessionCount; $p++) {
                     $pastDaysAgo = $pastDaysAgoSequence[$p - 1];
                     $pastDate = now()->subDays($pastDaysAgo)->setTime($timeHour, $timeMinute);
-                    $pId = (string) Str::orderedUuid();
+                    $pId = (string) Str::uuid7();
                     $sessionCounter++;
                     $sessionNum = $sessionCounter;
 
@@ -2380,7 +2380,7 @@ class DemoSeedCommand extends Command
 
                         $pastParticipantCreatedAt = $pastDate->copy()->subDays(random_int(1, 5));
                         $gameParticipantBatch[] = [
-                            'id' => (string) Str::orderedUuid(),
+                            'id' => (string) Str::uuid7(),
                             'game_id' => $pId,
                             'user_id' => $pid,
                             'role' => $pid === $gm['id'] ? ParticipantRole::Owner->value : ParticipantRole::Player->value,
@@ -2396,7 +2396,7 @@ class DemoSeedCommand extends Command
 
                         if ($pid !== $gm['id']) {
                             $gameApplicationBatch[] = [
-                                'id' => (string) Str::orderedUuid(),
+                                'id' => (string) Str::uuid7(),
                                 'game_id' => $pId,
                                 'user_id' => $pid,
                                 'status' => ParticipantStatus::Approved->value,
@@ -2455,7 +2455,7 @@ class DemoSeedCommand extends Command
                 $futureCount = $campaignStatus === 'active' ? random_int(3, 5) : random_int(0, 1);
                 for ($f = 1; $f <= $futureCount; $f++) {
                     $futureDate = now()->addDays($f * $cadenceDays)->setTime($timeHour, $timeMinute);
-                    $sId = (string) Str::orderedUuid();
+                    $sId = (string) Str::uuid7();
                     $sessionCounter++;
                     $sessionNum = $sessionCounter;
 
@@ -2527,7 +2527,7 @@ class DemoSeedCommand extends Command
                         // approved_at so LIFO demotion ordering is demonstrable.
                         $futureParticipantCreatedAt = $campaignCreatedAt->copy()->addDays(random_int(5, 12));
                         $gameParticipantBatch[] = [
-                            'id' => (string) Str::orderedUuid(),
+                            'id' => (string) Str::uuid7(),
                             'game_id' => $sId,
                             'user_id' => $pid,
                             'role' => $pid === $gm['id'] ? ParticipantRole::Owner->value : ParticipantRole::Player->value,
@@ -2544,7 +2544,7 @@ class DemoSeedCommand extends Command
                         // Game application for each campaign session participant (skip GM — owners don't apply)
                         if ($pid !== $gm['id']) {
                             $gameApplicationBatch[] = [
-                                'id' => (string) Str::orderedUuid(),
+                                'id' => (string) Str::uuid7(),
                                 'game_id' => $sId,
                                 'user_id' => $pid,
                                 'status' => ParticipantStatus::Approved->value,
@@ -2568,7 +2568,7 @@ class DemoSeedCommand extends Command
                             ];
                             $msgs = $msgPool[$language];
                             $gameApplicationBatch[] = [
-                                'id' => (string) Str::orderedUuid(),
+                                'id' => (string) Str::uuid7(),
                                 'game_id' => $sId,
                                 'user_id' => $nonMembers[(int) $k],
                                 'status' => $pStatus,
@@ -2664,7 +2664,7 @@ class DemoSeedCommand extends Command
                 $dateTime = Carbon::now()->addDays($daysAhead)->setTime(random_int(14, 20), random_int(0, 3) * 15);
 
                 $language = random_int(0, 2) > 0 ? 'de' : 'en';
-                $gameId = (string) Str::orderedUuid();
+                $gameId = (string) Str::uuid7();
                 $suffixes = self::SESSION_SUFFIXES[$language];
                 $suffix = $suffixes[array_rand($suffixes)];
                 $descs = self::BOARD_DESCRIPTIONS[$language];
@@ -2708,7 +2708,7 @@ class DemoSeedCommand extends Command
                 // GM as owner
                 $gmJoinedAt = now()->subDays(random_int(1, 5));
                 $participantBatch[] = [
-                    'id' => (string) Str::orderedUuid(),
+                    'id' => (string) Str::uuid7(),
                     'game_id' => $gameId,
                     'user_id' => $gm['id'],
                     'role' => ParticipantRole::Owner->value,
@@ -2730,7 +2730,7 @@ class DemoSeedCommand extends Command
                     // is demonstrable on this scheduled session.
                     $playerJoinedAt = now()->subDays(random_int(1, 14));
                     $participantBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'game_id' => $gameId,
                         'user_id' => $pid,
                         'role' => ParticipantRole::Player->value,
@@ -2745,7 +2745,7 @@ class DemoSeedCommand extends Command
                     ];
 
                     $applicationBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'game_id' => $gameId,
                         'user_id' => $pid,
                         'status' => ParticipantStatus::Approved->value,
@@ -2767,7 +2767,7 @@ class DemoSeedCommand extends Command
                     $pStatus = mt_rand() / mt_getrandmax() < 0.20 ? 'rejected' : 'pending';
                     $msgPool = $pendingMessages[$language];
                     $applicationBatch[] = [
-                        'id' => (string) Str::orderedUuid(),
+                        'id' => (string) Str::uuid7(),
                         'game_id' => $gameId,
                         'user_id' => $pendingPool[(int) $k],
                         'status' => $pStatus,
@@ -2978,7 +2978,7 @@ class DemoSeedCommand extends Command
                 $url = $urlTemplate ? str_replace('{handle}', $handle, $urlTemplate) : null;
 
                 $batch[] = [
-                    'id' => $this->nextRowId('gm_social_links'),
+                    'id' => (string) Str::uuid7(),
                     'user_id' => $gm['id'],
                     'platform' => $platform,
                     'handle' => $handle,
@@ -3038,7 +3038,7 @@ class DemoSeedCommand extends Command
                 ? 'Session Zero: Erwartungen & Sicherheit '.self::MARKER
                 : 'Session Zero: Expectations & Safety '.self::MARKER;
 
-            $surveyId = (string) Str::orderedUuid();
+            $surveyId = (string) Str::uuid7();
             $participantIds = $sz['participant_ids'];
 
             // 60-80% of participants confirm the session zero
@@ -3061,7 +3061,7 @@ class DemoSeedCommand extends Command
 
             foreach ($confirmKeys as $k) {
                 $confirmationBatch[] = [
-                    'id' => (string) Str::orderedUuid(),
+                    'id' => (string) Str::uuid7(),
                     'session_zero_survey_id' => $surveyId,
                     'confirmed_at' => now()->subDays(random_int(1, 10)),
                     'user_id' => $participantIds[(int) $k],
@@ -3134,7 +3134,7 @@ class DemoSeedCommand extends Command
                 'id' => $this->nextRowId('short_links'),
                 'code' => $code,
                 'url' => '/games/'.$game['id'],
-                'linkable_type' => Game::class,
+                'linkable_type' => (new Game)->getMorphClass(),
                 'linkable_id' => $game['id'],
                 'user_id' => $game['owner_id'],
                 'label' => 'Demo share link '.self::MARKER,
@@ -3368,7 +3368,7 @@ class DemoSeedCommand extends Command
             $weight = $attendanceStatus === AttendanceStatus::Attended->value ? 1.0 : -0.5;
 
             $batch[] = [
-                'id' => (string) Str::orderedUuid(),
+                'id' => (string) Str::uuid7(),
                 'game_id' => $entry['game_id'],
                 'reporter_id' => $entry['owner_id'],
                 'reported_id' => $entry['reported_id'],
@@ -3464,7 +3464,7 @@ class DemoSeedCommand extends Command
                     ];
 
                 $batch[] = [
-                    'id' => (string) Str::orderedUuid(),
+                    'id' => (string) Str::uuid7(),
                     'game_id' => $game['game_id'],
                     'user_id' => $participants[(int) $k],
                     'tool_type' => $toolType,
@@ -3587,7 +3587,7 @@ class DemoSeedCommand extends Command
             for ($i = 0; $i < $count; $i++) {
                 $builder = $eventBuilders[array_rand($eventBuilders)];
                 $row = $builder($uid);
-                $row['id'] = (string) Str::orderedUuid();
+                $row['id'] = (string) Str::uuid7();
                 $batch[] = $row;
                 $total++;
 
@@ -3628,7 +3628,7 @@ class DemoSeedCommand extends Command
             $bggUsername = strtolower(Str::random(random_int(5, 15)));
 
             $batch[] = [
-                'id' => (string) Str::orderedUuid(),
+                'id' => (string) Str::uuid7(),
                 'user_id' => $gm['id'],
                 'provider' => 'bgg',
                 'provider_user_id' => $bggUsername,
@@ -3654,7 +3654,7 @@ class DemoSeedCommand extends Command
 
         foreach ($googleUsers as $uid) {
             $batch[] = [
-                'id' => (string) Str::orderedUuid(),
+                'id' => (string) Str::uuid7(),
                 'user_id' => $uid,
                 'provider' => OAuthProvider::Google->value,
                 'provider_user_id' => (string) random_int(100000000000, 999999999999),
@@ -3719,7 +3719,7 @@ class DemoSeedCommand extends Command
             $gCount = Game::whereIn('owner_id', $this->allUserIds)->count();
             $cCount = DB::table('campaigns')->whereIn('owner_id', $this->allUserIds)->count();
             $rCount = DB::table('reviews')
-                ->where('reviewable_type', Game::class)
+                ->where('reviewable_type', (new Game)->getMorphClass())
                 ->whereIn('reviewable_id', fn ($q) => $q->select('id')->from('games')->whereIn('owner_id', $this->allUserIds))
                 ->count();
             $fCount = DB::table('user_relationships')

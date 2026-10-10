@@ -10,28 +10,24 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * Shared behaviour for participant pivot models (GameParticipant,
  * CampaignParticipant).
  *
- * Both models use UUID primary keys set manually on creating (their tables
- * have no auto-incrementing PK), and both expose a source-label accessor
- * that prefers a short link's label and falls back to the JoinSource enum.
- * Those two pieces were duplicated byte-for-byte across the two models.
+ * Both models use HasPlatformUuid primary keys (D170); this concern keeps
+ * only the shared created_at stamping (their tables have no $timestamps)
+ * and the source-label accessor that prefers a short link's label and
+ * falls back to the JoinSource enum.
  */
 trait HasParticipantDefaults
 {
     /**
-     * Assign a UUID on create and stamp created_at (no $timestamps).
+     * Stamp created_at on create (no $timestamps on the pivot tables).
      */
     protected static function bootHasParticipantDefaults(): void
     {
         static::creating(function ($participant) {
-            if (empty($participant->id)) {
-                $participant->id = (string) Str::uuid();
-            }
             $participant->created_at = $participant->created_at ?? now();
         });
     }

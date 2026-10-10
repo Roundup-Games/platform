@@ -52,7 +52,7 @@ beforeEach(function () {
 function createVenueClaimTicket(Department $department, User $claimant, Location $location, array $metadataOverrides = []): Ticket
 {
     return Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $claimant->id,
         'subject' => 'Venue Claim: '.$location->name,
         'description' => 'A venue claim',
@@ -189,7 +189,7 @@ it('isVenueClaimTicket identifies a real claim and rejects others', function () 
 
     // Wrong ticket_type (venue_proposal) → false
     $proposal = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $this->claimant->id,
         'subject' => 'Venue Proposal: X',
         'description' => '-',
@@ -348,7 +348,7 @@ it('approveClaim refuses a ticket that is no longer open', function () {
 it('approveClaim refuses a non-venue-claim ticket', function () {
     $this->actingAs($this->admin);
     $proposal = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $this->claimant->id,
         'subject' => 'Venue Proposal: X',
         'description' => '-',

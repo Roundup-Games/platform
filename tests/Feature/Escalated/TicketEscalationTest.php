@@ -121,7 +121,7 @@ function escalationScenarioFor(
     $createTicket = function (User $reporter, array $overrides = []) use ($ticketDefaults, $department): Ticket {
         return Ticket::create(array_merge(
             [
-                'requester_type' => User::class,
+                'requester_type' => (new User)->getMorphClass(),
                 'requester_id' => $reporter->id,
                 'status' => TicketStatus::Open->value,
                 'department_id' => $department->id,

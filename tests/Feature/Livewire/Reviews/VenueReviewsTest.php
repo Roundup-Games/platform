@@ -73,7 +73,7 @@ describe('VenueReviews — display', function () {
         $reviewer = User::factory()->create(['name' => 'Agatha Reviewer']);
 
         Review::factory()->venue()->create([
-            'reviewable_type' => Location::class,
+            'reviewable_type' => (new Location)->getMorphClass(),
             'reviewable_id' => $venue->id,
             'reviewer_id' => $reviewer->id,
             'rating' => 4,
@@ -96,7 +96,7 @@ describe('VenueReviews — display', function () {
         $reviewer = User::factory()->create();
 
         Review::factory()->venue()->create([
-            'reviewable_type' => Location::class,
+            'reviewable_type' => (new Location)->getMorphClass(),
             'reviewable_id' => $venue->id,
             'reviewer_id' => $reviewer->id,
             'body' => 'This reported review must be hidden.',
@@ -149,7 +149,7 @@ describe('VenueReviews — attended-only write', function () {
 
         // Polymorphic venue review with no GM link.
         $this->assertDatabaseHas('reviews', [
-            'reviewable_type' => Location::class,
+            'reviewable_type' => (new Location)->getMorphClass(),
             'reviewable_id' => $venue->id,
             'reviewer_id' => $data['attendee']->id,
             'gm_profile_id' => null,
@@ -187,7 +187,7 @@ describe('VenueReviews — attended-only write', function () {
             ->assertSet('errorMessage', __('venues.content_not_eligible'));
 
         // Only one review persisted.
-        expect(Review::where('reviewable_type', Location::class)->count())->toBe(1);
+        expect(Review::where('reviewable_type', (new Location)->getMorphClass())->count())->toBe(1);
     });
 
     it('validates rating is required', function () {
@@ -233,7 +233,7 @@ describe('VenueReviews — eligibility gate', function () {
             ->assertSet('errorMessage', __('venues.content_not_eligible'));
 
         $this->assertDatabaseMissing('reviews', [
-            'reviewable_type' => Location::class,
+            'reviewable_type' => (new Location)->getMorphClass(),
             'reviewable_id' => $data['venue']->id,
             'reviewer_id' => $stranger->id,
         ]);

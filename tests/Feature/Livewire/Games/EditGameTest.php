@@ -73,7 +73,7 @@ describe('Save Game Edit', function () {
             ->set('edit_name', 'Changed Name')
             ->call('saveGameEdit');
 
-        $log = ActivityLog::where('subject_type', Game::class)
+        $log = ActivityLog::where('subject_type', (new Game)->getMorphClass())
             ->where('subject_id', $game->id)
             ->where('event_type', ActivityType::GameUpdated)
             ->first();

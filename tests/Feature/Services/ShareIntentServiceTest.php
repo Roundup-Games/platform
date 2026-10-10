@@ -307,7 +307,7 @@ describe('ShareIntentService', function () {
                 'status' => GameStatus::Scheduled,
             ]);
             $shortLink = ShortLink::factory()->create([
-                'linkable_type' => Game::class,
+                'linkable_type' => (new Game)->getMorphClass(),
                 'linkable_id' => $game->id,
                 'user_id' => $this->owner->id,
             ]);
@@ -329,7 +329,7 @@ describe('ShareIntentService', function () {
                 'status' => CampaignStatus::Active,
             ]);
             $shortLink = ShortLink::factory()->create([
-                'linkable_type' => Campaign::class,
+                'linkable_type' => (new Campaign)->getMorphClass(),
                 'linkable_id' => $campaign->id,
                 'user_id' => $this->owner->id,
             ]);
@@ -347,7 +347,7 @@ describe('ShareIntentService', function () {
 
         it('returns gracefully for non-existent linkable entity', function () {
             $shortLink = ShortLink::factory()->create([
-                'linkable_type' => Game::class,
+                'linkable_type' => (new Game)->getMorphClass(),
                 'linkable_id' => (string) Str::uuid(), // non-existent game
                 'user_id' => $this->owner->id,
             ]);

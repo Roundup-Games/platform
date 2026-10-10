@@ -28,7 +28,7 @@ function createTestTicket(User $user, Department $department, array $overrides =
         'subject' => 'Test ticket',
         'description' => 'Test description',
         'department_id' => $department->id,
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $user->id,
         'priority' => TicketPriority::Medium,
     ], $overrides));

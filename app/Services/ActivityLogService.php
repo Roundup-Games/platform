@@ -65,7 +65,7 @@ class ActivityLogService
     ): ?ActivityLog {
         try {
             $entry = $user->activityLogs()->create([
-                'subject_type' => $subject ? get_class($subject) : null,
+                'subject_type' => $subject?->getMorphClass(),
                 'subject_id' => $subject?->getKey(),
                 'event_type' => $type,
                 'properties' => ! empty($properties) ? $properties : null,
@@ -79,7 +79,7 @@ class ActivityLogService
             Log::warning('Activity log write failed', [
                 'event_type' => $type->value,
                 'user_id' => $user->id,
-                'subject_type' => $subject ? get_class($subject) : null,
+                'subject_type' => $subject?->getMorphClass(),
                 'subject_id' => $subject?->getKey(),
                 'error' => $e->getMessage(),
             ]);
@@ -109,9 +109,9 @@ class ActivityLogService
 
         $now = now();
         $rows = array_map(fn (string $userId) => [
-            'id' => (string) Str::orderedUuid(),
+            'id' => (string) Str::uuid7(),
             'user_id' => $userId,
-            'subject_type' => get_class($subject),
+            'subject_type' => $subject->getMorphClass(),
             'subject_id' => $subject->getKey(),
             'event_type' => $type->value,
             'properties' => ! empty($properties) ? json_encode($properties) : null,
@@ -129,7 +129,7 @@ class ActivityLogService
         } catch (\Throwable $e) {
             Log::warning('Bulk activity log write failed', [
                 'event_type' => $type->value,
-                'subject_type' => get_class($subject),
+                'subject_type' => $subject->getMorphClass(),
                 'subject_id' => $subject->getKey(),
                 'participant_count' => count($userIds),
                 'error' => $e->getMessage(),

@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Jobs\PublishGameBulletinToDiscord;
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\DiscordBulletinMessageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * Tracks the teaser message the bot posted into a per-session Discord thread
@@ -39,6 +39,8 @@ class DiscordBulletinMessage extends Model
     /** @use HasFactory<DiscordBulletinMessageFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -63,15 +65,6 @@ class DiscordBulletinMessage extends Model
         return [
             'error_code' => 'integer',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $message) {
-            if (empty($message->id)) {
-                $message->id = (string) Str::orderedUuid();
-            }
-        });
     }
 
     // ── Relationships ──────────────────────────────────

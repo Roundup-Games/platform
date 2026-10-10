@@ -47,7 +47,7 @@ it('attaches the reported entity as a subject on content reports', function () {
     $ticket = Ticket::where('ticket_type', 'content_report')->firstOrFail();
 
     expect($ticket->subjects)->toHaveCount(1)
-        ->and($ticket->subjects->first()->subject_type)->toBe(User::class)
+        ->and($ticket->subjects->first()->subject_type)->toBe((new User)->getMorphClass())
         ->and($ticket->subjects->first()->subject_id)->toBe($reportedUser->id)
         ->and($ticket->subjects->first()->role)->toBe('reported')
         ->and($ticket->subjects->first()->subject)->toBeInstanceOf(User::class)
@@ -72,9 +72,9 @@ it('attaches both the review and its author as subjects on review reports', func
 
     expect($ticket->subjects)->toHaveCount(2)
         ->and($ticket->subjects->pluck('subject_type')->unique()->values()->all())
-        ->toMatchArray([Review::class, User::class])
-        ->and($ticket->subjects->where('role', 'reported')->first()->subject_type)->toBe(Review::class)
-        ->and($ticket->subjects->where('role', 'author')->first()->subject_type)->toBe(User::class);
+        ->toMatchArray([(new Review)->getMorphClass(), (new User)->getMorphClass()])
+        ->and($ticket->subjects->where('role', 'reported')->first()->subject_type)->toBe((new Review)->getMorphClass())
+        ->and($ticket->subjects->where('role', 'author')->first()->subject_type)->toBe((new User)->getMorphClass());
 });
 
 it('attaches the venue as a subject on venue claims at creation time', function () {
@@ -85,7 +85,7 @@ it('attaches the venue as a subject on venue claims at creation time', function 
         ->createClaim($claimant, $location, ['claimant_notes' => 'I run this venue']);
 
     expect($ticket->subjects)->toHaveCount(1)
-        ->and($ticket->subjects->first()->subject_type)->toBe(Location::class)
+        ->and($ticket->subjects->first()->subject_type)->toBe((new Location)->getMorphClass())
         ->and($ticket->subjects->first()->subject_id)->toBe($location->id)
         ->and($ticket->subjects->first()->role)->toBe('venue');
 });
@@ -113,7 +113,7 @@ it('attaches the created Location as a subject when a venue proposal is approved
 
     $ticket->refresh();
     expect($ticket->subjects)->toHaveCount(1)
-        ->and($ticket->subjects->first()->subject_type)->toBe(Location::class)
+        ->and($ticket->subjects->first()->subject_type)->toBe((new Location)->getMorphClass())
         ->and($ticket->subjects->first()->role)->toBe('venue');
 });
 
@@ -126,13 +126,13 @@ it('queries tickets by subject polymorphically (the hasPendingClaim use case)', 
 
     // The query subjects makes possible — replaces metadata JSON digging.
     $hasSubjectTicket = Ticket::whereHas('subjects', function ($q) use ($location) {
-        $q->where('subject_type', Location::class)
+        $q->where('subject_type', (new Location)->getMorphClass())
             ->where('subject_id', $location->id);
     })->exists();
 
     $unrelatedLocation = Location::factory()->create();
     $noSubjectTicket = Ticket::whereHas('subjects', function ($q) use ($unrelatedLocation) {
-        $q->where('subject_type', Location::class)
+        $q->where('subject_type', (new Location)->getMorphClass())
             ->where('subject_id', $unrelatedLocation->id);
     })->exists();
 

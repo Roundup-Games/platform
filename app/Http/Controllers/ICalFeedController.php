@@ -92,7 +92,7 @@ class ICalFeedController extends Controller
     {
         $link = ShortLink::where('code', $code)
             ->where('purpose', 'ical')
-            ->where('linkable_type', User::class)
+            ->where('linkable_type', (new User)->getMorphClass())
             ->first();
 
         // Expired tokens resolve to nothing (404) — mirrors ShortLinkService.

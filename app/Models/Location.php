@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\VenueType;
+use App\Models\Concerns\HasPlatformUuid;
 use App\Services\Geohash;
 use App\Services\LocationDisclosureService;
 use App\Services\ProximityQuery;
@@ -58,6 +59,8 @@ class Location extends Model implements TicketSubject
 {
     /** @use HasFactory<LocationFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     // Location has no public-facing route; ticketSubjectUrl() returns null
     // (the trait default), so subjects render without a link in the ticket UI.
@@ -118,12 +121,6 @@ class Location extends Model implements TicketSubject
 
     protected static function booted(): void
     {
-        static::creating(function (self $location) {
-            if (empty($location->id)) {
-                $location->id = (string) Str::orderedUuid();
-            }
-        });
-
         static::saving(function (self $location) {
             if ($location->latitude && $location->longitude) {
                 $location->geohash_4 = Geohash::tilePrefix(

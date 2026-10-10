@@ -34,7 +34,7 @@ describe('calendar feed token — initial state', function () {
     it('shows the active feed URL on mount when a token exists', function () {
         $user = User::factory()->create();
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $user->id,
             'purpose' => 'ical',
             'url' => route('ical.feed', 'placeholder'),
@@ -51,7 +51,7 @@ describe('calendar feed token — initial state', function () {
     it('shows no feed URL on mount when the token was revoked (soft-deleted)', function () {
         $user = User::factory()->create();
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $user->id,
             'purpose' => 'ical',
         ]);
@@ -75,7 +75,7 @@ describe('calendar feed token — generate', function () {
             ->assertHasNoErrors();
 
         $token = ShortLink::where('purpose', 'ical')
-            ->where('linkable_type', User::class)
+            ->where('linkable_type', (new User)->getMorphClass())
             ->where('linkable_id', $user->id)
             ->first();
 

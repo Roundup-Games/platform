@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 /**
  * @property string $id
  */
 class BggSyncLog extends Model
 {
+    use HasPlatformUuid;
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -20,15 +22,6 @@ class BggSyncLog extends Model
         'items_synced', 'items_failed', 'error_message',
         'started_at', 'completed_at',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::orderedUuid();
-            }
-        });
-    }
 
     protected function casts(): array
     {

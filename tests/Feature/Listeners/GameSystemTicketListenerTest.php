@@ -48,7 +48,7 @@ class GameSystemTicketListenerTest extends TestCase
     private function createGameSystemTicket(array $overrides = []): Ticket
     {
         $defaults = [
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'Game System Request: Wingspan',
             'description' => 'Please add Wingspan to the catalog.',
@@ -75,7 +75,7 @@ class GameSystemTicketListenerTest extends TestCase
     public function test_resolved_listener_ignores_non_game_system_tickets(): void
     {
         $ticket = Ticket::create([
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'General support question',
             'description' => 'A general support question.',
@@ -118,7 +118,7 @@ class GameSystemTicketListenerTest extends TestCase
     public function test_closed_listener_ignores_non_game_system_tickets(): void
     {
         $ticket = Ticket::create([
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'General support question',
             'description' => 'A general support question.',

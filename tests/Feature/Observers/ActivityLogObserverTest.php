@@ -25,14 +25,14 @@ describe('Game & Campaign observers', function () {
 
         $gameLog = ActivityLog::where('user_id', $this->owner->id)
             ->where('event_type', ActivityType::GameCreated)
-            ->where('subject_type', Game::class)
+            ->where('subject_type', (new Game)->getMorphClass())
             ->where('subject_id', $game->id)
             ->first();
         expect($gameLog)->not->toBeNull();
 
         $campaignLog = ActivityLog::where('user_id', $this->owner->id)
             ->where('event_type', ActivityType::CampaignCreated)
-            ->where('subject_type', Campaign::class)
+            ->where('subject_type', (new Campaign)->getMorphClass())
             ->where('subject_id', $campaign->id)
             ->first();
         expect($campaignLog)->not->toBeNull();
@@ -113,7 +113,7 @@ describe('Participant observer', function () {
 
         $log = ActivityLog::where('user_id', $this->owner->id)
             ->where('event_type', ActivityType::PlayerJoined)
-            ->where('subject_type', Game::class)
+            ->where('subject_type', (new Game)->getMorphClass())
             ->where('subject_id', $game->id)
             ->first();
 
@@ -161,7 +161,7 @@ describe('Review observer', function () {
 
         $log = ActivityLog::where('user_id', $gmUser->id)
             ->where('event_type', ActivityType::ReviewReceived)
-            ->where('subject_type', Review::class)
+            ->where('subject_type', (new Review)->getMorphClass())
             ->where('subject_id', $review->id)
             ->first();
 
@@ -184,7 +184,7 @@ describe('Follow observer', function () {
 
         $log = ActivityLog::where('user_id', $followed->id)
             ->where('event_type', ActivityType::FollowReceived)
-            ->where('subject_type', UserRelationship::class)
+            ->where('subject_type', (new UserRelationship)->getMorphClass())
             ->first();
 
         expect($log)->not->toBeNull();

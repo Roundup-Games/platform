@@ -26,7 +26,7 @@ class ReviewFactory extends Factory
     public function definition(): array
     {
         return [
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => Game::factory(),
             'reviewer_id' => User::factory(),
             'gm_profile_id' => GMProfile::factory(),
@@ -77,7 +77,7 @@ class ReviewFactory extends Factory
     public function venue(): static
     {
         return $this->state(fn () => [
-            'reviewable_type' => Location::class,
+            'reviewable_type' => (new Location)->getMorphClass(),
             'reviewable_id' => Location::factory()->verifiedVenue(),
             'gm_profile_id' => null,
             'proficiency_tags' => null,

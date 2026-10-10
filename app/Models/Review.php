@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\GmProficiency;
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\ReviewFactory;
 use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
 use Escalated\Laravel\Contracts\TicketSubject;
@@ -12,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property string $content
@@ -29,6 +29,7 @@ class Review extends Model implements TicketSubject
     /** @use HasFactory<ReviewFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
     use PresentsAsTicketSubject;
 
     /**
@@ -69,15 +70,6 @@ class Review extends Model implements TicketSubject
             'reported_at' => 'datetime',
             'replied_at' => 'datetime',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $review) {
-            if (empty($review->id)) {
-                $review->id = (string) Str::uuid();
-            }
-        });
     }
 
     // ── Relationships ──────────────────────────────────

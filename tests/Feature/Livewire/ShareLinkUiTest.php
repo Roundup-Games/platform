@@ -65,7 +65,7 @@ describe('Game share link UI', function () {
         ]);
 
         $link = ShortLink::create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'code' => 'abc123',
@@ -101,7 +101,7 @@ describe('Game share link UI', function () {
         ]);
 
         $link = ShortLink::create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'code' => 'revoke1',
@@ -149,7 +149,7 @@ describe('Campaign share link UI', function () {
         ]);
 
         $link = ShortLink::create([
-            'linkable_type' => Campaign::class,
+            'linkable_type' => (new Campaign)->getMorphClass(),
             'linkable_id' => $campaign->id,
             'user_id' => $this->owner->id,
             'code' => 'camp12',

@@ -146,7 +146,7 @@ trait ManagesShortLinks
         assert(is_int($entityKey) || is_string($entityKey));
 
         $link = ShortLink::where('id', $linkId)
-            ->where('linkable_type', get_class($entity))
+            ->where('linkable_type', $entity->getMorphClass())
             ->where('linkable_id', (string) $entityKey)
             ->firstOrFail();
 

@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\SessionZeroConfirmationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property int $user_id
@@ -19,6 +19,8 @@ class SessionZeroConfirmation extends Model
 {
     /** @use HasFactory<SessionZeroConfirmationFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     protected $table = 'session_zero_confirmations';
 
@@ -44,10 +46,6 @@ class SessionZeroConfirmation extends Model
     protected static function booted(): void
     {
         static::creating(function (self $confirmation) {
-            if (empty($confirmation->id)) {
-                $confirmation->id = (string) Str::uuid();
-            }
-
             if (empty($confirmation->confirmed_at)) {
                 $confirmation->confirmed_at = now();
             }

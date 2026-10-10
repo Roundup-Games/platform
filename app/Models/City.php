@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\CityFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use Spatie\Translatable\HasTranslations;
 
 /**
@@ -37,6 +37,7 @@ class City extends Model
     /** @use HasFactory<CityFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
     use HasTranslations;
 
     /** @var array<int, string> */
@@ -47,15 +48,6 @@ class City extends Model
     public $incrementing = false;
 
     protected $guarded = ['id'];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $city) {
-            if (empty($city->id)) {
-                $city->id = (string) Str::orderedUuid();
-            }
-        });
-    }
 
     protected function casts(): array
     {

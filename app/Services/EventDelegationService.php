@@ -198,7 +198,7 @@ class EventDelegationService
         return DB::table('model_has_roles')
             ->where('role_id', $role->id)
             ->where('team_id', $event->id) // baseline-ignore: Spatie team discriminator — the delegation design stores the event id as the team key, not an events FK
-            ->where('model_type', get_class($user))
+            ->where('model_type', $user->getMorphClass())
             ->where('model_id', $user->id)
             ->exists();
     }
@@ -268,7 +268,7 @@ class EventDelegationService
             ->where('roles.name', self::ROLE_NAME)
             ->whereNull('roles.team_id')
             ->where('model_has_roles.team_id', $event->id)
-            ->where('model_has_roles.model_type', User::class)
+            ->where('model_has_roles.model_type', (new User)->getMorphClass())
             ->get(['model_has_roles.model_id', 'model_has_roles.created_at']);
 
         return $rows;
@@ -286,7 +286,7 @@ class EventDelegationService
         DB::table('model_has_roles')
             ->where('role_id', $role->id)
             ->where('team_id', $event->id) // baseline-ignore: Spatie team discriminator — the delegation design stores the event id as the team key, not an events FK
-            ->where('model_type', User::class)
+            ->where('model_type', (new User)->getMorphClass())
             ->where('model_id', $target->id)
             ->update(['created_at' => now()]);
     }

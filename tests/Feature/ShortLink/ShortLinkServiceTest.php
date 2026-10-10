@@ -85,7 +85,7 @@ describe('ShortLinkService — createLink', function () {
         $link = $this->service->createLink($this->game, $this->user);
 
         expect($link)->toBeInstanceOf(ShortLink::class);
-        expect($link->linkable_type)->toBe(Game::class);
+        expect($link->linkable_type)->toBe((new Game)->getMorphClass());
         expect($link->linkable_id)->toBe((string) $this->game->id);
         expect($link->user_id)->toBe($this->user->id);
         expect($link->code)->toBeString();
@@ -145,17 +145,17 @@ describe('ShortLinkService — getLinksForEntity', function () {
 
         ShortLink::factory()->create([
             'linkable_id' => $this->game->id,
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'code' => 'LINK001',
         ]);
         ShortLink::factory()->create([
             'linkable_id' => $this->game->id,
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'code' => 'LINK002',
         ]);
         ShortLink::factory()->create([
             'linkable_id' => $game2->id,
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'code' => 'LINK003',
         ]);
 

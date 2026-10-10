@@ -147,7 +147,7 @@ describe('ContactPage', function () {
 
         // Verify ticket created with requester morph
         $this->assertDatabaseHas('escalated_tickets', [
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $user->id,
             'subject' => 'Auth user question',
             'description' => 'I am logged in and have a question.',

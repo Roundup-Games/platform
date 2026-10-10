@@ -123,32 +123,39 @@ record_hits() {
     fi
 }
 
-# check_morph_map <file>  — assert User and Location are NOT aliased in any
-# Relation::morphMap([...]) registration. Both must resolve to their FQCN so
-# polymorphic ticket/review data (written as FQCN via whereMorphedTo /
-# morphMany) stays queryable. Aliasing them here would store a short alias on
-# new rows while existing rows keep the FQCN — silently splitting the data.
-# See the NOTE at the morphMap registration in AppServiceProvider.
+# check_morph_map <file>  -- assert the morph map is ENFORCED and complete
+# (D170). The map must be registered via Relation::enforceMorphMap so an
+# unmapped morph target throws at write time, and it must carry the pinned
+# alias set (every model reachable as a polymorphic target). The pre-D170
+# stance (User/Location deliberately unmapped, FQCN storage) is retired:
+# the 2026_10_09_migrate_morph_types_to_aliases migration converted every
+# stored FQCN to its alias, dissolving the data-splitting blocker that
+# motivated the old prohibition.
 check_morph_map() {
     local file="$1"
-    # Capture every morphMap([...]) block (multiline; [^]]* crosses newlines
-    # inside the array and stops at the closing ]). -N drops the filename prefix.
-    local blocks
-    blocks=$(rg -U -N -e 'Relation::morphMap\(\[[^]]*\]\)' "${file}" 2>/dev/null || true)
-    if [[ -z "${blocks}" ]]; then
-        printf '  %b⚠️  %-9s%b %s\n' "${YLW}" "morphMap" "${RST}" "no morphMap registration found in ${file}"
+    if ! grep -q "Relation::enforceMorphMap" "${file}"; then
+        printf '  %b❌ %-9s%b %s\n' "${RED}" "morphMap" "${RST}" "Relation::enforceMorphMap missing in ${file} (a plain morphMap silently stores FQCNs for unmapped classes)"
+        prod_hits=$((prod_hits + 1))
         return 0
     fi
-    local bad
-    bad=$(printf '%s\n' "${blocks}" | rg -n -e "'(user|location)'\s*=>" || true)
-    if [[ -n "${bad}" ]]; then
-        local count
-        count=$(printf '%s\n' "${bad}" | grep -c . || true)
-        printf '  %b❌ %-9s%b %d forbidden alias(es) in %s (would orphan morph data)\n' "${RED}" "morphMap" "${RST}" "${count}" "${file}"
-        printf '%s\n' "${bad}" | sed 's/^/      /'
-        prod_hits=$((prod_hits + count))
-    else
-        printf '  %b✅ %-9s%b %s\n' "${GRN}" "morphMap" "${RST}" "no user/location aliases"
+
+    local required="campaign event event_announcement game game_participant game_system location review team user user_relationship"
+    local missing=0
+    for alias in ${required}; do
+        if ! rg -q "'${alias}'\\s*=>" "${file}"; then
+            printf '  %b❌ %-9s%b morph alias %s missing in %s\n' "${RED}" "morphMap" "${RST}" "${alias}" "${file}"
+            missing=1
+            prod_hits=$((prod_hits + 1))
+        fi
+    done
+
+    if [ "${missing}" = "0" ]; then
+        if ls database/migrations/*migrate_morph_types_to_aliases.php >/dev/null 2>&1; then
+            printf '  %b✅ %-9s%b %s\n' "${GRN}" "morphMap" "${RST}" "enforced, complete, alias data migration present"
+        else
+            printf '  %b❌ %-9s%b %s\n' "${RED}" "morphMap" "${RST}" "alias data migration (migrate_morph_types_to_aliases) missing - stored FQCNs would not resolve through the enforced map"
+            prod_hits=$((prod_hits + 1))
+        fi
     fi
 }
 

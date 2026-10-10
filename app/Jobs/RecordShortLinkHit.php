@@ -7,6 +7,7 @@ use App\Models\ShortLinkHit;
 use App\Services\PostHogClient;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Cache;
@@ -191,7 +192,7 @@ class RecordShortLinkHit implements ShouldQueue
                         'link_id' => $link->id,
                         'link_code' => $link->code,
                         'link_label' => $link->label,
-                        'linkable_type' => class_basename($link->linkable_type),
+                        'linkable_type' => class_basename(Relation::getMorphedModel($link->linkable_type) ?? $link->linkable_type),
                         'linkable_id' => $link->linkable_id,
                         'referer_domain' => $refererDomain,
                     ],

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
@@ -11,6 +12,8 @@ use Illuminate\Support\Str;
  */
 class GameSystemPublisher extends Model
 {
+    use HasPlatformUuid;
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -20,9 +23,6 @@ class GameSystemPublisher extends Model
     protected static function booted(): void
     {
         static::creating(function (self $publisher) {
-            if (empty($publisher->id)) {
-                $publisher->id = (string) Str::orderedUuid();
-            }
             if (empty($publisher->slug)) {
                 $publisher->slug = Str::slug($publisher->name);
             }

@@ -6,6 +6,7 @@ use App\Models\Media;
 use App\Models\Team;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Locked;
@@ -52,7 +53,7 @@ class ImageUpload extends Component
 
     public function mount(Model $model, string $collection = 'logo', string $label = 'Image'): void
     {
-        $this->model_type = get_class($model);
+        $this->model_type = $model->getMorphClass();
         $key = $model->getKey();
         $this->model_id = to_string_id($key);
         $this->collection = $collection;
@@ -61,10 +62,14 @@ class ImageUpload extends Component
 
     /**
      * Resolve the Eloquent model from stored type and ID.
+     *
+     * model_type carries the enforced morph alias (D170); resolve it
+     * through the morph map before container lookup.
      */
     private function resolveModel(): HasMedia
     {
-        $model = app($this->model_type)::findOrFail((string) $this->model_id);
+        $class = Relation::getMorphedModel($this->model_type) ?? $this->model_type;
+        $model = app($class)::findOrFail((string) $this->model_id);
 
         return $model;
     }

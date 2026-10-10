@@ -158,7 +158,7 @@ describe('GmWorkspace Review Summary', function () {
         $reviewer = User::factory()->create(['name' => 'Happy Player']);
 
         Review::factory()->create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => Game::factory()->create(['owner_id' => $gm->id])->id,
             'gm_profile_id' => $gm->gmProfile->id,
             'reviewer_id' => $reviewer->id,
@@ -179,7 +179,7 @@ describe('GmWorkspace Review Summary', function () {
         $gm->gmProfile->update(['review_count' => 1]);
 
         Review::factory()->create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => Game::factory()->create(['owner_id' => $gm->id])->id,
             'gm_profile_id' => $gm->gmProfile->id,
             'reviewer_id' => User::factory()->create()->id,

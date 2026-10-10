@@ -45,7 +45,7 @@ beforeEach(function () {
 function createTicketWithMetadata(Department $department, User $user, string $type, array $metadata): Ticket
 {
     return Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $user->id,
         'subject' => 'Smoke test ticket',
         'description' => 'Render smoke',

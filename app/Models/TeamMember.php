@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\TeamMemberFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property string $id
@@ -25,6 +25,8 @@ class TeamMember extends Pivot
 {
     /** @use HasFactory<TeamMemberFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     protected $table = 'team_members';
 
@@ -44,15 +46,6 @@ class TeamMember extends Pivot
     }
 
     public $timestamps = false;
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $member) {
-            if (empty($member->id)) {
-                $member->id = (string) Str::orderedUuid();
-            }
-        });
-    }
 
     // ── Relationships ──────────────────────────────────
 

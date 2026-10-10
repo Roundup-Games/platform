@@ -105,8 +105,8 @@ class PublicGameDetail extends Component
             return collect();
         }
 
-        return Review::where('reviewable_type', Game::class)
-            ->where('reviewable_id', $this->game->id)->published()
+        return Review::whereMorphedTo('reviewable', $this->game)
+            ->published()
             ->with('reviewer')->latest()->limit(10)->get();
     }
 

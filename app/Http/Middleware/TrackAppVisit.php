@@ -33,7 +33,7 @@ class TrackAppVisit
                 try {
                     UserAppVisit::upsert(
                         [
-                            'id' => (string) Str::orderedUuid(),
+                            'id' => (string) Str::uuid7(),
                             'user_id' => $user->id,
                             'visit_date' => $today,
                         ],

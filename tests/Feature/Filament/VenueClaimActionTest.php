@@ -39,7 +39,7 @@ beforeEach(function () {
 function createClaimTicket(Department $department, User $user, Location $location, array $metadataOverrides = []): Ticket
 {
     return Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $user->id,
         'subject' => 'Venue Claim: '.($metadataOverrides['location_name'] ?? $location->name),
         'description' => 'A venue claim',
@@ -147,7 +147,7 @@ it('venue claim actions only appear on venue_claim tickets', function () {
 
 it('venue claim actions do not appear on regular tickets', function () {
     $regularTicket = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $this->user->id,
         'subject' => 'General Inquiry',
         'description' => 'A regular support request',
@@ -170,7 +170,7 @@ it('does not treat tickets from other departments as venue claims', function () 
     );
 
     $wrongDeptTicket = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $this->user->id,
         'subject' => 'Venue Claim: Test',
         'description' => 'A venue claim in wrong department',

@@ -127,7 +127,7 @@ class TicketPayloadRendererTest extends TestCase
             'subject' => $subject,
             'description' => 'Test description',
             'department_id' => $department->id,
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'ticket_type' => $type,
             'metadata' => $metadata,

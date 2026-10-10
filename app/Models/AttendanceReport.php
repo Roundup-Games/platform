@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\AttendanceStatus;
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\AttendanceReportFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property int|null $count
@@ -19,6 +19,8 @@ class AttendanceReport extends Model
 {
     /** @use HasFactory<AttendanceReportFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     protected $keyType = 'string';
 
@@ -41,15 +43,6 @@ class AttendanceReport extends Model
         'is_corroborated' => 'boolean',
         'quarantined' => 'boolean',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $report) {
-            if (empty($report->id)) {
-                $report->id = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<Game, $this>

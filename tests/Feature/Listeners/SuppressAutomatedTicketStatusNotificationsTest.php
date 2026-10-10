@@ -42,7 +42,7 @@ class SuppressAutomatedTicketStatusNotificationsTest extends TestCase
     private function createTicket(): Ticket
     {
         return Ticket::create([
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $this->user->id,
             'subject' => 'Help with my account',
             'description' => 'I need help.',

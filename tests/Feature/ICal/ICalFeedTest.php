@@ -29,7 +29,7 @@ describe('iCal feed token resolution', function () {
     it('returns 404 for an expired token', function () {
         $user = User::factory()->create();
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $user->id,
             'purpose' => 'ical',
             'expires_at' => now()->subDay(),
@@ -42,7 +42,7 @@ describe('iCal feed token resolution', function () {
     it('returns 404 for a revoked (soft-deleted) token', function () {
         $user = User::factory()->create();
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $user->id,
             'purpose' => 'ical',
         ]);
@@ -56,7 +56,7 @@ describe('iCal feed token resolution', function () {
         $user = User::factory()->create();
         // A share-purpose link must NOT grant calendar access.
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $user->id,
             'purpose' => 'share',
         ]);
@@ -76,7 +76,7 @@ describe('iCal feed — successful rendering', function () {
             'name' => ['en' => 'Dragonlance Session'],
         ]);
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $owner->id,
             'purpose' => 'ical',
         ]);
@@ -98,7 +98,7 @@ describe('iCal feed — successful rendering', function () {
             'description' => ['en' => 'An epic adventure'],
         ]);
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $owner->id,
             'purpose' => 'ical',
         ]);
@@ -127,7 +127,7 @@ describe('iCal feed — successful rendering', function () {
             'name' => ['en' => 'Canceled Session'],
         ]);
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $owner->id,
             'purpose' => 'ical',
         ]);
@@ -148,7 +148,7 @@ describe('iCal feed — successful rendering', function () {
             'name' => ['en' => 'All Day Session'],
         ]);
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $owner->id,
             'purpose' => 'ical',
         ]);
@@ -174,7 +174,7 @@ describe('iCal feed — successful rendering', function () {
             'status' => ParticipantStatus::Approved->value,
         ]);
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $player->id,
             'purpose' => 'ical',
         ]);
@@ -199,7 +199,7 @@ describe('iCal feed — successful rendering', function () {
             'status' => ParticipantStatus::Pending->value,
         ]);
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $pending->id,
             'purpose' => 'ical',
         ]);
@@ -217,7 +217,7 @@ describe('iCal feed — successful rendering', function () {
             'name' => ['en' => 'Past Session'],
         ]);
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $owner->id,
             'purpose' => 'ical',
         ]);
@@ -237,7 +237,7 @@ describe('iCal feed locale resolution', function () {
             'name' => ['en' => 'English Title', 'de' => 'German Title'],
         ]);
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $owner->id,
             'purpose' => 'ical',
         ]);
@@ -255,7 +255,7 @@ describe('iCal feed locale resolution', function () {
             'name' => ['en' => 'English Title'],
         ]);
         $link = ShortLink::factory()->create([
-            'linkable_type' => User::class,
+            'linkable_type' => (new User)->getMorphClass(),
             'linkable_id' => $owner->id,
             'purpose' => 'ical',
         ]);

@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 /**
  * An email address that must no longer receive mail.
@@ -26,6 +26,8 @@ use Illuminate\Support\Str;
  */
 class EmailSuppression extends Model
 {
+    use HasPlatformUuid;
+
     protected $keyType = 'string';
 
     public $incrementing = false;
@@ -41,15 +43,6 @@ class EmailSuppression extends Model
     protected $casts = [
         'suppressed_at' => 'datetime',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::orderedUuid();
-            }
-        });
-    }
 
     /**
      * Whether the given address is currently suppressed.

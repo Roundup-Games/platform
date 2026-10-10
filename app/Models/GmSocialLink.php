@@ -2,16 +2,22 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use App\Services\GmSocialLinkService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $id
+ */
 class GmSocialLink extends Model
 {
     /** @use HasFactory<Factory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     protected $table = 'gm_social_links';
 

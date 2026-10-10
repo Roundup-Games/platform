@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Jobs\PublishGameBulletinToDiscord;
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\GameBulletinFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property string $content
@@ -24,6 +24,8 @@ class GameBulletin extends Model
 {
     /** @use HasFactory<GameBulletinFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     protected $keyType = 'string';
 
@@ -59,15 +61,6 @@ class GameBulletin extends Model
         return [
             'expires_at' => 'datetime',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $bulletin) {
-            if (empty($bulletin->id)) {
-                $bulletin->id = (string) Str::uuid();
-            }
-        });
     }
 
     // ── Relationships ──────────────────────────────────

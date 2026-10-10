@@ -26,7 +26,7 @@ describe('Entity-driven link expiry', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'expires_at' => null,
@@ -49,7 +49,7 @@ describe('Entity-driven link expiry', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Campaign::class,
+            'linkable_type' => (new Campaign)->getMorphClass(),
             'linkable_id' => $campaign->id,
             'user_id' => $this->owner->id,
             'expires_at' => null,
@@ -72,7 +72,7 @@ describe('Entity-driven link expiry', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'expires_at' => $originalExpiry,
@@ -97,21 +97,21 @@ describe('PruneExpiredShortLinks command', function () {
         ]);
 
         $expiredLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'expires_at' => now()->subDay(),
         ]);
 
         $activeLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'expires_at' => now()->addDays(7),
         ]);
 
         $noExpiryLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'expires_at' => null,
@@ -135,7 +135,7 @@ describe('PruneExpiredShortLinks command', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
         ]);
@@ -174,7 +174,7 @@ describe('PruneExpiredShortLinks command', function () {
             ->update(['updated_at' => now()->subDays(3)]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'expires_at' => null,
@@ -201,7 +201,7 @@ describe('PruneExpiredShortLinks command', function () {
             ->update(['updated_at' => now()->subDays(10)]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'expires_at' => null,
@@ -236,7 +236,7 @@ describe('PruneExpiredShortLinks command', function () {
         ]);
 
         $expiredLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'expires_at' => now()->subDay(),
@@ -255,7 +255,7 @@ describe('PruneExpiredShortLinks command', function () {
         ]);
 
         ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'expires_at' => now()->subDay(),

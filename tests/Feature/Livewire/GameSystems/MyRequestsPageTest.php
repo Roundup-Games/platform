@@ -33,7 +33,7 @@ class MyRequestsPageTest extends TestCase
         $department = Department::where('name', 'Game Systems')->firstOrFail();
 
         $defaults = [
-            'requester_type' => User::class,
+            'requester_type' => (new User)->getMorphClass(),
             'requester_id' => $user->id,
             'subject' => 'Game System Request: Test System',
             'description' => 'Please add this system.',

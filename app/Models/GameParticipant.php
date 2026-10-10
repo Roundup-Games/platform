@@ -9,6 +9,7 @@ use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Concerns\HasParticipantDefaults;
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\GameParticipantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,6 +36,7 @@ class GameParticipant extends Pivot implements ParticipantContract
     use HasFactory;
 
     use HasParticipantDefaults;
+    use HasPlatformUuid;
 
     protected $table = 'game_participants';
 

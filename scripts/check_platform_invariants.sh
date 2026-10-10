@@ -28,6 +28,12 @@
 #   INV-9  no reflection into app internals from tests (use real APIs;
 #                                 LegacyLocationJsonLeakTest's ReflectionClass
 #                                 read of buildEventPlace is allowlisted)
+#   INV-10 uuid PK generation     -> ids are assigned only by the
+#                                 HasPlatformUuid trait (uuidv7); no model
+#                                 hand-rolls ->id = (string) Str::...
+#   INV-11 morph writers          -> raw *_type writes/queries use
+#                                 getMorphClass()/whereMorphedTo, never
+#                                 get_class()/::class constants
 #
 # Scope: app/, resources/, routes/, tests/ as noted per check. Patterns use
 # fixed strings where possible (grep -F) to stay bash-safe.
@@ -151,6 +157,30 @@ if [ -z "$refl" ]; then
     pass "INV-9 no ReflectionMethod in tests"
 else
     fail "INV-9 ReflectionMethod found in: $(echo "$refl" | tr '\n' ' '). Tests must exercise real APIs (HTTP endpoints, services) — reflection tests break on refactor while asserting nothing about behavior."
+fi
+
+
+# --- INV-10: primary-key id generation lives only in HasPlatformUuid ------
+# D170: RFC 9562 uuidv7 for owned ids via the framework HasUuids trait.
+# Any hand-rolled id assignment in a model is a regression to the
+# pre-D170 state (43 duplicated creating hooks, mixed v4/comb schemes).
+hits=$(grep -rn -- "->id = (string) Str::" app/Models/ 2>/dev/null | sort)
+if [ -z "$hits" ]; then
+    pass "INV-10 no hand-rolled PK id assignment in app/Models (HasPlatformUuid only)"
+else
+    fail "INV-10 hand-rolled id assignment found (use App\\Models\\Concerns\\HasPlatformUuid): $(echo "$hits" | tr '\n' ' ')"
+fi
+
+# --- INV-11: raw morph-type writes/queries go through the morph map ------
+# With the enforced morph map (D170), raw FQCN strings in *_type columns
+# no longer match stored alias values. Writers/readers must use
+# getMorphClass()/whereMorphedTo; get_class() and ::class constants in
+# morph contexts silently split the dataset.
+hits=$(grep -rnE "where\('[a-z_.]+_type'\s*,\s*(get_class\(|[A-Z][A-Za-z]+::class)" app/ 2>/dev/null | grep -vE "event_type|game_type|venue_type|ticket_type|agent_type|preference_type|tool_type|bgg_type|join_source" | sort)
+if [ -z "$hits" ]; then
+    pass "INV-11 no raw FQCN morph-type comparisons (getMorphClass/whereMorphedTo only)"
+else
+    fail "INV-11 raw morph-type comparison found (use getMorphClass()/whereMorphedTo): $(echo "$hits" | tr '\n' ' ')"
 fi
 
 # --- Summary ----------------------------------------------------------------

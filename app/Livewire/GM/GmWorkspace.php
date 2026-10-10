@@ -15,6 +15,7 @@ use App\Services\GmRoleService;
 use App\Services\ReviewAggregateService;
 use App\Services\ShortLinkService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -221,7 +222,9 @@ class GmWorkspace extends Component
                 ->groupBy('linkable_type')
                 ->get()
                 ->mapWithKeys(function ($item) {
-                    $type = class_basename($item->linkable_type);
+                    // Alias-aware basename (D170): group by class basename
+                    // ('Game') regardless of the stored alias form.
+                    $type = class_basename(Relation::getMorphedModel($item->linkable_type) ?? $item->linkable_type);
 
                     return [$type => $item->count];
                 });

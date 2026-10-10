@@ -306,7 +306,7 @@ function createGameReviewSetup(): array
     ]);
 
     $review = Review::factory()->create([
-        'reviewable_type' => Game::class,
+        'reviewable_type' => (new Game)->getMorphClass(),
         'reviewable_id' => $game->id,
         'reviewer_id' => $reviewer->id,
         'gm_profile_id' => $gmProfile->id,
@@ -363,7 +363,7 @@ function createVenueReviewSetup(): array
 
     // Polymorphic venue review — no GM link (T01 venue() factory state).
     $review = Review::factory()->venue()->create([
-        'reviewable_type' => Location::class,
+        'reviewable_type' => (new Location)->getMorphClass(),
         'reviewable_id' => $venue->id,
         'reviewer_id' => $reviewer->id,
         'rating' => 2,

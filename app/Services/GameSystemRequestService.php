@@ -89,7 +89,7 @@ class GameSystemRequestService
         // Escape LIKE wildcards to prevent false duplicate matches
         $escapedName = str_replace(['%', '_'], ['\\%', '\\_'], $normalizedName);
 
-        return Ticket::where('requester_type', User::class)
+        return Ticket::where('requester_type', (new User)->getMorphClass())
             ->where('requester_id', $user->id)
             ->where('ticket_type', 'game_system_request')
             ->whereRaw('LOWER(subject) LIKE ?', ['%game system request: '.$escapedName])

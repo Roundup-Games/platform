@@ -30,7 +30,7 @@ class ReviewEligibilityService
             return false;
         }
 
-        if ($this->hasAlreadyReviewed($user, Game::class, $game->id)) {
+        if ($this->hasAlreadyReviewed($user, (new Game)->getMorphClass(), $game->id)) {
             return false;
         }
 
@@ -55,7 +55,7 @@ class ReviewEligibilityService
             return false;
         }
 
-        if ($this->hasAlreadyReviewed($user, Campaign::class, $campaign->id)) {
+        if ($this->hasAlreadyReviewed($user, (new Campaign)->getMorphClass(), $campaign->id)) {
             return false;
         }
 
@@ -87,7 +87,7 @@ class ReviewEligibilityService
         }
 
         // (b) One review per (user, venue).
-        if ($this->hasAlreadyReviewed($user, Location::class, $location->id)) {
+        if ($this->hasAlreadyReviewed($user, (new Location)->getMorphClass(), $location->id)) {
             return false;
         }
 

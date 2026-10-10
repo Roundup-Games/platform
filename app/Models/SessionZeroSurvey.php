@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\SessionZeroSurveyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,8 @@ class SessionZeroSurvey extends Model
 {
     /** @use HasFactory<SessionZeroSurveyFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     protected $table = 'session_zero_surveys';
 
@@ -42,10 +45,6 @@ class SessionZeroSurvey extends Model
     protected static function booted(): void
     {
         static::creating(function (self $survey) {
-            if (empty($survey->id)) {
-                $survey->id = (string) Str::uuid();
-            }
-
             if (empty($survey->uuid)) {
                 $survey->uuid = (string) Str::uuid();
             }

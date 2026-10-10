@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use App\Enums\ActivityType;
+use App\Models\Concerns\HasPlatformUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property string $id
@@ -20,6 +20,8 @@ use Illuminate\Support\Str;
  */
 class ActivityLog extends Model
 {
+    use HasPlatformUuid;
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -30,15 +32,6 @@ class ActivityLog extends Model
         'id', 'user_id', 'subject_type', 'subject_id',
         'event_type', 'properties', 'created_at',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::orderedUuid();
-            }
-        });
-    }
 
     protected function casts(): array
     {

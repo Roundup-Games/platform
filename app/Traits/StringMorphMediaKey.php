@@ -10,13 +10,10 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 /**
  * Override Spatie's media() morphMany to use StringKeyMorphMany.
  *
- * The media.model_id column is varchar(36) to support UUID PKs on
- * Event and other models. PostgreSQL rejects varchar = integer comparisons,
- * so integer PKs must be cast to string in morph queries.
- *
- * Use this trait alongside Spatie\MediaLibrary\InteractsWithMedia on
- * any model. It is harmless for UUID-keyed models and essential for
- * integer-keyed ones.
+ * media.model_id is a native uuid column (D170) and every media owner is
+ * uuid-keyed, so the string-cast seam is no longer load-bearing — it is
+ * kept as a defensive no-op (uuid keys are already strings) so media()
+ * has a single named implementation instead of a per-model decision.
  */
 trait StringMorphMediaKey
 {

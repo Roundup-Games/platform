@@ -173,7 +173,7 @@ describe('ShortLink model — relationships', function () {
     it('belongs to a linkable entity (polymorphic)', function () {
         $link = ShortLink::factory()->create([
             'linkable_id' => $this->game->id,
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
         ]);
 
         expect($link->linkable)->not->toBeNull();

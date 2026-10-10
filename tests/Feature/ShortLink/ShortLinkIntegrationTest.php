@@ -48,7 +48,7 @@ describe('short link auto-generation on entity creation', function () {
         $game = Game::where('owner_id', $gm->id)->first();
         expect($game)->not->toBeNull();
 
-        $shortLinks = ShortLink::where('linkable_type', Game::class)
+        $shortLinks = ShortLink::where('linkable_type', (new Game)->getMorphClass())
             ->where('linkable_id', $game->id)
             ->get();
 
@@ -72,7 +72,7 @@ describe('short link auto-generation on entity creation', function () {
         $campaign = Campaign::where('owner_id', $gm->id)->first();
         expect($campaign)->not->toBeNull();
 
-        $shortLinks = ShortLink::where('linkable_type', Campaign::class)
+        $shortLinks = ShortLink::where('linkable_type', (new Campaign)->getMorphClass())
             ->where('linkable_id', $campaign->id)
             ->get();
 
@@ -92,7 +92,7 @@ describe('short link auto-generation on entity creation', function () {
             'game_system_id' => $this->gameSystem->id,
         ]);
 
-        $shortLinks = ShortLink::where('linkable_type', Game::class)
+        $shortLinks = ShortLink::where('linkable_type', (new Game)->getMorphClass())
             ->where('linkable_id', $game->id)
             ->get();
 
@@ -116,7 +116,7 @@ describe('short link policy bypass', function () {
         ]);
 
         $shortLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $owner->id,
         ]);
@@ -143,7 +143,7 @@ describe('short link policy bypass', function () {
         ]);
 
         $shortLink = ShortLink::factory()->create([
-            'linkable_type' => Campaign::class,
+            'linkable_type' => (new Campaign)->getMorphClass(),
             'linkable_id' => $campaign->id,
             'user_id' => $owner->id,
         ]);
@@ -170,7 +170,7 @@ describe('short link policy bypass', function () {
         ]);
 
         $shortLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $owner->id,
         ]);
@@ -201,7 +201,7 @@ describe('join flow via short link', function () {
         ]);
 
         $shortLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $owner->id,
         ]);
@@ -238,7 +238,7 @@ describe('join flow via short link', function () {
         ]);
 
         $shortLink = ShortLink::factory()->create([
-            'linkable_type' => Campaign::class,
+            'linkable_type' => (new Campaign)->getMorphClass(),
             'linkable_id' => $campaign->id,
             'user_id' => $owner->id,
         ]);
@@ -278,7 +278,7 @@ describe('guest short link intent flow', function () {
         ]);
 
         $shortLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
         ]);
 
@@ -310,7 +310,7 @@ describe('guest short link intent flow', function () {
         ]);
 
         $shortLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
         ]);
 
@@ -410,21 +410,21 @@ describe('multi-link support', function () {
         ]);
 
         $link1 = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $owner->id,
             'code' => 'abc1234',
         ]);
 
         $link2 = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $owner->id,
             'code' => 'xyz5678',
         ]);
 
         expect(
-            ShortLink::where('linkable_type', Game::class)
+            ShortLink::where('linkable_type', (new Game)->getMorphClass())
                 ->where('linkable_id', $game->id)
                 ->count()
         )->toBe(2);
@@ -434,14 +434,14 @@ describe('multi-link support', function () {
 
         // link1 is soft-deleted, link2 still active
         expect(
-            ShortLink::where('linkable_type', Game::class)
+            ShortLink::where('linkable_type', (new Game)->getMorphClass())
                 ->where('linkable_id', $game->id)
                 ->count()
         )->toBe(1);
 
         expect(
             ShortLink::withTrashed()
-                ->where('linkable_type', Game::class)
+                ->where('linkable_type', (new Game)->getMorphClass())
                 ->where('linkable_id', $game->id)
                 ->count()
         )->toBe(2);

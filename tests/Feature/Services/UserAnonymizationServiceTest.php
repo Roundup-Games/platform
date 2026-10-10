@@ -178,7 +178,7 @@ describe('UserAnonymizationService integration', function () {
         ]);
 
         $review = Review::create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => $game->id,
             'reviewer_id' => $reviewer->id,
             'gm_profile_id' => $gmProfile->id,
@@ -479,7 +479,7 @@ describe('UserAnonymizationService integration', function () {
         // Tier 2: review written by our user about a GM
         $otherGm = $this->createSubscribedGm();
         $review = Review::create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => $game->id,
             'reviewer_id' => $userId,
             'gm_profile_id' => $otherGm->gmProfile->id,

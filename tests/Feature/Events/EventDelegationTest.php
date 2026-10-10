@@ -71,7 +71,7 @@ describe('Co-organizer grant', function () {
         $assignments = DB::table('model_has_roles')
             ->where('role_id', $roleId)
             ->where('team_id', $this->event->id)
-            ->where('model_type', User::class)
+            ->where('model_type', (new User)->getMorphClass())
             ->where('model_id', $this->coOrganizer->id)
             ->get();
 

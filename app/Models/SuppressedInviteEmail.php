@@ -2,10 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property string $id
+ */
 class SuppressedInviteEmail extends Model
 {
+    use HasPlatformUuid;
+
     public $timestamps = false;
 
     protected $fillable = [

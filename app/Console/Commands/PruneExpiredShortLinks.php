@@ -88,35 +88,34 @@ class PruneExpiredShortLinks extends Command
     {
         $cutoff = now()->subDays($graceDays);
 
-        // Use explicit subqueries with CAST(id AS VARCHAR) to handle the type
-        // mismatch between integer entity PKs and the string linkable_id column.
-        // This scales to millions of rows without OOM risk and works correctly
-        // with PostgreSQL's strict type checking.
+        // Explicit subqueries (rather than plucking ids into memory) scale to
+        // millions of rows without OOM risk. linkable_id is native uuid (D170),
+        // so the subselect needs no cast — uuid = uuid compares directly.
         $query = ShortLink::query()
             ->whereNull('expires_at')
             ->where(function ($q) use ($cutoff) {
                 $q->orWhere(function ($subQ) use ($cutoff) {
-                    $subQ->where('linkable_type', Game::class)
+                    $subQ->where('linkable_type', (new Game)->getMorphClass())
                         ->whereIn('linkable_id', function ($sub) use ($cutoff) {
-                            $sub->selectRaw('CAST(id AS VARCHAR)')
+                            $sub->select('id')
                                 ->from('games')
                                 ->whereIn('status', [GameStatus::Completed->value, GameStatus::Canceled->value])
                                 ->where('updated_at', '<', $cutoff);
                         });
                 });
                 $q->orWhere(function ($subQ) use ($cutoff) {
-                    $subQ->where('linkable_type', Campaign::class)
+                    $subQ->where('linkable_type', (new Campaign)->getMorphClass())
                         ->whereIn('linkable_id', function ($sub) use ($cutoff) {
-                            $sub->selectRaw('CAST(id AS VARCHAR)')
+                            $sub->select('id')
                                 ->from('campaigns')
                                 ->whereIn('status', [CampaignStatus::Completed->value, CampaignStatus::Cancelled->value])
                                 ->where('updated_at', '<', $cutoff);
                         });
                 });
                 $q->orWhere(function ($subQ) use ($cutoff) {
-                    $subQ->where('linkable_type', Event::class)
+                    $subQ->where('linkable_type', (new Event)->getMorphClass())
                         ->whereIn('linkable_id', function ($sub) use ($cutoff) {
-                            $sub->selectRaw('CAST(id AS VARCHAR)')
+                            $sub->select('id')
                                 ->from('events')
                                 ->whereIn('status', [EventStatus::Completed->value, EventStatus::Cancelled->value])
                                 ->where('updated_at', '<', $cutoff);

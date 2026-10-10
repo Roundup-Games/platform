@@ -170,7 +170,7 @@ it('dispatches EnrichPostHogProfile job on GameCreated', function () {
     Queue::assertPushed(EnrichPostHogProfile::class, function ($job) use ($user, $game) {
         return $job->type === ActivityType::GameCreated->value
             && $job->userId === $user->id
-            && $job->subjectType === 'App\\Models\\Game'
+            && $job->subjectType === 'game'
             && $job->subjectId === $game->id;
     });
 });
@@ -212,7 +212,7 @@ it('dispatches EnrichPostHogProfile job on SessionScheduled', function () {
     Queue::assertPushed(EnrichPostHogProfile::class, function ($job) use ($user, $game) {
         return $job->type === ActivityType::SessionScheduled->value
             && $job->userId === $user->id
-            && $job->subjectType === 'App\\Models\\Game'
+            && $job->subjectType === 'game'
             && $job->subjectId === $game->id;
     });
 });
@@ -308,7 +308,7 @@ it('dispatches EnrichPostHogProfile for team group analytics on GameCreated', fu
     Queue::assertPushed(EnrichPostHogProfile::class, function ($job) use ($user, $game) {
         return $job->type === ActivityType::GameCreated->value
             && $job->userId === $user->id
-            && $job->subjectType === 'App\\Models\\Game'
+            && $job->subjectType === 'game'
             && $job->subjectId === $game->id;
     });
 });
@@ -352,7 +352,7 @@ it('enriches ReviewReceived with rating and game_system', function () {
     $review = Review::factory()->create([
         'reviewer_id' => $reviewer->id,
         'rating' => 5,
-        'reviewable_type' => Game::class,
+        'reviewable_type' => (new Game)->getMorphClass(),
         'reviewable_id' => $game->id,
     ]);
 
@@ -812,7 +812,7 @@ it('dispatches EnrichPostHogProfile with campaign subject type via bridge', func
 
     Queue::assertPushed(EnrichPostHogProfile::class, function ($job) use ($campaign) {
         return $job->type === ActivityType::CampaignCreated->value
-            && $job->subjectType === 'App\\Models\\Campaign'
+            && $job->subjectType === 'campaign'
             && $job->subjectId === $campaign->id;
     });
 });

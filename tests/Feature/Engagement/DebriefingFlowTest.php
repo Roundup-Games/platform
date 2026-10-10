@@ -209,7 +209,7 @@ describe('Debriefing Flow', function () {
         ]);
 
         $log = ActivityLog::where('user_id', $this->participant->id)
-            ->where('subject_type', Game::class)
+            ->where('subject_type', (new Game)->getMorphClass())
             ->where('subject_id', $game->id)
             ->where('event_type', ActivityType::DebriefingSubmitted)
             ->first();

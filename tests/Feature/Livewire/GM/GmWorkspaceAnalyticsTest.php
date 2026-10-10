@@ -52,7 +52,7 @@ describe('Top links by hit count', function () {
         ]);
 
         $topLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $gm->id,
             'label' => 'Top Discord Link',
@@ -60,7 +60,7 @@ describe('Top links by hit count', function () {
         ]);
 
         $lowLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $gm->id,
             'label' => 'Low Twitter Link',
@@ -92,7 +92,7 @@ describe('Top links by hit count', function () {
         ]);
 
         $gmLink = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game1->id,
             'user_id' => $gm->id,
             'label' => 'My Link',
@@ -100,7 +100,7 @@ describe('Top links by hit count', function () {
         ]);
 
         ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game2->id,
             'user_id' => $otherGm->id,
             'label' => 'Other GM Link',
@@ -128,7 +128,7 @@ describe('Referrer domain aggregation', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $gm->id,
         ]);
@@ -181,7 +181,7 @@ describe('Referrer domain aggregation', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $gm->id,
         ]);
@@ -221,13 +221,13 @@ describe('Link analytics summary', function () {
         ]);
 
         $link1 = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $gm->id,
         ]);
 
         $link2 = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $gm->id,
         ]);
@@ -287,19 +287,19 @@ describe('Link analytics summary', function () {
         ]);
 
         ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $gm->id,
         ]);
 
         ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $gm->id,
         ]);
 
         ShortLink::factory()->create([
-            'linkable_type' => Campaign::class,
+            'linkable_type' => (new Campaign)->getMorphClass(),
             'linkable_id' => $campaign->id,
             'user_id' => $gm->id,
         ]);

@@ -68,7 +68,7 @@ class ShortLinkService
             return ShortLink::create([
                 'code' => $code,
                 'url' => $url,
-                'linkable_type' => get_class($linkable),
+                'linkable_type' => $linkable->getMorphClass(),
                 'linkable_id' => (is_int($k = $linkable->getKey()) || is_string($k) ? (string) $k : ''),
                 'user_id' => $user?->id,
                 'label' => $params['label'] ?? null,
@@ -157,7 +157,7 @@ class ShortLinkService
      */
     public function getLinksForEntity(Model $linkable): Collection
     {
-        return ShortLink::where('linkable_type', get_class($linkable))
+        return ShortLink::where('linkable_type', $linkable->getMorphClass())
             ->where('linkable_id', (is_int($k = $linkable->getKey()) || is_string($k) ? (string) $k : ''))
             ->orderByDesc('created_at')
             ->get();
@@ -189,7 +189,7 @@ class ShortLinkService
     {
         $maxLinks = $user->max_links_per_entity ?? 10;
 
-        $currentCount = ShortLink::where('linkable_type', get_class($linkable))
+        $currentCount = ShortLink::where('linkable_type', $linkable->getMorphClass())
             ->where('linkable_id', (is_int($k = $linkable->getKey()) || is_string($k) ? (string) $k : ''))
             ->whereBelongsTo($user)
             ->count();
@@ -210,7 +210,7 @@ class ShortLinkService
         $expiresAt = now()->addDays($graceDays);
 
         // Load links first so we can invalidate caches (bulk update bypasses model events).
-        $links = ShortLink::where('linkable_type', get_class($entity))
+        $links = ShortLink::where('linkable_type', $entity->getMorphClass())
             ->where('linkable_id', (is_int($k = $entity->getKey()) || is_string($k) ? (string) $k : ''))
             ->whereNull('expires_at')
             ->get(['id', 'code']);

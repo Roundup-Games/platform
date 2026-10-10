@@ -12,7 +12,7 @@ beforeEach(function () {
     $this->game = Game::factory()->create(['game_system_id' => $this->gameSystem->id]);
     $this->link = ShortLink::factory()->create([
         'linkable_id' => $this->game->id,
-        'linkable_type' => Game::class,
+        'linkable_type' => (new Game)->getMorphClass(),
         'url' => route('games.detail', $this->game->id),
     ]);
 

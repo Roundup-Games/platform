@@ -497,8 +497,7 @@ class CampaignDetail extends Component
             ? app(ReviewEligibilityService::class)->canReviewCampaign($viewer, $this->campaign)
             : false;
 
-        $reviews = Review::where('reviewable_type', Campaign::class)
-            ->where('reviewable_id', $this->campaign->id)
+        $reviews = Review::whereMorphedTo('reviewable', $this->campaign)
             ->published()
             ->with('reviewer')
             ->latest()

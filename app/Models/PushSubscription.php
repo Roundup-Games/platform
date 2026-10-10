@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\PushSubscriptionFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 use Minishlink\WebPush\Subscription;
 
 /**
@@ -17,6 +17,8 @@ class PushSubscription extends Model
 {
     /** @use HasFactory<PushSubscriptionFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     public $incrementing = false;
 
@@ -30,15 +32,6 @@ class PushSubscription extends Model
         'p256h_key',
         'auth_token',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::orderedUuid();
-            }
-        });
-    }
 
     /*
     |--------------------------------------------------------------------------

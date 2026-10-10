@@ -42,7 +42,7 @@ function createUserReportTicket(): array
     $department = Department::where('name', 'Safety')->first();
 
     $ticket = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $reporter->id,
         'subject' => 'User Report: Harassment',
         'description' => 'Reported user content...',
@@ -79,7 +79,7 @@ function createGameReportTicket(): array
     ]);
 
     $ticket = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $reporter->id,
         'subject' => 'Game Report: Inappropriate Content',
         'description' => 'Reported game content...',
@@ -115,7 +115,7 @@ function createCampaignReportTicket(): array
     ]);
 
     $ticket = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $reporter->id,
         'subject' => 'Campaign Report: Spam',
         'description' => 'Reported campaign content...',
@@ -377,7 +377,7 @@ it('dismiss action is ticket-type-agnostic — closes a non-content-report ticke
     $department = Department::where('name', 'Safety')->first();
 
     $ticket = Ticket::create([
-        'requester_type' => User::class,
+        'requester_type' => (new User)->getMorphClass(),
         'requester_id' => $this->agent->id,
         'subject' => 'General safety inquiry',
         'description' => 'A question about safety policies',

@@ -88,9 +88,7 @@ class VenueReviews extends Component
 
         Gate::authorize('create', Review::class);
 
-        Review::create([
-            'reviewable_type' => Location::class,
-            'reviewable_id' => $this->location->id,
+        $this->location->reviews()->create([
             'reviewer_id' => Auth::id(),
             'gm_profile_id' => null,
             'proficiency_tags' => null,

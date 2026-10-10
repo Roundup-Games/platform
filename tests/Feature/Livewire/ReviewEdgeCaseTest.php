@@ -214,7 +214,7 @@ describe('Duplicate Review Prevention', function () {
         ]);
 
         Review::factory()->create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => $game->id,
             'reviewer_id' => $player->id,
             'gm_profile_id' => $gmProfile->id,
@@ -224,7 +224,7 @@ describe('Duplicate Review Prevention', function () {
         // A second review for the same reviewer+session must violate the
         // unique(reviewable_id, reviewer_id) constraint.
         expect(fn () => Review::factory()->create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => $game->id,
             'reviewer_id' => $player->id,
             'gm_profile_id' => $gmProfile->id,
@@ -251,7 +251,7 @@ describe('Duplicate Review Prevention', function () {
         expect($service->canReviewSession($player, $game))->toBeTrue();
 
         Review::factory()->create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => $game->id,
             'reviewer_id' => $player->id,
             'gm_profile_id' => $gmProfile->id,
@@ -291,7 +291,7 @@ describe('Duplicate Review Prevention', function () {
         ]);
 
         Review::factory()->create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => $game->id,
             'reviewer_id' => $player->id,
             'gm_profile_id' => $gmProfile->id,

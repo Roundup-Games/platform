@@ -105,8 +105,7 @@ class PublicCampaignDetail extends Component
             return collect();
         }
 
-        return Review::where('reviewable_type', Campaign::class)
-            ->where('reviewable_id', $this->campaign->id)
+        return Review::whereMorphedTo('reviewable', $this->campaign)
             ->published()
             ->with('reviewer')
             ->latest()

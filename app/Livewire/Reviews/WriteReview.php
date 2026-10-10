@@ -103,9 +103,7 @@ class WriteReview extends Component
 
         $gmProfile = $this->resolveGmProfile($reviewable);
 
-        Review::create([
-            'reviewable_type' => $this->reviewableType,
-            'reviewable_id' => $this->reviewableId,
+        $reviewable->reviews()->create([
             'reviewer_id' => Auth::id(),
             'gm_profile_id' => $gmProfile?->id,
             'rating' => $this->rating,

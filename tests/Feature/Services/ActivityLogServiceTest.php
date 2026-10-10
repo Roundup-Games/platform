@@ -44,7 +44,7 @@ describe('log()', function () {
         );
 
         expect($log)->not->toBeNull();
-        expect($log->subject_type)->toBe(Game::class);
+        expect($log->subject_type)->toBe((new Game)->getMorphClass());
         expect($log->subject_id)->toBe($game->id);
         expect($log->event_type)->toBe(ActivityType::GameCreated);
         expect($log->properties)->toBe(['detail' => 'Catan night']);
@@ -86,7 +86,7 @@ describe('logForParticipants()', function () {
 
         $this->service->logForParticipants(ActivityType::GameCreated, $game, ['name' => 'Test Game']);
 
-        $logs = ActivityLog::where('subject_type', Game::class)
+        $logs = ActivityLog::where('subject_type', (new Game)->getMorphClass())
             ->where('subject_id', $game->id)
             ->get();
 

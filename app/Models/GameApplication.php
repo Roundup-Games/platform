@@ -2,26 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Support\Str;
 
 class GameApplication extends Pivot
 {
+    use HasPlatformUuid;
+
     protected $table = 'game_applications';
 
     protected $keyType = 'string';
 
     protected $fillable = ['game_id', 'user_id', 'status', 'message'];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $application) {
-            if (empty($application->id)) {
-                $application->id = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<Game, $this>

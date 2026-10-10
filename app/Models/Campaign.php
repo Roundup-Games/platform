@@ -7,6 +7,7 @@ use App\Enums\DisclosureLevel;
 use App\Enums\GameType;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
+use App\Models\Concerns\HasPlatformUuid;
 use App\Models\Concerns\HasShareToken;
 use App\Models\Concerns\VisibleToScope;
 use App\Services\LocationDisclosureService;
@@ -22,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
@@ -62,6 +64,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
     /** @use HasFactory<CampaignFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
     use HasShareToken;
 
     // Spatie MediaLibrary: host-uploaded cover images. StringMorphMediaKey
@@ -149,12 +152,6 @@ class Campaign extends Model implements HasMedia, TicketSubject
 
     protected static function booted(): void
     {
-        static::creating(function (self $campaign) {
-            if (empty($campaign->id)) {
-                $campaign->id = (string) Str::uuid();
-            }
-        });
-
         // Write-side bridge: route any legacy game_system_id mass-assignment
         // to the gameSystems pivot after persist. See Game::booted for details.
         static::created(function (self $campaign) {
@@ -261,6 +258,14 @@ class Campaign extends Model implements HasMedia, TicketSubject
     public function participants(): HasMany
     {
         return $this->hasMany(CampaignParticipant::class);
+    }
+
+    /**
+     * @return MorphMany<Review, $this>
+     */
+    public function reviews(): MorphMany
+    {
+        return $this->morphMany(Review::class, 'reviewable');
     }
 
     /** @return HasMany<CampaignApplication, $this> */

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Collection;
@@ -34,6 +35,7 @@ class Team extends Model implements HasMedia
     /** @use HasFactory<TeamFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
     use HasSEO;
     use HasTranslations;
     use InteractsWithMedia;
@@ -64,9 +66,6 @@ class Team extends Model implements HasMedia
     protected static function booted(): void
     {
         static::creating(function (self $team) {
-            if (empty($team->id)) {
-                $team->id = (string) Str::orderedUuid();
-            }
             if (empty($team->slug)) {
                 $team->slug = Str::slug($team->name).'-'.Str::random(6);
             }

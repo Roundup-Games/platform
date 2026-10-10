@@ -234,7 +234,7 @@ class VenueClaimService
      */
     public function hasPendingClaim(User $claimant, Location $location): bool
     {
-        return Ticket::where('requester_type', User::class)
+        return Ticket::where('requester_type', (new User)->getMorphClass())
             ->where('requester_id', $claimant->id)
             ->where('ticket_type', 'venue_claim')
             ->where('metadata->location_id', $location->id)

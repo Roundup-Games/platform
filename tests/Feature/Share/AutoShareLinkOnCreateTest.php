@@ -40,7 +40,7 @@ describe('auto-generated share ShortLink on entity create', function () {
             'max_players' => 4,
         ]);
 
-        $links = ShortLink::where('linkable_type', Game::class)
+        $links = ShortLink::where('linkable_type', (new Game)->getMorphClass())
             ->where('linkable_id', $game->getKey())
             ->where('purpose', 'share')
             ->get();
@@ -54,7 +54,7 @@ describe('auto-generated share ShortLink on entity create', function () {
 
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
 
-        $links = ShortLink::where('linkable_type', Campaign::class)
+        $links = ShortLink::where('linkable_type', (new Campaign)->getMorphClass())
             ->where('linkable_id', $campaign->getKey())
             ->where('purpose', 'share')
             ->get();
@@ -72,7 +72,7 @@ describe('auto-generated share ShortLink on entity create', function () {
             'max_players' => 4,
         ]);
 
-        $link = ShortLink::where('linkable_type', Game::class)
+        $link = ShortLink::where('linkable_type', (new Game)->getMorphClass())
             ->where('linkable_id', $game->getKey())
             ->where('purpose', 'share')
             ->first();
@@ -100,7 +100,7 @@ describe('auto-generated share ShortLink on entity create', function () {
         // Game exists → observer caught the exception and did not propagate.
         expect(Game::whereKey($game->getKey())->exists())->toBeTrue();
         // And no ShortLink was created (the mock threw before any insert).
-        expect(ShortLink::where('linkable_type', Game::class)
+        expect(ShortLink::where('linkable_type', (new Game)->getMorphClass())
             ->where('linkable_id', $game->getKey())
             ->count()
         )->toBe(0);

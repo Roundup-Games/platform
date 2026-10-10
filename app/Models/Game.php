@@ -8,6 +8,7 @@ use App\Enums\GameType;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
+use App\Models\Concerns\HasPlatformUuid;
 use App\Models\Concerns\HasShareToken;
 use App\Models\Concerns\VisibleToScope;
 use App\Services\Geohash;
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -75,6 +77,7 @@ class Game extends Model implements HasMedia, TicketSubject
     /** @use HasFactory<GameFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
     use HasSEO;
     use HasShareToken;
     use HasTranslations;
@@ -187,12 +190,6 @@ class Game extends Model implements HasMedia, TicketSubject
 
     protected static function booted(): void
     {
-        static::creating(function (self $game) {
-            if (empty($game->id)) {
-                $game->id = (string) Str::uuid();
-            }
-        });
-
         // Write-side bridge: route any legacy game_system_id mass-assignment
         // (captured by setGameSystemIdAttribute) to the gameSystems pivot.
         // Fires after INSERT so belongsToMany::sync() has a real id to attach.
@@ -377,6 +374,14 @@ class Game extends Model implements HasMedia, TicketSubject
     public function participants(): HasMany
     {
         return $this->hasMany(GameParticipant::class);
+    }
+
+    /**
+     * @return MorphMany<Review, $this>
+     */
+    public function reviews(): MorphMany
+    {
+        return $this->morphMany(Review::class, 'reviewable');
     }
 
     /** @return HasMany<GameApplication, $this> */

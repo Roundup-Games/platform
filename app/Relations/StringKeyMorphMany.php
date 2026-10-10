@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 /**
  * MorphMany that string-casts the foreign key values.
  *
- * Used for the media() relationship where model_id is varchar(36)
- * but parent models may have integer primary keys. PostgreSQL rejects
- * varchar = integer comparisons, so this ensures all key comparisons
- * use string values.
+ * Historical seam for the mixed varchar(36)-morph-column / integer-PK era:
+ * PostgreSQL rejected varchar = integer comparisons, and Eloquent's
+ * default addEagerConstraints() uses whereIntegerInRaw for integer keys,
+ * which bypasses PDO binding entirely. With native uuid columns and
+ * uuid keys everywhere (D170) both concerns are gone; the cast is now a
+ * no-op kept for stability — see StringMorphMediaKey for the policy.
  *
  * Key insight: Eloquent's default addEagerConstraints() uses
  * whereInMethod() which returns 'whereIntegerInRaw' for integer-keyed

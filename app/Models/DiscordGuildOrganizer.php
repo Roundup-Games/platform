@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\DiscordGuildOrganizerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * Per-(guild, organizer) D119 opt-in row.
@@ -24,6 +24,8 @@ class DiscordGuildOrganizer extends Model
 {
     /** @use HasFactory<DiscordGuildOrganizerFactory> */
     use HasFactory;
+
+    use HasPlatformUuid;
 
     public $incrementing = false;
 
@@ -42,15 +44,6 @@ class DiscordGuildOrganizer extends Model
             'publish_enabled' => 'boolean',
             'opted_in_at' => 'datetime',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $organizer) {
-            if (empty($organizer->id)) {
-                $organizer->id = (string) Str::orderedUuid();
-            }
-        });
     }
 
     // ── Relationships ──────────────────────────────────

@@ -27,7 +27,7 @@ class ReviewObserver
             }
         }
 
-        if ($review->reviewable_type === Location::class) {
+        if ($review->reviewable_type === (new Location)->getMorphClass()) {
             $location = $review->reviewable;
             if ($location instanceof Location) {
                 $this->aggregateService->updateLocationAggregates($location);
@@ -55,7 +55,7 @@ class ReviewObserver
                 }
             }
 
-            if ($review->reviewable_type === Location::class) {
+            if ($review->reviewable_type === (new Location)->getMorphClass()) {
                 $location = $review->reviewable;
                 if ($location instanceof Location) {
                     $this->aggregateService->updateLocationAggregates($location);
@@ -77,7 +77,7 @@ class ReviewObserver
             }
         }
 
-        if ($review->reviewable_type === Location::class) {
+        if ($review->reviewable_type === (new Location)->getMorphClass()) {
             $location = $review->reviewable;
             if ($location instanceof Location) {
                 $this->aggregateService->updateLocationAggregates($location);

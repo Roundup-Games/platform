@@ -29,7 +29,7 @@ trait CreatesUsers
         $user = User::factory()->create($overrides);
 
         Cashier::$subscriptionModel::create([
-            'billable_type' => get_class($user),
+            'billable_type' => $user->getMorphClass(),
             'billable_id' => $user->id,
             'type' => 'default',
             'paddle_id' => 'sub_'.Str::random(12),
@@ -60,7 +60,7 @@ trait CreatesUsers
         ]);
 
         Cashier::$subscriptionModel::create([
-            'billable_type' => get_class($user),
+            'billable_type' => $user->getMorphClass(),
             'billable_id' => $user->id,
             'type' => 'default',
             'paddle_id' => 'sub_'.Str::random(12),
@@ -92,7 +92,7 @@ trait CreatesUsers
         ]);
 
         Cashier::$subscriptionModel::create([
-            'billable_type' => get_class($user),
+            'billable_type' => $user->getMorphClass(),
             'billable_id' => $user->id,
             'type' => 'default',
             'paddle_id' => 'sub_'.Str::random(12),

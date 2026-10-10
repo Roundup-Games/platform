@@ -38,7 +38,7 @@ class MyRequestsPage extends Component
     protected function getRequests(): LengthAwarePaginator
     {
         return Ticket::query()
-            ->where('requester_type', User::class)
+            ->where('requester_type', (new User)->getMorphClass())
             ->where('requester_id', Auth::id())
             ->where('ticket_type', 'game_system_request')
             ->orderByDesc('created_at')

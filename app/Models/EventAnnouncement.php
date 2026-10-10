@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 use Spatie\Translatable\HasTranslations;
 
 class EventAnnouncement extends Model
@@ -14,6 +14,7 @@ class EventAnnouncement extends Model
 
     public $incrementing = false;
 
+    use HasPlatformUuid;
     use HasTranslations;
 
     /** @var array<int, string> */
@@ -29,15 +30,6 @@ class EventAnnouncement extends Model
     public const VISIBILITY_REGISTERED = 'registered';
 
     public const VISIBILITY_PRIVATE = 'private';
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $announcement) {
-            if (empty($announcement->id)) {
-                $announcement->id = (string) Str::uuid();
-            }
-        });
-    }
 
     protected $fillable = [
         'event_id', 'author_id', 'title', 'content',

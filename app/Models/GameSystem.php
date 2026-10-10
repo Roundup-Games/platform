@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPlatformUuid;
 use App\Services\GameSystemLandingService;
 use App\Traits\StringMorphMediaKey;
 use Database\Factories\GameSystemFactory;
@@ -44,6 +45,7 @@ class GameSystem extends Model implements HasMedia, TicketSubject
     /** @use HasFactory<GameSystemFactory> */
     use HasFactory;
 
+    use HasPlatformUuid;
     use HasSEO;
     use HasTranslations;
     use PresentsAsTicketSubject;
@@ -111,9 +113,6 @@ class GameSystem extends Model implements HasMedia, TicketSubject
     protected static function booted(): void
     {
         static::creating(function (self $gameSystem) {
-            if (empty($gameSystem->id)) {
-                $gameSystem->id = (string) Str::orderedUuid();
-            }
             if (empty($gameSystem->slug)) {
                 $gameSystem->slug = $gameSystem->resolveFallbackSlug();
             }

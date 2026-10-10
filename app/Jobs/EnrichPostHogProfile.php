@@ -17,6 +17,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\DB;
@@ -150,11 +151,9 @@ class EnrichPostHogProfile implements ShouldQueue
     /**
      * Resolve the subject model from stored type/id.
      *
-     * Expects full FQCN (e.g. App\Models\Game) as set by PostHogEventBridge.
+     * subjectType carries the enforced morph alias (D170) as set by
+     * PostHogEventBridge; unmapped strings fall back to literal class names.
      * Restricted to ALLOWED_SUBJECT_TYPES for defense-in-depth.
-     */
-    /**
-     * @return (Game|Campaign|GameParticipant|Review|User|UserRelationship)|null
      */
     private function resolveSubject(): ?Model
     {
@@ -162,7 +161,17 @@ class EnrichPostHogProfile implements ShouldQueue
             return null;
         }
 
-        if (! in_array($this->subjectType, self::ALLOWED_SUBJECT_TYPES, true)) {
+        $allowed = array_map(
+            fn (string $class): string => Relation::getMorphedModel((new $class)->getMorphClass()) ?? $class,
+            self::ALLOWED_SUBJECT_TYPES,
+        );
+
+        // subjectType carries the enforced morph alias (D170); resolve it
+        // through the map (falling back to a literal class name for jobs
+        // queued before the aliases shipped) before the allowlist check.
+        $subjectClass = Relation::getMorphedModel($this->subjectType) ?? $this->subjectType;
+
+        if (! in_array($subjectClass, $allowed, true)) {
             Log::warning('posthog.enrichment_job.disallowed_subject_type', [
                 'subject_type' => $this->subjectType,
             ]);
@@ -171,7 +180,7 @@ class EnrichPostHogProfile implements ShouldQueue
         }
 
         try {
-            $subject = $this->subjectType::findOrFail($this->subjectId);
+            $subject = $subjectClass::findOrFail($this->subjectId);
 
             return $subject instanceof Model ? $subject : null;
         } catch (ModelNotFoundException) {

@@ -226,7 +226,7 @@ class ScopedRoleService
         }
 
         return \DB::table('model_has_roles')
-            ->where('model_type', get_class($user))
+            ->where('model_type', $user->getMorphClass())
             ->where('model_id', $user->id)
             ->whereIn('role_id', $roleIds)
             ->exists();
@@ -253,7 +253,7 @@ class ScopedRoleService
 
         // Get all team_id values where the user has any role assigned
         $scopedTeamIds = \DB::table('model_has_roles')
-            ->where('model_type', get_class($user))
+            ->where('model_type', $user->getMorphClass())
             ->where('model_id', $user->id)
             ->whereNotNull('team_id')
             ->pluck('team_id')

@@ -18,7 +18,6 @@ class LinkedAccountFactory extends Factory
     public function definition(): array
     {
         return [
-            'id' => (string) Str::orderedUuid(),
             'user_id' => User::factory(),
             'provider' => OAuthProvider::Google->value,
             'provider_user_id' => (string) Str::uuid(),

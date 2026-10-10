@@ -27,7 +27,7 @@ describe('ImageUpload security', function () {
 
         // The component should have model_type and model_id
         $component
-            ->assertSet('model_type', Team::class)
+            ->assertSet('model_type', (new Team)->getMorphClass())
             ->assertSet('model_id', $team->id);
 
         // Inspect the snapshot data to ensure no model attributes are leaked

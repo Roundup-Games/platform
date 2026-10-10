@@ -239,7 +239,7 @@ class ActionCenterServiceTest extends TestCase
         $reviewer = User::factory()->create();
 
         Review::create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => Game::factory()->create()->id,
             'reviewer_id' => $reviewer->id,
             'gm_profile_id' => $gmProfile->id,
@@ -601,7 +601,7 @@ class ActionCenterServiceTest extends TestCase
         ]);
 
         $review = Review::create([
-            'reviewable_type' => Game::class,
+            'reviewable_type' => (new Game)->getMorphClass(),
             'reviewable_id' => Game::factory()->create()->id,
             'reviewer_id' => User::factory()->create()->id,
             'gm_profile_id' => $gmProfile->id,

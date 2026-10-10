@@ -34,7 +34,7 @@ class PaddleWebhooks
     public static function createCustomer(User $user, ?string $paddleId = null): void
     {
         Cashier::$customerModel::create([
-            'billable_type' => get_class($user),
+            'billable_type' => $user->getMorphClass(),
             'billable_id' => $user->id,
             'paddle_id' => $paddleId ?? 'ctm_'.$user->id,
             'name' => $user->name,
@@ -45,7 +45,7 @@ class PaddleWebhooks
     public static function createSubscription(User $user, array $overrides = []): Subscription
     {
         return Cashier::$subscriptionModel::create([
-            'billable_type' => get_class($user),
+            'billable_type' => $user->getMorphClass(),
             'billable_id' => $user->id,
             'type' => 'default',
             'paddle_id' => 'sub_'.Str::random(12),

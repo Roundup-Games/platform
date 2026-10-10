@@ -25,7 +25,7 @@ describe('source_label accessor', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'label' => 'Discord Promo',
@@ -48,7 +48,7 @@ describe('source_label accessor', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'label' => null,
@@ -120,7 +120,7 @@ describe('source_label accessor', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'label' => 'Twitter Campaign',
@@ -148,7 +148,7 @@ describe('Campaign participant source_label', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Campaign::class,
+            'linkable_type' => (new Campaign)->getMorphClass(),
             'linkable_id' => $campaign->id,
             'user_id' => $this->owner->id,
             'label' => 'Reddit Post',
@@ -191,7 +191,7 @@ describe('shortLink relationship', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
         ]);
@@ -213,7 +213,7 @@ describe('shortLink relationship', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Campaign::class,
+            'linkable_type' => (new Campaign)->getMorphClass(),
             'linkable_id' => $campaign->id,
             'user_id' => $this->owner->id,
         ]);
@@ -254,7 +254,7 @@ describe('source_label edge cases', function () {
         ]);
 
         $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
+            'linkable_type' => (new Game)->getMorphClass(),
             'linkable_id' => $game->id,
             'user_id' => $this->owner->id,
             'label' => 'Deleted Link',
