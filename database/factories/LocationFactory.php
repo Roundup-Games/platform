@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\VenueType;
 use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Location>
@@ -16,11 +17,18 @@ class LocationFactory extends Factory
     public function definition(): array
     {
         // Generate coordinates roughly in the DACH region (Germany/Austria/Switzerland)
+        //
+        // City is unique per row (Str::random, not fake()->city): parallel
+        // CI workers share one database, and every location save provisions
+        // the city registry (D171) — shared default city names serialize all
+        // workers on the same registry slug and can deadlock (same rationale
+        // as GameSystemFactory/CityFactory unique names). Tests that mean a
+        // specific city pass it explicitly.
         return [
             'name' => fake()->company().' '.fake()->randomElement(['Spielhalle', 'Café', 'Community Center', 'Games Store']),
             'description' => fake()->optional()->sentence(),
             'address' => fake()->streetAddress(),
-            'city' => fake()->randomElement(['Berlin', 'Munich', 'Vienna', 'Zurich', 'Hamburg', 'Cologne', 'Frankfurt', 'Stuttgart']),
+            'city' => 'City '.Str::upper(Str::random(6)),
             'postal_code' => fake()->postcode(),
             'country' => fake()->randomElement(['DEU', 'AUT', 'CHE']),
             'latitude' => fake()->latitude(47.0, 54.0),
