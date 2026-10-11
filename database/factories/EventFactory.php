@@ -27,7 +27,7 @@ class EventFactory extends Factory
             'end_date' => now()->addDays(fake()->numberBetween(61, 63)),
             'organizer_id' => User::factory(),
             'city' => fake()->city(),
-            'country' => fake()->countryCode(),
+            'country' => 'DEU', // ISO 3166-1 alpha-3 (D173) — alpha-2 fails CountrySelect validation
             'is_public' => true,
             'individual_registration_fee' => 0,
         ];

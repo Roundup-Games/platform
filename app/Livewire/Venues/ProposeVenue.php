@@ -6,9 +6,11 @@ use App\Enums\VenueType;
 use App\Models\Location;
 use App\Services\GeocodingService;
 use App\Services\VenueProposalService;
+use App\Support\Country;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -62,7 +64,7 @@ class ProposeVenue extends Component
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
             'postal_code' => 'nullable|string|max:20',
-            'country' => 'required|string|max:3',
+            'country' => ['required', 'string', Rule::in(array_keys(Country::options()))],
             'venue_type' => 'required|string|in:'.implode(',', VenueType::values()),
             'website_url' => 'nullable|url|max:500',
             'notes' => 'nullable|string|max:1000',

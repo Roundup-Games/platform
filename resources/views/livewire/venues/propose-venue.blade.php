@@ -68,6 +68,7 @@
                             <input type="text"
                                    id="venue-city"
                                    wire:model="city"
+                                   list="registry-cities"
                                    placeholder="{{ __('location.field_enter_your_city') }}"
                                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                             @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
@@ -85,16 +86,29 @@
                         </div>
                     </div>
 
+                    {{-- Known city hubs (registry clusters) as autocomplete suggestions —
+                         free text stays allowed; new cities provision their hub on approval. --}}
+                    <datalist id="registry-cities">
+                        @foreach (\App\Models\City::query()->orderBy('city')->limit(100)->pluck('city') as $registryCity)
+                            <option value="{{ $registryCity }}"></option>
+                        @endforeach
+                    </datalist>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {{-- Country --}}
                         <div>
                             <label for="venue-country" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.field_country') }} <span class="text-error">*</span></label>
-                            <input type="text"
-                                   id="venue-country"
-                                   wire:model="country"
-                                   maxlength="3"
-                                   placeholder="US"
-                                   class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                            {{-- ISO 3166-1 alpha-3 country select (D173): localized names,
+                                 searchable by typing — replaces the free-text input that let
+                                 ISO-2 and mixed-case values into the data. --}}
+                            <select id="venue-country"
+                                    wire:model="country"
+                                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
+                                <option value="">{{ __('location.field_country_select') }}</option>
+                                @foreach (\App\Support\Country::options() as $code => $name)
+                                    <option value="{{ $code }}">{{ $name }} ({{ $code }})</option>
+                                @endforeach
+                            </select>
                             @error('country') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
 

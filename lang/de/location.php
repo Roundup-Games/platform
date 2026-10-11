@@ -10,6 +10,7 @@ return [
     'field_city' => 'Stadt',
     'field_city_name' => 'Stadtname',
     'field_country' => 'Land',
+    'field_country_select' => 'Land auswählen',
     'field_enter_your_city' => 'Gib deine Stadt ein',
     'field_or_enter_your_city' => 'Oder gib deine Stadt ein',
     'field_players_capacity' => 'Spieler & Kapazität',

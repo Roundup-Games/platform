@@ -4,6 +4,7 @@ use App\Enums\VenueType;
 use App\Filament\Resources\LocationResource\Pages\CreateLocation;
 use App\Filament\Resources\LocationResource\Pages\EditLocation;
 use App\Filament\Resources\LocationResource\Pages\ListLocations;
+use App\Models\City;
 use App\Models\Game;
 use App\Models\Location;
 use App\Models\User;
@@ -61,12 +62,16 @@ describe('CRUD operations', function () {
     test('Platform Admin can create a location via Filament', function () {
         actingAs($this->platformAdmin);
 
+        // D173 intake standard: city comes from the registry combobox —
+        // seed the cluster (the known-city flow), country is ISO-3.
+        City::factory()->create(['city' => 'Springfield', 'slug' => 'springfield']);
+
         Livewire\Livewire::test(CreateLocation::class)
             ->fillForm([
                 'name' => 'Test Venue',
                 'address' => '123 Main St',
                 'city' => 'Springfield',
-                'country' => 'US',
+                'country' => 'USA',
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -74,7 +79,7 @@ describe('CRUD operations', function () {
         assertDatabaseHas('locations', [
             'name' => 'Test Venue',
             'city' => 'Springfield',
-            'country' => 'US',
+            'country' => 'USA',
         ]);
     });
 

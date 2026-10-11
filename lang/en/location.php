@@ -9,6 +9,7 @@ return [
     'field_capacity' => 'Capacity',
     'field_city' => 'City',
     'field_city_name' => 'City name',
+    'field_country_select' => 'Select a country',
     'field_country' => 'Country',
     'field_enter_your_city' => 'Enter your city',
     'field_or_enter_your_city' => 'Or enter your city',

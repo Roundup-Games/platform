@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Enums\ContentLanguage;
 use App\Enums\EventStatus;
 use App\Enums\EventType;
+use App\Filament\Components\CountrySelect;
 use App\Filament\Components\SeoFields;
 use App\Filament\Resources\EventResource\Pages;
 use App\Filament\Resources\EventResource\RelationManagers\AnnouncementsRelationManager;
@@ -158,8 +159,7 @@ class EventResource extends Resource
                                     ->maxLength(255),
                                 TextInput::make('city')
                                     ->maxLength(255),
-                                TextInput::make('country')
-                                    ->maxLength(255),
+                                CountrySelect::make(),
                                 TextInput::make('postal_code')
                                     ->maxLength(20),
                             ]),

@@ -42,6 +42,9 @@
 #                                 from HasEntitySeo::entitySeoData()
 #                                 (or an explicit SEOData), never a bare
 #                                 model (the retired seo-table row layer)
+#   INV-14 country intake         -> country fields use CountrySelect /
+#                                 App\Support\Country (ISO 3166-1
+#                                 alpha-3), never free-text inputs
 #
 # Scope: app/, resources/, routes/, tests/ as noted per check. Patterns use
 # fixed strings where possible (grep -F) to stay bash-safe.
@@ -177,6 +180,16 @@ if [ -z "$hits" ]; then
     pass "INV-10 no hand-rolled PK id assignment in app/Models (HasPlatformUuid only)"
 else
     fail "INV-10 hand-rolled id assignment found (use App\\Models\\Concerns\\HasPlatformUuid): $(echo "$hits" | tr '\n' ' ')"
+fi
+
+# --- INV-14: country intake is a select, never free text ------------------
+# D173: TextInput::make('country') reintroduces ISO-2/mixed-case values
+# that split country grouping; every Filament surface uses CountrySelect.
+hits=$(grep -rn "TextInput::make('country')" app/Filament/ 2>/dev/null | grep -vE ":[0-9]+:\s*(\*|//)" | sort)
+if [ -z "$hits" ]; then
+    pass "INV-14 no free-text country inputs in Filament (CountrySelect only)"
+else
+    fail "INV-14 free-text country input found (use App\Filament\Components\CountrySelect): $(echo "$hits" | tr '\n' ' ')"
 fi
 
 # --- INV-13: entity SEO renders through HasEntitySeo, not the seo table ---

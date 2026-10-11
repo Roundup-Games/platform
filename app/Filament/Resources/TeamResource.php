@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Components\CountrySelect;
 use App\Filament\Components\SeoFields;
 use App\Filament\Resources\TeamResource\Pages;
 use App\Filament\Resources\TeamResource\RelationManagers\MembersRelationManager;
@@ -53,8 +54,7 @@ class TeamResource extends Resource
                                     ->helperText('Auto-generated from name if left empty'),
                                 TextInput::make('city')
                                     ->maxLength(255),
-                                TextInput::make('country')
-                                    ->maxLength(255),
+                                CountrySelect::make(),
                                 TextInput::make('founded_year')
                                     ->numeric()
                                     ->minValue(1800)

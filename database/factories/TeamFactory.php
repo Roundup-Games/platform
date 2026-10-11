@@ -19,7 +19,7 @@ class TeamFactory extends Factory
             'name' => fake()->unique()->company().' FC',
             'description' => ['en' => fake()->optional()->sentence()],
             'city' => fake()->optional()->city(),
-            'country' => fake()->optional()->countryCode(),
+            'country' => fake()->optional()->randomElement(['DEU', 'AUT', 'CHE']), // ISO 3 alpha-3 (D173)
             'language' => 'en',
             'is_active' => true,
             'created_by' => User::factory(),

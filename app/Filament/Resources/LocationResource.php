@@ -3,7 +3,9 @@
 namespace App\Filament\Resources;
 
 use App\Enums\VenueType;
+use App\Filament\Components\CountrySelect;
 use App\Filament\Resources\LocationResource\Pages;
+use App\Models\City;
 use App\Models\Location;
 use App\Services\LocationMergeService;
 use BackedEnum;
@@ -11,6 +13,7 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Select as FormSelect;
 use Filament\Forms\Components\Textarea;
@@ -56,12 +59,41 @@ class LocationResource extends Resource
                                 TextInput::make('address')
                                     ->maxLength(255)
                                     ->columnSpanFull(),
-                                TextInput::make('city')
-                                    ->maxLength(255),
+                                // City hub combobox (D171/D173): pick an existing
+                                // registry cluster (canonical label) or create a new
+                                // city name — the Location save provisions/links the
+                                // registry row either way, so this can never produce a
+                                // duplicate cluster from a stray variant spelling.
+                                Select::make('city')
+                                    ->options(fn (): array => static::registryCityOptions())
+                                    ->searchable()
+                                    ->createOptionForm([
+                                        TextInput::make('name')
+                                            ->label('New city name')
+                                            ->required()
+                                            ->maxLength(255),
+                                    ])
+                                    ->createOptionUsing(function (array $data): string {
+                                        return trim((string) ($data['name'] ?? ''));
+                                    })
+                                    ->helperText('Existing city hubs (registry) — or add a new city. The location links to its hub on save.'),
                                 TextInput::make('postal_code')
                                     ->maxLength(20),
-                                TextInput::make('country')
-                                    ->maxLength(255),
+                                CountrySelect::make(),
+                                Placeholder::make('linked_hub')
+                                    ->label('Linked city hub')
+                                    ->content(function (?Location $record): string {
+                                        if ($record?->city_id === null) {
+                                            return $record === null
+                                                ? 'Links automatically on save.'
+                                                : 'None yet — links automatically on save.';
+                                        }
+
+                                        $city = City::query()->find($record->city_id);
+
+                                        return $city === null ? 'None' : "/cities/{$city->slug} ({$city->curation_state})";
+                                    })
+                                    ->columnSpanFull(),
                                 TextInput::make('latitude')
                                     ->numeric()
                                     ->step(0.0000001),
@@ -426,5 +458,21 @@ class LocationResource extends Resource
         $data['venue_metadata'] = $envelope;
 
         return $data;
+    }
+
+    /**
+     * Canonical registry city labels as combobox options — the curated
+     * universe of existing clusters. Ordered by label for typing; the
+     * createOption path handles names not yet in the registry.
+     *
+     * @return array<string, string>
+     */
+    public static function registryCityOptions(): array
+    {
+        return City::query()
+            ->orderBy('city')
+            ->get(['city'])
+            ->mapWithKeys(fn (City $city): array => [$city->city => $city->city])
+            ->all();
     }
 }

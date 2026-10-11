@@ -10,6 +10,7 @@ use App\Services\Geohash;
 use App\Services\LocationDisclosureService;
 use App\Services\ProximityQuery;
 use App\Services\SlugService;
+use App\Support\Country;
 use Database\Factories\LocationFactory;
 use Escalated\Laravel\Concerns\PresentsAsTicketSubject;
 use Escalated\Laravel\Contracts\TicketSubject;
@@ -193,6 +194,15 @@ class Location extends Model implements TicketSubject
     protected function setCityAttribute(?string $value): void
     {
         $this->attributes['city'] = is_string($value) ? trim($value) : $value;
+    }
+
+    /**
+     * Country standard (D173): ISO 3166-1 alpha-3, upper-trimmed on write
+     * so no intake surface can reintroduce mixed-case or ISO-2 values.
+     */
+    protected function setCountryAttribute(?string $value): void
+    {
+        $this->attributes['country'] = Country::normalize($value);
     }
 
     // ── Relationships ──────────────────────────────────

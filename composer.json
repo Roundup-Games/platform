@@ -49,7 +49,8 @@
         "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-permission": "^8.0",
         "spatie/laravel-translatable": "^6.14",
-        "spatie/schema-org": "^5.0"
+        "spatie/schema-org": "^5.0",
+        "symfony/intl": "^8.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
