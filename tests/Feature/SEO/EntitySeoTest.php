@@ -82,6 +82,9 @@ it('serves curated per-locale SEO on the venue detail page with generated fallba
     $venue = Location::factory()->verifiedVenue()->create([
         'name' => 'Yorckschlösschen',
         'city' => 'Berlin',
+        // Explicit public venue type: the factory randomElement() can pick a
+        // non-public type, which skips public-slug generation -> 404 (CI flake).
+        'venue_type' => 'cafe',
         'latitude' => 52.52,
         'longitude' => 13.405,
     ]);
