@@ -5,12 +5,15 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CityResource\Pages;
 use App\Filament\Resources\CityResource\RelationManagers;
 use App\Models\City;
+use App\Services\CityMergeService;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -175,6 +178,29 @@ class CityResource extends Resource
             ->emptyStateHeading('No city hubs discovered yet')
             ->emptyStateDescription('Hubs appear here automatically as geocoded locations form clusters — nothing to create by hand. Check the Locations resource if you expected some.')
             ->recordActions([
+                Action::make('mergeInto')
+                    ->label('Merge into…')
+                    ->icon(Heroicon::OutlinedArrowRightCircle)
+                    ->color('warning')
+                    ->visible(fn (City $record): bool => $record->exists)
+                    ->form([
+                        Select::make('target_city_id')
+                            ->label('Surviving hub')
+                            ->options(fn (City $record): array => City::query()
+                                ->whereKeyNot($record->getKey())
+                                ->orderBy('city')
+                                ->get(['id', 'city'])
+                                ->mapWithKeys(fn (City $c): array => [$c->id => $c->city.' (/cities/'.$c->slug.')'])
+                                ->all())
+                            ->required()
+                            ->helperText('All locations and alias spellings of this hub move to the surviving hub. Its spelling becomes a permanent alias — future inputs resolve automatically.'),
+                    ])
+                    ->action(function (City $record, array $data): void {
+                        $target = City::query()->findOrFail($data['target_city_id']);
+                        if ($target instanceof City) {
+                            app(CityMergeService::class)->merge($record, $target);
+                        }
+                    }),
                 EditAction::make(),
                 DeleteAction::make()
                     ->visible(fn (City $record): bool => $record->locations()->doesntExist()),

@@ -67,11 +67,23 @@
                             <label for="venue-city" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.field_city') }} <span class="text-error">*</span></label>
                             <input type="text"
                                    id="venue-city"
-                                   wire:model="city"
-                                   list="registry-cities"
+                                   wire:model.live.debounce.350ms="city"
                                    placeholder="{{ __('location.field_enter_your_city') }}"
                                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                             @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                            @if ($showSuggestions && count($citySuggestions) > 0)
+                                {{-- Existing hubs matching the typed text (alias rules + fuzzy). Free text stays allowed. --}}
+                                <div class="mt-1 rounded-lg border border-outline-variant/40 bg-surface-container-lowest shadow-sm max-h-48 overflow-y-auto">
+                                    @foreach ($citySuggestions as $suggestion)
+                                        <button type="button"
+                                                wire:click="selectCitySuggestion('{{ addslashes($suggestion['city']) }}')"
+                                                class="w-full text-left px-4 py-2 hover:bg-surface-container-high flex items-center justify-between gap-2">
+                                            <span class="text-sm text-on-surface">{{ $suggestion['city'] }}</span>
+                                            <span class="text-xs text-on-surface-variant">{{ $suggestion['locations'] }} {{ __('location.field_locations') }}@if ($suggestion['curated']) · {{ __('location.field_curated') }}@endif</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
 
                         {{-- Postal Code --}}
@@ -85,14 +97,6 @@
                             @error('postal_code') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
-
-                    {{-- Known city hubs (registry clusters) as autocomplete suggestions —
-                         free text stays allowed; new cities provision their hub on approval. --}}
-                    <datalist id="registry-cities">
-                        @foreach (\App\Models\City::query()->orderBy('city')->limit(100)->pluck('city') as $registryCity)
-                            <option value="{{ $registryCity }}"></option>
-                        @endforeach
-                    </datalist>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {{-- Country --}}

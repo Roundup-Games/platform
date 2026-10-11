@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\City;
+use App\Models\CityAlias;
 use App\Models\Location;
+use App\Support\CityNormalizer;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -114,6 +116,34 @@ class CityRegistryService
      */
     private function registryFor(string $slug, string $region, string $city, ?string $country): ?City
     {
+        // Alias rules first (D174): a confirmed merge means this spelling
+        // IS an existing hub — link it, never provision a duplicate.
+        $aliasKey = CityNormalizer::key($city);
+
+        // Unconditional: a merged spelling often slugs to itself ('munchin' ->
+        // key 'munchin') — the guard must not skip exactly that case.
+        if ($aliasKey !== '') {
+            $alias = CityAlias::query()
+                ->where('normalized_key', $aliasKey)
+                ->first();
+
+            if ($alias !== null) {
+                return $alias->city()->first();
+            }
+        }
+
+        // Deterministic normalized match (D174): same key AND same region
+        // is the same cluster by definition — 'Muenchen' joins 'München'
+        // with no admin action and no fuzzy risk.
+        $normalized = City::query()
+            ->where('slug', $aliasKey)
+            ->where('region_prefix', $region)
+            ->first();
+
+        if ($normalized !== null) {
+            return $normalized;
+        }
+
         foreach ($this->candidateSlugs($slug, $region) as $candidate) {
             $existing = City::query()->where('slug', $candidate)->first();
 

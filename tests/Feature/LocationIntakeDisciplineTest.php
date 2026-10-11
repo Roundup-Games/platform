@@ -119,10 +119,16 @@ describe('public venue proposal intake', function () {
             ->call('submit')
             ->assertHasErrors(['country']);
 
-        // A fresh render shows the ISO-3 select and registry city suggestions.
-        $html = Livewire\Livewire::actingAs($user)->test(ProposeVenue::class)->html();
+        // A fresh render shows the ISO-3 select; typing 3+ chars triggers
+        // debounced registry suggestions (D174) through the same endpoint.
+        $component = Livewire\Livewire::actingAs($user)->test(ProposeVenue::class);
+        $html = $component->html();
 
-        expect($html)->toContain('registry-cities')
-            ->and($html)->toContain('<option value="DEU">');
+        expect($html)->toContain('<option value="DEU">');
+
+        City::create(['slug' => 'munchen', 'city' => 'München', 'country' => 'DEU', 'region_prefix' => 'u28', 'curation_state' => 'discovered']);
+        $component->set('city', 'Muenchen');
+        $component->assertSet('showSuggestions', true);
+        expect($component->get('citySuggestions'))->not->toBeEmpty();
     });
 });

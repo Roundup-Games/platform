@@ -97,4 +97,15 @@ class City extends Model
     {
         return $this->hasMany(Location::class);
     }
+
+    /**
+     * Confirmed alternative spellings (D174) — created by merges, resolved
+     * by CityRegistryService before any new cluster is provisioned.
+     *
+     * @return HasMany<CityAlias, $this>
+     */
+    public function aliases(): HasMany
+    {
+        return $this->hasMany(CityAlias::class);
+    }
 }

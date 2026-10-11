@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CitiesSuggestController;
 use App\Http\Controllers\Api\GeocodeController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,9 @@ Route::middleware(['throttle:api'])->prefix('v1')->group(function () {
 
     Route::post('geocode', [GeocodeController::class, 'geocode'])
         ->name('api.geocode');
+
+    Route::get('cities/suggest', CitiesSuggestController::class)
+        ->name('api.cities.suggest');
 
     Route::get('push/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])
         ->name('api.push.vapid-public-key');

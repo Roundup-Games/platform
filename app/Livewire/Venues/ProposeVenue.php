@@ -3,6 +3,7 @@
 namespace App\Livewire\Venues;
 
 use App\Enums\VenueType;
+use App\Http\Controllers\Api\CitiesSuggestController;
 use App\Models\Location;
 use App\Services\GeocodingService;
 use App\Services\VenueProposalService;
@@ -24,6 +25,11 @@ class ProposeVenue extends Component
     public string $address = '';
 
     public string $city = '';
+
+    /** @var array<int, array<string, mixed>> */
+    public array $citySuggestions = [];
+
+    public bool $showSuggestions = false;
 
     public ?string $postal_code = null;
 
@@ -53,6 +59,42 @@ class ProposeVenue extends Component
     }
 
     // ── Validation ───────────────────────────────────
+
+    /**
+     * @return array<string, mixed>
+     */
+    /**
+     * Debounced city-input guidance (D174): alias rules and fuzzy matches
+     * surface existing hubs as the user types; free text stays allowed —
+     * picking a suggestion only fills the canonical label into the field.
+     */
+    public function updatedCity(string $value): void
+    {
+        $this->showSuggestions = mb_strlen(trim($value)) >= 3;
+
+        if (! $this->showSuggestions) {
+            $this->citySuggestions = [];
+
+            return;
+        }
+
+        $response = app(CitiesSuggestController::class)(request()->merge(['q' => $value]));
+        $data = $response->getData(true);
+        $suggestions = is_array($data) && is_array($data['suggestions'] ?? null) ? $data['suggestions'] : [];
+
+        $this->citySuggestions = collect($suggestions)
+            ->filter(fn ($item): bool => is_array($item))
+            ->map(fn (array $item): array => $item)
+            ->values()
+            ->all();
+    }
+
+    public function selectCitySuggestion(string $city): void
+    {
+        $this->city = $city;
+        $this->showSuggestions = false;
+        $this->citySuggestions = [];
+    }
 
     /**
      * @return array<string, mixed>

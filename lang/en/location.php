@@ -10,6 +10,8 @@ return [
     'field_city' => 'City',
     'field_city_name' => 'City name',
     'field_country_select' => 'Select a country',
+    'field_locations' => 'locations',
+    'field_curated' => 'curated hub',
     'field_country' => 'Country',
     'field_enter_your_city' => 'Enter your city',
     'field_or_enter_your_city' => 'Or enter your city',

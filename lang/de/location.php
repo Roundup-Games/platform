@@ -9,6 +9,8 @@ return [
     'field_capacity' => 'Kapazität',
     'field_city' => 'Stadt',
     'field_city_name' => 'Stadtname',
+    'field_locations' => 'Orte',
+    'field_curated' => 'kuratierter Hub',
     'field_country' => 'Land',
     'field_country_select' => 'Land auswählen',
     'field_enter_your_city' => 'Gib deine Stadt ein',
