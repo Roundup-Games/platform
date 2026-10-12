@@ -54,6 +54,7 @@ use App\Services\PwaEligibilityService;
 use App\Services\ReliabilityScoreService;
 use App\Services\ScopedRoleService;
 use App\Services\WaitlistService;
+use App\Support\CacheMetrics;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
 use Escalated\Laravel\Contracts\EscalatedUiRenderer;
@@ -81,6 +82,8 @@ use Filament\Facades\Filament;
 use Filament\View\PanelsRenderHook;
 use GuzzleHttp\Client;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Cache\Events\CacheHit;
+use Illuminate\Cache\Events\CacheMissed;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -518,6 +521,12 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         Review::observe(ReviewObserver::class);
+
+        // App-scoped cache effectiveness (see App\Support\CacheMetrics):
+        // server-global keyspace counters are dominated by queue-worker
+        // sentinels and other tenants on the shared Redis instance.
+        EventFacade::listen(CacheHit::class, fn ($event) => CacheMetrics::record($event->key, true));
+        EventFacade::listen(CacheMissed::class, fn ($event) => CacheMetrics::record($event->key, false));
 
         // Dashboard cache invalidation observers
         Game::observe(GameObserver::class);

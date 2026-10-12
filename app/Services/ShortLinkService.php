@@ -120,14 +120,24 @@ class ShortLinkService
     {
         $cacheKey = "short_link_id:{$id}";
 
-        /** @var ShortLink|null $link */
-        $link = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($id): ?ShortLink {
-            return ShortLink::find($id);
+        // Cache the plain attribute array, never the model: the Redis
+        // store unserializes with allowed_classes=false (config/cache.php),
+        // so an object payload would come back as __PHP_Incomplete_Class
+        // and fatal on first property access (the M062 62-02 class of bug;
+        // this was the last known model-caching offender).
+        /** @var array<string, mixed>|null $cached */
+        $cached = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($id): ?array {
+            $link = ShortLink::find($id);
+
+            return $link?->getAttributes();
         });
 
-        if ($link === null) {
+        if ($cached === null) {
             return null;
         }
+
+        $link = (new ShortLink)->newFromBuilder($cached);
+        $link->exists = true;
 
         if ($link->trashed()) {
             Cache::forget($cacheKey);

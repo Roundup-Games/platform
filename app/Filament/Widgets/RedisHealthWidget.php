@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Support\CacheMetrics;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Cache;
@@ -53,13 +54,22 @@ class RedisHealthWidget extends StatsOverviewWidget
             ];
         }
 
+        // App-scoped effectiveness first: the server-wide keyspace ratio on
+        // this shared Redis is dominated by queue-worker sentinel misses
+        // (illuminate:*) and other tenants — structurally, not a roundup
+        // problem. CacheMetrics counts only real application cache keys.
+        $app = CacheMetrics::snapshot();
+        $appRatio = $app['ratio'];
         $total = $s['hits'] + $s['misses'];
-        $ratio = $total > 0 ? round($s['hits'] / $total * 100, 1) : null;
+        $serverRatio = $total > 0 ? round($s['hits'] / $total * 100, 1) : null;
 
         return [
-            Stat::make('Keyspace hit ratio', $ratio === null ? 'n/a' : $ratio.'%')
-                ->description(number_format($s['hits']).' hits · '.number_format($s['misses']).' misses (server counters)')
-                ->color($ratio === null ? 'gray' : ($ratio >= 90 ? 'success' : ($ratio >= 70 ? 'warning' : 'danger'))),
+            Stat::make('App cache hit ratio', $appRatio === null ? 'n/a (no app traffic yet)' : $appRatio.'%')
+                ->description(number_format($app['hits']).' hits · '.number_format($app['misses']).' misses — roundup cache keys only')
+                ->color($appRatio === null ? 'gray' : ($appRatio >= 90 ? 'success' : ($appRatio >= 70 ? 'warning' : 'danger'))),
+            Stat::make('Server ratio (context)', $serverRatio === null ? 'n/a' : $serverRatio.'%')
+                ->description('includes queue sentinels + co-tenant apps — not actionable')
+                ->color('gray'),
             Stat::make('Keys', number_format($s['keys']))
                 ->description($s['clients'].' connected clients · up '.$s['uptime_days'].'d'),
             Stat::make('Memory', $s['memory'])
