@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
@@ -421,6 +422,7 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         // PUBLIC-only visibility is deliberate (D141): crawlers are guests.
         // TTL-cached by GameSystemLandingService, so after the component's own
         // service call this is a cache hit, not a second query.
+        /** @var Collection<int, Game> $tables */
         $tables = app(GameSystemLandingService::class)->upcomingTables($this);
 
         if ($tables->isNotEmpty()) {

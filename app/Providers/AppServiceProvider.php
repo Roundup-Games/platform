@@ -36,6 +36,7 @@ use App\Observers\EventAnnouncementObserver;
 use App\Observers\GameBulletinObserver;
 use App\Observers\GameObserver;
 use App\Observers\GameParticipantObserver;
+use App\Observers\GameSystemLandingObserver;
 use App\Observers\ReviewObserver;
 use App\Observers\SeoModelObserver;
 use App\Observers\UserRelationshipObserver;
@@ -521,6 +522,10 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         Review::observe(ReviewObserver::class);
+
+        // Landing-cache invalidation (see GameSystemLandingObserver).
+        Game::observe(GameSystemLandingObserver::class);
+        GameSystem::observe(GameSystemLandingObserver::class);
 
         // App-scoped cache effectiveness (see App\Support\CacheMetrics):
         // server-global keyspace counters are dominated by queue-worker

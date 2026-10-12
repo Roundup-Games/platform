@@ -31,10 +31,10 @@ class SeoCacheService
     // ── TTL constants (seconds) ────────────────────────
 
     /** @var int Static pages — rarely change (about, contact, etc.) */
-    private const TTL_STATIC = 3600; // 1 hour
+    private const TTL_STATIC = 86400; // 24 h backstop — observer-invalidated on saves
 
     /** @var int Dynamic content — changes as records are created/updated/deleted */
-    private const TTL_DYNAMIC = 1800; // 30 minutes
+    private const TTL_DYNAMIC = 21600; // 6 h backstop — observer-invalidated on saves
 
     // ── Valid sitemap types ────────────────────────────
 

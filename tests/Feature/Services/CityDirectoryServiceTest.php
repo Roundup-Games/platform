@@ -498,10 +498,13 @@ describe('per-city summary caching', function () {
         expect($service->resolveCity('berlin')->upcomingGamesCount)->toBe(0);
     });
 
-    it('keeps the hub cache TTL aligned with the discovery cache TTL', function () {
-        // Same staleness class as discovery (T05 contract): both default
-        // to 900s and share the env-tuning pattern. Drift here changes
-        // how stale a hub can be relative to every discovery page.
-        expect((int) config('cityhubs.cache_ttl'))->toBe((int) config('discovery.cache_ttl'));
+    it('keeps the hub cache TTL as a longer backstop than TTL-only discovery', function () {
+        // Deep-dive tuning contract: hub freshness is EVENT-driven
+        // (CityHubCacheObserver flushes + hourly cityhubs:recompute), so
+        // its TTL is a backstop and may exceed discovery's. Discovery
+        // pages have no invalidation — their TTL is the freshness
+        // mechanism and must stay short. The hub must never be staler
+        // than discovery would let a visitor believe (>= guard).
+        expect((int) config('cityhubs.cache_ttl'))->toBeGreaterThanOrEqual((int) config('discovery.cache_ttl'));
     });
 });

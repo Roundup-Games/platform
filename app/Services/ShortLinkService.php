@@ -125,8 +125,9 @@ class ShortLinkService
         // so an object payload would come back as __PHP_Incomplete_Class
         // and fatal on first property access (the M062 62-02 class of bug;
         // this was the last known model-caching offender).
+        // 60 min backstop — trashed/expired/cap checks lazily forget on read.
         /** @var array<string, mixed>|null $cached */
-        $cached = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($id): ?array {
+        $cached = Cache::remember($cacheKey, now()->addMinutes(60), function () use ($id): ?array {
             $link = ShortLink::find($id);
 
             return $link?->getAttributes();

@@ -156,7 +156,7 @@ class PeopleDiscoveryService
     {
         $viewerGeohash = Geohash::tilePrefix($lat, $lng, 4);
         $cacheKey = "people:nearby:{$viewer->id}:{$viewerGeohash}";
-        $ttl = now()->addMinutes(5);
+        $ttl = now()->addMinutes(30); // backstop — UpdateUserDiscoveryCache refreshes on follow/unfollow
 
         self::invalidateCacheFor((string) $viewer->id);
 

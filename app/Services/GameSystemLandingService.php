@@ -55,8 +55,20 @@ class GameSystemLandingService
      *
      * @return Collection<int, Game>
      */
+    /**
+     * Drop one system's landing cache (invalidation entry point): the
+     * GameSystemLandingObserver calls this on GameSystem and Game saves
+     * so the TTL is a backstop, not the freshness mechanism.
+     */
+    public static function forget(string $gameSystemId): void
+    {
+        Cache::forget(self::CACHE_PREFIX.$gameSystemId);
+    }
+
+    /** @return Collection<int, Game> */
     public function upcomingTables(GameSystem $system): Collection
     {
+        // phpcs:ignore
         $cacheKey = self::CACHE_PREFIX.$system->id;
         $ttl = now()->addSeconds($this->configInt('game-systems.cache_ttl', 900));
 

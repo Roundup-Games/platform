@@ -28,6 +28,8 @@ return [
     |
     */
 
-    'cache_ttl' => env('GAMESYSTEMS_CACHE_TTL', 900),
+    // Backstop TTL — freshness via GameSystemLandingObserver (Game/GameSystem
+    // saves invalidate affected landing caches).
+    'cache_ttl' => env('GAMESYSTEMS_CACHE_TTL', 3600),
 
 ];

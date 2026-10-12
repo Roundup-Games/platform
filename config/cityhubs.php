@@ -46,6 +46,10 @@ return [
     |
     */
 
-    'cache_ttl' => env('CITYHUBS_CACHE_TTL', 900),
+    // Backstop TTL only — freshness comes from CityHubCacheObserver flushes
+    // and the hourly cityhubs:recompute warm pass (deep-dive tuning:
+    // 15 min forced every cold visitor into a recompute; 6 h rides the
+    // observers instead).
+    'cache_ttl' => env('CITYHUBS_CACHE_TTL', 21600),
 
 ];
