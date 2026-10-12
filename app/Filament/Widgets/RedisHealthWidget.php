@@ -25,7 +25,15 @@ class RedisHealthWidget extends StatsOverviewWidget
             /** @var array{hits: int, misses: int, memory: string, clients: int, uptime_days: int, keys: int} $s */
             $s = Cache::remember('admin:redis-health', now()->addSeconds(90), function (): array {
                 $info = Redis::info('stats', 'memory', 'server', 'clients');
-                $i = is_array($info) ? $info : [];
+
+                // predis nests INFO by section ('Stats' => [...]); flatten
+                // both shapes so the lookups below always see scalar keys.
+                $i = [];
+                foreach ((array) $info as $section) {
+                    if (is_array($section)) {
+                        $i = array_merge($i, $section);
+                    }
+                }
                 $str = fn (string $k, string $d = '0'): string => is_string($i[$k] ?? null) || is_int($i[$k] ?? null) ? (string) $i[$k] : $d;
 
                 return [
