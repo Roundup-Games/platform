@@ -43,12 +43,21 @@ class DatabaseHealthWidget extends StatsOverviewWidget
         $size = $sizeRow instanceof stdClass && is_string($sizeRow->size ?? null) ? $sizeRow->size : 'n/a';
         $startedAt = $sizeRow instanceof stdClass && is_string($sizeRow->t ?? null) ? Carbon::parse($sizeRow->t) : null;
 
+        $hit = 0;
+        $read = 0;
+        if ($ioRow instanceof stdClass) {
+            $hit = is_numeric($ioRow->hit) ? (int) $ioRow->hit : 0;
+            $read = is_numeric($ioRow->read) ? (int) $ioRow->read : 0;
+        }
+
+        $connections = DB::scalar('select count(*) from pg_stat_activity where datname = current_database()');
+
         return [
             'size' => $size,
             'uptime' => $startedAt?->diffForHumans() ?? 'n/a',
-            'hit' => is_numeric($ioRow->hit ?? null) ? (int) $ioRow->hit : 0,
-            'read' => is_numeric($ioRow->read ?? null) ? (int) $ioRow->read : 0,
-            'connections' => (int) DB::scalar('select count(*) from pg_stat_activity where datname = current_database()'),
+            'hit' => $hit,
+            'read' => $read,
+            'connections' => is_numeric($connections) ? (int) $connections : 0,
             'migrations' => (int) DB::table('migrations')->count(),
             'bloat' => array_map(
                 static fn (stdClass $row): string => $row->table.' ('.number_format((float) $row->dead).' dead)',
