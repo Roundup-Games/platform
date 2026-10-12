@@ -1,5 +1,20 @@
 <?php
 
+use App\Support\SystemHealth;
+use Illuminate\Http\Response;
+
+// Dependency-aware health (MEM1147): 200 'OK' when DB + Redis + cache
+// answer; 503 with failing check names. The docker healthcheck gates on
+// the exact 'OK' body, so outages surface as container health, not 500s.
+Route::get('/up', function (): Response {
+    $checks = SystemHealth::checks();
+
+    return response(
+        SystemHealth::healthy() ? 'OK' : json_encode($checks),
+        SystemHealth::healthy() ? 200 : 503,
+    );
+});
+
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\DiscordBotInstallController;
 use App\Http\Controllers\DiscordInteractionController;

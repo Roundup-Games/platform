@@ -49,10 +49,10 @@ echo "Caching config, routes, views, events..."
 # Soft dependency preflight (MEM1147): warn — never block boot — when
 # Redis or Postgres are not reachable yet, so reboot-window outages are
 # visible in container logs instead of only as user-facing 500s.
-if ! php -r 'try { exit((bool) DB::select("select 1") ? 0 : 1); } catch (Throwable) { exit(1); }' 2>/dev/null; then
+if ! php artisan tinker --execute='try { DB::select("select 1"); } catch (Throwable \$e) { exit(1); }' >/dev/null 2>&1; then
     echo "preflight: DATABASE unreachable at boot — is postgresql17 up and on the roundup network?"
 fi
-if ! php artisan tinker --execute='try { Redis::ping(); } catch (Throwable \$e) { exit(1); }' >/dev/null 2>&1; then
+if ! php artisan tinker --execute='try { Illuminate\Support\Facades\Redis::ping(); } catch (Throwable \$e) { exit(1); }' >/dev/null 2>&1; then
     echo "preflight: REDIS unreachable at boot — is Redis up and on the roundup network?"
 fi
 
