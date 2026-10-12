@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\SystemHealth;
+use Illuminate\Support\Facades\Redis;
 
 use function Pest\Laravel\get;
 
@@ -9,6 +10,10 @@ use function Pest\Laravel\get;
 // healthcheck gates on it, so Redis/Postgres outages surface as an
 // unhealthy container instead of user-facing 500s while looking healthy.
 it('reports OK with all dependencies reachable', function () {
+    // The phpunit env has Postgres + array cache but no Redis server —
+    // the facade mock represents the reachable production dependency.
+    Redis::shouldReceive('ping')->andReturn('PONG');
+
     get('/up')
         ->assertOk()
         ->assertSee('OK');
