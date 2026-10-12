@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\GameSystemLandingService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 // GameSystemLandingService (M062 / 62-02 T01): the shared upcoming-tables set
 // behind the game-system landing page module and the ItemList JSON-LD.
@@ -123,7 +124,7 @@ describe('upcomingTables query', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('upcomingTables caching', function () {
-    it('serves from the TTL cache until flushed', function () {
+    it('serves from the cache and reflects new tables immediately via observer invalidation', function () {
         $system = GameSystem::factory()->create();
         $original = upcomingTable($system, ['date_time' => now()->addDays(5)]);
 
@@ -131,20 +132,15 @@ describe('upcomingTables caching', function () {
 
         expect($service->upcomingTables($system)->pluck('id')->all())->toBe([$original->id]);
 
-        // A new matching row would sort FIRST if the query re-ran; the
-        // cached second call leaves it invisible — the TTL is the staleness
-        // bound until 62-03 wires invalidation.
+        // GameSystemLandingObserver (deep-dive): saving a Game drops the
+        // landing caches of its linked systems, so the new table — which
+        // would sort FIRST if the query re-ran — is visible on the very
+        // next read. Freshness is event-driven; the TTL is only a backstop.
         $newlyCreated = upcomingTable($system, ['date_time' => now()->addDays(2)]);
 
         $cached = $service->upcomingTables($system);
 
-        expect($cached->pluck('id')->all())->toBe([$original->id])
-            ->and($cached->pluck('id'))->not->toContain($newlyCreated->id);
-
-        Cache::flush();
-
-        expect($service->upcomingTables($system)->pluck('id')->all())
-            ->toBe([$newlyCreated->id, $original->id]);
+        expect($cached->pluck('id')->all())->toBe([$newlyCreated->id, $original->id]);
     });
 
     it('caches empty results too (empty Collection is not null)', function () {
@@ -153,13 +149,14 @@ describe('upcomingTables caching', function () {
         $service = app(GameSystemLandingService::class);
         expect($service->upcomingTables($system))->toBeEmpty();
 
-        // The empty result persists as an empty array — otherwise every
-        // empty-system render would re-run the query.
-        $table = upcomingTable($system);
-
+        // The empty result persists as an empty array across reads without
+        // intervening writes — otherwise every empty-system render would
+        // re-run the query.
         expect($service->upcomingTables($system))->toBeEmpty();
 
-        Cache::flush();
+        // And once a table exists, the observer invalidation makes the
+        // next read pick it up without a manual flush.
+        $table = upcomingTable($system);
 
         expect($service->upcomingTables($system)->pluck('id')->all())->toBe([$table->id]);
     });
@@ -188,13 +185,20 @@ describe('upcomingTables caching', function () {
         $service = app(GameSystemLandingService::class);
         $service->upcomingTables($system); // prime the cache
 
-        // Make the row ineligible so any fresh query would exclude it —
-        // the result below can only come from the cached rows.
-        $game->update(['date_time' => now()->subDay()]);
-
+        // The second read must be a pure cache hit — zero queries — and
+        // still deliver hydrated Game models (the pre-observer version
+        // proved cache provenance via staleness; invalidation removed
+        // that mechanism, so the query log proves it directly).
+        DB::enableQueryLog();
         $tables = $service->upcomingTables($system);
+        $gameQueries = collect(DB::getQueryLog())
+            ->pluck('query')
+            ->filter(fn (string $q): bool => str_contains($q, 'from "games"'))
+            ->count();
+        DB::disableQueryLog();
 
-        expect($tables)->toHaveCount(1)
+        expect($gameQueries)->toBe(0)
+            ->and($tables)->toHaveCount(1)
             ->and($tables->first()->id)->toBe($game->id)
             ->and($tables->first()->owner)->toBeInstanceOf(User::class)
             ->and($tables->first()->owner->is($game->owner))->toBeTrue()

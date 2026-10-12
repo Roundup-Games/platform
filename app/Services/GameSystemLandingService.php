@@ -26,23 +26,28 @@ class GameSystemLandingService
     private const CACHE_PREFIX = 'gamesystem:upcoming-tables:';
 
     /**
-     * Upcoming public tables offering this system: future scheduled public
-     * games linked through the gameSystems pivot — the same visibility/
-     * status/future semantics as DiscoveryQueryService::buildGamesQuery
-     * (public + scheduled + future), scoped to one system instead of a
-     * proximity radius, minus the discovery filters.
-     *
-     * Eager loads mirror the discovery card query (owner, gameSystems,
-     * campaign, linkedLocation, approved participant count) so the shared
-     * game-card partial renders unchanged. TTL-cached so the model's
-     * getDynamicSEOData call on the same render is a cache hit instead of
-     * a duplicate query.
+     * Drop one system's landing cache (invalidation entry point): the
+     * GameSystemLandingObserver calls this on GameSystem and Game saves
+     * so the TTL is a backstop, not the freshness mechanism.
+     */
+    public static function forget(string $gameSystemId): void
+    {
+        Cache::forget(self::CACHE_PREFIX.$gameSystemId);
+    }
+
+    /**
+     * Upcoming PUBLIC tables for one system's landing surface.
      *
      * PUBLIC-ONLY visibility is deliberate (D141): this data feeds an SEO
      * surface rendered to every viewer, including crawlers (guests), so
      * protected sessions must never reach the listing or the ItemList. It
      * intentionally diverges from GameSystemDetail's active_sessions_count,
      * which stays public+protected — do not "fix" the asymmetry.
+     *
+     * Freshness is EVENT-driven: GameSystemLandingObserver drops the
+     * affected key on Game/GameSystem saves, so the configured TTL is a
+     * backstop for drift paths without model events (mass updates), not
+     * the freshness mechanism.
      *
      * Like CityDirectoryService, the cache payload is plain arrays, never
      * Eloquent objects: config/cache.php hardens unserialize with
@@ -55,22 +60,10 @@ class GameSystemLandingService
      *
      * @return Collection<int, Game>
      */
-    /**
-     * Drop one system's landing cache (invalidation entry point): the
-     * GameSystemLandingObserver calls this on GameSystem and Game saves
-     * so the TTL is a backstop, not the freshness mechanism.
-     */
-    public static function forget(string $gameSystemId): void
-    {
-        Cache::forget(self::CACHE_PREFIX.$gameSystemId);
-    }
-
-    /** @return Collection<int, Game> */
     public function upcomingTables(GameSystem $system): Collection
     {
-        // phpcs:ignore
         $cacheKey = self::CACHE_PREFIX.$system->id;
-        $ttl = now()->addSeconds($this->configInt('game-systems.cache_ttl', 900));
+        $ttl = now()->addSeconds($this->configInt('game-systems.cache_ttl', 3600));
 
         /** @var mixed $rows */
         $rows = Cache::get($cacheKey);
