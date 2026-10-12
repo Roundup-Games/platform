@@ -46,8 +46,8 @@ class DatabaseHealthWidget extends StatsOverviewWidget
         return [
             'size' => $size,
             'uptime' => $startedAt?->diffForHumans() ?? 'n/a',
-            'hit' => (int) ($ioRow->hit ?? 0),
-            'read' => (int) ($ioRow->read ?? 0),
+            'hit' => is_numeric($ioRow->hit ?? null) ? (int) $ioRow->hit : 0,
+            'read' => is_numeric($ioRow->read ?? null) ? (int) $ioRow->read : 0,
             'connections' => (int) DB::scalar('select count(*) from pg_stat_activity where datname = current_database()'),
             'migrations' => (int) DB::table('migrations')->count(),
             'bloat' => array_map(
@@ -63,6 +63,7 @@ class DatabaseHealthWidget extends StatsOverviewWidget
     protected function getStats(): array
     {
         try {
+            /** @var array{size: string, uptime: string, hit: int, read: int, connections: int, migrations: int, bloat: array<int, string>} $s */
             $s = Cache::remember('admin:database-health', now()->addMinutes(2), fn (): array => $this->collect());
         } catch (\Throwable) {
             return [
@@ -74,7 +75,7 @@ class DatabaseHealthWidget extends StatsOverviewWidget
 
         $total = $s['hit'] + $s['read'];
         $ratio = $total > 0 ? round($s['hit'] / $total * 100, 1) : null;
-        $bloat = is_array($s['bloat']) ? $s['bloat'] : [];
+        $bloat = $s['bloat'];
         $bloatText = $bloat === [] ? 'no significant bloat' : implode(' · ', $bloat).' — autovacuum behind';
 
         return [

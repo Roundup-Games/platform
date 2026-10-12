@@ -22,6 +22,7 @@ class RedisHealthWidget extends StatsOverviewWidget
     protected function getStats(): array
     {
         try {
+            /** @var array{hits: int, misses: int, memory: string, clients: int, uptime_days: int, keys: int} $s */
             $s = Cache::remember('admin:redis-health', now()->addSeconds(90), function (): array {
                 $info = Redis::info('stats', 'memory', 'server', 'clients');
                 $i = is_array($info) ? $info : [];
