@@ -13,10 +13,10 @@ services:
     ports:
       - "8199:8080"
     # Dependency-aware health (MEM1147): /up checks DB + Redis + cache.
-    # The php file_get_contents probe avoids depending on curl in the
-    # image; the fpm/nginx stack serves /up on 8080.
+    # curl -f: exit 22 on HTTP >= 400, so the 503-with-check-names
+    # response fails the probe (the image ships curl).
     healthcheck:
-      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/up') === 'OK' ? 0 : 1);"]
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/up"]
       interval: 30s
       timeout: 5s
       retries: 5

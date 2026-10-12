@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
+use Predis\Response\Status;
 
 /**
  * Dependency-aware runtime health (MEM1147): the app's containers start
@@ -44,7 +45,15 @@ final class SystemHealth
     private static function redis(): bool
     {
         try {
-            return Redis::ping() === 'PONG' || Redis::ping() === true;
+            $pong = Redis::ping();
+
+            // predis returns a Predis\Response\Status object (payload
+            // 'PONG'), not a string — normalize before comparing.
+            if ($pong instanceof Status) {
+                return $pong->getPayload() === 'PONG';
+            }
+
+            return $pong === 'PONG' || $pong === true;
         } catch (\Throwable) {
             return false;
         }
