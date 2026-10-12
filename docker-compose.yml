@@ -12,6 +12,15 @@ services:
       - app_storage:/var/www/html/storage
     ports:
       - "8199:8080"
+    # Dependency-aware health (MEM1147): /up checks DB + Redis + cache.
+    # The php file_get_contents probe avoids depending on curl in the
+    # image; the fpm/nginx stack serves /up on 8080.
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/up') === 'OK' ? 0 : 1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     networks:
       - roundup
 
@@ -54,3 +63,14 @@ volumes:
 networks:
   roundup:
     driver: bridge
+    # Stable, host-referencable name: Redis and Postgres (Unraid-managed
+    # containers on this host) attach to this network so the app resolves
+    # them by container name (REDIS_HOST=Redis, DB_HOST=postgresql17) —
+    # never by host LAN IP (MEM1147: reboot windows + restart=no caused
+    # ~4.9K connection-refused errors). Those containers must also run
+    # with --restart unless-stopped. NOTE: docker network connect is
+    # runtime state — re-attach after recreating Redis/Postgres on the
+    # Unraid side, or add this network to their templates:
+    #   docker network connect roundup-games-laravel_roundup Redis
+    #   docker network connect roundup-games-laravel_roundup postgresql17
+    name: roundup-games-laravel_roundup
