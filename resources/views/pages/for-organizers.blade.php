@@ -31,7 +31,11 @@
         </div>
     </section>
 
-    {{-- ── Benefit Cards ────────────────────────────────────── --}}
+    {{-- ── Differentiator Cards (real shipped features) ───────
+         M066/S09/T02: the generic benefit grid replaced with the real
+         differentiators — Discord bridge, Session Zero builder, GM
+         Workspace, reliability filtering, fee collection, waitlist &
+         bench — all shipped, per the D179 shipped-features-only rule. --}}
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface text-center mb-4">
@@ -40,66 +44,108 @@
             <p class="text-on-surface-variant text-center max-w-2xl mx-auto mb-12">
                 {{ __('campaigns.content_no_more_group_chats_spreadsheets') }}
             </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {{-- One link for signups --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {{-- Discord bridge --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">link</span>
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">forum</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('common.field_one_link_for_signups') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_org_diff_discord_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('campaigns.content_share_a_single_link_for') }}
+                                {{ __('pages.content_org_diff_discord_text') }}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {{-- Automatic player matching --}}
+                {{-- Session Zero builder --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">group</span>
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">forum</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('events.content_automatic_player_matching') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_org_diff_session_zero_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('campaigns.content_your_sessions_appear_in_discovery') }}
+                                {{ __('pages.content_org_diff_session_zero_text') }}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {{-- Campaign management --}}
+                {{-- GM Workspace --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">map</span>
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">space_dashboard</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('campaigns.content_campaign_management') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_org_diff_workspace_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('games.content_running_a_multi_session_campaign') }}
+                                {{ __('pages.content_org_diff_workspace_text') }}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {{-- Visibility controls --}}
+                {{-- Reliability filtering --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">tune</span>
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">verified</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('common.content_visibility_controls') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_org_diff_reliability_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('campaigns.content_make_sessions_public_for_anyone') }}
+                                {{ __('pages.content_org_diff_reliability_text') }}
                             </p>
                         </div>
                     </div>
                 </div>
+
+                {{-- Fee collection --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">payments</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_org_diff_fees_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('pages.content_org_diff_fees_text') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Waitlist & bench --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">swap_vert</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_org_diff_waitlist_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('pages.content_org_diff_waitlist_text') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Pricing note: resolves the "Start Hosting — It's Free" vs
+                 subscription tension by naming the honest free/paid boundary
+                 and linking to the pricing page (M066/S09/T02). --}}
+            <div class="mt-12 text-center">
+                <p class="text-sm text-on-surface-variant max-w-2xl mx-auto">
+                    {{ __('pages.content_org_pricing_note') }}
+                </p>
+                <a href="{{ route('pricing') }}" wire:navigate class="inline-block mt-3 text-sm font-semibold text-primary hover:underline">
+                    {{ __('pages.action_see_pricing') }}
+                </a>
             </div>
         </div>
     </section>
@@ -156,7 +202,14 @@
             <div class="max-w-3xl mx-auto">
                 <span class="material-symbols-outlined text-inverse-primary text-5xl mb-4 block" aria-hidden="true">groups</span>
                 <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">
-                    {{ trans_choice('common.action_join_count_organizers_who_bring_people_together', $displayCount) }}
+                    {{-- D179 honesty: the real count always. Below 10 organizers the
+                         established sentence reads like padding, so early on we say
+                         "first" instead — never a fabricated floor. --}}
+                    @if ($organizerCount < 10)
+                        {{ trans_choice('common.action_join_the_first_count_organizers', $organizerCount) }}
+                    @else
+                        {{ trans_choice('common.action_join_count_organizers_who_bring_people_together', $organizerCount) }}
+                    @endif
                 </h2>
                 <p class="mt-4 text-inverse-on-surface/70 max-w-xl mx-auto text-lg">
                     {{ __('events.content_from_weekly_board_game_nights') }}
@@ -165,40 +218,6 @@
         </div>
     </section>
 
-    {{-- ── CTA Section ──────────────────────────────────────── --}}
-    <section class="py-16 sm:py-20 bg-primary text-on-primary">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">
-                {{ __('campaigns.field_start_your_first_session_it_s_free') }}
-            </h2>
-            <p class="mt-4 text-on-primary/80 max-w-xl mx-auto">
-                {{ __('pages.content_no_subscriptions_required_no_credit') }}
-            </p>
-            <div class="mt-8 flex flex-wrap justify-center gap-4">
-                @guest
-                    <a href="{{ route('register') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
-                        {{ __('auth.content_sign_up_free') }}
-                    </a>
-                    <a href="{{ route('discover') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
-                        {{ __('pages.content_see_how_it_works') }}
-                    </a>
-                @else
-                    <a href="{{ route('games.create') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">add_circle</span>
-                        {{ __('campaigns.action_create_your_first_session') }}
-                    </a>
-                    <a href="{{ route('discover') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
-                        {{ __('campaigns.action_browse_sessions') }}
-                    </a>
-                @endguest
-            </div>
-        </div>
-    </section>
+    {{-- ── CTA (organizer audience — shared component) ───────── --}}
+    <x-cta-block variant="organizer" />
 </x-public-layout>

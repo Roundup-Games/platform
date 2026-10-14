@@ -15,6 +15,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 #[Layout('components.public-layout')]
 class GameSystemsPage extends Component
@@ -235,6 +236,11 @@ class GameSystemsPage extends Component
 
     public function render(): View
     {
+        seo(new SEOData(
+            title: __('games.seo_title_game_systems'),
+            description: __('games.seo_description_game_systems'),
+        ));
+
         $systems = $this->buildQuery()->paginate(self::PER_PAGE);
 
         // Cache categories and mechanics per type — these rarely change.

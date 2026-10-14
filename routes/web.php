@@ -34,6 +34,7 @@ use App\Http\Middleware\EnsurePaddleWebhookConfigured;
 use App\Livewire\Billing\BillingPortal;
 use App\Livewire\Billing\Checkout;
 use App\Livewire\Billing\MembershipPage;
+use App\Livewire\Billing\PublicPricing;
 use App\Livewire\Campaigns\AddSessionToCampaign;
 use App\Livewire\Campaigns\ApplyToCampaign;
 use App\Livewire\Campaigns\CampaignDetail;
@@ -41,6 +42,7 @@ use App\Livewire\Campaigns\CampaignsPage;
 use App\Livewire\Campaigns\CreateCampaign;
 use App\Livewire\Campaigns\PublicCampaignDetail;
 use App\Livewire\CityHubs\CityHubPage;
+use App\Livewire\CityHubs\CityIndexPage;
 use App\Livewire\Dashboard;
 use App\Livewire\Discord\GuildSettings;
 use App\Livewire\Discord\OrganizerGuilds;
@@ -187,7 +189,9 @@ Route::get('locale/switch/{locale}', [LocaleController::class, 'switch'])
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 Route::get('/sitemap-{type}.xml', [SitemapController::class, 'show'])
-    ->where('type', 'static|game-systems|events|games|campaigns|teams|profiles|venues|cities');
+    // M066/S06/T02: 'teams' retired — teams pages sit behind login and are
+    // no longer indexable. Constraint mirrors SeoCacheService::SITEMAP_TYPES.
+    ->where('type', 'static|game-systems|events|games|campaigns|profiles|venues|cities');
 
 // ── Legacy API Redirects (backward compatibility) ────
 // Old /api/* routes redirect to /api/v1/* equivalents.
@@ -221,13 +225,29 @@ Route::prefix('{locale}')
         Route::prefix('our-pledge')->group(function () {
             Route::get('/', [PageController::class, 'ourPledge'])->name('pledge');
             Route::get('/algorithms', [PageController::class, 'algorithms'])->name('pledge.algorithms');
-            Route::get('/finances', fn () => redirect()->route('pledge', app()->getLocale()))->name('pledge.finances');
-            Route::get('/roadmap', fn () => redirect()->route('pledge', app()->getLocale()))->name('pledge.roadmap');
-            Route::get('/operations', fn () => redirect()->route('pledge', app()->getLocale()))->name('pledge.operations');
+            // D179 honesty policy: the financial-transparency page was never
+            // published — the alias answers 410 Gone instead of looping back
+            // to the hub with an unfulfilled claim.
+            Route::get('/finances', fn () => abort(410))->name('pledge.finances');
+            Route::get('/roadmap', [PageController::class, 'roadAhead'])->name('pledge.roadmap');
+            // Operations page ships with S08; until then the alias answers
+            // 410 Gone — no Coming-Soon redirect loop back to the hub.
+            Route::get('/operations', fn () => abort(410))->name('pledge.operations');
         });
         Route::get('/for-organizers', [PageController::class, 'forOrganizers'])->name('for-organizers');
         Route::get('/contact', [PageController::class, 'contact'])->name('contact');
+        // M066/S08/T02: real FAQ page — absorbs the contact-page stub and
+        // answers the terminology/fees/trust questions the audit surfaced.
+        Route::get('/faq', [PageController::class, 'faq'])->name('faq');
         Route::get('/safety-tools', [PageController::class, 'safetyTools'])->name('safety-tools');
+        // M066/S08/T03: Code of Conduct under /safety — community rules,
+        // the moderation consequences ladder, and the report/appeal path.
+        // Guest-visible anchor the moderation flows can point at.
+        Route::get('/safety/code-of-conduct', [PageController::class, 'codeOfConduct'])->name('safety.code-of-conduct');
+        // M066/S08/T01: public pricing page — guest-visible, reads the same
+        // MembershipType::active() source as the authenticated /membership
+        // page. Component routes guests to signup, members to /membership.
+        Route::get('/pricing', PublicPricing::class)->name('pricing');
         Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
         Route::get('/terms', [PageController::class, 'terms'])->name('terms');
         Route::get('/impressum', [PageController::class, 'impressum'])->name('impressum');
@@ -245,6 +265,13 @@ Route::prefix('{locale}')
         Route::get('/game-systems/{slug}', GameSystemDetail::class)->name('game-systems.show')->where('slug', '[a-zA-Z0-9\-]+');
 
         // ── City Hubs (M062) ────────────────────────────
+
+        // Index page (M066/S06/T04): every qualifying hub in one crawlable
+        // list — the entry rail on /discover and the footer link here. Must
+        // stay registered above /cities/{slug} so the bare path resolves to
+        // the index, never the hub route's optional-looking prefix match.
+        Route::get('/cities', CityIndexPage::class)
+            ->name('city-hubs.index');
 
         // Programmatic-SEO city landing page. CityHubPage::mount() 404s any
         // slug that does not resolve to a single qualifying city cluster via
@@ -332,17 +359,19 @@ Route::prefix('{locale}')
             ->name('profile.public');
 
         // ── Teams ─────────────────────────────────────
-
-        Route::get('/teams', BrowseTeams::class)->name('teams.browse');
+        // M066/S06/T02: Teams are demoted behind login — guests redirect to
+        // login; the whole surface (browse, detail, create, invites, manage,
+        // roster) rides the standard member middleware stack. The teams
+        // sitemap type is retired alongside the guest access.
 
         Route::middleware(['auth', 'not.disabled', 'profile.complete'])->group(function () {
+            Route::get('/teams', BrowseTeams::class)->name('teams.browse');
             Route::get('/teams/create', CreateTeam::class)->name('teams.create');
             Route::get('/teams/invites', PendingInvites::class)->name('teams.invites');
             Route::get('/teams/{slug}/manage', ManageTeam::class)->name('teams.manage');
             Route::get('/teams/{slug}/roster', ManageRoster::class)->name('teams.roster');
+            Route::get('/teams/{slug}', TeamDetail::class)->name('teams.detail');
         });
-
-        Route::get('/teams/{slug}', TeamDetail::class)->name('teams.detail');
 
         // ── Events (Public) ──────────────────────────
 
@@ -373,6 +402,7 @@ Route::prefix('{locale}')
 
         Route::middleware(['auth', 'not.disabled', 'profile.complete'])->group(function () {
             Route::get('/games/create', CreateGame::class)->name('games.create');
+            Route::get('/dashboard/games', GamesPage::class)->name('games.index');
             Route::get('/dashboard/games/{id}', GameDetail::class)->name('games.show')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/games/{id}/manage-participants', ManageParticipants::class)->name('games.manage-participants')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/games/{id}/apply', ApplyToGame::class)->name('games.apply')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
@@ -383,13 +413,16 @@ Route::prefix('{locale}')
         Route::get('/discover/adventures', AdventuresDiscovery::class)->name('discover.adventures');
         Route::get('/near', fn () => redirect()->route('discover', app()->getLocale(), 301))->name('near');
 
-        Route::get('/games', GamesPage::class)->name('games.index');
+        // M066/S06/T01: "My Games" board moved to /dashboard/games (next to its
+        // detail route); old /games URLs 301 so indexed links keep working.
+        Route::get('/games', fn () => redirect()->route('games.index', app()->getLocale(), 301));
         Route::get('/games/{id}', PublicGameDetail::class)->name('games.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ── Campaigns ─────────────────────────────────
 
         Route::middleware(['auth', 'not.disabled', 'profile.complete'])->group(function () {
             Route::get('/campaigns/create', CreateCampaign::class)->name('campaigns.create');
+            Route::get('/dashboard/campaigns', CampaignsPage::class)->name('campaigns.index');
             Route::get('/dashboard/campaigns/{id}', CampaignDetail::class)->name('campaigns.show')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/campaigns/{id}/apply', ApplyToCampaign::class)->name('campaigns.apply')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/campaigns/{id}/manage-participants', App\Livewire\Campaigns\ManageParticipants::class)->name('campaigns.manage-participants')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
@@ -398,7 +431,9 @@ Route::prefix('{locale}')
             Route::get('/reviews/{reviewId}/report', ReportReview::class)->name('reviews.report');
         });
 
-        Route::get('/campaigns', CampaignsPage::class)->name('campaigns.index');
+        // M066/S06/T01: campaigns board moved to /dashboard/campaigns (next to its
+        // detail route); old /campaigns URLs 301 so indexed links keep working.
+        Route::get('/campaigns', fn () => redirect()->route('campaigns.index', app()->getLocale(), 301));
         Route::get('/campaigns/{id}', PublicCampaignDetail::class)->name('campaigns.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ── Venues ───────────────────────────────────

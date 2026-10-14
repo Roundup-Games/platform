@@ -43,7 +43,7 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
     {{-- PWA update toast translations (read by app.js). @js() produces safely-escaped JSON — addslashes() does not escape </script> or U+2028/29. --}}
-    <script>window.__pwaUpdateToast=@js(['message' => __('pwa.content_update_available'), 'action' => __('common.field_update')]);window.__pwaOfflineToast=@js(['queued' => __('pwa.offline_action_queued'), 'offline' => __('pwa.offline_action_offline')]);</script>
+    <script>window.__pwaUpdateToast=@js(['message' => __('common.content_update_available'), 'action' => __('common.field_update')]);window.__pwaOfflineToast=@js(['queued' => __('common.offline_action_queued'), 'offline' => __('common.offline_action_offline')]);</script>
 
     @stack('preload')
 
@@ -58,32 +58,36 @@
 
         {{-- Public Navigation --}}
         <header id="pub-nav" class="sticky top-0 z-50 bg-surface/95 transition-[background-color] duration-200" x-data="{ scrolled: false }" x-init="window.addEventListener('scroll', () => { scrolled = window.scrollY > 10 }, { passive: true })" :class="scrolled && 'bg-surface/80 backdrop-blur-md shadow-xs'">
-            <nav class="flex justify-between items-center w-full px-6 sm:px-8 py-4 max-w-(--breakpoint-2xl) mx-auto" aria-label="Main navigation">
+            <nav class="flex justify-between items-center w-full px-6 sm:px-8 py-4 max-w-(--breakpoint-2xl) mx-auto" aria-label="{{ __('common.aria_main_navigation') }}">
 
                 {{-- Logo --}}
                 <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
                     @include('partials.logo', ['class' => 'h-10 w-auto'])
                 </a>
 
-                {{-- Desktop Nav Links --}}
+                {{-- Desktop Nav Links (M066/S06/T03): discovery surfaces + About/Contact.
+                     How it works + Our Pledge stay reachable via the footer
+                     (Platform + Trust groups) — the top bar carries one row of
+                     primary destinations. Venue Directory sits directly against
+                     Game Systems per the target IA. --}}
                 @php
-                    $howItWorksRouteExists = \Illuminate\Support\Facades\Route::has('how-it-works');
                     $gameSystemsRouteExists = \Illuminate\Support\Facades\Route::has('game-systems');
                     $pubOtherLocale = app()->getLocale() === 'en' ? 'de' : 'en';
                     $pubCurrentPath = '/' . request()->path();
                 @endphp
-                <div class="hidden md:flex items-center gap-8">
+                <div class="hidden lg:flex items-center gap-5 xl:gap-8">
                     <a href="{{ route('discover') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('discover') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('discovery.action_discover') }}</a>
                     <a href="{{ route('gm.directory') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('gm.directory') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('profile.nav_gm_directory') }}</a>
                     <a href="{{ route('events.index') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('events.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('events.content_events') }}</a>
-                    <a href="{{ $howItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('how-it-works') || request()->is('*how-it-works') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('pages.content_how_it_works') }}</a>
-                    <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('pledge*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('common.nav_our_pledge') }}</a>
                     <a href="{{ $gameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('game-systems*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('games.content_game_systems') }}</a>
+                    <a href="{{ route('venues.directory') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('venues.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('venues.nav_venue_directory') }}</a>
+                    <a href="{{ route('about') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('pages.content_about') }}</a>
+                    <a href="{{ route('contact') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('common.content_contact') }}</a>
                     <a href="{{ route('locale.switch', ['locale' => $pubOtherLocale, 'redirect' => $pubCurrentPath]) }}" class="font-heading text-sm tracking-tight text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 uppercase">{{ strtoupper($pubOtherLocale) }}</a>
                 </div>
 
                 {{-- Desktop CTA Buttons --}}
-                <div class="hidden md:flex items-center gap-4">
+                <div class="hidden lg:flex items-center gap-4">
                     @auth
                         <a href="{{ route('dashboard') }}" wire:navigate class="px-5 py-2 text-primary font-medium hover:text-primary transition-colors text-sm">
                             {{ __('profile.content_dashboard') }}
@@ -107,9 +111,10 @@
                     @endauth
                 </div>
 
-                {{-- Mobile menu button --}}
-                <div class="md:hidden" x-data="{ open: false }">
-                    <button @click="open = !open" class="p-2 text-on-surface-variant hover:text-primary transition-colors" aria-label="Toggle navigation menu" :aria-expanded="open.toString()">
+                {{-- Mobile menu button (serves everything below lg — keeps the
+                     desktop row and mobile menu in IA parity) --}}
+                <div class="lg:hidden" x-data="{ open: false }">
+                    <button @click="open = !open" class="p-2 text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('common.aria_toggle_navigation_menu') }}" :aria-expanded="open.toString()">
                         <span class="material-symbols-outlined text-2xl" aria-hidden="true" :class="{'hidden': open, 'block': !open}">menu</span>
                         <span class="material-symbols-outlined text-2xl" aria-hidden="true" :class="{'block': open, 'hidden': !open}">close</span>
                     </button>
@@ -135,9 +140,10 @@
                             <a href="{{ route('discover') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('discover') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('discovery.action_discover') }}</a>
                             <a href="{{ route('gm.directory') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('gm.directory') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('profile.nav_gm_directory') }}</a>
                             <a href="{{ route('events.index') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('events.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('events.content_events') }}</a>
+                            <a href="{{ $mobGameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('game-systems*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('games.content_game_systems') }}</a>
+                            <a href="{{ route('venues.directory') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('venues.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('venues.nav_venue_directory') }}</a>
                             <a href="{{ $mobHowItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('how-it-works') || request()->is('*how-it-works') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_how_it_works') }}</a>
                             <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('pledge*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('common.nav_our_pledge') }}</a>
-                            <a href="{{ $mobGameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('game-systems*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('games.content_game_systems') }}</a>
                             <a href="{{ route('about') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_about') }}</a>
                             <a href="{{ route('contact') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('common.content_contact') }}</a>
                             <a href="{{ route('locale.switch', ['locale' => $mobPubOtherLocale, 'redirect' => $mobPubCurrentPath]) }}" class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5 uppercase">{{ strtoupper($mobPubOtherLocale) }}</a>
@@ -186,7 +192,7 @@
                         <a href="{{ route('contact') }}" wire:navigate class="p-2 -m-1 text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('common.content_contact') }}">
                             <span class="material-symbols-outlined" aria-hidden="true">forum</span>
                         </a>
-                        <a href="https://github.com/Roundup-Games/" target="_blank" rel="noopener noreferrer" class="p-2 -m-1 text-on-surface-variant hover:text-primary transition-colors" aria-label="GitHub">
+                        <a href="https://github.com/roundup-games/platform" target="_blank" rel="noopener noreferrer" class="p-2 -m-1 text-on-surface-variant hover:text-primary transition-colors" aria-label="GitHub">
                             <svg style="width:1em;height:1em;fill:currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
                         </a>
                         <span class="border-l border-outline-variant/30 h-5"></span>
@@ -194,31 +200,43 @@
                     </div>
                 </div>
 
-                {{-- Link columns --}}
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-4">
+                {{-- Link columns (M066/S06/T03): 'Community & Trust' split into
+                     coherent groups — Community (people + contact) and Trust
+                     (pledge, transparency, safety). Platform gains How It Works
+                     now that it left the top nav. --}}
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-4">
                     @php
                         $gameSystemsRouteExists = \Illuminate\Support\Facades\Route::has('game-systems');
                         $forOrganizersRouteExists = \Illuminate\Support\Facades\Route::has('for-organizers');
+                        $howItWorksFooterRouteExists = \Illuminate\Support\Facades\Route::has('how-it-works');
                     @endphp
                     <div class="flex flex-col gap-2">
                         <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_platform') }}</span>
                         <a href="{{ route('discover') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('discovery.action_discover') }}</a>
                         <a href="{{ route('gm.directory') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('profile.nav_gm_directory') }}</a>
                         <a href="{{ route('venues.directory') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('venues.nav_venue_directory') }}</a>
+                        <a href="{{ route('city-hubs.index', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('city-hubs.nav_cities') }}</a>
                         <a href="{{ $gameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('games.content_game_systems') }}</a>
                         <a href="{{ route('events.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('events.content_events') }}</a>
+                        <a href="{{ $howItWorksFooterRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_how_it_works') }}</a>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_community_and_trust') }}</span>
+                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_community') }}</span>
                         <a href="{{ route('about') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_about') }}</a>
-                        <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.nav_our_pledge') }}</a>
-                        <a href="{{ route('pledge.algorithms', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_commitment_algorithms_title') }}</a>
-                        <a href="{{ route('safety-tools') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('safety.content_safety_tools') }}</a>
                         <a href="{{ $forOrganizersRouteExists ? route('for-organizers') : url(app()->getLocale() . '/for-organizers') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.content_for_organizers') }}</a>
                         <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.content_contact') }}</a>
+                        <a href="{{ route('faq') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('faq.nav_faq') }}</a>
                     </div>
-                    <div class="flex flex-col gap-2 col-span-2 md:col-span-1">
+                    <div class="flex flex-col gap-2">
+                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_trust') }}</span>
+                        <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.nav_our_pledge') }}</a>
+                        <a href="{{ route('pledge.roadmap', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_commitment_roadmap_title') }}</a>
+                        <a href="{{ route('pledge.algorithms', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_commitment_algorithms_title') }}</a>
+                        <a href="{{ route('safety-tools') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('safety.content_safety_tools') }}</a>
+                    </div>
+                    <div class="flex flex-col gap-2 col-span-2 lg:col-span-1">
                         <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('profile.content_account') }}</span>
+                        <a href="{{ route('pricing', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('billing.nav_pricing') }}</a>
                         @auth
                             <a href="{{ route('dashboard') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('profile.content_dashboard') }}</a>
                             <form method="POST" action="{{ route('logout') }}" class="inline">

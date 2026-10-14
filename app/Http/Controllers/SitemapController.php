@@ -10,7 +10,6 @@ use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
-use App\Models\Team;
 use App\Models\User;
 use App\Services\CityDirectoryService;
 use App\Services\SeoCacheService;
@@ -26,12 +25,17 @@ class SitemapController extends Controller
         '/about',
         '/how-it-works',
         '/for-organizers',
+        '/pricing',
         '/contact',
+        '/faq',
         '/safety-tools',
+        '/safety/code-of-conduct',
         '/gms',
         '/game-systems',
+        '/cities',
         '/our-pledge',
         '/our-pledge/algorithms',
+        '/our-pledge/roadmap',
     ];
 
     /**
@@ -59,7 +63,6 @@ class SitemapController extends Controller
         'events' => '0.9',
         'games' => '0.8',
         'campaigns' => '0.8',
-        'teams' => '0.6',
         'profiles' => '0.5',
         'venues' => '0.7',
         'cities' => '0.7',
@@ -74,7 +77,6 @@ class SitemapController extends Controller
         'events' => 'daily',
         'games' => 'daily',
         'campaigns' => 'weekly',
-        'teams' => 'weekly',
         'profiles' => 'weekly',
         'venues' => 'weekly',
         'cities' => 'daily',
@@ -178,8 +180,6 @@ class SitemapController extends Controller
             'campaigns' => Campaign::where('visibility', Visibility::Public->value)
                 ->where('status', '!=', CampaignStatus::Cancelled->value)
                 ->orderByDesc('updated_at'),
-            'teams' => Team::where('is_active', true)
-                ->orderByDesc('updated_at'),
             'profiles' => User::where('profile_complete', true)
                 ->whereNotNull('slug')
                 ->where('is_disabled', false)
@@ -213,7 +213,6 @@ class SitemapController extends Controller
             'events' => $this->getEventEntries(),
             'games' => $this->getGameEntries(),
             'campaigns' => $this->getCampaignEntries(),
-            'teams' => $this->getTeamEntries(),
             'profiles' => $this->getProfileEntries(),
             'venues' => $this->getVenueEntries(),
             'cities' => $this->getCityEntries(),
@@ -363,36 +362,6 @@ class SitemapController extends Controller
                     'lastmod' => $campaign->updated_at?->toDateString() ?? now()->toDateString(),
                     'changefreq' => self::TYPE_CHANGEFREQ['campaigns'],
                     'priority' => self::TYPE_PRIORITIES['campaigns'],
-                ];
-            }
-        }
-
-        return $entries;
-    }
-
-    // ── Teams ──────────────────────────────────────────
-
-    /**
-     * @return array<int, array{loc: string, lastmod: string, changefreq: string, priority: string}>
-     */
-    private function getTeamEntries(): array
-    {
-        $baseUrl = $this->baseUrl();
-        $entries = [];
-
-        $teams = Team::where('is_active', true)
-            ->select('slug', 'updated_at')
-            ->orderByDesc('updated_at')
-            ->limit(self::MAX_ENTITIES_PER_SITEMAP)
-            ->get();
-
-        foreach ($teams as $team) {
-            foreach ($this->locales() as $locale) {
-                $entries[] = [
-                    'loc' => "{$baseUrl}/{$locale}/teams/{$team->slug}",
-                    'lastmod' => $team->updated_at?->toDateString() ?? now()->toDateString(),
-                    'changefreq' => self::TYPE_CHANGEFREQ['teams'],
-                    'priority' => self::TYPE_PRIORITIES['teams'],
                 ];
             }
         }

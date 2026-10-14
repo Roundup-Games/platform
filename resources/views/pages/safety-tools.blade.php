@@ -26,6 +26,10 @@
             <p class="text-lg text-on-surface-variant leading-relaxed max-w-3xl mx-auto mt-4">
                 {{ __('safety.content_whether_you_re_a_seasoned') }}
             </p>
+            <p class="text-base text-on-surface-variant leading-relaxed max-w-3xl mx-auto mt-4">
+                {{ __('safety.content_coc_safety_tools_crosslink') }}
+                <a href="{{ route('safety.code-of-conduct') }}" wire:navigate class="text-primary hover:underline ml-1 font-medium">{{ __('safety.action_view_code_of_conduct') }} →</a>
+            </p>
             <div class="mt-8 flex items-center justify-center gap-4">
                 <a href="{{ route('discover') }}" wire:navigate
                    class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium">

@@ -131,13 +131,13 @@ describe('CityHubPage render', function () {
         $en = get(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']))
             ->assertOk()
             ->assertSee('Tabletop gaming in Berlin')
-            ->assertSee('Upcoming Sessions')
+            ->assertSee(__('city-hubs.section_upcoming_sessions', [], 'en'))
             ->assertDontSee('Tabletop-Spiele in Berlin');
 
         $de = get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))
             ->assertOk()
             ->assertSee('Tabletop-Spiele in Berlin')
-            ->assertSee('Verifizierte Veranstaltungsorte')
+            ->assertSee(__('city-hubs.section_venues', [], 'de'))
             ->assertDontSee('Tabletop gaming in Berlin');
     });
 });
@@ -326,7 +326,9 @@ describe('CityHubPage hub sections', function () {
             ->assertSee(__('city-hubs.action_view_all_adventures'))
             ->assertSee(__('city-hubs.action_view_all_events', ['city' => 'Berlin']))
             ->assertSee('/venues?q=Berlin')
-            ->assertSee('/events?q=Berlin')
+            // The event listing carries the same cluster-exact ?city= filter
+            // as the discovery forks (M066/S07/T01) — slug, not display name.
+            ->assertSee('/events?city=berlin')
             // Berlin qualified via sessions and has no venues, so the
             // venues empty state renders (translated, links onward).
             ->assertSee(__('city-hubs.empty_venues', ['city' => 'Berlin']))

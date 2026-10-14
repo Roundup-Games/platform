@@ -47,8 +47,20 @@ describe('Static Pages Meta Tags', function () {
     it('renders discover page with title and description', function () {
         $response = get(route('discover'));
         $response->assertOk();
-        assertPageTitle($response, __('discovery.action_discover'));
+        assertPageTitle($response, __('discovery.seo_title_discover'));
         expect(extractMetaDescription($response->content()))->toContain(__('discovery.seo_description_discover'));
+        assertOgMetaTagPresent($response, 'og:title');
+        $response->assertSee('twitter:card', false)->assertSee('rel="canonical"', false);
+        // M066/S07/T02: hero conveys people-hosted sessions near you + two tracks
+        $response->assertSee(__('discovery.field_tabletop_sessions_near_you'))
+            ->assertSee(__('discovery.content_pick_your_track'));
+    });
+
+    it('renders game systems index with title and description', function () {
+        $response = get(route('game-systems'));
+        $response->assertOk();
+        assertPageTitle($response, __('games.seo_title_game_systems'));
+        expect(extractMetaDescription($response->content()))->toContain(__('games.seo_description_game_systems'));
         assertOgMetaTagPresent($response, 'og:title');
         $response->assertSee('twitter:card', false)->assertSee('rel="canonical"', false);
     });

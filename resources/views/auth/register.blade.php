@@ -2,7 +2,9 @@
     <!-- Page Title -->
     <div class="mb-6 text-center">
         <h1 class="font-heading text-2xl font-bold text-on-surface">{{ __('profile.action_create_account') }}</h1>
-        <p class="mt-1 text-sm text-on-surface-variant">{{ __('pages.action_join_roundup_games_today', ['brand' => config('company.display_name')]) }}</p>
+        {{-- M066/S09/T03: on-voice subtitle (auth.content_register_subtitle) replaces
+             the boilerplate 'Join :brand today' SaaS CTA (audit 03 §5 #10). --}}
+        <p class="mt-1 text-sm text-on-surface-variant">{{ __('auth.content_register_subtitle') }}</p>
     </div>
 
     <!-- Discord OAuth (primary external-community surface) -->
@@ -73,4 +75,13 @@
             </x-primary-button>
         </div>
     </form>
+
+    {{-- M066/S08/T03: signup binds the account to the community rules —
+         Terms of Use plus the Code of Conduct, both guest-visible. --}}
+    <p class="mt-4 text-xs leading-relaxed text-center text-on-surface-variant">
+        {{ __('safety.content_signup_agreement_prefix') }}
+        <a href="{{ route('terms') }}" wire:navigate class="text-primary hover:underline">{{ __('common.nav_terms') }}</a>
+        {{ __('safety.content_signup_agreement_connector') }}
+        <a href="{{ route('safety.code-of-conduct') }}" wire:navigate class="text-primary hover:underline">{{ __('safety.nav_code_of_conduct') }}</a>.
+    </p>
 </x-guest-layout>

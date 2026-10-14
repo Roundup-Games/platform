@@ -7,8 +7,8 @@
      for qualifying clusters, but the list itself may still be empty (a
      venue-qualified city): that case gets the translated empty state with
      a discovery link, never a dead panel.
-     Full lists link onward: the two discovery forks and the city-filtered
-     event listing (EventListing's q matches the city column). --}}
+     Full lists link onward: the two discovery forks and the event
+     listing, all city-scoped through the URL-addressable ?city= filter. --}}
 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6" aria-labelledby="city-hub-upcoming-heading">
     <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
@@ -52,8 +52,9 @@
 
     {{-- Onward links to the full discovery lists, city-scoped via the
          URL-addressable ?city= filter (62-03): qualifying values canonicalize
-         to this hub, so the links stay on-message for SEO. The event
-         listing's q filter matches city and stays city-scoped. --}}
+         to this hub, so the links stay on-message for SEO. The event listing
+         carries the same filter (M066/S07/T01) — all three links are
+         cluster-exact, not fuzzy text search. --}}
     <div class="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
         <a href="{{ route('discover.board-games', app()->getLocale()).'?city='.$city->slug }}" wire:navigate
            class="inline-flex items-center gap-1 font-medium text-primary hover:underline">
@@ -65,7 +66,7 @@
             {{ __('city-hubs.action_view_all_adventures') }}
             <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
         </a>
-        <a href="{{ route('events.index', ['locale' => app()->getLocale(), 'q' => $city->city]) }}" wire:navigate
+        <a href="{{ route('events.index', ['locale' => app()->getLocale(), 'city' => $city->slug]) }}" wire:navigate
            class="inline-flex items-center gap-1 font-medium text-primary hover:underline">
             {{ __('city-hubs.action_view_all_events', ['city' => $city->city]) }}
             <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>

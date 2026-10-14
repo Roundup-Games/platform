@@ -107,6 +107,19 @@
                             <div>
                                 <h3 class="font-medium text-on-surface">{{ __('emails.field_email') }}</h3>
                                 <p class="mt-1 text-sm text-on-surface-variant">{{ __('common.content_for_general_inquiries_and_support') }}</p>
+                                {{-- Real addresses from config/company.php (M066/S08/T04) — config is
+                                     the single source of truth for contact data, same as impressum
+                                     and privacy. Labels stay in lang/, values come from config. --}}
+                                <div class="mt-3 space-y-1.5 text-sm">
+                                    <p>
+                                        <span class="text-on-surface-variant">{{ __('pages.field_email_support') }}:</span>
+                                        <a href="mailto:{{ config('company.contact.support') }}" class="font-medium text-primary hover:underline">{{ config('company.contact.support') }}</a>
+                                    </p>
+                                    <p>
+                                        <span class="text-on-surface-variant">{{ __('pages.field_email_general') }}:</span>
+                                        <a href="mailto:{{ config('company.contact.general') }}" class="font-medium text-primary hover:underline">{{ config('company.contact.general') }}</a>
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
@@ -134,19 +147,16 @@
                         </div>
                     </div>
 
-                    {{-- FAQ Quick Section --}}
+                    {{-- FAQ pointer (M066/S08/T02): the two-question stub moved to
+                         the real /faq page; this block is the remaining-questions
+                         path back to the form above. --}}
                     <div class="mt-10 pt-10 border-t border-outline-variant">
-                        <h3 class="font-heading font-semibold text-on-surface text-lg mb-4">{{ __('common.content_frequently_asked') }}</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <h4 class="text-sm font-medium text-on-surface">{{ __('events.content_how_do_i_create_an_event') }}</h4>
-                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('pages.content_sign_up_for_a_free') }}</p>
-                            </div>
-                            <div>
-                                <h4 class="text-sm font-medium text-on-surface">{{ __('common.content_is_it_free_to_use') }}</h4>
-                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('billing.content_creating_events_and_registering_for') }}</p>
-                            </div>
-                        </div>
+                        <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('faq.heading_faq') }}</h3>
+                        <p class="text-sm text-on-surface-variant">{{ __('pages.content_faq_pointer_body') }}</p>
+                        <a href="{{ route('faq') }}" wire:navigate class="mt-4 inline-flex items-center text-sm font-medium text-primary hover:underline">
+                            {{ __('pages.action_browse_the_faq') }} →
+                        </a>
+                        <p class="mt-6 text-sm text-on-surface-variant">{{ __('pages.content_faq_pointer_still_stuck') }}</p>
                     </div>
                 </div>
             </div>

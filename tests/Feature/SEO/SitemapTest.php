@@ -8,7 +8,6 @@ use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
-use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 
@@ -40,16 +39,23 @@ describe('Sitemap Index', function () {
     it('lists all expected sub-sitemaps', function () {
         $content = get('/sitemap.xml')->content();
 
-        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues', 'cities'] as $type) {
+        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'profiles', 'venues', 'cities'] as $type) {
             expect($content)->toContain("/sitemap-{$type}.xml");
         }
+    });
+
+    it('omits the retired teams sub-sitemap from the index (M066/S06/T02)', function () {
+        $content = get('/sitemap.xml')->content();
+
+        // Teams pages sit behind login — no longer an indexable SEO surface.
+        expect($content)->not->toContain('/sitemap-teams.xml');
     });
 
     it('includes lastmod for each sub-sitemap', function () {
         $content = get('/sitemap.xml')->content();
 
         preg_match_all('/<sitemap>(.*?)<\/sitemap>/s', $content, $blocks);
-        expect($blocks[0])->toHaveCount(9);
+        expect($blocks[0])->toHaveCount(8);
 
         foreach ($blocks[0] as $block) {
             expect($block)->toContain('<lastmod>');
@@ -82,8 +88,18 @@ describe('Sub-Sitemap Routing', function () {
         expect($response->content())->not->toContain('<urlset');
     });
 
+    it('no longer serves the retired teams sitemap (M066/S06/T02)', function () {
+        // 'teams' is dropped from the route constraint, so the URL falls
+        // through to the locale catch-all (the /sitemap-invalid.xml path)
+        // and never serves a urlset. The final locale-prefixed hop 404s.
+        $response = get('/sitemap-teams.xml');
+
+        expect($response->status())->not->toBe(200);
+        expect($response->content())->not->toContain('<urlset');
+    });
+
     it('returns 200 with XML content for each valid type', function () {
-        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues', 'cities'] as $type) {
+        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'profiles', 'venues', 'cities'] as $type) {
             get("/sitemap-{$type}.xml")
                 ->assertOk()
                 ->assertHeader('Content-Type', 'application/xml');
@@ -105,7 +121,7 @@ describe('Static Pages Sitemap', function () {
         $content = get('/sitemap-static.xml')->content();
         $baseUrl = config('app.url');
 
-        $paths = ['/', '/about', '/how-it-works', '/for-organizers', '/contact', '/safety-tools', '/gms', '/game-systems', '/our-pledge', '/our-pledge/algorithms'];
+        $paths = ['/', '/about', '/how-it-works', '/for-organizers', '/pricing', '/contact', '/faq', '/safety-tools', '/safety/code-of-conduct', '/gms', '/game-systems', '/cities', '/our-pledge', '/our-pledge/algorithms', '/our-pledge/roadmap'];
 
         foreach (['en', 'de'] as $locale) {
             foreach ($paths as $path) {
@@ -118,8 +134,9 @@ describe('Static Pages Sitemap', function () {
         $content = get('/sitemap-static.xml')->content();
 
         preg_match_all('/<url>(.*?)<\/url>/s', $content, $blocks);
-        // 10 paths × 2 locales = 20 entries
-        expect($blocks[0])->toHaveCount(20);
+        // 15 paths × 2 locales = 30 entries (M066/S08/T01 added /pricing,
+        // S08/T02 added /faq, S08/T03 added /safety/code-of-conduct)
+        expect($blocks[0])->toHaveCount(30);
 
         foreach ($blocks[0] as $block) {
             expect($block)->toContain('<changefreq>monthly</changefreq>');
@@ -160,11 +177,6 @@ dataset('sitemap_indexed_entities', [
             'status' => CampaignStatus::Active->value,
         ]),
         'url' => fn ($m) => "/campaigns/{$m->id}",
-    ]],
-    'Team' => [[
-        'sitemap' => '/sitemap-teams.xml',
-        'make' => fn () => Team::factory()->create(['is_active' => true]),
-        'url' => fn ($m) => "/teams/{$m->slug}",
     ]],
     'Profile' => [[
         'sitemap' => '/sitemap-profiles.xml',
@@ -265,11 +277,6 @@ dataset('sitemap_excluded_states', [
         ]),
         'url' => fn ($m) => "/campaigns/{$m->id}",
     ]],
-    'Team inactive' => [[
-        'sitemap' => '/sitemap-teams.xml',
-        'make' => fn () => Team::factory()->create(['is_active' => false]),
-        'url' => fn ($m) => "/teams/{$m->slug}",
-    ]],
     'Profile incomplete' => [[
         'sitemap' => '/sitemap-profiles.xml',
         'make' => fn () => User::factory()->create(['profile_complete' => false, 'is_disabled' => false]),
@@ -337,8 +344,6 @@ describe('XML Well-Formedness', function () {
             Game::factory()->create(['visibility' => Visibility::Public]);
         } elseif (str_contains($path, 'campaigns')) {
             Campaign::factory()->create(['visibility' => Visibility::Public]);
-        } elseif (str_contains($path, 'teams')) {
-            Team::factory()->create(['is_active' => true]);
         } elseif (str_contains($path, 'profiles')) {
             User::factory()->create(['profile_complete' => true, 'is_disabled' => false]);
         } elseif (str_contains($path, 'cities')) {
@@ -368,7 +373,6 @@ describe('XML Well-Formedness', function () {
         ['/sitemap-events.xml', 'urlset'],
         ['/sitemap-games.xml', 'urlset'],
         ['/sitemap-campaigns.xml', 'urlset'],
-        ['/sitemap-teams.xml', 'urlset'],
         ['/sitemap-profiles.xml', 'urlset'],
         ['/sitemap-venues.xml', 'urlset'],
         ['/sitemap-cities.xml', 'urlset'],

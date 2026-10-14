@@ -2,20 +2,25 @@
 
 namespace App\Livewire\Events;
 
+use App\Dto\CitySummary;
 use App\Enums\EventStatus;
 use App\Models\Event;
+use App\Services\CityDirectoryService;
 use App\Traits\EscapesLikeWildcards;
+use App\Traits\FoldsCanonicalToCityHub;
 use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 #[Layout('components.public-layout')]
 class EventListing extends Component
 {
     use EscapesLikeWildcards;
+    use FoldsCanonicalToCityHub;
     use QueriesTranslatableColumns;
     use WithPagination;
 
@@ -30,6 +35,16 @@ class EventListing extends Component
 
     #[Url]
     public string $date = '';
+
+    /**
+     * URL-addressable city slug (?city=koeln) — the discovery pages' city
+     * awareness (M062 62-03) applied to events: the slug only narrows the
+     * listing when CityDirectoryService resolves it to a qualifying city
+     * cluster, and any qualifying ?city= folds the canonical to that
+     * city's hub (see FoldsCanonicalToCityHub).
+     */
+    #[Url]
+    public ?string $city = null;
 
     public function updatingSearch(): void
     {
@@ -51,14 +66,38 @@ class EventListing extends Component
         $this->resetPage();
     }
 
+    public function updatingCity(): void
+    {
+        $this->resetPage();
+    }
+
     public function clearFilters(): void
     {
-        $this->reset(['search', 'type', 'status', 'date']);
+        $this->reset(['search', 'type', 'status', 'date', 'city']);
         $this->resetPage();
     }
 
     public function render(): View
     {
+        // ?city= awareness, matching the discovery pages: the filter is a
+        // pure additive constraint that only applies when the slug resolves
+        // to a qualifying city cluster (CityDirectoryService, the single
+        // authority — MEM1023). Unknown / ambiguous / below-threshold
+        // slugs are inert: unfiltered results, no canonical fold.
+        $citySummary = $this->resolveCityFilter();
+
+        // A qualifying ?city= folds the canonical to the city's hub — all
+        // other params dropped (MEM997); null keeps the transformer's
+        // path-derived defaults.
+        [$cityCanonical, $cityAlternates] = $this->citySeo();
+
+        seo()->for(new SEOData(
+            title: __('events.seo_title'),
+            description: __('events.seo_description'),
+            canonical_url: $cityCanonical,
+            alternates: $cityAlternates,
+        ));
+
         $query = Event::query()
             // M063/S06/T03: the grid renders the shared <x-event-card>, whose
             // derived-offering line reads Event::offeredSystems(). Eager-loading
@@ -89,6 +128,7 @@ class EventListing extends Component
             ->when($this->date === 'past', fn ($q) => $q->where('end_date', '<', now()))
             ->when($this->date === 'this_week', fn ($q) => $q->whereBetween('start_date', [now()->startOfWeek(), now()->endOfWeek()]))
             ->when($this->date === 'this_month', fn ($q) => $q->whereBetween('start_date', [now()->startOfMonth(), now()->endOfMonth()]))
+            ->when($citySummary, fn ($q) => $q->whereIn('location_id', $citySummary->locationIds))
 
             // Featured events first, then by start_date
             ->orderByDesc('is_featured')
@@ -99,5 +139,24 @@ class EventListing extends Component
         return view('livewire.events.event-listing', [
             'events' => $events,
         ]);
+    }
+
+    /**
+     * Resolve ?city= to its qualifying cluster summary, or null when the
+     * filter is inert (absent, unknown, or non-qualifying). Resolution is
+     * cached per city (900s), so citySeo()'s re-resolve in render() is a
+     * cache hit after this first resolve — same shape as the discovery
+     * pages' DiscoveryQueryService::resolveCityFilter.
+     */
+    private function resolveCityFilter(): ?CitySummary
+    {
+        if (! filled($this->city)) {
+            return null;
+        }
+
+        $directory = app(CityDirectoryService::class);
+        $summary = $directory->resolveCity((string) $this->city);
+
+        return ($summary !== null && $directory->isQualifying($summary)) ? $summary : null;
     }
 }

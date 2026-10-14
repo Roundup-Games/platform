@@ -16,7 +16,7 @@ class DiscoveryPortal extends Component
     public function render(): View
     {
         seo(new SEOData(
-            title: __('discovery.action_discover'),
+            title: __('discovery.seo_title_discover'),
             description: __('discovery.seo_description_discover'),
         ));
 

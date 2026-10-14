@@ -17,7 +17,7 @@ return [
     'action_search_adventures' => 'Search adventures…',
     'action_search_board_games' => 'Search board games…',
     'action_search_games_and_campaigns' => 'Search games and campaigns…',
-    'content_application_submitted_the_game_owner' => 'Application submitted! The game owner will review it.',
+    'content_application_submitted_the_game_owner' => 'Application submitted! The host will review it.',
     'content_base_game' => 'Base Game',
     'content_bgg_rating' => 'BGG Rating',
     'content_boardgamegeek_rank_rank' => 'BoardGameGeek Rank #:rank',
@@ -35,20 +35,19 @@ return [
     'content_game_preferences' => 'Game Preferences',
     'heading_game_preferences' => 'Game Preferences',
     'content_game_system' => 'Game System',
+    'content_game_system_definition' => 'The game or system a game runs on — D&D 5e, Catan, …',
     'content_game_systems_will_appear_here_once_they_are_added' => 'Game systems will appear here once they are added.',
     'content_games' => 'Games',
     'content_love_epic_rpg_campaigns_quick' => 'Love epic RPG campaigns? Quick board game nights? Competitive card games? Set your preferences and we\'ll surface the games you\'ll actually enjoy playing.',
-    'content_no_game_systems_available_yet_short' => 'No game systems available yet.',
     'content_no_game_systems_found' => 'No game systems found.',
     'content_optional_useful_for_game_night_coordination' => 'Optional — useful for game night coordination.',
     'content_pick_your_game_set_the' => 'Pick your game, set the date and location, choose how many players you want. It takes about thirty seconds — faster than shuffling a deck.',
-    'content_running_a_multi_session_campaign' => 'Running a multi-session campaign? Group your sessions, track attendance, and keep your party connected between games. Your players always know when the next session is.',
     'content_schedule_a_new_game_session_for_players_to_join' => 'Schedule a new game session for players to join.',
     'content_share_your_location_to_discover' => 'Share your location to discover game sessions and campaigns in your area.',
     'content_share_your_location_to_see' => 'Share your location to see game sessions and campaigns happening this week in your area.',
     'content_start_a_campaign_organize_a' => '**Start a campaign** — Organize a recurring game with your group.',
     'content_step_outside_your_comfort_zone' => 'Step outside your comfort zone. Try a new system, join a different group, or fall in love with a game you\'d never heard of.',
-    'content_this_is_a_protected_game' => 'This is a connections-only game. Your application will be reviewed by the game owner before you can join.',
+    'content_this_is_a_protected_game' => 'This is a connections-only game. Your application will be reviewed by the host before you can join.',
     'content_three_steps_to_your_next_game_night' => 'Three steps to your next game night',
     'content_unlimited_games' => 'Unlimited Games',
     'content_use_stars_wishes_or_a' => 'Use Stars & Wishes or a debrief after sessions. Regular check-ins build a culture of trust and make your games better over time.',
@@ -64,6 +63,7 @@ return [
     'content_waitlisted_count' => '{0} |{1} waitlisted|[2,*] waitlisted',
     'content_benched_count' => '{0} |{1} benched|[2,*] benched',
     'label_bench_mode' => 'Bench Mode',
+    'hint_bench_mode' => 'Players on the bench don\'t take a seat automatically — you choose who plays when a spot opens. A waitlist promotes automatically, first come first served.',
     'content_you_ve_got_the_game' => 'You\'ve got the game. We\'ll help you find the right players — and handle the logistics so you can focus on what you do best: hosting unforgettable sessions.',
     'error_min_players_cannot_exceed_max_players' => 'Min players cannot exceed max players.',
     'error_clone_own_only' => 'You can only clone your own game sessions.',
@@ -115,7 +115,7 @@ return [
     // GamesPage - My Games section
     'heading_my_games' => 'My Games',
     'action_cancel_game' => 'Cancel Game',
-    'flash_game_canceled' => 'Game canceled successfully.',
+    'flash_game_canceled' => 'Game cancelled successfully.',
     'flash_game_completed' => 'Game marked as completed.',
     'error_game_not_scheduled' => 'Only scheduled games can be modified.',
     'confirm_cancel_game' => 'Are you sure you want to cancel this game?',
@@ -138,7 +138,11 @@ return [
     'activity_completed_game' => 'completed a game',
     // Game Systems Knowledge Base
     'action_explore_game_systems' => 'Explore Game Systems',
-    'content_game_systems_knowledge_base_subtitle' => 'Browse the complete library of board games, card games, and RPGs. Filter by category, mechanics, player count, and complexity to find your next favorite.',
+    // M066/S07/T02: guest-friendly framing — the catalog is the games our
+    // sessions run on, not an internal knowledge base.
+    'content_game_systems_knowledge_base_subtitle' => 'Browse the games our sessions run on — board games, RPGs, and card games.',
+    'seo_title_game_systems' => 'Game Systems: Board Games, RPGs & Card Games',
+    'seo_description_game_systems' => 'Browse the games our sessions run on — board games, RPGs, and card games. Filter by category, mechanics, player count, and complexity.',
     'heading_mechanics' => 'Mechanics',
     'heading_filters' => 'Filters',
     'action_show_more_categories' => 'Show more categories',
@@ -184,7 +188,7 @@ return [
     'heading_game_details' => 'Game Details',
     // Type tabs
     'action_type_boardgame' => 'Board Games',
-    'action_type_ttrpg' => 'Tabletop Adventures',
+    'action_type_ttrpg' => 'TTRPG',
     // TTRPG detail page
     'heading_how_to_play' => 'How to Play',
     'heading_faq' => 'Frequently Asked Questions',
@@ -253,6 +257,9 @@ return [
     // Request CTA (used in catalog and game-systems pages)
     'request_cta_link' => 'Request a Game System',
     'request_cta_catalog_header' => 'Can\'t find what you\'re looking for?',
+    // M066/S09/T03: guest variant — the request page is auth-gated, so guests
+    // get sign-up framing pointing at /register (matches guest_nudge_* voice).
+    'request_cta_guest_link' => 'Sign up to request a game system',
     // Waitlist
     'content_game_full_join_waitlist' => 'This game is full. Join the waitlist to be notified when a spot opens up.',
     'content_spot_opened_confirm' => 'A spot opened up! Confirm your participation before :deadline.',
@@ -264,6 +271,7 @@ return [
     // Reliability preference / attendance tolerance
     'field_attendance_tolerance' => 'Attendance Tolerance',
     'hint_attendance_tolerance' => 'How strict should attendance be for this session? This is a soft preference, not a hard filter.',
+    'content_reliability_definition' => 'Reliability is a player\'s track record of showing up for games they\'ve joined — built from attendance reports.',
     'content_attendance_any' => 'Any — welcome everyone',
     'content_attendance_relaxed' => 'Relaxed — prefer reliable players',
     'content_attendance_moderate' => 'Moderate — prefer consistent attendance',
@@ -307,7 +315,7 @@ return [
     'content_debriefing_prompt_wish' => 'A wish — something for next time',
     // Visibility labels
     // Participant role labels
-    'field_role_owner' => 'Owner',
+    'field_role_owner' => 'Host',
     'field_role_player' => 'Player',
     'field_role_invited' => 'Invited',
     'field_role_applicant' => 'Applicant',
@@ -396,4 +404,6 @@ return [
     'field_cover_image' => 'Cover Image',
     'content_cover_image_hint' => 'Upload a cover image (JPEG, PNG, or WebP, max 5 MB). Optional — we\'ll use the game system\'s cover if you don\'t provide one.',
     'action_remove_cover_image' => 'Remove cover image',
+    'label_bgg_rank' => 'Rank #:rank',
+    'label_ttrpg' => 'TTRPG',
 ];

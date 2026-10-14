@@ -84,7 +84,7 @@
                                 {{ __('pages.content_about_value_open_by_default_body') }}
                             </p>
                             <div class="flex gap-3 text-sm font-medium">
-                                <a href="https://github.com/roundup-games/platform" target="_blank" rel="noopener" class="text-primary hover:underline">GitHub</a>
+                                <a href="https://github.com/roundup-games/platform" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">GitHub</a>
                                 <a href="{{ route('pledge.algorithms') }}" wire:navigate class="text-primary hover:underline">{{ __('pages.content_commitment_algorithms_action') }}</a>
                             </div>
                         </div>
@@ -103,7 +103,7 @@
             <p class="text-center text-on-surface-variant mb-12 max-w-2xl mx-auto">
                 {{ __('pages.content_commitments_subtitle') }}
             </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
                 {{-- Algorithms (live) --}}
                 <a href="{{ route('pledge.algorithms') }}" wire:navigate class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow group">
                     <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -114,68 +114,19 @@
                     <span class="inline-block mt-3 text-sm font-medium text-primary">{{ __('pages.content_commitment_algorithms_action') }} →</span>
                 </a>
 
-                {{-- Finances (coming soon) --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient opacity-75">
-                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                        <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">account_balance</span>
-                    </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_commitment_finances_title') }}</h3>
-                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_commitment_finances_body') }}</p>
-                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('common.field_coming_soon') }}</span>
-                </div>
-
-                {{-- Roadmap (coming soon) --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient opacity-75">
+                {{-- The Road Ahead (live) --}}
+                <a href="{{ route('pledge.roadmap') }}" wire:navigate class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow group">
                     <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">map</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_commitment_roadmap_title') }}</h3>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2 group-hover:text-primary transition-colors">{{ __('pages.content_commitment_roadmap_title') }}</h3>
                     <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_commitment_roadmap_body') }}</p>
-                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('common.field_coming_soon') }}</span>
-                </div>
-
-                {{-- Operations (coming soon) --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient opacity-75">
-                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                        <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">gavel</span>
-                    </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_commitment_operations_title') }}</h3>
-                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_commitment_operations_body') }}</p>
-                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('common.field_coming_soon') }}</span>
-                </div>
+                    <span class="inline-block mt-3 text-sm font-medium text-primary">{{ __('pages.content_commitment_roadmap_action') }} →</span>
+                </a>
             </div>
         </div>
     </section>
 
-    {{-- ── CTA ─────────────────────────────────────────────────── --}}
-    <section class="py-16 sm:py-20 bg-primary text-on-primary">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">
-                {{ __('common.content_ready_to_find_your_table') }}
-            </h2>
-            <p class="mt-4 text-on-primary/80 max-w-xl mx-auto">
-                {{ __('campaigns.content_create_a_free_account_set') }}
-            </p>
-            <div class="mt-8 flex flex-wrap justify-center gap-4">
-                @guest
-                    <a href="{{ route('register') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
-                        {{ __('auth.content_sign_up_free') }}
-                    </a>
-                    <a href="{{ route('discover') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
-                        {{ __('campaigns.action_browse_sessions') }}
-                    </a>
-                @else
-                    <a href="{{ route('discover') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
-                        {{ __('campaigns.action_browse_sessions') }}
-                    </a>
-                @endguest
-            </div>
-        </div>
-    </section>
+    {{-- ── CTA (values-reader audience — shared component) ───── --}}
+    <x-cta-block variant="values" />
 </x-public-layout>

@@ -16,16 +16,20 @@
                 <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-xl">
                     {{ __('events.content_find_your_people_discover_new') }}
                 </p>
+                {{-- M066/S09/T03: hero CTA hierarchy flipped — Discover (/discover) is
+                     the primary button because it works for every guest immediately;
+                     the nearby-sessions anchor is secondary since the section it
+                     jumps to depends on the location gate. --}}
                 <div class="mt-8 flex flex-wrap gap-4">
-                    <a href="#nearby-sessions"
+                    <a href="{{ route('discover') }}" wire:navigate
                        class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
-                        {{ __('campaigns.action_find_sessions_near_me') }}
-                    </a>
-                    <a href="{{ route('discover') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">casino</span>
                         {{ __('games.action_explore_games_cta') }}
+                    </a>
+                    <a href="#nearby-sessions"
+                       class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
+                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">near_me</span>
+                        {{ __('campaigns.action_find_sessions_near_me') }}
                     </a>
                 </div>
             </div>
@@ -45,6 +49,64 @@
             </div>
             <div id="nearby-sessions" class="min-h-[420px]">
                 @livewire('components.nearby-sessions', ['radius' => 10, 'limit' => 4])
+            </div>
+        </div>
+    </section>
+
+    {{-- ── Everything in One Place (Directory Strip) ───────────
+         M066/S09/T02: surface the real public directories early so the
+         flagship surfaces (catalog, GM directory, venues, city hubs) are
+         visible without scrolling to the footer. --}}
+    <section class="py-16 sm:py-20 bg-surface-container-low">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
+                    {{ __('pages.content_home_directories_heading') }}
+                </h2>
+                <p class="mt-3 text-on-surface-variant max-w-xl mx-auto">
+                    {{ __('pages.content_home_directories_intro') }}
+                </p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {{-- Game System Catalog --}}
+                <a href="{{ route('game-systems') }}" wire:navigate class="group bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow text-center">
+                    <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">board_games</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2 group-hover:text-primary transition-colors">{{ __('pages.content_home_directory_systems_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('pages.content_home_directory_systems_text') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-primary">{{ __('pages.action_browse_game_systems') }} →</span>
+                </a>
+
+                {{-- GM Directory --}}
+                <a href="{{ route('gm.directory') }}" wire:navigate class="group bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow text-center">
+                    <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">psychology</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2 group-hover:text-primary transition-colors">{{ __('pages.content_home_directory_gms_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('pages.content_home_directory_gms_text') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-primary">{{ __('pages.action_browse_gm_directory') }} →</span>
+                </a>
+
+                {{-- Venue Directory --}}
+                <a href="{{ route('venues.directory') }}" wire:navigate class="group bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow text-center">
+                    <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">storefront</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2 group-hover:text-primary transition-colors">{{ __('pages.content_home_directory_venues_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('pages.content_home_directory_venues_text') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-primary">{{ __('pages.action_browse_venues') }} →</span>
+                </a>
+
+                {{-- City Hubs --}}
+                <a href="{{ route('city-hubs.index') }}" wire:navigate class="group bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow text-center">
+                    <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">location_city</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2 group-hover:text-primary transition-colors">{{ __('pages.content_home_directory_cities_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('pages.content_home_directory_cities_text') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-primary">{{ __('pages.action_browse_city_hubs') }} →</span>
+                </a>
             </div>
         </div>
     </section>
@@ -104,7 +166,7 @@
                 </a>
 
                 {{-- Open Source on GitHub --}}
-                <a href="https://github.com/Roundup-Games/" target="_blank" rel="noopener noreferrer" class="group flex items-start gap-3 p-4 rounded-lg bg-inverse-on-surface/5 hover:bg-inverse-on-surface/10 transition-colors">
+                <a href="https://github.com/roundup-games/platform" target="_blank" rel="noopener noreferrer" class="group flex items-start gap-3 p-4 rounded-lg bg-inverse-on-surface/5 hover:bg-inverse-on-surface/10 transition-colors">
                     <span class="material-symbols-outlined text-inverse-primary text-xl mt-0.5 shrink-0" aria-hidden="true">code</span>
                     <div>
                         <div class="font-semibold text-sm text-inverse-on-surface group-hover:text-inverse-primary transition-colors">{{ __('pages.content_trust_badge_opensource_title') }}</div>
@@ -176,36 +238,6 @@
         </div>
     </section>
 
-    {{-- ── CTA Section ─────────────────────────────────────── --}}
-    <section class="py-16 sm:py-20 bg-surface">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
-                {{ __('pages.field_your_next_adventure_starts_here') }}
-            </h2>
-            <p class="mt-4 text-lg text-on-surface-variant max-w-2xl mx-auto">
-                {{ __('campaigns.content_join_a_community_of_players') }}
-            </p>
-            <div class="mt-8 flex flex-wrap justify-center gap-4">
-                @guest
-                    <a href="{{ route('register') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm shadow-md">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
-                        {{ __('profile.action_create_free_account') }}
-                    </a>
-                @else
-                    <a href="{{ route('discover') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm shadow-md">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">search</span>
-                        {{ __('campaigns.action_browse_sessions') }}
-                    </a>
-                @endguest
-                @guest
-                    <a href="{{ route('login') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 border border-outline text-on-surface-variant rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm">
-                        {{ __('auth.content_sign_in') }}
-                    </a>
-                @endguest
-            </div>
-        </div>
-    </section>
+    {{-- ── CTA (player audience — shared component) ─────────── --}}
+    <x-cta-block variant="player" />
 </x-public-layout>

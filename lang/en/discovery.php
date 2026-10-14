@@ -100,14 +100,10 @@ return [
     // TTRPG / Adventures discovery
     'content_genre_categories' => 'Genre Categories',
     'content_play_styles' => 'Play Styles',
-    'content_also_into_board_games' => 'Also into board games? :count upcoming session|Also into board games? :count upcoming sessions',
+    'content_also_into_board_games' => 'Also into board games? :count upcoming game|Also into board games? :count upcoming games',
     'content_also_looking_for_adventures' => 'Also looking for adventures? :count active campaign|Also looking for adventures? :count active campaigns',
     'action_browse_adventures' => 'Discover Adventures',
     'action_browse_board_games' => 'Discover Board Games',
-    'play_style_narrative' => 'Narrative',
-    'play_style_gameplay' => 'Gameplay',
-    'play_style_structure' => 'Structure',
-    'play_style_tone' => 'Tone',
     // PlayStyle enum labels
     'playstyle_horror' => 'Horror',
     'playstyle_narrative_first' => 'Narrative-First',
@@ -121,18 +117,21 @@ return [
     'playstyle_sandbox_desc' => 'Open-world freedom with no fixed plot. Go anywhere, do anything, face the consequences.',
     'playstyle_horror_desc' => 'Tension, dread, and survival against overwhelming odds. Hope is a limited resource.',
     // ── Discovery Portal ────────────────────────────────────────
-    'field_what_are_you_in_the_mood_for' => 'What are you in the mood for?',
-    'content_choose_your_adventure' => 'Choose your adventure.',
+    // M066/S07/T02: hero says what the page actually is — people-hosted
+    // sessions near you with two tracks (board game nights / adventures).
+    'field_tabletop_sessions_near_you' => 'Tabletop sessions near you',
+    'content_pick_your_track' => 'Board game nights and tabletop adventures, hosted by people in your area — pick your track.',
     'field_board_game_night' => 'Board Game Night',
-    'content_find_sessions_near_you' => 'Find board game sessions happening near you.',
+    'content_find_sessions_near_you' => 'Find board games happening near you.',
     'content_join_campaigns_oneshots' => 'Join campaigns, one-shots, and everything in between.',
     'content_looking_for_players' => 'looking for players',
-    // Featured city hubs rail (62-04 T06)
-    'content_featured_city_hubs' => 'Featured city hubs',
-    'content_featured_city_hubs_teaser' => 'Curated local scenes with live sessions and venues.',
+    // Featured city hubs rail (62-04 T06; heading retargeted M066/S06/T04)
+    'content_explore_cities' => 'Explore cities',
+    'content_featured_city_hubs_teaser' => 'Curated local scenes with live games and venues.',
     'action_view_city_hub' => 'View the :city city hub',
     // SEO
-    'seo_description_discover' => 'Find board games and tabletop RPG sessions near you. Browse games, campaigns, and events in your area.',
+    'seo_title_discover' => 'Discover Tabletop Games & Sessions Near You',
+    'seo_description_discover' => 'Find tabletop game sessions and RPG campaigns hosted by people near you. Browse board game nights, adventures, and events in your area.',
     'seo_title_browse_games' => 'Browse Games',
     'seo_title_browse_campaigns' => 'Browse Campaigns',
     'seo_title_browse_all' => 'Browse Games & Campaigns',

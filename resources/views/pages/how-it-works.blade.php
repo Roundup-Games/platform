@@ -62,6 +62,77 @@
         </div>
     </section>
 
+    {{-- ── Organizer Story: hosting your own game ───────────
+         M066/S09/T02: the host journey (plan → roster → bench/waitlist
+         → recap) with the shipped distribution & retention surfaces
+         (Discord bridge, city hubs, iCal feed, PWA) named in prose. --}}
+    <section class="py-16 sm:py-20 bg-surface-container-low">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
+                    {{ __('pages.content_host_story_heading') }}
+                </h2>
+                <p class="mt-3 text-on-surface-variant max-w-xl mx-auto">
+                    {{ __('pages.content_host_story_intro') }}
+                </p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
+                {{-- Step 1: Plan --}}
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                        <span class="material-symbols-outlined text-primary text-4xl" aria-hidden="true">edit_note</span>
+                        <span class="absolute -top-1 -right-1 w-7 h-7 bg-primary text-on-primary text-xs font-bold rounded-full flex items-center justify-center">1</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface text-xl mb-3">{{ __('pages.content_host_story_step_plan_title') }}</h3>
+                    <p class="text-on-surface-variant leading-relaxed max-w-xs mx-auto">
+                        {{ __('pages.content_host_story_step_plan_text') }}
+                    </p>
+                </div>
+
+                {{-- Step 2: Roster --}}
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                        <span class="material-symbols-outlined text-primary text-4xl" aria-hidden="true">group_add</span>
+                        <span class="absolute -top-1 -right-1 w-7 h-7 bg-primary text-on-primary text-xs font-bold rounded-full flex items-center justify-center">2</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface text-xl mb-3">{{ __('pages.content_host_story_step_roster_title') }}</h3>
+                    <p class="text-on-surface-variant leading-relaxed max-w-xs mx-auto">
+                        {{ __('pages.content_host_story_step_roster_text') }}
+                    </p>
+                </div>
+
+                {{-- Step 3: Overflow --}}
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                        <span class="material-symbols-outlined text-primary text-4xl" aria-hidden="true">swap_vert</span>
+                        <span class="absolute -top-1 -right-1 w-7 h-7 bg-primary text-on-primary text-xs font-bold rounded-full flex items-center justify-center">3</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface text-xl mb-3">{{ __('pages.content_host_story_step_overflow_title') }}</h3>
+                    <p class="text-on-surface-variant leading-relaxed max-w-xs mx-auto">
+                        {{ __('pages.content_host_story_step_overflow_text') }}
+                    </p>
+                </div>
+
+                {{-- Step 4: Recap --}}
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                        <span class="material-symbols-outlined text-primary text-4xl" aria-hidden="true">history_edu</span>
+                        <span class="absolute -top-1 -right-1 w-7 h-7 bg-primary text-on-primary text-xs font-bold rounded-full flex items-center justify-center">4</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface text-xl mb-3">{{ __('pages.content_host_story_step_recap_title') }}</h3>
+                    <p class="text-on-surface-variant leading-relaxed max-w-xs mx-auto">
+                        {{ __('pages.content_host_story_step_recap_text') }}
+                    </p>
+                </div>
+            </div>
+            <p class="mt-12 text-center">
+                <a href="{{ route('for-organizers') }}" wire:navigate class="text-primary font-semibold hover:underline">
+                    {{ __('pages.action_see_everything_for_organizers') }}
+                </a>
+            </p>
+        </div>
+    </section>
+
     {{-- ── Safety & Vetting Section ─────────────────────────── --}}
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
@@ -124,35 +195,6 @@
         </div>
     </section>
 
-    {{-- ── CTA Section ──────────────────────────────────────── --}}
-    <section class="py-16 sm:py-20 bg-primary text-on-primary">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">
-                {{ __('common.content_ready_to_find_your_table') }}
-            </h2>
-            <p class="mt-4 text-on-primary/80 max-w-xl mx-auto">
-                {{ __('campaigns.content_create_a_free_account_set') }}
-            </p>
-            <div class="mt-8 flex flex-wrap justify-center gap-4">
-                @guest
-                    <a href="{{ route('register') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
-                        {{ __('auth.content_sign_up_free') }}
-                    </a>
-                    <a href="{{ route('discover') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
-                        {{ __('campaigns.action_browse_sessions') }}
-                    </a>
-                @else
-                    <a href="{{ route('discover') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
-                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
-                        {{ __('campaigns.action_browse_sessions') }}
-                    </a>
-                @endguest
-            </div>
-        </div>
-    </section>
+    {{-- ── CTA (player audience — shared component) ─────────── --}}
+    <x-cta-block variant="player" />
 </x-public-layout>

@@ -7,7 +7,11 @@ use App\Models\EventAnnouncement;
 use App\Models\EventRegistration;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
+
+use function Pest\Laravel\get;
 
 // ── EventListing ───────────────────────────────────────
 
@@ -133,6 +137,158 @@ describe('EventListing', function () {
     });
 });
 
+// ── EventListing city awareness + SEO (M066/S07/T01) ───
+//
+// The listing carries the discovery pages' ?city= awareness (M062 62-03):
+// a qualifying slug narrows results to the city cluster via
+// CityDirectoryService (single authority) and folds the canonical to that
+// city's hub — all other params dropped (MEM997) — while unknown /
+// non-qualifying slugs stay inert (unfiltered results, the transformer's
+// path-derived canonical). Mirrors CityFilterTest's conventions (fixed
+// DACH coordinates, cache flush per test, route()-built URLs); helper
+// names carry an event-listing prefix because Pest loads every Feature
+// file into one process (redeclared same-name globals fatal).
+
+function eventListingCityLocation(string $city, float $lat, float $lng): Location
+{
+    return Location::factory()->create([
+        'city' => $city,
+        'country' => 'DEU',
+        'latitude' => $lat,
+        'longitude' => $lng,
+    ]);
+}
+
+function eventListingCityEvent(?Location $location, string $name): Event
+{
+    return Event::factory()->create([
+        'name' => ['en' => $name, 'de' => $name],
+        'location_id' => $location?->id,
+        // Inside the 30-day qualification window: the listing itself shows
+        // any public event, but the cluster must qualify on upcoming count.
+        'start_date' => now()->addDays(10),
+        'end_date' => now()->addDays(11),
+        'is_public' => true,
+        'status' => 'registration_open',
+    ]);
+}
+
+/** Qualifying Koeln cluster: 3 upcoming public events (min_upcoming_sessions). */
+function eventListingCityQualifyingKoeln(): Location
+{
+    $koeln = eventListingCityLocation('Koeln', 50.9375, 6.9603);
+    eventListingCityEvent($koeln, 'Koeln Qualifier 01');
+    eventListingCityEvent($koeln, 'Koeln Qualifier 02');
+    eventListingCityEvent($koeln, 'Koeln Qualifier 03');
+
+    return $koeln;
+}
+
+describe('EventListing city filter', function () {
+    beforeEach(function () {
+        // City resolutions (positive AND negative) are cached; flush per test.
+        Cache::flush();
+    });
+
+    it('filters events to the city cluster via ?city=', function () {
+        eventListingCityQualifyingKoeln();
+        $berlin = eventListingCityLocation('Berlin', 52.5200, 13.4050);
+        eventListingCityEvent($berlin, 'Berlin Away Event');
+
+        get(route('events.index', 'de').'?city=koeln')
+            ->assertOk()
+            ->assertSee('Koeln Qualifier 01')
+            ->assertDontSee('Berlin Away Event');
+    });
+
+    it('folds the canonical to the city hub under ?city=', function () {
+        eventListingCityQualifyingKoeln();
+
+        $deHub = route('city-hubs.show', ['locale' => 'de', 'slug' => 'koeln']);
+        $enHub = route('city-hubs.show', ['locale' => 'en', 'slug' => 'koeln']);
+
+        $response = get(route('events.index', 'de').'?city=koeln')->assertOk();
+
+        $response->assertSee('<link rel="canonical" href="'.$deHub.'">', false);
+        $response->assertSee('<link rel="alternate" hreflang="en" href="'.$enHub.'">', false);
+        $response->assertSee('<link rel="alternate" hreflang="de" href="'.$deHub.'">', false);
+        // x-default targets the first configured locale (en), not the request locale.
+        $response->assertSee('<link rel="alternate" hreflang="x-default" href="'.$enHub.'">', false);
+        // One canonical only: the explicit value must override, not duplicate.
+        expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
+    });
+
+    it('keeps the hub canonical when other filter params ride along (MEM997: all other params dropped)', function () {
+        eventListingCityQualifyingKoeln();
+
+        $deHub = route('city-hubs.show', ['locale' => 'de', 'slug' => 'koeln']);
+
+        $response = get(route('events.index', 'de').'?city=koeln&q=x&type=game_day')->assertOk();
+
+        $response->assertSee('<link rel="canonical" href="'.$deHub.'">', false);
+        $response->assertDontSee('<link rel="canonical" href="'.$deHub.'?city=koeln">', false);
+        expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
+    });
+
+    it('leaves an unknown city slug unfiltered with the path-derived canonical', function () {
+        eventListingCityQualifyingKoeln();
+        $berlin = eventListingCityLocation('Berlin', 52.5200, 13.4050);
+        eventListingCityEvent($berlin, 'Berlin Away Event');
+
+        $plainPath = route('events.index', 'de');
+
+        $response = get(route('events.index', 'de').'?city=atlantis')->assertOk();
+
+        // Results unfiltered: both cities' events listed.
+        $response->assertSee('Koeln Qualifier 01')
+            ->assertSee('Berlin Away Event');
+        // Canonical is the plain listing path (transformer default)…
+        $response->assertSee('<link rel="canonical" href="'.$plainPath.'">', false);
+        // …and never a hub URL for an inert slug.
+        $response->assertDontSee(route('city-hubs.show', ['locale' => 'de', 'slug' => 'koeln']), false);
+        expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
+    });
+
+    it('leaves a resolvable but non-qualifying city slug inert', function () {
+        // 1 event < min_upcoming_sessions and 0 venues: no hub exists, so
+        // the slug must not narrow results (Berlin's event stays listed)
+        // and must not fold the canonical.
+        $bonn = eventListingCityLocation('Bonn', 50.7375, 7.0984);
+        eventListingCityEvent($bonn, 'Bonn Only Event');
+        $berlin = eventListingCityLocation('Berlin', 52.5200, 13.4050);
+        eventListingCityEvent($berlin, 'Berlin Away Event');
+
+        $plainPath = route('events.index', 'de');
+
+        $response = get(route('events.index', 'de').'?city=bonn')->assertOk();
+
+        $response->assertSee('Bonn Only Event')
+            ->assertSee('Berlin Away Event');
+        $response->assertSee('<link rel="canonical" href="'.$plainPath.'">', false);
+        $response->assertDontSee(route('city-hubs.show', ['locale' => 'de', 'slug' => 'bonn']), false);
+        expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
+    });
+
+    it('clears the city filter through clearFilters', function () {
+        $component = Livewire\Livewire::test(EventListing::class)
+            ->set('city', 'koeln');
+        expect($component->instance()->city)->toBe('koeln');
+
+        $component->instance()->clearFilters();
+        expect($component->instance()->city)->toBeNull();
+    });
+});
+
+describe('EventListing SEO meta', function () {
+    it('renders the listing SEO title and description', function () {
+        $response = get(route('events.index'));
+        $response->assertOk();
+        assertPageTitle($response, __('events.seo_title'));
+        expect(extractMetaDescription($response->content()))->toContain(__('events.seo_description'));
+        $response->assertSee('rel="canonical"', false);
+    });
+});
+
 // ── EventDetail ────────────────────────────────────────
 
 describe('EventDetail', function () {
@@ -160,7 +316,7 @@ describe('EventDetail', function () {
         ]);
 
         Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Schedule')
+            ->assertSee(__(__('campaigns.content_schedule', [], 'en')))
             ->assertSee('Check-in')
             ->assertSee('Matches Begin');
     });
@@ -226,7 +382,7 @@ describe('EventDetail', function () {
         ]);
 
         Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Announcements')
+            ->assertSee(__('events.content_announcements', [], 'en'))
             ->assertSee('Welcome!')
             ->assertSee('This event will be amazing.')
             ->assertDontSee('Draft Note');
@@ -273,7 +429,7 @@ describe('EventDetail', function () {
         ]);
 
         Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Early bird')
+            ->assertSee(__('billing.content_early_bird_amount', ['amount' => format_currency(2000)], 'en'))
             ->assertSee(format_currency(2000));
     });
 });

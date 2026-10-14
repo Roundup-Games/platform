@@ -8,6 +8,7 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
 use App\SEO\AlgorithmsSchema;
+use App\SEO\FaqPageSchema;
 use App\SEO\OrganizationSchema;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
@@ -99,14 +100,13 @@ class PageController extends Controller
             now()->addMinutes(30),
             fn () => User::has('ownedGames')->count(),
         );
-        $displayCount = $organizerCount >= 10 ? $organizerCount : 50;
 
         seo(new SEOData(
             title: __('pages.seo_title_for_organizers'),
             description: __('pages.seo_description_for_organizers'),
         ));
 
-        return view('pages.for-organizers', compact('displayCount'));
+        return view('pages.for-organizers', compact('organizerCount'));
     }
 
     public function contact(): View
@@ -117,6 +117,20 @@ class PageController extends Controller
         ));
 
         return view('pages.contact');
+    }
+
+    public function faq(): View
+    {
+        $schema = SchemaCollection::initialize();
+        $schema->markup[FaqPageSchema::class][] = fn (FaqPageSchema $s) => $s;
+
+        seo(new SEOData(
+            title: __('faq.seo_title_faq'),
+            description: __('faq.seo_description_faq', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
+            schema: $schema,
+        ));
+
+        return view('pages.faq');
     }
 
     public function ourPledge(): View
@@ -143,6 +157,16 @@ class PageController extends Controller
         return view('pages.pledge-algorithms');
     }
 
+    public function roadAhead(): View
+    {
+        seo(new SEOData(
+            title: __('roadmap.seo_title_road_ahead'),
+            description: __('roadmap.seo_description_road_ahead', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
+        ));
+
+        return view('pages.road-ahead');
+    }
+
     public function safetyTools(): View
     {
         $tools = SafetyTool::cases();
@@ -154,6 +178,16 @@ class PageController extends Controller
         ));
 
         return view('pages.safety-tools', compact('tools', 'categories'));
+    }
+
+    public function codeOfConduct(): View
+    {
+        seo(new SEOData(
+            title: __('safety.seo_title_code_of_conduct'),
+            description: __('safety.seo_description_code_of_conduct'),
+        ));
+
+        return view('pages.code-of-conduct');
     }
 
     public function privacy(): View

@@ -33,6 +33,26 @@ describe('Rendering', function () {
             ->assertSee(__('games.action_explore_games_cta'));
     });
 
+    it('makes Discover the primary hero CTA and the nearby anchor secondary', function () {
+        // M066/S09/T03: hero hierarchy — /discover leads as the solid primary
+        // button (it works for every guest immediately), while the
+        // #nearby-sessions anchor follows as the outlined secondary because
+        // the section it jumps to depends on the location gate.
+        $response = get(route('home'))->assertOk();
+
+        $response->assertSeeInOrder([
+            __('games.action_explore_games_cta'),
+            __('campaigns.action_find_sessions_near_me'),
+        ]);
+
+        $html = $response->content();
+
+        // The hero discover anchor (not the plain nav link) carries the solid primary style
+        expect($html)->toMatch('/<a[^>]*href="'.preg_quote(route('discover'), '/').'"[^>]*shadow-md[^>]*>/');
+        // The nearby anchor carries the secondary outline style
+        expect($html)->toMatch('/<a[^>]*href="#nearby-sessions"[^>]*border border-on-primary\/30[^>]*>/');
+    });
+
     it('renders the location gate for guests', function () {
         get(route('home'))
             ->assertOk()
@@ -45,6 +65,50 @@ describe('Rendering', function () {
         get(route('home'))
             ->assertOk()
             ->assertDontSee(__('discovery.action_search_radius'));
+    });
+
+    it('links the open-source badge to the platform repository', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee('https://github.com/roundup-games/platform', false)
+            ->assertDontSee('https://github.com/Roundup-Games/', false);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// DIRECTORY STRIP (M066/S09/T02)
+// ═══════════════════════════════════════════════════════════
+
+describe('Directory Strip', function () {
+    it('shows the everything-in-one-place heading', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee(__('pages.content_home_directories_heading'))
+            ->assertSee(__('pages.content_home_directories_intro'));
+    });
+
+    it('surfaces all four public directories', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee(__('pages.content_home_directory_systems_title'))
+            ->assertSee(__('pages.content_home_directory_gms_title'))
+            ->assertSee(__('pages.content_home_directory_venues_title'))
+            ->assertSee(__('pages.content_home_directory_cities_title'));
+    });
+
+    it('links each directory card to its real route', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee(route('game-systems'))
+            ->assertSee(route('gm.directory'))
+            ->assertSee(route('venues.directory'))
+            ->assertSee(route('city-hubs.index'));
+    });
+
+    it('mentions venue claiming on the venue card', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee(__('pages.content_home_directory_venues_text'));
     });
 });
 
@@ -167,10 +231,10 @@ describe('Values Strip', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('CTA Section', function () {
-    it('shows community CTA heading', function () {
+    it('shows the shared player CTA heading', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee(__('pages.field_your_next_adventure_starts_here'));
+            ->assertSee(__('common.content_ready_to_find_your_table'));
     });
 
     it('shows sign-up link for guests', function () {
@@ -180,13 +244,20 @@ describe('CTA Section', function () {
             ->assertSee(route('register'));
     });
 
-    it('shows browse sessions link for authenticated users', function () {
+    it('shows the find-a-game CTA for guests', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee(__('common.action_find_a_game_near_you'))
+            ->assertSee(route('discover'));
+    });
+
+    it('shows find-a-game CTA for authenticated users', function () {
         $user = User::factory()->create();
 
         actingAs($user)
             ->get(route('home'))
             ->assertOk()
-            ->assertSee(__('campaigns.action_browse_sessions'))
+            ->assertSee(__('common.action_find_a_game_near_you'))
             ->assertSee(route('discover'));
     });
 

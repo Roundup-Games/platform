@@ -2,8 +2,8 @@
     {{-- ── Hero Section ────────────────────────────────────────── --}}
     <section class="bg-primary text-on-primary">
         <div class="max-w-4xl mx-auto px-4 py-16 text-center">
-            <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">{{ __('discovery.field_what_are_you_in_the_mood_for') }}</h1>
-            <p class="mt-3 text-base text-on-primary/80">{{ __('discovery.content_choose_your_adventure') }}</p>
+            <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">{{ __('discovery.field_tabletop_sessions_near_you') }}</h1>
+            <p class="mt-3 text-base text-on-primary/80">{{ __('discovery.content_pick_your_track') }}</p>
         </div>
     </section>
 
@@ -58,11 +58,19 @@
     {{-- Featured city hubs rail (62-04): admin-curated featured cities whose
          cluster still resolves to a servable hub. Mirrors the banner's
          markup language — compact heading plus link chips — one hop to the
-         local landing pages; renders nothing at all when the set is empty. --}}
+         local landing pages; renders nothing at all when the set is empty.
+         M066/S06/T04: the heading retargets to the /cities index so the
+         full directory (not just the curated rail) is one hop away. --}}
     @if ($featuredCities->isNotEmpty())
         <div class="max-w-4xl mx-auto px-4 pb-12">
             <div class="bg-surface rounded-2xl shadow-ambient p-6">
-                <h2 class="text-base font-heading font-semibold text-on-surface">{{ __('discovery.content_featured_city_hubs') }}</h2>
+                <h2 class="text-base font-heading font-semibold text-on-surface">
+                    <a href="{{ route('city-hubs.index', app()->getLocale()) }}" wire:navigate
+                       class="inline-flex items-center gap-1 hover:text-primary transition-colors group/heading">
+                        {{ __('discovery.content_explore_cities') }}
+                        <span class="material-symbols-outlined text-base text-on-surface-variant group-hover/heading:text-primary transition-colors" aria-hidden="true">arrow_forward</span>
+                    </a>
+                </h2>
                 <p class="mt-1 text-sm text-on-surface-variant">{{ __('discovery.content_featured_city_hubs_teaser') }}</p>
                 <div class="mt-4 flex flex-wrap gap-2">
                     @foreach ($featuredCities as $featuredCity)

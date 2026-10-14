@@ -5,11 +5,14 @@ return [
     'content_log_in' => 'Log in',
     'content_log_out' => 'Log Out',
     'content_no_password_set_you_currently' => 'No password set. You currently sign in via a linked provider.',
+    // M066/S09/T03: replaced the boilerplate 'Join :brand today' SaaS CTA with
+    // on-voice copy (audit 03 §5 #10) — seat/table language like the home H1.
+    'content_register_subtitle' => 'Pull up a chair — your table is waiting.',
     'content_remember_me' => 'Remember me',
     'content_sign_in' => 'Log in',
     'content_sign_in_to_register' => 'Sign in to Register',
     'content_sign_up' => 'Sign Up',
-    'content_sign_up_for_a_session' => 'Sign up for a session, show up, and have a great time. That\'s it. No dues, no commitments, no pressure. Just roll the dice and see what happens.',
+    'content_sign_up_for_a_session' => 'Join a game, show up, and have a great time. That\'s it. No dues, no commitments, no pressure. Just roll the dice and see what happens.',
     'content_sign_up_free' => 'Sign Up Free',
     'content_sign_up_to_host' => 'Sign Up to Host',
     'content_sign_up_with_google' => 'Sign up with Google',
@@ -30,6 +33,7 @@ return [
     'flash_password_updated_successfully' => 'Password updated successfully.',
     'action_sign_up_to_get_started' => 'Sign Up to Get Started',
     'error_your_account_has_been_disabled' => 'Your account has been disabled.',
+    'error_oauth_email_unverified' => ':provider reports this email as unverified. Please verify it with :provider or sign in another way.',
     // Gender consent (GDPR Art. 9(2)(a))
     'content_gender_consent_explanation' => 'I consent to my gender being used to help me discover relevant sessions (e.g., women-only spaces). This is optional — you can change or revoke this at any time in your profile settings.',
     'content_gender_consent_revocation_note' => 'If you revoke consent, your gender will no longer be used for session recommendations. You can re-grant consent at any time.',

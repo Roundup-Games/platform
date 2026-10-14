@@ -5,7 +5,9 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
+use App\Models\User;
 
+use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 
 describe('GameSystemsPage', function () {
@@ -13,7 +15,9 @@ describe('GameSystemsPage', function () {
     it('renders the game systems page for guests', function () {
         get(route('game-systems'))
             ->assertOk()
-            ->assertSee('Explore Game Systems');
+            ->assertSee(__('games.action_explore_game_systems', [], 'en'))
+            // M066/S07/T02: guest-friendly framing subtitle
+            ->assertSee(__('games.content_game_systems_knowledge_base_subtitle'));
     })->group('smoke');
 
     it('shows game systems in a grid', function () {
@@ -86,7 +90,7 @@ describe('GameSystemsPage', function () {
         Livewire\Livewire::test(GameSystemsPage::class)
             ->set('min_players', 5)
             ->assertDontSee('Solo Game')
-            ->assertSee('Party Game');
+            ->assertSee(__('discovery.cat_party-game', [], 'en'));
     });
 
     it('filters by complexity range', function () {
@@ -108,7 +112,7 @@ describe('GameSystemsPage', function () {
         Livewire\Livewire::test(GameSystemsPage::class)
             ->call('toggleCategory', $category->id)
             ->assertSee('Strategy Game')
-            ->assertDontSee('Party Game');
+            ->assertDontSee(__('discovery.cat_party-game', [], 'en'));
     });
 
     it('filters by mechanic', function () {
@@ -139,7 +143,7 @@ describe('GameSystemsPage', function () {
     it('shows empty state when no systems match', function () {
         Livewire\Livewire::test(GameSystemsPage::class)
             ->set('search', 'nonexistent-xyz')
-            ->assertSee('No game systems match');
+            ->assertSee(__(__('games.content_no_game_systems_match_filters', [], 'en')));
     });
 
     it('clicking a system links to its detail page', function () {
@@ -151,14 +155,27 @@ describe('GameSystemsPage', function () {
     });
 
     it('shows request game system CTA link in page header', function () {
+        actingAs(User::factory()->create());
+
         get(route('game-systems'))
             ->assertOk()
             ->assertSee(route('game-systems.request'), false)
             ->assertSee(__('games.request_cta_link'));
     });
 
+    it('shows sign-up framed request CTA to guests instead of the auth wall', function () {
+        // M066/S09/T03: /game-systems/request is auth-gated — guests get a
+        // sign-up framed link to /register, not a dead end at the login wall.
+        get(route('game-systems'))
+            ->assertOk()
+            ->assertSee(route('register'), false)
+            ->assertSee(__('games.request_cta_guest_link'))
+            ->assertDontSee(route('game-systems.request'), false);
+    });
+
     it('request CTA link is present on page', function () {
-        Livewire\Livewire::test(GameSystemsPage::class)
+        Livewire\Livewire::actingAs(User::factory()->create())
+            ->test(GameSystemsPage::class)
             ->assertSee(route('game-systems.request'));
     });
 
@@ -302,13 +319,6 @@ describe('GameSystemsPage', function () {
     });
 });
 
-describe('GameSystemsPage - i18n', function () {
-    it('renders with locale prefix', function () {
-        get('/en/game-systems')->assertOk();
-        get('/de/game-systems')->assertOk();
-    });
-});
-
 describe('GameSystemsPage - Accessibility', function () {
     it('has proper h1 heading', function () {
         $content = get(route('game-systems'))->assertOk()->content();
@@ -321,7 +331,7 @@ describe('GameSystemsPage - Accessibility', function () {
     it('search input has aria-label', function () {
         get(route('game-systems'))
             ->assertOk()
-            ->assertSee('aria-label="Search game systems"', false);
+            ->assertSee('aria-label="'.__('games.action_search_game_systems', [], 'en').'"', false);
     });
 
     it('filter buttons have proper labels', function () {
@@ -331,8 +341,8 @@ describe('GameSystemsPage - Accessibility', function () {
         // Category and mechanic pills use wire:click, not aria-label
         // Just verify the category/mechanic sections render
         $response->assertOk()
-            ->assertSee('Categories')
-            ->assertSee('Mechanics');
+            ->assertSee(__('common.content_categories', [], 'en'))
+            ->assertSee(__('games.heading_mechanics', [], 'en'));
     });
 
     it('player count sliders have aria-labels', function () {

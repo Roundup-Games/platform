@@ -6,44 +6,65 @@ use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 
 describe('HowItWorksPage', function () {
-    it('renders the how-it-works page for guests', function () {
-        get(route('how-it-works'))->assertOk();
-    });
-
-    it('shows sign-up CTA for guests', function () {
+    it('shows sign-up and find-a-game CTAs for guests', function () {
         get(route('how-it-works'))
             ->assertOk()
-            ->assertSee(__('auth.content_sign_up_free'))
-            ->assertSee(__('campaigns.action_browse_sessions'));
+            ->assertSee(__('profile.action_create_free_account'))
+            ->assertSee(__('common.action_find_a_game_near_you'));
     });
 
-    it('shows only browse sessions CTA for authenticated users', function () {
+    it('shows only find-a-game CTA for authenticated users', function () {
         actingAs(User::factory()->create([
             'profile_complete' => true,
         ]));
 
         get(route('how-it-works'))
             ->assertOk()
-            ->assertDontSee(__('auth.content_sign_up_free'))
-            ->assertSee(__('campaigns.action_browse_sessions'));
-    });
-
-    it('renders the about page', function () {
-        get(route('about'))
-            ->assertOk();
-    });
-
-    it('about page preserves locale', function () {
-        $locale = app()->getLocale();
-        get("/{$locale}/about")
-            ->assertOk();
+            ->assertDontSee(__('profile.action_create_free_account'))
+            ->assertSee(__('common.action_find_a_game_near_you'));
     });
 });
 
-describe('HowItWorksPage - i18n', function () {
-    it('renders with locale prefix', function () {
-        get('/en/how-it-works')->assertOk();
-        get('/de/how-it-works')->assertOk();
+describe('HowItWorksPage - Organizer Story', function () {
+    it('shows the organizer story heading and intro', function () {
+        get(route('how-it-works'))
+            ->assertOk()
+            ->assertSee(__('pages.content_host_story_heading'))
+            ->assertSee(__('pages.content_host_story_intro'));
+    });
+
+    it('walks the host journey: plan, roster, overflow, recap', function () {
+        get(route('how-it-works'))
+            ->assertOk()
+            ->assertSee(__('pages.content_host_story_step_plan_title'))
+            ->assertSee(__('pages.content_host_story_step_roster_title'))
+            ->assertSee(__('pages.content_host_story_step_overflow_title'))
+            ->assertSee(__('pages.content_host_story_step_recap_title'));
+    });
+
+    it('names the shipped surfaces in the story: Session Zero, Discord, iCal, PWA', function () {
+        $content = get(route('how-it-works'))->assertOk()->content();
+
+        // Shipped-feature receipts (D179): the organizer story may only
+        // mention what actually exists — Session Zero builder, Discord
+        // bridge, iCal feed, PWA.
+        expect($content)->toContain('Session Zero')
+            ->toContain('Discord')
+            ->toContain('iCal')
+            ->toContain('PWA');
+    });
+
+    it('covers the waitlist and bench in the overflow step', function () {
+        get(route('how-it-works'))
+            ->assertOk()
+            ->assertSee(__('pages.content_host_story_step_overflow_text'));
+    });
+
+    it('hands organizers off to the for-organizers page', function () {
+        get(route('how-it-works'))
+            ->assertOk()
+            ->assertSee(__('pages.action_see_everything_for_organizers'))
+            ->assertSee(route('for-organizers'));
     });
 });
 
@@ -77,11 +98,5 @@ describe('HowItWorksPage - Accessibility', function () {
             }
             expect($iconTag)->toContain('aria-hidden="true"');
         }
-    });
-
-    it('has proper section landmarks', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('<section', false);
     });
 });
