@@ -2,6 +2,8 @@
 
 This guide explains how Roundup Games translations are structured and maintained. It is the reference for anyone — human or AI agent — adding, changing, or removing translatable strings.
 
+It covers the **workflow** (files, keys, parity, Weblate). **What the words mean** is canon in [`docs/GLOSSARY.md`](../docs/GLOSSARY.md); **how we write them** is canon in [`docs/STYLE-GUIDE.md`](../docs/STYLE-GUIDE.md). Check both before contributing strings.
+
 ## Contents
 
 1. [Architecture Overview](#architecture-overview)
@@ -48,7 +50,27 @@ lang/
 
 Each domain file returns a **flat associative array** mapping `prefix_slug` → translated string. In Blade/PHP, keys are referenced as `__('domain.prefix_slug')`.
 
-**Key stats:** 32 domain files per locale, ~3,160 keys per locale, full EN/DE parity (enforced by `php artisan i18n:check` in CI).
+**Key stats:** 35 domain files per locale, ~3,100 keys per locale, full EN/DE parity (enforced by `php artisan i18n:check` in CI).
+
+### PWA static-asset strings
+
+There is **no `pwa.php` domain** — it was removed in M066 after its static-asset duplicates turned up dead. The browser-served PWA assets carry their own hardcoded text and are **not** translated through `lang/`:
+
+- `public/manifest.json` — app name, short name, description
+- `public/offline.html` — offline fallback copy, with inline JavaScript browser-language switching
+
+**Runtime-rendered** PWA UI strings (install prompts, offline indicator and toasts, push-notification settings) live in `common.php` — keys `install_*`, `ios_install_*`, `content_firefox_install_*`, `content_update_available`, `offline_*`, `back_online`, `push_*`.
+
+When changing PWA copy, edit the matching source: `lang/*/common.php` for anything rendered by Blade/Livewire, the static files above for anything served without a Laravel request. Do not mirror static-asset text back into `lang/` — such keys have no `__()` call sites and show up as dead in `php artisan i18n:dead-strings` (the `pwa.php` domain was removed in M066 for exactly this reason).
+
+### Terminology and style canon
+
+Beyond file/key mechanics, two canon documents govern every string:
+
+- [`docs/GLOSSARY.md`](../docs/GLOSSARY.md) — **what the words mean**: one canonical EN term and one canonical DE term per concept, with definitions and the ban-list of retired variants (e.g. Game = *Runde*, GM everywhere, venue = *Veranstaltungsort*, Gathering = *Treffen*).
+- [`docs/STYLE-GUIDE.md`](../docs/STYLE-GUIDE.md) — **how we write**: EN editorial voice (verb-first, contractions, sentence-case CTAs) and the DE style guide (du-form, contracted imperatives, typography and format rules).
+
+Every contributor — human, AI agent, or Weblate translator — lands on these before adding or reviewing strings. **Canonical DE terms are review-enforced**: check new copy against the glossary ban-list before landing it — a retired variant (e.g. *Sitzung*, *Spielleiter*, *Spielort*) must not be reintroduced.
 
 ---
 
@@ -220,10 +242,11 @@ php artisan test
 
 When you add a feature that needs new translatable strings:
 
-1. **Pick the right domain file** (see [Domain Definitions](#domain-definitions)).
-2. **Choose the right prefix** (see [Key Prefix Reference](#key-prefix-reference)).
-3. **Construct the key** using snake_case of the English value with the prefix.
-4. **Add to all locales** — at minimum `lang/en/` and `lang/de/`:
+1. **Check the canon** — write with the canonical EN term from [`docs/GLOSSARY.md`](../docs/GLOSSARY.md) and the voice rules from [`docs/STYLE-GUIDE.md`](../docs/STYLE-GUIDE.md). German values must use the DE canonical term (e.g. *Runde*, *GM*, *Veranstaltungsort*, du-form); retired variants are guard-enforced and fail CI.
+2. **Pick the right domain file** (see [Domain Definitions](#domain-definitions)).
+3. **Choose the right prefix** (see [Key Prefix Reference](#key-prefix-reference)).
+4. **Construct the key** using snake_case of the English value with the prefix.
+5. **Add to all locales** — at minimum `lang/en/` and `lang/de/`:
 
 ```php
 // lang/en/events.php
@@ -233,7 +256,7 @@ When you add a feature that needs new translatable strings:
 'action_export_attendees' => 'Teilnehmer exportieren',
 ```
 
-5. **Use in Blade/PHP** with Laravel's `__()` helper:
+6. **Use in Blade/PHP** with Laravel's `__()` helper:
 
 ```blade
 {{ __('events.action_export_attendees') }}
@@ -269,7 +292,8 @@ grep -r "events.action_old_button" app/ resources/
 
 ## German Conventions
 
-- **Informal address (Du) is the official form** for German translations (decision D131, 2026-08). The gaming-community tone is informal; ~92% of existing strings already use Du. Do not mix in Sie forms.
+- **Follow the canon** — terminology is pinned in [`docs/GLOSSARY.md`](../docs/GLOSSARY.md) (canonical DE terms and the ban-list; guard-enforced in CI) and the full German style rules live in [`docs/STYLE-GUIDE.md`](../docs/STYLE-GUIDE.md), Chapter 2.
+- **Informal address (Du) is the official form** for German translations (decision D131, 2026-08; extended and restated by D175, 2026-10). The gaming-community tone is informal; ~92% of existing strings already use Du. Do not mix in Sie forms.
 - **No gender-colon notation** (`Spieler:in`, `jede:r`). The trailing colon collides with Laravel `:placeholder` syntax and trips both Weblate's Laravel-format check and the local `i18n:check` placeholder-parity check. Use neutral forms (`Teilnehmende`, `alle Beteiligten`, `jede Person`), pairwise forms (`Spielerinnen und Spieler`), or — only as a last resort — the slash form (`Spieler/in`).
 - **Different English strings must not share the same German string** unless the German genuinely cannot distinguish (e.g. singular/plural `Treffen`, participles `Widerrufen`). Weblate flags these as "Reused translation"; prefer differentiating the German.
 
@@ -357,6 +381,7 @@ minimal diff.
 
 | Rule | Details |
 |------|---------|
+| Terminology & style are canon | [`docs/GLOSSARY.md`](../docs/GLOSSARY.md) (terms, ban-list) + [`docs/STYLE-GUIDE.md`](../docs/STYLE-GUIDE.md) (voice) — canonical DE terms are guard-enforced |
 | New keys in PHP files only | `lang/{locale}/{domain}.php` |
 | Use prefix conventions | `action_`, `field_`, `status_`, `flash_`, `error_`, `content_` |
 | Flat snake_case slugs | No nesting, no camelCase |
@@ -403,6 +428,7 @@ Translation PRs look like any other PR but typically touch only `lang/{locale}/*
 - [ ] CI `i18n` job is green (parity, placeholders, conventions).
 - [ ] Spot-check a few strings for the `:placeholder` names matching the English source.
 - [ ] No keys were added or removed (Weblate should only change values).
+- [ ] Terminology follows [`docs/GLOSSARY.md`](../docs/GLOSSARY.md) and style follows [`docs/STYLE-GUIDE.md`](../docs/STYLE-GUIDE.md) Chapter 2 — canonical DE terms are guard-enforced, so a retired variant fails CI anyway.
 
 Merge with a regular merge commit (Weblate is configured for `merge_style: merge` to preserve translator attributions).
 
@@ -438,13 +464,15 @@ The Weblate project is configured for **GitHub pull-request delivery** with thes
 | Push branch | `weblate/translations` |
 | Merge style | `rebase` |
 | `push_on_commit` | `true` |
-| Linked components | All 32 code components are linked to `common`; changing `common` propagates to all of them |
+| Linked components | All lang code components are linked to `common`; changing `common` propagates to all of them |
 
 The push path uses the shared **`weblate` GitHub user** (invited as an outside collaborator with Write access on `Roundup-Games/platform`). Hosted Weblate maintains SSH keys for this user; no deploy keys or embedded PATs to manage.
 
 > **Note:** the Hosted Weblate GitHub App is installed on the org but does **not** provide push credentials for the existing components — they were imported with raw HTTPS URLs rather than through the App's import flow. The `weblate` SSH collaborator is the working outbound path. If a future Weblate version exposes an App-binding flow for existing components, switching to it is a one-time change to `common`'s `push` field (set to empty) and removing the `weblate` collaborator.
 
-**Inbound (auto-pull)** is handled by a webhook registered on the GitHub repo (`https://hosted.weblate.org/hooks/github/`, push events). When a push lands on `main`, GitHub fires the webhook and Weblate auto-pulls within seconds. The Hosted Weblate GitHub App is installed on the org but is not bound on the Weblate side for existing components (no accessible binding flow for components imported with raw URLs), so the App does not auto-wire the inbound webhook — the manual webhook registration covers this gap. One webhook serves all 32 components; Weblate uses the repo URL in the payload to route.
+**Inbound (auto-pull)** is handled by a webhook registered on the GitHub repo (`https://hosted.weblate.org/hooks/github/`, push events). When a push lands on `main`, GitHub fires the webhook and Weblate auto-pulls within seconds. The Hosted Weblate GitHub App is installed on the org but is not bound on the Weblate side for existing components (no accessible binding flow for components imported with raw URLs), so the App does not auto-wire the inbound webhook — the manual webhook registration covers this gap. One webhook serves all components; Weblate uses the repo URL in the payload to route.
+
+> **Removing a domain file** (as M066 did with `pwa.php`): delete it from every locale in the same change, rewire or drop its keys' call sites, and remove the matching Weblate component afterwards so translators don't see a ghost file.
 
 If you add a **new locale** (e.g. `lang/fr/`), create the corresponding component(s) in Weblate via the UI with the same VCS settings. Link them to `common` so the push/repo config is inherited.
 
