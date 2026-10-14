@@ -19,7 +19,6 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Spatie\CookieConsent\CookieConsentMiddleware;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -80,28 +79,38 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // SQLSTATE 22P02 — a client-supplied value cannot be represented as
-        // the column type it was bound to (in practice: a malformed uuid id
-        // from a truncated share link or an automated probe hitting a uuid
-        // column). That is client garbage, not an application error, so for
-        // HTTP requests it is suppressed here and rendered below as the same
-        // 404 a well-formed unknown id returns — otherwise each probe payload
-        // becomes a fresh error-tracking issue and drowns out real findings.
-        // CLI (jobs, commands) still reports: there the malformed value comes
-        // from stored data, which is an application concern. Input funnels
-        // that validate shape first (uuid_or_null()/uuid_array() helpers,
+        // the column type it was bound to. Postgres also raises 22P02 for
+        // malformed casts to json/xml and similar, so the message is matched
+        // too: only the "invalid input syntax for type uuid" class is treated
+        // as client garbage from an id-bearing request. A non-locale-English
+        // Postgres (lc_messages) simply fails the match and reports as
+        // before — the safe direction (noise returns, nothing is hidden).
+        // That is not an application error, so for HTTP requests it is
+        // suppressed here and rendered below as the same 404 a well-formed
+        // unknown id returns — otherwise each probe payload becomes a fresh
+        // error-tracking issue and drowns out real findings. CLI (jobs,
+        // commands) still reports: there the malformed value comes from
+        // stored data, which is an application concern. Input funnels that
+        // validate shape first (uuid_or_null()/uuid_array() helpers,
         // UuidBuilder find*()) keep legitimate traffic off this path — this
         // is the backstop, not the first line of defence.
-        $malformedIdentifier = fn (QueryException $e): bool => ($e->errorInfo[0] ?? null) === '22P02';
+        $malformedUuidIdentifier = fn (QueryException $e): bool => ($e->errorInfo[0] ?? null) === '22P02'
+            && str_contains($e->getMessage(), 'invalid input syntax for type uuid');
 
-        $exceptions->reportable(function (QueryException $e) use ($malformedIdentifier) {
+        $exceptions->reportable(function (QueryException $e) use ($malformedUuidIdentifier) {
             // HTTP-only (the test runner reports as console, so unit tests
             // count as HTTP here to exercise this path).
             $isCli = app()->runningInConsole() && ! app()->runningUnitTests();
 
-            if (! $isCli && $malformedIdentifier($e)) {
+            if (! $isCli && $malformedUuidIdentifier($e)) {
+                // Scrubbed like error tracking (PostHogExceptionReporter):
+                // bearer-style path segments collapse to placeholders, and no
+                // URL/query string or exception message is logged — both can
+                // carry tokens or personal data the reporter would scrub.
                 Log::warning('Malformed identifier rejected at the database boundary', [
-                    'url' => request()->fullUrl(),
-                    'message' => Str::limit($e->getMessage(), 300),
+                    'category' => 'malformed_identifier',
+                    'path' => app(PostHogExceptionReporter::class)->scrubRequestPath(request()->path()),
+                    'sqlstate' => '22P02',
                 ]);
 
                 // Stop the report chain: not an application error.
@@ -109,8 +118,8 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        $exceptions->render(function (QueryException $e, Request $request) use ($malformedIdentifier) {
-            if (! $malformedIdentifier($e)) {
+        $exceptions->render(function (QueryException $e, Request $request) use ($malformedUuidIdentifier) {
+            if (! $malformedUuidIdentifier($e)) {
                 return null;
             }
 
