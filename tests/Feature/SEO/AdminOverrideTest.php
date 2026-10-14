@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\SeoCacheService;
 use Illuminate\Support\Facades\Cache;
 
+use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 
 // Per-entity admin override behaviour on the D172 standard: translatable
@@ -54,6 +55,9 @@ dataset('seo_entity_title_override', [
         'make' => fn () => Team::factory()->create(['name' => 'Dynamic Team Name', 'is_active' => true]),
         'route' => fn ($m) => route('teams.detail', $m->slug),
         'expected' => 'Admin Team Override',
+        // M066/S06/T02: teams.detail sits behind login — the page only
+        // renders for a signed-in, profile-complete member.
+        'auth' => true,
     ]],
     'User' => [[
         'make' => fn () => User::factory()->create([
@@ -103,6 +107,7 @@ dataset('seo_entity_restore_on_clear', [
         'make' => fn () => Team::factory()->create(['name' => 'Team Dynamic Title', 'is_active' => true]),
         'route' => fn ($m) => route('teams.detail', $m->slug),
         'expected' => 'Team Dynamic Title',
+        'auth' => true,
     ]],
     'User' => [[
         'make' => fn () => User::factory()->create([
@@ -117,6 +122,13 @@ dataset('seo_entity_restore_on_clear', [
 
 describe('Admin Override Precedence (parameterized)', function () {
     it('overrides title via curated column across entity types', function (array $d) {
+        // M066/S06/T02: the Team row renders behind login — sign in as a
+        // profile-complete member only when the dataset row asks for it
+        // (public detail pages redirect authed users to dashboard variants).
+        if (($d['auth'] ?? false) === true) {
+            actingAs(User::factory()->create(['profile_complete' => true]));
+        }
+
         $model = ($d['make'])();
         $model->setTranslation('seo_title', 'en', $d['expected']);
         $model->save();
@@ -127,6 +139,10 @@ describe('Admin Override Precedence (parameterized)', function () {
     })->with('seo_entity_title_override');
 
     it('restores dynamic title when override is cleared across entity types', function (array $d) {
+        if (($d['auth'] ?? false) === true) {
+            actingAs(User::factory()->create(['profile_complete' => true]));
+        }
+
         $model = ($d['make'])();
         $model->setTranslation('seo_title', 'en', 'Override Title');
         $model->save();

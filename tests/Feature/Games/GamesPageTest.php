@@ -29,9 +29,9 @@ function gamesPageCreateGame(array $overrides = []): Game
 // ═══════════════════════════════════════════════════════════
 
 describe('GamesPage — Guest Access', function () {
-    it('redirects guests to /discover', function () {
+    it('permanently redirects guests from /games to /dashboard/games', function () {
         get('/en/games')
-            ->assertRedirect('/en/discover');
+            ->assertStatus(301)->assertRedirect('/en/dashboard/games');
     });
 });
 
@@ -45,7 +45,7 @@ describe('GamesPage — My Games Display', function () {
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => ['en' => 'Test Game Session']]);
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertSee('Test Game Session');
     });
 });
@@ -208,7 +208,7 @@ describe('GamesPage — Games I\'m In Display', function () {
         ]);
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertSee('Joined Game');
     });
 
@@ -218,7 +218,7 @@ describe('GamesPage — Games I\'m In Display', function () {
 
         // The owned game appears in the 'Upcoming — you\'re hosting' section...
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertSee('My Own Game')
             ->assertSee(__('games.heading_upcoming_hosting'));
     });
@@ -233,7 +233,7 @@ describe('GamesPage — Open Invitations Display', function () {
         $user = gamesPageCreateUser();
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertDontSee(__('common.heading_open_invitations'));
     });
 
@@ -250,7 +250,7 @@ describe('GamesPage — Open Invitations Display', function () {
         ]);
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertSee(__('common.heading_open_invitations'));
     });
 
@@ -267,7 +267,7 @@ describe('GamesPage — Open Invitations Display', function () {
         ]);
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertSee('Invite Me Game');
     });
 
@@ -284,7 +284,7 @@ describe('GamesPage — Open Invitations Display', function () {
         ]);
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertSee(__('common.action_accept_invitation'))
             ->assertSee(__('common.action_decline'));
     });
@@ -522,7 +522,7 @@ describe('GamesPage — Community Activity Feed', function () {
         $game = gamesPageCreateGame(['owner_id' => $friend->id, 'name' => ['en' => 'Friend Created Game']]);
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertSee('Friend Created Game')
             ->assertSee(__('games.activity_created_game'));
     });
@@ -541,7 +541,7 @@ describe('GamesPage — Community Activity Feed', function () {
         ]);
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertSee('Game Friend Joined')
             ->assertSee(__('games.activity_joined_game'));
     });
@@ -553,7 +553,7 @@ describe('GamesPage — Community Activity Feed', function () {
         $game = gamesPageCreateGame(['owner_id' => $friend->id, 'name' => ['en' => 'Completed Game'], 'status' => 'completed']);
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertSee('Completed Game')
             ->assertSee(__('games.activity_completed_game'));
     });
@@ -564,7 +564,7 @@ describe('GamesPage — Community Activity Feed', function () {
         $game = gamesPageCreateGame(['owner_id' => $stranger->id, 'name' => ['en' => 'Stranger Game']]);
 
         actingAs($user)
-            ->get('/en/games')
+            ->get('/en/dashboard/games')
             ->assertDontSee('Stranger Game');
     });
 

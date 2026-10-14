@@ -50,7 +50,9 @@ class BreadcrumbBuilder
                 [__('games.content_games'), route('games.index')],
             ]),
             'games.detail' => $this->crumbs([
-                [__('games.content_games'), route('games.index')],
+                // M066/S06/T01: public detail breadcrumb goes back to discovery —
+                // games.index is the authed board behind /dashboard/games now.
+                [__('games.content_games'), route('discover')],
                 [$this->resolveLeafName($params, $pageTitle), request()->url()],
             ]),
 
@@ -58,7 +60,9 @@ class BreadcrumbBuilder
                 [__('campaigns.content_campaigns'), route('campaigns.index')],
             ]),
             'campaigns.detail' => $this->crumbs([
-                [__('campaigns.content_campaigns'), route('campaigns.index')],
+                // M066/S06/T01: public detail breadcrumb goes back to discovery —
+                // campaigns.index is the authed board behind /dashboard/campaigns now.
+                [__('campaigns.content_campaigns'), route('discover')],
                 [$this->resolveLeafName($params, $pageTitle), request()->url()],
             ]),
 
@@ -106,17 +110,9 @@ class BreadcrumbBuilder
                 [__('common.nav_our_pledge'), route('pledge')],
                 [__('pages.content_commitment_algorithms_title'), request()->url()],
             ]),
-            'pledge.finances' => $this->crumbs([
-                [__('common.nav_our_pledge'), route('pledge')],
-                [__('pages.content_commitment_finances_title'), request()->url()],
-            ]),
             'pledge.roadmap' => $this->crumbs([
                 [__('common.nav_our_pledge'), route('pledge')],
                 [__('pages.content_commitment_roadmap_title'), request()->url()],
-            ]),
-            'pledge.operations' => $this->crumbs([
-                [__('common.nav_our_pledge'), route('pledge')],
-                [__('pages.content_commitment_operations_title'), request()->url()],
             ]),
 
             default => [$this->homeCrumb()],

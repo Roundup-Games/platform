@@ -7,7 +7,6 @@ use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
-use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -42,13 +41,15 @@ class SeoCacheService
     private const STATIC_TYPES = ['static'];
 
     /** @var string[] All valid sitemap types (used for the index) */
+    // M066/S06/T02: 'teams' retired — team pages sit behind login and are
+    // no longer indexable. Keep in sync with the /sitemap-{type}.xml route
+    // constraint in routes/web.php.
     private const SITEMAP_TYPES = [
         'static',
         'game-systems',
         'events',
         'games',
         'campaigns',
-        'teams',
         'profiles',
         'venues',
         'cities',
@@ -60,7 +61,6 @@ class SeoCacheService
         'events' => Event::class,
         'games' => Game::class,
         'campaigns' => Campaign::class,
-        'teams' => Team::class,
         'profiles' => User::class,
         'venues' => Location::class,
     ];

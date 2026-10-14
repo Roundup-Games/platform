@@ -66,19 +66,19 @@ function guestTestCreatePublicUser(): User
 }
 
 // ═══════════════════════════════════════════════════════════
-// R019: GUEST REDIRECTS — /games and /campaigns → /discover
+// R019: GUEST REDIRECTS — /games and /campaigns → /dashboard/* (301)
 // ═══════════════════════════════════════════════════════════
 
 describe('R019 — Guest listing redirects', function () {
-    // smoke: guest routing — /games redirects to /discover
-    it('redirects guest from /games to /discover', function () {
+    // smoke: guest routing — /games 301s to the authed board
+    it('permanently redirects guest from /games to /dashboard/games', function () {
         get('/en/games')
-            ->assertRedirect('/en/discover');
+            ->assertStatus(301)->assertRedirect('/en/dashboard/games');
     })->group('smoke');
 
-    it('redirects guest from /campaigns to /discover', function () {
+    it('permanently redirects guest from /campaigns to /dashboard/campaigns', function () {
         get('/en/campaigns')
-            ->assertRedirect('/en/discover');
+            ->assertStatus(301)->assertRedirect('/en/dashboard/campaigns');
     });
 });
 
@@ -93,7 +93,7 @@ describe('R020 — Guest game detail page', function () {
         get("/en/games/{$game->id}")
             ->assertOk()
             ->assertSee($game->name)
-            ->assertSee('Sign Up Free');
+            ->assertSee(__('auth.content_sign_up_free', [], 'en'));
     })->group('smoke');
 
     it('denies guest from viewing protected game', function () {
@@ -133,8 +133,8 @@ describe('R020 — Guest game detail page', function () {
 
         get("/en/games/{$game->id}")
             ->assertOk()
-            ->assertSee('Back to Discover')
-            ->assertDontSee('Back to Dashboard');
+            ->assertSee(__('common.action_back_to_discover', [], 'en'))
+            ->assertDontSee(__('profile.action_back_to_dashboard', [], 'en'));
     });
 });
 
@@ -149,7 +149,7 @@ describe('R021 — Guest campaign detail page', function () {
         get("/en/campaigns/{$campaign->id}")
             ->assertOk()
             ->assertSee($campaign->name)
-            ->assertSee('Sign Up Free');
+            ->assertSee(__('auth.content_sign_up_free', [], 'en'));
     });
 
     it('denies guest from viewing protected campaign', function () {
@@ -171,8 +171,8 @@ describe('R021 — Guest campaign detail page', function () {
 
         get("/en/campaigns/{$campaign->id}")
             ->assertOk()
-            ->assertSee('Back to Discover')
-            ->assertDontSee('Back to Dashboard');
+            ->assertSee(__('common.action_back_to_discover', [], 'en'))
+            ->assertDontSee(__('profile.action_back_to_dashboard', [], 'en'));
     });
 });
 
@@ -187,7 +187,7 @@ describe('R022 — Guest public profile', function () {
         get(route('profile.public', $user))
             ->assertOk()
             ->assertSee($user->name)
-            ->assertSee('Sign Up Free');
+            ->assertSee(__('auth.content_sign_up_free', [], 'en'));
     });
 
     it('shows follow login prompt to guest on profile', function () {
@@ -195,7 +195,7 @@ describe('R022 — Guest public profile', function () {
 
         get(route('profile.public', $user))
             ->assertOk()
-            ->assertSee('Log in to follow');
+            ->assertSee(__('profile.action_log_in_to_follow', [], 'en'));
     });
 });
 
@@ -234,6 +234,6 @@ describe('Authenticated user layout regression', function () {
         get(route('profile.public', $profileUser))
             ->assertOk()
             ->assertSee($profileUser->name)
-            ->assertSee('Follow');
+            ->assertSee(__('common.action_follow', [], 'en'));
     });
 });

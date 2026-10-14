@@ -21,7 +21,6 @@ use App\Services\ParticipantLifecycle;
 use App\Services\Roster;
 use App\Traits\EditsVenueLocation;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -76,13 +75,6 @@ class GamesPage extends Component
     public string $edit_address_street = '';
 
     public string $edit_address_mode = 'venue'; // venue | address
-
-    public function mount(): void
-    {
-        if (Auth::guest()) {
-            $this->redirect(route('discover', app()->getLocale()));
-        }
-    }
 
     // ── Edit Game ────────────────────────────────────────
 

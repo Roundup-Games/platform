@@ -68,7 +68,9 @@ describe('DiscoveryPortal featured-cities rail', function () {
 
         get(route('discover'))
             ->assertOk()
-            ->assertSee(__('discovery.content_featured_city_hubs'))
+            ->assertSee(__('discovery.content_explore_cities'))
+            // The rail heading is the hop to the /cities index (M066/S06/T04).
+            ->assertSee(route('city-hubs.index', ['locale' => 'en']), false)
             ->assertSee(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']), false)
             ->assertSee(__('discovery.action_view_city_hub', ['city' => 'Berlin']));
     });
@@ -79,7 +81,7 @@ describe('DiscoveryPortal featured-cities rail', function () {
 
         get(route('discover'))
             ->assertOk()
-            ->assertDontSee(__('discovery.content_featured_city_hubs'))
+            ->assertDontSee(__('discovery.content_explore_cities'))
             ->assertDontSee(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']), false);
     });
 
@@ -98,7 +100,7 @@ describe('DiscoveryPortal featured-cities rail', function () {
 
         get(route('discover'))
             ->assertOk()
-            ->assertDontSee(__('discovery.content_featured_city_hubs'))
+            ->assertDontSee(__('discovery.content_explore_cities'))
             ->assertDontSee('/en/cities/berlin');
     });
 
@@ -109,14 +111,14 @@ describe('DiscoveryPortal featured-cities rail', function () {
 
         get(route('discover'))
             ->assertOk()
-            ->assertDontSee(__('discovery.content_featured_city_hubs'))
+            ->assertDontSee(__('discovery.content_explore_cities'))
             ->assertDontSee('/en/cities/bremen');
     });
 
     it('renders no rail markup at all when the set is empty', function () {
         get(route('discover'))
             ->assertOk()
-            ->assertDontSee(__('discovery.content_featured_city_hubs'))
+            ->assertDontSee(__('discovery.content_explore_cities'))
             ->assertDontSee(__('discovery.content_featured_city_hubs_teaser'))
             // The chip icon and any hub path only render inside the rail.
             ->assertDontSee('location_city')
@@ -129,12 +131,12 @@ describe('DiscoveryPortal featured-cities rail', function () {
 
         get(route('discover', ['locale' => 'en']))
             ->assertOk()
-            ->assertSee(__('discovery.content_featured_city_hubs', [], 'en'))
-            ->assertDontSee(__('discovery.content_featured_city_hubs', [], 'de'));
+            ->assertSee(__('discovery.content_explore_cities', [], 'en'))
+            ->assertDontSee(__('discovery.content_explore_cities', [], 'de'));
 
         get(route('discover', ['locale' => 'de']))
             ->assertOk()
-            ->assertSee(__('discovery.content_featured_city_hubs', [], 'de'))
-            ->assertDontSee(__('discovery.content_featured_city_hubs', [], 'en'));
+            ->assertSee(__('discovery.content_explore_cities', [], 'de'))
+            ->assertDontSee(__('discovery.content_explore_cities', [], 'en'));
     });
 });

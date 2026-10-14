@@ -53,7 +53,7 @@
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
         {{-- PWA update toast translations (read by app.js). @js() produces safely-escaped JSON — addslashes() does not escape </script> or U+2028/29. --}}
-        <script>window.__pwaUpdateToast=@js(['message' => __('pwa.content_update_available'), 'action' => __('common.field_update')]);window.__pwaOfflineToast=@js(['queued' => __('pwa.offline_action_queued'), 'offline' => __('pwa.offline_action_offline')]);</script>
+        <script>window.__pwaUpdateToast=@js(['message' => __('common.content_update_available'), 'action' => __('common.field_update')]);window.__pwaOfflineToast=@js(['queued' => __('common.offline_action_queued'), 'offline' => __('common.offline_action_offline')]);</script>
 
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -147,7 +147,9 @@
                             </button>
                         </form>
                         @else
-                        {{-- Guest mobile nav: sign-up / log-in CTAs. --}}
+                        {{-- Guest mobile nav: sign-up / log-in CTAs + a path back
+                             into public discovery (M066/S06/T03) so guests on
+                             app-layout pages never hit a dead sidebar. --}}
                         <a href="{{ route('register') }}" wire:navigate
                            class="flex items-center justify-center gap-2 px-4 py-3 mb-1 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-colors">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
@@ -156,6 +158,25 @@
                         <a href="{{ route('login') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span>
                             {{ __('auth.content_log_in') }}
+                        </a>
+
+                        {{-- Public discovery links (guest back-paths) --}}
+                        <div class="border-t border-outline-variant/15 my-2"></div>
+                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('discover') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('discover') ? "style=\"font-variation-settings: 'FILL' 1\"" : '' }}>explore</span>
+                            {{ __('discovery.action_discover') }}
+                        </a>
+                        <a href="{{ route('gm.directory') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('gm.directory') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('gm.directory') ? "style=\"font-variation-settings: 'FILL' 1\"" : '' }}>casino</span>
+                            {{ __('profile.nav_gm_directory') }}
+                        </a>
+                        <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('events.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('events.*') ? "style=\"font-variation-settings: 'FILL' 1\"" : '' }}>event</span>
+                            {{ __('events.content_events') }}
+                        </a>
+                        <a href="{{ route('venues.directory') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('venues.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('venues.*') ? "style=\"font-variation-settings: 'FILL' 1\"" : '' }}>storefront</span>
+                            {{ __('venues.nav_venue_directory') }}
                         </a>
                         @endauth
 
@@ -259,6 +280,28 @@
                         <a href="{{ route('login') }}" wire:navigate class="flex items-center justify-center gap-2 px-4 py-3 mb-2 rounded-xl text-sm font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-all duration-200">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span>
                             {{ __('auth.content_log_in') }}
+                        </a>
+
+                        {{-- Divider before public discovery back-paths (M066/S06/T03):
+                             guests on app-layout pages get a path back into the
+                             public site instead of a dead sidebar. --}}
+                        <div class="pt-4 mt-4 border-t border-outline-variant/15"></div>
+
+                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('discover') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('discover') ? "style=\"font-variation-settings: 'FILL' 1\"" : '' }}>explore</span>
+                            {{ __('discovery.action_discover') }}
+                        </a>
+                        <a href="{{ route('gm.directory') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('gm.directory') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('gm.directory') ? "style=\"font-variation-settings: 'FILL' 1\"" : '' }}>casino</span>
+                            {{ __('profile.nav_gm_directory') }}
+                        </a>
+                        <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('events.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('events.*') ? "style=\"font-variation-settings: 'FILL' 1\"" : '' }}>event</span>
+                            {{ __('events.content_events') }}
+                        </a>
+                        <a href="{{ route('venues.directory') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('venues.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('venues.*') ? "style=\"font-variation-settings: 'FILL' 1\"" : '' }}>storefront</span>
+                            {{ __('venues.nav_venue_directory') }}
                         </a>
                         @endauth
                     </nav>

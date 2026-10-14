@@ -19,7 +19,6 @@ use App\Services\ParticipantLifecycle;
 use App\Services\Roster;
 use App\Traits\EditsVenueLocation;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -71,13 +70,6 @@ class CampaignsPage extends Component
     public string $edit_address_street = '';
 
     public string $edit_address_mode = 'venue';
-
-    public function mount(): void
-    {
-        if (Auth::guest()) {
-            $this->redirect(route('discover', app()->getLocale()));
-        }
-    }
 
     // ── Edit Campaign ──────────────────────────────────────
 

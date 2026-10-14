@@ -4,6 +4,8 @@ use App\Livewire\Teams\BrowseTeams;
 use App\Models\Team;
 use Livewire\Livewire;
 
+use function Pest\Laravel\get;
+
 /*
  * M053 / S01 / T06 — Route event & team location display through the
  * disclosure service (no orphans).
@@ -47,5 +49,10 @@ describe('BrowseTeamsTest', function () {
         Livewire::test(BrowseTeams::class, ['search' => 'Nomad Squad FC'])
             ->assertSee('Nomad Squad FC')
             ->assertDontSee('location_on');
+    });
+
+    it('redirects guests to login from the browse route (M066/S06/T02)', function () {
+        get(route('teams.browse'))
+            ->assertRedirect(route('login'));
     });
 });

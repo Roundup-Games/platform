@@ -16,8 +16,8 @@ function campaignsPageCreateUser(array $overrides = []): User
 // ═══════════════════════════════════════════════════════════
 
 describe('CampaignsPage — Guest Access', function () {
-    it('redirects guests to /discover', function () {
+    it('permanently redirects guests from /campaigns to /dashboard/campaigns', function () {
         get('/en/campaigns')
-            ->assertRedirect('/en/discover');
+            ->assertStatus(301)->assertRedirect('/en/dashboard/campaigns');
     });
 });

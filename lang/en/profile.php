@@ -101,8 +101,9 @@ return [
     'gm_profile_bio' => 'About',
     'gm_profile_no_reviews' => 'No reviews yet',
     'content_find_me_on' => 'Find me on',
-    // GM Navigation
-    'nav_gm_directory' => 'GM Directory',
+    // GM Navigation (M066/S06/T03): nav label expands on first use per
+    // the glossary rule — 'Game Master' spelled out before 'GM'.
+    'nav_gm_directory' => 'Game Masters',
     // Dashboard cards - GM
     // Dashboard stat labels
     'dashboard_stats_unread_notifications' => 'Unread',
@@ -268,4 +269,7 @@ return [
     'dashboard_relative_today' => 'Today at :time',
     'dashboard_relative_tomorrow' => 'Tomorrow at :time',
     'dashboard_relative_at' => 'at :time',
+    'aria_avatar_preview' => 'Preview',
+    'aria_profile_sections' => 'Profile sections',
+    'aria_view_profile' => 'View :name\'s profile',
 ];

@@ -6,7 +6,6 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
-use App\Models\Team;
 use App\Models\User;
 use App\Services\SeoCacheService;
 use Illuminate\Support\Facades\Cache;
@@ -46,11 +45,6 @@ dataset('sitemap_lifecycle', [
         'sitemap' => 'campaigns',
         'make' => fn () => Campaign::factory()->create(),
         'mutate' => fn ($m) => $m->update(['status' => CampaignStatus::Cancelled->value]),
-    ]],
-    'Team' => [[
-        'sitemap' => 'teams',
-        'make' => fn () => Team::factory()->create(),
-        'mutate' => fn ($m) => $m->update(['is_active' => false]),
     ]],
     'User' => [[
         'sitemap' => 'profiles',

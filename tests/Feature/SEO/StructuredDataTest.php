@@ -9,6 +9,7 @@ use App\Models\Team;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
+use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 
 // Structural JSON-LD validation via extractJsonLdSchemas(). Earlier byte-
@@ -278,6 +279,9 @@ describe('JSON-LD Structural Validation', function () {
             'social_links' => ['website' => 'https://example.com'],
         ]);
 
+        // M066/S06/T02: teams.detail sits behind login — assert as a member.
+        actingAs(User::factory()->create(['profile_complete' => true]));
+
         $response = get(route('teams.detail', $team->slug));
         $response->assertOk();
 
@@ -344,6 +348,10 @@ describe('JSON-LD Structural Validation', function () {
     });
 
     it('all JSON-LD blocks have @context on every page type', function () {
+        // M066/S06/T02: teams.detail sits behind login — assert as a member
+        // for every page type in this sweep (public pages render the same).
+        actingAs(User::factory()->create(['profile_complete' => true]));
+
         // GameSystem
         $system = GameSystem::factory()->create([
             'slug' => 'ctx-gs-'.Str::random(6),

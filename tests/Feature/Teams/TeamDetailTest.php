@@ -4,6 +4,8 @@ use App\Livewire\Teams\TeamDetail;
 use App\Models\Team;
 use Livewire\Livewire;
 
+use function Pest\Laravel\get;
+
 /*
  * M053 / S01 / T06 — Route event & team location display through the
  * disclosure service (no orphans).
@@ -43,5 +45,12 @@ describe('TeamDetailTest', function () {
         expect($html)->toContain('Wanderers FC');
         // No location line renders when both city and country are null.
         expect($html)->not->toContain('location_on');
+    });
+
+    it('redirects guests to login from the detail route (M066/S06/T02)', function () {
+        $team = Team::factory()->create(['is_active' => true]);
+
+        get(route('teams.detail', $team->slug))
+            ->assertRedirect(route('login'));
     });
 });

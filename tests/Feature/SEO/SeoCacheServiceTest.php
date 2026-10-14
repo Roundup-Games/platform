@@ -5,7 +5,6 @@ use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
-use App\Models\Team;
 use App\Models\User;
 use App\Services\SeoCacheService;
 use Illuminate\Support\Facades\Cache;
@@ -81,7 +80,6 @@ describe('forgetByModel', function () {
         'Event' => ['events',      fn () => Event::factory()->create(['status' => 'published'])],
         'Game' => ['games',        fn () => Game::factory()->create()],
         'Campaign' => ['campaigns',    fn () => Campaign::factory()->create()],
-        'Team' => ['teams',        fn () => Team::factory()->create()],
         'User' => ['profiles',     fn () => User::factory()->create(['profile_complete' => true])],
         'Location' => ['venues',   fn () => Location::factory()->create()],
     ]);
@@ -121,7 +119,7 @@ describe('Accessor methods', function () {
         // should not break the suite. The contract that matters is that the
         // known core types are all present and the list is non-empty.
         expect($types)->toBeArray()->not->toBeEmpty();
-        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'teams', 'profiles', 'venues', 'cities'] as $type) {
+        foreach (['static', 'game-systems', 'events', 'games', 'campaigns', 'profiles', 'venues', 'cities'] as $type) {
             expect($types)->toContain($type);
         }
     });
@@ -130,5 +128,7 @@ describe('Accessor methods', function () {
         expect($this->service->isValidType('nonexistent'))->toBeFalse();
         expect($this->service->isValidType(''))->toBeFalse();
         expect($this->service->isValidType('Games'))->toBeFalse(); // case-sensitive
+        // 'teams' retired in M066/S06/T02 — team pages sit behind login.
+        expect($this->service->isValidType('teams'))->toBeFalse();
     });
 });

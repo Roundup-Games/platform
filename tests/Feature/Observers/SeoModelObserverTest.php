@@ -27,7 +27,6 @@ it('clears sitemap cache when a model is created', function ($sitemapType, $fact
 })->with([
     'GameSystem' => ['game-systems', fn () => GameSystem::factory()->create()],
     'Event' => ['events',      fn () => Event::factory()->create()],
-    'Team' => ['teams',        fn () => Team::factory()->create()],
 ]);
 
 it('clears sitemap cache when a model is updated', function ($sitemapType, $createAndModify) {
@@ -54,7 +53,6 @@ it('clears sitemap cache when a model is deleted', function ($sitemapType, $crea
 })->with([
     'GameSystem' => ['game-systems', fn () => tap(GameSystem::factory()->create())->delete()],
     'Event' => ['events',      fn () => tap(Event::factory()->create())->delete()],
-    'Team' => ['teams',        fn () => tap(Team::factory()->create())->delete()],
 ]);
 
 // ── User observer (selective invalidation) ─────────────
@@ -140,15 +138,29 @@ it('clears profiles sitemap cache when a user is deleted', function () {
 it('only clears the relevant sitemap type, not other types', function () {
     $service = app(SeoCacheService::class);
     $service->setSitemap('game-systems', '<gs>xml</gs>');
-    $service->setSitemap('teams', '<teams>xml</teams>');
+    $service->setSitemap('events', '<events>xml</events>');
     $service->setIndex('<sitemapindex>test</sitemapindex>');
 
     GameSystem::factory()->create();
 
     // game-systems cache cleared
     expect(Cache::get('seo:sitemap:game-systems'))->toBeNull();
-    // teams cache should remain
-    expect(Cache::get('seo:sitemap:teams'))->not->toBeNull();
+    // events cache should remain
+    expect(Cache::get('seo:sitemap:events'))->not->toBeNull();
     // index always cleared
     expect(Cache::get('seo:sitemap:index'))->toBeNull();
+});
+
+it('does not clear sitemap caches when a team changes (teams type retired, M066/S06/T02)', function () {
+    $service = app(SeoCacheService::class);
+    $service->setSitemap('games', '<games/>');
+    $service->setIndex('<idx/>');
+
+    // Team pages sit behind login — the 'teams' sitemap type is retired, so
+    // team mutations no longer map to any sitemap cache.
+    $team = Team::factory()->create();
+    $team->update(['is_active' => false]);
+
+    expect(Cache::get('seo:sitemap:games'))->not->toBeNull();
+    expect(Cache::get('seo:sitemap:index'))->not->toBeNull();
 });
