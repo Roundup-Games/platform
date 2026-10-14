@@ -11,12 +11,18 @@ use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackAppVisit;
 use App\Http\Middleware\VerifyDiscordInteractionSignature;
 use App\Services\PostHogExceptionReporter;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Spatie\CookieConsent\CookieConsentMiddleware;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -73,6 +79,49 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // SQLSTATE 22P02 — a client-supplied value cannot be represented as
+        // the column type it was bound to (in practice: a malformed uuid id
+        // from a truncated share link or an automated probe hitting a uuid
+        // column). That is client garbage, not an application error, so for
+        // HTTP requests it is suppressed here and rendered below as the same
+        // 404 a well-formed unknown id returns — otherwise each probe payload
+        // becomes a fresh error-tracking issue and drowns out real findings.
+        // CLI (jobs, commands) still reports: there the malformed value comes
+        // from stored data, which is an application concern. Input funnels
+        // that validate shape first (uuid_or_null()/uuid_array() helpers,
+        // UuidBuilder find*()) keep legitimate traffic off this path — this
+        // is the backstop, not the first line of defence.
+        $malformedIdentifier = fn (QueryException $e): bool => ($e->errorInfo[0] ?? null) === '22P02';
+
+        $exceptions->reportable(function (QueryException $e) use ($malformedIdentifier) {
+            // HTTP-only (the test runner reports as console, so unit tests
+            // count as HTTP here to exercise this path).
+            $isCli = app()->runningInConsole() && ! app()->runningUnitTests();
+
+            if (! $isCli && $malformedIdentifier($e)) {
+                Log::warning('Malformed identifier rejected at the database boundary', [
+                    'url' => request()->fullUrl(),
+                    'message' => Str::limit($e->getMessage(), 300),
+                ]);
+
+                // Stop the report chain: not an application error.
+                return false;
+            }
+        });
+
+        $exceptions->render(function (QueryException $e, Request $request) use ($malformedIdentifier) {
+            if (! $malformedIdentifier($e)) {
+                return null;
+            }
+
+            // Delegate to the framework's own NotFoundHttpException rendering
+            // (not a hand-built response): the request then gets exactly what an
+            // unknown route gets — html or json by content negotiation, and a
+            // custom errors/404 view if one is ever added. No recursion risk:
+            // nothing else registers a NotFoundHttpException renderable.
+            return app(ExceptionHandler::class)->render($request, new NotFoundHttpException('Not Found'));
+        });
+
         $exceptions->reportable(function (Throwable $e) {
             app(PostHogExceptionReporter::class)->report($e);
         });
