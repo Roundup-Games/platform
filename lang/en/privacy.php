@@ -2,7 +2,7 @@
 return [
     'seo_description' => 'Learn how '.config('company.display_name').' collects, uses, and protects your personal data. Our privacy practices explained in plain language.',
     // ── Introduction ───────────────────────────────────
-    'content_introduction_1' => config('company.legal_name').' ("we", "us", "our") operates the roundup.games platform — a non-profit, open-source service that helps people find and organize local, in-person tabletop gaming sessions.',
+    'content_introduction_1' => config('company.legal_name').' ("we", "us", "our") operates the roundup.games platform — an open-source service from a non-profit project (incorporating as a gGmbH in Berlin) that helps people find and organize local, in-person tabletop gaming sessions.',
     'content_introduction_2' => 'This Privacy Policy explains what personal data we collect, why we collect it, the legal basis for doing so, who has access to it, and how long we keep it. We wrote this in plain language because transparency isn\'t optional for us — it\'s foundational.',
     'content_introduction_3' => 'This policy applies to all users of our platform, including visitors who browse without creating an account.',
     // ── Data We Collect ────────────────────────────────
@@ -24,7 +24,7 @@ return [
     'content_data_communication_purpose' => 'To send messages between users and deliver notifications you\'ve requested.',
     'content_data_communication_items' => 'Direct messages between users, notification preferences, and email delivery records.',
     'heading_data_invitations' => 'Invitation Data',
-    'content_data_invitations_purpose' => 'To allow organizers to invite people to games and campaigns.',
+    'content_data_invitations_purpose' => 'To allow hosts to invite people to games and campaigns.',
     'content_data_invitations_items' => 'When you invite someone by email who does not have an account, we store their email address in the participant record. Invitee emails are anonymized 90 days after the game or campaign ends. Recipients can opt out of future invitations at any time via a one-click link in the invitation email.',
     'heading_data_sensitive' => 'Sensitive Data (GDPR Art. 9)',
     'content_data_sensitive_purpose' => 'Gender is the only special-category data we collect, and only with your explicit consent.',

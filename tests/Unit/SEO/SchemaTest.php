@@ -17,7 +17,7 @@ describe('OrganizationSchema', function () {
         $schema = new OrganizationSchema(new SEOData);
         $data = $schema->generateInner();
 
-        expect($data->get('sameAs'))->toContain('https://github.com/Roundup-Games/');
+        expect($data->get('sameAs'))->toContain('https://github.com/roundup-games/platform');
     });
 
     it('includes areaServed', function () {

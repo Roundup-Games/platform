@@ -45,12 +45,6 @@ describe('HomepageSEO', function () {
 // ── About Page ─────────────────────────────────────────
 
 describe('AboutPage', function () {
-    it('renders the about page successfully', function () {
-        get(route('about'))
-            ->assertOk()
-            ->assertSee(__('pages.content_about_heading_vision'));
-    });
-
     it('includes the SEO title and description', function () {
         get(route('about'))
             ->assertOk()
@@ -62,14 +56,6 @@ describe('AboutPage', function () {
             ->assertSee(__('pages.seo_description_about', ['brand' => config('company.display_name')]), false);
     });
 
-});
-
-// ── How It Works Page ──────────────────────────────────
-
-describe('HowItWorksPage', function () {
-    it('renders the how-it-works page successfully', function () {
-        get(route('how-it-works'))->assertOk();
-    });
 });
 
 // ── Contact Page ───────────────────────────────────────
@@ -99,10 +85,23 @@ describe('ContactPage', function () {
             ->assertSee(__('common.content_message'));
     });
 
-    it('shows FAQ section', function () {
+    it('shows the real support and general email addresses from config', function () {
         get(route('contact'))
             ->assertOk()
-            ->assertSee(__('common.content_frequently_asked'));
+            // Values come from config/company.php — the same single source
+            // of truth impressum and privacy use, not hardcoded addresses.
+            ->assertSee('mailto:'.config('company.contact.support'), false)
+            ->assertSee(config('company.contact.support'))
+            ->assertSee('mailto:'.config('company.contact.general'), false)
+            ->assertSee(config('company.contact.general'));
+    });
+
+    it('links to the FAQ page instead of the old two-question stub', function () {
+        get(route('contact'))
+            ->assertOk()
+            ->assertSee(__('faq.heading_faq'))
+            ->assertSee(route('faq'))
+            ->assertSee(__('pages.action_browse_the_faq'));
     });
 
     it('can submit a valid contact form as guest creating a ticket', function () {
@@ -223,11 +222,6 @@ describe('ContactPage', function () {
 // ── Our Pledge / Algorithms Page ────────────────────────
 
 describe('AlgorithmsPage', function () {
-    it('renders the algorithms page successfully', function () {
-        get(route('pledge.algorithms'))
-            ->assertOk();
-    });
-
     it('includes the SEO title and description', function () {
         get(route('pledge.algorithms'))
             ->assertOk()
@@ -236,11 +230,103 @@ describe('AlgorithmsPage', function () {
     });
 });
 
+describe('RoadAheadPage', function () {
+    it('renders the road ahead page successfully with both sections', function () {
+        get(route('pledge.roadmap'))
+            ->assertOk()
+            ->assertSee(__('pages.content_commitment_roadmap_title'))
+            ->assertSee(__('roadmap.heading_future_ideas'))
+            ->assertSee(__('roadmap.heading_delivered_recently'))
+            ->assertSee(__('roadmap.content_road_ahead_intro_2'));
+    });
+
+    it('frames future ideas as aspirational and invites feedback via contact', function () {
+        get(route('pledge.roadmap'))
+            ->assertOk()
+            ->assertSee(__('roadmap.content_future_ideas_intro'))
+            ->assertSee(__('roadmap.content_future_ideas_closing'))
+            ->assertSee(__('roadmap.action_future_ideas_tell_us'))
+            ->assertSee(route('contact', app()->getLocale()));
+    });
+
+    it('renders under both locale prefixes', function () {
+        get('/en/our-pledge/roadmap')->assertOk()->assertSee(__('roadmap.heading_future_ideas', [], 'en'));
+        get('/de/our-pledge/roadmap')->assertOk()->assertSee(__('roadmap.heading_future_ideas', [], 'de'));
+    });
+
+    it('includes the SEO title and description', function () {
+        get(route('pledge.roadmap'))
+            ->assertOk()
+            ->assertSee(__('roadmap.seo_title_road_ahead'))
+            ->assertSee(__('roadmap.seo_description_road_ahead', ['brand' => config('company.display_name')]), false);
+    });
+});
+
 describe('OurPledgeHub', function () {
     it('links to the algorithms page from the hub card', function () {
         get(route('pledge'))
             ->assertOk()
             ->assertSee(route('pledge.algorithms'));
+    });
+
+    it('links to the road ahead page from the live hub card', function () {
+        get(route('pledge'))
+            ->assertOk()
+            ->assertSee(route('pledge.roadmap'))
+            ->assertSee(__('pages.content_commitment_roadmap_title'))
+            ->assertSee(__('pages.content_commitment_roadmap_action'));
+    });
+
+    it('links the Operations & Policies card to the live Code of Conduct with sub-links', function () {
+        get(route('pledge'))
+            ->assertOk()
+            ->assertSee(__('pages.content_commitment_operations_title'))
+            ->assertSee(__('pages.content_commitment_operations_action'))
+            // The card's primary target is the Code of Conduct (M066/S08/T05).
+            ->assertSee(route('safety.code-of-conduct'))
+            // Sub-links deliver the rest of the policies promise.
+            ->assertSee(__('pages.content_commitment_operations_link_safety'))
+            ->assertSee(route('safety-tools'))
+            ->assertSee(__('pages.content_commitment_operations_link_algorithms'))
+            // The card is live — no coming-soon placeholder anywhere near it.
+            ->assertDontSeeText(__('common.field_coming_soon'));
+    });
+
+    it('renders the Operations & Policies card in both locales', function () {
+        get('/en/our-pledge')->assertOk()
+            ->assertSee(__('pages.content_commitment_operations_title', [], 'en'))
+            ->assertSee(__('pages.content_commitment_operations_action', [], 'en'));
+        get('/de/our-pledge')->assertOk()
+            ->assertSee(__('pages.content_commitment_operations_title', [], 'de'))
+            ->assertSee(__('pages.content_commitment_operations_action', [], 'de'));
+    });
+});
+
+// ── Removed pledge aliases (D179 honesty policy) ─────
+
+describe('PledgeHonesty', function () {
+    it('renders the pledge hub without coming-soon placeholders or the finances claim', function () {
+        // "Operations & Policies" is no longer banned text: M066/S08/T05
+        // reintroduced the card as a live link to the Code of Conduct — the
+        // dead-promise guard now lives in OurPledgeHub above, which asserts
+        // the card actually points somewhere.
+        get(route('pledge'))
+            ->assertDontSeeText(__('common.field_coming_soon'))
+            ->assertDontSeeText('Financial Transparency');
+    });
+
+    it('renders the about commitments without coming-soon placeholders and links the live Road Ahead card', function () {
+        get(route('about'))
+            ->assertDontSeeText(__('common.field_coming_soon'))
+            ->assertDontSeeText('Financial Transparency')
+            ->assertSee(route('pledge.roadmap'))
+            ->assertSee(__('pages.content_commitment_roadmap_action'));
+    });
+
+    it('points the open-by-default roadmap claim at the live Road Ahead page', function () {
+        get(route('pledge'))
+            ->assertSee(__('pages.content_pledge_open_body'))
+            ->assertSee(route('pledge.roadmap', app()->getLocale()));
     });
 });
 
@@ -258,5 +344,28 @@ describe('PublicNavigation', function () {
         get(route('home'))
             ->assertOk()
             ->assertSee(route('events.index'));
+    });
+
+    it('shows About, Contact, and the Venue Directory in the guest nav', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee(route('about'))
+            ->assertSee(route('contact'))
+            ->assertSee(route('venues.directory'));
+    });
+
+    it('expands Game Master on first use in the nav label', function () {
+        expect(__('profile.nav_gm_directory'))->toBe('Game Masters');
+
+        app()->setLocale('de');
+        expect(__('profile.nav_gm_directory'))->toBe('Game Master');
+    });
+
+    it('keeps the pledge cluster reachable from the footer trust group', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee(route('pledge', app()->getLocale()))
+            ->assertSee(route('pledge.roadmap', app()->getLocale()))
+            ->assertSee(route('pledge.algorithms', app()->getLocale()));
     });
 });
