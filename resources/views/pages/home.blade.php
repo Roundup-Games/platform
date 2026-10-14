@@ -71,7 +71,7 @@
                 {{-- Game System Catalog --}}
                 <a href="{{ route('game-systems') }}" wire:navigate class="group bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow text-center">
                     <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">board_games</span>
+                        <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">extension</span>
                     </div>
                     <h3 class="font-heading font-semibold text-on-surface text-lg mb-2 group-hover:text-primary transition-colors">{{ __('pages.content_home_directory_systems_title') }}</h3>
                     <p class="text-sm text-on-surface-variant">{{ __('pages.content_home_directory_systems_text') }}</p>
