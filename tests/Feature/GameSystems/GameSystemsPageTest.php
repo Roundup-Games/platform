@@ -368,4 +368,13 @@ describe('GameSystemsPage - Accessibility', function () {
         }
     });
 
+    // Malformed filter ids are dropped (uuid_array) so a garbled share link
+    // or probe payload renders the page instead of a 22P02 error.
+    it('ignores malformed uuid category and mechanic filter ids', function () {
+        get(route('game-systems', [
+            'category_ids' => ['not-a-uuid', "1' OR '1'='1"],
+            'mechanic_ids' => ['also-bad'],
+        ]))
+            ->assertOk();
+    });
 });

@@ -80,7 +80,7 @@ class GmDirectory extends Component
     #[On('value-updated')]
     public function onGameSystemUpdated(mixed $value): void
     {
-        $this->game_system_id = is_string($value) ? $value : null;
+        $this->game_system_id = uuid_or_null($value);
         $this->displayCount = 12;
     }
 
@@ -147,10 +147,13 @@ class GmDirectory extends Component
             $query->whereJsonContains('specializations', $this->specialization);
         }
 
-        // Filter by game system (GM has run games with this system)
-        if ($this->game_system_id) {
-            $query->whereHas('user.ownedGames', function ($q) {
-                $q->whereHas('gameSystems', fn ($q) => $q->where('game_systems.id', $this->game_system_id));
+        // Filter by game system (GM has run games with this system). A
+        // malformed id from a shared link is "no filter", never a uuid
+        // bind error (SQLSTATE 22P02).
+        $gameSystemId = uuid_or_null($this->game_system_id);
+        if ($gameSystemId !== null) {
+            $query->whereHas('user.ownedGames', function ($q) use ($gameSystemId) {
+                $q->whereHas('gameSystems', fn ($q) => $q->where('game_systems.id', $gameSystemId));
             });
         }
 

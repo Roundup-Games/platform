@@ -45,7 +45,7 @@ class DiscoveryFilters
     {
         return new self(
             search: self::stringOr($component->search ?? ''),
-            gameSystemId: self::stringOrNull($component->game_system_id ?? null),
+            gameSystemId: uuid_or_null($component->game_system_id ?? null),
             experienceLevel: self::stringOr($component->experience_level ?? ''),
             vibeFlags: self::stringArray($component->vibe_flags ?? []),
             safetyTools: self::stringArray($component->safety_tools ?? []),
@@ -53,8 +53,8 @@ class DiscoveryFilters
             complexityMin: self::stringOrNull($component->complexity_min ?? null),
             complexityMax: self::stringOrNull($component->complexity_max ?? null),
             price: self::stringOr($component->price ?? ''),
-            categoryIds: self::stringArray($component->category_ids ?? []),
-            mechanicIds: self::stringArray($component->mechanic_ids ?? []),
+            categoryIds: uuid_array($component->category_ids ?? []),
+            mechanicIds: uuid_array($component->mechanic_ids ?? []),
             citySlug: self::stringOrNull($component->city ?? null),
         );
     }
@@ -71,8 +71,8 @@ class DiscoveryFilters
 
     /**
      * Coerce a mixed value to a nullable string. Non-string scalars are
-     * cast; everything else becomes null. Used for optional UUID filters
-     * (e.g. gameSystemId) that must be string|null at the query layer.
+     * cast; everything else becomes null. Used for optional string filters
+     * (e.g. complexityMin/Max) that must be string|null at the query layer.
      */
     private static function stringOrNull(mixed $value): ?string
     {
@@ -81,8 +81,8 @@ class DiscoveryFilters
 
     /**
      * Coerce a mixed array to a list of strings. Used for multi-value
-     * filters (vibe flags, category/mechanic UUIDs) where the source may
-     * contain mixed scalar types from deserialised query strings.
+     * filters (vibe flags, safety tools) where the source may contain mixed
+     * scalar types from deserialised query strings.
      *
      * @return array<int, string>
      */

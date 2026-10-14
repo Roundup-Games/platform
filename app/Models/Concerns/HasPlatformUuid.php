@@ -2,6 +2,7 @@
 
 namespace App\Models\Concerns;
 
+use App\Models\Builders\UuidBuilder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 /**
@@ -28,9 +29,23 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
  * by documented decision: short_links + short_link_hits (bigint counter
  * tables; 'code' is the public key) and vendor-package schemas.
  *
+ *  - Id lookups validate shape: every query on these models is built by
+ *    UuidBuilder, whose find()/findOrFail() treat a non-uuid id as "not
+ *    found" instead of letting Postgres reject it at bind time (SQLSTATE
+ *    22P02 → 500). Covers static lookups, chained lookups
+ *    (Model::with(...)->findOrFail()) and future call sites with no
+ *    per-site guard code. Query-string values (not ids) use the
+ *    uuid_or_null()/uuid_array() helpers; anything else falls through to
+ *    the 22P02 → 404 backstop in bootstrap/app.php.
+ *
  * Pinned by scripts/check_platform_invariants.sh (INV-10).
  */
 trait HasPlatformUuid
 {
     use HasUuids;
+
+    public function newEloquentBuilder($query)
+    {
+        return new UuidBuilder($query);
+    }
 }
