@@ -272,17 +272,19 @@ class PostHogExceptionReporter
 
     /**
      * Scrub secret path parameters from the request path before forwarding
-     * to the error-tracking provider.
+     * to the error-tracking provider or writing to logs.
      *
      * Several routes carry a bearer-style secret as a path segment rather
      * than in the query string: short-link codes (`/link/{code}`), password
      * reset tokens (`reset-password/{token}`), email-verification hashes
      * (`verify-email/{id}/{hash}`), and invite-opt-out email hashes
      * (`invite-optout/{emailHash}`). If an exception fires while handling one
-     * of these, the raw path would exfiltrate that secret to PostHog. Each is
-     * collapsed to a stable placeholder that still routes/errors usefully.
+     * of these, the raw path would exfiltrate that secret to PostHog or the
+     * log. Each is collapsed to a stable placeholder that still
+     * routes/errors usefully. The 22P02 backstop in bootstrap/app.php logs
+     * through this same scrubber — one canonical path redaction.
      */
-    private function scrubRequestPath(string $path): string
+    public function scrubRequestPath(string $path): string
     {
         if (preg_match('#^(link|reset-password|invite-optout)/[^/]+#', $path, $m)) {
             return $m[1].'/*';
