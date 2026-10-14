@@ -201,11 +201,15 @@ class GameSystemsPage extends Component
         $query->when($this->complexity_min, fn ($q) => $q->where('bgg_average_weight', '>=', (float) $this->complexity_min));
         $query->when($this->complexity_max, fn ($q) => $q->where('bgg_average_weight', '<=', (float) $this->complexity_max));
 
-        // Category filter (multi-select)
-        $query->when($this->category_ids, fn ($q) => $q->whereHas('categories', fn ($q2) => $q2->whereIn('game_system_categories.id', $this->category_ids)));
+        // Category filter (multi-select). Drop malformed ids so a garbled
+        // share link or a probe payload cannot reach the uuid column
+        // (SQLSTATE 22P02) — same policy as DiscoveryFilters::fromLivewire().
+        $categoryIds = uuid_array($this->category_ids);
+        $query->when($categoryIds, fn ($q) => $q->whereHas('categories', fn ($q2) => $q2->whereIn('game_system_categories.id', $categoryIds)));
 
         // Mechanic filter (multi-select)
-        $query->when($this->mechanic_ids, fn ($q) => $q->whereHas('mechanics', fn ($q2) => $q2->whereIn('game_system_mechanics.id', $this->mechanic_ids)));
+        $mechanicIds = uuid_array($this->mechanic_ids);
+        $query->when($mechanicIds, fn ($q) => $q->whereHas('mechanics', fn ($q2) => $q2->whereIn('game_system_mechanics.id', $mechanicIds)));
 
         // Play style filter: map selected PlayStyle enum values to category slugs
         if (! empty($this->play_styles)) {

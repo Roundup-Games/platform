@@ -5,6 +5,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Str;
 
 /**
  * Resolve the preferred locale for the current request.
@@ -207,5 +208,50 @@ if (! function_exists('config_int')) {
         $value = config($key, $default);
 
         return is_numeric($value) ? (int) $value : $default;
+    }
+}
+
+if (! function_exists('uuid_or_null')) {
+    /**
+     * Coerce a mixed value to a valid uuid string, or null when it is not one.
+     *
+     * Canonical guard for id values that originate from untyped sources
+     * (URL query strings, Livewire public properties) and are about to be
+     * bound to a uuid column. A malformed value cannot match a uuid column,
+     * but Postgres rejects it at bind time (SQLSTATE 22P02) and turns the
+     * request into a 500 — callers treat null as "no filter". Model id
+     * lookups are guarded separately by App\Models\Builders\UuidBuilder.
+     */
+    function uuid_or_null(mixed $value): ?string
+    {
+        $string = is_string($value) ? $value : (is_scalar($value) ? (string) $value : null);
+
+        return $string !== null && Str::isUuid($string) ? $string : null;
+    }
+}
+
+if (! function_exists('uuid_array')) {
+    /**
+     * Coerce a mixed value to a list of valid uuid strings, dropping every
+     * value that is not a uuid. Canonical guard for multi-id filters — see
+     * uuid_or_null() for why malformed ids must not reach a uuid column.
+     *
+     * @return array<int, string>
+     */
+    function uuid_array(mixed $values): array
+    {
+        if (! is_array($values)) {
+            return [];
+        }
+
+        $uuids = [];
+        foreach ($values as $value) {
+            $uuid = uuid_or_null($value);
+            if ($uuid !== null) {
+                $uuids[] = $uuid;
+            }
+        }
+
+        return $uuids;
     }
 }

@@ -2,8 +2,6 @@
 
 namespace App\Dto;
 
-use Illuminate\Support\Str;
-
 /**
  * Encapsulates all shared filter state for discovery pages.
  *
@@ -47,7 +45,7 @@ class DiscoveryFilters
     {
         return new self(
             search: self::stringOr($component->search ?? ''),
-            gameSystemId: self::uuidOrNull($component->game_system_id ?? null),
+            gameSystemId: uuid_or_null($component->game_system_id ?? null),
             experienceLevel: self::stringOr($component->experience_level ?? ''),
             vibeFlags: self::stringArray($component->vibe_flags ?? []),
             safetyTools: self::stringArray($component->safety_tools ?? []),
@@ -55,8 +53,8 @@ class DiscoveryFilters
             complexityMin: self::stringOrNull($component->complexity_min ?? null),
             complexityMax: self::stringOrNull($component->complexity_max ?? null),
             price: self::stringOr($component->price ?? ''),
-            categoryIds: self::uuidArray($component->category_ids ?? []),
-            mechanicIds: self::uuidArray($component->mechanic_ids ?? []),
+            categoryIds: uuid_array($component->category_ids ?? []),
+            mechanicIds: uuid_array($component->mechanic_ids ?? []),
             citySlug: self::stringOrNull($component->city ?? null),
         );
     }
@@ -97,36 +95,6 @@ class DiscoveryFilters
         return array_values(array_filter(
             array_map(fn (mixed $v) => is_string($v) ? $v : (is_scalar($v) ? (string) $v : null), $value),
             fn (?string $v) => $v !== null && $v !== '',
-        ));
-    }
-
-    /**
-     * Coerce a mixed value to a valid UUID string, or null when it is not one.
-     *
-     * The id filters bind to uuid columns, so a malformed query-string value
-     * (a truncated shared link, or an automated probe) must become "no filter"
-     * instead of a query argument. A non-uuid bound to a uuid column raises
-     * SQLSTATE 22P02 and returns a 500 rather than an empty result page.
-     */
-    private static function uuidOrNull(mixed $value): ?string
-    {
-        $string = self::stringOrNull($value);
-
-        return $string !== null && Str::isUuid($string) ? $string : null;
-    }
-
-    /**
-     * Coerce a mixed array to a list of valid UUID strings, dropping any value
-     * that is not a uuid. Guards the category and mechanic id filters, which
-     * bind to uuid columns via whereIn. See {@see uuidOrNull()}.
-     *
-     * @return array<int, string>
-     */
-    private static function uuidArray(mixed $value): array
-    {
-        return array_values(array_filter(
-            self::stringArray($value),
-            fn (string $v) => Str::isUuid($v),
         ));
     }
 

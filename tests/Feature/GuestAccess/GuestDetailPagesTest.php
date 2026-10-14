@@ -236,4 +236,15 @@ describe('Authenticated user layout regression', function () {
             ->assertSee($profileUser->name)
             ->assertSee(__('common.action_follow', [], 'en'));
     });
+
+    // Malformed uuid ids must resolve to the same 404 as a well-formed miss —
+    // UuidBuilder guards them before Postgres can reject the bind (22P02).
+    it('returns 404, not 500, for a malformed uuid id on game detail', function () {
+        get(route('games.detail', "1' OR '1'='1"))->assertNotFound();
+        get(route('games.detail', 'not-a-uuid'))->assertNotFound();
+    });
+
+    it('returns 404, not 500, for a malformed uuid id on campaign detail', function () {
+        get(route('campaigns.detail', 'not-a-uuid'))->assertNotFound();
+    });
 });
