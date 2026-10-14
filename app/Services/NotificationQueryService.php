@@ -358,8 +358,8 @@ class NotificationQueryService
         $actors = $group->actorNames;
         $actorIds = $group->actorIds;
         $data = $group->latest->data ?? [];
-        $verb = $this->resolveVerb($group->type, $data);
         $actorCount = count($actors);
+        $verb = $this->resolveVerb($group->type, $data, $actorCount);
 
         // Build linked actor names
         $linkedActors = [];
@@ -489,7 +489,7 @@ class NotificationQueryService
     {
         $actors = $group->actorNames;
         $count = count($actors);
-        $verb = $this->resolveVerb($group->type, $group->latest->data ?? []);
+        $verb = $this->resolveVerb($group->type, $group->latest->data ?? [], $count);
 
         if ($count === 0) {
             // No actor — use the latest notification's data for context
@@ -534,8 +534,14 @@ class NotificationQueryService
     /**
      * Resolve a human-readable verb phrase for a notification type.
      *
-     * Three-tier resolution:
+     * Resolution tiers (per grammatical number):
      *  1. Translation key from snake-cased short class name (notifications.verb_game_invitation).
+     *     When two or more actors are composed into one sentence, the `_plural`
+     *     variant of that key is tried first (verb_game_invitation_plural) — German
+     *     verbs must agree with a plural subject ("Anna und Ben folgen dir", not
+     *     "…folgt dir"). Plural keys are optional per locale; English verbs are
+     *     uninflected, so a locale without the plural variant falls back to the
+     *     singular key.
      *  2. Translation key from data.type field (notifications.verb_game_invitation via 'game_invitation').
      *     Required for unified notification classes whose class names don't have dedicated
      *     translation keys. The data.type field carries the entity-specific discriminator.
@@ -545,28 +551,56 @@ class NotificationQueryService
      *
      * @param  string  $shortType  Short class name (e.g. 'EntityInvitation')
      * @param  array<string, mixed>  $data  Notification data payload
+     * @param  int  $actorCount  Number of actors sharing the sentence; >= 2 selects plural agreement
      */
-    protected function resolveVerb(string $shortType, array $data): string
+    protected function resolveVerb(string $shortType, array $data, int $actorCount = 1): string
     {
-        $key = 'notifications.verb_'.Str::snake($shortType);
+        if ($actorCount >= 2) {
+            $plural = $this->translateVerbTier(
+                'notifications.verb_'.Str::snake($shortType).'_plural',
+                $data,
+                plural: true
+            );
+            if ($plural !== null) {
+                return $plural;
+            }
+        }
 
+        $singular = $this->translateVerbTier(
+            'notifications.verb_'.Str::snake($shortType),
+            $data,
+            plural: false
+        );
+
+        return $singular ?? str_replace('_', ' ', Str::snake($shortType));
+    }
+
+    /**
+     * Try one verb translation key through both resolution tiers: the given
+     * class-name-derived key first, then the data.type-derived key for unified
+     * notification classes. Returns null when neither key exists in the locale.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function translateVerbTier(string $key, array $data, bool $plural): ?string
+    {
         $translated = __($key);
 
         // If the translation key doesn't exist, __() returns the key itself —
         // try the notification data's type field for unified notification classes.
-        if ($translated === $key) {
-            $dataType = $data['type'] ?? null;
-            if (is_string($dataType)) {
-                $dataKey = 'notifications.verb_'.$dataType;
-                $dataTranslated = __($dataKey);
-                if ($dataTranslated !== $dataKey) {
-                    return $dataTranslated;
-                }
-            }
-
-            return str_replace('_', ' ', Str::snake($shortType));
+        if ($translated !== $key) {
+            return $translated;
         }
 
-        return $translated;
+        $dataType = $data['type'] ?? null;
+        if (is_string($dataType)) {
+            $dataKey = 'notifications.verb_'.$dataType.($plural ? '_plural' : '');
+            $dataTranslated = __($dataKey);
+            if ($dataTranslated !== $dataKey) {
+                return $dataTranslated;
+            }
+        }
+
+        return null;
     }
 }

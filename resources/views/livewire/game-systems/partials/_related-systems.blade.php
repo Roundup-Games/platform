@@ -20,7 +20,7 @@
                                 <span class="material-symbols-outlined text-sm text-amber-500" aria-hidden="true">star</span>
                                 {{ number_format($system->baseGame->bgg_average_rating, 1) }}
                                 @if($system->baseGame->bgg_rank)
-                                    <span class="ml-2">Rank #{{ number_format($system->baseGame->bgg_rank) }}</span>
+                                    <span class="ml-2">{{ __('games.label_bgg_rank', ['rank' => number_format($system->baseGame->bgg_rank)]) }}</span>
                                 @endif
                             </p>
                         @endif

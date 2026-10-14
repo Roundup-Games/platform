@@ -18,7 +18,7 @@
                         type="button"
                         wire:click="removeFriend('{{ $friend->id }}')"
                         class="text-primary/60 hover:text-primary transition-colors"
-                        aria-label="Remove {{ $friend->name }}"
+                        aria-label="{{ __('people.aria_remove_friend', ['name' => $friend->name]) }}"
                     >
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
                     </button>

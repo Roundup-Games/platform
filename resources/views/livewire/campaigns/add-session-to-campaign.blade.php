@@ -19,14 +19,14 @@
                 <div class="space-y-4">
                     <div>
                         <label for="session-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_session_name') }} <span class="text-error">*</span></label>
-                        <input type="text" id="session-name" wire:model="name" placeholder="e.g. Session 3 — The Lost Temple"
+                        <input type="text" id="session-name" wire:model="name" placeholder="{{ __('campaigns.placeholder_session_name') }}"
                                class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                         @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label for="session-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_description') }}</label>
-                        <textarea id="session-description" wire:model="description" rows="3" placeholder="Describe this session..."
+                        <textarea id="session-description" wire:model="description" rows="3" placeholder="{{ __('campaigns.placeholder_session_description') }}"
                                   class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
                         @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
@@ -40,7 +40,7 @@
 
                     <div>
                         <label for="session-location-details" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_location') }}</label>
-                        <input type="text" id="session-location-details" wire:model="location_details" placeholder="Venue name, address, or meeting details"
+                        <input type="text" id="session-location-details" wire:model="location_details" placeholder="{{ __('campaigns.placeholder_session_location') }}"
                                class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                         @error('location_details') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>

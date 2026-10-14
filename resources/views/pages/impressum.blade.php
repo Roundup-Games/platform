@@ -80,7 +80,7 @@
                 @if(config('company.entity_type') === 'pre-incorporation')
                     <p>{{ __('impressum.content_registration_pending') }}</p>
                 @else
-                    <p>{{ config('company.legal_name') }} is a registered entity under German law.</p>
+                    <p>{{ __('impressum.content_registered_entity', ['name' => config('company.legal_name')]) }}</p>
                     @if(config('company.registration.court'))
                         <p>{{ __('impressum.label_registration_court', ['court' => config('company.registration.court')]) }}</p>
                     @endif

@@ -38,12 +38,12 @@
 
             <div class="flex flex-col sm:flex-row gap-3">
                 <div class="flex-1">
-                    <input type="email" aria-label="Invite email address" wire:model="inviteEmail" placeholder="player@example.com"
+                    <input type="email" aria-label="{{ __('teams.aria_invite_email') }}" wire:model="inviteEmail" placeholder="player@example.com"
                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                     @error('inviteEmail') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <select aria-label="Invite role" wire:model="inviteRole"
+                    <select aria-label="{{ __('teams.aria_invite_role') }}" wire:model="inviteRole"
                             class="rounded-md bg-surface-container-high border border-transparent shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface">
                         <option value="player">{{ __('common.content_player') }}</option>
                         <option value="substitute">{{ __('common.content_substitute') }}</option>

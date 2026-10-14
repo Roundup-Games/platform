@@ -58,7 +58,7 @@ class GameResource extends Resource
                                     ->required()
                                     ->maxLength(255),
                                 Select::make('owner_id')
-                                    ->label('Game Master')
+                                    ->label('Host')
                                     ->relationship('owner', 'name')
                                     ->searchable()
                                     ->required(),
@@ -205,7 +205,7 @@ class GameResource extends Resource
                     ->defaultImageUrl(fn (): ?string => null)
                     ->extraImgAttributes(['aria-hidden' => 'true']),
                 TextColumn::make('owner.name')
-                    ->label('Game Master')
+                    ->label('Host')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('game_type')

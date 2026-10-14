@@ -37,7 +37,7 @@
                         try { $previewUrl = $avatar->temporaryUrl(); } catch (\Throwable $e) {}
                     @endphp
                     @if($previewUrl)
-                        <img src="{{ $previewUrl }}" alt="Preview" class="w-12 h-12 rounded-full object-cover ring-2 ring-outline-variant/30" />
+                        <img src="{{ $previewUrl }}" alt="{{ __('profile.aria_avatar_preview') }}" class="w-12 h-12 rounded-full object-cover ring-2 ring-outline-variant/30" />
                     @endif
                     <span class="text-xs text-on-surface-variant truncate">{{ $avatar->getClientOriginalName() }}</span>
                 </div>

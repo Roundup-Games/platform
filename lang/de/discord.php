@@ -35,18 +35,18 @@ return [
     'content_digest_empty_body' => '📭 In den nächsten zwei Wochen sind keine öffentlichen roundup-Spiele geplant — schau bald wieder vorbei.',
 
     // Per-session thread starter (M059/S04)
-    'content_thread_starter_prompt' => 'Nutzt diesen Thread für die Absprache — stellt der Spielleitung Fragen, klärt Termine oder sagt kurz Hallo.',
-    'content_thread_starter_this_session' => 'diese Sitzung',
-    'content_thread_starter_welcome' => 'Willkommen zur Sitzung: :name',
+    'content_thread_starter_prompt' => 'Nutzt diesen Thread für die Absprache — stellt dem Host Fragen, klärt Termine oder sagt kurz Hallo.',
+    'content_thread_starter_this_session' => 'diese Runde',
+    'content_thread_starter_welcome' => 'Willkommen zur Runde: :name',
 
     // Bulletin-Teaser in Session-Threads (M062/S01). Bewusst nur ein Teaser
     // (D132): öffentliche Threads tragen nie den vollständigen, nur für
     // Teilnehmende bestimmten Bulletin-Text — nur Zuschreibung, einen
     // Auszug und diesen Hinweis.
-    'content_bulletin_read_more' => 'Lies das vollständige Update auf der Session-Seite.',
+    'content_bulletin_read_more' => 'Lies das vollständige Update auf der Rundenseite.',
 
     // Unlinked "My seat" on-ramp ephemeral body (M059/S02)
-    'content_unlinked_onramp_body' => 'Du bist nur einen Klick von deinem Platz entfernt. Verbinde dein Discord-Konto und wir setzen dich direkt auf die Teilnehmerliste – es dauert nur wenige Sekunden. (Beim nächsten Mal zusagt dieser Button dich direkt aus Discord heraus.)',
+    'content_unlinked_onramp_body' => 'Du bist nur einen Klick von deinem Platz entfernt. Verbinde dein Discord-Konto und wir setzen dich direkt auf die Teilnehmerliste — es dauert nur wenige Sekunden. (Beim nächsten Mal zusagt dieser Button dich direkt aus Discord heraus.)',
 
     // ── Guild settings page (/discord/guilds/{id}) ──
     'content_guild_settings_subtitle' => 'Lege fest, wo roundup Event-Karten veröffentlicht, und pausiere die Veröffentlichung jederzeit.',
@@ -65,7 +65,7 @@ return [
     'content_games_channel_help' => 'Die Veröffentlichung bleibt aus, bis ein Spiele-Kanal gewählt ist.',
     'action_save_channels' => 'Kanäle speichern',
     'action_refresh_list' => 'Liste aktualisieren',
-    'content_language_help' => 'roundup veröffentlicht Event-Karten, den täglichen Kalender-Digest und Session-Thread-Starter auf diesem Server in dieser Sprache. Auch Datum und Uhrzeit richten sich danach.',
+    'content_language_help' => 'roundup veröffentlicht Event-Karten, den täglichen Kalender-Digest und Runden-Thread-Starter auf diesem Server in dieser Sprache. Auch Datum und Uhrzeit richten sich danach.',
     'label_posting_language' => 'Veröffentlichungssprache',
     'content_app_default' => '— App-Standard (:locale) —',
     'content_locale_help' => 'Greift ab der nächsten Veröffentlichung — bereits veröffentlichte Karten werden nicht nachträglich übersetzt.',
@@ -83,16 +83,34 @@ return [
     'heading_server' => 'Server',
     'label_discord_guild' => 'Discord-Gilde',
 
+    // ── Opt-in-Liste für Organisatoren (/discord/organizer-guilds) ──
+    'heading_discord_servers' => 'Discord-Server',
+    'content_organizer_servers_subtitle' => 'Server, in denen du bist und roundup nutzen, können deine öffentlichen Events in ihren Spiele-Kanal veröffentlichen. Du gibst pro Server frei — geteilt wird erst, wenn du zustimmst.',
+    'flash_publishing_enabled' => 'Veröffentlichung aktiviert. Deine öffentlichen Events erscheinen auf diesem Server.',
+    'flash_publishing_paused' => 'Veröffentlichung für diesen Server pausiert.',
+    'content_link_discord_title' => 'Verbinde dein Discord-Konto',
+    'content_link_discord_body' => 'Verbinde Discord in deinen Einstellungen, damit roundup Server findet, in denen du bist und die den Bot bereits nutzen.',
+    'action_link_discord' => 'Discord verbinden',
+    'content_no_roundup_servers_title' => 'Noch keine roundup-Server',
+    'content_no_roundup_servers_body' => 'Keiner deiner Server hat roundup installiert. Frag die Server-Verwaltung, den Bot hinzuzufügen, und lade die Seite dann neu.',
+    'action_refresh' => 'Aktualisieren',
+    'aria_roundup_servers_list' => 'Discord-Server mit roundup',
+    'content_publishing_on' => 'Öffentliche Events werden auf diesem Server veröffentlicht.',
+    'content_opted_in' => 'Freigegeben :when.',
+    'content_publishing_off' => 'Keine Veröffentlichung. Deine Events bleiben auf diesem Server privat, bis du sie freigibst.',
+    'aria_stop_publishing_to' => 'Veröffentlichung an :name stoppen',
+    'aria_publish_events_to' => 'Events an :name veröffentlichen',
+
     // ── Enriched game card (rendered in the guild's locale — see DiscordCardRenderer) ──
     'content_card_field_when' => 'Wann',
-    'content_card_field_organizer' => 'Spielleitung',
+    'content_card_field_organizer' => 'Organisator',
     'content_card_joined_open_roster' => ':count dabei · offene Liste',
     'content_card_min' => 'min :count',
     'content_card_count_waitlist' => ':count Warteliste',
-    'content_card_count_bench' => ':count Bank',
+    'content_card_count_bench' => ':count Ersatzbank',
     'content_card_roster_in' => 'Dabei',
     'content_card_roster_waitlist' => 'Warteliste (:count)',
-    'content_card_roster_bench' => 'Bank (:count)',
+    'content_card_roster_bench' => 'Ersatzbank (:count)',
     'content_card_more' => '+:count weitere',
     'content_card_from_roundup' => '+:count über roundup',
     'content_card_tier_reliable' => '🟢 Zuverlässig',

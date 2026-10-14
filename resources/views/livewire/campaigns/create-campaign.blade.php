@@ -248,7 +248,7 @@
                                         @if(!$isGM)
                                             <p class="text-xs text-on-surface-variant">{{ __('common.content_bench_mode_requires_gm') }}</p>
                                         @else
-                                            <p class="text-xs text-on-surface-variant">{{ __('common.content_bench_mode_description') }}</p>
+                                            <p class="text-xs text-on-surface-variant">{{ __('games.hint_bench_mode') }}</p>
                                         @endif
                                     </div>
                                 </div>

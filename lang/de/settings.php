@@ -23,4 +23,5 @@ return [
     'description_discord_servers' => 'Server, auf denen du den roundup-Bot installiert hast. Verwalte Kanäle, Veröffentlichungen und den Moderationsmodus für jeden.',
     'status_discord_servers_paused' => 'Pausiert',
     'action_discord_servers_configure' => 'Konfigurieren',
+    'aria_settings_sections' => 'Einstellungsbereiche',
 ];

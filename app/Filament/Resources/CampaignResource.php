@@ -55,7 +55,7 @@ class CampaignResource extends Resource
                                     ->required()
                                     ->maxLength(255),
                                 Select::make('owner_id')
-                                    ->label('Owner')
+                                    ->label('Host')
                                     ->relationship('owner', 'name')
                                     ->searchable()
                                     ->required(),
@@ -163,7 +163,7 @@ class CampaignResource extends Resource
                     ->defaultImageUrl(fn (): ?string => null)
                     ->extraImgAttributes(['aria-hidden' => 'true']),
                 TextColumn::make('owner.name')
-                    ->label('Owner')
+                    ->label('Host')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('gameSystems.name')

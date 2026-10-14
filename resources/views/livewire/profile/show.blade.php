@@ -8,7 +8,7 @@
 
     {{-- Tab Navigation --}}
     <div class="max-w-2xl mx-auto mb-6 sm:mb-8">
-        <nav class="flex gap-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" role="tablist" aria-label="Profile sections">
+        <nav class="flex gap-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" role="tablist" aria-label="{{ __('profile.aria_profile_sections') }}">
             @php
                 $tabConfig = [
                     'profile' => ['label' => __('profile.field_avatar'), 'icon' => 'person'],

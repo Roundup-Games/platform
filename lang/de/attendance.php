@@ -18,5 +18,5 @@ return [
     // Anfechtung
     // Zusammenfassung (game-detail.blade.php)
     // Dashboard (dashboard.blade.php)
-    'dashboard_hosting' => 'Du hostest',
+    'dashboard_hosting' => 'Du leitest',
 ];

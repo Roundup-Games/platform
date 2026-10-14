@@ -58,7 +58,7 @@
                                 @if($subscription->onGracePeriod())
                                     <span class="text-tertiary font-medium">{{ __('common.content_canceling') }}</span> &mdash; {{ __('common.field_access_until_date', ['date' => format_date($subscription->ends_at, 'short_month_day')]) }}
                                 @else
-                                    {{ __('billing.content_type_plan', ['type' => ucfirst($subscription->type)]) }} &mdash;
+                                    {{ __('billing.content_membership_plan') }} &mdash;
                                     @if($subscription->ends_at)
                                         {{ __('common.field_renews_date', ['date' => format_date($subscription->ends_at, 'short_month_day')]) }}
                                     @else
@@ -147,7 +147,7 @@
                                         <span class="text-sm text-on-surface-variant">/{{ trans_choice('billing.content_duration_months', $plan->duration_months) }}</span>
                                         @if($plan->duration_months === 12)
                                             <p class="mt-1 text-xs text-secondary font-medium">
-                                                {{ format_currency((int)round($plan->price_cents / 12)) }}/month
+                                                {{ format_currency((int)round($plan->price_cents / 12)) }}{{ __('billing.label_per_month_short') }}
                                             </p>
                                         @endif
                                     @endif

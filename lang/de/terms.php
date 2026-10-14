@@ -12,25 +12,25 @@ return [
     // ── Konto ──────────────────────────────────────────
     'heading_account' => 'Dein Konto',
     'content_account_1' => 'Du bist dafür verantwortlich, deine Kontozugangsdaten sicher zu halten. Informiere uns unverzüglich, wenn du unbefugten Zugriff vermutest.',
-    'content_account_2' => 'Du darfst keine mehreren Konten erstellen, um Plattformregeln zu umgehen, Blockierungen zu entgehen oder Reputationssysteme zu manipulieren.',
+    'content_account_2' => 'Du darfst nicht mehrere Konten erstellen, um Plattformregeln zu umgehen, Blockierungen zu entgehen oder Reputationssysteme zu manipulieren.',
     'heading_account_deletion' => 'Kontolöschung',
     'content_account_deletion_1' => 'Du kannst dein Konto jederzeit in deinen Profileinstellungen löschen. Bei der Löschung:',
     'content_account_deletion_2' => 'Dein Profil und deine personenbezogenen Daten werden innerhalb von 30 Tagen entfernt, vorbehaltlich gesetzlicher Aufbewahrungspflichten.',
-    'content_account_deletion_3' => 'Sitzungsverlauf und Anwesenheitsaufzeichnungen können in anonymisierter Form aufbewahrt werden, um die Datenintegrität für andere Teilnehmer zu wahren.',
+    'content_account_deletion_3' => 'Rundenverlauf und Anwesenheitsaufzeichnungen können in anonymisierter Form aufbewahrt werden, um die Datenintegrität für andere Teilnehmer zu wahren.',
     'content_account_deletion_4' => 'Aktive Abonnements werden am Ende des aktuellen Abrechnungszeitraums gekündigt.',
     // ── Gemeinschaftsverhalten ─────────────────────────
     'heading_community_conduct' => 'Gemeinschaftsverhalten',
     'content_conduct_intro' => config('company.display_name').' existiert, um Menschen an echten Tischen zusammenzubringen. Um die Gemeinschaft sicher und einladend zu halten, müssen alle Nutzer:',
     'content_conduct_respect' => 'Alle Mitglieder respektvoll behandeln. Belästigung, Diskriminierung, Hassrede und Drohungen sind strengstens untersagt.',
     'content_conduct_honesty' => 'Ehrlich in deinen Interaktionen sein. Gib nicht falsche Identität, Erfahrung oder Absichten an.',
-    'content_conduct_reliability' => 'Deine Zusagen einhalten. Wenn du dich für eine Session anmeldest, erscheine — oder sage mit angemessener Vorwarnung ab. Wiederholtes Nichterscheinen beeinträchtigt deinen Zuverlässigkeitswert und kann zu Einschränkungen führen.',
+    'content_conduct_reliability' => 'Deine Zusagen einhalten. Wenn du dich für eine Runde anmeldest, erscheine — oder sage mit angemessener Vorwarnung ab. Wiederholtes Nichterscheinen beeinträchtigt deinen Zuverlässigkeitswert und kann zu Einschränkungen führen.',
     'content_conduct_safety' => 'Sicherheit priorisieren. Melde Bedenken gegenüber anderen Nutzern über unsere Meldewerkzeuge. Wir nehmen alle Meldungen ernst.',
     'content_conduct_legal' => 'Die Plattform nicht für illegale Aktivitäten nutzen.',
     'content_conduct_enforcement' => 'Wir behalten uns das Recht vor, Konten zu sperren oder zu kündigen, die gegen diese Standards verstoßen, je nach Schwere mit oder ohne Vorwarnung.',
     // ── Inhalte & Eigentum ─────────────────────────────
     'heading_content_ownership' => 'Inhalte & Eigentum',
-    'content_yours' => 'Deine Inhalte gehören dir. Du behältst das Eigentum an allem, was du veröffentlichst — Bewertungen, Session-Beschreibungen, Profilinformationen und Nachrichten.',
-    'content_license' => 'Durch das Veröffentlichen von Inhalten auf der Plattform gewährst du uns eine begrenzte, nicht-ausschließliche Lizenz zur Anzeige und Verbreitung dieser Inhalte, wie für die Bereitstellung der Plattformdienste erforderlich (z. B. Anzeige deiner Bewertung auf dem Profil eines Spielleiters).',
+    'content_yours' => 'Deine Inhalte gehören dir. Du behältst das Eigentum an allem, was du veröffentlichst — Bewertungen, Rundenbeschreibungen, Profilinformationen und Nachrichten.',
+    'content_license' => 'Durch das Veröffentlichen von Inhalten auf der Plattform gewährst du uns eine begrenzte, nicht-ausschließliche Lizenz zur Anzeige und Verbreitung dieser Inhalte, wie für die Bereitstellung der Plattformdienste erforderlich (z. B. Anzeige deiner Bewertung auf einem GM-Profil).',
     'content_responsibility' => 'Du bist dafür verantwortlich, dass deine veröffentlichten Inhalte nicht die Rechte anderer verletzen.',
     'content_removal' => 'Wir können Inhalte entfernen, die gegen diese Bedingungen oder unsere Gemeinschaftsrichtlinien verstoßen, und werden dich nach Möglichkeit darüber informieren.',
     // ── Plattformlizenz ────────────────────────────────
@@ -45,8 +45,8 @@ return [
     'content_subscriptions_3' => 'Erstattungsanfragen werden im Einzelfall geprüft. Kontaktiere uns unter '.config('company.contact.support').'.',
     // ── Haftungsbeschränkung ───────────────────────────
     'heading_liability' => 'Haftungsbeschränkung',
-    'content_liability_1' => config('company.display_name').' ist eine Gemeinschaftsplattform. Wir vermitteln Verbindungen zwischen Spielern und Organisatoren, organisieren, leiten oder beaufsichtigen jedoch keine einzelnen Spielsitzungen.',
-    'content_liability_2' => 'Du nimmst an Sessions auf eigenes Risiko teil. Wir haften nicht für das Verhalten anderer Nutzer, die Sicherheit physischer Veranstaltungsorte oder Vorfälle bei Präsenzveranstaltungen.',
+    'content_liability_1' => config('company.display_name').' ist eine Gemeinschaftsplattform. Wir vermitteln Verbindungen zwischen Spielern und Organisatoren, organisieren, leiten oder beaufsichtigen jedoch keine einzelnen Spielrunden.',
+    'content_liability_2' => 'Du nimmst an Runden auf eigenes Risiko teil. Wir haften nicht für das Verhalten anderer Nutzer, die Sicherheit physischer Veranstaltungsorte oder Vorfälle bei Präsenzveranstaltungen.',
     'content_liability_3' => 'Soweit nach deutschem Recht zulässig, ist unsere Haftung für Schäden aus der Nutzung der Plattform auf Fälle grober Fahrlässigkeit oder vorsätzlichen Fehlverhaltens beschränkt.',
     'content_liability_4' => 'Wir garantieren keinen unterbrechungsfreien oder fehlerfreien Betrieb der Plattform.',
     // ── Datenschutz ────────────────────────────────────

@@ -222,6 +222,7 @@
                     <div class="flex-1">
                         <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('common.content_you_are_on_the_bench') }}</h2>
                         <p class="mt-1 text-sm text-on-surface-variant">{{ __('campaigns.content_you_have_been_placed_on_the_bench') }}</p>
+                        <p class="mt-1 text-sm text-on-surface-variant">{{ __('common.content_bench_player_note') }}</p>
                         <x-confirm-action
                             action="leaveBench('{{ $userBenchParticipant->id }}')"
                             id="leave-bench-{{ $userBenchParticipant->id }}"

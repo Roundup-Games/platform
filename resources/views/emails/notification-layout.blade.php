@@ -75,7 +75,7 @@
                 <p>
                     @isset($unsubscribeUrl)
                         <a href="{{ $unsubscribeUrl }}">{{ __('notifications.email_unsubscribe') }}</a>
-                        &nbsp;&middot&nbsp;
+                        ·
                     @endisset
                     <a href="{{ config('app.url') }}/{{ app()->getLocale() }}/profile">{{ __('notifications.email_manage_settings') }}</a>
                 </p>

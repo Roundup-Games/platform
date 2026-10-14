@@ -10,7 +10,7 @@
             </h3>
             @if($campaign->price_per_session > 0)
                 <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                    {{ format_currency($campaign->price_per_session, false) }}/session
+                    {{ format_currency($campaign->price_per_session, false) }}{{ __('campaigns.label_per_session_short') }}
                 </span>
             @else
                 <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">

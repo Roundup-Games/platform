@@ -37,6 +37,10 @@
         @endif
     </div>
 
+    {{-- First-use definition (M066/S03): one line explaining what a game system is,
+         wherever the picker is first met — onboarding, profile, create forms. --}}
+    <p class="mt-2 text-xs text-on-surface-variant">{{ __('games.content_game_system_definition') }}</p>
+
     {{-- Conflict Warning --}}
     @if($conflictMessage)
         <div class="mt-2 flex items-start gap-2 px-3 py-2 bg-tertiary/10 border border-tertiary/20 rounded-lg">

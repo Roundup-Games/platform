@@ -1,12 +1,12 @@
 <?php
 return [
-    'title_gm_workspace' => 'GM Arbeitsbereich',
-    'description_your_gm_command_center' => 'Dein Game Master Kontrollzentrum — verwalte Sitzungen, verfolge Bewertungen und sieh deine Statistiken.',
-    'heading_upcoming_sessions' => 'Anstehende Sitzungen',
+    'title_gm_workspace' => 'GM-Arbeitsbereich',
+    'description_your_gm_command_center' => 'Dein GM-Kontrollzentrum — verwalte Runden, verfolge Bewertungen und sieh deine Statistiken.',
+    'heading_upcoming_sessions' => 'Anstehende Runden',
     'heading_review_summary' => 'Bewertungsübersicht',
     'heading_participant_stats' => 'Teilnehmerstatistiken',
     'heading_quick_actions' => 'Schnellaktionen',
-    'content_no_upcoming_sessions' => 'Keine kommenden Sitzungen diese Woche.',
+    'content_no_upcoming_sessions' => 'Keine kommenden Runden diese Woche.',
     'content_no_reviews_yet_gm' => 'Noch keine Bewertungen — leite weiterhin großartige Spiele!',
     'label_average' => 'Durchschnitt',
     'label_reviews' => '1 Bewertung|:count Bewertungen',
@@ -14,7 +14,7 @@ return [
     'label_repeat_players' => 'Wiederkehrende Spieler',
     'label_total_games' => 'Spiele gesamt',
     'label_active_campaigns' => 'Aktive Kampagnen',
-    'action_create_game_desc' => 'Plane eine neue Spielsitzung.',
+    'action_create_game_desc' => 'Plane eine neue Spielrunde.',
     'action_create_campaign_desc' => 'Starte eine neue Kampagnenreihe.',
     'action_manage_profile' => 'GM-Profil verwalten',
     'action_manage_profile_desc' => 'Zeige und aktualisiere dein öffentliches GM-Profil.',
@@ -22,7 +22,7 @@ return [
     'action_create_session_zero_desc' => 'Erstelle einen Fragebogen vor dem Spiel, um Erwartungen und Safety-Tools zu klären.',
     // Session-Zero-Umfragen
     'heading_session_zero_surveys' => 'Session-Zero-Umfragen',
-    'content_no_session_zero_surveys' => 'Noch keine Session-Zero-Umfragen. Erstelle eine, um deine Gruppe vor der ersten Sitzung abzustimmen.',
+    'content_no_session_zero_surveys' => 'Noch keine Session-Zero-Umfragen. Erstelle eine, um deine Gruppe vor der ersten Runde abzustimmen.',
     'content_no_linked_game' => 'Kein verknüpftes Spiel',
     'label_archived' => 'Archiviert',
     // Share-Link-Analytik
@@ -36,7 +36,7 @@ return [
     'content_no_share_links' => 'Noch keine Share-Links erstellt. Erstelle einen Link von jeder Spiel- oder Kampagnenseite.',
     'link_col_code' => 'Kurzcode',
     'link_col_label' => 'Bezeichnung',
-    'link_col_entity' => 'Entität',
+    'link_col_entity' => 'Runde oder Kampagne',
     'link_col_hits' => 'Klicks',
     'link_col_created' => 'Erstellt',
     'link_status_expired' => 'Abgelaufen',

@@ -56,7 +56,7 @@
                 @if($system->isTtrpg())
                     <span class="inline-flex items-center gap-1">
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">auto_stories</span>
-                        TTRPG
+                        {{ __('games.label_ttrpg') }}
                     </span>
                 @endif
                 @if($system->min_players || $system->max_players)

@@ -10,7 +10,7 @@
 
     {{-- Tab Navigation --}}
     <div class="max-w-2xl mx-auto mb-6 sm:mb-8">
-        <nav class="flex gap-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" role="tablist" aria-label="Settings sections">
+        <nav class="flex gap-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" role="tablist" aria-label="{{ __('settings.aria_settings_sections') }}">
             @php
                 $tabConfig = [
                     'privacy' => ['label' => __('profile.content_privacy_settings'), 'icon' => 'shield'],

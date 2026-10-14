@@ -16,7 +16,7 @@
         <span class="font-medium text-on-surface group-hover:text-primary transition-colors {{ $truncate ? 'truncate' : '' }}">
             {{ $user->name }}
         </span>
-        <span class="sr-only">View {{ $user->name }}'s profile</span>
+        <span class="sr-only">{{ __('profile.aria_view_profile', ['name' => $user->name]) }}</span>
     </a>
 @else
     <span class="inline-flex items-center gap-2 text-on-surface-variant">

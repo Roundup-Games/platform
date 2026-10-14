@@ -56,6 +56,5 @@ return [
     'content_invite_email_hint' => 'Enter an email to invite someone new. They\'ll receive an email with a link to join.',
     'flash_email_invite_waitlisted' => 'Game is full — invitee added to waitlist.',
     'flash_email_invite_benched' => 'Session is full — invitee added to bench.',
-    'flash_accepted_waitlisted' => 'Game is full — you\'ve been added to the waitlist and will be notified when a spot opens.',
-    'flash_accepted_benched' => 'Session is full — you\'ve been added to the bench and will be notified when a spot opens.',
+    'aria_remove_friend' => 'Remove :name',
 ];

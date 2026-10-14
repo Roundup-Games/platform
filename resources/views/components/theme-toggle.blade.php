@@ -52,7 +52,7 @@
         @click="open = !open"
         type="button"
         class="flex items-center gap-2 rounded-xl {{ $buttonSize }} text-on-surface-variant hover:text-primary hover:bg-surface-container-high focus:outline-hidden focus:ring-2 focus:ring-primary/50 transition-colors duration-200"
-        aria-label="Toggle theme"
+        aria-label="{{ __('common.aria_toggle_theme') }}"
         :aria-expanded="open.toString()"
     >
         <span class="material-symbols-outlined {{ $iconSize }}" x-text="iconName()" aria-hidden="true"></span>

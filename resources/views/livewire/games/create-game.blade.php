@@ -236,7 +236,7 @@
                                         @if(!$isGM)
                                             <p class="text-xs text-on-surface-variant">{{ __('common.content_bench_mode_requires_gm') }}</p>
                                         @else
-                                            <p class="text-xs text-on-surface-variant">{{ __('common.content_bench_mode_description') }}</p>
+                                            <p class="text-xs text-on-surface-variant">{{ __('games.hint_bench_mode') }}</p>
                                         @endif
                                     </div>
                                 </div>
@@ -330,6 +330,7 @@
                                         <option value="{{ $value }}">{{ $label }}</option>
                                     @endforeach
                                 </select>
+                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.content_reliability_definition') }}</p>
                                 <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_attendance_tolerance') }}</p>
                                 @error('min_reliability_preference') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                             </div>
