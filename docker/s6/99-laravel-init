@@ -4,6 +4,16 @@
 
 cd /var/www/html
 
+# Close the init-complete gate first thing. The marker lives in /tmp
+# (container-local — storage/ is a volume SHARED between the app and worker
+# containers, a marker there would leak one container's state to the other)
+# and survives a container restart, so a stale one from the previous boot must
+# be cleared before this run starts rewriting caches. The worker healthcheck
+# waits for this marker before it boots artisan: Docker runs healthchecks
+# outside s6 ordering, so without the gate that probe is the one process that
+# can boot Laravel while the init is still rewriting caches.
+rm -f /tmp/laravel-init-complete
+
 # Create the database if it doesn't exist (external Postgres)
 if [ "${DB_CONNECTION}" = "pgsql" ] && [ -n "${DB_HOST}" ]; then
     echo "Ensuring database '${DB_DATABASE}' exists on ${DB_HOST}:${DB_PORT}..."
@@ -44,8 +54,16 @@ else
     echo "RUN_MIGRATIONS=0 — skipping migrations (owner service runs them)."
 fi
 
-# Cache config, routes, views, events for production
-echo "Caching config, routes, views, events..."
+# Cache config for production: it reads the environment, so it must run
+# here at container start, not at build time. view:cache also stays here —
+# compiled views are written to storage/framework/views (the shared volume)
+# and baking them into the image is pointless under the app_storage mount.
+# route:cache and event:cache were removed from here: they do not read the
+# environment and are baked into the image at build time (see Dockerfile) —
+# running them here deleted and rewrote bootstrap/cache/routes-v7.php on
+# every start, which is the deploy-window race behind the boot-time
+# ErrorException in error tracking.
+echo "Caching config and views..."
 # Soft dependency preflight (MEM1147): warn — never block boot — when
 # Redis or Postgres are not reachable yet, so reboot-window outages are
 # visible in container logs instead of only as user-facing 500s.
@@ -57,9 +75,7 @@ if ! php artisan tinker --execute='try { Illuminate\Support\Facades\Redis::ping(
 fi
 
 php artisan config:cache
-php artisan route:cache
 php artisan view:cache
-php artisan event:cache
 
 # Seed Escalated helpdesk data (departments, tags, SLA policies) — idempotent
 # Allow errors to surface in container logs for debugging; || true prevents script failure
@@ -70,5 +86,10 @@ fi
 
 # Write deploy timestamp for admin dashboard
 date -u +"%Y-%m-%d %H:%M:%S UTC" > /var/www/html/storage/framework/deploy-timestamp
+
+# Open the init-complete gate. Everything that boots artisan during this
+# init has finished, so the worker healthcheck may now run its own artisan
+# probe safely (see the gate comment at the top of this script).
+touch /tmp/laravel-init-complete
 
 echo "Laravel startup complete."
