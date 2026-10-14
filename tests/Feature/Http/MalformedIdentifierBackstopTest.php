@@ -48,8 +48,12 @@ it('renders a malformed identifier as 404 json for api requests', function () {
         malformedIdentifierException(),
     );
 
+    // Debug mode appends exception/trace keys to the framework's error array;
+    // the contract is the message, matching an unknown route's 404 json.
+    $payload = json_decode($response->getContent(), true);
+
     expect($response->getStatusCode())->toBe(404)
-        ->and(json_decode($response->getContent(), true))->toBe(['message' => 'Not Found']);
+        ->and($payload['message'])->toBe('Not Found');
 });
 
 it('does not report a malformed identifier but logs a warning', function () {
