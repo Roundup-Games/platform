@@ -112,7 +112,7 @@ return [
     'content_in_progress_badge' => '● Laufend',
     'content_internal_notes_visible_only_to_organizers' => 'Interne Notizen (nur für Organisatoren sichtbar)…',
     'content_invited_as' => 'Eingeladen als',
-    'content_joined' => ':count mal teilgenommen',
+    'content_joined' => '{1} :count mal teilgenommen|[2,*] :count mal teilgenommen',
     'content_jpg_png_gif_or_webp_max_size_mb' => 'JPG, PNG, GIF oder WebP. Max. :size MB.',
     'content_jpg_png_or_gif_max_1mb' => 'JPG, PNG oder GIF. Max. 1 MB.',
     'content_language' => 'Sprache',

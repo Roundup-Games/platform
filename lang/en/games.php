@@ -94,7 +94,6 @@ return [
     'content_favorite_games' => 'Favorite Games',
     'content_game_systems' => 'Game Systems',
     'label_game_systems' => 'Game Systems',
-    'content_upcoming_game_sessions' => 'Upcoming Game Sessions',
     'content_games_to_avoid' => 'Games to Avoid',
     'content_implied' => 'implied',
     'content_implies_all_expansions' => 'implies all expansions',
@@ -168,7 +167,7 @@ return [
     'content_sessions_using_this_system' => 'There are currently :sessions game sessions and :campaigns campaigns using this system.',
     'action_find_sessions' => 'Find sessions',
     // Upcoming tables module (M062 / 62-02)
-    'heading_upcoming_tables' => 'Upcoming Tables',
+    'heading_upcoming_tables' => 'Upcoming Games',
     'content_upcoming_tables_intro' => 'These upcoming tables are open for players — reserve your seat and join a session.',
     'empty_upcoming_tables_intro' => 'No tables for :system are scheduled right now. New sessions are posted all the time — check back soon.',
     'empty_upcoming_tables_cta' => 'Explore sessions with this game',

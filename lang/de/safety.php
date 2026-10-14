@@ -87,7 +87,7 @@ return [
     'seo_title_code_of_conduct' => 'Verhaltenskodex — Unsere Community-Regeln',
     'seo_description_code_of_conduct' => 'Roundups Verhaltenskodex in klarer Sprache: Respekt, Safety-Tools, ehrliche Anwesenheitsmeldung, keine Belästigung — plus Wege, etwas zu melden und Einspruch einzulegen.',
     // SEO
-    'seo_title_safety_tools' => 'Safety-Tools',
+    'seo_title_safety_tools' => 'Safety-Tools — X-Card, Lines & Veils und mehr',
     'seo_description_safety_tools' => 'Entdecke Safety-Tools für Tabletop-RPGs, die ein angenehmes und respektvolles Spielerlebnis für alle gewährleisten.',
     'aria_custom_safety_note' => 'Eigene Sicherheitsnotiz',
     'aria_more_info_about' => 'Mehr Informationen zu :tool',

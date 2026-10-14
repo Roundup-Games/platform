@@ -274,7 +274,7 @@
                 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                     <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-3">
                         <span class="material-symbols-outlined text-base align-middle mr-1">event_note</span>
-                        {{ __('games.content_upcoming_game_sessions') }}
+                        {{ __('games.heading_upcoming_tables') }}
                     </h2>
                     <div class="space-y-2">
                         @foreach($games as $game)

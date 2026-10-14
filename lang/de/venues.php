@@ -101,6 +101,6 @@ return [
     'action_directory_cta_sign_up_propose' => 'Registrieren, um einen Ort vorzuschlagen',
     'heading_directory_footer_cta' => 'Kennst du einen Ort, der hier sein sollte?',
     'content_directory_footer_cta' => 'Schlage einen Veranstaltungsort vor und hilf mehr Spielern, einen Platz am Tisch zu finden.',
-    'heading_directory_portal_card' => 'Orte entdecken',
+    'heading_directory_portal_card' => 'Veranstaltungsorte entdecken',
     'content_directory_portal_card' => 'Finde Cafés, Spieleläden und Gemeindezentren in deiner Nähe, die öffentliche Spielrunden ausrichten.',
 ];

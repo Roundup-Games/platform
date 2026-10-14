@@ -83,7 +83,6 @@ return [
     'content_favorite_games' => 'Lieblingsspiele',
     'content_game_systems' => 'Spielsysteme',
     'label_game_systems' => 'Spielsysteme',
-    'content_upcoming_game_sessions' => 'Anstehende Spielrunden',
     'content_games_to_avoid' => 'Spiele, die du meidest',
     'content_implied' => 'impliziert',
     'content_implies_all_expansions' => 'impliziert alle Erweiterungen',
@@ -157,7 +156,7 @@ return [
     'content_sessions_using_this_system' => 'Aktuell gibt es :sessions Spielrunden und :campaigns Kampagnen mit diesem System.',
     'action_find_sessions' => 'Runden finden',
     // Modul „Anstehende Spielrunden“ (M062 / 62-02)
-    'heading_upcoming_tables' => 'Anstehende Spielrunden',
+    'heading_upcoming_tables' => 'Anstehende Runden',
     'content_upcoming_tables_intro' => 'Diese anstehenden Runden sind offen für Mitspieler — sichere dir jetzt deinen Platz.',
     'empty_upcoming_tables_intro' => 'Für :system sind gerade keine Runden geplant. Neue Runden werden laufend eingestellt — schau bald wieder vorbei.',
     'empty_upcoming_tables_cta' => 'Runden mit diesem Spiel entdecken',

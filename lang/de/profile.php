@@ -144,7 +144,7 @@ return [
     // Zuverlässigkeitsstufen
     'label_reliability_tier_reliable' => 'Zuverlässig',
     'label_reliability_attendance_rate' => 'Anwesenheit',
-    'label_reliability_games_played' => 'Spiele',
+    'label_reliability_games_played' => 'Runden',
     'content_reliability_stats' => 'Zuverlässigkeitswert',
     'content_who_can_see_your_reliability_stats' => 'Wer deine detaillierte Anwesenheitsrate und Spielanzahl sehen kann. Deine Statistiken sind immer sichtbar, wenn jemand eine Spielrunde oder Kampagne ansieht, die du organisierst',
     // GM Social Links

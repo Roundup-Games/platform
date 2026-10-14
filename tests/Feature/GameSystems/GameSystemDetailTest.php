@@ -488,7 +488,7 @@ describe('GameSystemDetail - upcoming tables module', function () {
         // pattern; strings pinned via __ per K004, wording-agnostic).
         $de = get("/de/game-systems/{$system->slug}")
             ->assertOk()
-            ->assertSee(__('games.content_upcoming_game_sessions', [], 'de'))
+            ->assertSee(__('games.heading_upcoming_tables', [], 'de'))
             ->assertSee(__('games.empty_upcoming_tables_intro', ['system' => 'Evergreen System'], 'de'))
             ->assertSee(__('games.empty_upcoming_tables_cta', [], 'de'));
     });
