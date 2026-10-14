@@ -110,6 +110,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Paddle\Cashier;
+use LogicException;
 use Minishlink\WebPush\WebPush;
 use PostHog\PostHog;
 use RalphJSmit\Laravel\SEO\Facades\SEOManager;
@@ -494,8 +495,18 @@ class AppServiceProvider extends ServiceProvider
         // preferredLocale() (User implements HasLocalePreference), so the
         // __() calls inside these callbacks resolve in the recipient's locale.
         // MailMessage markdown renderers produce both HTML and plain-text
-        // parts, mirroring every other app mail.
-        VerifyEmail::toMailUsing(function (User $notifiable, string $verificationUrl): MailMessage {
+        // parts, mirroring every other app mail. The framework signature
+        // types the notifiable as mixed; these callbacks only serve User —
+        // a non-User notifiable is a wiring bug that fails loudly here
+        // instead of degrading the mail.
+        VerifyEmail::toMailUsing(function (mixed $notifiable, string $verificationUrl): MailMessage {
+            if (! $notifiable instanceof User) {
+                throw new LogicException(sprintf(
+                    'VerifyEmail branded mail callback expects an App\\Models\\User notifiable, got %s.',
+                    get_debug_type($notifiable),
+                ));
+            }
+
             return (new MailMessage)
                 ->subject(__('emails.subject_verify_email', [
                     'brand' => is_string($brand = config('company.display_name')) ? $brand : '',
@@ -506,10 +517,20 @@ class AppServiceProvider extends ServiceProvider
                 ->line(__('emails.content_verify_email_no_action'));
         });
 
-        ResetPassword::toMailUsing(function (User $notifiable, string $token): MailMessage {
+        ResetPassword::toMailUsing(function (mixed $notifiable, string $token): MailMessage {
+            if (! $notifiable instanceof User) {
+                throw new LogicException(sprintf(
+                    'ResetPassword branded mail callback expects an App\\Models\\User notifiable, got %s.',
+                    get_debug_type($notifiable),
+                ));
+            }
+
             // Explicit locale: the reset link targets the recipient's preferred
             // locale, independent of the ambient request locale.
             $locale = $notifiable->preferredLocale() ?? app()->getLocale();
+            $passwordBroker = is_string($broker = config('auth.defaults.passwords')) ? $broker : 'users';
+            $rawExpire = config("auth.passwords.{$passwordBroker}.expire", 60);
+            $expireMinutes = is_numeric($rawExpire) ? (int) $rawExpire : 60;
 
             return (new MailMessage)
                 ->subject(__('emails.subject_reset_password', [
@@ -523,7 +544,7 @@ class AppServiceProvider extends ServiceProvider
                     'locale' => $locale,
                 ]))
                 ->line(__('emails.content_reset_password_expires', [
-                    'count' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire'),
+                    'count' => $expireMinutes,
                 ]))
                 ->line(__('emails.content_reset_password_no_action'));
         });

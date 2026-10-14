@@ -43,7 +43,7 @@ class I18nDeadStringsCommand extends Command
             }
 
             $totalKeys += count($keys);
-            $usedInDomain = is_array($u = $usage['keys'][$domain] ?? []) ? $u : [];
+            $usedInDomain = $usage['keys'][$domain] ?? [];
 
             foreach ($keys as $key) {
                 if (! isset($usedInDomain[$key])) {
@@ -117,7 +117,7 @@ class I18nDeadStringsCommand extends Command
      * dynamic usage patterns from the codebase.
      *
      * @param  list<array{domain: string, key: string, dotted: string, value: string}>  $deadKeys
-     * @param  array{keys: array<string, array<string, array<string>>>, dynamicCount: int, dynamicFiles: array<string>}  $usage
+     * @param  array{keys: array<string, array<string, array<int, string>>>, dynamicCount: int, dynamicFiles: array<int, string>}  $usage
      * @return list<array{domain: string, key: string, dotted: string, value: string}>
      */
     private function filterDynamicKnownKeys(array $deadKeys, array $usage): array
@@ -206,12 +206,8 @@ class I18nDeadStringsCommand extends Command
 
             // Check Blade dynamic prefix patterns detected by the scanner
             // e.g. __('games.status_' . $var) registers '__dynamic_prefix__:status_'
-            $keys = $usage['keys'] ?? [];
-            $domainKeys = is_array($keys) && isset($keys[$domain]) && is_array($keys[$domain]) ? $keys[$domain] : [];
+            $domainKeys = $usage['keys'][$domain] ?? [];
             foreach ($domainKeys as $usedKey => $files) {
-                if (! is_string($usedKey)) {
-                    continue;
-                }
                 if (str_starts_with($usedKey, '__dynamic_prefix__:')) {
                     $prefix = substr($usedKey, strlen('__dynamic_prefix__:'));
                     if (str_starts_with($key, $prefix)) {

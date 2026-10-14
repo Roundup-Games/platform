@@ -85,6 +85,10 @@ class EventListing extends Component
         // authority — MEM1023). Unknown / ambiguous / below-threshold
         // slugs are inert: unfiltered results, no canonical fold.
         $citySummary = $this->resolveCityFilter();
+        // City narrowing payload resolved up front — the when() closure below
+        // carries a plain array (the truthy condition guarantees the summary
+        // resolved, so the empty fallback never reaches the query).
+        $cityLocationIds = $citySummary === null ? [] : $citySummary->locationIds;
 
         // A qualifying ?city= folds the canonical to the city's hub — all
         // other params dropped (MEM997); null keeps the transformer's
@@ -128,7 +132,9 @@ class EventListing extends Component
             ->when($this->date === 'past', fn ($q) => $q->where('end_date', '<', now()))
             ->when($this->date === 'this_week', fn ($q) => $q->whereBetween('start_date', [now()->startOfWeek(), now()->endOfWeek()]))
             ->when($this->date === 'this_month', fn ($q) => $q->whereBetween('start_date', [now()->startOfMonth(), now()->endOfMonth()]))
-            ->when($citySummary, fn ($q) => $q->whereIn('location_id', $citySummary->locationIds))
+            // Nullsafe: the closure only runs when the summary resolved non-null
+            // (when()'s condition), so the fallback never fires at runtime.
+            ->when($citySummary, fn ($q) => $q->whereIn('location_id', $cityLocationIds))
 
             // Featured events first, then by start_date
             ->orderByDesc('is_featured')

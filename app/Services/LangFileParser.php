@@ -228,7 +228,7 @@ class LangFileParser
      * Also returns a count of dynamic __() calls (where the key is a variable)
      * for caveating dead-string detection.
      *
-     * @return array{keys: array<string, mixed>, dynamicCount: int, dynamicFiles: array<int, string>}
+     * @return array{keys: array<string, array<string, array<int, string>>>, dynamicCount: int, dynamicFiles: array<int, string>}
      */
     public function scanUsage(): array
     {
