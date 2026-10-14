@@ -10,6 +10,12 @@
         {{ $label }}
     </label>
 
+    {{-- First-use definition (M066/S03): one line explaining what a game system is.
+         Deliberately at the component level so every game-system-picker usage renders
+         it — create forms, campaign create, discovery filters, GM directory
+         (M066/S10/T02 decision; mirrors the preference picker's component-level line). --}}
+    <p class="mt-2 text-xs text-on-surface-variant">{{ __('games.content_game_system_definition') }}</p>
+
     {{-- Search Input --}}
     <div class="relative">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>

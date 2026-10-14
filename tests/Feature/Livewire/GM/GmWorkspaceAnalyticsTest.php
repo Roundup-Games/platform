@@ -68,7 +68,7 @@ describe('Top links by hit count', function () {
         ]);
 
         // Clear any cached analytics
-        Cache::forget("gm_workspace:link_analytics:{$gm->id}");
+        Cache::forget(GmWorkspace::LINK_ANALYTICS_CACHE_KEY.":{$gm->id}");
 
         Livewire\Livewire::actingAs($gm)
             ->test(GmWorkspace::class)
@@ -107,7 +107,7 @@ describe('Top links by hit count', function () {
             'hit_count' => 100,
         ]);
 
-        Cache::forget("gm_workspace:link_analytics:{$gm->id}");
+        Cache::forget(GmWorkspace::LINK_ANALYTICS_CACHE_KEY.":{$gm->id}");
 
         Livewire\Livewire::actingAs($gm)
             ->test(GmWorkspace::class)
@@ -158,7 +158,7 @@ describe('Referrer domain aggregation', function () {
             'hit_at' => now()->subDay(),
         ]);
 
-        Cache::forget("gm_workspace:link_analytics:{$gm->id}");
+        Cache::forget(GmWorkspace::LINK_ANALYTICS_CACHE_KEY.":{$gm->id}");
 
         Livewire\Livewire::actingAs($gm)
             ->test(GmWorkspace::class)
@@ -202,7 +202,7 @@ describe('Referrer domain aggregation', function () {
             'hit_at' => now()->subDay(),
         ]);
 
-        Cache::forget("gm_workspace:link_analytics:{$gm->id}");
+        Cache::forget(GmWorkspace::LINK_ANALYTICS_CACHE_KEY.":{$gm->id}");
 
         Livewire\Livewire::actingAs($gm)
             ->test(GmWorkspace::class)
@@ -252,7 +252,7 @@ describe('Link analytics summary', function () {
             'hit_at' => now()->subDays(45),
         ]);
 
-        Cache::forget("gm_workspace:link_analytics:{$gm->id}");
+        Cache::forget(GmWorkspace::LINK_ANALYTICS_CACHE_KEY.":{$gm->id}");
 
         Livewire\Livewire::actingAs($gm)
             ->test(GmWorkspace::class)
@@ -265,7 +265,7 @@ describe('Link analytics summary', function () {
     it('shows zero totals for GM with no links', function () {
         $gm = $this->createSubscribedGm();
 
-        Cache::forget("gm_workspace:link_analytics:{$gm->id}");
+        Cache::forget(GmWorkspace::LINK_ANALYTICS_CACHE_KEY.":{$gm->id}");
 
         Livewire\Livewire::actingAs($gm)
             ->test(GmWorkspace::class)
@@ -304,7 +304,7 @@ describe('Link analytics summary', function () {
             'user_id' => $gm->id,
         ]);
 
-        Cache::forget("gm_workspace:link_analytics:{$gm->id}");
+        Cache::forget(GmWorkspace::LINK_ANALYTICS_CACHE_KEY.":{$gm->id}");
 
         Livewire\Livewire::actingAs($gm)
             ->test(GmWorkspace::class)

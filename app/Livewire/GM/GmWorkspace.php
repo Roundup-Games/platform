@@ -26,6 +26,12 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class GmWorkspace extends Component
 {
+    /** Per-user cache key prefix for the scalar-only (v2) link-analytics payload. */
+    public const LINK_ANALYTICS_CACHE_KEY = 'gm_workspace:link_analytics:v2';
+
+    /** Per-user cache key prefix for the participant-stats payload. */
+    public const PARTICIPANT_STATS_CACHE_KEY = 'gm_workspace:participant_stats';
+
     public ?GMProfile $gmProfile = null;
 
     public ?string $confirmingAction = null;
@@ -144,8 +150,8 @@ class GmWorkspace extends Component
 
         app(ShortLinkService::class)->revokeLink($link);
 
-        Cache::forget("gm_workspace:link_analytics:{$user->id}");
-        Cache::forget("gm_workspace:participant_stats:{$user->id}");
+        Cache::forget(self::LINK_ANALYTICS_CACHE_KEY.":{$user->id}");
+        Cache::forget(self::PARTICIPANT_STATS_CACHE_KEY.":{$user->id}");
 
         Log::info('GM workspace: short link revoked', [
             'link_id' => $linkId,
@@ -165,7 +171,7 @@ class GmWorkspace extends Component
      */
     private function getCachedParticipantStats(User $user): array
     {
-        $cacheKey = "gm_workspace:participant_stats:{$user->id}";
+        $cacheKey = self::PARTICIPANT_STATS_CACHE_KEY.":{$user->id}";
 
         return Cache::remember($cacheKey, now()->addHour(), function () use ($user) {
             $gameIds = Game::whereBelongsTo($user, 'owner')->pluck('id');
@@ -209,9 +215,13 @@ class GmWorkspace extends Component
      */
     private function getLinkAnalytics(User $user): array
     {
-        $cacheKey = "gm_workspace:link_analytics:{$user->id}";
+        // v2: payload carries scalars/arrays only. v1 cached Collection objects,
+        // which come back from the cache round-trip as __PHP_Incomplete_Class
+        // on the dev stack (MEM1087) — the blade then iterated the broken
+        // object and 500'd the workspace (the M066/S02 /de/gm-workspace 500).
+        $cacheKey = self::LINK_ANALYTICS_CACHE_KEY.":{$user->id}";
 
-        $result = Cache::remember($cacheKey, now()->addHour(), function () use ($user) {
+        $payload = Cache::remember($cacheKey, now()->addHour(), function () use ($user): array {
             // Subquery for GM's short link IDs — avoids loading all IDs into PHP
             // and generates efficient WHERE short_link_id IN (SELECT ...) instead.
             $gmLinkSub = ShortLink::whereBelongsTo($user)->select('id');
@@ -226,7 +236,7 @@ class GmWorkspace extends Component
                     // ('Game') regardless of the stored alias form.
                     $type = class_basename(Relation::getMorphedModel($item->linkable_type) ?? $item->linkable_type);
 
-                    return [$type => $item->count];
+                    return [$type => (int) $item->count];
                 });
 
             $totalHits = ShortLinkHit::whereIn('short_link_id', $gmLinkSub)
@@ -238,15 +248,17 @@ class GmWorkspace extends Component
             $linkAnalytics = [
                 'totalLinks' => $totalLinks,
                 'totalHits30d' => $totalHits,
-                'linksByType' => $linksByType,
+                'linksByType' => $linksByType->toArray(),
             ];
 
-            // Top 5 links by hit count
-            $topLinks = ShortLink::whereBelongsTo($user)
-                ->with('linkable')
+            // Top 5 links by hit count — cached as scalar ids only; the models
+            // are rehydrated below so hydrated Eloquent objects never enter the
+            // cache payload (MEM1087).
+            $topLinkIds = ShortLink::whereBelongsTo($user)
                 ->orderByDesc('hit_count')
                 ->limit(5)
-                ->get();
+                ->pluck('id')
+                ->all();
 
             // Top referrer domains — pre-extracted at write time for fast aggregation.
             $topReferrers = ShortLinkHit::whereIn('short_link_id', $gmLinkSub)
@@ -259,12 +271,22 @@ class GmWorkspace extends Component
                 ->limit(5)
                 ->get()
                 ->map(fn ($row) => ['domain' => $row->domain, 'count' => (int) $row->cnt])
-                ->values();
+                ->values()
+                ->toArray();
 
-            return [$linkAnalytics, $topLinks, $topReferrers];
+            return [$linkAnalytics, $topLinkIds, $topReferrers];
         });
 
-        return $result;
+        [$linkAnalytics, $topLinkIds, $topReferrers] = $payload;
+
+        // Rehydrate top links in their cached (hit_count desc) order.
+        $topLinks = ShortLink::with('linkable')
+            ->whereIn('id', $topLinkIds)
+            ->get()
+            ->sortBy(fn (ShortLink $link) => array_search($link->id, $topLinkIds))
+            ->values();
+
+        return [$linkAnalytics, $topLinks, collect($topReferrers)];
     }
 
     /**

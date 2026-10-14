@@ -90,6 +90,35 @@ describe('CreateGame — Type Switching', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
+// FIRST-USE GAME-SYSTEM DEFINITION (M066/S03, pinned S10/T02)
+// ═══════════════════════════════════════════════════════════
+// The single-select game-system picker must carry the same
+// first-use definition line the preference picker has — on the
+// create form it is the first place a new GM meets the term.
+
+describe('CreateGame — First-use game-system definition', function () {
+    it('shows the definition on the board game form', function () {
+        createGameComponent()
+            ->call('selectType', 'board_game')
+            ->assertSee(__('games.content_game_system_definition', [], 'en'));
+    });
+
+    it('shows the definition on the TTRPG form', function () {
+        createGameComponent()
+            ->call('selectType', 'ttrpg')
+            ->assertSee(__('games.content_game_system_definition', [], 'en'));
+    });
+
+    it('shows the German definition on the board game form in the de locale', function () {
+        app()->setLocale('de');
+
+        createGameComponent()
+            ->call('selectType', 'board_game')
+            ->assertSee(__('games.content_game_system_definition', [], 'de'));
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
 // BOARD GAME CREATION
 // ═══════════════════════════════════════════════════════════
 

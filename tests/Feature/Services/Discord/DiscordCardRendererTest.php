@@ -612,11 +612,11 @@ class DiscordCardRendererTest extends TestCase
         $this->assertContains('Wann', $this->fieldNames($embed));
         $this->assertContains('Spieler', $this->fieldNames($embed));
         $this->assertContains('System', $this->fieldNames($embed));
-        $this->assertContains('Spielleitung', $this->fieldNames($embed));
+        $this->assertContains('Organisator', $this->fieldNames($embed));
         $this->assertSame('roundup · tabletop über Community-Grenzen hinweg', $embed['footer']['text']);
 
         // Trust badge localized.
-        $organizerValue = $this->field($embed, 'Spielleitung');
+        $organizerValue = $this->field($embed, 'Organisator');
         $this->assertStringContainsString('🟢 Zuverlässig', $organizerValue);
         $this->assertStringContainsString('92% zuverlässig', $organizerValue);
     }

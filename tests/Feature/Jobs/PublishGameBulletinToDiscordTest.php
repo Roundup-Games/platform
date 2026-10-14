@@ -200,7 +200,7 @@ class PublishGameBulletinToDiscordTest extends TestCase
         [$title, $description] = $embeds[0];
         $this->assertStringContainsString('Neues Update für', $title);
         $this->assertStringContainsString('Host User hat ein Update für', $description);
-        $this->assertStringContainsString('Lies das vollständige Update auf der Session-Seite.', $description);
+        $this->assertStringContainsString('Lies das vollständige Update auf der Rundenseite.', $description);
         $this->assertStringNotContainsString('New update for', $title.$description);
     }
 

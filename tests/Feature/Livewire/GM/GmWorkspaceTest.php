@@ -8,11 +8,20 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
+use App\Models\ShortLink;
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Role;
 use Tests\Traits\CreatesUsers;
 
 uses(CreatesUsers::class);
+
+// Safety net for the de-locale regression test below: never let a pinned
+// "now" leak into other tests if an assertion fails mid-test.
+afterEach(function () {
+    Carbon::setTestNow();
+});
 
 // ═══════════════════════════════════════════════════════════
 // ACCESS CONTROL
@@ -53,14 +62,39 @@ describe('GmWorkspace Access Control', function () {
     });
 
     // smoke: subscription gate — active subscribed GMs can view workspace
-    // smoke: subscription gate — active subscribed GMs can view workspace
     it('allows active subscribed GMs to view workspace', function () {
         $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
             ->assertOk()
-            ->assertSee('GM Workspace');
+            ->assertSee(__('gws.title_gm_workspace', [], 'en'));
+    })->group('smoke');
+
+    // smoke: de-locale regression (M066/S10) — /de/gm-workspace must render
+    // German dates, never English AM/PM formats. Pins the full-page render
+    // after S02's unexplained browser 500 required live triage.
+    it('renders the workspace in German locale with German dates', function () {
+        Carbon::setTestNow(Carbon::parse('2026-10-12 09:00:00'));
+
+        $gm = $this->createSubscribedGm();
+        Game::factory()->create([
+            'owner_id' => $gm->id,
+            'status' => 'scheduled',
+            'date_time' => Carbon::parse('2026-10-15 14:30:00'),
+            'name' => ['en' => 'German Date Session'],
+        ]);
+
+        $response = $this->actingAs($gm)->get(route('gm.workspace', 'de'));
+
+        $response->assertOk()
+            ->assertSee('15. Oktober 2026, 14:30')
+            ->assertDontSee('Oct 15, 2026');
+
+        // No English AM/PM clock anywhere on the page. Word-boundary regex so
+        // random ids / CSRF tokens can't cause false positives.
+        expect($response->getContent())
+            ->not->toMatch('/\b(?:AM|PM)\b/');
     })->group('smoke');
 });
 
@@ -191,7 +225,7 @@ describe('GmWorkspace Review Summary', function () {
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
             ->assertOk()
-            ->assertSee('Storyteller');
+            ->assertSee(__('profile.gm_proficiency_storytelling', [], 'en'));
     });
 
 });
@@ -295,4 +329,53 @@ describe('GmWorkspace Participant Stats', function () {
             ->test(GmWorkspace::class)
             ->assertViewHas('activeCampaigns', 3);
     });
+});
+
+// ═══════════════════════════════════════════════════════
+// SHARE LINK ANALYTICS (CACHED)
+// ═══════════════════════════════════════════════════════
+
+describe('GmWorkspace Share Link Analytics', function () {
+    // smoke: M066/S10 regression — the cached analytics payload must carry
+    // only scalars/arrays. v1 cached Collection objects that returned from
+    // the cache round-trip as __PHP_Incomplete_Class on the dev stack,
+    // crashing the warm render with a hard 500 (the M066/S02 /de failure:
+    // htmlspecialchars(): array given in gm-workspace.blade.php).
+    it('renders the workspace cold and warm with links and a scalar-only cache payload', function () {
+        $gm = $this->createSubscribedGm();
+        $game = Game::factory()->create([
+            'owner_id' => $gm->id,
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'name' => ['en' => 'Linked Session'],
+        ]);
+        $link = ShortLink::create([
+            'user_id' => $gm->id,
+            'code' => 'gws-warm',
+            'url' => 'https://example.com/linked',
+            'linkable_type' => 'game',
+            'linkable_id' => $game->id,
+            'label' => 'Friends',
+            'purpose' => 'manual',
+        ]);
+
+        // Cold render (cache miss, fresh compute) then warm render
+        // (cache hit — previously served the broken Collection payload).
+        foreach (range(1, 2) as $render) {
+            $this->actingAs($gm)
+                ->get(route('gm.workspace', 'de'))
+                ->assertOk()
+                ->assertSee('Linked Session')
+                // The top-links row renders the raw user-set label verbatim
+                // (labels are stored data, never translated — unlike DE
+                // 'Freunde', 'Friends' here is data, not a translation pin).
+                ->assertSee('Friends');
+        }
+
+        $payload = Cache::get(GmWorkspace::LINK_ANALYTICS_CACHE_KEY.":{$gm->id}");
+
+        expect($payload)->toBeArray()
+            ->and($payload[0]['linksByType'])->toBe(['Game' => 1])
+            ->and($payload[1])->toBe([$link->id]);
+    })->group('smoke');
 });

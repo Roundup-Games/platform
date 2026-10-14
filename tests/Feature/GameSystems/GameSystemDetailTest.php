@@ -484,13 +484,13 @@ describe('GameSystemDetail - upcoming tables module', function () {
             // The card grid must not render at all — the fallback replaces it.
             ->assertDontSee('sm:grid-cols-2 lg:grid-cols-3 gap-4');
 
-        // German fallback renders the de copy (known literals from
-        // lang/de/games.php, CityHubPageTest's locale-switch pattern).
+        // German fallback renders the de copy (CityHubPageTest's locale-switch
+        // pattern; strings pinned via __ per K004, wording-agnostic).
         $de = get("/de/game-systems/{$system->slug}")
             ->assertOk()
-            ->assertSee('Anstehende Spielrunden')
-            ->assertSee('Für Evergreen System sind gerade keine Runden geplant.')
-            ->assertSee('Sitzungen mit diesem Spiel entdecken');
+            ->assertSee(__('games.content_upcoming_game_sessions', [], 'de'))
+            ->assertSee(__('games.empty_upcoming_tables_intro', ['system' => 'Evergreen System'], 'de'))
+            ->assertSee(__('games.empty_upcoming_tables_cta', [], 'de'));
     });
 
     it('links the ttrpg fallback to oneshot adventures discovery', function () {
