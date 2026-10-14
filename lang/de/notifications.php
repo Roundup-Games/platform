@@ -25,7 +25,7 @@ return [
     'category_below_min_players' => 'Mindestspielerzahl nicht erreicht',
     'category_confirmation_expired' => 'Bestätigung abgelaufen',
     'category_session_reminder' => 'Rundenerinnerung',
-    'category_event_registration' => 'Veranstaltungsanmeldung bestätigt',
+    'category_event_registration' => 'Event-Anmeldung bestätigt',
     // UI — Benachrichtigungsglocke
     'bell_label' => 'Benachrichtigungen (:count ungelesen)',
     'nav_label' => 'Benachrichtigungen',
@@ -37,7 +37,7 @@ return [
     // Group labels
     'group_invitations' => 'Einladungen',
     'group_participation' => 'Teilnahme',
-    'group_events' => 'Veranstaltungen',
+    'group_events' => 'Events',
     'group_scheduling' => 'Planung',
     // Benachrichtigungseinstellungen
     'content_notification_preferences' => 'Benachrichtigungseinstellungen',
@@ -68,7 +68,7 @@ return [
     'label_digest_content_report_warning' => 'Inhaltsmeldung — Warnung',
     'label_digest_debriefing_available' => 'Debriefing verfügbar',
     'label_digest_dispute_resolved' => 'Einspruch geklärt',
-    'label_digest_event_registration' => 'Veranstaltungsanmeldung bestätigt',
+    'label_digest_event_registration' => 'Event-Anmeldung bestätigt',
     'label_digest_game_system_request_approved' => 'Spielsystem-Anfrage angenommen',
     'label_digest_game_system_request_duplicate' => 'Spielsystem-Anfrage — Duplikat',
     'label_digest_game_system_request_rejected' => 'Spielsystem-Anfrage abgelehnt',
@@ -150,7 +150,7 @@ return [
     'verb_game_system_request_duplicate' => 'Spielsystem-Anfrage als Duplikat markiert',
     // Veranstaltungen (M063 Registranten-Kommunikation)
     'verb_event_registration' => 'Anmeldung bestätigt',
-    'verb_event_cancelled' => 'Veranstaltung abgesagt',
+    'verb_event_cancelled' => 'Event abgesagt',
     'verb_event_announcement_published' => 'Neue Ankündigung',
     'verb_event_co_organizer_added' => 'Als Co-Organisator hinzugefügt',
     // Teilnahme-Lebenszyklus-Verben (Bank, Warteliste, Degradierung)

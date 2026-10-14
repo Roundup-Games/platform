@@ -41,7 +41,9 @@ class NotificationsPageTest extends TestCase
 
         $group = $notifications->items()[0];
         $this->assertEquals('NewFollower', $group->type);
-        $this->assertEquals('Alice followed you', $group->displayString);
+        // K004: assemble the expectation from the translator — the verb
+        // wording lives in lang/ and may change freely.
+        $this->assertEquals('Alice '.__('notifications.verb_new_follower', [], 'en'), $group->displayString);
         $this->assertEquals(1, $group->count);
     }
 
@@ -254,12 +256,13 @@ class NotificationsPageTest extends TestCase
         $component = Livewire::actingAs($this->user)
             ->test(NotificationsPage::class);
 
-        // Collapsed state announces "Expand…"
-        $component->assertSeeHtml('aria-label="Expand notification group"');
+        // Collapsed state announces "Expand…"; expanded announces "Collapse…"
+        // (K004: labels resolve through the translator).
+        $component->assertSeeHtml('aria-label="'.__('notifications.aria_expand_notification_group', [], 'en').'"');
 
         // Expanded state announces "Collapse…"
         $component->call('toggleGroup', $groupKey)
-            ->assertSeeHtml('aria-label="Collapse notification group"');
+            ->assertSeeHtml('aria-label="'.__('notifications.aria_collapse_notification_group', [], 'en').'"');
     }
 
     public function test_group_toggle_aria_label_renders_in_german(): void
@@ -273,6 +276,6 @@ class NotificationsPageTest extends TestCase
 
         Livewire::actingAs($this->user)
             ->test(NotificationsPage::class)
-            ->assertSeeHtml('aria-label="Benachrichtigungsgruppe ausklappen"');
+            ->assertSeeHtml('aria-label="'.__('notifications.aria_expand_notification_group', [], 'de').'"');
     }
 }

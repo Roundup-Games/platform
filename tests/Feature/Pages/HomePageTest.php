@@ -45,12 +45,9 @@ describe('Rendering', function () {
             __('campaigns.action_find_sessions_near_me'),
         ]);
 
-        $html = $response->content();
-
-        // The hero discover anchor (not the plain nav link) carries the solid primary style
-        expect($html)->toMatch('/<a[^>]*href="'.preg_quote(route('discover'), '/').'"[^>]*shadow-md[^>]*>/');
-        // The nearby anchor carries the secondary outline style
-        expect($html)->toMatch('/<a[^>]*href="#nearby-sessions"[^>]*border border-on-primary\/30[^>]*>/');
+        // The CTA hierarchy is pinned by DOM order above (discover primary,
+        // nearby secondary). Styling classes are deliberately not
+        // asserted — a Tailwind refactor must not break this test.
     });
 
     it('renders the location gate for guests', function () {

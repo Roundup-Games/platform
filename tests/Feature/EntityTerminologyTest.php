@@ -15,6 +15,10 @@ use Illuminate\Support\Str;
 | UI names those. DE follows the glossary canon: Game = Runde,
 | Campaign = Kampagne.
 |
+| K004: expectations are built through the translator (or assert
+| banned-token negatives), never literal lang values — the wording stays
+| free to change; only the jargon-free and localization invariants are
+| pinned here.
 */
 
 function t07_renderShareLinksManager(ShortLink $link): string
@@ -31,18 +35,20 @@ it('labels the short-link target column without entity jargon', function () {
     $link = ShortLink::factory()->make(['label' => null, 'linkable_id' => null]);
     $html = t07_renderShareLinksManager($link);
 
+    // The rendered header must carry the localized column label, never the
+    // developer word "Entity".
     expect($html)
-        ->toContain('Game or campaign')
+        ->toContain(__('gws.link_col_entity', [], 'en'))
         ->not->toContain('>Entity<');
 
     app()->setLocale('de');
 
     expect(t07_renderShareLinksManager($link))
-        ->toContain('Runde oder Kampagne')
+        ->toContain(__('gws.link_col_entity', [], 'de'))
         ->not->toContain('Entität');
 });
 
-it('falls back to the localized type label for orphaned links, never a class name', function (string $locale, string $label) {
+it('falls back to the localized type label for orphaned links, never a class name', function (string $locale) {
     app()->setLocale($locale);
 
     // Orphaned: linkable_id points at no row, so $link->linkable is null and
@@ -55,24 +61,28 @@ it('falls back to the localized type label for orphaned links, never a class nam
 
     $html = t07_renderShareLinksManager($link);
 
+    // The fallback must be the localized entity type label (Game = Runde in
+    // DE per the glossary canon), never the morph alias or class name.
+    $label = __('games.content_game', [], $locale);
+
     expect($html)
         ->toContain('>'.$label.'</span>')
         ->not->toContain('>game<');
-})->with([
-    'en' => ['en', 'Game'],
-    'de' => ['de', 'Spiel'],
-]);
+})->with(['en', 'de']);
 
 it('words the short-link limit error in plain user-facing language', function () {
-    app()->setLocale('en');
+    // K004: pin the invariants — translated in both locales (never the raw
+    // key, never an English fallback in DE) and free of developer jargon.
+    // The concrete wording lives in lang/ and may change freely.
+    $en = __('common.error_max_links_reached', [], 'en');
+    $de = __('common.error_max_links_reached', [], 'de');
 
-    expect(__('common.error_max_links_reached'))
-        ->toContain('game or campaign')
+    expect($en)
+        ->not->toBe('common.error_max_links_reached')
         ->not->toContain('entity');
 
-    app()->setLocale('de');
-
-    expect(__('common.error_max_links_reached'))
-        ->toContain('Runde oder Kampagne')
+    expect($de)
+        ->not->toBe('common.error_max_links_reached')
+        ->not->toBe($en)
         ->not->toContain('Entität');
 });

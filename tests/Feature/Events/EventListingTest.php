@@ -316,7 +316,7 @@ describe('EventDetail', function () {
         ]);
 
         Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
-            ->assertSee(__(__('campaigns.content_schedule', [], 'en')))
+            ->assertSee(__('campaigns.content_schedule', [], 'en'))
             ->assertSee('Check-in')
             ->assertSee('Matches Begin');
     });

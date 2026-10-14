@@ -13,7 +13,7 @@ return [
     'content_data_account_items' => 'Name, E-Mail-Adresse, Anzeigename, Profilfoto (optional), Bio (optional), Geschlecht (optional — besondere Datenkategorie gemäß DSGVO Art. 9, nur mit deiner ausdrücklichen Einwilligung erhoben), Spracheinstellung.',
     'heading_data_location' => 'Standortdaten',
     'content_data_location_purpose' => 'Um Runden, Spieler und Veranstaltungsorte in deiner Nähe vorzuschlagen.',
-    'content_data_location_items' => 'Ungefährer Standort (Stadt-/Stadtteilebene). Du kannst diesen manuell festlegen. Wir speichern einen Geohash — nicht deine genaue Adresse — es sei denn, du gibst ausdrücklich eine Adresse für eine Veranstaltung an, die du organisierst.',
+    'content_data_location_items' => 'Ungefährer Standort (Stadt-/Stadtteilebene). Du kannst diesen manuell festlegen. Wir speichern einen Geohash — nicht deine genaue Adresse — es sei denn, du gibst ausdrücklich eine Adresse für ein Event an, das du organisierst.',
     'heading_data_gaming' => 'Spielepräferenzen',
     'content_data_gaming_purpose' => 'Um Runden-Empfehlungen und Entdeckungsergebnisse zu personalisieren.',
     'content_data_gaming_items' => 'Lieblingsspielsysteme, Vibe-Präferenzen (kompetitiv, kooperativ usw.), gemiedene Spiele und Teams, denen du angehörst.',

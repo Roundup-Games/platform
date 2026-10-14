@@ -69,7 +69,11 @@
                      How it works + Our Pledge stay reachable via the footer
                      (Platform + Trust groups) — the top bar carries one row of
                      primary destinations. Venue Directory sits directly against
-                     Game Systems per the target IA. --}}
+                     Game Systems per the target IA. About + Contact are utility
+                     links: they join the row from xl and stay reachable via the
+                     footer and mobile menu below that — the discovery surfaces
+                     alone must fit the lg row in every locale (DE compounds
+                     like "Veranstaltungsorte" are the width driver). --}}
                 @php
                     $gameSystemsRouteExists = \Illuminate\Support\Facades\Route::has('game-systems');
                     $pubOtherLocale = app()->getLocale() === 'en' ? 'de' : 'en';
@@ -81,8 +85,8 @@
                     <a href="{{ route('events.index') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('events.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('events.content_events') }}</a>
                     <a href="{{ $gameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('game-systems*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('games.content_game_systems') }}</a>
                     <a href="{{ route('venues.directory') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('venues.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('venues.nav_venue_directory') }}</a>
-                    <a href="{{ route('about') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('pages.content_about') }}</a>
-                    <a href="{{ route('contact') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('common.content_contact') }}</a>
+                    <a href="{{ route('about') }}" wire:navigate class="hidden xl:inline-flex font-heading text-sm tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('pages.content_about') }}</a>
+                    <a href="{{ route('contact') }}" wire:navigate class="hidden xl:inline-flex font-heading text-sm tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('common.content_contact') }}</a>
                     <a href="{{ route('locale.switch', ['locale' => $pubOtherLocale, 'redirect' => $pubCurrentPath]) }}" class="font-heading text-sm tracking-tight text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 uppercase">{{ strtoupper($pubOtherLocale) }}</a>
                 </div>
 

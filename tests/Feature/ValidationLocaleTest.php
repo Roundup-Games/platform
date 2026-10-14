@@ -81,7 +81,12 @@ it('maps the game_systems uuid failure to a plain-language choice message in Ger
 
     expect($validator->fails())->toBeTrue()
         ->and($validator->errors()->first('game_systems.0'))
-        ->toBe(Lang::get('validation', [], 'de')['custom']['game_systems.*']['uuid']);
+        ->toBe(Lang::get('validation', [], 'de')['custom']['game_systems.*']['uuid'])
+        // Plain-language guard: whatever the custom copy says, the rendered
+        // message must not leak the "uuid" developer term back to users.
+        ->and($validator->errors()->first('game_systems.0'))
+        ->not->toContain('uuid')
+        ->not->toContain('UUID');
 });
 
 it('overrides the stock uuid message and keeps friendly English attribute names', function () {

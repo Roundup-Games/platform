@@ -2,7 +2,7 @@
 return [
     'content_a_new_verification_link_has' => 'Ein neuer Bestätigungslink wurde an die bei der Registrierung angegebene E-Mail-Adresse gesendet.',
     'content_contact_the_organizer_at_email' => 'Kontaktiere den Organisator unter :email.',
-    'content_event_registration_confirmed' => 'Veranstaltungsanmeldung bestätigt!',
+    'content_event_registration_confirmed' => 'Event-Anmeldung bestätigt!',
     'content_if_you_have_any_questions' => 'Wenn du Fragen hast, antworte einfach auf diese E-Mail — wir helfen dir gerne.',
     'content_if_you_have_questions_about' => 'Wenn du Fragen zu deiner Mitgliedschaft hast, antworte einfach auf diese E-Mail.',
     'content_invite_sent_to_email' => 'Einladung an :email gesendet.',
@@ -22,7 +22,7 @@ return [
     'field_contact_email' => 'Kontakt-E-Mail',
     'field_email' => 'E-Mail',
     'field_email_password_reset_link' => 'Link zum Zurücksetzen senden',
-    'field_event_registration_confirmed_name' => 'Veranstaltungsanmeldung bestätigt — :name',
+    'field_event_registration_confirmed_name' => 'Event-Anmeldung bestätigt — :name',
     'field_or_sign_in_with_email' => 'oder mit E-Mail anmelden',
     'field_or_sign_up_with_email' => 'oder mit E-Mail registrieren',
     'field_resend_verification_email' => 'Bestätigungsmail erneut senden',

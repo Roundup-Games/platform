@@ -19,7 +19,7 @@ return [
     'content_commitment_operations_title' => 'Betrieb & Richtlinien',
     'content_commitment_operations_body' => 'Community-Regeln, was bei Verstößen passiert und wie du meldest oder Einspruch einlegst — schriftlich festgehalten und offen zur Einsicht.',
     'content_commitment_operations_action' => 'Lies den Verhaltenskodex',
-    'content_commitment_operations_link_safety' => 'Sicherheitstools',
+    'content_commitment_operations_link_safety' => 'Safety-Tools',
     'content_commitment_operations_link_algorithms' => 'Offene Algorithmen',
     'content_commitments_subtitle' => 'Transparenz ist kein Buzzword — so arbeiten wir. Tauche tiefer in jeden Bereich ein.',
     'content_contact_us' => 'Kontakt',
@@ -129,7 +129,7 @@ return [
     'content_pledge_algo_gm_design_2' => 'Aggregate werden neu berechnet, wenn eine Rezension erstellt oder gelöscht wird oder ihren Status ändert (z. B. wenn eine gemeldete Rezension versteckt oder wiederhergestellt wird). So bleibt der angezeigte Wert mit dem aktuellen veröffentlichten Bestand synchron.',
     'content_pledge_algo_source_gm' => 'ReviewAggregateService.php ansehen',
     // People Discovery
-    'content_pledge_algo_people_explanation' => 'Die Spieler-Entdeckung schlägt dir nahegelegene Spieler basierend auf Geschmackskompatibilität und sozialer Überschneidung vor. Sie nutzt deine Spielsystem-Präferenzen, Vibe-Präferenzen, Team-Mitgliedschaften und sozialen Verbindungen, um Leute zu finden, mit denen du gerne spielst. Die Ergebnisse werden von einem Hintergrund-Job vorberechnet und aus dem Cache geliefert für schnelle Ladezeiten.',
+    'content_pledge_algo_people_explanation' => 'Die Spieler-Entdeckung schlägt dir nahegelegene Spieler basierend auf Geschmackskompatibilität und sozialer Überschneidung vor — sie nutzt deine Spielsystem-Präferenzen, Vibe-Präferenzen, Team-Mitgliedschaften und sozialen Verbindungen, um Leute zu finden, mit denen du gerne spielst. Die Ergebnisse werden von einem Hintergrund-Job vorberechnet und aus dem Cache geliefert für schnelle Ladezeiten.',
     'content_pledge_algo_people_pipeline_1' => 'Phase 1: Geohash-Kachel-Expansion',
     'content_pledge_algo_people_pipeline_1_desc' => 'Führt eine einzelne Abfrage über die 4-stellige Geohash-Kachel (~20 km) und die umgebende 3-stellige Kachel (~100 km) gleichzeitig aus, sodass Stadt- und Regionalnachbarn zusammen erfasst werden. Blockierte Nutzer und bestehende Folgen werden per SQL-Unterabfrage ausgeschlossen. Der geografische Kandidaten-Pool ist auf 50 begrenzt, um den Speicher zu schonen.',
     'content_pledge_algo_people_pipeline_2' => 'Phase 2: Geschmacksbasierte Ergänzung',
@@ -146,7 +146,7 @@ return [
     'content_pledge_algo_source_people' => 'PeopleDiscoveryService.php ansehen',
     'content_pledge_algo_source_visibility' => 'ProfileVisibilityResolver.php ansehen',
     // Session Recommendations
-    'content_pledge_algo_session_explanation' => 'Session-Empfehlungen schlagen dir Spiele und Kampagnen vor, die zu deinen Präferenzen passen. Sie nutzen einen zweistufigen Ansatz, um die besten Treffer zuerst anzuzeigen, ohne Nutzer zu benachteiligen, die keine Vibe-Präferenzen festgelegt haben.',
+    'content_pledge_algo_session_explanation' => 'Session-Empfehlungen schlagen dir Spiele und Kampagnen vor, die zu deinen Präferenzen passen — sie nutzen einen zweistufigen Ansatz, um die besten Treffer zuerst anzuzeigen, ohne Nutzer zu benachteiligen, die keine Vibe-Präferenzen festgelegt haben.',
     'content_pledge_algo_session_query_boosted' => 'Erweiterte Abfrage (Primär)',
     'content_pledge_algo_session_query_boosted_desc' => 'Findet Sessions, die deine Lieblings-Spielsysteme UND Lieblings-Vibes teilen. Das sind die stärksten Treffer.',
     'content_pledge_algo_session_query_fallback' => 'Fallback-Abfrage',
@@ -161,7 +161,7 @@ return [
     'content_pledge_algo_session_gatherings_heading' => 'Treffen',
     'content_pledge_algo_session_gatherings_body' => 'Ein Treffen ist eine leichtere, systemübergreifende Session wie ein Brettspiel-Abend. In den Entdeckungs-Feeds sind Treffen auf etwa eines pro Seite begrenzt und werden bei gleichem Datum knapp unter fokussierten Einzelsystem-Spielen eingeordnet, damit sie nie spezifische Spiele verdrängen. In deinen Empfehlungen erscheint ein Treffen, sobald eines der angebotenen Systeme deinen Favoriten entspricht — behandelt wie jedes andere Spiel.',
     // Proximity Engine
-    'content_pledge_algo_proximity_explanation' => 'Die Näherungs-Engine betreibt geografische Abfragen zum Finden nahegelegener Sessions, Spieler und Veranstaltungsorte. Sie nutzt einen zweiphasigen Ansatz: einen schnellen Bounding-Box-Filter gefolgt von präziser Haversine-Abstandsberechnung.',
+    'content_pledge_algo_proximity_explanation' => 'Die Näherungs-Engine betreibt geografische Abfragen zum Finden nahegelegener Sessions, Spieler und Veranstaltungsorte — sie nutzt einen zweiphasigen Ansatz: einen schnellen Bounding-Box-Filter gefolgt von präziser Haversine-Abstandsberechnung.',
     'content_pledge_algo_proximity_phase_1' => 'Phase 1: Bounding-Box-Vorfilter',
     'content_pledge_algo_proximity_phase_1_desc' => 'Nutzt einen zusammengesetzten (Breitengrad, Längengrad) B-Baum-Index für schnelle Zeileneliminierung. Das Rechteck ist die kleinste Box, die den Suchkreis enthält — ihre Ecken reichen über den Kreis hinaus, sodass nichts übersehen wird.',
     'content_pledge_algo_proximity_phase_2' => 'Phase 2: Haversine-Abstand',
@@ -226,7 +226,7 @@ return [
     'content_safety_bridge_nonprofit' => 'Als Non-Profit-Projekt sind unsere Anreize mit deinen ausgerichtet — wir haben keinen Grund, Sicherheit für Wachstumskennzahlen zu kompromittieren.',
     'action_learn_about_our_pledge' => 'Erfahre mehr über unser Versprechen →',
     // ── Safe Spaces card (M043 S03) ──
-    'content_safe_spaces_trust' => 'Fremde persönlich zu treffen erfordert Vertrauen. Unsere Plattform ist gebaut, um es zu verdienen — transparente Sicherheitswerkzeuge, öffentliche Organisatoren-Profile und Community-Verantwortung, damit sich dein erster Spieleabend sicher anfühlt.',
+    'content_safe_spaces_trust' => 'Fremde persönlich zu treffen erfordert Vertrauen. Unsere Plattform ist gebaut, um es zu verdienen — transparente Safety-Tools, öffentliche Organisatoren-Profile und Community-Verantwortung, damit sich dein erster Spieleabend sicher anfühlt.',
     'content_safe_spaces_pledge_link' => 'Unser Versprechen lesen',
     // ── Why Local Matters (M043 S03) ──
     'content_about_why_local_heading' => 'Warum lokal wichtig ist',
@@ -237,7 +237,7 @@ return [
     'content_about_value_community_first_title' => 'Community zuerst',
     'content_about_value_community_first_body' => 'An jedem Tisch ist Platz für einen mehr. Wir sind ein Non-Profit-Projekt (gGmbH in Gründung, Berlin), weil die Communitys, denen wir dienen, an erster Stelle stehen — nicht Aktionäre. Künftige Einnahmen fließen zurück in lokale Events, Organisatoren-Ausbildung und Programme, die Tabletop-Spiele einladender, zugänglicher und offener für alle machen.',
     'content_about_value_safe_by_design_title' => 'Sicher von Anfang an',
-    'content_about_value_safe_by_design_body' => 'Sich zu treffen, um neue Leute kennenzulernen, erfordert Vertrauen. Wir verdienen es mit eingebauten Sicherheitswerkzeugen, transparenten Algorithmen, die du selbst einsehen kannst, öffentlichen Organisatoren-Profilen und Zuverlässigkeitswerten, die echtes Verhalten widerspiegeln. Nichts versteckt, nichts, das du nicht verstehen kannst.',
+    'content_about_value_safe_by_design_body' => 'Sich zu treffen, um neue Leute kennenzulernen, erfordert Vertrauen. Wir verdienen es mit eingebauten Safety-Tools, transparenten Algorithmen, die du selbst einsehen kannst, öffentlichen Organisatoren-Profilen und Zuverlässigkeitswerten, die echtes Verhalten widerspiegeln. Nichts versteckt, nichts, das du nicht verstehen kannst.',
     'content_about_value_open_by_default_body' => 'Unser Code ist öffentlich auf GitHub. Unsere Bewertungs- und Matching-Algorithmen sind dokumentiert und erklärbar. Unsere Roadmap ist sichtbar. Wir glauben, dass du alles einsehen können solltest — nicht unser Wort darauf nehmen musst.',
     // ── Commitments section (M043 S03) ──
     'content_about_commitments_heading' => 'Unsere Versprechen',

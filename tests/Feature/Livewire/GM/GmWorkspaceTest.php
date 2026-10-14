@@ -181,8 +181,47 @@ describe('GmWorkspace Review Summary', function () {
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
             ->assertOk()
+            // Rating is format-pinned (number_format 4.75 → 4.8); the count
+            // is asserted via its pluralized label, not a bare numeral that
+            // could match anywhere on the page.
             ->assertSee('4.8')
-            ->assertSee('12');
+            ->assertSeeText(trans_choice('gws.label_reviews', 12, [], 'en'));
+    });
+
+    it('shows at most the 5 most recent reviews', function () {
+        $gm = $this->createSubscribedGm();
+        $gm->gmProfile->update(['review_count' => 6]);
+
+        $game = Game::factory()->create(['owner_id' => $gm->id]);
+
+        // Seed 6 reviews with explicit timestamps: body 6 is newest, body 1
+        // the oldest — the workspace must render only the 5 newest.
+        for ($i = 1; $i <= 6; $i++) {
+            Review::factory()->create([
+                'reviewable_type' => (new Game)->getMorphClass(),
+                'reviewable_id' => $game->id,
+                'gm_profile_id' => $gm->gmProfile->id,
+                'reviewer_id' => User::factory()->create()->id,
+                'rating' => 5,
+                'body' => "Capsule review {$i}",
+                'status' => 'published',
+                'created_at' => now()->subDays(7 - $i),
+            ]);
+        }
+
+        $response = $this->actingAs($gm)
+            ->get(route('gm.workspace', 'en'));
+
+        $response->assertOk();
+
+        // Component data goes through Livewire::test (full-page GET responses
+        // do not expose Livewire view data to assertViewHas).
+        Livewire\Livewire::actingAs($gm)
+            ->test(GmWorkspace::class)
+            ->assertViewHas('recentReviews', fn ($reviews) => $reviews->count() === 5)
+            ->assertSee('Capsule review 6')
+            ->assertSee('Capsule review 2')
+            ->assertDontSee('Capsule review 1');
     });
 
     it('shows last 5 reviews with star ratings', function () {
@@ -249,11 +288,13 @@ describe('GmWorkspace Participant Stats', function () {
             ]);
         }
 
-        // Verify via the rendered HTML — the 3 unique players stat should be visible
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSeeText('3');
+        // Verify via the component data — the unique-players stat is a
+        // precise value, not a page-wide substring match. Component data
+        // goes through Livewire::test (the full-page GET does not expose
+        // Livewire view data to assertViewHas).
+        Livewire\Livewire::actingAs($gm)
+            ->test(GmWorkspace::class)
+            ->assertViewHas('totalUniquePlayers', 3);
     });
 
     it('counts repeat players appearing in 2+ games', function () {

@@ -46,9 +46,17 @@ describe('grouped display verb agreement', function () {
             ->first()
             ->displayString;
 
-        expect($display)
-            ->toContain(__('notifications.verb_new_follower', [], 'de'))
-            ->not->toContain(__('notifications.verb_new_follower_plural', [], 'de'));
+        // Discriminate singular vs plural verb only when the two values
+        // actually differ — a rewording that makes them equal (as in the
+        // uninflected EN verbs) must not false-fail this guard.
+        $singular = __('notifications.verb_new_follower', [], 'de');
+        $plural = __('notifications.verb_new_follower_plural', [], 'de');
+
+        expect($display)->toContain($singular);
+
+        if ($singular !== $plural) {
+            expect($display)->not->toContain($plural);
+        }
     });
 
     it('uses the plural German verb when two actors are grouped', function () {

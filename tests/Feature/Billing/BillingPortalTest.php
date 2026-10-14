@@ -245,8 +245,12 @@ describe('Billing Plan Type Label', function () {
             ->assertDontSee('Default-Plan');
     });
 
-    it('labels the plan on the membership page in both locales', function (string $locale, string $label, string $oldRendering) {
+    it('labels the plan on the membership page in both locales', function (string $locale, string $oldRendering) {
         app()->setLocale($locale);
+
+        // K004: the visible label resolves through the translator; only the
+        // legacy pre-localization rendering is asserted literally.
+        $label = __('billing.content_membership_plan', [], $locale);
 
         $user = portalCreateUser();
         portalCreateSubscription($user, ['type' => 'default', 'status' => 'active']);
@@ -256,7 +260,7 @@ describe('Billing Plan Type Label', function () {
             ->assertSee($label)
             ->assertDontSee($oldRendering);
     })->with([
-        'en' => ['en', 'Membership plan', 'Default Plan'],
-        'de' => ['de', 'Mitgliedschaftsplan', 'Default-Plan'],
+        'en' => ['en', 'Default Plan'],
+        'de' => ['de', 'Default-Plan'],
     ]);
 });

@@ -12,7 +12,7 @@ return [
     | Entwicklerdetail und erreicht niemals die Nutzer:innen), und
     | validation.attributes ersetzt rohe Feldnamen durch die Labels, die auf
     | den großen Formularen sichtbar sind (Runde erstellen, Onboarding,
-    | Veranstaltungsgebühren).
+    | Event-Gebühren).
     |
     */
 

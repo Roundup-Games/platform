@@ -60,6 +60,15 @@ return [
             // event-type term (GLOSSARY D174: the German scene says
             // Convention, not Konvention); identical in EN and DE by design.
             'label_event_type_convention',
+            // Deliberate loanword — "Event" is the canonical DE entity term
+            // for the Event entity (GLOSSARY D174/D181 corpus sweep);
+            // identical in EN and DE by design.
+            'content_event',
+            'content_events',
+        ],
+        'notifications' => [
+            // Deliberate loanword — same canon as events.content_events.
+            'group_events',
         ],
         'safety' => [
             // Deliberate loanwords — named safety techniques stay English
@@ -67,6 +76,14 @@ return [
             // Zero staying untranslated); identical in EN and DE by design.
             'tool_x_card',
             'tool_xno_card',
+            // The rest of the canonical toolkit (GLOSSARY §5: Script Change /
+            // Open Door / Breaks / Stars & Wishes / Lines & Veils stay
+            // English; translating them is banned — D181 sweep enforced it).
+            'tool_lines_and_veils',
+            'tool_script_change',
+            'tool_breaks',
+            'tool_stars_and_wishes',
+            'content_lines_veils_details',
         ],
         'discord' => [
             // True cognate — identical in EN and DE

@@ -9,11 +9,11 @@ return [
     'content_no_friends_found' => 'Keine Freunde gefunden, die deiner Suche entsprechen.',
     'content_not_following_anyone_yet' => 'Du folgst noch niemandem.',
     'content_people' => 'Leute',
-    'content_you_have_been_invited' => 'Du wurdest eingeladen, an dieser Veranstaltung teilzunehmen.',
+    'content_you_have_been_invited' => 'Du wurdest eingeladen, an diesem Event teilzunehmen.',
     'content_you_haven_t_blocked_anyone' => 'Du hast niemanden blockiert.',
     'content_blocked_tab' => 'Blockiert',
     'error_invitation_no_longer_valid' => 'Diese Einladung ist nicht mehr gültig.',
-    'error_no_valid_friends_to_invite' => 'Keine der ausgewählten Personen konnte eingeladen werden. Sie sind möglicherweise bereits Teilnehmer oder nicht in deiner Freundesliste.',
+    'error_no_valid_friends_to_invite' => 'Keine der ausgewählten Personen konnte eingeladen werden — möglicherweise sind sie bereits Teilnehmende oder nicht in deiner Freundesliste.',
     'error_not_your_invitation' => 'Diese Einladung gehört dir nicht.',
     'error_select_at_least_one_friend' => 'Bitte wähle mindestens einen Freund aus, um ihn einzuladen.',
     'error_invalid_email' => 'Bitte gib eine gültige E-Mail-Adresse ein.',
@@ -54,7 +54,7 @@ return [
     // Einladungsabschnitt-Hinweise
     'content_invite_section_hint' => 'Füge Spieler zu deiner Runde hinzu, mit einer der folgenden Methoden.',
     'content_invite_from_friends' => 'Freunde suchen',
-    'content_invite_friends_hint' => 'Wähle Leute, denen du bereits folgst. Sie erhalten eine In-App-Benachrichtigung.',
+    'content_invite_friends_hint' => 'Wähle Leute, denen du bereits folgst — sie erhalten eine In-App-Benachrichtigung.',
     'content_invite_email_hint' => 'Gib eine E-Mail-Adresse ein, um jemanden einzuladen. Die Person erhält eine E-Mail mit einem Link zum Beitreten.',
     'aria_remove_friend' => ':name entfernen',
 ];

@@ -93,9 +93,11 @@ describe('ContactFaqPointer', function () {
             ->assertSee(route('faq'))
             ->assertSee(__('pages.action_browse_the_faq'))
             ->assertSee(__('pages.content_faq_pointer_still_stuck'))
-            // The two stub Q&As no longer render inline on /contact
-            ->assertDontSeeText('How do I create an event?')
-            ->assertDontSeeText('Is it free to use?');
+            // The two stub Q&As no longer render inline on /contact — the
+            // negatives resolve through the translator so rewording the
+            // questions keeps this guard live (K004).
+            ->assertDontSeeText(__('faq.content_q_create_event', [], 'en'))
+            ->assertDontSeeText(__('faq.content_q_free_to_use', [], 'en'));
     });
 });
 

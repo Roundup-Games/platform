@@ -143,7 +143,7 @@ describe('GameSystemsPage', function () {
     it('shows empty state when no systems match', function () {
         Livewire\Livewire::test(GameSystemsPage::class)
             ->set('search', 'nonexistent-xyz')
-            ->assertSee(__(__('games.content_no_game_systems_match_filters', [], 'en')));
+            ->assertSee(__('games.content_no_game_systems_match_filters', [], 'en'));
     });
 
     it('clicking a system links to its detail page', function () {

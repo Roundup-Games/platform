@@ -51,7 +51,7 @@ return [
     'content_weekly' => 'Wöchentlich',
     'content_bi-weekly' => 'Alle 2 Wochen',
     'content_custom' => 'Unregelmäßig',
-    'content_your_session_appears_in_discovery' => 'Deine Runde erscheint im Entdecken-Bereich für Spieler in der Nähe, die zu deinem Spiel passen. Sie melden sich an, du bestätigst (oder lässt sie automatisch rein), und alle erscheinen spielbereit.',
+    'content_your_session_appears_in_discovery' => 'Deine Runde erscheint im Entdecken-Bereich für Spieler in der Nähe, die zu deinem Spiel passen — sie melden sich an, du bestätigst (oder lässt sie automatisch rein), und alle erscheinen spielbereit.',
     'field_campaign_name' => 'Kampagnenname',
     'field_session_name' => 'Rundenname',
     'field_start_your_first_session_it_s_free' => 'Starte deine erste Runde — kostenlos',

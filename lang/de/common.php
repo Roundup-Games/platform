@@ -116,7 +116,7 @@ return [
     'content_jpg_png_gif_or_webp_max_size_mb' => 'JPG, PNG, GIF oder WebP. Max. :size MB.',
     'content_jpg_png_or_gif_max_1mb' => 'JPG, PNG oder GIF. Max. 1 MB.',
     'content_language' => 'Sprache',
-    'content_language_mismatch_banner' => 'Diese Veranstaltung wird auf :language durchgeführt',
+    'content_language_mismatch_banner' => 'Dieses Event wird auf :language durchgeführt',
     'content_last_updated' => 'Zuletzt aktualisiert: :date',
     'content_leave_hint' => 'Anders überlegt?',
     'content_male' => 'Männlich',

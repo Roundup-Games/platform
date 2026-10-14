@@ -298,7 +298,7 @@ class DemoSeedCommand extends Command
             'Knows the rules inside out but keeps things moving. Great facilitator.',
         ],
         'de' => [
-            'Super Spielleiter, hat das Tempo gut gehalten und alle eingebunden.',
+            'Toller Game Master, hat das Tempo gut gehalten und alle eingebunden.',
             'Runde hat großen Spaß gemacht. Gutes Tempo und klare Regelerklärungen.',
             'Tolle Atmosphäre und Erzählung. Würde jederzeit wieder mitspielen!',
             'Hatte viel Spaß. Geduldig mit neuen Spielern und sehr engagiert.',

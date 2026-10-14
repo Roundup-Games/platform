@@ -163,6 +163,9 @@ describe('ContactPage', function () {
             ->assertRedirect(route('contact'))
             ->assertSessionHas('success');
 
+        // The controller fallback subject is hardcoded EN by design (tickets
+        // are triaged in the EN-only escalated admin) — this pins the stored
+        // behavior, not a lang value.
         $this->assertDatabaseHas('escalated_tickets', [
             'guest_name' => 'Jane Doe',
             'guest_email' => 'jane@example.com',
@@ -176,11 +179,12 @@ describe('ContactPage', function () {
 
         $response->assertSessionHasErrors(['name', 'email', 'message']);
 
-        // Verify specific error messages are user-friendly
+        // Wording-agnostic: both sides resolve through the translator, so any
+        // legitimate rewording of validation.required stays green (K004).
         $errors = session('errors')->getBag('default');
-        expect($errors->first('name'))->toContain('required');
-        expect($errors->first('email'))->toContain('required');
-        expect($errors->first('message'))->toContain('required');
+        expect($errors->first('name'))->toBe(__('validation.required', ['attribute' => __('validation.attributes.name')]))
+            ->and($errors->first('email'))->toBe(__('validation.required', ['attribute' => __('validation.attributes.email')]))
+            ->and($errors->first('message'))->toBe(__('validation.required', ['attribute' => 'message']));
     });
 
     it('validates email format', function () {
@@ -312,12 +316,17 @@ describe('PledgeHonesty', function () {
         // the card actually points somewhere.
         get(route('pledge'))
             ->assertDontSeeText(__('common.field_coming_soon'))
+            // D179: aspirational finance promises live only on The Road Ahead
+            // — no surviving lang key exists for this label, so the literal is
+            // deliberate.
             ->assertDontSeeText('Financial Transparency');
     });
 
     it('renders the about commitments without coming-soon placeholders and links the live Road Ahead card', function () {
         get(route('about'))
             ->assertDontSeeText(__('common.field_coming_soon'))
+            // D179: see the pledge-page twin of this guard — no surviving
+            // lang key exists for this label, so the literal is deliberate.
             ->assertDontSeeText('Financial Transparency')
             ->assertSee(route('pledge.roadmap'))
             ->assertSee(__('pages.content_commitment_roadmap_action'));
@@ -355,10 +364,12 @@ describe('PublicNavigation', function () {
     });
 
     it('expands Game Master on first use in the nav label', function () {
-        expect(__('profile.nav_gm_directory'))->toBe('Game Masters');
+        // Invariant (K004): the label spells out "Game Master" — never the
+        // bare abbreviation — but the exact wording stays free to change.
+        expect(__('profile.nav_gm_directory', [], 'en'))->toContain('Game Master');
 
         app()->setLocale('de');
-        expect(__('profile.nav_gm_directory'))->toBe('Game Master');
+        expect(__('profile.nav_gm_directory'))->toContain('Game Master');
     });
 
     it('keeps the pledge cluster reachable from the footer trust group', function () {

@@ -71,7 +71,7 @@ return [
     'type_bar' => 'Bar / Kneipe',
     'type_other' => 'Sonstiges',
     // ── Veranstaltungsort-Verzeichnis (/{locale}/venues) ─────────────────────
-    'nav_venue_directory' => 'Veranstaltungsort-Verzeichnis',
+    'nav_venue_directory' => 'Veranstaltungsorte',
     'heading_directory' => 'Finde einen Ort zum Spielen',
     'content_directory_subtitle' => 'Entdecke Cafés, Spieleläden und Gemeindezentren in deiner Nähe, die öffentliche Spielrunden ausrichten.',
     'seo_directory_title' => 'Veranstaltungsort-Verzeichnis — Brettspiel- & TTRPG-Orte',
