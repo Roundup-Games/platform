@@ -5,6 +5,7 @@ namespace App\Models\Builders;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
+use Stringable;
 
 /**
  * @template TModel of \Illuminate\Database\Eloquent\Model
@@ -21,7 +22,8 @@ use Illuminate\Support\Str;
  * find()/findOrFail() therefore treat non-uuid ids as "not found": null
  * from find(), ModelNotFoundException (the usual 404) from findOrFail() —
  * identical to what the same URL shape already returns for a well-formed
- * id that does not exist.
+ * id that does not exist. Stringable uuid objects (Str::uuid(),
+ * Uuid::fromString()) bind natively as strings and keep working.
  *
  * Non-uuid values inside an array of ids are dropped, so findOrFail()
  * reports them as missing through its usual count check.
@@ -40,13 +42,31 @@ class UuidBuilder extends Builder
 
         if (is_array($id)) {
             $id = array_values(array_filter(
-                $id,
-                fn (mixed $value): bool => is_string($value) && Str::isUuid($value),
+                array_map($this->coerceId(...), $id),
+                fn (?string $value): bool => $value !== null && Str::isUuid($value),
             ));
-        } elseif (! is_string($id) || ! Str::isUuid($id)) {
-            return null;
+        } else {
+            $id = $this->coerceId($id);
+
+            if ($id === null || ! Str::isUuid($id)) {
+                return null;
+            }
         }
 
         return parent::find($id, $columns);
+    }
+
+    /**
+     * Normalize a mixed id to the string form Eloquent would have bound:
+     * Ramsey uuid objects implement Stringable and previously bound as their
+     * string form in whereKey() — the guard must not regress those lookups.
+     */
+    private function coerceId(mixed $value): ?string
+    {
+        if ($value instanceof Stringable) {
+            return (string) $value;
+        }
+
+        return is_string($value) ? $value : null;
     }
 }

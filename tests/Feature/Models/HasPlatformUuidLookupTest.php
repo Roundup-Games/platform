@@ -3,6 +3,7 @@
 use App\Models\Game;
 use App\Models\GameSystem;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Ramsey\Uuid\Uuid;
 
 // UuidBuilder (via HasPlatformUuid) treats a non-uuid id as "not found"
 // instead of letting Postgres reject it at bind time (SQLSTATE 22P02 → 500).
@@ -38,6 +39,15 @@ describe('HasPlatformUuid id lookups', function () {
         expect(GameSystem::find($system->id)?->id)->toBe($system->id)
             ->and(GameSystem::findOrFail($system->id)->id)->toBe($system->id)
             ->and(GameSystem::query()->findOrFail($system->id)->id)->toBe($system->id);
+    });
+
+    it('finds a record by a uuid object for an existing record', function () {
+        $system = GameSystem::factory()->create();
+
+        $uuid = Uuid::fromString($system->id);
+
+        expect(GameSystem::find($uuid)?->id)->toBe($system->id)
+            ->and(GameSystem::findOrFail($uuid)->id)->toBe($system->id);
     });
 
     it('reports a well-formed but unknown uuid as not found', function () {
