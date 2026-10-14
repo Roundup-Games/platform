@@ -427,7 +427,14 @@ class OAuthController
                 'provider_user_id' => $providerUserId,
             ]);
 
-            return redirect($this->localeUrl('login'))->withErrors(['oauth' => ucfirst($provider).' reports this email as unverified. Please verify it with '.ucfirst($provider).' or sign in another way.']);
+            // Translated with the session locale: OAuth routes sit outside
+            // the {locale} group, so the app locale is not session-derived
+            // here (localeUrl() reads the same session key).
+            $sessionLocale = session('locale');
+
+            return redirect($this->localeUrl('login'))->withErrors(['oauth' => __('auth.error_oauth_email_unverified', [
+                'provider' => ucfirst($provider),
+            ], is_string($sessionLocale) ? $sessionLocale : null)]);
         }
 
         try {

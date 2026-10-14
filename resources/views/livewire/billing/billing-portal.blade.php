@@ -38,7 +38,7 @@
                             {{ $subscription->onGracePeriod() ? __('common.content_canceling') : __('common.status_active') }}
                         </span>
                         <span class="text-sm text-on-surface-variant">
-                            {{ __('billing.content_type_plan', ['type' => ucfirst($subscription->type)]) }}
+                            {{ __('billing.content_membership_plan') }}
                         </span>
                     </div>
 

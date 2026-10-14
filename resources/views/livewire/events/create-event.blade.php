@@ -167,17 +167,17 @@
                 </div>
             </div>
 
-            <h3 class="text-md font-medium text-on-surface pt-2">{{ __('billing.field_fees') }} <span class="text-xs text-on-surface-variant">({{ __('common.content_in_cents') }})</span></h3>
+            <h3 class="text-md font-medium text-on-surface pt-2">{{ __('billing.field_fees') }} <span class="text-xs text-on-surface-variant">({{ __('events.hint_amounts_in_eur') }})</span></h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="event-individual-fee" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.field_individual_registration_fee') }}</label>
-                    <input type="number" id="event-individual-fee" wire:model="individual_registration_fee" min="0" placeholder="{{ __('events.placeholder_0_free') }}"
+                    <input type="number" id="event-individual-fee" wire:model="individual_registration_fee" min="0" step="0.01" placeholder="{{ __('events.placeholder_0_free') }}"
                            class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                     @error('individual_registration_fee') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="event-early-bird-discount" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.content_early_bird_discount') }}</label>
-                    <input type="number" id="event-early-bird-discount" wire:model="early_bird_discount" min="0" placeholder="{{ __('common.content_no_discount') }}"
+                    <input type="number" id="event-early-bird-discount" wire:model="early_bird_discount" min="0" step="0.01" placeholder="{{ __('common.content_no_discount') }}"
                            class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                     @error('early_bird_discount') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>

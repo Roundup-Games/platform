@@ -152,7 +152,7 @@ describe('MembershipPage Route', function () {
             ->get(route('membership'))
             ->assertOk()
             ->assertSeeLivewire('billing.membership-page')
-            ->assertSee('Membership');
+            ->assertSee(__('billing.content_membership', [], 'en'));
     });
 });
 
@@ -164,7 +164,7 @@ describe('MembershipPage Component', function () {
         Livewire::actingAs($user)
             ->test(MembershipPage::class)
             ->assertSee('Annual Plan')
-            ->assertSee('Choose Your Plan')
+            ->assertSee(__('billing.action_choose_your_plan', [], 'en'))
             ->assertSee(format_currency(4999));
     });
 
@@ -174,8 +174,8 @@ describe('MembershipPage Component', function () {
 
         Livewire::actingAs($user)
             ->test(MembershipPage::class)
-            ->assertSee('Active Member')
-            ->assertDontSee('Choose Your Plan');
+            ->assertSee(__('teams.content_active_member', [], 'en'))
+            ->assertDontSee(__('billing.action_choose_your_plan', [], 'en'));
     });
 
     it('shows renewal prompt within 30 days of expiry', function () {
@@ -187,7 +187,7 @@ describe('MembershipPage Component', function () {
 
         Livewire::actingAs($user)
             ->test(MembershipPage::class)
-            ->assertSee('Membership Expiring Soon')
+            ->assertSee(__('emails.content_membership_expiring_soon', [], 'en'))
             ->assertSee('expires in 15 day');
     });
 
@@ -200,7 +200,7 @@ describe('MembershipPage Component', function () {
 
         Livewire::actingAs($user)
             ->test(MembershipPage::class)
-            ->assertDontSee('Membership Expiring Soon');
+            ->assertDontSee(__('emails.content_membership_expiring_soon', [], 'en'));
     });
 
     it('shows no renewal prompt when no ends_at', function () {
@@ -212,6 +212,51 @@ describe('MembershipPage Component', function () {
 
         Livewire::actingAs($user)
             ->test(MembershipPage::class)
-            ->assertDontSee('Membership Expiring Soon');
+            ->assertDontSee(__('emails.content_membership_expiring_soon', [], 'en'));
     });
+});
+
+// ═════════════════════════════════════════════════════════
+// PLAN TYPE LABEL (M066/S02/T07) — labeled value, not ucfirst(type)
+// Cashier's internal subscription type ('default') is never rendered raw;
+// the subscription is the platform membership, so it gets a localized label.
+// ═════════════════════════════════════════════════════════
+
+describe('Billing Plan Type Label', function () {
+    it('labels the plan as a membership in the billing portal', function () {
+        $user = portalCreateUser();
+        portalCreateSubscription($user, ['type' => 'default', 'status' => 'active']);
+
+        Livewire::actingAs($user)
+            ->test(BillingPortal::class)
+            ->assertSee(__('billing.content_membership_plan', [], 'en'))
+            ->assertDontSee('Default Plan');
+    });
+
+    it('renders the German membership-plan label in German locale', function () {
+        app()->setLocale('de');
+
+        $user = portalCreateUser();
+        portalCreateSubscription($user, ['type' => 'default', 'status' => 'active']);
+
+        Livewire::actingAs($user)
+            ->test(BillingPortal::class)
+            ->assertSee(__('billing.content_membership_plan', [], 'de'))
+            ->assertDontSee('Default-Plan');
+    });
+
+    it('labels the plan on the membership page in both locales', function (string $locale, string $label, string $oldRendering) {
+        app()->setLocale($locale);
+
+        $user = portalCreateUser();
+        portalCreateSubscription($user, ['type' => 'default', 'status' => 'active']);
+
+        Livewire::actingAs($user)
+            ->test(MembershipPage::class)
+            ->assertSee($label)
+            ->assertDontSee($oldRendering);
+    })->with([
+        'en' => ['en', 'Membership plan', 'Default Plan'],
+        'de' => ['de', 'Mitgliedschaftsplan', 'Default-Plan'],
+    ]);
 });

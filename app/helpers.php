@@ -37,6 +37,7 @@ if (! function_exists('resolvePreferredLocale')) {
  *  - 'date'            EN: "Apr 14, 2026"  / DE: "14. April 2026"
  *  - 'short_date'      EN: "Apr 14"        / DE: "14. Apr"
  *  - 'datetime'        EN: "Apr 14, 2026 at 2:30 PM" / DE: "14. April 2026, 14:30"
+ *  - 'weekday_datetime' EN: "Tue, Apr 14, 14:30" / DE: "Di., 14. Apr, 14:30"
  *  - 'short_month_day' EN: "Apr 14, 2026"  / DE: same as 'date'
  */
 if (! function_exists('format_date')) {
@@ -54,6 +55,7 @@ if (! function_exists('format_date')) {
             'date' => $date->isoFormat($is24Hour ? 'D. MMMM YYYY' : 'MMM D, YYYY'),
             'short_date' => $date->isoFormat($is24Hour ? 'D. MMM' : 'MMM D'),
             'datetime' => $date->isoFormat($is24Hour ? 'D. MMMM YYYY, HH:mm' : 'MMM D, YYYY [at] h:mm A'),
+            'weekday_datetime' => $date->isoFormat($is24Hour ? 'ddd, D. MMM, HH:mm' : 'ddd, MMM D, HH:mm'),
             'short_month_day' => $date->isoFormat($is24Hour ? 'D. MMMM YYYY' : 'MMM D, YYYY'),
             default => $date->isoFormat($is24Hour ? 'D. MMMM YYYY' : 'MMM D, YYYY'),
         };

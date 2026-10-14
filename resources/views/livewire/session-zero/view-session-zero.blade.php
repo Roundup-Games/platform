@@ -184,7 +184,7 @@
                             </span>
                         </div>
                         <span class="text-xs text-on-surface-variant">
-                            {{ $confirmation->confirmed_at->format('M j, Y \a\t g:i A') }}
+                            {{ format_date($confirmation->confirmed_at, 'datetime') }}
                         </span>
                     </div>
                 @endforeach

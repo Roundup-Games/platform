@@ -82,6 +82,24 @@ return [
     'heading_server' => 'Server',
     'label_discord_guild' => 'Discord guild',
 
+    // ── Organizer guild opt-in list (/discord/organizer-guilds) ──
+    'heading_discord_servers' => 'Discord servers',
+    'content_organizer_servers_subtitle' => "Servers you're in that run roundup can republish your public events to their games channel. Opt in per server — nothing is shared until you do.",
+    'flash_publishing_enabled' => 'Publishing enabled. Your public events will appear in that server.',
+    'flash_publishing_paused' => 'Publishing paused for that server.',
+    'content_link_discord_title' => 'Link your Discord account',
+    'content_link_discord_body' => "Link Discord in your settings so roundup can find servers you're in that already run the bot.",
+    'action_link_discord' => 'Link Discord',
+    'content_no_roundup_servers_title' => 'No roundup servers yet',
+    'content_no_roundup_servers_body' => "None of the servers you're in have installed roundup. Ask a server owner to add the bot, then refresh.",
+    'action_refresh' => 'Refresh',
+    'aria_roundup_servers_list' => 'Roundup-enabled Discord servers',
+    'content_publishing_on' => 'Publishing public events to this server.',
+    'content_opted_in' => 'Opted in :when.',
+    'content_publishing_off' => 'Not publishing. Your events stay private to this server until you opt in.',
+    'aria_stop_publishing_to' => 'Stop publishing to :name',
+    'aria_publish_events_to' => 'Publish events to :name',
+
     // ── Enriched game card (rendered in the guild's locale — see DiscordCardRenderer) ──
     'content_card_field_when' => 'When',
     'content_card_field_organizer' => 'Organizer',

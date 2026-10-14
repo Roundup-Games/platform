@@ -301,7 +301,7 @@
                                 <div class="flex-1 min-w-0">
                                     <x-user-link :user="$participant->user" :show-avatar="false" :truncate="true" />
                                     @if($participant->waitlisted_at)
-                                        <p class="text-xs text-on-surface-variant mt-0.5">{{ $participant->waitlisted_at->format('M j, Y') }}</p>
+                                        <p class="text-xs text-on-surface-variant mt-0.5">{{ format_date($participant->waitlisted_at, 'date') }}</p>
                                     @endif
                                 </div>
                             </div>
@@ -344,7 +344,7 @@
                             <div class="flex-1 min-w-0">
                                 <x-user-link :user="$participant->user" :show-avatar="false" :truncate="true" />
                                 @if($participant->benched_at)
-                                    <p class="text-xs text-on-surface-variant mt-0.5">{{ $participant->benched_at->format('M j, Y') }}</p>
+                                    <p class="text-xs text-on-surface-variant mt-0.5">{{ format_date($participant->benched_at, 'date') }}</p>
                                 @endif
                             </div>
                             <div class="flex gap-2">

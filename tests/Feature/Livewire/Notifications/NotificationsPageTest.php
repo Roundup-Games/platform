@@ -238,4 +238,41 @@ class NotificationsPageTest extends TestCase
         $notifications = $component->get('notifications');
         $this->assertCount(2, $notifications->items());
     }
+
+    // ── Accessibility (M066/S02/T07): translated group-toggle aria-labels ──
+
+    public function test_group_toggle_aria_label_is_translated(): void
+    {
+        for ($i = 0; $i < 2; $i++) {
+            $follower = User::factory()->create(['name' => "Follower{$i}"]);
+            $this->user->notify(new NewFollower($follower));
+        }
+
+        $notification = $this->user->notifications()->first();
+        $groupKey = 'NewFollower_'.$notification->created_at->toDateString();
+
+        $component = Livewire::actingAs($this->user)
+            ->test(NotificationsPage::class);
+
+        // Collapsed state announces "Expand…"
+        $component->assertSeeHtml('aria-label="Expand notification group"');
+
+        // Expanded state announces "Collapse…"
+        $component->call('toggleGroup', $groupKey)
+            ->assertSeeHtml('aria-label="Collapse notification group"');
+    }
+
+    public function test_group_toggle_aria_label_renders_in_german(): void
+    {
+        app()->setLocale('de');
+
+        for ($i = 0; $i < 2; $i++) {
+            $follower = User::factory()->create(['name' => "Follower{$i}"]);
+            $this->user->notify(new NewFollower($follower));
+        }
+
+        Livewire::actingAs($this->user)
+            ->test(NotificationsPage::class)
+            ->assertSeeHtml('aria-label="Benachrichtigungsgruppe ausklappen"');
+    }
 }

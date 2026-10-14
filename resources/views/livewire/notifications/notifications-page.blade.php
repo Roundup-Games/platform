@@ -72,7 +72,7 @@
                             <button
                                 wire:click="toggleGroup('{{ $group->groupKey }}')"
                                 class="shrink-0 p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
-                                aria-label="{{ isset($expandedGroups[$group->groupKey]) ? 'Collapse' : 'Expand' }} notification group"
+                                aria-label="{{ isset($expandedGroups[$group->groupKey]) ? __('notifications.aria_collapse_notification_group') : __('notifications.aria_expand_notification_group') }}"
                             >
                                 <span class="material-symbols-outlined text-lg transition-transform {{ isset($expandedGroups[$group->groupKey]) ? 'rotate-180' : '' }}">expand_more</span>
                             </button>

@@ -37,4 +37,14 @@ return [
     'entity_invitation_subject' => ':inviter hat dich zu :entity eingeladen',
     'content_dont_want_invitations' => 'Möchtest du keine Einladungen mehr erhalten? ',
     'action_optout_invite_emails' => 'Einladungen deaktivieren',
+    // Framework verify/reset mail overrides — rendered by the toMailUsing()
+    // callbacks registered in AppServiceProvider::boot()
+    'subject_verify_email' => 'Bestätige deine E-Mail-Adresse bei :brand',
+    'content_verify_email_intro' => 'Danke für deine Registrierung! Klicke auf die Schaltfläche unten, um deine E-Mail-Adresse zu bestätigen.',
+    'content_verify_email_no_action' => 'Falls du kein Konto erstellt hast, ist keine weitere Aktion erforderlich.',
+    'field_verify_email_address' => 'E-Mail-Adresse bestätigen',
+    'subject_reset_password' => 'Setze dein :brand-Passwort zurück',
+    'content_reset_password_intro' => 'Du erhältst diese E-Mail, weil für dein Konto eine Anfrage zum Zurücksetzen des Passworts gestellt wurde.',
+    'content_reset_password_expires' => 'Dieser Link zum Zurücksetzen läuft in :count Minuten ab.',
+    'content_reset_password_no_action' => 'Falls du kein Zurücksetzen deines Passworts angefordert hast, ist keine weitere Aktion erforderlich.',
 ];

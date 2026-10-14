@@ -266,16 +266,16 @@
                             @error('max_participants') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
-                    <h3 class="text-md font-medium text-on-surface pt-2">{{ __('billing.field_fees') }} <span class="text-xs text-on-surface-variant">({{ __('common.action_enter_amount_in_cents_e_g_500_5_00') }})</span></h3>
+                    <h3 class="text-md font-medium text-on-surface pt-2">{{ __('billing.field_fees') }} <span class="text-xs text-on-surface-variant">({{ __('events.hint_amounts_in_eur') }})</span></h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="event-individual-fee" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.field_individual_fee') }}</label>
-                            <input type="number" id="event-individual-fee" wire:model="individual_registration_fee" min="0"
+                            <input type="number" id="event-individual-fee" wire:model="individual_registration_fee" min="0" step="0.01"
                                    class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                         <div>
                             <label for="event-early-bird-discount" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('billing.content_early_bird_discount') }}</label>
-                            <input type="number" id="event-early-bird-discount" wire:model="early_bird_discount" min="0"
+                            <input type="number" id="event-early-bird-discount" wire:model="early_bird_discount" min="0" step="0.01"
                                    class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                         <div>
@@ -284,21 +284,16 @@
                                    class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
                         </div>
                     </div>
-                    {{-- Ticket payment: only meaningful once a fee is charged --}}
-                    @if((int) $individual_registration_fee > 0)
+                    {{-- Ticket payment: the Paddle product is configured by admins (Filament),
+                         so organizers only ever see whether checkout is ready. --}}
+                    @if((float) $individual_registration_fee > 0)
                         <h3 class="text-md font-medium text-on-surface pt-2">{{ __('events.content_ticket_payment') }}</h3>
-                        <div>
-                            <label for="event-paddle-price-id" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_paddle_price_id') }}</label>
-                            <input type="text" id="event-paddle-price-id" wire:model="paddle_price_id" maxlength="255"
-                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-xs" />
-                            <p class="mt-1 text-xs text-on-surface-variant">
-                                {{ __('events.hint_paddle_price_id') }}
-                                <a href="https://vendors.paddle.com/products" target="_blank" rel="noopener"
-                                   class="text-primary hover:underline">{{ __('events.action_open_paddle_dashboard') }}</a>
-                            </p>
-                            @error('paddle_price_id') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
-                        @if(blank($paddle_price_id))
+                        @if(filled($event->paddle_price_id))
+                            <div class="flex items-start gap-2 bg-secondary-container border border-secondary/20 rounded-lg p-3 text-sm text-on-secondary-container" role="status">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
+                                <span>{{ __('events.content_ticket_payment_configured') }}</span>
+                            </div>
+                        @else
                             <div class="flex items-start gap-2 bg-error-container border border-error/20 rounded-lg p-3 text-sm text-on-error-container" role="alert">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">warning</span>
                                 <span>{{ __('events.content_missing_paddle_price_id_hint') }}</span>

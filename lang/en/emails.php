@@ -37,4 +37,14 @@ return [
     'entity_invitation_subject' => ':inviter invited you to :entity',
     'content_dont_want_invitations' => "Don't want to receive invitations? ",
     'action_optout_invite_emails' => 'Stop sending me invitations',
+    // Framework verify/reset mail overrides — rendered by the toMailUsing()
+    // callbacks registered in AppServiceProvider::boot()
+    'subject_verify_email' => 'Verify your email address for :brand',
+    'content_verify_email_intro' => 'Thanks for signing up! Click the button below to verify your email address.',
+    'content_verify_email_no_action' => "If you didn't create an account, no further action is required.",
+    'field_verify_email_address' => 'Verify Email Address',
+    'subject_reset_password' => 'Reset your :brand password',
+    'content_reset_password_intro' => 'You are receiving this email because we received a password reset request for your account.',
+    'content_reset_password_expires' => 'This password reset link will expire in :count minutes.',
+    'content_reset_password_no_action' => 'If you did not request a password reset, no further action is required.',
 ];

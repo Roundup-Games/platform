@@ -32,7 +32,7 @@
                                         @click="expandedInfo['{{ $tool['value'] }}'] = !expandedInfo['{{ $tool['value'] }}']"
                                         class="text-on-surface-variant hover:text-on-surface transition-colors"
                                         :aria-expanded="expandedInfo['{{ $tool['value'] }}'] ? 'true' : 'false'"
-                                        aria-label="More info about {{ $tool['label'] }}"
+                                        aria-label="{{ __('safety.aria_more_info_about', ['tool' => $tool['label']]) }}"
                                     >
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">info</span>
                                     </button>
@@ -67,7 +67,7 @@
                                     rows="2"
                                     @if($mode === 'display') disabled @endif
                                     class="w-full rounded-lg bg-surface-container border border-outline/20 text-on-surface text-sm placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors resize-y"
-                                    aria-label="{{ $tool['label'] }} details"
+                                    aria-label="{{ __('safety.aria_tool_details', ['tool' => $tool['label']]) }}"
                                 >{{ $linesAndVeilsText }}</textarea>
                             </div>
                         @endif
@@ -80,17 +80,17 @@
     {{-- Always-visible custom note textarea --}}
     <div>
         <label for="safety-custom-note" class="block text-sm font-medium text-on-surface mb-1">
-            Custom Safety Note
+            {{ __('safety.field_custom_safety_note') }}
         </label>
-        <p class="text-xs text-on-surface-variant mb-2">Any additional safety arrangements or notes for your group.</p>
+        <p class="text-xs text-on-surface-variant mb-2">{{ __('safety.content_custom_safety_note_hint') }}</p>
         <textarea
             id="safety-custom-note"
             wire:model.live.debounce.400ms="customNote"
-            placeholder="e.g. We take a 10-minute break every hour"
+            placeholder="{{ __('safety.placeholder_custom_safety_note') }}"
             rows="2"
             @if($mode === 'display') disabled @endif
             class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface text-sm placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors resize-y"
-            aria-label="Custom safety note"
+            aria-label="{{ __('safety.aria_custom_safety_note') }}"
         >{{ $customNote }}</textarea>
     </div>
 </div>

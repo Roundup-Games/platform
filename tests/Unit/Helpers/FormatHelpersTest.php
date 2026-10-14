@@ -20,11 +20,13 @@ describe('format_date — locale-aware', function () {
         ['en', 'date',          '2026-04-14 00:00:00', 'Apr 14, 2026'],
         ['en', 'short_date',    '2026-04-14 00:00:00', 'Apr 14'],
         ['en', 'datetime',      '2026-04-14 14:30:00', 'Apr 14, 2026 at 2:30 PM'],
+        ['en', 'weekday_datetime', '2026-04-14 14:30:00', 'Tue, Apr 14, 14:30'],
         ['en', 'short_month_day', '2026-04-14 00:00:00', 'Apr 14, 2026'],
         // German locale
         ['de', 'date',          '2026-04-14 00:00:00', '14. April 2026'],
         ['de', 'short_date',    '2026-04-14 00:00:00', '14. Apr'],
         ['de', 'datetime',      '2026-04-14 14:30:00', '14. April 2026, 14:30'],
+        ['de', 'weekday_datetime', '2026-04-14 14:30:00', 'Di., 14. Apr, 14:30'],
         ['de', 'short_month_day', '2026-04-14 00:00:00', '14. April 2026'],
     ]);
 

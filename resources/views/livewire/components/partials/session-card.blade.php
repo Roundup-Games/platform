@@ -20,7 +20,7 @@
     $dateTime = $isCampaign ? null : $entity->date_time;
     $formattedDate = $dateTime?->isToday()
         ? __('common.content_today') . ', ' . $dateTime->format('H:i')
-        : $dateTime?->format('D, M j, H:i');
+        : ($dateTime ? format_date($dateTime, 'weekday_datetime') : null);
 
     // Join URL
     $joinRoute = $isCampaign

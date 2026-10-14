@@ -1,12 +1,16 @@
 @props(['links', 'showActions' => true])
 
 @php
+    // Keyed by morph alias (Relation::enforceMorphMap) — linkable_type stores
+    // 'game'/'campaign'/…, never the FQCN, so a class-name fallback would leak
+    // developer jargon into the table.
     $entityTypeMap = [
-        'App\Models\Game' => __('games.content_game'),
-        'App\Models\Campaign' => __('campaigns.content_campaign'),
-        'App\Models\Event' => __('events.content_event'),
-        'App\Models\Team' => __('events.content_team'),
+        'game' => __('games.content_game'),
+        'campaign' => __('campaigns.content_campaign'),
+        'event' => __('events.content_event'),
+        'team' => __('events.content_team'),
     ];
+    $entityTypeFallback = fn (string $type): string => $entityTypeMap[$type] ?? __('gws.link_col_entity');
 @endphp
 
 @if($links->count())
@@ -36,9 +40,9 @@
                         </td>
                         <td class="py-2.5 px-3 text-on-surface-variant">
                             @if($link->linkable)
-                                <span class="text-xs">{{ $link->linkable->name ?? $link->linkable->title ?? class_basename($link->linkable_type) }}</span>
+                                <span class="text-xs">{{ $link->linkable->name ?? $link->linkable->title ?? $entityTypeFallback($link->linkable_type) }}</span>
                             @else
-                                <span class="text-xs text-on-surface-variant/50">{{ $entityTypeMap[$link->linkable_type] ?? class_basename($link->linkable_type) }}</span>
+                                <span class="text-xs text-on-surface-variant/50">{{ $entityTypeFallback($link->linkable_type) }}</span>
                             @endif
                         </td>
                         <td class="py-2.5 px-3 text-right font-medium text-on-surface">
@@ -64,7 +68,7 @@
                             @endif
                         </td>
                         <td class="py-2.5 px-3 text-on-surface-variant text-xs">
-                            {{ $link->created_at->format('M j, Y') }}
+                            {{ format_date($link->created_at, 'date') }}
                         </td>
                         @if($showActions)
                             <td class="py-2.5 px-3 text-right">

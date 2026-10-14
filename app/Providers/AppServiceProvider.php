@@ -83,6 +83,8 @@ use Filament\Facades\Filament;
 use Filament\View\PanelsRenderHook;
 use GuzzleHttp\Client;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\Events\CacheHit;
 use Illuminate\Cache\Events\CacheMissed;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -94,6 +96,7 @@ use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event as EventFacade;
@@ -483,6 +486,46 @@ class AppServiceProvider extends ServiceProvider
         // client (graceful no-op) when Discord is unconfigured.
         Notification::extend('discord', function ($app) {
             return $app->make(DiscordChannel::class);
+        });
+
+        // Framework auth mails — branded, locale-aware replacements for the
+        // stock English VerifyEmail / ResetPassword notifications (66-02/T05).
+        // Laravel's NotificationSender wraps each send in the notifiable's
+        // preferredLocale() (User implements HasLocalePreference), so the
+        // __() calls inside these callbacks resolve in the recipient's locale.
+        // MailMessage markdown renderers produce both HTML and plain-text
+        // parts, mirroring every other app mail.
+        VerifyEmail::toMailUsing(function (User $notifiable, string $verificationUrl): MailMessage {
+            return (new MailMessage)
+                ->subject(__('emails.subject_verify_email', [
+                    'brand' => is_string($brand = config('company.display_name')) ? $brand : '',
+                ]))
+                ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+                ->line(__('emails.content_verify_email_intro'))
+                ->action(__('emails.field_verify_email_address'), $verificationUrl)
+                ->line(__('emails.content_verify_email_no_action'));
+        });
+
+        ResetPassword::toMailUsing(function (User $notifiable, string $token): MailMessage {
+            // Explicit locale: the reset link targets the recipient's preferred
+            // locale, independent of the ambient request locale.
+            $locale = $notifiable->preferredLocale() ?? app()->getLocale();
+
+            return (new MailMessage)
+                ->subject(__('emails.subject_reset_password', [
+                    'brand' => is_string($brand = config('company.display_name')) ? $brand : '',
+                ]))
+                ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+                ->line(__('emails.content_reset_password_intro'))
+                ->action(__('auth.field_reset_password'), route('password.reset', [
+                    'token' => $token,
+                    'email' => $notifiable->getEmailForPasswordReset(),
+                    'locale' => $locale,
+                ]))
+                ->line(__('emails.content_reset_password_expires', [
+                    'count' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire'),
+                ]))
+                ->line(__('emails.content_reset_password_no_action'));
         });
 
         // Persist missing translation log on request termination

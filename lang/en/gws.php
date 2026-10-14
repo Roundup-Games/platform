@@ -36,7 +36,7 @@ return [
     'content_no_share_links' => 'No share links created yet. Create a link from any game or campaign page.',
     'link_col_code' => 'Code',
     'link_col_label' => 'Label',
-    'link_col_entity' => 'Entity',
+    'link_col_entity' => 'Game or campaign',
     'link_col_hits' => 'Hits',
     'link_col_created' => 'Created',
     'link_status_expired' => 'Expired',

@@ -49,9 +49,11 @@ class CreateEvent extends Component
 
     public ?int $max_participants = null;
 
-    public ?int $individual_registration_fee = null;
+    /** Fee in euros (e.g. "12.50") as typed by the organizer; stored as integer cents. */
+    public ?string $individual_registration_fee = '';
 
-    public ?int $early_bird_discount = null;
+    /** Early-bird discount in euros; stored as integer cents. */
+    public ?string $early_bird_discount = '';
 
     public string $early_bird_deadline = '';
 
@@ -145,8 +147,8 @@ class CreateEvent extends Component
             'country' => $this->country ?: null,
             'postal_code' => $this->postal_code ?: null,
             'max_participants' => $this->max_participants,
-            'individual_registration_fee' => $this->individual_registration_fee,
-            'early_bird_discount' => $this->early_bird_discount,
+            'individual_registration_fee' => $this->eurToCents($this->individual_registration_fee) ?? 0,
+            'early_bird_discount' => $this->eurToCents($this->early_bird_discount),
             'early_bird_deadline' => $this->early_bird_deadline ?: null,
             'registration_opens_at' => $this->registration_opens_at ?: null,
             'registration_closes_at' => $this->registration_closes_at ?: null,
@@ -168,6 +170,16 @@ class CreateEvent extends Component
 
         session()->flash('success', __('events.flash_event_name_created_successfully', ['name' => $event->name]));
         $this->redirect(route('events.manage', ['slug' => $event->slug]), navigate: true);
+    }
+
+    /**
+     * Convert a euro amount as typed into the fee inputs ("12.50") into
+     * integer cents for storage; an emptied field maps to null so the
+     * NOT NULL fee column falls back to its 0 (free) default.
+     */
+    private function eurToCents(?string $eur): ?int
+    {
+        return filled($eur) ? (int) round(((float) $eur) * 100) : null;
     }
 
     private function validateStep(int $step): void
@@ -197,8 +209,8 @@ class CreateEvent extends Component
             ],
             3 => [
                 'max_participants' => 'nullable|integer|min:1',
-                'individual_registration_fee' => 'nullable|integer|min:0',
-                'early_bird_discount' => 'nullable|integer|min:0',
+                'individual_registration_fee' => 'nullable|numeric|min:0',
+                'early_bird_discount' => 'nullable|numeric|min:0',
                 'early_bird_deadline' => 'nullable|date',
                 'registration_opens_at' => 'nullable|date',
                 'registration_closes_at' => 'nullable|date|after:registration_opens_at',

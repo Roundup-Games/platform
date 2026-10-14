@@ -105,7 +105,8 @@
             "@php artisan test"
         ],
         "smoke": [
-            "@php artisan test --group=smoke"
+            "@php artisan test --group=smoke",
+            "@php scripts/check-raw-strings.php"
         ],
         "practices": [
             "bash scripts/check_eloquent_practices.sh"

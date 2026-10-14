@@ -38,7 +38,7 @@
                                 <div class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
                                     <span>{{ $this->getTypeLabel($request) }}</span>
                                     <span aria-hidden="true">·</span>
-                                    <time datetime="{{ $request->created_at->toIso8601String() }}">{{ $request->created_at->format('M j, Y') }}</time>
+                                    <time datetime="{{ $request->created_at->toIso8601String() }}">{{ format_date($request->created_at, 'date') }}</time>
                                 </div>
 
                                 {{-- Rejection reason --}}

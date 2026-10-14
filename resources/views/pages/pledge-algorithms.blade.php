@@ -485,7 +485,7 @@
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
                     <p class="mb-2">{{ __('pages.content_pledge_algo_people_formula_taste') }}</p>
-                    <p class="mb-2">&nbsp;&nbsp;Computed on game systems + vibes, averaged</p>
+                    <p class="mb-2">&nbsp;&nbsp;{{ __('pages.content_pledge_algo_people_formula_note') }}</p>
                     <p class="mb-2">{{ __('pages.content_pledge_algo_people_formula_social') }}</p>
                     <p class="mb-3">{{ __('pages.content_pledge_algo_people_formula_composite') }}</p>
                     <p class="mb-1">&nbsp;&nbsp;if taste &amp; social: score = taste &times; 0.7 + social &times; 0.3</p>
@@ -754,17 +754,17 @@
                     </thead>
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4 font-mono">4 chars</td>
+                            <td class="py-2 pr-4 font-mono">{{ __('pages.content_pledge_algo_geohash_chars', ['count' => 4]) }}</td>
                             <td class="py-2 pr-4">~20km &times; 20km</td>
                             <td class="py-2">{{ __('pages.content_pledge_algo_geohash_city') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4 font-mono">5 chars</td>
+                            <td class="py-2 pr-4 font-mono">{{ __('pages.content_pledge_algo_geohash_chars', ['count' => 5]) }}</td>
                             <td class="py-2 pr-4">~4.9km &times; 4.9km</td>
                             <td class="py-2">{{ __('pages.content_pledge_algo_geohash_neighborhood') }}</td>
                         </tr>
                         <tr>
-                            <td class="py-2 pr-4 font-mono">6 chars</td>
+                            <td class="py-2 pr-4 font-mono">{{ __('pages.content_pledge_algo_geohash_chars', ['count' => 6]) }}</td>
                             <td class="py-2 pr-4">~0.6km &times; 1.2km</td>
                             <td class="py-2">{{ __('pages.content_pledge_algo_geohash_venue') }}</td>
                         </tr>
@@ -989,11 +989,11 @@
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_limit') }}</td>
-                            <td class="py-2 font-mono">Top 5 per tile</td>
+                            <td class="py-2 font-mono">{{ __('pages.content_pledge_algo_trending_top_per_tile') }}</td>
                         </tr>
                         <tr>
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_cache_ttl') }}</td>
-                            <td class="py-2 font-mono">10 minutes</td>
+                            <td class="py-2 font-mono">{{ __('pages.content_pledge_algo_cache_ttl_value') }}</td>
                         </tr>
                     </tbody>
                 </table>

@@ -118,30 +118,23 @@ class I18nDeadStringsCommand extends Command
      *
      * @param  list<array{domain: string, key: string, dotted: string, value: string}>  $deadKeys
      * @param  array{keys: array<string, array<string, array<string>>>, dynamicCount: int, dynamicFiles: array<string>}  $usage
-     * @param  array<string, mixed>  $usage
      * @return list<array{domain: string, key: string, dotted: string, value: string}>
      */
     private function filterDynamicKnownKeys(array $deadKeys, array $usage): array
     {
-        // Specific keys used in static files (manifest.json, offline.html)
-        // that don't go through PHP's __()
-        $staticFileKeys = [
-            // public/manifest.json
-            'pwa.manifest_name',
-            'pwa.manifest_short_name',
-            'pwa.manifest_description',
-            // public/offline.html
-            'pwa.offline_title',
-            'pwa.offline_message',
-            'pwa.offline_try_again',
-        ];
+        // Domain files consumed by the framework itself. Laravel core reads
+        // these lines without any static __() call in app code — the validator
+        // resolves validation.* lines (including nested custom/attributes)
+        // dynamically per rule, and the password broker resolves passwords.*
+        // by status key — so the static scanner cannot see the usage.
+        $frameworkDomains = ['validation', 'passwords'];
 
         // Domains where all keys with certain prefixes are dynamic.
         // These are constructed via match() blocks or variable assignment
         // before __() — patterns the regex scanner can't follow.
         $dynamicDomainPrefixes = [
-            'notifications' => ['verb_', 'email_', 'display_', 'state_', 'channel_', 'hint_'],
-            'discovery' => ['cat_', 'mech_', 'play_style_'],
+            'notifications' => ['verb_', 'display_', 'channel_'],
+            'discovery' => ['cat_', 'mech_'],
             // ContactSupport/BillingSupport ISSUE_TYPES const maps
             'support' => ['field_issue_', 'field_billing_issue_'],
         ];
@@ -158,8 +151,6 @@ class I18nDeadStringsCommand extends Command
             // ManagesParticipants.php: $messageKey ternary for waitlist vs bench
             'people.flash_email_invite_waitlisted',
             'people.flash_email_invite_benched',
-            'people.flash_accepted_waitlisted',
-            'people.flash_accepted_benched',
             // entity-invitation.blade.php: ternary for game vs campaign
             'emails.content_you_re_invited_to_a_game',
             'emails.content_you_re_invited_to_a_campaign',
@@ -188,11 +179,11 @@ class I18nDeadStringsCommand extends Command
             'campaigns.activity_scheduled_session_for',
         ];
 
-        return array_values(array_filter($deadKeys, function ($dead) use ($staticFileKeys, $dynamicDomainPrefixes, $dynamicVariableKeys, $usage) {
+        return array_values(array_filter($deadKeys, function ($dead) use ($frameworkDomains, $dynamicDomainPrefixes, $dynamicVariableKeys, $usage) {
             $dotted = $dead['dotted'];
 
-            // Check static file usage
-            if (in_array($dotted, $staticFileKeys, true)) {
+            // Framework-consumed domain files (validator / password broker)
+            if (in_array($dead['domain'], $frameworkDomains, true)) {
                 return false;
             }
 

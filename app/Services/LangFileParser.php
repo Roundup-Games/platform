@@ -154,15 +154,69 @@ class LangFileParser
         }
         $keyCounts = [];
 
-        // Match top-level array keys: 'key_name' => ...
-        // Our convention is flat arrays, so this catches the right level.
-        if (preg_match_all("/^\s*'([^']+)'\s*=>/m", $content, $matches)) {
-            foreach ($matches[1] as $key) {
-                $keyCounts[$key] = ($keyCounts[$key] ?? 0) + 1;
+        // Token-based top-level key detection. A naive line-regex
+        // ('^\s*\'key\'\s*=>') also matches nested keys, so framework-shaped
+        // files with repeated nested keys (validation.php has "array" and
+        // "string" under between/gt/gte/lt/lte/max/min/size) would
+        // false-positive as duplicates. Walking tokens lets us track '[' / ']'
+        // array nesting and count only keys at the top level of the returned
+        // array (depth 1).
+        $tokens = token_get_all($content);
+        $depth = 0;
+        $lastString = null;
+
+        foreach ($tokens as $token) {
+            if (is_array($token)) {
+                [$id, $text] = $token;
+
+                if ($id === T_CONSTANT_ENCAPSED_STRING) {
+                    $lastString = $text;
+
+                    continue;
+                }
+
+                // The double arrow is a multi-char token (T_DOUBLE_ARROW),
+                // so it arrives as an array token — record the pending key
+                // candidate if it sits at the top level of the returned array.
+                if ($id === T_DOUBLE_ARROW) {
+                    if ($lastString !== null && $depth === 1) {
+                        $key = $this->unquoteKeyLiteral($lastString);
+                        $keyCounts[$key] = ($keyCounts[$key] ?? 0) + 1;
+                    }
+                    $lastString = null;
+
+                    continue;
+                }
+
+                // Whitespace and comments between a string and '=>' are fine;
+                // anything else (identifiers, numbers, strings from other
+                // constructs) clears the pending key candidate.
+                if ($id !== T_WHITESPACE && $id !== T_COMMENT && $id !== T_DOC_COMMENT) {
+                    $lastString = null;
+                }
+
+                continue;
+            }
+
+            if ($token === '[') {
+                $depth++;
+                $lastString = null;
+            } elseif ($token === ']') {
+                $depth--;
+                $lastString = null;
             }
         }
 
         return array_filter($keyCounts, fn ($count) => $count > 1);
+    }
+
+    /**
+     * Strip the quotes from a T_CONSTANT_ENCAPSED_STRING literal and
+     * unescape simple escapes, yielding the raw array-key string.
+     */
+    private function unquoteKeyLiteral(string $literal): string
+    {
+        return stripslashes(substr($literal, 1, -1));
     }
 
     /**
@@ -435,6 +489,14 @@ class LangFileParser
         // Framework keys — not our convention to enforce
         $frameworkKeys = ['failed', 'password', 'throttle'];
         if ($domain === 'auth' && in_array($key, $frameworkKeys, true)) {
+            return [];
+        }
+
+        // Framework-owned domains (validation, passwords) keep Laravel's key
+        // structure wholesale — nested "between.numeric", "custom.*.uuid",
+        // bare "required", "attributes.name". Their shape is fixed by the
+        // framework; it is not ours to rename.
+        if (in_array($domain, ['validation', 'passwords'], true)) {
             return [];
         }
 

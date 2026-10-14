@@ -45,7 +45,7 @@
                                     <h4 class="text-sm font-medium text-on-surface group-hover:text-primary truncate">{{ $session->name }}</h4>
                                     <div class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">schedule</span>
-                                        {{ $session->date_time->format('M j, g:i A') }}
+                                        {{ format_date($session->date_time, 'datetime') }}
                                         @if($session->gameSystem)
                                             <span class="text-on-surface-variant/50">·</span>
                                             <span>{{ $session->gameSystem->name }}</span>
@@ -258,7 +258,7 @@
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
                                     {{ $survey->confirmation_count }}
                                 </span>
-                                <span>{{ $survey->created_at->format('M j, Y') }}</span>
+                                <span>{{ format_date($survey->created_at, 'date') }}</span>
                             </div>
                         </div>
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0

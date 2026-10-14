@@ -18,7 +18,7 @@ use function Pest\Laravel\actingAs;
 // ── Ticket Price Configuration ────────────────────────
 
 describe('Ticket Price Configuration', function () {
-    it('shows the Paddle price field only when the individual fee is greater than zero', function () {
+    it('shows the ticket payment section only when the individual fee is greater than zero, without exposing a price id input', function () {
         $organizer = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
 
         $paidEvent = Event::factory()->create([
@@ -33,34 +33,32 @@ describe('Ticket Price Configuration', function () {
         actingAs($organizer);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $paidEvent->slug])
             ->set('activeTab', 'registration')
-            ->assertSee('Ticket Payment')
-            ->assertSee('Paddle Price ID');
+            ->assertSee(__('events.content_ticket_payment', [], 'en'))
+            // The price id itself is admin-side (Filament) configuration now
+            ->assertDontSee('Paddle Price ID')
+            ->assertDontSee('pri_');
 
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $freeEvent->slug])
             ->set('activeTab', 'registration')
-            ->assertDontSee('Ticket Payment')
-            ->assertDontSee('Paddle Price ID');
+            ->assertDontSee(__('events.content_ticket_payment', [], 'en'));
     });
 
-    it('saves the Paddle price id into metadata and reads it back through the accessor', function () {
+    it('shows the configured status when an admin has connected a payment product', function () {
         $organizer = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $event = Event::factory()->create([
             'organizer_id' => $organizer->id,
             'individual_registration_fee' => 5000,
+            'metadata' => ['paddle_price_id' => 'pri_event_ticket'],
         ]);
 
         actingAs($organizer);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->set('activeTab', 'registration')
-            ->set('paddle_price_id', 'pri_event_ticket')
-            ->call('save');
-
-        $event->refresh();
-        expect($event->paddle_price_id)->toBe('pri_event_ticket')
-            ->and($event->metadata)->toBe(['paddle_price_id' => 'pri_event_ticket']);
+            ->assertSee(__('events.content_ticket_payment_configured', [], 'en'))
+            ->assertDontSee(__('events.content_missing_paddle_price_id_hint', [], 'en'));
     });
 
-    it('clearing the price id removes the metadata key and preserves unrelated metadata', function () {
+    it('keeps organizer saves away from the admin-configured paddle price id', function () {
         $organizer = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $event = Event::factory()->create([
             'organizer_id' => $organizer->id,
@@ -71,12 +69,16 @@ describe('Ticket Price Configuration', function () {
         actingAs($organizer);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->set('activeTab', 'registration')
-            ->set('paddle_price_id', '')
-            ->call('save');
+            ->set('individual_registration_fee', '12.50')
+            ->call('save')
+            ->assertHasNoErrors();
 
         $event->refresh();
-        expect($event->paddle_price_id)->toBeNull()
-            ->and($event->metadata)->toBe(['source' => 'import']);
+        // The EUR fee edit persists as cents; the admin-configured payment
+        // product and unrelated metadata are untouched by the organizer save.
+        expect($event->individual_registration_fee)->toBe(1250)
+            ->and($event->metadata)->toBe(['source' => 'import', 'paddle_price_id' => 'pri_event_ticket'])
+            ->and($event->paddle_price_id)->toBe('pri_event_ticket');
     });
 
     it('warns about manual-payment registrations when a fee is set without a price id', function () {
@@ -89,29 +91,28 @@ describe('Ticket Price Configuration', function () {
         actingAs($organizer);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->set('activeTab', 'registration')
-            ->assertSee('no Paddle Price ID is set');
-
-        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
-            ->set('activeTab', 'registration')
-            ->set('paddle_price_id', 'pri_event_ticket')
-            ->assertDontSee('no Paddle Price ID is set');
+            ->assertSee(__('events.content_missing_paddle_price_id_hint', [], 'en'));
     });
 
-    it('rejects a malformed price id and leaves metadata untouched', function () {
+    it('rejects a non-numeric or negative fee on save', function ($badFee) {
         $organizer = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $event = Event::factory()->create([
             'organizer_id' => $organizer->id,
-            'individual_registration_fee' => 5000,
+            'individual_registration_fee' => 0,
         ]);
 
         actingAs($organizer);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
-            ->set('paddle_price_id', 'not-a-price-id')
+            ->set('individual_registration_fee', $badFee)
             ->call('save')
-            ->assertHasErrors(['paddle_price_id' => 'starts_with']);
+            ->assertHasErrors('individual_registration_fee');
 
-        expect($event->refresh()->metadata)->toBeNull();
-    });
+        // The rejected value never reaches the database
+        expect($event->refresh()->individual_registration_fee)->toBe(0);
+    })->with([
+        'not numeric' => ['twelve fifty'],
+        'negative' => ['-5.00'],
+    ]);
 
     it('writes and clears the price id through the model mutator merging into existing metadata', function () {
         $event = Event::factory()->create([
@@ -181,7 +182,7 @@ describe('Registration Window Enforcement', function () {
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertOk()
-            ->assertSee('Register for Event');
+            ->assertSee(__('events.action_register_for_event', [], 'en'));
     });
 });
 
@@ -232,7 +233,7 @@ describe('Early Bird Pricing', function () {
 
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->assertSee('Early Bird Discount')
+            ->assertSee(__('billing.content_early_bird_discount', [], 'en'))
             ->assertSee('-'.format_currency(5000))
             ->assertSee(format_currency(15000));
     });
@@ -251,7 +252,7 @@ describe('Early Bird Pricing', function () {
 
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
-            ->assertDontSee('Early Bird Discount');
+            ->assertDontSee(__('billing.content_early_bird_discount', [], 'en'));
     })->with([
         'no deadline' => [['early_bird_deadline' => null]],
         'no discount' => [['early_bird_discount' => null]],
@@ -341,7 +342,7 @@ describe('Event Detail Window Display', function () {
         ]);
 
         Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Registration Closed');
+            ->assertSee(__('events.content_registration_closed', [], 'en'));
     });
 
     it('shows near capacity warning when event is 90%+ full', function () {

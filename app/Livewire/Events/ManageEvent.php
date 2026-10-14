@@ -66,14 +66,13 @@ class ManageEvent extends Component
     // ── Registration & Fees ────────────────────────────
     public ?int $max_participants = null;
 
-    public ?int $individual_registration_fee = null;
+    /** Fee in euros (e.g. "12.50") as typed by the organizer; stored as integer cents. */
+    public ?string $individual_registration_fee = '';
 
-    public ?int $early_bird_discount = null;
+    /** Early-bird discount in euros; stored as integer cents. */
+    public ?string $early_bird_discount = '';
 
     public string $early_bird_deadline = '';
-
-    /** Paddle Billing price id backing the one-time ticket checkout (metadata.paddle_price_id). */
-    public ?string $paddle_price_id = null;
 
     public string $registration_opens_at = '';
 
@@ -117,10 +116,9 @@ class ManageEvent extends Component
             'country' => 'nullable|string|max:3',
             'postal_code' => 'nullable|string|max:20',
             'max_participants' => 'nullable|integer|min:1',
-            'individual_registration_fee' => 'nullable|integer|min:0',
-            'early_bird_discount' => 'nullable|integer|min:0',
+            'individual_registration_fee' => 'nullable|numeric|min:0',
+            'early_bird_discount' => 'nullable|numeric|min:0',
             'early_bird_deadline' => 'nullable|date',
-            'paddle_price_id' => ['nullable', 'string', 'max:255', 'starts_with:pri_'],
             'registration_opens_at' => 'nullable|date',
             'registration_closes_at' => 'nullable|date|after:registration_opens_at',
             'contact_email' => 'nullable|email',
@@ -163,10 +161,9 @@ class ManageEvent extends Component
         $this->country = $e->country ?? '';
         $this->postal_code = $e->postal_code ?? '';
         $this->max_participants = $e->max_participants;
-        $this->individual_registration_fee = $e->individual_registration_fee;
-        $this->early_bird_discount = $e->early_bird_discount;
+        $this->individual_registration_fee = self::centsToEur($e->individual_registration_fee);
+        $this->early_bird_discount = self::centsToEur($e->early_bird_discount);
         $this->early_bird_deadline = $e->early_bird_deadline ? $e->early_bird_deadline->format('Y-m-d\TH:i') : '';
-        $this->paddle_price_id = $e->paddle_price_id;
         $this->registration_opens_at = $e->registration_opens_at ? $e->registration_opens_at->format('Y-m-d\TH:i') : '';
         $this->registration_closes_at = $e->registration_closes_at ? $e->registration_closes_at->format('Y-m-d\TH:i') : '';
         /** @var array<int, string>|string|null $rules */
@@ -203,14 +200,22 @@ class ManageEvent extends Component
     }
 
     /**
-     * Normalize the Paddle price id as it is typed: trim whitespace and
-     * collapse an emptied field to null so validation and save() see a
-     * clean nullable string instead of "".
+     * Convert a euro amount as typed into the fee inputs ("12.50") into
+     * integer cents for storage; an emptied field maps to null.
      */
-    public function updatedPaddlePriceId(?string $value): void
+    private function eurToCents(?string $eur): ?int
     {
-        $trimmed = trim((string) $value);
-        $this->paddle_price_id = $trimmed !== '' ? $trimmed : null;
+        return filled($eur) ? (int) round(((float) $eur) * 100) : null;
+    }
+
+    /**
+     * Render stored integer cents as a plain euro string for the
+     * step="0.01" inputs; null and 0 both hydrate as an empty field so
+     * the input placeholder ("0 (free)" / "no discount") carries the meaning.
+     */
+    private static function centsToEur(?int $cents): string
+    {
+        return $cents > 0 ? number_format($cents / 100, 2, '.', '') : '';
     }
 
     // ── Team (Co-Organizer Delegation) ────────────────
@@ -408,17 +413,6 @@ class ManageEvent extends Component
         $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules))) : null;
         $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule))) : null;
 
-        // Ticket payment: persist the Paddle price id through the Event
-        // accessor/mutator (metadata.paddle_price_id). Assigned before
-        // update() so it lands in the same save; only touched when the value
-        // actually changed so unrelated metadata keys (and a null metadata
-        // column) are never rewritten needlessly. Clearing maps to removing
-        // the key, which is why this cannot ride through array_filter below.
-        $paddlePriceId = filled($this->paddle_price_id) ? $this->paddle_price_id : null;
-        if ($this->event->paddle_price_id !== $paddlePriceId) {
-            $this->event->paddle_price_id = $paddlePriceId;
-        }
-
         $translatable = $this->buildTranslatableValues(
             ['name', 'description', 'short_description'],
             $this->language,
@@ -440,8 +434,8 @@ class ManageEvent extends Component
             'country' => $this->country ?: null,
             'postal_code' => $this->postal_code ?: null,
             'max_participants' => $this->max_participants,
-            'individual_registration_fee' => $this->individual_registration_fee,
-            'early_bird_discount' => $this->early_bird_discount,
+            'individual_registration_fee' => $this->eurToCents($this->individual_registration_fee) ?? 0,
+            'early_bird_discount' => $this->eurToCents($this->early_bird_discount),
             'early_bird_deadline' => $this->early_bird_deadline ?: null,
             'registration_opens_at' => $this->registration_opens_at ?: null,
             'registration_closes_at' => $this->registration_closes_at ?: null,
@@ -474,7 +468,9 @@ class ManageEvent extends Component
             'event_slug' => $this->event->slug,
             'updated_by' => Auth::id(),
             'status' => $this->status,
-            'paddle_price_id' => $paddlePriceId,
+            // Effective ticket-checkout state (admin-configured through
+            // metadata.paddle_price_id) for diagnosing pending-payment events.
+            'paddle_price_id' => $this->event->paddle_price_id,
         ]);
 
         $this->saved = true;

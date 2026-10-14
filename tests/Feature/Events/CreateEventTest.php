@@ -134,7 +134,8 @@ describe('CreateEvent', function () {
             ->set('city', 'Austin')
             ->set('country', 'USA')
             ->set('max_participants', 20)
-            ->set('individual_registration_fee', 2500)
+            ->set('individual_registration_fee', '25.00')
+            ->set('early_bird_discount', '5.50')
             ->set('is_public', true)
             ->set('contact_email', 'org@example.com')
             ->call('create')
@@ -147,8 +148,31 @@ describe('CreateEvent', function () {
         expect($event->type)->toBe(EventType::GameDay);
         expect($event->venue_name)->toBe('Test Arena');
         expect($event->max_participants)->toBe(20);
-        expect($event->individual_registration_fee)->toBe(2500);
+        // EUR inputs land in the database as integer cents
+        expect($event->individual_registration_fee)->toBe(2500)
+            ->and($event->early_bird_discount)->toBe(550);
     })->group('smoke');
+
+    it('rejects a non-numeric or negative registration fee', function ($badFee) {
+        seedPermissions();
+        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
+        $user->givePermissionTo('create event');
+
+        actingAs($user);
+        Livewire\Livewire::test(CreateEvent::class)
+            ->set('name', 'Bad Fee Event')
+            ->set('type', 'game_day')
+            ->set('start_date', now()->addDays(14)->format('Y-m-d'))
+            ->set('end_date', now()->addDays(16)->format('Y-m-d'))
+            ->call('nextStep')
+            ->set('step', 3)
+            ->set('individual_registration_fee', $badFee)
+            ->call('nextStep')
+            ->assertHasErrors('individual_registration_fee');
+    })->with([
+        'not numeric' => ['twelve fifty'],
+        'negative' => ['-5.00'],
+    ]);
 
     it('stores rules as array from newline-separated text', function () {
         seedPermissions();
@@ -221,7 +245,7 @@ describe('ManageEvent', function () {
         actingAs($user);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->assertOk()
-            ->assertSee('Save Changes')
+            ->assertSee(__('common.action_save_changes', [], 'en'))
             ->assertSet('name', 'My Game Day');
     });
 
@@ -233,6 +257,8 @@ describe('ManageEvent', function () {
             'type' => 'convention',
             'venue_name' => 'Main Arena',
             'city' => 'Dallas',
+            'individual_registration_fee' => 1250,
+            'early_bird_discount' => 500,
         ]);
 
         actingAs($user);
@@ -240,7 +266,10 @@ describe('ManageEvent', function () {
             ->assertSet('name', 'Existing Event')
             ->assertSet('type', 'convention')
             ->assertSet('venue_name', 'Main Arena')
-            ->assertSet('city', 'Dallas');
+            ->assertSet('city', 'Dallas')
+            // Stored cents hydrate back into the EUR inputs
+            ->assertSet('individual_registration_fee', '12.50')
+            ->assertSet('early_bird_discount', '5.00');
     });
 
     it('saves changes to event', function () {
@@ -274,8 +303,8 @@ describe('ManageEvent', function () {
         actingAs($user);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->set('max_participants', 25)
-            ->set('individual_registration_fee', 1500)
-            ->set('early_bird_discount', 500)
+            ->set('individual_registration_fee', '15.00')
+            ->set('early_bird_discount', '5.00')
             ->set('early_bird_deadline', now()->addDays(5)->format('Y-m-d\TH:i'))
             ->call('save')
             ->assertHasNoErrors();
@@ -368,7 +397,7 @@ describe('EventAnnouncements', function () {
         actingAs($user);
         Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->assertOk()
-            ->assertSee('No announcements yet');
+            ->assertSee(__('events.content_no_announcements_yet', [], 'en'));
     });
 
     it('creates an announcement', function ($isPublished, $isPinned) {
