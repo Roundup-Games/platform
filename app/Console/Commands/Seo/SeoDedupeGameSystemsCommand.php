@@ -8,6 +8,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use LogicException;
 
 /**
  * Reconciles BGG duplicate catalog rows (SEO audit 2026-10-15).
@@ -35,7 +36,11 @@ class SeoDedupeGameSystemsCommand extends Command
     {
         $groups = GameSystem::query()
             ->get(['id', 'slug', 'name', 'bgg_id', 'canonical_game_system_id'])
-            ->groupBy(fn (GameSystem $system): string => mb_strtolower(trim((string) $system->getTranslation('name', 'en'))))
+            ->groupBy(function (GameSystem $system): string {
+                $name = $system->getTranslation('name', 'en');
+
+                return mb_strtolower(trim(is_string($name) ? $name : ''));
+            })
             ->filter(fn (Collection $group): bool => $group->count() > 1);
 
         if ($groups->isEmpty()) {
@@ -54,7 +59,7 @@ class SeoDedupeGameSystemsCommand extends Command
             $this->components->twoColumnDetail($name, "primary: {$primary->slug}");
 
             /** @var GameSystem $system */
-            foreach ($group->reject(fn (GameSystem $system): bool => $system->id === $primary->id) as $system) {
+            foreach ($group->reject(fn (GameSystem $system): bool => $system->is($primary)) as $system) {
                 $current = $system->canonical_game_system_id;
 
                 if ($current === $primary->id) {
@@ -100,6 +105,7 @@ class SeoDedupeGameSystemsCommand extends Command
                 $system->canonical_game_system_id !== null, // canonical-free rows next
                 $system->id,                            // stable tiebreaker
             ])
-            ->first();
+            ->first()
+            ?? throw new LogicException('Duplicate group cannot be empty (filtered to count > 1).');
     }
 }

@@ -43,7 +43,7 @@ return [
     'seo_description_contact' => 'Nimm Kontakt mit dem :brand Team auf. Wir freuen uns auf deine Nachricht.',
     'seo_description_for_organizers' => 'Kostenlose Werkzeuge für Organisatoren: Discord-Veröffentlichung, Session Zero, Wartelisten und Anmeldungen — Event-Gebühren online einziehen.',
     'seo_description_home' => 'Finde Brettspiele, Tabletop-RPG-Runden und Kampagnen in deiner Nähe. Entdecke lokale Spiel-Events, tritt einer Community bei und fang heute an.',
-    'seo_description_how_it_works' => 'So findest du Brettspiel- und RPG-Runden in deiner Nähe, trittst ihnen bei und organisierst deine eigenen.',
+    'seo_description_how_it_works' => 'So findest du bei :brand Brettspiel- und RPG-Runden in deiner Nähe, trittst ihnen bei und organisierst deine eigenen.',
     'seo_title_about' => 'Über uns — Unsere Vision & Werte',
     'seo_title_contact' => 'Kontakt — Fragen & Feedback',
     'seo_title_for_organizers' => 'Für Organisatoren — leite eigene Runden',
