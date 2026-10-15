@@ -1,7 +1,7 @@
 <?php
 return [
     // ── SEO ──────────────────────────────────────────
-    'seo_title_road_ahead' => 'The Road Ahead — Future Ideas & Recent Deliveries',
+    'seo_title_road_ahead' => 'The Road Ahead — Ideas & Deliveries',
     'seo_description_road_ahead' => 'Where :brand is heading: ideas that need your feedback, and receipts for what we have already shipped. No dates, no promises — direction only.',
 
     // ── Hero ─────────────────────────────────────────

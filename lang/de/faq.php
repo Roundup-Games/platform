@@ -4,8 +4,8 @@ return [
     // ── Page chrome ────────────────────────────────────
     'heading_faq' => 'Häufig gestellte Fragen',
     'content_faq_hero_subtitle' => 'Kurze Antworten darauf, wie :brand funktioniert — welche Worte wir verwenden, was Dinge kosten und wie Vertrauen entsteht. Deine Frage fehlt? Dann schreib uns — wir sind nur eine Nachricht entfernt.',
-    'seo_title_faq' => 'Häufig gestellte Fragen — Mitspielen, Ausrichten & Vertrauen',
-    'seo_description_faq' => 'Antworten auf häufige Fragen zu :brand: Begriffe wie Runde und Spielsystem, Warteliste und Ersatzbank, der Zuverlässigkeitswert, was Kosten verursacht, deine DSGVO-Rechte, verifizierte Veranstaltungsorte und deine erste eigene Runde.',
+    'seo_title_faq' => 'FAQ — Mitspielen, Ausrichten & Vertrauen',
+    'seo_description_faq' => 'Antworten zu :brand: Begriffe wie Runde, Warteliste und Ersatzbank, der Zuverlässigkeitswert, Kosten, DSGVO und deine erste eigene Runde.',
     'nav_faq' => 'Häufige Fragen',
 
     // ── Section: Die Grundlagen ────────────────────────

@@ -129,7 +129,7 @@ return [
     // M066/S07/T02: gastfreundliches Framing — der Katalog sind die Spiele,
     // auf denen unsere Runden aufbauen, keine interne Wissensdatenbank.
     'content_game_systems_knowledge_base_subtitle' => 'Stöbere in den Spielen, auf denen unsere Runden aufbauen — Brettspiele, RPGs und Kartenspiele.',
-    'seo_title_game_systems' => 'Spielsysteme: Brettspiele, RPGs & Kartenspiele',
+    'seo_title_game_systems' => 'Spielsysteme: Brettspiele, RPGs & mehr',
     'seo_description_game_systems' => 'Stöbere in den Spielen unserer Runden — Brettspiele, RPGs und Kartenspiele. Filtere nach Kategorie, Mechaniken, Spielerzahl und Komplexität.',
     'heading_mechanics' => 'Mechaniken',
     'heading_filters' => 'Filter',

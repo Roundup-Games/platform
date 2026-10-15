@@ -161,3 +161,65 @@ describe('Edge Cases', function () {
         assertPageTitle($response, 'No Desc Game');
     });
 });
+
+// ── SERP Bounds: global SeoText guard (SEODataTransformer) ──
+
+describe('SERP Bounds', function () {
+    it('bounds over-length titles to 60 characters including the site suffix', function () {
+        $game = Game::factory()->create([
+            'name' => ['en' => 'Age of Steam Expansion: Special 2008 Spiel Limited Edition Essen Spiel Secret Blueprints of Steam Plan 3'],
+            'visibility' => Visibility::Public,
+        ]);
+
+        $response = get(route('games.detail', $game->id));
+
+        preg_match('/<title>([^<]*)<\/title>/', $response->content(), $m);
+        expect(mb_strlen(html_entity_decode($m[1] ?? '', ENT_QUOTES, 'UTF-8')))
+            ->toBeLessThanOrEqual(60)
+            ->and($m[1])->toStartWith('Age of Steam Expansion: Special 2008')
+            ->and($m[1])->toEndWith('…');
+    });
+
+    it('bounds descriptions to 160 characters at a word boundary', function () {
+        $game = Game::factory()->create([
+            'name' => ['en' => 'Long Description Game'],
+            'description' => ['en' => str_repeat('word ', 60)],
+            'visibility' => Visibility::Public,
+        ]);
+
+        $response = get(route('games.detail', $game->id));
+
+        $description = extractMetaDescription($response->content());
+        expect(mb_strlen($description))->toBeLessThanOrEqual(160)
+            ->and($description)->toEndWith('…');
+    });
+
+    it('decodes html entities leaked from catalog copy into meta description', function () {
+        $game = Game::factory()->create([
+            'name' => ['en' => 'Entity Leak Game'],
+            'description' => ['en' => 'Fan expansion. Symbols &amp; Graphics &copy; 2004 Days of Wonder.'],
+            'visibility' => Visibility::Public,
+        ]);
+
+        $response = get(route('games.detail', $game->id));
+
+        $description = extractMetaDescription($response->content());
+        expect($description)->toContain('© 2004')
+            ->not->toContain('&copy;')
+            ->not->toContain('&amp;');
+    });
+
+    it('removes one layer of wrapping quotes from meta description', function () {
+        $game = Game::factory()->create([
+            'name' => ['en' => 'Quoted Wrap Game'],
+            'description' => ['en' => '"You are a monarch, ruler of a small pleasant kingdom."'],
+            'visibility' => Visibility::Public,
+        ]);
+
+        $response = get(route('games.detail', $game->id));
+
+        $description = extractMetaDescription($response->content());
+        expect($description)->toStartWith('You are a monarch')
+            ->not->toStartWith('"');
+    });
+});

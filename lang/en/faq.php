@@ -4,8 +4,8 @@ return [
     // ── Page chrome ────────────────────────────────────
     'heading_faq' => 'Frequently Asked Questions',
     'content_faq_hero_subtitle' => 'Short answers about how :brand works — the words we use, what things cost, and how trust is earned. If your question isn\'t here, we\'re one message away.',
-    'seo_title_faq' => 'Frequently Asked Questions — Playing, Hosting & Trust',
-    'seo_description_faq' => 'Answers to common questions about :brand: game terms, the waitlist and the bench, the Player Reliability Score, what things cost, your GDPR rights, venue verification, and hosting your first game.',
+    'seo_title_faq' => 'FAQ — Playing, Hosting & Trust',
+    'seo_description_faq' => 'Answers about :brand: game terms, the waitlist and bench, the reliability score, costs, GDPR rights, and hosting your first game.',
     'nav_faq' => 'FAQ',
 
     // ── Section: The basics ────────────────────────────

@@ -85,9 +85,9 @@ return [
     'content_signup_agreement_prefix' => 'By creating an account, you agree to our',
     'content_signup_agreement_connector' => 'and',
     'seo_title_code_of_conduct' => 'Code of Conduct — Our Community Rules',
-    'seo_description_code_of_conduct' => 'Roundup\'s community code of conduct in plain language: respect, safety tools, honest attendance reporting, zero harassment — plus how to report a problem and how to appeal.',
+    'seo_description_code_of_conduct' => 'Our community rules in plain language: respect, safety tools, honest attendance, zero harassment — how to report and appeal.',
     // SEO
-    'seo_title_safety_tools' => 'Tabletop RPG Safety Tools — X-Card, Lines & Veils & More',
+    'seo_title_safety_tools' => 'Safety Tools — X-Card, Lines & Veils',
     'seo_description_safety_tools' => 'Essential safety tools for tabletop RPG sessions: X-Card, Lines & Veils, Session Zero questionnaires, and more. Built for trust at every table.',
     'aria_custom_safety_note' => 'Custom safety note',
     'aria_more_info_about' => 'More info about :tool',

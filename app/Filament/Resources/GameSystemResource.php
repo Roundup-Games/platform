@@ -116,6 +116,18 @@ class GameSystemResource extends Resource
                     ])
                     ->visible(fn ($get) => $get('type') !== 'ttrpg'),
 
+                // ── Duplicate Consolidation (SEO) ───────────
+                Section::make('Duplicate Consolidation')
+                    ->description('When BGG lists several entries for the same game, mark this row as a duplicate of the canonical entry. Its page stays reachable but canonicalizes to the canonical entry and leaves the sitemap.')
+                    ->schema([
+                        Select::make('canonical_game_system_id')
+                            ->label('Canonical entry (this row is a duplicate of)')
+                            ->relationship('canonicalSystem', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Leave empty when this entry is canonical itself. Run `php artisan seo:dedupe-game-systems --execute` to reconcile the whole catalog.'),
+                    ]),
+
                 // ── Game Properties (Board Games) ────────────
                 Section::make('Game Properties')
                     ->schema([
@@ -332,6 +344,10 @@ class GameSystemResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(30),
+                TextColumn::make('canonicalSystem.slug')
+                    ->label('Duplicate of')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->placeholder('—'),
                 TextColumn::make('type')
                     ->label('Type')
                     ->badge()

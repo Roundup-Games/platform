@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
+use RalphJSmit\Laravel\SEO\Support\AlternateTag;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Spatie\MediaLibrary\HasMedia;
@@ -44,7 +45,11 @@ use Spatie\Translatable\HasTranslations;
  */
 class GameSystem extends Model implements HasMedia, TicketSubject
 {
-    use HasEntitySeo;
+    use HasEntitySeo {
+        // Alias so GameSystem::entitySeoData can layer duplicate
+        // consolidation on top of the shared per-locale resolution.
+        HasEntitySeo::entitySeoData as baseEntitySeoData;
+    }
 
     /** @use HasFactory<GameSystemFactory> */
     use HasFactory;
@@ -84,6 +89,7 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         'sp_rating', 'sp_review_count', 'platform_score', 'faq_content', 'external_links',
         'showcases', 'instructions',
         'seo_title', 'seo_description',
+        'canonical_game_system_id',
     ];
 
     protected function casts(): array
@@ -297,6 +303,27 @@ class GameSystem extends Model implements HasMedia, TicketSubject
     // ── Relationships ──────────────────────────────────
 
     /**
+     * Canonical (primary) row this duplicate consolidates into, when the
+     * BGG catalog carries multiple bgg_id entries for the same game.
+     *
+     * @return BelongsTo<GameSystem, $this>
+     */
+    public function canonicalSystem(): BelongsTo
+    {
+        return $this->belongsTo(GameSystem::class, 'canonical_game_system_id');
+    }
+
+    /**
+     * Rows marked as duplicates of this canonical row.
+     *
+     * @return HasMany<GameSystem, $this>
+     */
+    public function duplicateSystems(): HasMany
+    {
+        return $this->hasMany(GameSystem::class, 'canonical_game_system_id');
+    }
+
+    /**
      * @return BelongsToMany<GameSystemCategory, $this>
      */
     public function categories(): BelongsToMany
@@ -445,5 +472,45 @@ class GameSystem extends Model implements HasMedia, TicketSubject
             robots: 'index, follow',
             schema: $schema,
         );
+    }
+
+    /**
+     * Duplicate consolidation (SEO audit 2026-10-15): a row marked as a
+     * duplicate canonicalizes to its primary row's per-locale URLs, so one
+     * URL per game accumulates the search signals of every BGG entry.
+     * Title, description, and schema stay this row's own — the page still
+     * serves its own content at its own URL; only signals consolidate.
+     */
+    public function entitySeoData(string $locale): SEOData
+    {
+        $seoData = $this->baseEntitySeoData($locale);
+
+        $canonical = $this->canonicalSystem;
+
+        if ($canonical === null) {
+            return $seoData;
+        }
+
+        $path = "game-systems/{$canonical->slug}";
+
+        $seoData->url = url("{$locale}/{$path}");
+        $seoData->canonical_url = url("{$locale}/{$path}");
+
+        $locales = config('app.available_locales', ['en']);
+        $locales = is_array($locales) ? $locales : ['en'];
+
+        $alternates = [];
+        foreach ($locales as $availableLocale) {
+            if (is_string($availableLocale)) {
+                $alternates[] = new AlternateTag($availableLocale, url("{$availableLocale}/{$path}"));
+            }
+        }
+
+        $defaultLocale = is_string($locales[0] ?? null) ? $locales[0] : 'en';
+        $alternates[] = new AlternateTag('x-default', url("{$defaultLocale}/{$path}"));
+
+        $seoData->alternates = $alternates;
+
+        return $seoData;
     }
 }

@@ -45,6 +45,7 @@ use App\Policies\Escalated\EscalatedAdminPolicy;
 use App\Policies\Escalated\TicketPolicy;
 use App\Policies\GameBulletinPolicy;
 use App\SEO\BreadcrumbBuilder;
+use App\SEO\SeoText;
 use App\Services\AttendanceService;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\EscalatedBladeRenderer;
@@ -422,6 +423,20 @@ class AppServiceProvider extends ServiceProvider
         // Bind TagManager as a singleton so seo()->for($model) in components persists to {!! seo() !!} in layout
         $this->app->singleton(TagManager::class);
         SEOManager::SEODataTransformer(function (SEOData $SEOData): SEOData {
+            // SERP text bounds and hygiene (SeoTextTest): the package has
+            // already appended the title suffix and filled defaults by the
+            // time transformers run, so these limits cover the final tags —
+            // generated metadata, curated overrides, and lang-file copy alike.
+            $SEOData->title = SeoText::title($SEOData->title);
+
+            if (is_string($SEOData->openGraphTitle)) {
+                $SEOData->openGraphTitle = SeoText::title($SEOData->openGraphTitle);
+            }
+
+            if (is_string($SEOData->description)) {
+                $SEOData->description = SeoText::description($SEOData->description);
+            }
+
             // Canonical URL — derive from config to respect scheme/host behind proxies
             if ($SEOData->canonical_url === null) {
                 $SEOData->canonical_url = URL::to(request()->path());

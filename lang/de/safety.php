@@ -85,7 +85,7 @@ return [
     'content_signup_agreement_prefix' => 'Mit deinem Konto akzeptierst du unsere',
     'content_signup_agreement_connector' => 'sowie unseren',
     'seo_title_code_of_conduct' => 'Verhaltenskodex — Unsere Community-Regeln',
-    'seo_description_code_of_conduct' => 'Roundups Verhaltenskodex in klarer Sprache: Respekt, Safety-Tools, ehrliche Anwesenheitsmeldung, keine Belästigung — plus Wege, etwas zu melden und Einspruch einzulegen.',
+    'seo_description_code_of_conduct' => 'Unser Verhaltenskodex in klarer Sprache: Respekt, Safety-Tools, ehrliche Anwesenheit, keine Belästigung — Melden und Einspruch.',
     // SEO
     'seo_title_safety_tools' => 'Safety-Tools — X-Card, Lines & Veils und mehr',
     'seo_description_safety_tools' => 'Entdecke Safety-Tools für Tabletop-RPGs, die ein angenehmes und respektvolles Spielerlebnis für alle gewährleisten.',

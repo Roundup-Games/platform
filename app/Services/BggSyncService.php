@@ -285,27 +285,44 @@ class BggSyncService
         $bggId = is_int($data['bgg_id'] ?? null) ? $data['bgg_id'] : 0;
         $slug = $this->resolveSlug($name, $bggId);
 
+        $values = [
+            'name' => ['en' => $data['name']],
+            'slug' => $slug,
+            'description' => ['en' => $data['description']],
+            'type' => $data['bgg_type'],
+            'bgg_type' => $data['bgg_type'],
+            'year_released' => $data['year_released'],
+            'min_players' => $data['min_players'],
+            'max_players' => $data['max_players'],
+            'average_play_time' => $data['average_play_time'],
+            'age_rating' => is_int($d = $data['age_rating'] ?? null) || is_string($d) ? (string) $d : null,
+            'thumbnail_url' => $data['thumbnail_url'],
+            'bgg_average_rating' => $data['bgg_average_rating'],
+            'bgg_bayes_average' => $data['bgg_bayes_average'],
+            'bgg_rank' => $data['bgg_rank'],
+            'bgg_users_rated' => $data['bgg_users_rated'],
+            'bgg_average_weight' => $data['bgg_average_weight'],
+            'bgg_last_synced_at' => now(),
+        ];
+
+        // Duplicate consolidation: when the base slug is taken by a
+        // different bgg_id carrying the same name, this is a BGG duplicate
+        // — mark the new entry as a duplicate of that row (or of that row's
+        // canonical, keeping the chain flat). Slug collisions between
+        // genuinely different names transliterate to different slugs, so
+        // the name check guards against transliteration collisions.
+        $collision = GameSystem::query()
+            ->where('slug', Str::slug($name))
+            ->where('bgg_id', '!=', $bggId)
+            ->first();
+
+        if ($collision !== null && $collision->getTranslation('name', 'en') === $name) {
+            $values['canonical_game_system_id'] = $collision->canonical_game_system_id ?? $collision->id;
+        }
+
         $gameSystem = GameSystem::updateOrCreate(
             ['bgg_id' => $bggId],
-            [
-                'name' => ['en' => $data['name']],
-                'slug' => $slug,
-                'description' => ['en' => $data['description']],
-                'type' => $data['bgg_type'],
-                'bgg_type' => $data['bgg_type'],
-                'year_released' => $data['year_released'],
-                'min_players' => $data['min_players'],
-                'max_players' => $data['max_players'],
-                'average_play_time' => $data['average_play_time'],
-                'age_rating' => is_int($d = $data['age_rating'] ?? null) || is_string($d) ? (string) $d : null,
-                'thumbnail_url' => $data['thumbnail_url'],
-                'bgg_average_rating' => $data['bgg_average_rating'],
-                'bgg_bayes_average' => $data['bgg_bayes_average'],
-                'bgg_rank' => $data['bgg_rank'],
-                'bgg_users_rated' => $data['bgg_users_rated'],
-                'bgg_average_weight' => $data['bgg_average_weight'],
-                'bgg_last_synced_at' => now(),
-            ],
+            $values,
         );
 
         // Sync taxonomy relationships

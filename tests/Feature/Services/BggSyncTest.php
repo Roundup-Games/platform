@@ -774,3 +774,94 @@ it('completes a small list in a single lock hold under the normal deadline', fun
     expect($result->synced)->toBe(1)
         ->and(BggSyncLog::count())->toBe(1);
 });
+
+// ── Duplicate consolidation (SEO audit 2026-10-15) ────
+
+function duplicateEntryXml(int $bggId, string $name): string
+{
+    return <<<XML
+    <?xml version="1.0" encoding="UTF-8"?>
+    <items termsofuse="https://boardgamegeek.com/xmlapi2/termsofuse">
+      <item type="boardgame" id="{$bggId}">
+        <name type="primary" value="{$name}"/>
+        <description>A duplicate catalog entry for the same game.</description>
+        <yearpublished value="2011"/>
+        <minplayers value="2"/>
+        <maxplayers value="5"/>
+        <maxplaytime value="90"/>
+        <minage value="12"/>
+        <statistics><ratings>
+          <average value="7.00"/>
+          <bayesaverage value="6.50"/>
+          <usersrated value="100"/>
+          <averageweight value="2.50"/>
+          <ranks><rank type="subtype" id="1" name="boardgame" value="50"/></ranks>
+        </ratings></statistics>
+      </item>
+    </items>
+    XML;
+}
+
+it('marks a same-name collision as a duplicate of the canonical row', function () {
+    $primary = GameSystem::factory()->create([
+        'bgg_id' => 3076,
+        'name' => ['en' => 'Puerto Rico'],
+        'slug' => 'puerto-rico',
+    ]);
+
+    Http::fake([
+        'boardgamegeek.com/*' => Http::response(duplicateEntryXml(165332, 'Puerto Rico'), 200, ['Content-Type' => 'application/xml']),
+    ]);
+
+    createService()->syncGameSystems([165332]);
+
+    $duplicate = GameSystem::where('bgg_id', 165332)->first();
+
+    expect($duplicate->slug)->toBe('puerto-rico-165332')
+        ->and($duplicate->canonical_game_system_id)->toBe($primary->id);
+});
+
+it('chains new duplicates to the group primary, not to another duplicate', function () {
+    $primary = GameSystem::factory()->create([
+        'bgg_id' => 3076,
+        'name' => ['en' => 'Puerto Rico'],
+        'slug' => 'puerto-rico',
+    ]);
+    $firstDuplicate = GameSystem::factory()->create([
+        'bgg_id' => 108687,
+        'name' => ['en' => 'Puerto Rico'],
+        'slug' => 'puerto-rico-108687',
+        'canonical_game_system_id' => $primary->id,
+    ]);
+
+    Http::fake([
+        'boardgamegeek.com/*' => Http::response(duplicateEntryXml(165332, 'Puerto Rico'), 200, ['Content-Type' => 'application/xml']),
+    ]);
+
+    createService()->syncGameSystems([165332]);
+
+    $secondDuplicate = GameSystem::where('bgg_id', 165332)->first();
+
+    expect($secondDuplicate->canonical_game_system_id)->toBe($primary->id)
+        ->not->toBe($firstDuplicate->id);
+});
+
+it('does not mark a different-name slug collision as a duplicate', function () {
+    // Same slug after transliteration, different display name: not a BGG duplicate.
+    GameSystem::factory()->create([
+        'bgg_id' => 111,
+        'name' => ['en' => 'Carcassonne'],
+        'slug' => 'carcassonne',
+    ]);
+
+    Http::fake([
+        'boardgamegeek.com/*' => Http::response(duplicateEntryXml(222, 'Carcassonne!'), 200, ['Content-Type' => 'application/xml']),
+    ]);
+
+    createService()->syncGameSystems([222]);
+
+    $colliding = GameSystem::where('bgg_id', 222)->first();
+
+    expect($colliding->slug)->toBe('carcassonne-222')
+        ->and($colliding->canonical_game_system_id)->toBeNull();
+});

@@ -235,8 +235,13 @@ class SitemapController extends Controller
 
         foreach ($this->locales() as $locale) {
             foreach (self::STATIC_PATHS as $path) {
+                // The locale roots canonicalize WITHOUT a trailing slash
+                // (URL::to('en') => /en) — the sitemap must match the
+                // canonical form exactly, so '/' emits the bare root.
                 $entries[] = [
-                    'loc' => "{$baseUrl}/{$locale}{$path}",
+                    'loc' => $path === '/'
+                        ? "{$baseUrl}/{$locale}"
+                        : "{$baseUrl}/{$locale}{$path}",
                     'lastmod' => $now,
                     'changefreq' => self::TYPE_CHANGEFREQ['static'],
                     'priority' => self::TYPE_PRIORITIES['static'],
@@ -257,7 +262,11 @@ class SitemapController extends Controller
         $baseUrl = $this->baseUrl();
         $entries = [];
 
-        $systems = GameSystem::select('slug', 'updated_at')
+        $systems = GameSystem::query()
+            ->select('slug', 'updated_at')
+            // BGG duplicates consolidate to their canonical row — only the
+            // primary URL per game belongs in the sitemap (SEO 2026-10-15).
+            ->whereNull('canonical_game_system_id')
             ->orderByDesc('updated_at')
             ->limit(self::MAX_ENTITIES_PER_SITEMAP)
             ->get();

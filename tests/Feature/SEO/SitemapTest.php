@@ -125,9 +125,23 @@ describe('Static Pages Sitemap', function () {
 
         foreach (['en', 'de'] as $locale) {
             foreach ($paths as $path) {
-                expect($content)->toContain("{$baseUrl}/{$locale}{$path}");
+                $expected = $path === '/'
+                    ? "<loc>{$baseUrl}/{$locale}</loc>"
+                    : "{$baseUrl}/{$locale}{$path}";
+                expect($content)->toContain($expected);
             }
         }
+    });
+
+    it('emits locale roots in canonical form without a trailing slash', function () {
+        $content = get('/sitemap-static.xml')->content();
+        $baseUrl = config('app.url');
+
+        expect($content)
+            ->toContain("<loc>{$baseUrl}/en</loc>")
+            ->toContain("<loc>{$baseUrl}/de</loc>")
+            ->not->toContain("{$baseUrl}/en/</loc>")
+            ->not->toContain("{$baseUrl}/de/</loc>");
     });
 
     it('includes changefreq and priority for each url', function () {
@@ -377,4 +391,21 @@ describe('XML Well-Formedness', function () {
         ['/sitemap-venues.xml', 'urlset'],
         ['/sitemap-cities.xml', 'urlset'],
     ]);
+});
+
+// ── Robots policy: crawler posture and sitemap discovery ──
+
+it('serves a robots.txt with sitemap directive and open crawler policy', function () {
+    // robots.txt is served by the webserver as a static public file (never
+    // routed through Laravel), so pin the deployed artifact directly.
+    $body = (string) file_get_contents(public_path('robots.txt'));
+
+    expect($body)
+        ->toContain('Sitemap: https://roundup.games/sitemap.xml')
+        ->toContain('User-agent: *')
+        ->not->toContain('Disallow: /')
+        // AI-crawler posture is explicit (llms.txt is served alongside)
+        ->toContain('User-agent: GPTBot')
+        ->toContain('User-agent: ClaudeBot')
+        ->toContain('User-agent: PerplexityBot');
 });
