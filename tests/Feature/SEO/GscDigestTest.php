@@ -142,3 +142,21 @@ it('renders the search performance page for admins with the latest snapshot and 
 it('redirects guests from the search performance page to login', function () {
     get('/admin/search-performance')->assertRedirect();
 });
+
+it('stores a zero snapshot when the window has no data yet', function () {
+    config(['services.gsc.credentials' => gscCredentials()]);
+
+    // The API omits `rows` entirely for empty windows — not a failure.
+    Http::fake([
+        'oauth2.googleapis.com/token' => Http::response(['access_token' => 'test-token'], 200),
+        'searchconsole.googleapis.com/*' => Http::response(['responseAggregationType' => 'byProperty'], 200),
+    ]);
+
+    artisan('seo:gsc-digest')->assertSuccessful();
+
+    $snapshot = GscSnapshot::query()->sole();
+
+    expect($snapshot->clicks)->toBe(0)
+        ->and($snapshot->impressions)->toBe(0)
+        ->and($snapshot->top_queries)->toBe([]);
+});

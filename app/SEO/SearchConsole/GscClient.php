@@ -26,7 +26,9 @@ final class GscClient
     private const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly';
 
     /**
-     * Aggregated totals for one date range (no dimensions).
+     * Aggregated totals for one date range (no dimensions). Zeroes when
+     * the window has no data yet (the API omits `rows` entirely) — null
+     * strictly means the query itself failed.
      *
      * @return array{clicks: int, impressions: int, ctr: float, position: float}|null
      */
@@ -34,11 +36,11 @@ final class GscClient
     {
         $rows = $this->query($startDate, $endDate, []);
 
-        $row = $rows[0] ?? null;
-
-        if ($row === null) {
+        if ($rows === null) {
             return null;
         }
+
+        $row = $rows[0] ?? [];
 
         return [
             'clicks' => (int) (is_numeric($row['clicks'] ?? null) ? $row['clicks'] : 0),
