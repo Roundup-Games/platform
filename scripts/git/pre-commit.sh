@@ -5,11 +5,18 @@
 # Policy:
 # 1. Secret detection (gitleaks)     → HARD FAIL   (never commit secrets)
 #   2. PHP syntax check (php -l)        → HARD FAIL   (unparseable code)
-#   3. PHP code style (Pint)            → AUTO-FIX    (fixes + re-stages; warns if anything remains)
+#   3. PHP code style (Pint)            → AUTO-FIX    (fixes + re-stages; HARD FAILS if anything remains unfixable)
 #      …applied to all staged PHP EXCEPT lang/ — Weblate owns that
 #      serialization (see pint.json exclude); Pint on lang/ re-adds the
 #      blank line after <?php that Weblate strips, so it must never run there.
-#   4. PHP static analysis (Larastan)   → WARN ONLY   (informs, never blocks)
+#   4. Eloquent practices + invariants  → HARD FAIL   (cheap greps, CI gates)
+#   5. Translation integrity            → HARD FAIL   (when lang/ is staged)
+#   6. PHP static analysis (Larastan)   → HARD FAIL   (same rule set as CI)
+#
+# Goal: "green locally" == "green on CI" for every static-analysis job.
+# Pest and the JS build remain CI-side (too slow per-commit) — run
+# `composer ci-mirror` for the full static mirror, `composer smoke` for
+# the fast test signal, and the full suite before deploying.
 #
 # Auto-fix re-staging skips files that ALSO have unstaged (partial) changes —
 # re-adding those would sweep the unstaged hunks into the commit, so the fix
@@ -157,20 +164,55 @@ else
     skip "style" "vendor/bin/pint not found — run composer install"
 fi
 
-# ── 4. PHP static analysis (Larastan) — WARN ONLY ────────────────────────────
+# ── 4. Eloquent practices + platform invariants — HARD FAIL ───────────────
+# Cheap greps that CI hard-gates; run them whenever PHP is staged so a
+# violation never reaches the push stage.
+if practices_out=$(composer --quiet practices 2>&1); then
+    ok "eloquent" "best-practices guardrail"
+else
+    fail "eloquent" "Eloquent best-practices violation — commit blocked"
+    echo "$practices_out" | grep -E '❌|hit' | head -10 | sed 's/^/         /'
+fi
+
+if bash scripts/check_platform_invariants.sh >/dev/null 2>&1; then
+    ok "invariant" "platform invariants"
+else
+    fail "invariant" "platform invariants violated — commit blocked"
+    bash scripts/check_platform_invariants.sh 2>&1 | grep -E 'FAIL|✗' | head -5 | sed 's/^/         /'
+fi
+
+# ── 5. Translation integrity — HARD FAIL (lang/ staged) ────────────────────
+staged_lang=$(git diff --cached --name-only --diff-filter=ACM -- 'lang/' || true)
+if [[ -n "$staged_lang" ]]; then
+    if [[ -f .env ]]; then
+        if i18n_out=$(php artisan i18n:check 2>&1); then
+            ok "i18n" "translation parity and integrity"
+        else
+            fail "i18n" "i18n:check found issues — commit blocked"
+            echo "$i18n_out" | tail -12 | sed 's/^/         /'
+        fi
+    else
+        skip "i18n" "no .env — artisan unavailable (CI still gates this)"
+    fi
+else
+    skip "i18n" "skipped (no lang/ changes)"
+fi
+
+# ── 6. PHP static analysis (Larastan) — HARD FAIL ───────────────────────
 #
 # Larastan analyses the whole codebase (needs full type context), so we gate
-# it on app/config/database changes to avoid running on test-only commits.
-# Issues are reported as warnings — they inform but never block the commit.
+# it on app/config/database changes to avoid running on test-only commits
+# (phpstan.neon analyses app/ only). Same rule set and memory limit as CI;
+# a failure blocks the commit exactly like it fails CI.
 #
 has_app=$(echo "$staged_php" | grep -cE '^(app|config|database)/' || true)
 if [[ -x vendor/bin/phpstan ]]; then
     if [[ "$has_app" -gt 0 ]]; then
-        step "stan" "larastan (warn-only)"
+        step "stan" "larastan (hard fail — CI parity)"
         if stan_out=$(vendor/bin/phpstan analyse --no-progress --memory-limit=512M 2>&1); then
             ok "stan" "larastan"
         else
-            warn "stan" "static analysis found issues (non-blocking)"
+            fail "stan" "static analysis found issues — commit blocked (CI fails on these)"
             echo "$stan_out" | tail -30 | sed 's/^/         /'
         fi
     else
@@ -183,7 +225,7 @@ fi
 # ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 if [[ "$failed" -ne 0 ]]; then
-    printf "${RED}⛔ Pre-commit blocked by secrets/syntax errors. Fix above or use --no-verify.${RST}\n\n"
+    printf "${RED}⛔ Pre-commit blocked — fix the failures above (CI gates them too). Bypass: git commit --no-verify.${RST}\n\n"
     exit 1
 fi
 

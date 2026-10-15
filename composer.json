@@ -111,6 +111,14 @@
         "practices": [
             "bash scripts/check_eloquent_practices.sh"
         ],
+        "ci-mirror": [
+            "Composer\\Config::disableProcessTimeout",
+            "@composer practices",
+            "bash scripts/check_platform_invariants.sh",
+            "bash scripts/verify-schema-dumps.sh",
+            "vendor/bin/phpstan analyse --no-progress --memory-limit=512M",
+            "@php artisan i18n:check"
+        ],
         "deploy:assets": [
             "bash build-tools/subset-icons.sh",
             "npm run build"
