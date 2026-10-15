@@ -58,11 +58,16 @@ fi
 # here at container start, not at build time. view:cache also stays here —
 # compiled views are written to storage/framework/views (the shared volume)
 # and baking them into the image is pointless under the app_storage mount.
-# route:cache and event:cache were removed from here: they do not read the
-# environment and are baked into the image at build time (see Dockerfile) —
-# running them here deleted and rewrote bootstrap/cache/routes-v7.php on
-# every start, which is the deploy-window race behind the boot-time
-# ErrorException in error tracking.
+# event:cache is code-driven and env-independent — baked into the image at
+# build time (see Dockerfile). route:cache is NOT env-independent and stays
+# here: Livewire 4 prefixes its endpoints with a hash of APP_KEY
+# (EndpointResolver::prefix()), so the route table is only correct when
+# built with the runtime key. A keyless build-time cache registers
+# /livewire-4aeeedbb/... while the app serves the real-key prefix — every
+# Livewire POST then 405s (2026-10-15 production incident). bootstrap/cache
+# is container-local (only storage/ is shared with the worker), and the
+# /tmp/laravel-init-complete gate keeps the worker healthcheck's artisan
+# probe out of the delete-rewrite window, which was the original race.
 echo "Caching config and views..."
 # Soft dependency preflight (MEM1147): warn — never block boot — when
 # Redis or Postgres are not reachable yet, so reboot-window outages are
@@ -76,6 +81,13 @@ fi
 
 php artisan config:cache
 php artisan view:cache
+
+# Route cache: regenerate here, AFTER APP_KEY is ensured above — Livewire 4
+# derives its endpoint prefix from the app key, so the route table is only
+# correct when built with the runtime key (see the comment block above).
+# bootstrap/cache is container-local, and the init-complete gate keeps the
+# worker healthcheck's artisan probe out of the delete-rewrite window.
+php artisan route:cache
 
 # Seed Escalated helpdesk data (departments, tags, SLA policies) — idempotent
 # Allow errors to surface in container logs for debugging; || true prevents script failure

@@ -100,10 +100,13 @@ class PostHogIdentifyUsers
      */
     private function shouldIdentify(Request $request): bool
     {
+        // 'livewire*' (not 'livewire/*'): Livewire 4 prefixes its endpoints
+        // with an APP_KEY-derived hash (/livewire-{hash}/...), so a literal
+        // 'livewire/*' never matches in any environment.
         return $request->isMethod('GET')
             && ! $request->is('api/*')
             && ! $request->is('admin/*')
-            && ! $request->is('livewire/*')
+            && ! $request->is('livewire*')
             && ! $request->header('X-Livewire');
     }
 

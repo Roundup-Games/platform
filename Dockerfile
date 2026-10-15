@@ -113,13 +113,16 @@ RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php \
 # design (build-time boot, see AppServiceProvider).
 RUN php artisan storage:link --force || true
 
-# Bake the caches that do not read runtime env, at image build time (PR #80's
-# diagnosis): route:cache and event:cache previously ran on every container
-# start and DELETE their cache file before rewriting it, so a concurrently-
-# booting artisan (the worker healthcheck — Docker runs it outside s6
-# ordering) could pass routesAreCached() and then fatal on the require of the
-# missing routes-v7.php, filing a false error-tracking issue on every deploy.
-# Baked into the image, they ship immutable and are never rewritten at start.
+# Bake ONLY the caches that are provably env-independent. event:cache is
+# code-driven — safe to bake. route:cache is NOT (see the init script):
+# Livewire 4 prefixes its endpoints with a hash of APP_KEY
+# (EndpointResolver::prefix()), so a build-time route cache registers a
+# keyless prefix while the running app serves the real-key one — every
+# Livewire POST then 405s (2026-10-15 production incident: admin dashboard
+# and all interactive pages returned 405 on /livewire-73d64a53/update
+# while the baked table only knew /livewire-4aeeedbb). route:cache runs in
+# docker/s6/99-laravel-init after APP_KEY is ensured; the init-complete
+# marker gate covers the boot race that originally motivated baking.
 #
 # view:cache is deliberately NOT baked: compiled views live in
 # storage/framework/views, which the app_storage named volume shadows at
@@ -128,15 +131,12 @@ RUN php artisan storage:link --force || true
 # where it writes the volume — and has no fatal race class of its own.
 #
 # Ops notes:
-# - route/event caches are now build artifacts: `docker exec ... artisan
-#   route:clear` in a running container is permanent until the next image
-#   deploy, because the init no longer regenerates them.
-# - Route registration must stay env-independent — config at build time has
-#   no environment. available_locales is hardcoded in config/app.php today;
-#   if it ever becomes env-driven, these baked routes freeze build-time
-#   values and locale routing would need to move back to the runtime init.
-RUN php artisan route:cache \
- && php artisan event:cache
+# - event:cache is a build artifact: `docker exec ... artisan event:clear`
+#   in a running container is permanent until the next image deploy.
+# - route:cache is a runtime artifact regenerated on every start:
+#   `docker exec ... artisan route:clear` restores dynamically registered
+#   routes immediately and survives until the next restart.
+RUN php artisan event:cache
 
 # S6 init script — runs migrations, caches config on every start
 # Must come after source is copied so artisan is available at runtime
