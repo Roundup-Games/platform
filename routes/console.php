@@ -117,6 +117,15 @@ Schedule::command('discovery:sweep-active --window=60')
 // City hubs — re-warm summary caches + curated-city snapshot columns, keep the cities sitemap fresh
 Schedule::command('cityhubs:recompute')->hourly()->onOneServer();
 
+// Core Web Vitals across representative templates (PSI API, free quota —
+// 12 calls per run). Weekly cadence matches how slowly CWV actually moves;
+// run on demand with `php artisan cwv:check` after performance work.
+Schedule::command('cwv:check')
+    ->weekly()->mondays()->at('05:00')
+    ->runInBackground()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 Schedule::command('pwa:send-session-reminders')
     ->everyFiveMinutes()
     ->withoutOverlapping(10)

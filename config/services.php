@@ -173,4 +173,15 @@ return [
         'endpoint' => env('INDEXNOW_ENDPOINT', 'https://api.indexnow.org/indexnow'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | PageSpeed Insights
+    |--------------------------------------------------------------------------
+    | Free API key for Core Web Vitals monitoring (config/cwv.php templates,
+    | cwv:check command). Empty key disables the monitoring loop.
+    */
+    'pagespeed' => [
+        'key' => env('PAGESPEED_API_KEY'),
+    ],
+
 ];
