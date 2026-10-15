@@ -37,6 +37,7 @@ use App\Observers\GameBulletinObserver;
 use App\Observers\GameObserver;
 use App\Observers\GameParticipantObserver;
 use App\Observers\GameSystemLandingObserver;
+use App\Observers\IndexNowObserver;
 use App\Observers\ReviewObserver;
 use App\Observers\SeoModelObserver;
 use App\Observers\UserRelationshipObserver;
@@ -629,6 +630,18 @@ class AppServiceProvider extends ServiceProvider
         Campaign::observe($seoObserver);
         Team::observe($seoObserver);
         User::observe($seoObserver);
+
+        // IndexNow announcements on the sitemap-relevant entities (SEO
+        // 2026-10-15): parked + coalesced by IndexNowService; the whole
+        // pipeline no-ops until INDEXNOW_KEY is configured per environment.
+        $indexNowObserver = $this->app->make(IndexNowObserver::class);
+        GameSystem::observe($indexNowObserver);
+        Event::observe($indexNowObserver);
+        Game::observe($indexNowObserver);
+        Campaign::observe($indexNowObserver);
+        User::observe($indexNowObserver);
+        Location::observe($indexNowObserver);
+        City::observe($indexNowObserver);
 
         // City hub cache invalidation (M062/62-03): Game/Event/Location saves
         // can move a city's qualifying counts — flush the affected city

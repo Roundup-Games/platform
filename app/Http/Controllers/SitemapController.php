@@ -40,8 +40,11 @@ class SitemapController extends Controller
 
     /**
      * Event statuses considered published and visible to the public.
+     *
+     * Public: shared with ResolveIndexNowUrls — the sitemap builders and the
+     * IndexNow resolver must agree on what counts as an indexable event.
      */
-    private const PUBLISHED_EVENT_STATUSES = [
+    public const PUBLISHED_EVENT_STATUSES = [
         'published',
         'registration_open',
         'registration_closed',

@@ -159,4 +159,18 @@ return [
         'api_token' => env('CF_API_TOKEN'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | IndexNow
+    |--------------------------------------------------------------------------
+    | Ownership key for the IndexNow protocol (instant indexing with Bing,
+    | Yandex, Seznam, and Naver). The key is served publicly at /{key}.txt
+    | (IndexNowKeyController) — it is an ownership proof, not a secret.
+    | Empty key disables the whole pipeline (observer no-ops, route 404s).
+    */
+    'indexnow' => [
+        'key' => env('INDEXNOW_KEY'),
+        'endpoint' => env('INDEXNOW_ENDPOINT', 'https://api.indexnow.org/indexnow'),
+    ],
+
 ];

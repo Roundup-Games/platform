@@ -21,6 +21,7 @@ use App\Http\Controllers\DiscordInteractionController;
 use App\Http\Controllers\DiscordJoinController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Controllers\ICalFeedController;
+use App\Http\Controllers\IndexNowKeyController;
 use App\Http\Controllers\InviteOptoutController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NotificationController;
@@ -101,6 +102,14 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect('/'.resolvePreferredLocale().'/');
 })->name('root');
+
+// ── IndexNow ownership key file ───────────────────────
+// Engines fetch /{key}.txt to verify host ownership before accepting
+// submissions. 404s unless the filename matches the configured key
+// exactly. The 32-hex constraint cannot shadow other top-level routes.
+Route::get('/{keyfile}', IndexNowKeyController::class)
+    ->where('keyfile', '[a-f0-9]{32}\\.txt')
+    ->name('indexnow.key');
 
 // ── Short Link Redirect (no auth, locale-agnostic) ───
 
