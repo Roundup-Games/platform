@@ -126,6 +126,14 @@ Schedule::command('cwv:check')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Google Search Console digest snapshot (rolling 28 days) for the Search
+// Performance admin page. 06:00 so the day's data has settled; weekly.
+Schedule::command('seo:gsc-digest')
+    ->weekly()->mondays()->at('06:00')
+    ->runInBackground()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 Schedule::command('pwa:send-session-reminders')
     ->everyFiveMinutes()
     ->withoutOverlapping(10)

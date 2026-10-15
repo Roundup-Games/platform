@@ -184,4 +184,17 @@ return [
         'key' => env('PAGESPEED_API_KEY'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Google Search Console
+    |--------------------------------------------------------------------------
+    | Service-account credentials (base64 JSON) for the read-only search
+    | analytics pipeline. The SA email must be a Full user on the property.
+    | Site identifier: domain properties use the sc-domain: prefix.
+    */
+    'gsc' => [
+        'credentials' => env('GSC_CREDENTIALS_JSON_BASE64'),
+        'site' => env('GSC_SITE_URL', 'sc-domain:roundup.games'),
+    ],
+
 ];
