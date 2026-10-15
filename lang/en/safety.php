@@ -87,7 +87,7 @@ return [
     'seo_title_code_of_conduct' => 'Code of Conduct — Our Community Rules',
     'seo_description_code_of_conduct' => 'Our community rules in plain language: respect, safety tools, honest attendance, zero harassment — how to report and appeal.',
     // SEO
-    'seo_title_safety_tools' => 'Safety Tools — X-Card, Lines & Veils',
+    'seo_title_safety_tools' => 'RPG Safety Tools: X-Card, Lines & Veils',
     'seo_description_safety_tools' => 'Essential safety tools for tabletop RPG sessions: X-Card, Lines & Veils, Session Zero questionnaires, and more. Built for trust at every table.',
     'aria_custom_safety_note' => 'Custom safety note',
     'aria_more_info_about' => 'More info about :tool',

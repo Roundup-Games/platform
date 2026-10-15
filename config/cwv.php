@@ -14,8 +14,8 @@
 return [
     'templates' => [
         'home' => '/',
-        'discovery-board-games' => '/board-games',
-        'discovery-adventures' => '/adventures',
+        'discovery-board-games' => '/discover/board-games',
+        'discovery-adventures' => '/discover/adventures',
         'city-hub' => '/cities/berlin',
         'game-system' => '/game-systems/carcassonne',
         'static-pricing' => '/pricing',

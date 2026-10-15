@@ -121,7 +121,7 @@ describe('Static Pages Sitemap', function () {
         $content = get('/sitemap-static.xml')->content();
         $baseUrl = config('app.url');
 
-        $paths = ['/', '/about', '/how-it-works', '/for-organizers', '/pricing', '/contact', '/faq', '/safety-tools', '/safety/code-of-conduct', '/gms', '/game-systems', '/cities', '/our-pledge', '/our-pledge/algorithms', '/our-pledge/roadmap'];
+        $paths = ['/', '/discover', '/discover/board-games', '/discover/adventures', '/about', '/how-it-works', '/for-organizers', '/pricing', '/contact', '/faq', '/safety-tools', '/safety/code-of-conduct', '/gms', '/game-systems', '/cities', '/our-pledge', '/our-pledge/algorithms', '/our-pledge/roadmap'];
 
         foreach (['en', 'de'] as $locale) {
             foreach ($paths as $path) {
@@ -148,9 +148,10 @@ describe('Static Pages Sitemap', function () {
         $content = get('/sitemap-static.xml')->content();
 
         preg_match_all('/<url>(.*?)<\/url>/s', $content, $blocks);
-        // 15 paths × 2 locales = 30 entries (M066/S08/T01 added /pricing,
-        // S08/T02 added /faq, S08/T03 added /safety/code-of-conduct)
-        expect($blocks[0])->toHaveCount(30);
+        // 18 paths × 2 locales = 36 entries (M066/S08 added /pricing, /faq,
+        // /safety/code-of-conduct; SEO 2026-10-15 added the /discover forks —
+        // the core product surface previously absent from the sitemap)
+        expect($blocks[0])->toHaveCount(36);
 
         foreach ($blocks[0] as $block) {
             expect($block)->toContain('<changefreq>monthly</changefreq>');

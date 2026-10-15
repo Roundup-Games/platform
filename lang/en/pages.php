@@ -45,7 +45,7 @@ return [
     'seo_description_how_it_works' => 'How :brand works: find board game and RPG sessions near you, join with a click, and organize your own gatherings.',
     'seo_title_about' => 'About Us — Non-Profit, Open Source',
     'seo_title_contact' => 'Contact Us — Questions & Feedback',
-    'seo_title_for_organizers' => 'Organizer Tools — Host Games & RPGs',
+    'seo_title_for_organizers' => 'Board Game Organizer Tools: Host & Manage',
     'seo_title_home' => 'Find Tabletop Games & RPG Sessions Near You',
     'seo_title_how_it_works' => 'Find & Join Local Board Game Groups',
     // ── Our Pledge ─────────────────────────────────────

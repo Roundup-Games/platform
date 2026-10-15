@@ -22,6 +22,9 @@ class SitemapController extends Controller
      */
     private const STATIC_PATHS = [
         '/',
+        '/discover',
+        '/discover/board-games',
+        '/discover/adventures',
         '/about',
         '/how-it-works',
         '/for-organizers',

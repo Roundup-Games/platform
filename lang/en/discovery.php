@@ -136,9 +136,9 @@ return [
     'seo_title_browse_campaigns' => 'Browse Campaigns',
     'seo_title_browse_all' => 'Browse Games & Campaigns',
     'seo_description_browse' => 'Search and filter board games and tabletop RPG campaigns by game system, vibe, experience level, and more.',
-    'seo_title_browse_board_games' => 'Browse Board Games',
-    'seo_description_browse_board_games' => 'Find board game sessions near you. Filter by game system, experience level, vibe, and availability.',
-    'seo_title_browse_adventures' => 'Browse Adventures',
-    'seo_description_browse_adventures' => 'Find tabletop RPG campaigns and one-shot adventures near you. Filter by game system, play style, and experience level.',
+    'seo_title_browse_board_games' => 'Find Board Game Groups & Sessions',
+    'seo_description_browse_board_games' => 'Find local board game groups and sessions near you. Filter by game system, experience level, and vibe, then join with a click.',
+    'seo_title_browse_adventures' => 'Find D&D Groups & RPG Campaigns',
+    'seo_description_browse_adventures' => 'Find D&D and tabletop RPG groups, campaigns, and one-shots near you, in person. Filter by system, play style, and experience level.',
     'content_showing_of_total' => 'Showing :shown of :total results',
 ];
