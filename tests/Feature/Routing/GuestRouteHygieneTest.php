@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 
@@ -174,9 +175,10 @@ describe('GuestRouteHygiene — sitemap statics', function () {
         preg_match_all('/<loc>(.*?)<\/loc>/', $content, $matches);
         $locs = $matches[1];
 
-        // 15 paths × 2 locales — a smaller set means STATIC_PATHS lost
-        // an entry; round-tripping a stale cache would fail the 200s.
-        expect($locs)->toHaveCount(30);
+        // Derived from the controller's own path list — a smaller set
+        // means STATIC_PATHS lost an entry; round-tripping a stale cache
+        // would fail the 200s.
+        expect($locs)->toHaveCount(count(SitemapController::STATIC_PATHS) * 2);
 
         $baseUrl = config('app.url');
         foreach ($locs as $loc) {

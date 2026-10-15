@@ -82,7 +82,8 @@
     },
     "scripts": {
         "install-hooks": [
-            "test -d .git && test -f scripts/git/pre-commit.sh && mkdir -p .git/hooks && cp scripts/git/pre-commit.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit || true"
+            "test -d .git && test -f scripts/git/pre-commit.sh && mkdir -p .git/hooks && cp scripts/git/pre-commit.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit || true",
+            "test -d .git && test -f scripts/git/pre-push.sh && cp scripts/git/pre-push.sh .git/hooks/pre-push && chmod +x .git/hooks/pre-push || true"
         ],
         "setup": [
             "composer install",

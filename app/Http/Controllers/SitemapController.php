@@ -20,7 +20,12 @@ class SitemapController extends Controller
     /**
      * Static page paths (relative to locale prefix) included in the sitemap.
      */
-    private const STATIC_PATHS = [
+    /**
+     * Locale-relative static paths included in the static sitemap for every
+     * locale. Public: the routing-hygiene and sitemap tests derive their
+     * expected URL counts from here, so adding a path never desyncs them.
+     */
+    public const STATIC_PATHS = [
         '/',
         '/discover',
         '/discover/board-games',

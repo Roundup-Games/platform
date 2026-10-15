@@ -3,6 +3,7 @@
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\Visibility;
+use App\Http\Controllers\SitemapController;
 use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
@@ -148,10 +149,10 @@ describe('Static Pages Sitemap', function () {
         $content = get('/sitemap-static.xml')->content();
 
         preg_match_all('/<url>(.*?)<\/url>/s', $content, $blocks);
-        // 18 paths × 2 locales = 36 entries (M066/S08 added /pricing, /faq,
-        // /safety/code-of-conduct; SEO 2026-10-15 added the /discover forks —
-        // the core product surface previously absent from the sitemap)
-        expect($blocks[0])->toHaveCount(36);
+        // Derived from the controller's path list (SEO 2026-10-15 added the
+        // /discover forks — the core product surface previously absent),
+        // so the count can never desync from STATIC_PATHS again.
+        expect($blocks[0])->toHaveCount(count(SitemapController::STATIC_PATHS) * 2);
 
         foreach ($blocks[0] as $block) {
             expect($block)->toContain('<changefreq>monthly</changefreq>');
