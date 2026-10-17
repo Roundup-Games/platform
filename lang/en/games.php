@@ -140,7 +140,8 @@ return [
     // M066/S07/T02: guest-friendly framing — the catalog is the games our
     // sessions run on, not an internal knowledge base.
     'content_game_systems_knowledge_base_subtitle' => 'Browse the games our sessions run on — board games, RPGs, and card games.',
-    'seo_title_game_systems' => 'Game Systems: Board Games, RPGs & Card Games',
+    'seo_title_game_systems' => 'Browse Board Games, RPGs & Card Games',
+    'seo_title_game_system_detail' => ':name — Find Groups & Sessions',
     'seo_description_game_systems' => 'Browse the games our sessions run on — board games, RPGs, and card games. Filter by category, mechanics, player count, and complexity.',
     'heading_mechanics' => 'Mechanics',
     'heading_filters' => 'Filters',

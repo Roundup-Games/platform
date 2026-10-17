@@ -61,12 +61,12 @@ return [
 
     // Per-locale SEO (T04). :city renders the canonical cluster display
     // name; the site-name suffix is appended by the SEO package config.
-    'seo_title' => 'Tabletop gaming in :city',
+    'seo_title' => 'Board Game Groups & Sessions in :city',
     'seo_description' => 'Find upcoming public board game sessions, campaigns, and events in :city, plus verified venues to play at.',
 
     // Index page SEO (M066/S06/T04); the site-name suffix is appended by
     // the SEO package config.
-    'seo_title_index' => 'Tabletop gaming city hubs',
+    'seo_title_index' => 'Find Board Game Groups by City',
     'seo_description_index' => 'Browse every live city hub: upcoming public board game sessions, campaigns, and events, plus verified venues to play at — city by city.',
 
 ];

@@ -466,7 +466,10 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         }
 
         return new SEOData(
-            title: $this->name,
+            // Keyword-first generated fallback (R072): the bare system
+            // name wastes the query intent; curated per-entity seo_title
+            // (entitySeoData) still overrides this per locale.
+            title: __('games.seo_title_game_system_detail', ['name' => $this->name]),
             description: Str::limit(strip_tags($this->description ?? ''), 160) ?: null,
             image: $this->coverImageUrl() ?: asset('images/og-default.jpg'),
             robots: 'index, follow',

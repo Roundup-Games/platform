@@ -45,6 +45,8 @@ return [
     'content_pricing_free_heading' => 'Mitmachen und Spielen ist kostenlos',
     'content_pricing_membership_pitch' => 'Die Mitgliedschaft unterstützt die Plattform und ihre Weiterentwicklung. Der GM-Tarif ist kostenlos und schaltet den GM-Arbeitsbereich frei.',
     'content_pricing_subtitle' => 'Mitmachen und Spielen ist kostenlos — die Mitgliedschaft unterstützt die Plattform und schaltet die GM-Werkzeuge frei.',
+    'seo_title_pricing' => 'Preise — Mitmachen und Spielen ist kostenlos',
+    'seo_description_pricing' => 'Mitmachen und Spielen ist kostenlos — die Mitgliedschaft unterstützt die Plattform und schaltet die GM-Werkzeuge frei.',
     'content_price_eur' => 'Preis (€)',
     'content_duration_months' => '{1} :count Monat|[2,*] :count Monate',
     'content_refund' => 'Erstatten',

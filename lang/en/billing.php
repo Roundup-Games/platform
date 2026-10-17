@@ -45,6 +45,8 @@ return [
     'content_pricing_free_heading' => 'Free to join and play',
     'content_pricing_membership_pitch' => 'Membership supports the platform and its development. The Game Master tier is free and unlocks the GM workspace.',
     'content_pricing_subtitle' => 'Free to join and play — membership supports the platform and unlocks GM workspace tools.',
+    'seo_title_pricing' => 'Pricing — Free to Join & Play',
+    'seo_description_pricing' => 'Free to join and play — membership supports the platform and unlocks GM workspace tools.',
     'content_price_eur' => 'Price (€)',
     'content_duration_months' => '{1} :count month|[2,*] :count months',
     'content_refund' => 'Refund',

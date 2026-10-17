@@ -74,7 +74,7 @@ return [
     'nav_venue_directory' => 'Venue Directory',
     'heading_directory' => 'Find a place to play',
     'content_directory_subtitle' => 'Browse cafés, game stores, and community spaces hosting public sessions near you.',
-    'seo_directory_title' => 'Venue Directory — Board Game & TTRPG Venues',
+    'seo_directory_title' => 'Find Board Game Cafés, Stores & Venues',
     'seo_directory_description' => 'Browse verified cafés, friendly local game stores, and community spaces hosting public board game and tabletop sessions near you.',
     'placeholder_directory_search' => 'Search by name, city, or address…',
     'field_directory_venue_type' => 'Venue type',
