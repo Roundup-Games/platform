@@ -10,6 +10,7 @@ use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
 use App\Listeners\LogMailMessageSent;
 use App\Listeners\LogNotificationDelivery;
+use App\Listeners\RecordScheduledTaskRun;
 use App\Listeners\RecordUserSignIn;
 use App\Listeners\SuppressAutomatedTicketStatusNotifications;
 use App\Models\Campaign;
@@ -90,6 +91,11 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\Events\CacheHit;
 use Illuminate\Cache\Events\CacheMissed;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\ScheduledBackgroundTaskFinished;
+use Illuminate\Console\Events\ScheduledTaskFailed;
+use Illuminate\Console\Events\ScheduledTaskFinished;
+use Illuminate\Console\Events\ScheduledTaskSkipped;
+use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -323,6 +329,17 @@ class AppServiceProvider extends ServiceProvider
         // remember-me) — the session boundary that makes retention cohorts
         // measurable. See RecordUserSignIn for the consent/privacy design.
         EventFacade::listen(Login::class, RecordUserSignIn::class);
+
+        // Scheduled-work outcome observability (M068): the scheduler fires
+        // these framework events from schedule:work; RecordScheduledTaskRun
+        // persists each dispatch's outcome (status, runtime, error) so the
+        // admin Scheduled Tasks page can show last-run status, duration,
+        // and missed-run detection without log access.
+        EventFacade::listen(ScheduledTaskStarting::class, [RecordScheduledTaskRun::class, 'starting']);
+        EventFacade::listen(ScheduledTaskFinished::class, [RecordScheduledTaskRun::class, 'finished']);
+        EventFacade::listen(ScheduledTaskFailed::class, [RecordScheduledTaskRun::class, 'failed']);
+        EventFacade::listen(ScheduledTaskSkipped::class, [RecordScheduledTaskRun::class, 'skipped']);
+        EventFacade::listen(ScheduledBackgroundTaskFinished::class, [RecordScheduledTaskRun::class, 'backgroundFinished']);
 
         // Per-channel delivery observability. NotificationService logs dispatch
         // (enqueue) intent; these fire on the queue worker after each channel's

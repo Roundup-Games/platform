@@ -98,6 +98,10 @@ return [
 
     'waits' => [
         'redis:default' => 60,
+        // Discovery-cache warmers share the supervisor; a backlog here starves
+        // dashboard/nearby freshness without ever tripping the default queue's
+        // threshold.
+        'redis:discovery' => 60,
     ],
 
     /*
@@ -152,8 +156,12 @@ return [
 
     'metrics' => [
         'trim_snapshots' => [
-            'job' => 24,
-            'queue' => 24,
+            // Horizon trims by SNAPSHOT COUNT (RedisMetricsRepository), not
+            // hours. With horizon:snapshot every 5 min, the old 24 kept only
+            // 2h of graph history — the nightly 03:00 window was invisible by
+            // the next morning. 288 = 24h at 5-min cadence.
+            'job' => 288,
+            'queue' => 288,
         ],
     ],
 

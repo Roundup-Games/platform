@@ -19,7 +19,9 @@ class SearchPerformancePage extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'System';
 
-    protected static ?int $navigationSort = 11;
+    // 12 — after Scheduled Tasks (10) and Queue Structure (11), the queue
+    // subsystem pages this shares the System group with.
+    protected static ?int $navigationSort = 12;
 
     protected static ?string $slug = 'search-performance';
 

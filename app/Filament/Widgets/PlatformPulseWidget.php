@@ -28,7 +28,7 @@ class PlatformPulseWidget extends StatsOverviewWidget
 {
     protected ?string $heading = 'Platform Pulse';
 
-    protected static ?int $sort = -3;
+    protected static ?int $sort = -4;
 
     protected function getStats(): array
     {

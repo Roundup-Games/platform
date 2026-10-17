@@ -197,8 +197,16 @@ Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:45')->onOneServ
 Schedule::command('data:audit')->dailyAt('05:00')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
 Schedule::command('data:repair')->dailyAt('05:15')->onOneServer();
 
+// Retention — prune Prunable models. Today that is scheduled_task_runs
+// (30-day run history + 24h zombie-running sweep); every future Prunable
+// model is covered by this single entry.
+Schedule::command('model:prune')->dailyAt('05:45')->onOneServer();
+
 // Location stewardship — non-destructive drift sweep feeding the LocationResource admin queue
 Schedule::command('locations:drift-sweep')->dailyAt('05:30')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
 
-// Horizon metrics snapshot (powers the throughput/wait-time graphs)
-Schedule::command('horizon:snapshot')->everyFiveMinutes();
+// Horizon metrics snapshot (powers the throughput/wait-time graphs).
+// onOneServer for consistency: harmless with one scheduler container, but a
+// second scheduler (mis-configured cron, replica worker) must not double-write
+// snapshots and halve the effective retention window.
+Schedule::command('horizon:snapshot')->everyFiveMinutes()->onOneServer();

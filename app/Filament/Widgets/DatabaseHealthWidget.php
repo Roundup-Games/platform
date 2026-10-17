@@ -20,7 +20,7 @@ class DatabaseHealthWidget extends StatsOverviewWidget
 {
     protected ?string $heading = 'PostgreSQL';
 
-    protected static ?int $sort = -1;
+    protected static ?int $sort = -2;
 
     /**
      * @return array<string, mixed>

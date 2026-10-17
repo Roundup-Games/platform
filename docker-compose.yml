@@ -31,6 +31,11 @@ services:
       target: worker
     container_name: roundup-games-worker
     restart: unless-stopped
+    # Horizon jobs may run up to 300s (horizon.php production timeout). The
+    # compose default grace is 10s, which SIGKILLs mid-run jobs on every
+    # deploy — duplicating expensive work when retry_after re-releases them.
+    # 5m lets `horizon:terminate` finish current jobs before the stop.
+    stop_grace_period: 5m
     env_file:
       - .env.production
     environment:

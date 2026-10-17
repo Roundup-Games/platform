@@ -18,7 +18,7 @@ class RedisHealthWidget extends StatsOverviewWidget
 {
     protected ?string $heading = 'Redis (server truth)';
 
-    protected static ?int $sort = -2;
+    protected static ?int $sort = -1;
 
     protected function getStats(): array
     {

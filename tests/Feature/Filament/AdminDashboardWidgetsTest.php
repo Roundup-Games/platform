@@ -7,6 +7,7 @@ use App\Models\City;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
+use Illuminate\Support\Facades\Redis;
 
 use function Pest\Laravel\actingAs;
 
@@ -39,10 +40,13 @@ it('renders the platform pulse with real aggregates', function () {
 });
 
 it('renders redis health and fails soft when redis is unreachable', function () {
-    // The phpunit env has no Redis server, so the widget takes the
-    // outage branch — the exact behavior under test: explicit stat,
-    // never a 500. The healthy branch renders server INFO stats and is
-    // verified on the live deployment (admin dashboard).
+    // Force the outage branch deterministically — a dev machine with a
+    // local Redis running would otherwise take the healthy path and break
+    // this test (exactly what happened on this workstation). The healthy
+    // branch renders server INFO stats and is verified on the live
+    // deployment (admin dashboard).
+    Redis::shouldReceive('info')->andThrow(new RuntimeException('connection refused'));
+
     Livewire\Livewire::test(RedisHealthWidget::class)
         ->assertOk()
         ->assertSee('unreachable');

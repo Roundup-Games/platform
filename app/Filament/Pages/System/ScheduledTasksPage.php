@@ -2,13 +2,13 @@
 
 namespace App\Filament\Pages\System;
 
+use App\Models\ScheduledTaskRun;
+use App\Support\Scheduling\ScheduleHealth;
+use App\Support\Scheduling\TaskIdentity;
 use Carbon\Carbon;
 use Cron\CronExpression;
 use Filament\Pages\Page;
-use Illuminate\Console\Application as ArtisanApp;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\Str;
-use Laravel\Horizon\Contracts\JobRepository;
 use UnitEnum;
 
 class ScheduledTasksPage extends Page
@@ -29,7 +29,6 @@ class ScheduledTasksPage extends Page
     {
         return [
             'tasks' => $this->getTasks(),
-            'stats' => $this->getStats(),
         ];
     }
 
@@ -39,6 +38,10 @@ class ScheduledTasksPage extends Page
     }
 
     /**
+     * The schedule (what is due and when) joined with the recorded run
+     * history (what actually ran and how it ended). One row per schedule
+     * event, keyed by the shared TaskIdentity command string.
+     *
      * @return list<array{
      *     command: string,
      *     description: string|null,
@@ -47,6 +50,11 @@ class ScheduledTasksPage extends Page
      *     next_run: Carbon,
      *     without_overlapping: bool|int|null,
      *     on_one_server: bool,
+     *     last_run: ScheduledTaskRun|null,
+     *     last_run_color: string|null,
+     *     last_run_ago: string|null,
+     *     last_run_duration: string|null,
+     *     missed: bool,
      * }>
      */
     public function getTasks(): array
@@ -56,20 +64,28 @@ class ScheduledTasksPage extends Page
         $events = $schedule->events();
         $now = Carbon::now();
 
+        $latestRuns = ScheduledTaskRun::latestPerTask();
+
         $tasks = [];
 
         foreach ($events as $event) {
-            $command = $this->resolveCommand($event);
+            $command = TaskIdentity::command($event);
             $cron = new CronExpression($event->expression);
+            $lastRun = $latestRuns[$command] ?? null;
 
             $tasks[] = [
                 'command' => $command,
                 'description' => ($event->description ?? null) ?: null,
                 'expression' => $event->expression,
-                'human_expression' => $this->humanizeExpression($event->expression),
+                'human_expression' => TaskIdentity::humanizeExpression($event->expression),
                 'next_run' => Carbon::instance($cron->getNextRunDate($now->toDateTime(), 0, true)),
                 'without_overlapping' => $event->withoutOverlapping ?: null,
                 'on_one_server' => (bool) $event->onOneServer,
+                'last_run' => $lastRun,
+                'last_run_color' => $lastRun?->status->badgeColor(),
+                'last_run_ago' => $lastRun?->started_at->diffForHumans(),
+                'last_run_duration' => $this->formatDuration($lastRun?->runtime_ms),
+                'missed' => ScheduleHealth::missed($cron, $now, $lastRun?->started_at),
             ];
         }
 
@@ -79,90 +95,24 @@ class ScheduledTasksPage extends Page
     }
 
     /**
-     * @return array{pending: int, failed: int, completed: int}
+     * Human duration for the admin (EN-only surface). Null when the
+     * framework does not time the run (background finishes) or it was
+     * never recorded.
      */
-    public function getStats(): array
+    private function formatDuration(?int $runtimeMs): ?string
     {
-        /** @var JobRepository $jobs */
-        $jobs = app(JobRepository::class);
-
-        return [
-            'pending' => $jobs->countPending(),
-            'failed' => $jobs->countFailed(),
-            'completed' => $jobs->countCompleted(),
-        ];
-    }
-
-    /**
-     * Resolve the artisan command from the event's command string.
-     */
-    private function resolveCommand(object $event): string
-    {
-        $command = $event->command ?? '';
-
-        if (Str::startsWith($command, "'".ArtisanApp::artisanBinary()."'")) {
-            $command = trim(Str::after($command, ArtisanApp::artisanBinary()."'"), " '");
+        if ($runtimeMs === null) {
+            return null;
         }
 
-        // Closure-based events — use the description as the identifier
-        if (empty($command)) {
-            return property_exists($event, 'description') && $event->description ? (string) $event->description : 'Closure';
+        $seconds = $runtimeMs / 1000;
+
+        if ($seconds < 60) {
+            return round($seconds, 1).'s';
         }
 
-        return $command;
-    }
+        $minutes = (int) floor($seconds / 60);
 
-    /**
-     * Convert common cron expressions to human-readable labels.
-     */
-    private function humanizeExpression(string $expression): string
-    {
-        return match ($expression) {
-            '* * * * *' => 'Every minute',
-            '*/5 * * * *' => 'Every 5 min',
-            '*/10 * * * *' => 'Every 10 min',
-            '*/15 * * * *' => 'Every 15 min',
-            '*/30 * * * *' => 'Every 30 min',
-            '0 * * * *' => 'Hourly',
-            default => $this->humanizeComplexExpression($expression),
-        };
-    }
-
-    /**
-     * Attempt to describe less common cron patterns.
-     */
-    private function humanizeComplexExpression(string $expression): string
-    {
-        $parts = explode(' ', $expression);
-        if (count($parts) !== 5) {
-            return $expression;
-        }
-
-        [$min, $hour, $dom, $mon, $dow] = $parts;
-
-        // Daily at specific time
-        if ($dom === '*' && $mon === '*' && $dow === '*' && $hour !== '*') {
-            $time = sprintf('%02d:%02d', (int) $hour, (int) $min);
-
-            return "Daily {$time}";
-        }
-
-        // Weekly on specific day
-        if ($dom === '*' && $mon === '*' && $dow !== '*') {
-            $dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            $day = $dayNames[(int) $dow] ?? $dow;
-            $time = sprintf('%02d:%02d', (int) $hour, (int) $min);
-
-            return "{$day} {$time}";
-        }
-
-        // Monthly
-        if ($dom !== '*' && $mon === '*' && $dow === '*') {
-            $time = sprintf('%02d:%02d', (int) $hour, (int) $min);
-
-            return "Monthly day {$dom} {$time}";
-        }
-
-        return $expression;
+        return sprintf('%dm %ds', $minutes, (int) round($seconds - $minutes * 60));
     }
 }
