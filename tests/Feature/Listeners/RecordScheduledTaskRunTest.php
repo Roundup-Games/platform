@@ -116,7 +116,13 @@ it('never breaks the scheduler when recording itself fails', function () {
     // BEFORE the task runs — without isolation this aborts the run.
     ScheduledTaskRun::creating(fn () => throw new RuntimeException('connection refused'));
 
-    event(new ScheduledTaskStarting($this->event));
+    try {
+        event(new ScheduledTaskStarting($this->event));
 
-    expect(ScheduledTaskRun::query()->count())->toBe(0);
+        expect(ScheduledTaskRun::query()->count())->toBe(0);
+    } finally {
+        // Model events live on a process-static dispatcher: without the
+        // flush, every later test in this process would throw on insert.
+        ScheduledTaskRun::flushEventListeners();
+    }
 });
