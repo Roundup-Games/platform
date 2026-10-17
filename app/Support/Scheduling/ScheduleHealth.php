@@ -35,15 +35,13 @@ final class ScheduleHealth
      */
     private static function compute(): array
     {
-        /** @var Schedule $schedule */
-        $schedule = app(Schedule::class);
         $latestRuns = ScheduledTaskRun::latestPerTask();
         $now = Carbon::now();
 
         $missed = 0;
         $failedLast = 0;
 
-        foreach ($schedule->events() as $event) {
+        foreach (ScheduleInventory::events() as $event) {
             $run = $latestRuns[TaskIdentity::command($event)] ?? null;
 
             if (self::missed(new CronExpression($event->expression), $now, $run?->started_at)) {

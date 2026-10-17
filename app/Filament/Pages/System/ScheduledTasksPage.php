@@ -4,11 +4,11 @@ namespace App\Filament\Pages\System;
 
 use App\Models\ScheduledTaskRun;
 use App\Support\Scheduling\ScheduleHealth;
+use App\Support\Scheduling\ScheduleInventory;
 use App\Support\Scheduling\TaskIdentity;
 use Carbon\Carbon;
 use Cron\CronExpression;
 use Filament\Pages\Page;
-use Illuminate\Console\Scheduling\Schedule;
 use UnitEnum;
 
 class ScheduledTasksPage extends Page
@@ -59,9 +59,7 @@ class ScheduledTasksPage extends Page
      */
     public function getTasks(): array
     {
-        /** @var Schedule $schedule */
-        $schedule = app(Schedule::class);
-        $events = $schedule->events();
+        $events = ScheduleInventory::events();
         $now = Carbon::now();
 
         $latestRuns = ScheduledTaskRun::latestPerTask();
