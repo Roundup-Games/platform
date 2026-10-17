@@ -56,6 +56,10 @@ supported way to give isolated worktrees full GSD history.
 
 An agent session ran GSD inside an orca worktree
 (`~/orca/workspaces/roundup-games-laravel/salp`). GSD bootstrapped a fresh
-1.4MB state beside the main 82MB one; sessions dispatched subagents against
-an empty history until noticed. Remediation: never run GSD there; orphaned
-state was left in the worktree for inspection, then removed.
+state beside the main one; sessions dispatched subagents against an empty
+history until noticed. The session's valuable planning work was rescued
+2026-10-17 into the main project (milestones M069–M071, decisions D184–D188,
+requirements R079–R088; see `.gsd/rescue/salp-20261017/` for the frozen
+snapshot and `RESCUE-REPORT.md` for the ID mapping). The worktree's orphaned
+state remains beside it as `.gsd.orphaned-salp-20261017` and can be deleted
+once the rescue is confirmed.
