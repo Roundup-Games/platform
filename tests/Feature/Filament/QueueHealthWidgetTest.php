@@ -95,3 +95,18 @@ it('fails soft when the Horizon store is unreachable', function () {
         ->assertOk()
         ->assertSee('unreachable');
 });
+
+it('reports the warm-up state calmly when nothing has run yet', function () {
+    $this->mock(JobRepository::class, function ($mock) {
+        $mock->shouldReceive('countPending')->andReturn(0);
+        $mock->shouldReceive('countFailed')->andReturn(0);
+    });
+
+    // No run rows -> nothing can be missed; long-cadence tasks guarantee
+    // awaiting_first > 0 at any wall-clock time.
+    Livewire\Livewire::test(QueueHealthWidget::class)
+        ->assertOk()
+        ->assertSeeText('0 missed · 0 failed')
+        ->assertSee('awaiting first run since tracking started')
+        ->assertDontSee('Scheduled work needs attention');
+});

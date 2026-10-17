@@ -34,6 +34,8 @@ class QueueHealthWidget extends StatsOverviewWidget
         }
 
         $schedule = ScheduleHealth::summary();
+        $missed = $schedule['missed'];
+        $failed = $schedule['failed_last'];
 
         return [
             Stat::make('Pending Jobs', $pending)
@@ -48,10 +50,19 @@ class QueueHealthWidget extends StatsOverviewWidget
                 ->color($failed > 0 ? 'danger' : 'success')
                 ->url(url('/horizon/failed'))
                 ->openUrlInNewTab(),
-            Stat::make('Schedule Health', sprintf('%d missed · %d failed', $schedule['missed'], $schedule['failed_last']))
-                ->description($schedule['missed'] + $schedule['failed_last'] > 0 ? 'Scheduled work needs attention' : 'All tasks on time')
+            Stat::make('Schedule Health', sprintf('%d missed · %d failed', $missed, $failed))
+                ->description(match (true) {
+                    $failed > 0 || $missed > 0 => 'Scheduled work needs attention',
+                    $schedule['awaiting_first'] > 0 => sprintf('%d awaiting first run since tracking started', $schedule['awaiting_first']),
+                    default => 'All tasks on time',
+                })
                 ->descriptionIcon('heroicon-o-clock')
-                ->color($schedule['failed_last'] > 0 ? 'danger' : ($schedule['missed'] > 0 ? 'warning' : 'success'))
+                ->color(match (true) {
+                    $failed > 0 => 'danger',
+                    $missed > 0 => 'warning',
+                    $schedule['awaiting_first'] > 0 => 'gray',
+                    default => 'success',
+                })
                 ->url(fn (): string => ScheduledTasksPage::getUrl()),
         ];
     }

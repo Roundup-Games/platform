@@ -1,8 +1,11 @@
 <?php
 
+use App\Enums\ScheduledTaskHealth;
 use App\Models\ScheduledTaskRun;
 use App\Support\Scheduling\ScheduleHealth;
 use App\Support\Scheduling\TaskIdentity;
+use Carbon\Carbon;
+use Cron\CronExpression;
 use Illuminate\Console\Scheduling\Schedule;
 
 //
@@ -43,7 +46,8 @@ it('counts missed occurrences and failed latest runs', function () {
     $summary = ScheduleHealth::summary();
 
     expect($summary['missed'])->toBe(1)
-        ->and($summary['failed_last'])->toBe(1);
+        ->and($summary['failed_last'])->toBe(1)
+        ->and($summary['awaiting_first'])->toBe(0);
 });
 
 it('reports zero when everything ran on time', function () {
@@ -61,7 +65,57 @@ it('reports zero when everything ran on time', function () {
     $summary = ScheduleHealth::summary();
 
     expect($summary['missed'])->toBe(0)
+        ->and($summary['failed_last'])->toBe(0)
+        ->and($summary['awaiting_first'])->toBe(0);
+});
+
+it('classifies pre-epoch due times as awaiting first run, not missed', function () {
+    // Freeze at :08. Seeded rows at :06 define the recording epoch — the
+    // hourly cityhubs task was due at :00, BEFORE recording started, so it
+    // is unobserved (awaiting), not missed. Nothing else is missed.
+    $this->travelTo(now()->startOfHour()->setMinute(8));
+
+    /** @var Schedule $schedule */
+    $schedule = app(Schedule::class);
+
+    foreach ($schedule->events() as $event) {
+        $key = TaskIdentity::command($event);
+
+        if ($key === 'cityhubs:recompute') {
+            continue; // due :00, pre-epoch -> awaiting
+        }
+
+        ScheduledTaskRun::factory()->startedAt(now()->setMinute(6))->create(['task_key' => $key]);
+    }
+
+    $summary = ScheduleHealth::summary();
+
+    expect($summary['awaiting_first'])->toBe(1)
+        ->and($summary['missed'])->toBe(0)
         ->and($summary['failed_last'])->toBe(0);
+});
+
+it('classifies a post-epoch due time without a run as a genuine miss', function () {
+    $now = Carbon::parse('2026-10-17 12:00:00');
+    $cron = new CronExpression('0 3 * * *'); // daily 03:00 -> previously due 03:00 today
+
+    // Recording started at 02:00; the 03:00 occurrence passed with no run.
+    expect(ScheduleHealth::classify($cron, $now, null, Carbon::parse('2026-10-17 02:00')))
+        ->toBe(ScheduledTaskHealth::Missed);
+
+    // Recording started at 04:00; the 03:00 occurrence was never observed.
+    expect(ScheduleHealth::classify($cron, $now, null, Carbon::parse('2026-10-17 04:00')))
+        ->toBe(ScheduledTaskHealth::AwaitingFirstRun);
+});
+
+it('treats a completely fresh install as all-awaiting, never missed', function () {
+    $this->travelTo(now()->startOfHour()->setMinute(7));
+
+    $summary = ScheduleHealth::summary();
+
+    expect($summary['missed'])->toBe(0)
+        ->and($summary['failed_last'])->toBe(0)
+        ->and($summary['awaiting_first'])->toBeGreaterThan(0);
 });
 
 it('caches the summary for five minutes', function () {

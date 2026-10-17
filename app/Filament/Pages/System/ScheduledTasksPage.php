@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages\System;
 
+use App\Enums\ScheduledTaskHealth;
 use App\Models\ScheduledTaskRun;
 use App\Support\Scheduling\ScheduleHealth;
 use App\Support\Scheduling\ScheduleInventory;
@@ -27,8 +28,13 @@ class ScheduledTasksPage extends Page
 
     public function getViewData(): array
     {
+        $tasks = $this->getTasks();
+
         return [
-            'tasks' => $this->getTasks(),
+            'tasks' => $tasks,
+            'health' => ScheduleHealth::summary(),
+            'recording_since' => ScheduleHealth::recordingSince(),
+            'total_tasks' => count($tasks),
         ];
     }
 
@@ -54,7 +60,7 @@ class ScheduledTasksPage extends Page
      *     last_run_color: string|null,
      *     last_run_ago: string|null,
      *     last_run_duration: string|null,
-     *     missed: bool,
+     *     health: ScheduledTaskHealth,
      * }>
      */
     public function getTasks(): array
@@ -63,6 +69,7 @@ class ScheduledTasksPage extends Page
         $now = Carbon::now();
 
         $latestRuns = ScheduledTaskRun::latestPerTask();
+        $recordingSince = ScheduleHealth::recordingSince();
 
         $tasks = [];
 
@@ -83,7 +90,7 @@ class ScheduledTasksPage extends Page
                 'last_run_color' => $lastRun?->status->badgeColor(),
                 'last_run_ago' => $lastRun?->started_at->diffForHumans(),
                 'last_run_duration' => $this->formatDuration($lastRun?->runtime_ms),
-                'missed' => ScheduleHealth::missed($cron, $now, $lastRun?->started_at),
+                'health' => ScheduleHealth::classify($cron, $now, $lastRun?->started_at, $recordingSince),
             ];
         }
 

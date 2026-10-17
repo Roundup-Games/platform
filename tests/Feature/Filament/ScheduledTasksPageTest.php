@@ -91,3 +91,13 @@ it('is admin-only', function () {
     // the route 404s for non-admins instead of 403ing.
     get('/admin/scheduled-tasks')->assertNotFound();
 });
+
+it('explains the warm-up state instead of alarming', function () {
+    // No run rows at all: nothing can be missed (epoch is null), so the
+    // page leads with the informational warm-up section, not a warning.
+    pageRenders()
+        ->assertOk()
+        ->assertSee('Run tracking warming up')
+        ->assertDontSee('needs attention')
+        ->assertSee('Awaiting first run');
+});
