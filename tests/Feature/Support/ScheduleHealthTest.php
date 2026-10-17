@@ -85,7 +85,9 @@ it('classifies pre-epoch due times as awaiting first run, not missed', function 
             continue; // due :00, pre-epoch -> awaiting
         }
 
-        ScheduledTaskRun::factory()->startedAt(now()->setMinute(6))->create(['task_key' => $key]);
+        // Minute 7: at the frozen 12:08 clock, the every-minute task's
+        // grace walk bottoms out at 12:06 — a 12:07 run stays healthy.
+        ScheduledTaskRun::factory()->startedAt(now()->setMinute(7))->create(['task_key' => $key]);
     }
 
     $summary = ScheduleHealth::summary();
@@ -122,4 +124,24 @@ it('caches the summary for five minutes', function () {
     ScheduleHealth::summary();
 
     expect(Cache::has('admin:schedule-health'))->toBeTrue();
+});
+
+it('flags sub-grace cadences once two occurrences are unrecorded, not one', function () {
+    // Every-minute task: the most recent due time is always inside the
+    // 2-minute grace, so the judgment falls back to the occurrence before
+    // it. A single unrecorded occurrence stays healthy (tick race), two
+    // consecutive ones are a genuine miss.
+    $now = Carbon::parse('2026-10-17 12:00:30');
+    $cron = new CronExpression('* * * * *');
+
+    expect(ScheduleHealth::classify($cron, $now, Carbon::parse('2026-10-17 11:59:30'), null))
+        ->toBe(ScheduledTaskHealth::Healthy)          // 12:00 occurrence mid-tick — race-safe
+        ->and(ScheduleHealth::classify($cron, $now, Carbon::parse('2026-10-17 11:56:00'), null))
+        ->toBe(ScheduledTaskHealth::Missed)           // 11:59 AND 12:00 unrecorded
+        // No history: two occurrences passed since recording started
+        ->and(ScheduleHealth::classify($cron, $now, null, Carbon::parse('2026-10-17 11:00:00')))
+        ->toBe(ScheduledTaskHealth::Missed)
+        // Recording started after the fallback occurrence — unobserved
+        ->and(ScheduleHealth::classify($cron, $now, null, Carbon::parse('2026-10-17 11:59:30')))
+        ->toBe(ScheduledTaskHealth::AwaitingFirstRun);
 });

@@ -9,6 +9,7 @@ use Illuminate\Console\Events\ScheduledTaskSkipped;
 use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 
 //
 // RecordScheduledTaskRun: framework scheduling events must produce a
@@ -92,4 +93,30 @@ it('always transitions the latest running row only', function () {
 
     expect(ScheduledTaskRun::query()->whereTask('demo:observability-check')->count())->toBe(2)
         ->and($first->fresh()->status)->toBe(ScheduledTaskRunStatus::Running);
+});
+
+it('scrubs null bytes from exception messages before persisting', function () {
+    // Postgres rejects \0 in text values — a raw exception payload would
+    // fail the insert (and, pre-isolation, abort the scheduler tick).
+    event(new ScheduledTaskStarting($this->event));
+    event(new ScheduledTaskFailed($this->event, new RuntimeException("boom\0null-byte payload")));
+
+    $run = ScheduledTaskRun::query()->whereTask('demo:observability-check')->sole();
+
+    expect($run->error)->toBe('boomnull-byte payload')
+        ->and(strpos($run->error ?? '', "\0"))->toBeFalse();
+});
+
+it('never breaks the scheduler when recording itself fails', function () {
+    Log::shouldReceive('warning')->once()->withArgs(
+        fn (string $message, array $context) => $message === 'Scheduled-task run recording failed'
+    );
+
+    // Simulate a DB-layer failure on insert. ScheduledTaskStarting fires
+    // BEFORE the task runs — without isolation this aborts the run.
+    ScheduledTaskRun::creating(fn () => throw new RuntimeException('connection refused'));
+
+    event(new ScheduledTaskStarting($this->event));
+
+    expect(ScheduledTaskRun::query()->count())->toBe(0);
 });

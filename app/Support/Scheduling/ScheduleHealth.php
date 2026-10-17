@@ -24,7 +24,10 @@ final class ScheduleHealth
 {
     /**
      * Missed occurrences, tasks whose latest run failed, and tasks still
-     * awaiting their first recorded run. Cached 5 minutes.
+     * awaiting their first recorded run. Cached 5 minutes — the dashboard
+     * tile may therefore lag the Scheduled Tasks page (which computes
+     * per-row health live) by up to one TTL; deliberate trade of freshness
+     * for a Redis-bound dashboard.
      *
      * @return array{missed: int, failed_last: int, awaiting_first: int}
      */
@@ -87,7 +90,12 @@ final class ScheduleHealth
      *
      * A 2-minute grace window absorbs the race between "due this minute"
      * and "scheduler tick not yet fired", so a healthy schedule does not
-     * blink red on page load.
+     * blink red on page load. Inside the grace window the judgment falls
+     * back to the occurrence BEFORE the most recent one: a task that runs
+     * more often than the grace (every-minute automations) would otherwise
+     * never age out of the window and be structurally unflaggable, while
+     * requiring two unrecorded occurrences keeps a single mid-tick hiccup
+     * race-safe for every cadence.
      */
     public static function classify(
         CronExpression $cron,
@@ -97,8 +105,14 @@ final class ScheduleHealth
     ): ScheduledTaskHealth {
         $previousDue = Carbon::instance($cron->getPreviousRunDate($now->toDateTime(), 0, true));
 
-        if ($previousDue->copy()->addMinutes(2)->isFuture()) {
-            return ScheduledTaskHealth::Healthy;
+        // Grace walk: only occurrences at least 2 minutes old are judged,
+        // so the race between "due this minute" and "scheduler tick not
+        // yet fired" never flags. allowCurrentDate means $previousDue may
+        // be "now" itself on matching minutes, so walk back one occurrence
+        // at a time (sub-grace cadences take 2-3 steps, every other
+        // cadence at most one).
+        while ($previousDue->copy()->addMinutes(2)->gt($now)) {
+            $previousDue = Carbon::instance($cron->getPreviousRunDate($previousDue, 0, false));
         }
 
         if ($lastRunAt !== null) {

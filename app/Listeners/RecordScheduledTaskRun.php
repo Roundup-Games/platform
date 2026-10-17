@@ -11,6 +11,7 @@ use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Events\ScheduledTaskSkipped;
 use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Persists scheduled-task run outcomes (M068, 2026-10-17).
@@ -29,52 +30,87 @@ use Illuminate\Support\Str;
  *  - ScheduledTaskSkipped           → skipped row (filters/overlap guards)
  *  - ScheduledBackgroundTaskFinished→ completed, runtime unknown (framework
  *                                     does not time background exits)
+ *
+ * Failure isolation: ScheduledTaskStarting fires BEFORE the task runs — an
+ * exception thrown here would abort the scheduled work it observes. Every
+ * mutation goes through record(), which swallows and logs recording
+ * failures; the worst case is a missing history row, never a missed task.
  */
 class RecordScheduledTaskRun
 {
     public function starting(ScheduledTaskStarting $event): void
     {
-        ScheduledTaskRun::query()->create([
-            'task_key' => TaskIdentity::command($event->task),
+        $taskKey = TaskIdentity::command($event->task);
+
+        $this->record($taskKey, fn () => ScheduledTaskRun::query()->create([
+            'task_key' => $taskKey,
             'status' => ScheduledTaskRunStatus::Running,
             'started_at' => now(),
-        ]);
+        ]));
     }
 
     public function finished(ScheduledTaskFinished $event): void
     {
-        $this->completeRunningRow(
+        $this->record(
             TaskIdentity::command($event->task),
-            ScheduledTaskRunStatus::Completed,
-            (int) round($event->runtime * 1000),
+            fn () => $this->completeRunningRow(
+                TaskIdentity::command($event->task),
+                ScheduledTaskRunStatus::Completed,
+                (int) round($event->runtime * 1000),
+            ),
         );
     }
 
     public function failed(ScheduledTaskFailed $event): void
     {
-        $this->completeRunningRow(
-            TaskIdentity::command($event->task),
+        $taskKey = TaskIdentity::command($event->task);
+
+        $this->record($taskKey, fn () => $this->completeRunningRow(
+            $taskKey,
             ScheduledTaskRunStatus::Failed,
-            error: Str::limit($event->exception->getMessage(), 500, ''),
-        );
+            error: str_replace("\0", '', Str::limit($event->exception->getMessage(), 500, '')),
+        ));
     }
 
     public function backgroundFinished(ScheduledBackgroundTaskFinished $event): void
     {
-        $this->completeRunningRow(
-            TaskIdentity::command($event->task),
+        $taskKey = TaskIdentity::command($event->task);
+
+        $this->record($taskKey, fn () => $this->completeRunningRow(
+            $taskKey,
             ScheduledTaskRunStatus::Completed,
-        );
+        ));
     }
 
     public function skipped(ScheduledTaskSkipped $event): void
     {
-        ScheduledTaskRun::query()->create([
-            'task_key' => TaskIdentity::command($event->task),
+        $taskKey = TaskIdentity::command($event->task);
+
+        $this->record($taskKey, fn () => ScheduledTaskRun::query()->create([
+            'task_key' => $taskKey,
             'status' => ScheduledTaskRunStatus::Skipped,
             'started_at' => now(),
             'finished_at' => now(),
-        ]);
+        ]));
+    }
+
+    /**
+     * Run one recording mutation, absorbing its failures. Recording runs in
+     * the scheduler process on every tick; a transient DB hiccup (or an
+     * exception payload the database rejects) must not take scheduled work
+     * down with it. Logged as warnings — if recording is persistently
+     * broken, the dashboard's own missed counts are the alarm.
+     */
+    private function record(string $taskKey, callable $mutation): void
+    {
+        try {
+            $mutation();
+        } catch (Throwable $e) {
+            logger()->warning('Scheduled-task run recording failed', [
+                'task' => $taskKey,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

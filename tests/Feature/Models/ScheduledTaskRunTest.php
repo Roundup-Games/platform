@@ -3,6 +3,7 @@
 use App\Enums\ScheduledTaskRunStatus;
 use App\Models\ScheduledTaskRun;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 //
 // ScheduledTaskRun data model: enum cast, latest-per-task resolution, and
@@ -46,4 +47,22 @@ it('prunes zombie running rows older than a day', function () {
 
     expect(ScheduledTaskRun::find($zombie->id))->toBeNull()
         ->and(ScheduledTaskRun::find($freshRunning->id))->not->toBeNull();
+});
+
+it('fetches exactly one row per task from the database, not the whole table', function () {
+    // ~90k rows at steady state: latestPerTask must do the per-task
+    // selection in SQL (DISTINCT ON), never hydrate the corpus in PHP.
+    ScheduledTaskRun::factory()->count(6)->create(['task_key' => 'attendance:resolve']);
+    ScheduledTaskRun::factory()->count(6)->create(['task_key' => 'cityhubs:recompute']);
+
+    DB::enableQueryLog();
+
+    $latest = ScheduledTaskRun::latestPerTask();
+
+    expect($latest)->toHaveCount(2);
+
+    $sql = strtolower(DB::getQueryLog()[0]['query']);
+    expect($sql)->toContain('distinct on');
+
+    DB::disableQueryLog();
 });

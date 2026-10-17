@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Prunable;
+use Illuminate\Database\Query\Expression;
 
 /**
  * One dispatched run of a scheduled task, written by the framework
@@ -47,18 +48,29 @@ class ScheduledTaskRun extends Model
     }
 
     /**
-     * Latest run per task key, keyed by task key. Bounded corpus (30-day
-     * retention, a few dozen task keys) so a single ordered fetch + PHP
-     * dedupe beats a window-function scope for clarity.
+     * Latest run per task key, keyed by task key, newest first.
+     *
+     * The corpus grows to ~90k rows at steady state (the every-minute
+     * escalated automations alone write ~43k rows per 30-day retention
+     * window), so this must never hydrate the full table — Postgres
+     * DISTINCT ON returns exactly one row per task inside the database.
+     * Called on every Scheduled Tasks page render and every health
+     * summary recompute.
      *
      * @return array<string, self>
      */
     public static function latestPerTask(): array
     {
+        $table = (new self)->getTable();
+
         return static::query()
+            ->select($table.'.*')
+            // Table name is code-controlled (model + migration), never user input.
+            ->from(new Expression(
+                "(select distinct on (task_key) * from {$table} order by task_key, started_at desc) as {$table}" // @phpstan-ignore argument.type
+            ))
             ->orderByDesc('started_at')
             ->get()
-            ->unique(fn (self $run): string => $run->task_key)
             ->keyBy(fn (self $run): string => $run->task_key)
             ->all();
     }
