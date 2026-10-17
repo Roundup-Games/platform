@@ -24,6 +24,27 @@ MODE="${1:-full}"
 
 log() { echo "[worktree-setup:$MODE] $*"; }
 
+ensure_gsd_link() {
+  # Only when invoked by GSD's worktree_post_create hook (SOURCE_DIR and
+  # WORKTREE_DIR set). Points the worktree's .gsd at the main checkout's
+  # authoritative state dir so every session there resolves to the shared
+  # project from the first moment. Orca-created worktrees deliberately get
+  # NO .gsd link (GSD treats them as foreign projects — see
+  # docs/agent-worktrees.md).
+  if [ -z "${SOURCE_DIR:-}" ] || [ -z "${WORKTREE_DIR:-}" ]; then
+    return 0
+  fi
+  if [ ! -e "$SOURCE_DIR/.gsd" ]; then
+    log "WARNING: no $SOURCE_DIR/.gsd to link; skipping GSD state link"
+    return 0
+  fi
+  local target
+  target=$(cd "$SOURCE_DIR/.gsd" 2>/dev/null && pwd -P) || target="$SOURCE_DIR/.gsd"
+  mkdir -p "$WORKTREE_DIR"
+  ln -sfn "$target" "$WORKTREE_DIR/.gsd"
+  log ".gsd -> $target"
+}
+
 need_env() {
   # .env from example with a freshly generated APP_KEY. Pure PHP, no
   # framework boot, so it also works before composer install has run.
@@ -66,6 +87,7 @@ heavy_steps() {
 
 case "$MODE" in
   --fast)
+    ensure_gsd_link
     need_env
     seed_mcp
     # Heavy steps cannot fit GSD's 30s post-create hook budget: continue in
