@@ -114,7 +114,7 @@ Organizing · Milestones.
 |---|---|---|---|---|
 | **Campaign Compleat** | milestone | campaign completed with ≥6 sessions run and journal entries for ≥80% of sessions (the journal is what proves the story) | 1 / 3 / 5 completions | campaign status + journal coverage |
 | **Chartered** | milestone | charter fully signed by the entire table (at any version) | 1 / 10 / 50 charters | charter confirmation records |
-| **Mentor** | milestone | rated "great first session" by ≥5 distinct newcomers (review question on a player's first platform game) | Bronze 5 / Silver 15 / Gold 40 | review data + participant history |
+| **Mentor** | milestone | published 5/5 session review where the reviewed session was the reviewer's first with this GM, from ≥5 distinct accounts (DECIDED 2026-10-17, D190: derived from existing review data — no new review-question surface; "newcomer" = first session with this GM, platform tenure irrelevant) | Bronze 5 / Silver 15 / Gold 40 | published Game reviews + participation history |
 
 ### Participation (players & regulars)
 | Badge | Mode | Trigger | Tiers | Signal source |
@@ -137,7 +137,10 @@ Organizing · Milestones.
 
 **Anti-gaming notes per trigger:** attendance-based badges use organizer roll-calls/attendance
 reports (existing `AttendanceReport` flow), never self check-in; Mentor requires *distinct*
-newcomers; Compleat requires journal coverage so empty "completion" farming fails; Trusted
+accounts under the first-session-with-this-GM rule (D190) — deliberate trade-off: rotating a few
+cooperative friends across a GM's sessions can farm it, accepted at current community scale and
+mitigated by the attendance-gated deduplicated review flow plus admin manual revoke with reason
++ audit rather than by the signal itself; Compleat requires journal coverage so empty "completion" farming fails; Trusted
 Organizer's cancellation metric uses unannounced (no-notice) cancellations only; Local Legend
 hours are computed from reported attendance, decayed at 90 days.
 
@@ -166,5 +169,6 @@ is **showcase visibility** (bigger shelf, featured placement, chronicle-ready pr
    audit) — ship dark.
 2. Support & Tenure + Infrastructure (subscriber, founding, Discord, tenure, milestones) — the
    set that must exist on pricing day; enable gallery + profile shelf.
-3. GM Craft + Participation + Events (Compleat, Chartered, Mentor, streaks, Local Legend, Trusted
-   Organizer, Con Runner, Season Ticket) — as charter/journal/attendance signals land.
+3. GM Craft + Participation + Events (Compleat, Chartered, streaks, Local Legend, Trusted
+   Organizer, Con Runner, Season Ticket) — as charter/journal/attendance signals land. Mentor
+   ships with the first cohort in step 2: derived from existing review data per D190.

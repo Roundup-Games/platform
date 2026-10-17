@@ -55,7 +55,7 @@ fields are marked **[PRIVATE]**.
 | Pitch / what this campaign is about | text (rich, 2000) |
 | System, edition, allowed supplements | text + game-system relation (existing catalog) |
 | Tone axes: serious↔lighthearted, gritty↔heroic, political↔dungeon-crawl | 3 × 5-point slider |
-| Themes | multi-choice chips (politics, horror, intrigue, war, mystery, exploration, heist, heist, romance, survival…) |
+| Themes | multi-choice chips (politics, horror, intrigue, war, mystery, exploration, heist, romance, survival…) |
 | Expected shape | choice: short arc (3–6) / ongoing / open-ended |
 | Table size | number + "we may add players later" toggle |
 
@@ -207,7 +207,7 @@ later, chronicle/recruitment flows).
 - Arrival via campaign page card, session page, or share link (existing UUID flow).
 - Reading-optimized single scroll: clean typography, section anchors, sticky progress rail,
   no editing chrome. §2 private answers inline at the relevant section.
-- Signature panel at the end: read-attestation + three agreement checkboxes + sign button.
+- Signature panel at the end: read-attestation + four agreement checkboxes (§3 safety tools, §4 table policies, §5 AI & digital tools, §6 logistics) + sign button.
   Confirmed state shows signature timestamp + version. "You are bound by charter v3" language.
 - Re-agreement: same page, banner "The charter was amended on {date} — please review and
   re-sign", with a **highlighted diff** of what changed since the version they signed
@@ -229,7 +229,7 @@ later, chronicle/recruitment flows).
 ## 5. Free / member split (per agreed philosophy)
 
 **Free — the charter's function is safety infrastructure:**
-- Create charters with all seven sections, all safety content.
+- Create charters with all eight sections, all safety content.
 - Signatures, amendments, re-agreement, versioning, diff views, reminders. (Never paywall the
   safety loop — including its continuity across amendments.)
 - **2 active charters** concurrently.

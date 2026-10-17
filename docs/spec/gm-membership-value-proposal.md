@@ -122,7 +122,7 @@ Mature tools = **chronological dated entries over an entity graph**, with per-en
 - Material edit → pending re-agreement state + notification; GM sees a re-agreement tracker; no auto-agreement, ever.
 - GM never edits a participant's private boundary answers; loosening requires the participant's own edit.
 
-**Pricing placement: safety content stays free forever.** Free GMs can create charters with safety tools — that's an ethical stance and a growth loop. Membership gates the *workflow*: versioned signatures, re-agreement tracking, saved templates ("bring your standard charter"), unlimited concurrent charters (free: 1 active).
+**Pricing placement: safety content stays free forever.** Free GMs get the charter's full function — all sections, signatures, amendments, re-agreement, versioning, diff views, reminders (never paywall the safety loop) — with **2 active charters** concurrently (decided; see R084). Membership gates *scale and convenience*: saved templates ("bring your standard charter"), start-from-previous-charter, unlimited concurrent charters, and audit export.
 
 ### 3.2 Recaps → split by context, journal for campaigns
 
@@ -155,7 +155,7 @@ character_state_changes
 
 **Future (v2): public "Campaign Chronicles"** — member campaigns can publish a read-only chronicle view (journal + goal timeline, GM-curated): SEO landing pages, social proof, the acquisition flywheel from research finding #5. Requires visibility curation and moderation thought; not launch scope.
 
-**Pricing placement:** free GMs get the journal for their first active campaign (or first N entries); unlimited history + Previously On automation + Discord delivery is member-only. A GM who ran 20 journal sessions then hit the wall is the perfect conversion moment — their history is already on the platform.
+**Pricing placement (decided — see D185 and campaign-journal-concept.md §2):** the journal itself — entries, goals, state changes, full history — is **free for the whole table** (shared engagement content; players read and write it). Member features are GM workflow automation: **Previously On composition and channel delivery**, journal analytics, and the later polished chronicle export. Conversion moment: a GM who has journaled for months and wants the recap loop automated.
 
 ### 3.3 Badge & achievement system
 
@@ -185,7 +185,7 @@ character_state_changes
 | Badge | Trigger | Tiers |
 |---|---|---|
 | **Campaign Compleat** | brought a campaign to actual completion (status=completed, ≥N sessions, ≥M journal entries) | 1 / 3 / 5 completions |
-| **Mentor** | rated "great first session" by ≥5 distinct newcomers | Bronze 5 / Silver 15 / Gold 40 |
+| **Mentor** | published 5/5 session review on a reviewer's first session with this GM, ≥5 distinct accounts (derived from existing review data — D190) | Bronze 5 / Silver 15 / Gold 40 |
 | **Chartered** | collected signed agreements from a full table (all participants) | 1 / 10 / 50 charters fully signed |
 
 *Players & regulars (Strava/Duolingo-sans-toxicity pattern):*
@@ -211,8 +211,8 @@ character_state_changes
 ### 3.4 Pricing — GM Membership €9.50/month
 
 **Plan structure:**
-- **GM (free)**: run unlimited games & campaigns, GM workspace basics, session zero charters w/ safety tools (1 active), bulletin boards, journal for 1 active campaign, badges (earnable free tiers).
-- **GM Membership €9.50/mo · €95/yr (2 months free)**: everything above + unlimited charters with versioned signatures & re-agreement tracking, templates, unlimited journal history + Previously On automation + Discord delivery, full analytics, badge showcase priority (featured badges, chronicle-ready profile), subscriber badge w/ year laps, future: paid-game commission waiver.
+- **GM (free)**: run unlimited games & campaigns, GM workspace basics, full charter function incl. safety tools, versioning and re-agreement (2 active charters; R084), bulletin boards, journal for the whole table, badges (earnable free tiers), recruitment summary.
+- **GM Membership €9.50/mo · €95/yr (2 months free)**: everything above + unlimited charters with templates, start-from-previous and audit export, unlimited journal history + Previously On automation + Discord delivery, full analytics, badge showcase priority (featured badges, chronicle-ready profile), subscriber badge w/ year laps, future: paid-game commission waiver.
 
 **Price-point honesty:** €9.50 reads slightly unusual next to charm pricing (€9 / €9.99) — but "under ten euros" positioning is clean, it's mid-range of the financial model (7.99→14.99), and it anchors just under Roll20 Pro. Keep 9.50 if the "below €10" story matters; otherwise test €9. Annual at €95 preserves the story (€7.92/mo effective).
 
