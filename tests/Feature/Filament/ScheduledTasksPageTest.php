@@ -83,13 +83,31 @@ it('shows no missed flag when the latest due occurrence ran', function () {
     pageRenders()->assertOk()->assertDontSee('Missed occurrence');
 });
 
+it('serves the page over a full HTTP request with rendered run rows', function () {
+    ScheduledTaskRun::factory()->create([
+        'task_key' => 'attendance:resolve',
+        'runtime_ms' => 42_500,
+    ]);
+
+    get('/admin/scheduled-tasks-page')
+        ->assertOk()
+        ->assertSee('attendance:resolve')
+        ->assertSee('42.5s');
+});
+
 it('is admin-only', function () {
     $member = User::factory()->create();
     actingAs($member);
 
-    // Filament 4 drops canAccess()===false pages from the panel entirely —
-    // the route 404s for non-admins instead of 403ing.
-    get('/admin/scheduled-tasks')->assertNotFound();
+    // The route stays registered; canAccess()===false yields 403 for
+    // authenticated non-admins (MEM1252 supersedes the old 404 claim).
+    get('/admin/scheduled-tasks-page')->assertForbidden();
+});
+
+it('denies guests with a login redirect', function () {
+    auth()->logout();
+
+    get('/admin/scheduled-tasks-page')->assertRedirect();
 });
 
 it('explains the warm-up state instead of alarming', function () {
@@ -100,4 +118,22 @@ it('explains the warm-up state instead of alarming', function () {
         ->assertSee('Run tracking warming up')
         ->assertDontSee('needs attention')
         ->assertSee('Awaiting first run');
+});
+
+it('flags a past-due task with no recorded runs as never-ran missed', function () {
+    // Freeze at :07 — horizon:snapshot (every 5 min) was previously due at
+    // :05. Recording started an hour ago (a run for another task defines
+    // the epoch), and horizon has no rows: the :05 occurrence passed with
+    // no run, so the row must show the danger "Never ran — past due" pill,
+    // not the neutral warm-up badge. Regression guard for the Postgres
+    // aggregate epoch bug (MEM1255) that made this branch unreachable.
+    $this->travelTo(now()->startOfHour()->setMinute(7));
+
+    ScheduledTaskRun::factory()->startedAt(now()->subHour())->create([
+        'task_key' => 'attendance:resolve',
+    ]);
+
+    pageRenders()
+        ->assertOk()
+        ->assertSee('Never ran — past due');
 });

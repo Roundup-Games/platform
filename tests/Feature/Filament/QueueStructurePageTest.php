@@ -35,6 +35,15 @@ it('is admin-only', function () {
     $member = User::factory()->create();
     actingAs($member);
 
-    // Filament 4 drops canAccess()===false pages from the panel entirely.
-    get('/admin/queue-structure')->assertNotFound();
+    // The route stays registered; canAccess()===false yields 403 for
+    // authenticated non-admins (MEM1252 supersedes the old 404 claim).
+    get('/admin/queue-structure-page')->assertForbidden();
+});
+
+it('denies guests', function () {
+    auth()->logout();
+
+    // Guests hit the panel auth middleware before the page renders:
+    // 302 redirect to the login route (MEM1252 supersedes the old 404 claim).
+    get('/admin/queue-structure-page')->assertRedirect();
 });

@@ -110,6 +110,21 @@ it('classifies a post-epoch due time without a run as a genuine miss', function 
         ->toBe(ScheduledTaskHealth::AwaitingFirstRun);
 });
 
+it('derives the recording epoch from the database aggregate, not an in-memory Carbon', function () {
+    // Regression guard (MEM1255): min(started_at) returns a plain datetime
+    // string on Postgres — the old instanceof-Carbon guard nulled the
+    // epoch on every install, so the zero-row missed branch was
+    // unreachable. Freezing at a whole second keeps the round-trip exact.
+    $this->travelTo(now()->startOfHour()->setMinute(7));
+
+    ScheduledTaskRun::factory()->startedAt(now()->subHour())->create(['task_key' => 'horizon:snapshot']);
+
+    $since = ScheduleHealth::recordingSince();
+
+    expect($since)->toBeInstanceOf(Carbon::class)
+        ->and($since->format('Y-m-d H:i:s'))->toBe(now()->subHour()->format('Y-m-d H:i:s'));
+});
+
 it('treats a completely fresh install as all-awaiting, never missed', function () {
     $this->travelTo(now()->startOfHour()->setMinute(7));
 

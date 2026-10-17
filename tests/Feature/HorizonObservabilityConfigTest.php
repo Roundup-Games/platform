@@ -1,5 +1,6 @@
 <?php
 
+use App\Providers\HorizonServiceProvider;
 use Laravel\Horizon\Horizon;
 
 it('retains 24 hours of horizon metric snapshots', function () {
@@ -19,4 +20,22 @@ it('routes horizon notifications to the operations mailbox', function () {
     // Without a routed channel, LongWaitDetected / failed-job notifications
     // notify nobody. Provider boots with the app, so the static must be set.
     expect(Horizon::$email)->toBe(config('mail.from.address'));
+});
+
+it('keeps existing mail routing when no operations address is configured', function () {
+    $original = Horizon::$email;
+    Horizon::routeMailNotificationsTo('sentinel@example.com');
+    config(['mail.from.address' => null]);
+
+    // Re-boot the provider: parent::boot() only (re)defines the Horizon
+    // gate, so a second boot has no side effects. Providers are constructed
+    // with the app instance (the container cannot resolve `$app`).
+    (new HorizonServiceProvider(app()))->boot();
+
+    // The guard skips the assignment — a null config must neither crash
+    // boot nor clobber an existing routing with null.
+    expect(Horizon::$email)->toBe('sentinel@example.com');
+
+    // Restore the static for later assertions in this process.
+    Horizon::$email = $original;
 });

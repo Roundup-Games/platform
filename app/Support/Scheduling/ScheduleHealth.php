@@ -42,12 +42,18 @@ final class ScheduleHealth
     /**
      * When run recording started: the oldest run row. Null on a completely
      * fresh install (no rows at all) — everything is then awaiting.
+     *
+     * The aggregate comes back as a plain datetime string (Postgres,
+     * MySQL) — never a Carbon — so it is narrowed and parsed (same shape
+     * as RecurrenceService). The old instanceof guard nulled the epoch on
+     * every install, making the zero-row missed branch unreachable
+     * (MEM1255).
      */
     public static function recordingSince(): ?Carbon
     {
         $oldest = ScheduledTaskRun::query()->min('started_at');
 
-        return $oldest instanceof Carbon ? $oldest : null;
+        return is_string($oldest) ? Carbon::parse($oldest) : null;
     }
 
     /**

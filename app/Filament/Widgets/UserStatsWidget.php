@@ -13,6 +13,8 @@ class UserStatsWidget extends StatsOverviewWidget
 
     protected static ?int $sort = 0;
 
+    protected ?string $pollingInterval = '60s';
+
     protected function getStats(): array
     {
         // Six aggregate scans of the users table with 60s polling per open
