@@ -39,6 +39,13 @@ RUN install-php-extensions gd intl bcmath exif
 # are new containers — code is never hot-swapped in place — so timestamp
 # validation is pure overhead. Baked into the image (not env vars) so every
 # runtime (FPM, Horizon, artisan) shares identical settings.
+#
+# 2026-10-17 production incident: opcache.jit=tracing caused deterministic
+# FPM SIGSEGVs (502s on every full public page render — /en, /de — while
+# light routes like /up and /en/login stayed 200). CLI rendered fine;
+# disabling the JIT restored service immediately. Tracing JIT stays OFF
+# until the triggering path is understood on a PHP release that fixes it.
+# opcache itself (the big win) is unaffected.
 RUN printf '%s\n' \
     'opcache.enable=1' \
     'opcache.enable_cli=1' \
@@ -46,8 +53,8 @@ RUN printf '%s\n' \
     'opcache.memory_consumption=256' \
     'opcache.max_accelerated_files=30000' \
     'opcache.interned_strings_buffer=16' \
-    'opcache.jit=tracing' \
-    'opcache.jit_buffer_size=64M' \
+    'opcache.jit=disable' \
+    'opcache.jit_buffer_size=0' \
     > /usr/local/etc/php/conf.d/zz-opcache-tuning.ini
 
 # Install ALL apt packages in one stable layer:

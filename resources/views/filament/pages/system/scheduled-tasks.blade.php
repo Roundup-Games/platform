@@ -1,5 +1,39 @@
 <x-filament-panels::page>
-    <div class="filament-tables-container">
+    <div class="filament-tables-container space-y-6">
+        @if($health['missed'] > 0 || $health['failed_last'] > 0)
+            <x-filament::section icon="heroicon-o-exclamation-triangle" icon-color="danger">
+                <x-slot name="heading">Scheduled work needs attention</x-slot>
+                <ul class="list-disc pl-5 space-y-1 text-sm text-danger-700 dark:text-danger-300">
+                    @if($health['missed'] > 0)
+                        <li>
+                            <strong>{{ $health['missed'] }} task{{ $health['missed'] === 1 ? '' : 's' }}</strong> missed
+                            {{ $health['missed'] === 1 ? 'its' : 'their' }} most recent due time — a due occurrence passed with no recorded run.
+                            Causes: scheduler downtime, the entry erroring before dispatch, or a stuck <code>withoutOverlapping</code> lock.
+                            Check the "Missed occurrence" rows below and the worker container's health.
+                        </li>
+                    @endif
+                    @if($health['failed_last'] > 0)
+                        <li>
+                            <strong>{{ $health['failed_last'] }} task{{ $health['failed_last'] === 1 ? '' : 's' }}</strong> whose latest run
+                            <strong>failed</strong> — the exception message is shown in red on the row below; retried jobs that exhaust their
+                            attempts land in <a href="{{ url('/horizon/failed') }}" target="_blank" class="underline">Horizon's failed view</a>.
+                        </li>
+                    @endif
+                </ul>
+            </x-filament::section>
+        @elseif($health['awaiting_first'] > 0)
+            <x-filament::section icon="heroicon-o-information-circle" icon-color="gray">
+                <x-slot name="heading">Run tracking warming up — nothing is wrong</x-slot>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Run recording started {{ $recording_since?->diffForHumans() ?? 'just now' }}.
+                    <strong>{{ $health['awaiting_first'] }} of {{ $total_tasks }}</strong> tasks haven't reached their first occurrence since —
+                    nightly tasks light up in their next window, weekly ones (e.g. the Monday 03:00 BGG sync) at their next slot.
+                    Until then they show a neutral "Awaiting first run" badge; only a due time that passes <em>after</em> recording started
+                    counts as missed.
+                </p>
+            </x-filament::section>
+        @endif
+
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
@@ -42,15 +76,19 @@
                                         @if($task['last_run']->error)
                                             <span class="text-xs text-danger-600 dark:text-danger-400 truncate max-w-xs" title="{{ $task['last_run']->error }}">{{ $task['last_run']->error }}</span>
                                         @endif
-                                        @if($task['missed'])
+                                        @if($task['health'] === \App\Enums\ScheduledTaskHealth::Missed)
                                             <span class="inline-flex items-center rounded-full bg-danger-100 dark:bg-danger-900/30 px-2 py-0.5 text-xs font-medium text-danger-700 dark:text-danger-300">
                                                 Missed occurrence
                                             </span>
                                         @endif
                                     </div>
-                                @elseif($task['missed'])
+                                @elseif($task['health'] === \App\Enums\ScheduledTaskHealth::Missed)
                                     <span class="inline-flex items-center rounded-full bg-danger-100 dark:bg-danger-900/30 px-2 py-0.5 text-xs font-medium text-danger-700 dark:text-danger-300">
-                                        Never ran
+                                        Never ran — past due
+                                    </span>
+                                @elseif($task['health'] === \App\Enums\ScheduledTaskHealth::AwaitingFirstRun)
+                                    <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-900/30 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        Awaiting first run
                                     </span>
                                 @else
                                     <span class="text-gray-400">—</span>
