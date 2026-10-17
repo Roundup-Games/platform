@@ -1,24 +1,24 @@
 # Orca project config — per-worktree setup for agent workspaces.
 #
 # Runs when a worktree is created with `--setup run` (or the app's
-# equivalent). Deliberately does NOT run migrations: Orca worktrees share
-# nothing with the main checkout's dev database, and agents should not
-# mutate shared state during setup. Tests boot their own throwaway
-# Postgres testcontainer (tests/bootstrap.php), exactly like CI.
+# equivalent). The setup logic lives in bin/setup-worktree.sh, which is
+# shared with GSD-created worktrees (git.worktree_post_create in
+# .gsd/PREFERENCES.md) so both worktree factories provision identical
+# workspaces from one source of truth.
+#
+# Worktree policy for this repo (see docs/agent-worktrees.md):
+#   - GSD owns execution worktrees: <repo>/.gsd-worktrees/<id>, created by
+#     GSD auto mode, sharing the project's GSD state (full history).
+#   - Orca attaches agents/workers to those worktrees via
+#     `--worktree path:<repo>/.gsd-worktrees/<id>`; do NOT run GSD workflow
+#     commands from orca-managed worktrees under ~/orca/workspaces — they
+#     resolve as separate GSD projects (split-brain state).
+#
+# Deliberately does NOT run migrations: Orca worktrees share nothing with the
+# main checkout's dev database, and agents should not mutate shared state
+# during setup. Tests boot their own throwaway Postgres testcontainer
+# (tests/bootstrap.php), exactly like CI.
 scripts:
   setup: |
     set -e
-    echo "[orca setup] composer install (dev deps: pest, phpstan, pint)"
-    composer install --no-interaction
-    echo "[orca setup] .env from example + app key"
-    php -r "file_exists('.env') || copy('.env.example', '.env');"
-    php artisan key:generate
-    echo "[orca setup] frontend assets"
-    npm ci
-    npm run build
-    echo "[orca setup] git hooks (pre-commit static gates + pre-push full suite)"
-    composer install-hooks
-    echo "[orca setup] seed laravel-boost MCP into .mcp.json (machine-generated, git-ignored;"
-    echo "               /gsd later merges the gsd-workflow/gsd-browser servers in and preserves this one)"
-    node -e "const fs=require('fs');let d={};try{d=JSON.parse(fs.readFileSync('.mcp.json'))}catch{};d.mcpServers={...d.mcpServers,'laravel-boost':{type:'stdio',command:'php',args:['artisan','boost:mcp']}};fs.writeFileSync('.mcp.json',JSON.stringify(d,null,2)+'\n')"
-    echo "[orca setup] done — composer ci-mirror / smoke are the quick gates"
+    bash bin/setup-worktree.sh
