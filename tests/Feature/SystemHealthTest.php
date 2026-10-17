@@ -20,10 +20,13 @@ it('reports OK with all dependencies reachable', function () {
 });
 
 it('reports 503 with the failing checks when a dependency is down', function () {
-    // Poisoning the Redis config proves the endpoint fails closed. The
-    // cache assertion matches the active store: redis-backed in
+    // Fail the default Redis connection deterministically. Poisoning a
+    // config host is machine-dependent: on a workstation with a local
+    // Redis running, the default connection still pongs and this test
+    // fails — and the pre-push full-suite gate runs wherever you push
+    // from. The cache assertion matches the active store: redis-backed in
     // production (degrades), array-backed under phpunit.xml (unaffected).
-    config(['database.redis.cache.host' => '192.0.2.1']); // TEST-NET, never resolves
+    Redis::shouldReceive('ping')->andThrow(new RuntimeException('connection refused'));
 
     $checks = SystemHealth::checks();
     $expectedCache = config('cache.default') === 'redis' ? false : true;
