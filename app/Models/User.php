@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -586,6 +587,30 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function localSubscriptions()
     {
         return $this->hasMany(LocalSubscription::class);
+    }
+
+    /**
+     * The user's held badges — one lifecycle-stamped row per badge
+     * (badge_user, D186 spec §2.2). Revoked and lapsed rows stay
+     * present (spec principle 4: lapse honestly, never vanish).
+     *
+     * @return HasMany<BadgeUser, $this>
+     */
+    public function badges(): HasMany
+    {
+        return $this->hasMany(BadgeUser::class);
+    }
+
+    /**
+     * The user's badge audit trail through their badge_user holds —
+     * every BadgeEvent for this user across all badges (spec §2.3),
+     * joined on badge_events.badge_user_id.
+     *
+     * @return HasManyThrough<BadgeEvent, BadgeUser, $this>
+     */
+    public function badgeEvents(): HasManyThrough
+    {
+        return $this->hasManyThrough(BadgeEvent::class, BadgeUser::class);
     }
 
     /**

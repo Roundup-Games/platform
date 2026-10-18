@@ -55,6 +55,12 @@ return [
         'venues' => [
             'type_cafe',
         ],
+        'badges' => [
+            // True cognates — the metal names are identical in EN and DE
+            // (unlike Silber/Jahr, which differ and stay checked).
+            'content_badge_tier_bronze',
+            'content_badge_tier_gold',
+        ],
         'events' => [
             // Deliberate loanword — "Convention" is the canonical DE
             // event-type term (GLOSSARY D174: the German scene says

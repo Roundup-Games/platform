@@ -32,6 +32,7 @@ use App\Http\Controllers\ResendWebhookController;
 use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsurePaddleWebhookConfigured;
+use App\Livewire\Badges\BadgesGallery;
 use App\Livewire\Billing\BillingPortal;
 use App\Livewire\Billing\Checkout;
 use App\Livewire\Billing\MembershipPage;
@@ -261,6 +262,12 @@ Route::prefix('{locale}')
         Route::get('/terms', [PageController::class, 'terms'])->name('terms');
         Route::get('/impressum', [PageController::class, 'impressum'])->name('impressum');
         Route::get('/gms', GmDirectory::class)->name('gm.directory');
+        // M069/S04: guest-visible badge gallery — the public discovery + SEO
+        // surface for every active badge definition (category pills, rarity
+        // display, dormant coming-soon cards). Static sitemap entry ships in
+        // the same change (SitemapController::STATIC_PATHS), so the
+        // routing-hygiene/sitemap count tests stay green.
+        Route::get('/badges', BadgesGallery::class)->name('badges.gallery');
         Route::get('/game-systems', GameSystemsPage::class)->name('game-systems');
         Route::get('/game-systems/request', RequestGameSystemPage::class)
             ->middleware(['auth', 'not.disabled', 'profile.complete'])

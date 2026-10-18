@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 /**
  * @property string $user_id
  * @property Collection<int, array{name: string, count: int}>|null $top_proficiencies
+ * @property BadgeUser|null $top_badge
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */

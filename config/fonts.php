@@ -80,6 +80,14 @@ return [
         'monitoring', 'recommend', 'date_range', 'autorenew',
         'volunteer_activism', 'how_to_reg',
 
+        // Badges (M069): registry glyph set + chip markers. Most glyphs
+        // were already tracked; these landed with the registry icons.
+        'rocket_launch', 'foundation', 'workspace_premium',
+        // still_rolling (M069 S05): a named-constructor registry arg,
+        // invisible to fonts:audit (MEM1291). guild_linked's 'link' is
+        // already tracked with the social icons above.
+        'timelapse',
+
         // Icons only in dynamic PHP code
         'pause_circle', 'search_off', 'inbox', 'code', 'dashboard',
 

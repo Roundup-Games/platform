@@ -4,6 +4,8 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Livewire\Profile\PublicProfile;
+use App\Models\BadgeDefinition;
+use App\Models\BadgeUser;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -455,5 +457,78 @@ describe('Bio display on public profile', function () {
 
         expect($html)->toContain('Line one');
         expect($html)->toContain('Line two');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// BADGE SHELF
+// ═══════════════════════════════════════════════════════════
+
+describe('Badge shelf on public profile', function () {
+    it('renders held badges for a guest viewer', function () {
+        $profileUser = createProfileUser();
+
+        BadgeUser::factory()
+            ->for($profileUser)
+            ->for(BadgeDefinition::factory()->create([
+                'key' => 'debut',
+                'name_key' => 'badges.content_badge_debut_name',
+            ]))
+            ->create();
+
+        Livewire::test(PublicProfile::class, ['user' => $profileUser])
+            ->assertSee(__('badges.content_badge_shelf_title'))
+            ->assertSee(__('badges.content_badge_debut_name'));
+    });
+
+    it('hides revoked holds from the public shelf', function () {
+        $profileUser = createProfileUser();
+
+        BadgeUser::factory()
+            ->for($profileUser)
+            ->for(BadgeDefinition::factory()->create([
+                'key' => 'debut',
+                'name_key' => 'badges.content_badge_debut_name',
+            ]))
+            ->create();
+        BadgeUser::factory()
+            ->for($profileUser)
+            ->for(BadgeDefinition::factory()->create([
+                'key' => 'chartered',
+                'name_key' => 'badges.content_badge_chartered_name',
+            ]))
+            ->revoked()
+            ->create();
+
+        Livewire::test(PublicProfile::class, ['user' => $profileUser])
+            ->assertSee(__('badges.content_badge_debut_name'))
+            ->assertDontSee(__('badges.content_badge_chartered_name'));
+    });
+
+    it('greys lapsed holds with the re-earn caption', function () {
+        $profileUser = createProfileUser();
+
+        BadgeUser::factory()
+            ->for($profileUser)
+            ->for(BadgeDefinition::factory()->create([
+                'key' => 'first_seat',
+                'name_key' => 'badges.content_badge_first_seat_name',
+            ]))
+            ->lapsed()
+            ->create();
+
+        Livewire::test(PublicProfile::class, ['user' => $profileUser])
+            ->assertSee(__('badges.content_badge_first_seat_name'))
+            ->assertSee(__('badges.content_badge_state_re_earn'));
+    });
+
+    it('keeps the shelf unreachable for anonymized profiles (mount 404)', function () {
+        $anonymized = createProfileUser();
+        $anonymized->forceFill(['anonymized_at' => now()])->saveQuietly();
+
+        // Livewire::test swallows mount aborts, so the 404 contract is
+        // pinned at HTTP level (SlugRoutingTest / ViewSessionZeroTest
+        // precedent): the whole page — shelf included — is unreachable.
+        $this->get('/'.app()->getLocale().'/u/'.$anonymized->slug)->assertNotFound();
     });
 });

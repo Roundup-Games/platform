@@ -19,6 +19,9 @@ use Livewire\Component;
 #[Layout('components.public-layout')]
 class PublicProfile extends Component
 {
+    /** Spec §2.4: a user features at most this many badges on the shelf. */
+    public const MAX_FEATURED_BADGES = 3;
+
     #[Locked]
     public User $profileUser;
 
@@ -150,6 +153,49 @@ class PublicProfile extends Component
         $this->reviewsPage++;
     }
 
+    /**
+     * Feature/unfeature one of the owner's holds (spec §2.4, max 3).
+     *
+     * The hold id is client-supplied, so ownership is enforced by
+     * construction: resolving through the viewer's own badges relation
+     * means a foreign badge_user id (client tamper) simply resolves to
+     * null. Revoked holds are hidden from the shelf and never featureable.
+     */
+    public function toggleFeatured(string $badgeUserId): void
+    {
+        $viewer = Auth::user();
+
+        // Guests never see toggles; a crafted request just no-ops.
+        if ($viewer === null) {
+            return;
+        }
+
+        $hold = $viewer->badges()->whereKey($badgeUserId)->first();
+
+        if ($hold === null || $hold->revoked_at !== null) {
+            return;
+        }
+
+        if (! $hold->is_featured) {
+            $featuredCount = $viewer->badges()
+                ->where('is_featured', true)
+                ->whereNull('revoked_at')
+                ->count();
+
+            if ($featuredCount >= self::MAX_FEATURED_BADGES) {
+                $this->addError('featuredLimit', __('badges.content_badge_shelf_limit_reached'));
+
+                return;
+            }
+
+            $hold->update(['is_featured' => true]);
+
+            return;
+        }
+
+        $hold->update(['is_featured' => false]);
+    }
+
     public function render(): View
     {
         $eagerLoads = [];
@@ -185,6 +231,11 @@ class PublicProfile extends Component
         // Load GM profile (always visible regardless of privacy settings when active)
         $this->profileUser->load(['gmProfile' => fn ($q) => $q->where('is_active', true)]);
 
+        // Badge shelf: holds + definitions in one eager pass (one-query
+        // discipline — the partial never queries per-row). load() rather
+        // than loadMissing() so toggleFeatured re-reads state on re-render.
+        $this->profileUser->load('badges.badgeDefinition');
+
         // Resolve GM reviews with pagination if GM profile exists
         $gmReviews = null;
         $gmSocialLinks = collect();
@@ -218,6 +269,7 @@ class PublicProfile extends Component
             'reliabilityScore' => $reliabilityScore,
             'reliabilityGameCount' => $reliabilityGameCount,
             'showReliabilityDetails' => $showReliabilityDetails,
+            'badgeHolds' => $this->profileUser->badges,
         ]);
     }
 

@@ -172,6 +172,37 @@ Schedule::command('notifications:weekly-digest')->weekly()->mondays()->at('04:00
 // onOneServer prevents duplicate dispatches when multiple schedulers run.
 Schedule::command('discord:publish-digest')->dailyAt('06:00')->onOneServer();
 
+// Badges — nightly sweep over every registered evaluator (support-tenure
+// tier crossings, attendance-streak recomputes, quiet lapses, backfills),
+// prepending badges:sync so registry deploys converge (D186). 06:30 clears
+// the crowded 02:00–06:00 maintenance window (discord digest is 06:00);
+// observable via scheduled_task_runs (M068) + badges.sweep.* logs.
+Schedule::command('badges:sweep')
+    ->dailyAt('06:30')
+    ->runInBackground()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Badges — rarity recompute (D195): holders/eligible counts + rarity tier
+// on every badge_definitions row, the deferred second half of the nightly
+// badge jobs beside its consumer (the gallery rarity display). 06:45 sits
+// 15 min after badges:sweep so counts reflect that night's awards/lapses;
+// no sync prepend (the 06:30 sweep already synced). Counts columns are
+// job-owned — badges:sync never touches them. Observable via
+// scheduled_task_runs + badges.rarity.* logs.
+Schedule::command('badges:rarity')
+    ->dailyAt('06:45')
+    ->runInBackground()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Local-subscription expiry (fixed-period comps): 03:15 so the 06:30 badges:sweep
+// lapses the Supporting Member badge the same night the membership ended.
+// Observability is free via RecordScheduledTaskRun -> scheduled_task_runs + the
+// Filament Scheduled Tasks page. Bounded single query pass — no overlap guards
+// (model:prune style neighbors).
+Schedule::command('subscriptions:expire')->dailyAt('03:15')->onOneServer();
+
 // Escalated helpdesk — auto-escalation, SLA enforcement, ticket lifecycle
 Schedule::command('escalated:evaluate-escalations')->everyFiveMinutes()->onOneServer();
 Schedule::command('escalated:run-automations')->everyMinute()->onOneServer();

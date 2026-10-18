@@ -23,6 +23,8 @@ return [
     // Moderation
     'category_review_reported' => 'Review Reported',
     'category_moderation_notice' => 'Moderation Notices (warnings & content removal)',
+    // Achievements (M069)
+    'category_badge_awarded' => 'Badge Earned',
     // UI — Bell dropdown
     'bell_label' => 'Notifications (:count unread)',
     'nav_label' => 'Notifications',
@@ -36,6 +38,7 @@ return [
     'group_participation' => 'Participation',
     'group_events' => 'Events',
     'group_scheduling' => 'Scheduling',
+    'group_achievements' => 'Achievements',
     // Notification preferences UI
     'content_notification_preferences' => 'Notification Settings',
     'flash_notification_preferences_saved' => 'Notification preferences saved.',
@@ -61,6 +64,8 @@ return [
     // notification type never breaks the digest — it renders the fallback until
     // a key is added here.
     'label_digest_account_suspended' => 'Account Suspended',
+    'label_digest_badge_awarded' => 'Badge earned',
+    'label_digest_badge_upgraded' => 'Badge upgrade',
     'label_digest_application_approved' => 'Application Approved',
     'label_digest_application_rejected' => 'Application Rejected',
     'label_digest_attendance_nudge' => 'Attendance nudge',
@@ -338,4 +343,12 @@ return [
     'body_bulletin_content' => '":content"',
     'push_title_bulletin_posted' => 'Game Update',
     'push_body_bulletin_posted' => ':host posted an update for :game',
+    // Badges (M069) — award moments are celebratory but restrained (spec §2.2).
+    // :badge interpolates the display name incl. tier label, resolved from
+    // the badge registry + lang at render time.
+    'subject_badge_awarded' => 'You earned: :badge',
+    'body_badge_awarded' => 'You earned **:badge** — it is now part of your profile. Thank you for being part of the community.',
+    'subject_badge_upgraded' => 'Your badge leveled up: :badge',
+    'body_badge_upgraded' => 'Your badge advanced to **:badge**. Thank you for sticking with it.',
+    'action_badge_awarded' => 'View Profile',
 ];

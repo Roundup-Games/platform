@@ -57,6 +57,9 @@ enum NotificationCategory: string
     case ReviewReported = 'review_reported';
     case ModerationNotice = 'moderation_notice';
 
+    // Achievements (M069 — badges)
+    case BadgeAwarded = 'badge_awarded';
+
     /**
      * @return string[]
      */
@@ -104,6 +107,7 @@ enum NotificationCategory: string
             self::SessionReminder => __('notifications.category_session_reminder'),
             self::ReviewReported => __('notifications.category_review_reported'),
             self::ModerationNotice => __('notifications.category_moderation_notice'),
+            self::BadgeAwarded => __('notifications.category_badge_awarded'),
         };
     }
 
@@ -119,6 +123,7 @@ enum NotificationCategory: string
             self::GameSystemRequest => 'content',
             self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder => 'scheduling',
             self::ReviewReported, self::ModerationNotice => 'moderation',
+            self::BadgeAwarded => 'achievements',
         };
     }
 
@@ -165,6 +170,10 @@ enum NotificationCategory: string
             'moderation' => [
                 'label' => __('common.content_moderation'),
                 'categories' => [self::ReviewReported, self::ModerationNotice],
+            ],
+            'achievements' => [
+                'label' => __('notifications.group_achievements'),
+                'categories' => [self::BadgeAwarded],
             ],
         ];
 
@@ -246,6 +255,10 @@ enum NotificationCategory: string
             self::NewFollower => false,
             self::ReviewReported => false,
             self::ModerationNotice => true,
+
+            // Achievements — celebratory, not time-critical: in-app + push
+            // by default, weekly digest covers the email surface (spec §2.2).
+            self::BadgeAwarded => false,
         };
     }
 

@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Console\Dev\DemoSeedCommand;
 use App\Console\Dev\DemoTeardownCommand;
 use App\Console\Dev\PostHogTestEvent;
+use App\Events\MembershipActivated;
+use App\Listeners\BadgePipeline;
 use App\Listeners\DropDemoDomainMail;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
@@ -16,12 +18,14 @@ use App\Listeners\SuppressAutomatedTicketStatusNotifications;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\City;
+use App\Models\DiscordGuildOrganizer;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
+use App\Models\LocalSubscription;
 use App\Models\Location;
 use App\Models\Review;
 use App\Models\Team;
@@ -118,6 +122,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Paddle\Cashier;
+use Laravel\Paddle\Subscription;
 use LogicException;
 use Minishlink\WebPush\WebPush;
 use PostHog\PostHog;
@@ -301,6 +306,13 @@ class AppServiceProvider extends ServiceProvider
         // Escalated ticket event listeners for game system requests
         EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
         EventFacade::listen(TicketClosed::class, HandleGameSystemTicketClosed::class);
+
+        // Badge engine award pipeline (M069, spec §2.2): membership
+        // activations run every registered badge evaluator through the
+        // audited write side, on the queue. MembershipEnded deliberately
+        // has NO badge listener — lapses are sweep-owned and quiet
+        // (spec §4).
+        EventFacade::listen(MembershipActivated::class, BadgePipeline::class);
 
         // Role/permission mutations must invalidate ScopedRoleService's
         // per-request memo (WeakMap on the User instance) so a role granted
@@ -606,13 +618,22 @@ class AppServiceProvider extends ServiceProvider
         // getMorphClass()/whereMorphedTo (INV-11 pins the writers).
         Relation::enforceMorphMap([
             'campaign' => Campaign::class,
+            // Badge evidence alias (M069 S05, D170/D209): the guild_linked
+            // pointer at a DiscordGuildOrganizer opt-in row. Badge evidence
+            // is the only morph use — no stored FQCN rows exist.
+            'discord_guild_organizer' => DiscordGuildOrganizer::class,
             'event' => Event::class,
             'event_announcement' => EventAnnouncement::class,
             'game' => Game::class,
             'game_participant' => GameParticipant::class,
             'game_system' => GameSystem::class,
+            // Badge evidence aliases (M069, D170): the subscription records
+            // that justify supporting_member awards. Badge evidence is the
+            // only morph use of these classes — no stored FQCN rows exist.
+            'local_subscription' => LocalSubscription::class,
             'location' => Location::class,
             'review' => Review::class,
+            'subscription' => Subscription::class,
             'team' => Team::class,
             'user' => User::class,
             'user_relationship' => UserRelationship::class,

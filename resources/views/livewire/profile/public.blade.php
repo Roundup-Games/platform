@@ -117,6 +117,13 @@
             @endauth
         </section>
 
+        {{-- Badge shelf (spec §2.4): holds render for every viewer; owner
+             toggles are added by the partial when the viewer is the owner. --}}
+        @include('livewire.profile.partials._badge-shelf', [
+            'holds' => $badgeHolds,
+            'isOwner' => $isOwnProfile,
+        ])
+
         {{-- GM Profile Section (always visible when active, regardless of privacy) --}}
         @php
             $gmProfile = $profileUser->gmProfile;

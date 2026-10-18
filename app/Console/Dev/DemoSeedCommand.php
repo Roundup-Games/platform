@@ -462,6 +462,7 @@ class DemoSeedCommand extends Command
         $this->createReviews();
         $this->createCampaigns();
         $this->createCampaignReviews();
+        $this->createBadgeCohortFixtures();
         $this->createSessionDebriefings();
         $this->createSessionZeroSurveys();
         $this->createLinkedAccounts();
@@ -667,6 +668,16 @@ class DemoSeedCommand extends Command
                     }
                 }
                 unset($row['game_system_id']);
+                if ($table === 'games') {
+                    // Attendance resolution only exists on completed,
+                    // non-canceled batches (M069/S05/T5). Normalize the key
+                    // set so one bulk INSERT never mixes row shapes —
+                    // Postgres requires equal-length VALUES lists, and the
+                    // campaign seeder batches completed and scheduled
+                    // sessions together.
+                    $row['attendance_resolved_at'] ??= null;
+                    $row['attendance_resolution_method'] ??= null;
+                }
                 $cleaned[] = $row;
             }
             $rows = $cleaned;
@@ -1489,6 +1500,8 @@ class DemoSeedCommand extends Command
                     'safety_rules' => json_encode([]),
                     'language' => $language,
                     'recap' => $isCancelled ? null : $recaps[array_rand($recaps)],
+                    'attendance_resolved_at' => $isCancelled ? null : $dateTime->copy()->addDay(),
+                    'attendance_resolution_method' => $isCancelled ? null : 'manual',
                     'created_at' => $dateTime->copy()->subDays(random_int(3, 14)),
                     'updated_at' => $dateTime,
                 ];
@@ -2184,6 +2197,8 @@ class DemoSeedCommand extends Command
                         'safety_rules' => json_encode(['tools' => $safetyTools]),
                         'language' => $language,
                         'recap' => $szCompleted ? self::RECAPS[$language][array_rand(self::RECAPS[$language])] : null,
+                        'attendance_resolved_at' => $szCompleted ? $szDate->copy()->addDay() : null,
+                        'attendance_resolution_method' => $szCompleted ? 'manual' : null,
                         'created_at' => $szDate->copy()->subDays(7),
                         'updated_at' => $szDate,
                     ];
@@ -2346,6 +2361,8 @@ class DemoSeedCommand extends Command
                         'safety_rules' => json_encode(['tools' => ['lines_and_veils', 'x-card']]),
                         'language' => $language,
                         'recap' => $isPastCancelled ? null : self::RECAPS[$language][array_rand(self::RECAPS[$language])],
+                        'attendance_resolved_at' => $isPastCancelled ? null : $pastDate->copy()->addDay(),
+                        'attendance_resolution_method' => $isPastCancelled ? null : 'manual',
                         'created_at' => $pastDate->copy()->subDays(random_int(3, 7)),
                         'updated_at' => $pastDate,
                     ];
@@ -2614,6 +2631,408 @@ class DemoSeedCommand extends Command
         $bar->finish();
         $this->newLine();
         $this->info("Created {$totalCampaigns} campaigns with {$totalSessions} sessions ({$totalGatherings} gatherings).");
+    }
+
+    // =========================================================================
+    // BADGE COHORT FIXTURES (M069/S05/T5)
+    // =========================================================================
+
+    /**
+     * Deterministic badge-cohort fixtures for the S05 roadmap demo: a
+     * fresh demo environment produces Founding Table, Debut, First Seat,
+     * Still Rolling, Guild Linked, Regulars' Table, Trusted Organizer and
+     * Mentor holds through badges:sync + badges:sweep, while Chartered and
+     * Campaign Compleat stay registered-but-dormant (D189).
+     *
+     * Five blocks, all bulk-INSERT shaped like the rest of this command:
+     *
+     *  - Still Rolling: three marker GMs hosting tables ~1950/~1200/~400
+     *    days back → deterministic year_5/year_3/year_1 tenures.
+     *  - Regulars' Table: one GM+player pair with attended, resolved
+     *    sessions at 30/70/110 days back — 40-day gaps can never collapse
+     *    into one calendar month, so the pair spans three covered months.
+     *  - Mentor (D190): one GM + five distinct players whose earliest
+     *    attended session with that GM — the earliest of anything this GM
+     *    hosts — is the one each of them reviewed 5/5 published. D190 keys
+     *    on the FIRST attended session, not exclusivity: reviewers may
+     *    also attend and review later sessions with this GM (shared with
+     *    the still-rolling/regulars blocks); only the first-session 5/5
+     *    review qualifies.
+     *  - Guild Linked (D209): one live guild with a qualifying 45-day
+     *    opt-in, plus the negatives (15-day opt-in, aged opt-in on a
+     *    paused guild).
+     *  - Trusted Organizer (D206/D207): in the most recent CLOSED quarter,
+     *    one organizer with three completed events + an announced
+     *    cancellation whose linked tables carry deterministic 5/4 reviews
+     *    (avg 4.5), and a second organizer disqualified by one SILENT
+     *    cancellation (25% unannounced rate).
+     */
+    private function createBadgeCohortFixtures(): void
+    {
+        $this->newLine();
+        $this->info('Creating badge cohort fixtures (still rolling, guild linked, trusted organizer, mentor, regulars table)...');
+
+        // Toy-scale floor: the proof run seeds --users=25 --gms=3, which
+        // yields exactly three GMs and 22 players — enough for every block.
+        if (count($this->gmInfo) < 3 || count($this->playerIds) < 15
+            || ($this->boardGamePool === [] && $this->ttrpgPool === [])) {
+            $this->warn('Not enough GMs, players, or game systems for badge cohort fixtures. Skipping.');
+
+            return;
+        }
+
+        $pool = $this->boardGamePool !== [] ? $this->boardGamePool : $this->ttrpgPool;
+        /** @var array{id: string, min: int} $system */
+        $system = $pool[array_key_first($pool)];
+
+        $veteranGm = $this->gmInfo[0];
+        $eventGm = $this->gmInfo[1];
+        $mentorGm = $this->gmInfo[2];
+
+        /** @var list<array<string, mixed>> $games */
+        $games = [];
+        /** @var list<array<string, mixed>> $participants */
+        $participants = [];
+        /** @var list<array<string, mixed>> $reviews */
+        $reviews = [];
+        /** @var list<array<string, mixed>> $events */
+        $events = [];
+        /** @var list<array<string, mixed>> $announcements */
+        $announcements = [];
+        /** @var list<array<string, mixed>> $registrations */
+        $registrations = [];
+
+        // ── Still Rolling: marker tenures of ~5.3 / ~3.3 / ~1.1 years ──
+        $oldGamePlayers = [$this->playerIds[8], $this->playerIds[9], $this->playerIds[10]];
+        $stillRollingMarkers = [
+            [$veteranGm, 1950],
+            [$eventGm, 1200],
+            [$mentorGm, 400],
+        ];
+
+        foreach ($stillRollingMarkers as $i => [$gm, $daysAgo]) {
+            $date = Carbon::now()->subDays($daysAgo)->setTime(18, 0);
+            $gameId = (string) Str::uuid7();
+
+            $games[] = $this->badgeCohortGameRow($gameId, $gm['id'], $date, $system, 'Anniversary Table '.($i + 1));
+            $participants[] = $this->badgeCohortParticipantRow($gameId, $gm['id'], $date, true);
+            $participants[] = $this->badgeCohortParticipantRow($gameId, $oldGamePlayers[$i], $date, false);
+
+            // Keep the marker GM's account older than their first table so
+            // a multi-year tenure reads coherently (createUsers stamps
+            // created_at at most 180 days back).
+            if (! $this->dryRun) {
+                DB::table('users')->where('id', $gm['id'])->update(['created_at' => $date->copy()->subDays(30)]);
+            }
+        }
+
+        // ── Regulars' Table: the pair's three covered months ──
+        $pairPlayer = $this->playerIds[0];
+
+        foreach ([110, 70, 30] as $i => $daysAgo) {
+            $date = Carbon::now()->subDays($daysAgo)->setTime(18, 0);
+            $gameId = (string) Str::uuid7();
+
+            $games[] = $this->badgeCohortGameRow($gameId, $veteranGm['id'], $date, $system, 'Regulars Night '.($i + 1));
+            $participants[] = $this->badgeCohortParticipantRow($gameId, $veteranGm['id'], $date, true);
+            $participants[] = $this->badgeCohortParticipantRow($gameId, $pairPlayer, $date, false);
+        }
+
+        // ── Mentor (D190): five distinct first-session 5/5 reviewers ──
+        // The session predates every other table this GM hosts, so it stays
+        // each reviewer's first attended session with them no matter what
+        // the random blocks selected.
+        $mentorPlayers = array_slice($this->playerIds, 3, 5);
+        $mentorDate = Carbon::now()->subDays(450)->setTime(18, 0);
+        $mentorGameId = (string) Str::uuid7();
+        $mentorProfileId = $this->gmProfileIds[$mentorGm['id']] ?? null;
+
+        $games[] = $this->badgeCohortGameRow($mentorGameId, $mentorGm['id'], $mentorDate, $system, 'First Timers at the Table');
+        $participants[] = $this->badgeCohortParticipantRow($mentorGameId, $mentorGm['id'], $mentorDate, true);
+
+        foreach ($mentorPlayers as $mentorPlayer) {
+            $participants[] = $this->badgeCohortParticipantRow($mentorGameId, $mentorPlayer, $mentorDate, false);
+
+            if (is_string($mentorProfileId)) {
+                $reviews[] = $this->badgeCohortReviewRow($mentorPlayer, $mentorProfileId, $mentorGameId, 5, $mentorDate->copy()->addDays(2));
+            }
+        }
+
+        // ── Guild Linked (D209): one qualifying link, two negatives ──
+        $guildLiveId = (string) Str::uuid7();
+        $guildPausedId = (string) Str::uuid7();
+
+        /** @var list<array<string, mixed>> $guilds */
+        $guilds = [
+            [
+                'id' => $guildLiveId,
+                'guild_id' => '900000000000000101',
+                'name' => 'Roundup Demo Guild '.self::MARKER,
+                'icon' => null,
+                'owner_user_id' => $this->playerIds[1],
+                'locale' => 'en',
+                'paused' => false,
+                'created_at' => now()->subDays(120),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => $guildPausedId,
+                'guild_id' => '900000000000000102',
+                'name' => 'Roundup Demo Paused Guild '.self::MARKER,
+                'icon' => null,
+                'owner_user_id' => $this->playerIds[2],
+                'locale' => 'en',
+                'paused' => true,
+                'created_at' => now()->subDays(120),
+                'updated_at' => now(),
+            ],
+        ];
+
+        $guildOrganizers = [
+            // Qualifying: live guild, opt-in aged 45 days.
+            $this->badgeCohortGuildOrganizerRow($guildLiveId, $eventGm['id'], now()->subDays(45)),
+            // Negative: live guild, opt-in only 15 days old.
+            $this->badgeCohortGuildOrganizerRow($guildLiveId, $mentorGm['id'], now()->subDays(15)),
+            // Negative: aged opt-in, but the landlord paused the guild.
+            $this->badgeCohortGuildOrganizerRow($guildPausedId, $veteranGm['id'], now()->subDays(60)),
+        ];
+
+        // ── Trusted Organizer (D206/D207): the closed-quarter pair ──
+        $quarterStart = Carbon::now()->startOfQuarter()->subMonths(3)->startOfDay();
+        $eventReviewers = [$this->playerIds[11], $this->playerIds[12], $this->playerIds[13], $this->playerIds[14]];
+        /** @var list<array{gm: array{id: string, city: string}, silent: bool, reviewers: array{0: string, 1: string}}> $eventPlans */
+        $eventPlans = [
+            ['gm' => $eventGm, 'silent' => false, 'reviewers' => [$eventReviewers[0], $eventReviewers[1]]],
+            ['gm' => $veteranGm, 'silent' => true, 'reviewers' => [$eventReviewers[2], $eventReviewers[3]]],
+        ];
+
+        foreach ($eventPlans as $planIndex => $plan) {
+            $gm = $plan['gm'];
+            $gmProfileId = $this->gmProfileIds[$gm['id']] ?? null;
+
+            foreach ([10, 40, 70] as $offsetIndex => $offsetDays) {
+                $startDate = $quarterStart->copy()->addDays($offsetDays);
+                $eventId = (string) Str::uuid7();
+
+                $events[] = $this->badgeCohortEventRow($eventId, $gm['id'], $startDate, 'completed', "Demo Table Night {$planIndex}.{$offsetIndex}");
+
+                // The event-linked table: completed, resolution-stamped, and
+                // carrying exactly two published reviews — 5 and 4 → avg 4.5.
+                $tableDate = $startDate->copy()->setTime(18, 0);
+                $gameId = (string) Str::uuid7();
+
+                $games[] = $this->badgeCohortGameRow($gameId, $gm['id'], $tableDate, $system, "Event Table {$planIndex}.{$offsetIndex}", $eventId);
+                $participants[] = $this->badgeCohortParticipantRow($gameId, $gm['id'], $tableDate, true);
+
+                foreach ($plan['reviewers'] as $reviewerIndex => $reviewerId) {
+                    $participants[] = $this->badgeCohortParticipantRow($gameId, $reviewerId, $tableDate, false);
+
+                    if (is_string($gmProfileId)) {
+                        $reviews[] = $this->badgeCohortReviewRow($reviewerId, $gmProfileId, $gameId, $reviewerIndex === 0 ? 5 : 4, $tableDate->copy()->addDays(2));
+                    }
+                }
+
+                if ($planIndex === 0 && $offsetIndex === 0) {
+                    $registrations[] = [
+                        'id' => (string) Str::uuid7(),
+                        'event_id' => $eventId,
+                        'user_id' => $plan['reviewers'][0],
+                        'status' => 'confirmed',
+                        'payment_status' => 'paid',
+                        'payment_id' => null,
+                        'notes' => null,
+                        'internal_notes' => null,
+                        'confirmed_at' => $quarterStart->copy()->addDays(5),
+                        'cancelled_at' => null,
+                        'created_at' => $quarterStart->copy()->addDays(5),
+                        'updated_at' => $quarterStart->copy()->addDays(5),
+                    ];
+                }
+            }
+
+            // The quarter's cancellation: announced for the qualifying
+            // organizer, silent for the negative one (D207 disqualifier).
+            $cancelledEventId = (string) Str::uuid7();
+            $cancelledDate = $quarterStart->copy()->addDays(85);
+
+            $events[] = $this->badgeCohortEventRow($cancelledEventId, $gm['id'], $cancelledDate, 'cancelled', "Demo Table Night {$planIndex}.C");
+
+            if (! $plan['silent']) {
+                $announcements[] = [
+                    'id' => (string) Str::uuid7(),
+                    'event_id' => $cancelledEventId,
+                    'author_id' => $gm['id'],
+                    'title' => json_encode(['en' => 'We had to cancel '.self::MARKER]),
+                    'content' => json_encode(['en' => 'This demo event was cancelled with a public announcement. '.self::MARKER]),
+                    'is_pinned' => false,
+                    'is_published' => true,
+                    'visibility' => 'all',
+                    'created_at' => $cancelledDate->copy()->subDays(2),
+                    'updated_at' => $cancelledDate->copy()->subDays(2),
+                ];
+            }
+        }
+
+        // Flush — events first (linked tables reference them via
+        // games.event_id), then everything else leaf-last.
+        $this->dryInsertMany('events', $events);
+        $this->dryInsertMany('games', $games);
+        $this->dryInsertMany('game_participants', $participants);
+        $this->dryInsertMany('reviews', $reviews);
+        $this->dryInsertMany('discord_guilds', $guilds);
+        $this->dryInsertMany('discord_guild_organizers', $guildOrganizers);
+
+        if ($announcements !== []) {
+            $this->dryInsertMany('event_announcements', $announcements);
+        }
+
+        if ($registrations !== []) {
+            $this->dryInsertMany('event_registrations', $registrations);
+        }
+
+        $this->info(sprintf(
+            'Badge cohort fixtures: %d games, %d events, %d guild links, %d cohort reviews.',
+            count($games),
+            count($events),
+            count($guildOrganizers),
+            count($reviews),
+        ));
+    }
+
+    /**
+     * A completed, resolution-stamped board-game row for the badge-cohort
+     * blocks: the shape every cohort fixture shares — a past session with
+     * organizer-resolved attendance, a recap, and the [TEST] marker.
+     *
+     * @param  array{id: string, min: int}  $system
+     * @return array<string, mixed>
+     */
+    private function badgeCohortGameRow(string $gameId, string $ownerId, Carbon $dateTime, array $system, string $title, ?string $eventId = null): array
+    {
+        $city = $this->userCityMap[$ownerId] ?? 'Berlin';
+        $cityLocs = $this->locationsByCity[$city] ?? [];
+        $locationId = $cityLocs !== [] ? $cityLocs[array_key_first($cityLocs)] : null;
+
+        return [
+            'id' => $gameId,
+            'owner_id' => $ownerId,
+            'campaign_id' => null,
+            'game_system_id' => $system['id'],
+            'event_id' => $eventId,
+            'name' => json_encode(['en' => $title.' '.self::MARKER]),
+            'description' => json_encode(['en' => 'Deterministic badge-cohort fixture session. '.self::MARKER]),
+            'game_type' => GameType::BoardGame->value,
+            'date_time' => $dateTime,
+            'expected_duration' => 2.0,
+            'location_id' => $locationId,
+            'location' => $this->buildLocationJson($locationId),
+            'status' => GameStatus::Completed->value,
+            'visibility' => Visibility::Public->value,
+            'experience_level' => ExperienceLevel::All->value,
+            'min_players' => 2,
+            'max_players' => max(4, $system['min']),
+            'bench_mode' => false,
+            'vibe_flags' => json_encode([]),
+            'safety_rules' => json_encode([]),
+            'language' => 'en',
+            'recap' => 'Badge cohort fixture recap. '.self::MARKER,
+            'attendance_resolved_at' => $dateTime->copy()->addDay(),
+            'attendance_resolution_method' => 'manual',
+            'created_at' => $dateTime->copy()->subDays(7),
+            'updated_at' => $dateTime->copy()->addDay(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function badgeCohortParticipantRow(string $gameId, string $userId, Carbon $dateTime, bool $isOwner): array
+    {
+        return [
+            'id' => (string) Str::uuid7(),
+            'game_id' => $gameId,
+            'user_id' => $userId,
+            'role' => $isOwner ? ParticipantRole::Owner->value : ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+            'attendance_status' => AttendanceStatus::Attended->value,
+            'join_source' => 'application',
+            'invitee_email' => null,
+            'benched_at' => null,
+            'waitlisted_at' => null,
+            'created_at' => $dateTime->copy()->subDays(5),
+            // Raw inserts bypass GameParticipantObserver::saving(); set it
+            // explicitly like the completed-session batches above.
+            'approved_at' => $dateTime->copy()->subDays(5),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function badgeCohortReviewRow(string $reviewerId, string $gmProfileId, string $gameId, int $rating, Carbon $createdAt): array
+    {
+        return [
+            'id' => (string) Str::uuid7(),
+            'reviewable_type' => (new Game)->getMorphClass(),
+            'reviewable_id' => $gameId,
+            'reviewer_id' => $reviewerId,
+            'gm_profile_id' => $gmProfileId,
+            'rating' => $rating,
+            'body' => 'Badge cohort fixture review. '.self::MARKER,
+            'proficiency_tags' => json_encode([]),
+            'status' => 'published',
+            'reported_at' => null,
+            'reported_by' => null,
+            'reply' => null,
+            'replied_at' => null,
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function badgeCohortGuildOrganizerRow(string $guildId, string $userId, Carbon $optedInAt): array
+    {
+        return [
+            'id' => (string) Str::uuid7(),
+            'guild_id' => $guildId,
+            'user_id' => $userId,
+            'publish_enabled' => true,
+            'opted_in_at' => $optedInAt,
+            'created_at' => $optedInAt,
+            'updated_at' => $optedInAt,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function badgeCohortEventRow(string $eventId, string $organizerId, Carbon $startDate, string $status, string $title): array
+    {
+        return [
+            'id' => $eventId,
+            'name' => json_encode(['en' => $title.' '.self::MARKER]),
+            'slug' => Str::slug($title).'-'.Str::random(6),
+            'description' => json_encode(['en' => 'Deterministic badge-cohort fixture event. '.self::MARKER]),
+            'short_description' => json_encode(['en' => 'Badge cohort fixture event.']),
+            'type' => 'game_day',
+            'status' => $status,
+            'city' => $this->userCityMap[$organizerId] ?? 'Berlin',
+            'country' => 'DEU',
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $startDate->toDateString(),
+            'max_participants' => 20,
+            'individual_registration_fee' => 0,
+            'contact_email' => $this->userEmailMap[$organizerId] ?? null,
+            'is_public' => true,
+            'is_featured' => false,
+            'language' => 'en',
+            'organizer_id' => $organizerId,
+            'created_at' => $startDate->copy()->subDays(30),
+            'updated_at' => $startDate,
+        ];
     }
 
     // =========================================================================

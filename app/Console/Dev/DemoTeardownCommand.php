@@ -91,6 +91,13 @@ class DemoTeardownCommand extends Command
                 ['media', 'all matching'],
                 ['short_links', 'all matching'],
                 ['short_link_hits (cascaded)', 'all matching'],
+                ['events (demo organizers)', 'all matching'],
+                ['event_announcements (by event)', 'all matching'],
+                ['event_registrations (by event)', 'all matching'],
+                ['discord_guilds (demo-owned)', 'all matching'],
+                ['discord_guild_organizers', 'all matching'],
+                ['badge_user (cascaded on user delete)', 'all matching'],
+                ['badge_events (cascaded on badge_user delete)', 'all matching'],
                 ['locations (demo-seed)', 'all matching'],
             ]);
             $this->newLine();
@@ -151,6 +158,7 @@ class DemoTeardownCommand extends Command
             'gm_social_links', 'gm_profiles', 'local_subscriptions',
             'user_game_system_preferences', 'user_vibe_preferences',
             'linked_accounts', 'push_subscriptions', 'nearby_discovery_views',
+            'discord_guild_organizers',
         ];
         foreach ($userTables as $table) {
             $this->info('Deleted '.$this->chunkedDelete($table, 'user_id', $demoUserIds)." from {$table}.");
@@ -168,6 +176,24 @@ class DemoTeardownCommand extends Command
         $slCount += $this->chunkedDeleteWith('short_links', 'linkable_id', $demoGameIds, 'linkable_type', (new Game)->getMorphClass());
         $slCount += $this->chunkedDeleteWith('short_links', 'linkable_id', $demoCampaignIds, 'linkable_type', (new Campaign)->getMorphClass());
         $this->info("Deleted {$slCount} short links.");
+
+        // Step 7b: Demo events (+ registrations/announcements) and Discord
+        // guilds (badge-cohort fixtures, M069/S05/T5). Events go before games
+        // so linked tables' event_id FK detaches cleanly; guilds and their
+        // opt-ins before users for the same reason. Every FK involved would
+        // also cascade, but the teardown stays explicit and countable.
+        $demoEventIds = $this->chunkedPluck(DB::table('events'), 'id', 'organizer_id', $demoUserIds);
+        $erCount = $this->chunkedDelete('event_registrations', 'event_id', $demoEventIds);
+        $eaCount = $this->chunkedDelete('event_announcements', 'event_id', $demoEventIds);
+        $this->info("Deleted {$erCount} from event_registrations and {$eaCount} from event_announcements.");
+
+        $eventDeleted = 0;
+        foreach ($demoEventIds->chunk(2000) as $chunk) {
+            $eventDeleted += DB::table('events')->whereIn('id', $chunk)->delete();
+        }
+        $this->info("Deleted {$eventDeleted} demo events.");
+
+        $this->info('Deleted '.$this->chunkedDelete('discord_guilds', 'owner_user_id', $demoUserIds).' demo-owned Discord guilds.');
 
         // Step 8: Games and campaigns (root entities)
         $gameDeleted = 0;
@@ -229,6 +255,9 @@ class DemoTeardownCommand extends Command
         $remainCampaigns = DB::table('campaigns')
             ->whereRaw('name::text LIKE ?', ["%{$marker}%"])
             ->count();
+        $remainEvents = DB::table('events')
+            ->whereIn('organizer_id', $demoUserIds)
+            ->count();
 
         $this->table(
             ['Check', 'Expected', 'Actual', 'OK'],
@@ -236,6 +265,7 @@ class DemoTeardownCommand extends Command
                 ['Users', '0', (string) $remainUsers, $remainUsers === 0 ? '✅' : '❌'],
                 ['Games', '0', (string) $remainGames, $remainGames === 0 ? '✅' : '❌'],
                 ['Campaigns', '0', (string) $remainCampaigns, $remainCampaigns === 0 ? '✅' : '❌'],
+                ['Events', '0', (string) $remainEvents, $remainEvents === 0 ? '✅' : '❌'],
             ]
         );
 

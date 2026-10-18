@@ -3,11 +3,15 @@
 namespace App\Filament\Resources;
 
 use App\Enums\ContentLanguage;
+use App\Enums\LocalSubscriptionSource;
 use App\Filament\Components\SeoFields;
 use App\Filament\Resources\UserResource\Pages;
+use App\Filament\Resources\UserResource\RelationManagers\BadgeEventsRelationManager;
+use App\Filament\Resources\UserResource\RelationManagers\BadgesRelationManager;
 use App\Filament\Resources\UserResource\RelationManagers\LinkedAccountsRelationManager;
 use App\Models\User;
 use App\Rules\ValidUserName;
+use App\Services\CompMembershipService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -19,6 +23,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -351,6 +356,100 @@ class UserResource extends Resource
 
                         return true;
                     }),
+                // ── Comp membership (R083, spec §2.5) ─────────────
+                // Flagged local subscription on the GM plan carrying the
+                // full GM benefit set and the Supporting Member badge —
+                // the service owns the row, benefits arrive through the
+                // S02 seam. All mutation stays in CompMembershipService.
+                Action::make('grantCompMembership')
+                    ->label('Grant comp')
+                    ->icon(Heroicon::OutlinedGift)
+                    ->color('success')
+                    ->modalHeading('Grant comp membership')
+                    ->modalDescription('Creates a flagged comp subscription on the GM plan with full GM benefits and the Supporting Member badge. Re-granting updates the existing comp row in place.')
+                    ->form([
+                        Select::make('period')
+                            ->label('Period')
+                            ->options([
+                                'permanent' => 'Permanent',
+                                '3' => '3 months',
+                                '6' => '6 months',
+                                '12' => '12 months',
+                            ])
+                            ->default('permanent')
+                            ->required(),
+                        Textarea::make('reason')
+                            ->label('Reason')
+                            ->required()
+                            ->maxLength(1000)
+                            ->rows(3)
+                            ->helperText('Why this user receives the comp — recorded on the subscription row.'),
+                    ])
+                    ->action(function (User $record, array $data): void {
+                        $actor = auth()->user();
+
+                        if (! $actor instanceof User) {
+                            return;
+                        }
+
+                        $endsAt = $data['period'] === 'permanent'
+                            ? null
+                            : now()->addMonths((int) $data['period']);
+
+                        $subscription = app(CompMembershipService::class)
+                            ->grant($record, $endsAt, $actor, (string) $data['reason']);
+
+                        Notification::make()
+                            ->success()
+                            ->title($endsAt === null
+                                ? 'Comp membership granted — permanent'
+                                : 'Comp membership granted — expires '.$endsAt->format('M j, Y'))
+                            ->send();
+                    }),
+                Action::make('withdrawCompMembership')
+                    ->label('Withdraw comp')
+                    ->icon(Heroicon::OutlinedArrowUturnLeft)
+                    ->color('warning')
+                    ->modalHeading('Withdraw comp membership')
+                    ->modalDescription('Cancels the comp subscription. GM benefits lapse only when no other active membership remains; the Supporting Member badge follows via the nightly sweep.')
+                    ->visible(fn (User $record): bool => $record->localSubscriptions()
+                        ->where('source', LocalSubscriptionSource::Comp)
+                        ->active()
+                        ->exists())
+                    ->form([
+                        Textarea::make('reason')
+                            ->label('Reason')
+                            ->required()
+                            ->maxLength(1000)
+                            ->rows(3)
+                            ->helperText('Why the comp is withdrawn — recorded in the structured log.'),
+                    ])
+                    ->action(function (User $record, array $data): void {
+                        $actor = auth()->user();
+
+                        if (! $actor instanceof User) {
+                            return;
+                        }
+
+                        $withdrawn = app(CompMembershipService::class)
+                            ->withdraw($record, $actor, (string) $data['reason']);
+
+                        if (! $withdrawn) {
+                            Notification::make()
+                                ->info()
+                                ->title('No active comp membership to withdraw')
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title($record->hasActiveMembership()
+                                ? 'Comp membership withdrawn — other membership benefits remain'
+                                : 'Comp membership withdrawn — GM benefits downgraded')
+                            ->send();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -363,6 +462,8 @@ class UserResource extends Resource
     {
         return [
             LinkedAccountsRelationManager::class,
+            BadgesRelationManager::class,
+            BadgeEventsRelationManager::class,
         ];
     }
 

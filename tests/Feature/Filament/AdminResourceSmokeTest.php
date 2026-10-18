@@ -35,9 +35,10 @@ beforeEach(function () {
     Filament::setCurrentPanel('admin');
 });
 
-// All 14 Filament resources mapped to their admin slugs.
+// All 15 Filament resources mapped to their admin slugs.
 // Tickets is View-only (no Create page) — excluded from the create sweep.
 $resources = [
+    'badge-definitions' => false,   // Registry rows are code-owned via badges:sync (D186) — no create page
     'bgg-sync-logs' => false,      // List-only (log viewer)
     'campaigns' => true,
     'cities' => false,           // Registry rows are auto-provisioned from location clusters (D171) — no create page

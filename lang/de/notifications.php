@@ -22,6 +22,8 @@ return [
     'category_session_content' => 'Rundeninhalte (Host-Updates, Debriefings, Recap)',
     'category_review_reported' => 'Bewertung gemeldet',
     'category_moderation_notice' => 'Moderationshinweise (Verwarnungen & Inhaltsentfernungen)',
+    // Erfolge (M069)
+    'category_badge_awarded' => 'Abzeichen verdient',
     'category_below_min_players' => 'Mindestspielerzahl nicht erreicht',
     'category_confirmation_expired' => 'Bestätigung abgelaufen',
     'category_session_reminder' => 'Rundenerinnerung',
@@ -39,6 +41,7 @@ return [
     'group_participation' => 'Teilnahme',
     'group_events' => 'Events',
     'group_scheduling' => 'Planung',
+    'group_achievements' => 'Erfolge',
     // Benachrichtigungseinstellungen
     'content_notification_preferences' => 'Benachrichtigungseinstellungen',
     'flash_notification_preferences_saved' => 'Benachrichtigungseinstellungen gespeichert.',
@@ -57,6 +60,8 @@ return [
     'action_unsubscribe_digest' => 'Wochen-Digest abbestellen',
     'unsubscribe_digest_success' => 'Du wurdest vom Wochen-Digest abbestellt.',
     'label_digest_account_suspended' => 'Konto gesperrt',
+    'label_digest_badge_awarded' => 'Abzeichen verdient',
+    'label_digest_badge_upgraded' => 'Abzeichen hochgestuft',
     'label_digest_application_approved' => 'Bewerbung angenommen',
     'label_digest_application_rejected' => 'Bewerbung abgelehnt',
     'label_digest_attendance_nudge' => 'Anwesenheitserinnerung',
@@ -335,4 +340,12 @@ return [
     'push_body_bulletin_posted' => ':host hat ein Update für :game veröffentlicht',
     // Discord-Kanal (D118)
     'aria_master_toggle_all_discord' => 'Alle Discord-Benachrichtigungen umschalten',
+    // Abzeichen (M069) — Auszeichnungsmomente sind feierlich, aber zurückhaltend (Spec §2.2).
+    // :badge interpoliert den Anzeigenamen inkl. Stufen-Label, aufgelöst aus
+    // Registry + Sprachdatei zur Renderzeit.
+    'subject_badge_awarded' => 'Du hast „:badge“ verdient',
+    'body_badge_awarded' => 'Du hast **:badge** verdient — ab jetzt ziert es Dein Profil. Danke, dass Du dabei bist.',
+    'subject_badge_upgraded' => 'Dein Abzeichen ist gestiegen: :badge',
+    'body_badge_upgraded' => 'Dein Abzeichen wurde zu **:badge** hochgestuft. Danke, dass Du dranbleibst.',
+    'action_badge_awarded' => 'Profil anzeigen',
 ];

@@ -39,6 +39,7 @@ class SitemapController extends Controller
         '/safety-tools',
         '/safety/code-of-conduct',
         '/gms',
+        '/badges',
         '/game-systems',
         '/cities',
         '/our-pledge',

@@ -1,0 +1,145 @@
+<?php
+
+use App\Enums\BadgeEventAction;
+use App\Events\MembershipActivated;
+use App\Models\BadgeEvent;
+use App\Models\BadgeUser;
+use App\Models\User;
+use App\Services\Badges\FoundingTableEvaluator;
+
+/**
+ * FoundingTableEvaluator (M069 S05 T1, spec §3 Support & Tenure row,
+ * D187/D208): joined during the launch window — every account
+ * created while badges.founding_table.closes_at is null (the shipped
+ * pre-launch default) or while now has not passed the configured
+ * close. Once now passes closes_at the evaluator stops proposing; no
+ * new account can ever earn it, and existing holds are never
+ * stripped (OneTime, no lapse — admin revocation is the removal
+ * path, spec §4).
+ *
+ * Evidence is the founding account itself (morph alias 'user' per
+ * D170). While the window is open every existing account trivially
+ * joined during it, so these tests drive the boundary through the
+ * config value instead of account ages: null (open), a future
+ * timestamp (still open) and a past timestamp (closed).
+ */
+
+/**
+ * The user's founding_table hold row, or null when not held.
+ */
+function foundingTableHold(): ?BadgeUser
+{
+    return BadgeUser::query()
+        ->whereHas('badgeDefinition', fn ($query) => $query->where('key', 'founding_table'))
+        ->first();
+}
+
+beforeEach(function () {
+    $this->artisan('badges:sync')->assertSuccessful();
+});
+
+it('proposes the badge for every account while the window is open', function () {
+    // The shipped default: closes_at null — pre-launch, window open.
+    $user = User::factory()->create();
+
+    $award = app(FoundingTableEvaluator::class)->evaluate($user);
+
+    expect($award)->not->toBeNull()
+        ->and($award->badgeKey)->toBe('founding_table')
+        // Tierless OneTime.
+        ->and($award->tierKey)->toBeNull()
+        // Evidence via the D170 morph alias, never the FQCN — the
+        // founding account itself.
+        ->and($award->evidenceType)->toBe('user')
+        ->and($award->evidenceId)->toBe((string) $user->id);
+});
+
+it('still proposes while the close timestamp lies in the future', function () {
+    config(['badges.founding_table.closes_at' => now()->addYear()->toIso8601String()]);
+
+    expect(app(FoundingTableEvaluator::class)->evaluate(User::factory()->create()))->not->toBeNull();
+});
+
+it('refuses every account once the window has closed', function () {
+    config(['badges.founding_table.closes_at' => now()->subDay()->toIso8601String()]);
+
+    expect(app(FoundingTableEvaluator::class)->evaluate(User::factory()->create()))->toBeNull();
+});
+
+it('is a pure proposal — evaluate never writes badge state', function () {
+    $user = User::factory()->create();
+
+    app(FoundingTableEvaluator::class)->evaluate($user);
+
+    expect(BadgeUser::query()->count())->toBe(0)
+        ->and(BadgeEvent::query()->count())->toBe(0);
+});
+
+it('backfills the badge for everyone with no prior state', function () {
+    User::factory()->count(2)->create();
+
+    app(FoundingTableEvaluator::class)->sweep();
+
+    // The whole table is the cohort while the window is open: two
+    // founding accounts, two holds, two audited awards.
+    expect(BadgeUser::query()->count())->toBe(2)
+        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Awarded)->count())->toBe(2)
+        ->and(BadgeUser::query()->pluck('evidence_type')->unique()->all())->toBe(['user']);
+});
+
+it('writes nothing at all once the window has closed', function () {
+    config(['badges.founding_table.closes_at' => now()->subDay()->toIso8601String()]);
+    User::factory()->count(2)->create();
+
+    app(FoundingTableEvaluator::class)->sweep();
+
+    expect(BadgeUser::query()->count())->toBe(0)
+        ->and(BadgeEvent::query()->count())->toBe(0);
+});
+
+it('never strips an existing hold when the window closes', function () {
+    $user = User::factory()->create();
+
+    app(FoundingTableEvaluator::class)->sweep(); // founding member
+
+    expect(foundingTableHold())->not->toBeNull();
+
+    config(['badges.founding_table.closes_at' => now()->subDay()->toIso8601String()]);
+
+    app(FoundingTableEvaluator::class)->sweep();
+
+    $hold = foundingTableHold();
+
+    // Closing the launch window strands nobody: the hold keeps its
+    // row and its single audit entry — no lapse, no revocation.
+    expect($hold)->not->toBeNull()
+        ->and($hold->lapsed_at)->toBeNull()
+        ->and($hold->revoked_at)->toBeNull()
+        ->and(BadgeEvent::query()->count())->toBe(1);
+});
+
+it('is idempotent — a second sweep writes nothing new', function () {
+    $user = User::factory()->create();
+
+    app(FoundingTableEvaluator::class)->sweep();
+    app(FoundingTableEvaluator::class)->sweep();
+
+    expect(BadgeUser::query()->count())->toBe(1)
+        ->and(BadgeEvent::query()->count())->toBe(1);
+});
+
+it('awards instantly through the membership pipeline fan-out', function () {
+    // The pipeline runs EVERY registered evaluator on
+    // MembershipActivated (QUEUE_CONNECTION=sync makes the queued
+    // listener inline here) — with the window open, a plain
+    // activation lands founding_table alongside any other earned
+    // badge. The supporting-member pipeline suite closes the window
+    // to isolate itself from exactly this fan-out; this is the pin
+    // that it stays real.
+    $user = User::factory()->create();
+
+    MembershipActivated::dispatch($user);
+
+    expect(foundingTableHold())->not->toBeNull()
+        ->and(foundingTableHold()?->evidence_type)->toBe('user');
+});

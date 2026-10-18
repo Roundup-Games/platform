@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Events\MembershipActivated;
+use App\Events\MembershipEnded;
 use App\Models\GMProfile;
 use App\Models\LocalSubscription;
 use App\Models\MembershipType;
@@ -33,7 +35,7 @@ class GmRoleService
             return false;
         }
 
-        return DB::transaction(function () use ($user, $gmPlan) {
+        DB::transaction(function () use ($user, $gmPlan) {
             // Ensure the role exists (defense against unseeded DB)
             $role = Role::firstOrCreate([
                 'name' => self::ROLE_NAME,
@@ -74,6 +76,16 @@ class GmRoleService
 
             return true;
         });
+
+        // Membership domain event AFTER the transaction commits
+        // (after-commit discipline, cf. BadgeService): the queued badge
+        // pipeline only ever observes committed membership state.
+        // Repeated dispatches are safe — the pipeline is idempotent. The
+        // transaction either returns true or throws, so reaching here
+        // means the activation is committed.
+        MembershipActivated::dispatch($user);
+
+        return true;
     }
 
     /**
@@ -84,18 +96,22 @@ class GmRoleService
      */
     public function deactivateGmSubscription(User $user): void
     {
-        DB::transaction(function () use ($user) {
+        $canceled = DB::transaction(function () use ($user) {
             // Mark local subscription as canceled
             $subscription = LocalSubscription::whereBelongsTo($user)
                 ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
                 ->active()
                 ->first();
 
+            $canceledSubscription = false;
+
             if ($subscription) {
                 $subscription->update([
                     'status' => 'canceled',
                     'canceled_at' => now(),
                 ]);
+
+                $canceledSubscription = true;
             }
 
             // Remove the GM role
@@ -117,7 +133,17 @@ class GmRoleService
             Log::info('GM subscription deactivated', [
                 'user_id' => $user->id,
             ]);
+
+            return $canceledSubscription;
         });
+
+        // Announce the ended membership only when a subscription row
+        // actually transitioned — role/profile cleanup without a canceled
+        // row is not a membership change. Badge lapse is sweep-owned and
+        // quiet (spec §4): nothing badge-side listens to this event.
+        if ($canceled) {
+            MembershipEnded::dispatch($user);
+        }
     }
 
     /**
@@ -142,7 +168,7 @@ class GmRoleService
             return false;
         }
 
-        return DB::transaction(function () use ($user) {
+        DB::transaction(function () use ($user) {
             // Ensure the role exists (defense against unseeded DB)
             $role = Role::firstOrCreate([
                 'name' => self::ROLE_NAME,
@@ -169,6 +195,15 @@ class GmRoleService
 
             return true;
         });
+
+        // The Paddle-path funnel: a GM whose membership is already active
+        // (Paddle webhook, comp, or a local plan) gets the same membership
+        // event as a fresh local activation — the badge pipeline cannot
+        // tell the paths apart, by design. The transaction either returns
+        // true or throws, so reaching here means the assignment committed.
+        MembershipActivated::dispatch($user);
+
+        return true;
     }
 
     /**
@@ -225,5 +260,9 @@ class GmRoleService
         Log::info('GM subscription lapse handling completed', [
             'user_id' => $user->id,
         ]);
+
+        // Paddle-side membership end — the same domain event as local
+        // deactivation, so consumers never care which path ended it.
+        MembershipEnded::dispatch($user);
     }
 }

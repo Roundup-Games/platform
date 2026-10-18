@@ -152,6 +152,20 @@
                                     @endforeach
                                 </div>
                             @endif
+
+                            {{-- Top badge chip (M069 S04): the GM's top badge from the
+                                 batched per-page lookup — badge-less GMs render no
+                                 chip at all (fail-empty, x-venue-link precedent). --}}
+                            @if($gmProfile->top_badge)
+                                <div class="flex flex-wrap gap-1.5 mt-3">
+                                    <x-badge-chip
+                                        :definition="$gmProfile->top_badge->badgeDefinition"
+                                        :tier="$gmProfile->top_badge->tier"
+                                        size="sm"
+                                        state="held"
+                                    />
+                                </div>
+                            @endif
                         </div>
                     </a>
                 @endforeach

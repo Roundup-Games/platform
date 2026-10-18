@@ -4,6 +4,7 @@ namespace App\Livewire\GM;
 
 use App\Enums\GmProficiency;
 use App\Models\GMProfile;
+use App\Services\Badges\BadgesDisplayService;
 use App\Services\ReviewAggregateService;
 use App\Traits\EscapesLikeWildcards;
 use Illuminate\Contracts\View\View;
@@ -178,8 +179,18 @@ class GmDirectory extends Component
         $proficienciesByProfile = app(ReviewAggregateService::class)
             ->topProficienciesForProfiles($profiles);
 
-        $results->through(function ($gmProfile) use ($proficienciesByProfile) {
+        // Batched top-badge lookup — one query for the whole page instead
+        // of one per card chip. Users without a display-worthy hold are
+        // absent, which the card renders as no chip.
+        /** @var array<int, string> $pageUserIds */
+        $pageUserIds = $profiles->pluck('user_id')->all();
+
+        $topBadgesByUser = app(BadgesDisplayService::class)
+            ->topBadgesForUsers($pageUserIds);
+
+        $results->through(function ($gmProfile) use ($proficienciesByProfile, $topBadgesByUser) {
             $gmProfile->top_proficiencies = $proficienciesByProfile[$gmProfile->id] ?? collect();
+            $gmProfile->top_badge = $topBadgesByUser[$gmProfile->user_id] ?? null;
 
             return $gmProfile;
         });

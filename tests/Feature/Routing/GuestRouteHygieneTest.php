@@ -156,14 +156,16 @@ describe('GuestRouteHygiene — sitemap statics', function () {
         $content = get('/sitemap-static.xml')->content();
 
         // cities index landed with T04; roadmap with S05; pricing with
-        // S08/T01; faq with S08/T02; code-of-conduct with S08/T03. This list
-        // grows with STATIC_PATHS as new statics land.
+        // S08/T01; faq with S08/T02; code-of-conduct with S08/T03; the badge
+        // gallery with M069/S04/T05. This list grows with STATIC_PATHS as
+        // new statics land.
         foreach (['en', 'de'] as $locale) {
             expect($content)->toContain("/{$locale}/cities")
                 ->toContain("/{$locale}/our-pledge/roadmap")
                 ->toContain("/{$locale}/pricing")
                 ->toContain("/{$locale}/faq")
-                ->toContain("/{$locale}/safety/code-of-conduct");
+                ->toContain("/{$locale}/safety/code-of-conduct")
+                ->toContain("/{$locale}/badges");
         }
     });
 

@@ -4,12 +4,15 @@ namespace Tests\Feature\Livewire\GM;
 
 use App\Enums\GmProficiency;
 use App\Livewire\GM\GmDirectory;
+use App\Models\BadgeDefinition;
+use App\Models\BadgeUser;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
@@ -246,5 +249,80 @@ class GmDirectoryTest extends TestCase
         $response->assertSee('Badged GM');
         $response->assertSee(GmProficiency::Storytelling->label());
         $response->assertSee(GmProficiency::Voices->label());
+    }
+
+    // ── Top Badge Chip (M069 S04) ─────────────────────
+
+    public function test_gm_card_shows_top_badge_chip(): void
+    {
+        $gm = $this->createActiveGm(['name' => 'Badged GM'], ['specializations' => []]);
+
+        BadgeUser::factory()
+            ->for($gm)
+            ->for(BadgeDefinition::factory()->create([
+                'key' => 'founding_table',
+                'name_key' => 'badges.content_badge_founding_table_name',
+            ]))
+            ->create();
+
+        $response = $this->get('/en/gms');
+
+        $response->assertSee('Badged GM');
+        $response->assertSee(__('badges.content_badge_founding_table_name', [], 'en'));
+    }
+
+    public function test_gm_without_badge_holds_renders_no_chip(): void
+    {
+        $badged = $this->createActiveGm(['name' => 'Badged GM'], ['specializations' => []]);
+        $badgeless = $this->createActiveGm(['name' => 'Badgeless GM'], ['specializations' => []]);
+
+        BadgeUser::factory()
+            ->for($badged)
+            ->for(BadgeDefinition::factory()->create([
+                'key' => 'founding_table',
+                'name_key' => 'badges.content_badge_founding_table_name',
+            ]))
+            ->create();
+
+        $response = $this->get('/en/gms');
+
+        // Both cards render…
+        $response->assertSee('Badged GM');
+        $response->assertSee('Badgeless GM');
+
+        // …and the badge copy appears exactly once (the badged GM's chip) —
+        // the badgeless GM's card contributes no chip markup at all.
+        $name = __('badges.content_badge_founding_table_name', [], 'en');
+        $this->assertSame(1, substr_count($response->getContent(), $name));
+    }
+
+    public function test_top_badge_lookup_issues_one_batched_query_per_page(): void
+    {
+        for ($i = 0; $i < 3; $i++) {
+            $gm = $this->createActiveGm(['name' => "Badged GM {$i}"]);
+
+            BadgeUser::factory()
+                ->for($gm)
+                ->for(BadgeDefinition::factory()->create([
+                    'key' => "gm_badge_{$i}",
+                    'name_key' => 'badges.content_badge_debut_name',
+                ]))
+                ->create();
+        }
+
+        DB::enableQueryLog();
+
+        Livewire::test(GmDirectory::class)->assertOk();
+
+        $badgeUserQueries = collect(DB::getQueryLog())
+            ->pluck('query')
+            ->filter(fn (string $sql): bool => str_contains($sql, '"badge_user"'));
+
+        DB::disableQueryLog();
+
+        // One batched holds query for the whole page — never one per card,
+        // no matter how many badged GMs render (same query-log guard the
+        // city-hub caching tests use).
+        $this->assertCount(1, $badgeUserQueries);
     }
 }

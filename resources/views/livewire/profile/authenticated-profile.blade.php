@@ -103,6 +103,13 @@
             @endunless
         </section>
 
+        {{-- Badge shelf (spec §2.4): holds render for every viewer; the
+             owner context here means toggles always render. --}}
+        @include('livewire.profile.partials._badge-shelf', [
+            'holds' => $badgeHolds,
+            'isOwner' => $isOwnProfile,
+        ])
+
         {{-- GM Profile Section (always visible when active, regardless of privacy) --}}
         @php
             $gmProfile = $profileUser->gmProfile;
