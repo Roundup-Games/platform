@@ -1,15 +1,20 @@
 <?php
 
+use App\Dto\CharterContent;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\GM\GmWorkspace;
 use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
+use App\Models\SessionZeroSurvey;
 use App\Models\ShortLink;
 use App\Models\User;
+use App\Services\Charter\CharterService;
+use App\Services\Charter\CharterSigningService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Role;
@@ -419,4 +424,104 @@ describe('GmWorkspace Share Link Analytics', function () {
             ->and($payload[0]['linksByType'])->toBe(['Game' => 1])
             ->and($payload[1])->toBe([$link->id]);
     })->group('smoke');
+});
+
+// ═══════════════════════════════════════════════════════════
+// CHARTER HEALTH (M070/S04-T03)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * A chartered campaign for a subscribed GM, published through the real
+ * lifecycle (deterministic quick-start inputs, expected_shape filled —
+ * the CharterSigningServiceTest fixture idiom).
+ *
+ * @return array{0: Campaign, 1: SessionZeroSurvey}
+ */
+function workspace_chartered_campaign(User $gm, string $name): array
+{
+    $campaign = Campaign::factory()->create([
+        'owner_id' => $gm->id,
+        'name' => ['en' => $name],
+        'description' => ['en' => "A campaign named {$name}."],
+        'max_players' => 5,
+        'session_duration' => 3,
+        'recurrence' => 'weekly',
+    ]);
+    $charter = CharterService::start($gm, $campaign);
+    $content = CharterContent::quickStart($campaign)->toArray();
+    $content['overview']['expected_shape'] = 'ongoing';
+    CharterService::publish($charter, $name, $content);
+
+    return [$campaign, $charter];
+}
+
+describe('GmWorkspace Charter Health', function () {
+    it('shows one row per charter with percent signed, pending count, and days outstanding', function () {
+        Carbon::setTestNow(Carbon::parse('2026-10-19 09:00:00'));
+
+        $gm = $this->createSubscribedGm();
+        [$campaign, $charter] = workspace_chartered_campaign($gm, 'Threshold Charter Watch');
+
+        [$signer, $pending] = [User::factory()->create(), User::factory()->create()];
+        CampaignParticipant::factory()->create(['campaign_id' => $campaign->id, 'user_id' => $signer->id]);
+        CampaignParticipant::factory()->create(['campaign_id' => $campaign->id, 'user_id' => $pending->id]);
+
+        CharterSigningService::sign($signer, $charter, [
+            'attestations' => array_fill_keys(CharterContent::AGREEMENT_ITEMS, true),
+        ]);
+
+        // Five days pass with the second signature still outstanding.
+        Carbon::setTestNow(Carbon::parse('2026-10-24 09:00:00'));
+
+        $this->actingAs($gm)
+            ->get(route('gm.workspace', 'en'))
+            ->assertOk()
+            ->assertSee('Threshold Charter Watch')
+            ->assertSeeText(__('charter.label_percent_signed', ['percent' => 50], 'en'))
+            ->assertSeeText(__('charter.label_pending_count', ['count' => 1], 'en'))
+            ->assertSeeText(trans_choice('charter.label_days_outstanding', 5, [], 'en'))
+            ->assertSee(route('charter.view', $charter->uuid))
+            ->assertSee(route('campaigns.charter', $campaign->id));
+    });
+
+    it('shows the empty state for a GM without charters', function () {
+        $gm = $this->createSubscribedGm();
+
+        $this->actingAs($gm)
+            ->get(route('gm.workspace', 'en'))
+            ->assertOk()
+            ->assertSeeText(__('charter.heading_workspace_charters', [], 'en'))
+            ->assertSeeText(__('charter.content_workspace_empty', [], 'en'));
+    });
+
+    it('renders draft and archived rows with their status chips and routes actions per status', function () {
+        $gm = $this->createSubscribedGm();
+
+        $draftCampaign = Campaign::factory()->create([
+            'owner_id' => $gm->id,
+            'name' => ['en' => 'Draft Watch'],
+            'description' => ['en' => 'A campaign still being planned.'],
+            'max_players' => 5,
+            'session_duration' => 3,
+            'recurrence' => 'weekly',
+        ]);
+        CharterService::start($gm, $draftCampaign);
+
+        [$archivedCampaign, $archivedCharter] = workspace_chartered_campaign($gm, 'Archived Watch');
+        CharterService::archive($gm, $archivedCharter);
+
+        $this->actingAs($gm)
+            ->get(route('gm.workspace', 'en'))
+            ->assertOk()
+            ->assertSeeText(__('charter.status_draft', [], 'en'))
+            ->assertSeeText(__('charter.status_archived', [], 'en'))
+            // Participant-less charters show the honest zero state.
+            ->assertSeeText(__('charter.label_no_participants', [], 'en'))
+            // Draft row: composer link plus the public view link.
+            ->assertSee(route('campaigns.charter', $draftCampaign->id))
+            ->assertSee(route('charter.view', $draftCampaign->charter->uuid))
+            // Archived row: the public view link only — no composer route.
+            ->assertSee(route('charter.view', $archivedCharter->uuid))
+            ->assertDontSee(route('campaigns.charter', $archivedCampaign->id));
+    });
 });

@@ -28,6 +28,7 @@ use App\Models\GameSystem;
 use App\Models\LocalSubscription;
 use App\Models\Location;
 use App\Models\Review;
+use App\Models\SessionZeroConfirmation;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\UserRelationship;
@@ -633,6 +634,12 @@ class AppServiceProvider extends ServiceProvider
             'local_subscription' => LocalSubscription::class,
             'location' => Location::class,
             'review' => Review::class,
+            // Badge evidence alias (M070/S04, D189): the chartered badge's
+            // evidence pointer at a charter's role=gm confirmation row
+            // (uuid-keyed — fits badge_user.evidence_id's native uuid
+            // column, MEM1277). Badge evidence is the only morph use — no
+            // stored FQCN rows exist.
+            'session_zero_confirmation' => SessionZeroConfirmation::class,
             'subscription' => Subscription::class,
             'team' => Team::class,
             'user' => User::class,

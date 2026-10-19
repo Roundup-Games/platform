@@ -43,6 +43,7 @@ use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Campaigns\CampaignsPage;
 use App\Livewire\Campaigns\CreateCampaign;
 use App\Livewire\Campaigns\PublicCampaignDetail;
+use App\Livewire\Charter\ViewCharter;
 use App\Livewire\CityHubs\CityHubPage;
 use App\Livewire\CityHubs\CityIndexPage;
 use App\Livewire\Dashboard;
@@ -68,6 +69,8 @@ use App\Livewire\GameSystems\GameSystemDetail;
 use App\Livewire\GameSystems\GameSystemsPage;
 use App\Livewire\GameSystems\MyRequestsPage;
 use App\Livewire\GameSystems\RequestGameSystemPage;
+use App\Livewire\GM\Charter\CharterAudit;
+use App\Livewire\GM\Charter\CharterComposer;
 use App\Livewire\GM\GmDirectory;
 use App\Livewire\GM\GmWorkspace;
 use App\Livewire\GM\SessionZero\CreateSessionZero;
@@ -227,6 +230,12 @@ Route::prefix('{locale}')
         // Session Zero public view (UUID-based, no auth required to view)
         Route::get('/session-zero/{uuid}', ViewSessionZero::class)
             ->name('session-zero.view')
+            ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+        // Campaign charter public read-only view (M070) — same UUID
+        // capability-link trust model as session-zero.view above.
+        Route::get('/charter/{uuid}', ViewCharter::class)
+            ->name('charter.view')
             ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
         Route::get('/about', [PageController::class, 'about'])->name('about');
         Route::get('/how-it-works', [PageController::class, 'howItWorks'])->name('how-it-works');
@@ -443,6 +452,8 @@ Route::prefix('{locale}')
             Route::get('/campaigns/{id}/apply', ApplyToCampaign::class)->name('campaigns.apply')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/campaigns/{id}/manage-participants', App\Livewire\Campaigns\ManageParticipants::class)->name('campaigns.manage-participants')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/campaigns/{id}/add-session', AddSessionToCampaign::class)->name('campaigns.add-session')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+            Route::get('/dashboard/campaigns/{id}/charter', CharterComposer::class)->name('campaigns.charter')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+            Route::get('/dashboard/campaigns/{id}/charter/audit', CharterAudit::class)->name('campaigns.charter.audit')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/reviews/write/{reviewable_type}/{reviewable_id}', WriteReview::class)->name('reviews.write');
             Route::get('/reviews/{reviewId}/report', ReportReview::class)->name('reviews.report');
         });

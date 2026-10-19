@@ -10,6 +10,8 @@ use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Review;
+use App\Models\SessionZeroSurvey;
+use App\Services\Charter\CharterService;
 use App\Services\ParticipantLifecycle;
 use App\Services\RecurrenceService;
 use App\Services\ReviewEligibilityService;
@@ -474,6 +476,18 @@ class CampaignDetail extends Component
         return null;
     }
 
+    // ── Charter Entry Point ────────────────────────────
+
+    /**
+     * The campaign's charter (any lifecycle state) for the owner-only
+     * entry card. null when the campaign has none yet.
+     */
+    #[Computed]
+    public function charter(): ?SessionZeroSurvey
+    {
+        return CharterService::charterFor($this->campaign);
+    }
+
     // ── Render ─────────────────────────────────────────
 
     public function render(): View
@@ -523,6 +537,7 @@ class CampaignDetail extends Component
             'benchedPlayers' => $this->benchedPlayers(),
             'userBenchParticipant' => $this->userBenchParticipant(),
             'planAheadNudge' => $this->planAheadNudge(),
+            'charter' => $this->charter(),
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),

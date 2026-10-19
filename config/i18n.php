@@ -100,6 +100,30 @@ return [
             // "Name" in both locales
             'attributes.name',
         ],
+        'charter' => [
+            // Deliberate loanword — the German TTRPG scene keeps "Safety"
+            // (GLOSSARY D174 safety-tool canon: the named techniques and
+            // their umbrella stay English); identical in EN and DE by design.
+            'section_safety_short',
+            // Deliberate loanword — "Pitch" is the scene term for a campaign
+            // pitch; the German help/placeholder copy explains it.
+            'field_overview_pitch_label',
+            // Genre loanwords with no natural German form — the scene uses
+            // the English terms (cf. label_theme_horror/sandbox, auto-cognates).
+            'label_theme_mystery',
+            'label_theme_heist',
+            // Brand names, never translated.
+            'label_comms_discord',
+            'label_comms_whatsapp',
+            'label_comms_telegram',
+            // True cognate — "Version" is the same word in both locales
+            // (audit export column header, M070/S04-T04).
+            'label_audit_col_version',
+            // Deliberate acronym — "GM" is the canonical DE role term
+            // (GLOSSARY: GM/Game Master everywhere, SL/Spielleiter banned);
+            // identical in EN and DE by design (audit export role chip).
+            'label_audit_role_gm',
+        ],
     ],
 
 ];

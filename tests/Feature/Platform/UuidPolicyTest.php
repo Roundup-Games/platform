@@ -8,6 +8,7 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\Review;
+use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\ShortLink;
 use App\Models\Team;
@@ -67,6 +68,7 @@ describe('enforced morph map (D170)', function () {
             'game_system' => GameSystem::class,
             'location' => Location::class,
             'review' => Review::class,
+            'session_zero_confirmation' => SessionZeroConfirmation::class,
             'team' => Team::class,
             'user' => User::class,
             'user_relationship' => UserRelationship::class,

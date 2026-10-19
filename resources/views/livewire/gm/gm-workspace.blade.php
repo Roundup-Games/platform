@@ -292,6 +292,85 @@
         @endif
     </div>
 
+    {{-- ── Charter Health (M070/S04) ─────────────────────────────── --}}
+    <div class="mt-6 bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">history_edu</span>
+                <h3 class="font-heading font-semibold text-on-surface">{{ __('charter.heading_workspace_charters') }}</h3>
+            </div>
+            @if($charterHealth->count())
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                    {{ $charterHealth->count() }}
+                </span>
+            @endif
+        </div>
+
+        @if($charterHealth->count())
+            <div class="space-y-3">
+                @foreach($charterHealth as $row)
+                    <div class="p-3 rounded-lg bg-surface-container-high/50">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="text-sm font-medium text-on-surface truncate">{{ $row['campaign_name'] }}</h4>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
+                                        {{ $row['status'] === 'active' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-highest text-on-surface-variant' }}">
+                                        {{ __('charter.status_'.$row['status']) }}
+                                    </span>
+                                    @if($row['current_version'])
+                                        <span class="text-xs text-on-surface-variant shrink-0">v{{ $row['current_version'] }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                @if(in_array($row['status'], ['draft', 'active']))
+                                    <a href="{{ route('campaigns.charter', $row['campaign_id']) }}" wire:navigate
+                                       class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $row['status'] === 'draft' ? 'edit' : 'history_edu' }}</span>
+                                        {{ __($row['status'] === 'draft' ? 'charter.action_continue_charter' : 'charter.action_amend_charter') }}
+                                    </a>
+                                @endif
+                                <a href="{{ route('charter.view', $row['charter_uuid']) }}"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors"
+                                   target="_blank" rel="noopener">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
+                                    {{ __('charter.action_view_charter') }}
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            @if($row['approvedCount'] === 0)
+                                <p class="text-xs text-on-surface-variant">{{ __('charter.label_no_participants') }}</p>
+                            @else
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs font-medium text-on-surface shrink-0">{{ __('charter.label_percent_signed', ['percent' => $row['percentSigned']]) }}</span>
+                                    <div class="flex-1 h-1.5 bg-surface-container rounded-full overflow-hidden" role="progressbar"
+                                         aria-valuenow="{{ $row['percentSigned'] }}" aria-valuemin="0" aria-valuemax="100">
+                                        <div class="h-full bg-primary rounded-full transition-all duration-500" style="width: {{ $row['percentSigned'] }}%"></div>
+                                    </div>
+                                    <span class="text-xs text-on-surface-variant shrink-0">{{ __('charter.label_pending_count', ['count' => $row['pendingCount']]) }}</span>
+                                </div>
+                                @if($row['daysOutstanding'] !== null && $row['daysOutstanding'] > 0)
+                                    <p class="mt-1.5 text-xs text-on-surface-variant flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">schedule</span>
+                                        {{ trans_choice('charter.label_days_outstanding', $row['daysOutstanding']) }}
+                                    </p>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="text-center py-8">
+                <span class="material-symbols-outlined text-3xl text-on-surface-variant/30 mb-2 block">history_edu</span>
+                <p class="text-sm text-on-surface-variant">{{ __('charter.content_workspace_empty') }}</p>
+            </div>
+        @endif
+    </div>
+
     {{-- ── Share Link Analytics ─────────────────────────────────── --}}
     <div class="mt-6 bg-surface-container-lowest rounded-xl shadow-ambient p-6">
         <div class="flex items-center gap-2 mb-4">

@@ -24,6 +24,15 @@
 #
 # Install: composer install-hooks
 # Bypass:  git commit --no-verify
+#
+# Closeout mode (--stage):
+#   scripts/git/pre-commit.sh --stage
+# Stages the working tree (git add -A) BEFORE the checks, so the full chain
+# — gitleaks (staged scan), pint (staged pathspec), php -l — covers
+# uncommitted work. Used by GSD's verification_commands gate: the agent
+# runs the exact CI-parity chain at closeout time, where it still has the
+# tools and context to fix failures, instead of failing the orchestrator's
+# commit later with no remediation path (exit 10 pause).
 
 set -eo pipefail
 
@@ -37,6 +46,21 @@ RST='\033[0m'
 failed=0
 warned=0
 skipped=0
+
+# ── Closeout mode (--stage) ──────────────────────────────────────────
+# Stage first so the index-driven checks (gitleaks --staged, pint pathspec,
+# php -l file list) see the working tree. `.gsd/` and other ignores are
+# respected by `git add -A`; an already-clean tree is a no-op.
+if [[ "${1:-}" == "--stage" ]]; then
+    if ! git diff --quiet || ! git diff --cached --quiet \
+        || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
+        git add -A
+        printf "  ${CYN}📦 %-8s${RST} %s\n" "stage" "working tree staged for the CI-parity gate"
+    fi
+elif [[ -n "${1:-}" ]]; then
+    printf "usage: scripts/git/pre-commit.sh [--stage]\n" >&2
+    exit 1
+fi
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 step()  { printf "  ${CYN}⏳ %-8s${RST} %s\n" "$1" "$2"; }

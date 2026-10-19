@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -275,6 +276,25 @@ class Campaign extends Model implements HasMedia, TicketSubject
     public function applications(): HasMany
     {
         return $this->hasMany(CampaignApplication::class);
+    }
+
+    /**
+     * The campaign's charter (M070): a session_zero_surveys row with
+     * kind='charter'. At most one per campaign — enforced at the database
+     * level by the partial unique index
+     * session_zero_surveys_charter_campaign_unique (race backstop).
+     *
+     * hasOne + where: charters live in the shared session_zero_surveys
+     * table, so the kind predicate is part of the relation itself — every
+     * read is scoped without manual where clauses, and legacy surveys on
+     * the campaign's games never leak in.
+     *
+     * @return HasOne<SessionZeroSurvey, $this>
+     */
+    public function charter(): HasOne
+    {
+        return $this->hasOne(SessionZeroSurvey::class)
+            ->where('session_zero_surveys.kind', 'charter');
     }
 
     // ── Bench ──────────────────────────────────────────

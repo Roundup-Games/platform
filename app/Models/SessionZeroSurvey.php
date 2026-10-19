@@ -11,6 +11,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
+/**
+ * @property array<string, mixed> $content cast attribute (jsonb) — the
+ *                                         schema-aware property extension types it string without this
+ */
 class SessionZeroSurvey extends Model
 {
     /** @use HasFactory<SessionZeroSurveyFactory> */
@@ -27,6 +31,9 @@ class SessionZeroSurvey extends Model
     protected $fillable = [
         'gm_profile_id',
         'game_id',
+        'kind',
+        'campaign_id',
+        'current_version',
         'title',
         'content',
         'uuid',
@@ -39,6 +46,7 @@ class SessionZeroSurvey extends Model
         return [
             'content' => 'array',
             'confirmation_count' => 'integer',
+            'current_version' => 'integer',
         ];
     }
 
@@ -70,6 +78,28 @@ class SessionZeroSurvey extends Model
     }
 
     /**
+     * Owning campaign (charters only; null on legacy surveys).
+     *
+     * @return BelongsTo<Campaign, $this>
+     */
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
+    }
+
+    /**
+     * Published version snapshots, newest first (immutable history:
+     * publish/amend only ever INSERTs — concept §3).
+     *
+     * @return HasMany<SessionZeroSurveyVersion, $this>
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(SessionZeroSurveyVersion::class, 'session_zero_survey_id')
+            ->orderByDesc('version_number');
+    }
+
+    /**
      * @return HasMany<SessionZeroConfirmation, $this>
      */
     public function confirmations(): HasMany
@@ -97,6 +127,29 @@ class SessionZeroSurvey extends Model
         return $query->where('status', 'archived');
     }
 
+    /**
+     * Campaign charters only (excludes legacy surveys).
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeCharter(Builder $query)
+    {
+        return $query->where('kind', 'charter');
+    }
+
+    /**
+     * Draft lifecycle state (charter authoring; legacy surveys are never
+     * drafted — they are created active).
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeDraft(Builder $query)
+    {
+        return $query->where('status', 'draft');
+    }
+
     // ── Helpers ────────────────────────────────────────
 
     public function isArchived(): bool
@@ -107,6 +160,31 @@ class SessionZeroSurvey extends Model
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    public function isCharter(): bool
+    {
+        return $this->kind === 'charter';
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === 'draft';
+    }
+
+    /**
+     * The published snapshot current_version points at, or null while the
+     * charter is still a draft (or the pointer dangles — defensive).
+     */
+    public function currentVersion(): ?SessionZeroSurveyVersion
+    {
+        if ($this->current_version === null) {
+            return null;
+        }
+
+        return $this->versions()
+            ->where('version_number', $this->current_version)
+            ->first();
     }
 
     public function archive(): void

@@ -24,8 +24,9 @@ use App\Enums\BadgeMode;
  *   live since S05 (DebutEvaluator / FirstSeatEvaluator /
  *   FoundingTableEvaluator; the founding launch window lives in
  *   config/badges.php per D208).
- * - chartered / campaign_compleat — dormant pair (D189/D190): shapes,
- *   tiers and copy registered now, activation in M070/M071.
+ * - campaign_compleat — dormant (D190): shape, tiers and copy
+ *   registered now, activation in M071/S05. (Its former dormant pair
+ *   chartered activated in M070/S04 — CharteredEvaluator.)
  *
  * First real evaluator (S02): supporting_member — active paid
  * membership tiered by completed months of support history
@@ -130,8 +131,8 @@ class BadgeRegistry
                 nameKey: 'badges.content_badge_chartered_name',
                 descriptionKey: 'badges.content_badge_chartered_description',
                 icon: 'workspace_premium',
-                evaluator: NoOpEvaluator::class,
-                isDormant: true,
+                evaluator: CharteredEvaluator::class,
+                isDormant: false,
                 eligibility: BadgeEligibility::GameMasters,
                 sortOrder: 40,
             ),

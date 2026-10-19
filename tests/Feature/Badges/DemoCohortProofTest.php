@@ -22,8 +22,10 @@ use Illuminate\Support\Facades\DB;
 |   debut, first_seat, founding_table, still_rolling, guild_linked,
 |   regulars_table, trusted_organizer, mentor
 |
-| while Chartered and Campaign Compleat stay registered but dormant
-| (D189: NoOpEvaluator + is_dormant — zero holds ever). The
+| while Campaign Compleat stays registered but dormant (D187/D189:
+| NoOpEvaluator + is_dormant — zero holds ever). Chartered went live
+| in M070/S04, but the demo fixtures create no charters, so its demo
+| cohort count stays a pinned zero. The
 | deterministic fixture blocks inside demo:seed are what makes this
 | true at ANY scale; see DemoSeedCommand::createBadgeCohortFixtures().
 */
@@ -99,11 +101,16 @@ it('writes the awarded audit trail for the cohort', function () {
     }
 });
 
-it('keeps chartered and campaign compleat registered but dormant', function () {
-    $dormant = BadgeDefinition::whereIn('key', ['chartered', 'campaign_compleat'])->get();
+it('keeps campaign compleat dormant while chartered is live but unheld in the demo cohort', function () {
+    // D187/D189: campaign_compleat stays dormant (signal ships M071/S05);
+    // chartered activated in M070/S04 — live definition, but the demo
+    // fixtures create no charters, so the fully-signed signal never
+    // exists at toy scale and the sweep holds nothing.
+    $compleat = BadgeDefinition::where('key', 'campaign_compleat')->first();
+    $chartered = BadgeDefinition::where('key', 'chartered')->first();
 
-    expect($dormant)->toHaveCount(2)
-        ->and($dormant->pluck('is_dormant')->unique()->all())->toBe([true])
+    expect($compleat->is_dormant)->toBeTrue()
+        ->and($chartered->is_dormant)->toBeFalse()
         ->and(demoCohortHoldsFor('chartered'))->toBe(0)
         ->and(demoCohortHoldsFor('campaign_compleat'))->toBe(0);
 });

@@ -252,7 +252,48 @@
             {{-- Main column --}}
             <div class="lg:col-span-2 space-y-6">
 
-                @if($isOwner && !empty($planAheadNudge))
+            {{-- Charter entry point (owner-only; S04 adds health/roster) --}}
+            @if($isOwner)
+                <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 mb-6 flex items-center justify-between gap-4">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">history_edu</span>
+                        <div class="min-w-0">
+                            <p class="font-medium text-on-surface flex items-center gap-2 flex-wrap">
+                                {{ __('charter.title_entry') }}
+                                @if($charter?->isDraft())
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-highest text-on-surface-variant">{{ __('charter.label_draft_badge') }}</span>
+                                @elseif($charter)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">{{ __('charter.label_version_badge', ['version' => $charter->current_version]) }}</span>
+                                @endif
+                            </p>
+                            @if(! $charter)
+                                <p class="text-sm text-on-surface-variant">{{ __('charter.description_entry_teaser') }}</p>
+                            @endif
+                        </div>
+                    </div>
+                    @if(! $charter)
+                        <a href="{{ route('campaigns.charter', $campaign) }}" wire:navigate
+                           class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors whitespace-nowrap shrink-0">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                            {{ __('charter.action_create_charter') }}
+                        </a>
+                    @elseif($charter->isDraft())
+                        <a href="{{ route('campaigns.charter', $campaign) }}" wire:navigate
+                           class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors whitespace-nowrap shrink-0">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
+                            {{ __('charter.action_continue_charter') }}
+                        </a>
+                    @else
+                        <a href="{{ route('charter.view', $charter->uuid) }}" wire:navigate
+                           class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors whitespace-nowrap shrink-0">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">open_in_new</span>
+                            {{ __('charter.action_view_charter') }}
+                        </a>
+                    @endif
+                </div>
+            @endif
+
+            @if($isOwner && !empty($planAheadNudge))
                     <div class="bg-tertiary-container rounded-xl shadow-ambient p-4 mb-6 flex items-center justify-between gap-4">
                         <div class="flex items-start gap-3">
                             <span class="material-symbols-outlined text-xl text-on-tertiary-container" aria-hidden="true">repeat</span>

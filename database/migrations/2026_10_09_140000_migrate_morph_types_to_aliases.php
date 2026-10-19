@@ -32,13 +32,25 @@ return new class extends Migration
     /** @var array<string, string> alias => FQCN, frozen copy of the D170 map */
     private const ALIASES = [
         'campaign' => 'App\\Models\\Campaign',
+        // The M069 badge-evidence aliases (discord_guild_organizer,
+        // local_subscription, subscription) and the M070/S04 chartered
+        // evidence alias (session_zero_confirmation) joined the enforced
+        // map after this migration first ran and are appended here in
+        // lockstep (UuidPolicyTest pins frozen ~= live). None of these
+        // classes ever stored FQCN rows -- their writes went through
+        // getMorphClass() from day one -- so up()/down() convert nothing
+        // for them on fresh or re-runs; the frozen behavior is unchanged.
+        'discord_guild_organizer' => 'App\\Models\\DiscordGuildOrganizer',
         'event' => 'App\\Models\\Event',
         'event_announcement' => 'App\\Models\\EventAnnouncement',
         'game' => 'App\\Models\\Game',
         'game_participant' => 'App\\Models\\GameParticipant',
         'game_system' => 'App\\Models\\GameSystem',
+        'local_subscription' => 'App\\Models\\LocalSubscription',
         'location' => 'App\\Models\\Location',
         'review' => 'App\\Models\\Review',
+        'session_zero_confirmation' => 'App\\Models\\SessionZeroConfirmation',
+        'subscription' => 'Laravel\\Paddle\\Subscription',
         'team' => 'App\\Models\\Team',
         'user' => 'App\\Models\\User',
         'user_relationship' => 'App\\Models\\UserRelationship',

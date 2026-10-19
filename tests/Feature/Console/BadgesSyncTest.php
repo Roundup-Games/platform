@@ -80,7 +80,7 @@ it('syncs all registry definitions idempotently', function () {
             'description_key' => 'badges.content_badge_chartered_description',
             'icon' => 'workspace_premium',
             'sort_order' => 40,
-            'is_dormant' => true,
+            'is_dormant' => false,
             'eligibility' => 'game_masters',
             'is_active' => true,
         ],

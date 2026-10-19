@@ -238,9 +238,9 @@ it('is idempotent — a second sweep writes nothing new', function () {
 });
 
 it('runs the dormant NoOp evaluators harmlessly', function () {
-    // No users, no holds: the two dormant NoOp definitions (and, with
-    // an empty database, every live evaluator's empty cohort) sweep
-    // and must neither write nor fail.
+    // No users, no holds: the one remaining dormant NoOp definition,
+    // campaign_compleat (and, with an empty database, every live
+    // evaluator's empty cohort) sweeps and must neither write nor fail.
     $this->artisan('badges:sweep')->assertSuccessful();
 
     expect(BadgeUser::query()->count())->toBe(0)

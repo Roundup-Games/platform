@@ -11,6 +11,7 @@ use App\Models\SessionZeroSurvey;
 use App\Models\ShortLink;
 use App\Models\ShortLinkHit;
 use App\Models\User;
+use App\Services\Charter\CharterSigningService;
 use App\Services\GmRoleService;
 use App\Services\ReviewAggregateService;
 use App\Services\ShortLinkService;
@@ -65,6 +66,7 @@ class GmWorkspace extends Component
                 'topLinks' => collect(),
                 'topReferrers' => collect(),
                 'allLinks' => collect(),
+                'charterHealth' => collect(),
             ]);
         }
 
@@ -103,6 +105,11 @@ class GmWorkspace extends Component
             ->limit(20)
             ->get();
 
+        // (8) Charter health (M070/S04-T03, concept §4): one row per owned
+        // charter — signing progress, pending signatures, and the
+        // countersign trail — grouped-count shaped, no roster N+1.
+        $charterHealth = collect(CharterSigningService::workspaceHealth($user));
+
         return view('livewire.gm.gm-workspace', [
             'upcomingSessions' => $upcomingSessions,
             'recentReviews' => $recentReviews,
@@ -115,6 +122,7 @@ class GmWorkspace extends Component
             'topLinks' => $topLinks,
             'topReferrers' => $topReferrers,
             'allLinks' => $allLinks,
+            'charterHealth' => $charterHealth,
         ]);
     }
 
