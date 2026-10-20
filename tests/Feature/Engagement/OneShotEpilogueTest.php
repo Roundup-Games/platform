@@ -168,3 +168,47 @@ describe('idempotency (OneShotEpilogueService)', function () {
             ->and($scheduledGame->bulletins()->count())->toBe(0);
     });
 });
+
+describe('failure isolation (epilogue is best-effort)', function () {
+    it('completes the game even when the epilogue fan-out throws — no rollback, no escaped exception', function () {
+        $game = epilogueCreateScheduledOneShot($this->owner, $this->gameSystem);
+
+        // Simulate the fan-out exploding mid-bulletin-creation (observer
+        // cache invalidation, Discord dispatch under a sync queue, …) —
+        // after the completion transaction commits, per the afterCommit
+        // deferral in handleGameCompletion.
+        GameBulletin::creating(function (): void {
+            throw new RuntimeException('epilogue fan-out exploded');
+        });
+
+        // The host path: status save + attendance window + epilogue, all
+        // inside the caller's DB::transaction (completeGame wraps both).
+        Livewire::actingAs($this->owner)
+            ->test(GamesPage::class)
+            ->call('completeGame', $game->id)
+            ->assertHasNoErrors();
+
+        $fresh = $game->fresh();
+
+        expect($fresh->status)->toBe(GameStatus::Completed)
+            ->and($fresh->attendance_window_opens_at)->not->toBeNull()
+            ->and($fresh->attendance_window_closes_at)->not->toBeNull()
+            ->and(GameBulletin::query()->count())->toBe(0);
+    });
+});
+
+describe('prompt locale (the game decides, not the completing actor)', function () {
+    it('posts the German prompt for a German-language one-shot completed under an English-UI host', function () {
+        $game = epilogueCreateScheduledOneShot($this->owner, $this->gameSystem, ['language' => 'de']);
+
+        app()->setLocale('en');
+
+        Livewire::actingAs($this->owner)
+            ->test(GamesPage::class)
+            ->call('completeGame', $game->id);
+
+        expect($game->bulletins()->first()?->content)
+            ->toBe(__('games.content_epilogue_prompt', [], 'de'))
+            ->and(App::getLocale())->toBe('en');
+    });
+});

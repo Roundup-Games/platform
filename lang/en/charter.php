@@ -325,6 +325,7 @@ return [
     // Lifecycle guards
     'error_only_draft_editable' => 'Only a charter that is still a draft can be edited.',
     'error_already_published' => 'This charter has already been published.',
+    'error_charter_orphaned' => 'This charter no longer belongs to a campaign — it cannot be published.',
 
     // Signing & countersignature guards (M070/S02)
     'error_charter_not_active' => 'This charter is not published — it cannot be signed yet.',

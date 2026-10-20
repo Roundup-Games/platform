@@ -96,7 +96,7 @@ function charteredFullySigned(User $owner): SessionZeroSurvey
 {
     $campaign = charteredCampaign($owner);
     $charter = CharterService::start($owner, $campaign);
-    CharterService::publish($charter, 'The Threshold Heist', charteredContent($campaign));
+    CharterService::publish($owner, $charter, 'The Threshold Heist', charteredContent($campaign));
 
     charteredParticipantsSign($charter);
     CharterSigningService::countersign($owner, $charter);
@@ -153,7 +153,7 @@ it('proposes nothing before the countersign — participant signatures alone nev
     $owner = User::factory()->create();
     $campaign = charteredCampaign($owner);
     $charter = CharterService::start($owner, $campaign);
-    CharterService::publish($charter, 'The Threshold Heist', charteredContent($campaign));
+    CharterService::publish($owner, $charter, 'The Threshold Heist', charteredContent($campaign));
 
     // Every approved participant has signed — but no gm row exists yet.
     charteredParticipantsSign($charter);
@@ -263,7 +263,7 @@ it('keeps the award through a material amendment — the gm row persists as pend
     // version', D189): the charter keeps counting.
     $content = charteredContent($charter->campaign);
     $content['policies']['pvp'] = 'open';
-    CharterService::amend($charter->fresh(), 'The Threshold Heist', $content, 'Tightened PvP policy');
+    CharterService::amend($gm, $charter->fresh(), 'The Threshold Heist', $content, 'Tightened PvP policy');
 
     $gmRow = $charter->confirmations()
         ->where('role', SessionZeroConfirmation::ROLE_GM)

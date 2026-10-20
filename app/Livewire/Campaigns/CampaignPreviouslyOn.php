@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\GameStatus;
 use App\Models\Campaign;
 use App\Models\PreviouslyOnDraft;
 use App\Services\GmMembershipService;
@@ -21,6 +22,15 @@ use Livewire\Component;
  * Delivery is entirely GameBulletinObserver's single fan-out; publish()
  * only stamps the draft and creates exactly one bulletin via
  * PreviouslyOnService (which the observer picks up untouched).
+ *
+ * D230 projection model: the panel targets the campaign's NEXT
+ * SCHEDULED session's draft — never "newest by created_at" — so an
+ * older session's unpublished draft can never masquerade as current
+ * (upsertUnpublished supersedes those away anyway; the observer hook
+ * recomposes on session edits). With no upcoming session the panel
+ * falls back to the latest PUBLISHED draft purely to keep the
+ * confirmation state honest; unpublished unpublishable drafts render
+ * nothing.
  *
  * Separate nested component per the S02 composition pattern
  * (CampaignJournal is already ~440 lines); renders its own flash banner
@@ -95,8 +105,11 @@ class CampaignPreviouslyOn extends Component
     }
 
     /**
-     * The campaign's latest draft by created_at (the publish target), or
-     * null when none exists. Only ever queried for the owner — see
+     * The panel's draft (the publish target): the draft of the
+     * campaign's next SCHEDULED session. Fallback with no upcoming
+     * session: the latest published draft (confirmation state only) —
+     * an unpublished draft for a non-scheduled session is unpublishable
+     * and renders nothing. Only ever queried for the owner — see
      * {@see viewerIsOwner()}.
      */
     #[Computed]
@@ -106,13 +119,28 @@ class CampaignPreviouslyOn extends Component
             return null;
         }
 
-        /** @var PreviouslyOnDraft|null $draft */
-        $draft = $this->campaign->previouslyOnDrafts()
+        $nextSession = $this->campaign->sessions()
+            ->where('status', GameStatus::Scheduled->value)
+            ->orderBy('date_time')
+            ->first();
+
+        if ($nextSession !== null) {
+            /** @var PreviouslyOnDraft|null $draft */
+            $draft = $this->campaign->previouslyOnDrafts()
+                ->with('game')
+                ->whereBelongsTo($nextSession)
+                ->first();
+
+            return $draft;
+        }
+
+        /** @var PreviouslyOnDraft|null $latest */
+        $latest = $this->campaign->previouslyOnDrafts()
             ->with('game')
             ->latest('created_at')
             ->first();
 
-        return $draft;
+        return $latest !== null && $latest->published_at !== null ? $latest : null;
     }
 
     // ── Actions ───────────────────────────────────────────
@@ -154,6 +182,44 @@ class CampaignPreviouslyOn extends Component
         }
 
         session()->flash('success', __('journal.flash_previously_on_published'));
+        unset($this->panelState, $this->latestDraft);
+    }
+
+    /**
+     * Recompose the unpublished draft now (D230): the two automatic
+     * triggers are session creation and the 24h reminder, so journal
+     * writes made after the last compose (a late recap, moved goals,
+     * fresh state changes) surface here on explicit GM action. Safe by
+     * construction — drafts are machine-composed, so recomposing never
+     * clobbers human edits.
+     */
+    public function refresh(): void
+    {
+        $user = Auth::user();
+
+        if ($user === null || ! $user->can('managePreviouslyOn', $this->campaign)) {
+            session()->flash('error', __('journal.error_previously_on_not_available'));
+
+            return;
+        }
+
+        $draft = $this->latestDraft();
+
+        // Nothing refreshable: no draft, already published, or its
+        // session is gone (deleted sessions cascade the draft away).
+        if ($draft === null || $draft->published_at !== null || $draft->game === null) {
+            return;
+        }
+
+        try {
+            app(PreviouslyOnService::class)->upsertUnpublished($this->campaign, $draft->game);
+        } catch (\Throwable $e) {
+            session()->flash('error', __('journal.error_previously_on_refresh_failed'));
+
+            return;
+        }
+
+        session()->flash('success', __('journal.flash_previously_on_refreshed'));
         unset($this->panelState, $this->latestDraft);
     }
 

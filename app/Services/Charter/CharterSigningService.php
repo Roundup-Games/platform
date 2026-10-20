@@ -47,6 +47,14 @@ class CharterSigningService
      *
      * @param  array<string, mixed>  $input  ['attestations' => array<string, bool>, 'private_answers' => array<string, mixed>]
      *
+     * Accepted race (documented, deliberately unlocked): the approved-
+     * participant check and the insert are two unlocked reads/writes, so
+     * a participant benched or removed milliseconds after the check can
+     * still land a signature. Product semantics already accept the
+     * benched-after-sign signature (workspaceHealth keeps counting it),
+     * so serializing the roster against every bench mutation would buy
+     * nothing — the roster math self-heals on the next recompute.
+     *
      * @throws ValidationException charter not active/published, caller not an approved participant, already signed, or attestation/text validation failed
      */
     public static function sign(User $user, SessionZeroSurvey $charter, array $input): SessionZeroConfirmation
@@ -138,6 +146,15 @@ class CharterSigningService
      * allowed once every approved participant has signed that version —
      * silence is never consent, and the GM is never a signer (they
      * countersign; the owner is not required to be a participant).
+     *
+     * Accepted race (documented, deliberately unlocked): pending is
+     * computed from two unlocked reads, so a participant approved between
+     * the roster pluck and the insert can countersign through without
+     * having signed. The window is milliseconds, the invariant is soft
+     * (the roster view recomputes live and shows the unsigned
+     * participant), and double countersigning stays impossible via the
+     * unique index — locking the participant roster against every
+     * approval would buy nothing proportional.
      *
      * @throws ValidationException caller is not the campaign owner, charter not active, already countersigned, or participants are still pending
      */
@@ -336,8 +353,13 @@ class CharterSigningService
 
         // The current version for the whole set in one fetch —
         // currentVersion() runs a per-row query, unusable in a list.
+        // Minimal projection: the health math reads id/version_number/
+        // published_at only; version rows carry the full charter content
+        // snapshot (jsonb, tens of KB), and every version of every
+        // charter would ride along without the select.
         $versions = SessionZeroSurveyVersion::query()
             ->whereIn('session_zero_survey_id', $charters->pluck('id'))
+            ->select(['id', 'session_zero_survey_id', 'version_number', 'published_at'])
             ->get()
             ->keyBy(fn (SessionZeroSurveyVersion $version): string => $version->session_zero_survey_id.'::'.$version->version_number);
 

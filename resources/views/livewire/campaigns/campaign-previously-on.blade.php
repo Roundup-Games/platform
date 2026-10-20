@@ -63,15 +63,37 @@
                 {{-- The digest body EXACTLY as stored: whitespace-pre-line,
                      escaped, no markup interpretation — it is composed
                      plain text (spec §3.1). --}}
-                <div class="border border-outline-variant rounded-lg bg-surface-container-lowest p-4 text-sm text-on-surface leading-relaxed whitespace-pre-line mb-4">
+                <div class="border border-outline-variant rounded-lg bg-surface-container-lowest p-4 text-sm text-on-surface leading-relaxed whitespace-pre-line mb-3">
                     {{ $latestDraft->body }}
                 </div>
 
-                <button type="button" wire:click="publish" wire:loading.attr="disabled" wire:target="publish"
-                        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 active:scale-95 transition-all">
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">publish</span>
-                    {{ __('journal.action_publish_previously_on') }}
-                </button>
+                <p class="text-xs text-on-surface-variant mb-1">
+                    {{ __('journal.label_previously_on_composed_at', ['date' => format_date($latestDraft->updated_at, 'datetime')]) }}
+                </p>
+
+                {{-- D231: the GM's consent is informed — the audience is
+                     stated at publish time, not discovered after. --}}
+                <p class="text-xs text-on-surface-variant mb-4 flex items-start gap-1.5">
+                    <span class="material-symbols-outlined text-sm shrink-0" aria-hidden="true">group</span>
+                    {{ __('journal.content_previously_on_audience') }}
+                </p>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <button type="button" wire:click="publish" wire:loading.attr="disabled" wire:target="publish"
+                            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 active:scale-95 transition-all">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true">publish</span>
+                        {{ __('journal.action_publish_previously_on') }}
+                    </button>
+
+                    {{-- D230: journal writes after the last compose surface
+                         here on explicit action (drafts are machine-composed,
+                         so a recompose never clobbers human edits). --}}
+                    <button type="button" wire:click="refresh" wire:loading.attr="disabled" wire:target="refresh"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-outline-variant text-on-surface text-sm font-medium hover:bg-surface-container-highest active:scale-95 transition-all">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true">refresh</span>
+                        {{ __('journal.action_refresh_previously_on') }}
+                    </button>
+                </div>
             </section>
         @elseif($panelState === 'published')
             {{-- Published confirmation: timestamp + link to the session's

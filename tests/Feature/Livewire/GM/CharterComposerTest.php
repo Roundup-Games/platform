@@ -76,7 +76,7 @@ function charter_composer_published_charter(): array
     [$owner, $campaign] = charter_composer_owner_campaign();
 
     $charter = CharterService::start($owner, $campaign, 'quickstart');
-    CharterService::publish($charter, 'The Threshold Heist Charter', charter_composer_valid_content($campaign));
+    CharterService::publish($owner, $charter, 'The Threshold Heist Charter', charter_composer_valid_content($campaign));
 
     return [$owner, $campaign, $charter->refresh()];
 }
@@ -108,6 +108,18 @@ describe('CharterComposer Access Control', function () {
         $this->actingAs($other)
             ->get(route('campaigns.charter', ['locale' => 'en', 'id' => $campaign->id]))
             ->assertForbidden();
+    });
+
+    it('admits a global admin alongside the owner (manageCharter + policy before())', function () {
+        seedRoles();
+        [$owner, $campaign] = charter_composer_owner_campaign();
+
+        $admin = User::factory()->create(['profile_complete' => true]);
+        $admin->assignRole('Platform Admin');
+
+        $this->actingAs($admin)
+            ->get(route('campaigns.charter', ['locale' => 'en', 'id' => $campaign->id]))
+            ->assertOk();
     });
 });
 
@@ -272,7 +284,7 @@ describe('CharterComposer Published State', function () {
         [$owner, $campaign] = charter_composer_owner_campaign();
 
         $charter = CharterService::start($owner, $campaign, 'quickstart');
-        CharterService::publish($charter, (string) $campaign->name, charter_composer_valid_content($campaign));
+        CharterService::publish($owner, $charter, (string) $campaign->name, charter_composer_valid_content($campaign));
 
         Livewire::actingAs($owner)
             ->test(CharterComposer::class, ['id' => $campaign->id])
@@ -494,7 +506,7 @@ describe('CampaignDetail Charter Entry Card', function () {
         [$owner, $campaign] = charter_composer_owner_campaign();
 
         $charter = CharterService::start($owner, $campaign, 'quickstart');
-        CharterService::publish($charter, (string) $campaign->name, charter_composer_valid_content($campaign));
+        CharterService::publish($owner, $charter, (string) $campaign->name, charter_composer_valid_content($campaign));
 
         $this->actingAs($owner)
             ->get(route('campaigns.show', ['locale' => 'en', 'id' => $campaign->id]))
@@ -543,7 +555,7 @@ function charter_composer_active_charter(User $owner): SessionZeroSurvey
 {
     $campaign = charter_composer_limit_campaign($owner);
     $charter = CharterService::start($owner, $campaign, 'quickstart');
-    CharterService::publish($charter, (string) $campaign->name, charter_composer_valid_content($campaign));
+    CharterService::publish($owner, $charter, (string) $campaign->name, charter_composer_valid_content($campaign));
 
     return $charter->refresh();
 }
@@ -669,7 +681,7 @@ function charter_composer_member_charter(User $member): array
 {
     $campaign = charter_composer_limit_campaign($member);
     $charter = CharterService::start($member, $campaign, 'quickstart');
-    CharterService::publish($charter, (string) $campaign->name, charter_composer_valid_content($campaign));
+    CharterService::publish($member, $charter, (string) $campaign->name, charter_composer_valid_content($campaign));
 
     return [$campaign, $charter->refresh()];
 }

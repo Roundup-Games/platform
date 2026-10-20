@@ -34,6 +34,16 @@ class ScheduledTaskRunFactory extends Factory
         ]);
     }
 
+    public function skipped(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status' => ScheduledTaskRunStatus::Skipped,
+            'finished_at' => null,
+            'runtime_ms' => null,
+            'error' => null,
+        ]);
+    }
+
     public function running(): static
     {
         return $this->state(fn (array $attributes): array => [

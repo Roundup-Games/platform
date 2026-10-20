@@ -602,11 +602,29 @@ class AttendanceService
         ]);
 
         // One-shot Epilogue bulletin (M071 S03, D219): both completion paths
-        // (host completeGame and AutoCompleteGames) converge here, inside the
-        // caller's transaction, after the status save — so the Game::updated
-        // bulletin expiry sweep has already run and the pinned insert is safe.
-        // Campaign games no-op inside the service (journal surface instead).
-        $this->epilogueService->createFor($game);
+        // (host completeGame and AutoCompleteGames) converge here after the
+        // status save — so the Game::updated bulletin expiry sweep has
+        // already run and the pinned insert is safe. Campaign games no-op
+        // inside the service (journal surface instead).
+        //
+        // Deferred to afterCommit and failure-isolated on purpose: both
+        // callers run this inside the completion transaction, and a
+        // bulletin fan-out throw (observer cache invalidation, Discord
+        // dispatch under a sync queue) must NEVER roll back the status
+        // save — the host would see a 500 and AutoCompleteGames would
+        // retry the game every run. The epilogue is best-effort; the
+        // idempotency guard inside createFor makes any later retry
+        // converge on exactly one pinned bulletin.
+        DB::afterCommit(function () use ($game): void {
+            try {
+                $this->epilogueService->createFor($game);
+            } catch (\Throwable $e) {
+                Log::warning('epilogue.creation_failed', [
+                    'game_id' => $game->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
     }
 
     // ── 6. Dispute flow ────────────────────────────────────────

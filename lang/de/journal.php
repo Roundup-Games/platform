@@ -68,6 +68,7 @@ return [
     'action_post_prep_note' => 'Vorbereitung speichern',
     'action_log_state' => 'Zustandsänderung erfassen',
     'action_show_all' => 'Alle anzeigen',
+    'action_load_earlier_changes' => 'Frühere Änderungen laden',
     'empty_goals' => 'Noch keine Ziele.',
     'empty_state_changes' => 'Noch keine Zustandsänderungen.',
     'hint_prep_note' => 'Nur für GMs sichtbar — Spieler sehen diese Notizen nie.',
@@ -83,7 +84,6 @@ return [
     // Plan-Vorgabe („Zuvor in :campaign – Session :session“), sonst gilt
     // die Runde-Terminologie (K001).
     'title_previously_on' => 'Zuvor in :campaign – Session :session',
-    'label_read_full' => 'Das komplette Journal lesen',
     'section_goals_moved' => 'Geänderte Ziele',
     'section_loose_threads' => 'Offene Fäden',
     'section_next_session' => 'Nächste Runde',
@@ -100,6 +100,11 @@ return [
     'error_previously_on_not_available' => 'Der Rückblick ist derzeit nicht verfügbar.',
     'label_previously_on_target_session' => 'Für die Runde',
     'label_previously_on_published_at' => 'Veröffentlicht am :date',
+    'label_previously_on_composed_at' => 'Erstellt am :date',
+    'action_refresh_previously_on' => 'Entwurf aktualisieren',
+    'flash_previously_on_refreshed' => 'Entwurf aus dem Journal aktualisiert.',
+    'error_previously_on_refresh_failed' => 'Der Entwurf konnte nicht aktualisiert werden — bitte erneut versuchen.',
+    'content_previously_on_audience' => 'Wird an alle bestätigten Teilnehmenden dieser Runde zugestellt, auch an einmalige Gäste.',
     'title_previously_on_gate' => '„Zuvor in der Kampagne“ ist eine Mitglieder-Funktion',
     'content_previously_on_gate' => 'GM-Mitglieder erhalten vor jeder Runde automatisch einen Rückblick — Recap, Ziele und offene Fäden aus deinem Kampagnen-Journal. Sieh dir die Mitgliedschaft an, um ihn freizuschalten.',
     'action_view_membership' => 'Mitgliedschaft ansehen',

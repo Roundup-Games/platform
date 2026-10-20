@@ -70,6 +70,7 @@ return [
     'action_post_prep_note' => 'Save prep note',
     'action_log_state' => 'Log state change',
     'action_show_all' => 'Show all',
+    'action_load_earlier_changes' => 'Load earlier changes',
     'empty_goals' => 'No goals yet.',
     'empty_state_changes' => 'No state changes yet.',
     'hint_prep_note' => 'Only visible to GMs — players never see prep notes.',
@@ -83,7 +84,6 @@ return [
     // plain-text sections and the publish guards. :session is the
     // completed-sessions count; the composed body is plain text only.
     'title_previously_on' => 'Previously on :campaign — Session :session',
-    'label_read_full' => 'Read the full journal',
     'section_goals_moved' => 'Goals moved',
     'section_loose_threads' => 'Loose threads',
     'section_next_session' => 'Next session',
@@ -101,6 +101,11 @@ return [
     'error_previously_on_not_available' => 'Previously On is not available right now.',
     'label_previously_on_target_session' => 'For session',
     'label_previously_on_published_at' => 'Published on :date',
+    'label_previously_on_composed_at' => 'Composed :date',
+    'action_refresh_previously_on' => 'Refresh draft',
+    'flash_previously_on_refreshed' => 'Draft refreshed from the journal.',
+    'error_previously_on_refresh_failed' => 'The draft could not be refreshed — please try again.',
+    'content_previously_on_audience' => 'Delivered to all approved participants of this session, including one-off guests.',
     'title_previously_on_gate' => 'Previously On is a member feature',
     'content_previously_on_gate' => 'GM members get an automatic Previously On digest before every session — recap, goals, and loose threads from your campaign journal. View your membership options to unlock it.',
     'action_view_membership' => 'View membership',

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -31,6 +32,15 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Narrowing fails outright (SQLSTATE 22001) once any row exceeds
+        // 280 chars — and rows exceeding it are exactly what this
+        // migration exists to permit. Rolling back is rare and lossy by
+        // nature; truncating first keeps down() completable instead of a
+        // guaranteed error discovered at the worst possible time.
+        DB::table('game_bulletins')
+            ->whereRaw('length(content) > 280')
+            ->update(['content' => DB::raw('left(content, 280)')]);
+
         Schema::table('game_bulletins', function (Blueprint $table): void {
             $table->string('content', 280)->change();
         });

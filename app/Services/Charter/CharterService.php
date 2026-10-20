@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -21,15 +22,18 @@ use Illuminate\Validation\ValidationException;
  *
  * Single home for the lifecycle so the composer component stays thin
  * (ParticipantService pattern) and S03 amendments extend one place.
- * Every mutation is guarded (draft-only) and publish runs in a
- * transaction: the immutable version snapshot is inserted and the
- * charter row flipped to active/current_version atomically.
+ * Every mutation is guarded twice: state guards (draft-only, active-only)
+ * AND per-mutation authorization — each public method takes the acting
+ * user and re-resolves CampaignPolicy::manageCharter against the
+ * charter's campaign, so no caller (component, command, queue job) can
+ * inherit an unguarded write path. Publish runs in a transaction: the
+ * immutable version snapshot is inserted and the charter row flipped to
+ * active/current_version atomically.
  *
- * Ownership derives from the campaign owner (R084: charter authoring is
- * free-tier safety — never gated on GM membership/active GM role).
- * saveDraft/publish operate on a charter row the caller resolved
- * owner-gated; start() re-authorizes server-side because it receives
- * the user directly.
+ * Ownership derives from the campaign owner through the policy (R084:
+ * charter authoring is free-tier safety — never gated on GM
+ * membership/active GM role; global admins pass via the policy's
+ * before(), consistent with every other campaign ability).
  *
  * The one membership-coupled rule (R084/R085) is the concurrent
  * active-charter cap, consulted in start() and inside the publish
@@ -79,9 +83,7 @@ class CharterService
         string $mode = 'quickstart',
         ?string $seedId = null,
     ): SessionZeroSurvey {
-        if ((string) $campaign->owner_id !== (string) $user->id) {
-            throw new AuthorizationException('Only the campaign owner can start a charter.');
-        }
+        Gate::forUser($user)->authorize('manageCharter', $campaign);
 
         $existing = self::charterFor($campaign);
         if ($existing !== null) {
@@ -149,10 +151,13 @@ class CharterService
      *
      * @param  array<string, mixed>  $content
      *
+     * @throws AuthorizationException when the actor may not manage this charter's campaign
      * @throws ValidationException when the charter is not a draft
      */
-    public static function saveDraft(SessionZeroSurvey $charter, string $title, array $content): void
+    public static function saveDraft(User $actor, SessionZeroSurvey $charter, string $title, array $content): void
     {
+        self::authorizeCharter($actor, $charter);
+
         if (! $charter->isDraft()) {
             throw ValidationException::withMessages([
                 'charter' => __('charter.error_only_draft_editable'),
@@ -172,10 +177,13 @@ class CharterService
      *
      * @param  array<string, mixed>  $content
      *
+     * @throws AuthorizationException when the actor may not manage this charter's campaign
      * @throws ValidationException when the charter is not a draft or the content fails full validation
      */
-    public static function publish(SessionZeroSurvey $charter, string $title, array $content): SessionZeroSurveyVersion
+    public static function publish(User $actor, SessionZeroSurvey $charter, string $title, array $content): SessionZeroSurveyVersion
     {
+        self::authorizeCharter($actor, $charter);
+
         return DB::transaction(function () use ($charter, $title, $content): SessionZeroSurveyVersion {
             if (! $charter->isDraft()) {
                 throw ValidationException::withMessages([
@@ -188,13 +196,15 @@ class CharterService
             // then re-count actives inside the transaction — a draft
             // flipping active consumes a slot, so a third draft started
             // before the cap was hit must not be able to publish past it.
-            // Draft charters always belong to a campaign; an orphaned
-            // non-charter draft refuses here instead of locking garbage.
+            // authorizeCharter() ahead of the transaction already refused
+            // orphans; this re-check only covers the deleted-mid-flight
+            // race and carries its own message — never the
+            // already-published copy (which would misreport the state).
             $ownerId = $charter->campaign?->owner_id;
 
             if ($ownerId === null) {
                 throw ValidationException::withMessages([
-                    'charter' => __('charter.error_already_published'),
+                    'charter' => __('charter.error_charter_orphaned'),
                 ]);
             }
 
@@ -220,13 +230,27 @@ class CharterService
 
             $versionNumber = ($charter->current_version ?? 0) + 1;
 
-            $version = $charter->versions()->create([
-                'version_number' => $versionNumber,
-                'content' => $normalized,
-                'content_schema' => CharterContent::SCHEMA_VERSION,
-                'changelog' => null,
-                'published_at' => now(),
-            ]);
+            try {
+                $version = $charter->versions()->create([
+                    'version_number' => $versionNumber,
+                    'content' => $normalized,
+                    'content_schema' => CharterContent::SCHEMA_VERSION,
+                    'changelog' => null,
+                    'published_at' => now(),
+                ]);
+            } catch (QueryException $e) {
+                if (! self::isAmendmentRaceViolation($e)) {
+                    throw $e;
+                }
+
+                // Two racing publishes both saw isDraft(); the unique
+                // (survey, version_number) index let exactly one win —
+                // converge on the duplicate error instead of leaking a
+                // 500, exactly like the amend path.
+                throw ValidationException::withMessages([
+                    'charter' => __('charter.error_already_published'),
+                ]);
+            }
 
             $charter->update([
                 'title' => $title,
@@ -258,9 +282,7 @@ class CharterService
      */
     public static function archive(User $user, SessionZeroSurvey $charter): void
     {
-        if ((string) $charter->campaign?->owner_id !== (string) $user->id) {
-            throw new AuthorizationException('Only the campaign owner can archive a charter.');
-        }
+        self::authorizeCharter($user, $charter);
 
         if (! $charter->isActive()) {
             throw ValidationException::withMessages([
@@ -291,10 +313,13 @@ class CharterService
      *
      * @param  array<string, mixed>  $content
      *
+     * @throws AuthorizationException when the actor may not manage this charter's campaign
      * @throws ValidationException when the charter is not an active published charter, title/changelog/content validation fails, or a concurrent amend won the version race
      */
-    public static function amend(SessionZeroSurvey $charter, string $title, array $content, string $changelog): SessionZeroSurveyVersion
+    public static function amend(User $actor, SessionZeroSurvey $charter, string $title, array $content, string $changelog): SessionZeroSurveyVersion
     {
+        self::authorizeCharter($actor, $charter);
+
         return DB::transaction(function () use ($charter, $title, $content, $changelog): SessionZeroSurveyVersion {
             $previous = null;
             if ($charter->isCharter() && $charter->isActive()) {
@@ -507,5 +532,22 @@ class CharterService
     {
         return ($e->errorInfo[0] ?? null) === '23505'
             && str_contains($e->getMessage(), 'session_zero_surveys_charter_campaign_unique');
+    }
+
+    /**
+     * Per-mutation re-authorization: the actor must hold
+     * CampaignPolicy::manageCharter on the charter's campaign. An
+     * orphaned charter (campaign deleted) is never manageable — there is
+     * no owner left to derive the ability from.
+     */
+    private static function authorizeCharter(User $actor, SessionZeroSurvey $charter): void
+    {
+        $campaign = $charter->campaign;
+
+        if ($campaign === null) {
+            throw new AuthorizationException('This charter has no campaign to authorize against.');
+        }
+
+        Gate::forUser($actor)->authorize('manageCharter', $campaign);
     }
 }

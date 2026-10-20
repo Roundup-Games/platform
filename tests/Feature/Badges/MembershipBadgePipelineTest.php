@@ -2,12 +2,14 @@
 
 use App\Enums\BadgeEventAction;
 use App\Events\MembershipActivated;
+use App\Events\MembershipEnded;
 use App\Models\BadgeEvent;
 use App\Models\BadgeUser;
 use App\Models\MembershipType;
 use App\Models\User;
 use App\Services\Badges\SupportingMemberEvaluator;
 use App\Services\GmRoleService;
+use Illuminate\Contracts\Events\Dispatcher;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -240,6 +242,40 @@ it('re-qualifies a lapsed Supporting Member on rejoin through the pipeline', fun
         ]);
 });
 
+it('requalifies a lapsed year-tier holder at their CURRENT tenure tier — requalification can downgrade', function () {
+    $service = app(GmRoleService::class);
+    $user = User::factory()->create();
+
+    $service->activateGmSubscription($user);
+
+    // Backdate past the year_2 threshold, then sweep the tier up.
+    $user->localSubscriptions()->update(['starts_at' => now()->subMonths(13)->subDay()]);
+    app(SupportingMemberEvaluator::class)->sweep();
+
+    expect(membershipBadgeSupportingHold()->tier)->toBe('year_2');
+
+    // Quiet lapse (sweep-owned), then a rejoin whose tenure restarted —
+    // the requalify path stamps the CURRENT tier, so the year_2 hold
+    // downgrades to year_1: requalification reflects standing as of the
+    // rejoin, never a grandfathered peak.
+    $this->travel(1)->seconds();
+    $service->deactivateGmSubscription($user);
+    app(SupportingMemberEvaluator::class)->sweep();
+
+    expect(membershipBadgeSupportingHold()->lapsed_at)->not->toBeNull();
+
+    $user->localSubscriptions()->update(['starts_at' => now()]);
+
+    $this->travel(1)->seconds();
+    $service->activateGmSubscription($user); // event → pipeline
+
+    $hold = membershipBadgeSupportingHold();
+
+    expect($hold->lapsed_at)->toBeNull()
+        ->and($hold->revoked_at)->toBeNull()
+        ->and($hold->tier)->toBe('year_1');
+});
+
 it('skips the pipeline quietly when the user no longer exists', function () {
     $user = User::factory()->create();
     $plan = membershipBadgeGmPlan();
@@ -257,4 +293,25 @@ it('skips the pipeline quietly when the user no longer exists', function () {
 
     expect(BadgeUser::query()->count())->toBe(0)
         ->and(BadgeEvent::query()->count())->toBe(0);
+});
+
+it('registers the BadgePipeline listener exactly once for MembershipActivated (auto-discovery is the only wiring)', function () {
+    $targets = collect(app(Dispatcher::class)->getListeners(MembershipActivated::class))
+        ->map(function (callable $listener): string {
+            // Both registration shapes carry the listener target in the
+            // closure's static vars: explicit listen() a bare class
+            // string, discovery a "class@method" string.
+            $static = (new ReflectionFunction($listener))->getStaticVariables();
+            $target = $static['listener'] ?? null;
+
+            return is_string($target) ? $target : 'closure';
+        });
+
+    expect($targets->filter(fn (string $target): bool => str_starts_with($target, 'App\\Listeners\\BadgePipeline'))->count())
+        ->toBe(1)
+        // Lapses stay sweep-owned (spec §4): no badge listener at all.
+        ->and(collect(app(Dispatcher::class)->getListeners(MembershipEnded::class))
+            ->filter(fn (callable $listener): bool => str_contains((string) (new ReflectionFunction($listener))->getStaticVariables()['listener'] ?? '', 'BadgePipeline'))
+            ->count())
+        ->toBe(0);
 });

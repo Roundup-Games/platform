@@ -50,7 +50,7 @@ function charter_cs_published(): array
     $content['overview']['expected_shape'] = 'ongoing';
     $content['boundaries']['lines_categories'] = ['harm_to_children'];
 
-    CharterService::publish($charter, 'The Threshold Heist', $content);
+    CharterService::publish($owner, $charter, 'The Threshold Heist', $content);
 
     $charter = $charter->refresh();
 

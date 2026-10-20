@@ -6,10 +6,7 @@ use App\Console\Dev\DemoSeedCommand;
 use App\Console\Dev\DemoTeardownCommand;
 use App\Console\Dev\PostHogTestEvent;
 use App\Events\MembershipActivated;
-use App\Listeners\BadgePipeline;
 use App\Listeners\DropDemoDomainMail;
-use App\Listeners\HandleGameSystemTicketClosed;
-use App\Listeners\HandleGameSystemTicketResolved;
 use App\Listeners\LogMailMessageSent;
 use App\Listeners\LogNotificationDelivery;
 use App\Listeners\RecordScheduledTaskRun;
@@ -67,8 +64,6 @@ use App\Support\CacheMetrics;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
 use Escalated\Laravel\Contracts\EscalatedUiRenderer;
-use Escalated\Laravel\Events\TicketClosed;
-use Escalated\Laravel\Events\TicketResolved;
 use Escalated\Laravel\Models\ApiToken;
 use Escalated\Laravel\Models\Article;
 use Escalated\Laravel\Models\ArticleCategory;
@@ -304,16 +299,20 @@ class AppServiceProvider extends ServiceProvider
         // resolves to our Discord provider (identify+email scopes per D-1).
         EventFacade::listen(SocialiteWasCalled::class, DiscordExtendSocialite::class);
 
-        // Escalated ticket event listeners for game system requests
-        EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
-        EventFacade::listen(TicketClosed::class, HandleGameSystemTicketClosed::class);
+        // Escalated ticket event listeners for game system requests:
+        // wired by event auto-discovery (each listener's handle()
+        // type-hint is the registration) — never re-registered
+        // explicitly here, or every ticket event would run the listener
+        // twice (cf. the BadgePipeline fix).
 
-        // Badge engine award pipeline (M069, spec §2.2): membership
-        // activations run every registered badge evaluator through the
-        // audited write side, on the queue. MembershipEnded deliberately
-        // has NO badge listener — lapses are sweep-owned and quiet
-        // (spec §4).
-        EventFacade::listen(MembershipActivated::class, BadgePipeline::class);
+        // Badge engine award pipeline (M069, spec §2.2): wired by event
+        // auto-discovery — BadgePipeline::handle()'s MembershipActivated
+        // type-hint is the registration. Deliberately NOT registered
+        // explicitly here: the base EventServiceProvider ships with
+        // discovery enabled, so an explicit listen() would queue every
+        // pipeline run twice (MembershipBadgePipelineTest pins single
+        // registration). MembershipEnded deliberately has NO badge
+        // listener — lapses are sweep-owned and quiet (spec §4).
 
         // Role/permission mutations must invalidate ScopedRoleService's
         // per-request memo (WeakMap on the User instance) so a role granted

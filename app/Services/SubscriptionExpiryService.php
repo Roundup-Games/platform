@@ -29,7 +29,10 @@ class SubscriptionExpiryService
      *
      * One bounded query selects the due rows (active + ends_at past),
      * then each flip runs in its own transaction so a failure on one
-     * row never un-expires its neighbors. ends_at stays as the actual
+     * row never un-expires its neighbors — and never aborts the sweep:
+     * a row whose flip or lapse throws is logged and skipped, retrying
+     * the next night (the command's documented always-SUCCESS contract,
+     * pinned by SubscriptionsExpireTest). ends_at stays as the actual
      * period end and canceled_at is never touched — cancellation is an
      * explicit operator action (CompMembershipService::withdraw), expiry
      * is the passage of time.
@@ -41,33 +44,52 @@ class SubscriptionExpiryService
         $expired = 0;
         $lapsed = 0;
 
+        // user.subscriptions eager-loaded deliberately: hasActiveMembership()
+        // reaches Cashier's subscribed(), which reads ->subscriptions as a
+        // model property — a lazy load that Model::shouldBeStrict flags
+        // (non-production) once the due set hydrates users from a
+        // multi-row result. Same pattern and rationale as
+        // SupportingMemberEvaluator's cohort query (also the N+1 fix).
         $due = LocalSubscription::query()
-            ->with('user')
+            ->with('user.subscriptions')
             ->where('status', 'active')
             ->whereNotNull('ends_at')
             ->where('ends_at', '<=', now())
             ->get();
 
         foreach ($due as $subscription) {
-            DB::transaction(function () use ($subscription): void {
-                $subscription->update(['status' => 'expired']);
-            });
+            try {
+                DB::transaction(function () use ($subscription): void {
+                    $subscription->update(['status' => 'expired']);
+                });
 
-            $expired++;
+                $expired++;
 
-            $user = $subscription->user;
+                $user = $subscription->user;
 
-            if ($user === null) {
-                Log::warning('subscriptions.expire.orphaned_row', [
+                if ($user === null) {
+                    Log::warning('subscriptions.expire.orphaned_row', [
+                        'local_subscription_id' => $subscription->id,
+                    ]);
+
+                    continue;
+                }
+
+                if (! $user->hasActiveMembership()) {
+                    $this->gmRoleService->handleSubscriptionLapse($user);
+                    $lapsed++;
+                }
+            } catch (\Throwable $e) {
+                // Per-row failure isolation: the expired flip may have
+                // committed while the lapse threw — either way the row
+                // is logged and skipped, never aborting the remaining
+                // sweep (the due query re-finds nothing to retry within
+                // the same run by design; tomorrow night picks it up).
+                Log::warning('subscriptions.expire.row_failed', [
                     'local_subscription_id' => $subscription->id,
+                    'user_id' => $subscription->user_id,
+                    'error' => $e->getMessage(),
                 ]);
-
-                continue;
-            }
-
-            if (! $user->hasActiveMembership()) {
-                $this->gmRoleService->handleSubscriptionLapse($user);
-                $lapsed++;
             }
         }
 

@@ -86,9 +86,12 @@ class CharterComposer extends Component
 
         $this->campaign = Campaign::findOrFail($id);
 
-        if ((string) $this->campaign->owner_id !== (string) $user->id) {
-            abort(403);
-        }
+        // CampaignPolicy::manageCharter (owner-only, R084 — global admins
+        // pass via before(), consistent with every other campaign
+        // surface). Every service call below re-authorizes through the
+        // same ability, so this gate is the mount-time render check, not
+        // the security boundary itself.
+        abort_unless($user->can('manageCharter', $this->campaign), 403);
 
         $this->campaignId = (string) $this->campaign->id;
 
@@ -308,7 +311,7 @@ class CharterComposer extends Component
         $validated = $this->validate(['title' => 'required|string|max:255']);
 
         try {
-            CharterService::publish($charter, $validated['title'], $this->content);
+            CharterService::publish(authenticatedUser(), $charter, $validated['title'], $this->content);
         } catch (ValidationException $e) {
             $this->resetErrorBag();
 
@@ -341,6 +344,7 @@ class CharterComposer extends Component
 
         try {
             CharterService::amend(
+                authenticatedUser(),
                 $charter,
                 $validated['title'],
                 $this->content,
@@ -628,7 +632,7 @@ class CharterComposer extends Component
 
         $title = trim($this->title) !== '' ? $this->title : (string) $this->campaign->name;
 
-        CharterService::saveDraft($charter, $title, $this->content);
+        CharterService::saveDraft(authenticatedUser(), $charter, $title, $this->content);
 
         $charter->refresh();
         $this->draftSaved = true;

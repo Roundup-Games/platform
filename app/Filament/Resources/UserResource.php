@@ -363,6 +363,11 @@ class UserResource extends Resource
                 // S02 seam. All mutation stays in CompMembershipService.
                 Action::make('grantCompMembership')
                     ->label('Grant comp')
+                    // Comp granting is an admin-only capability, not an
+                    // incidental of panel admission (the QueueStructure/
+                    // reports idiom): any role that can reach the user
+                    // table must not thereby gain comp-granting power.
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
                     ->icon(Heroicon::OutlinedGift)
                     ->color('success')
                     ->modalHeading('Grant comp membership')
@@ -388,7 +393,11 @@ class UserResource extends Resource
                     ->action(function (User $record, array $data): void {
                         $actor = auth()->user();
 
-                        if (! $actor instanceof User) {
+                        // Server-side twin of the visible() gate above —
+                        // Livewire can invoke an action without re-running
+                        // visibility, so the capability check is enforced
+                        // here too (defense in depth).
+                        if (! $actor instanceof User || ! $actor->isAdmin()) {
                             return;
                         }
 
@@ -408,14 +417,15 @@ class UserResource extends Resource
                     }),
                 Action::make('withdrawCompMembership')
                     ->label('Withdraw comp')
+                    ->visible(fn (User $record): bool => (auth()->user()?->isAdmin() ?? false)
+                        && $record->localSubscriptions()
+                            ->where('source', LocalSubscriptionSource::Comp)
+                            ->active()
+                            ->exists())
                     ->icon(Heroicon::OutlinedArrowUturnLeft)
                     ->color('warning')
                     ->modalHeading('Withdraw comp membership')
                     ->modalDescription('Cancels the comp subscription. GM benefits lapse only when no other active membership remains; the Supporting Member badge follows via the nightly sweep.')
-                    ->visible(fn (User $record): bool => $record->localSubscriptions()
-                        ->where('source', LocalSubscriptionSource::Comp)
-                        ->active()
-                        ->exists())
                     ->form([
                         Textarea::make('reason')
                             ->label('Reason')
@@ -427,7 +437,8 @@ class UserResource extends Resource
                     ->action(function (User $record, array $data): void {
                         $actor = auth()->user();
 
-                        if (! $actor instanceof User) {
+                        // Server-side twin of the visible() gate above.
+                        if (! $actor instanceof User || ! $actor->isAdmin()) {
                             return;
                         }
 

@@ -69,7 +69,7 @@ function charter_panel_published(): array
     $content['character']['build_constraints'] = 'Level 1 start, standard array.';
     $content['character']['backstory_requested'] = true;
 
-    CharterService::publish($charter, 'The Threshold Heist', $content);
+    CharterService::publish($owner, $charter, 'The Threshold Heist', $content);
 
     $charter = $charter->refresh();
 

@@ -56,7 +56,7 @@ function charter_audit_published(User $owner): array
 {
     $campaign = charter_audit_campaign($owner);
     $charter = CharterService::start($owner, $campaign, 'quickstart');
-    CharterService::publish($charter, 'The Threshold Heist Charter', charter_audit_valid_content($campaign));
+    CharterService::publish($owner, $charter, 'The Threshold Heist Charter', charter_audit_valid_content($campaign));
 
     /** @var SessionZeroSurvey $charter */
     $charter = $charter->refresh();
@@ -111,7 +111,7 @@ function charter_audit_signed_history(User $owner): array
 
     $amended = charter_audit_valid_content($campaign);
     $amended['safety']['revisit'] = 'on_request'; // §3 change — material
-    CharterService::amend($charter, 'The Threshold Heist Charter', $amended, 'We check in on boundaries on request now.');
+    CharterService::amend($owner, $charter, 'The Threshold Heist Charter', $amended, 'We check in on boundaries on request now.');
 
     $charter = $charter->refresh();
     $v2 = SessionZeroSurveyVersion::query()

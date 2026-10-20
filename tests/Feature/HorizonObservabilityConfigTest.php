@@ -24,6 +24,7 @@ it('routes horizon notifications to the operations mailbox', function () {
 
 it('keeps existing mail routing when no operations address is configured', function () {
     $original = Horizon::$email;
+    $mailFrom = config('mail.from.address');
     Horizon::routeMailNotificationsTo('sentinel@example.com');
     config(['mail.from.address' => null]);
 
@@ -36,6 +37,9 @@ it('keeps existing mail routing when no operations address is configured', funct
     // boot nor clobber an existing routing with null.
     expect(Horizon::$email)->toBe('sentinel@example.com');
 
-    // Restore the static for later assertions in this process.
+    // Restore BOTH the static and the config value: Pest compiles every
+    // test file into one process, so a nulled mail.from.address here
+    // would bleed into later tests' mail assertions.
     Horizon::$email = $original;
+    config(['mail.from.address' => $mailFrom]);
 });

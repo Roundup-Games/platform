@@ -450,7 +450,7 @@ function workspace_chartered_campaign(User $gm, string $name): array
     $charter = CharterService::start($gm, $campaign);
     $content = CharterContent::quickStart($campaign)->toArray();
     $content['overview']['expected_shape'] = 'ongoing';
-    CharterService::publish($charter, $name, $content);
+    CharterService::publish($gm, $charter, $name, $content);
 
     return [$campaign, $charter];
 }

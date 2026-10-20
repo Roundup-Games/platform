@@ -96,7 +96,7 @@ function previouslyOnPlayer(Campaign $campaign): array
 
 // ── Recap excerpt (D220) ────────────────────────────────
 
-test('the excerpt carries the latest recap, truncated to 200 words, with a read-full link', function () {
+test('the excerpt carries the latest recap, truncated to 200 words, with no journal deep-link (D231)', function () {
     [$owner, $campaign, $completed, $next] = previouslyOnCampaign();
 
     // One recap per session (S01's partial unique index): the older
@@ -123,9 +123,11 @@ test('the excerpt carries the latest recap, truncated to 200 words, with a read-
         ->and($body)->toContain('w200')
         ->and($body)->not->toContain('w201')
         ->and($body)->not->toContain('older recap body')
-        // Read-full link: label + the campaign dashboard Journal tab.
-        ->and($body)->toContain(__('journal.label_read_full', [], 'en'))
-        ->and($body)->toContain(route('campaigns.show', ['locale' => 'en', 'id' => $campaign, 'tab' => 'journal']));
+        // D231: the excerpt stands alone — one bulletin is one body,
+        // and a members-only journal link would dead-end for one-off
+        // guests. The session-page RSVP CTA (below) closes the digest.
+        ->and($body)->not->toContain(route('campaigns.show', ['locale' => 'en', 'id' => $campaign, 'tab' => 'journal']))
+        ->and($body)->toContain(route('games.show', ['locale' => 'en', 'id' => $next]));
 });
 
 test('a divergent games.recap projection never leaks into the body (D220)', function () {
@@ -257,6 +259,54 @@ test('the goals section is omitted when the campaign has no completed sessions',
         ->and($body)->not->toContain(__('journal.section_goals_moved', [], 'en'));
 });
 
+test('the digest excerpts the latest session recap, not the latest write (out-of-order backfill)', function () {
+    ['owner' => $owner, 'campaign' => $campaign] = test()->createCampaignWithOwner();
+
+    $newerSession = Game::factory()->create([
+        'campaign_id' => $campaign->id,
+        'owner_id' => $owner->id,
+        'status' => 'completed',
+        'date_time' => now()->subWeek(),
+    ]);
+    $olderSession = Game::factory()->create([
+        'campaign_id' => $campaign->id,
+        'owner_id' => $owner->id,
+        'status' => 'completed',
+        'date_time' => now()->subWeeks(3),
+    ]);
+
+    // The newer session's recap was written FIRST; the older session's
+    // recap was backfilled SECOND — write-order (created_at) picks the
+    // wrong excerpt, session-order picks the right one.
+    CampaignJournalEntry::factory()->create([
+        'campaign_id' => $campaign->id,
+        'game_id' => $newerSession->id,
+        'author_user_id' => $owner->id,
+        'kind' => JournalEntryKind::Recap,
+        'body' => 'newer session recap body',
+        'created_at' => now()->subDays(3),
+    ]);
+    CampaignJournalEntry::factory()->create([
+        'campaign_id' => $campaign->id,
+        'game_id' => $olderSession->id,
+        'author_user_id' => $owner->id,
+        'kind' => JournalEntryKind::Recap,
+        'body' => 'backfilled older recap body',
+        'created_at' => now()->subDay(),
+    ]);
+
+    $next = Game::factory()->create([
+        'campaign_id' => $campaign->id,
+        'owner_id' => $owner->id,
+        'status' => 'scheduled',
+    ]);
+
+    $body = app(PreviouslyOnService::class)->composeBody($campaign, $next);
+
+    expect($body)->toContain('newer session recap body')
+        ->and($body)->not->toContain('backfilled older recap body');
+});
+
 // ── Loose threads (latest condition + latest item per participant) ──
 
 test('loose threads pick the latest condition and latest item change per participant', function () {
@@ -380,10 +430,10 @@ test('a German-language session composes German copy and restores the app locale
             'campaign' => (string) $campaign->getTranslation('name', 'de'),
             'session' => 1,
         ], 'de'))
-        // German copy throughout: the read-full label is the direct
-        // evidence next to the German excerpt.
-        ->and($body)->toContain(__('journal.label_read_full', [], 'de'))
-        ->and($body)->not->toContain(__('journal.label_read_full', [], 'en'))
+        // German copy throughout: the next-session section label is
+        // the direct evidence next to the German excerpt.
+        ->and($body)->toContain(__('journal.section_next_session', [], 'de'))
+        ->and($body)->not->toContain(__('journal.section_next_session', [], 'en'))
         // The composer never leaks its locale switch into the caller.
         ->and(App::getLocale())->toBe('en');
 });
@@ -515,7 +565,7 @@ test('double publish throws and leaves exactly one bulletin', function () {
         ->and($next->bulletins()->count())->toBe(1);
 });
 
-test('publish refuses a session that is no longer scheduled', function () {
+test('a canceled session takes its unpublished draft with it, and publish still refuses non-scheduled sessions', function () {
     $service = app(PreviouslyOnService::class);
     [$owner, $campaign, $completed, $next] = previouslyOnCampaign();
 
@@ -523,13 +573,25 @@ test('publish refuses a session that is no longer scheduled', function () {
 
     $draft = $service->upsertUnpublished($campaign, $next);
 
-    // The session gets canceled between compose and publish — direct
-    // service misuse must not post to it.
+    // D230: the session leaving Scheduled takes its unpublished draft
+    // with it (GameObserver hook) — an unpublishable draft cannot
+    // linger for the panel to show.
     $next->update(['status' => 'canceled']);
+
+    expect(PreviouslyOnDraft::find($draft->id))->toBeNull()
+        ->and($next->bulletins()->count())->toBe(0);
+
+    // Direct service misuse on a hand-crafted draft row for the
+    // canceled session must still be refused at publish time.
+    $orphan = PreviouslyOnDraft::factory()->create([
+        'campaign_id' => $campaign->id,
+        'game_id' => $next->id,
+        'body' => 'stale draft',
+    ]);
 
     $refusal = null;
     try {
-        $service->publish($draft, $owner);
+        $service->publish($orphan, $owner);
         $this->fail('Expected the publish to be refused for a canceled session.');
     } catch (LogicException $e) {
         $refusal = $e;
@@ -537,5 +599,5 @@ test('publish refuses a session that is no longer scheduled', function () {
 
     expect($refusal->getMessage())->toBe(__('journal.error_session_not_publishable', [], 'en'))
         ->and($next->bulletins()->count())->toBe(0)
-        ->and(PreviouslyOnDraft::find($draft->id)->published_at)->toBeNull();
+        ->and($orphan->fresh()->published_at)->toBeNull();
 });

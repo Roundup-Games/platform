@@ -70,7 +70,9 @@ Auto-composed digest when the next campaign session is published **and** ~24h be
 
 ```
 PREVIOUSLY ON {Campaign Title} — session {N}
-├── Excerpt: latest recap entry (first ~200 words, "read full" link)
+├── Excerpt: latest recap entry (first ~200 words — the excerpt stands alone,
+│     no journal deep-link: one bulletin is one body, and a members-only
+│     link would dead-end for one-off guests; D231)
 ├── Goals moved: entries where status_changed since last session
 │     ✔ achieved: "Free the harbour master" · ✖ failed: "Broker the truce"
 ├── Loose threads: open character_state_changes (conditions, unreturned items)
@@ -81,6 +83,21 @@ PREVIOUSLY ON {Campaign Title} — session {N}
 **Draft-first:** v1 always composes as a *draft bulletin* the GM reviews and publishes with one
 click (no auto-posting to players sight-unseen; protects against tone-deaf compositions). A
 per-campaign setting "auto-publish Previously On" can be enabled later by the GM.
+
+**Draft lifecycle (D230 — a draft is a projection, not a document).** Drafts are 100%
+machine-composed and never hand-edited, so a draft is a projection of campaign state: it cannot
+go stale and it cannot orphan. Concretely: the draft recomposes automatically when its target
+session's date or venue changes (observer hook); the panel and publish always target the
+campaign's *next scheduled session's* draft; composing a draft supersedes (deletes) any older
+unpublished draft of the campaign; a session leaving `scheduled` takes its unpublished draft
+with it. Journal writes made after the last compose (a late recap, moved goals) surface through
+an explicit "Refresh draft" action. Publishing an older session's digest after a newer one
+exists is impossible by design — the digest is forward-looking; history lives in the journal.
+
+**Audience (D231):** the published digest is delivered to **all approved participants of the
+session, including one-off guests** — a guest attended the very table being recapped — and the
+publish panel states that audience explicitly so GM consent is informed. The channel matrix
+fan-out (below) is unchanged.
 
 **Membership: DECIDED — member feature.** Previously On is GM workflow automation, and it can
 always be given away later if the strategy shifts; the reverse (un-gating) is harder.

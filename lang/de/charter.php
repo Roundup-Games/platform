@@ -325,6 +325,7 @@ return [
     // Lifecycle-Schutzregeln
     'error_only_draft_editable' => 'Bearbeitet werden kann nur eine Charta, die noch im Entwurf ist.',
     'error_already_published' => 'Diese Charta wurde bereits veröffentlicht.',
+    'error_charter_orphaned' => 'Diese Charta gehört nicht mehr zu einer Kampagne — sie kann nicht veröffentlicht werden.',
 
     // Schutzregeln für Unterschrift & Gegenzeichnung (M070/S02)
     'error_charter_not_active' => 'Diese Charta ist noch nicht veröffentlicht — sie kann noch nicht unterschrieben werden.',

@@ -42,7 +42,7 @@ function charter_member_active_charter(User $owner): SessionZeroSurvey
     $content = CharterContent::quickStart($campaign)->toArray();
     $content['overview']['expected_shape'] = 'ongoing';
 
-    CharterService::publish($charter, (string) $campaign->name, $content);
+    CharterService::publish($owner, $charter, (string) $campaign->name, $content);
 
     return $charter->refresh();
 }

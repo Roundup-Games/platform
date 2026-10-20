@@ -132,6 +132,23 @@ class CampaignPolicy
     }
 
     /**
+     * Manage the campaign's charter lifecycle (start/author, publish,
+     * amend, archive — M070): the campaign owner only.
+     *
+     * Deliberately NOT membership-gated (R084: charter authoring is
+     * free-tier safety, never a GmMembershipService check) and deliberately
+     * a Policy ability rather than scattered owner_id comparisons — every
+     * charter mutation surface (CharterComposer mount, CharterAudit mount,
+     * and CharterService's per-mutation re-authorization) resolves through
+     * this one rule. Global admins pass via before(), consistent with the
+     * other abilities.
+     */
+    public function manageCharter(User $user, Campaign $campaign): bool
+    {
+        return (string) $campaign->owner_id === (string) $user->id;
+    }
+
+    /**
      * Create a campaign: any authenticated user with a complete profile.
      * Admin roles (Games Admin, Platform Admin) are already handled by before().
      */

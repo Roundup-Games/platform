@@ -102,18 +102,19 @@ test('a member GM adding a session composes the draft for that session', functio
         ->and($draft->body)->toContain('the heist recap body')
         ->and($draft->published_at)->toBeNull();
 
-    // A third session: a SECOND draft (unique per game) that never
-    // mutates session two's.
+    // A third session: its draft SUPERSEDES session two's unpublished
+    // one (D230 projection model) — at most one unpublished draft per
+    // campaign, always the forward-looking one for the next session.
     $session3 = previouslyOnTriggerAddSession($owner, $campaign, 8);
 
     $draft2 = PreviouslyOnDraft::query()->whereBelongsTo($session3)->first();
-    expect(PreviouslyOnDraft::query()->count())->toBe(2)
+    expect(PreviouslyOnDraft::query()->count())->toBe(1)
         ->and($draft2)->not->toBeNull()
         ->and($draft2->body)->toContain('the heist recap body')
-        ->and(PreviouslyOnDraft::query()->whereBelongsTo($session2)->first()->body)->toBe($draft->body);
+        ->and(PreviouslyOnDraft::query()->whereBelongsTo($session2)->first())->toBeNull();
 
-    // Draft-first (D221): two composed drafts, zero bulletins — a
-    // board row only ever appears after the GM publishes from the panel.
+    // Draft-first (D221): one composed draft, zero bulletins — a board
+    // row only ever appears after the GM publishes from the panel.
     expect(GameBulletin::query()->count())->toBe(0);
 });
 
@@ -385,4 +386,47 @@ test('managePreviouslyOn admits only member campaign owners and global admins', 
     $admin->assignRole('Platform Admin');
 
     expect($admin->can('managePreviouslyOn', $campaign))->toBeTrue();
+});
+
+// ── D230: the draft is a projection of its session ──────
+
+test('a session date edit recomposes the unpublished draft in place', function () {
+    app()->setLocale('en');
+    [$owner, $campaign, $completed] = previouslyOnTriggerCampaign();
+    $session = previouslyOnTriggerAddSession($owner, $campaign, 7);
+
+    $draft = PreviouslyOnDraft::query()->whereBelongsTo($session)->firstOrFail();
+    $oldWhen = $session->date_time;
+    expect($draft->body)->toContain(format_date($oldWhen, 'weekday_datetime'));
+
+    // The GM reschedules; the draft (whose CTA carries that date) is a
+    // projection and recomposes with the save — no staleness window.
+    $newWhen = now()->addDays(9)->startOfHour();
+    $session->update(['date_time' => $newWhen]);
+
+    $fresh = $draft->fresh();
+
+    expect($fresh)->not->toBeNull()
+        ->and($fresh->id)->toBe($draft->id)
+        ->and($fresh->body)->toContain(format_date($newWhen, 'weekday_datetime'))
+        ->and($fresh->body)->not->toContain(format_date($oldWhen, 'weekday_datetime'))
+        ->and($fresh->published_at)->toBeNull();
+});
+
+test('a composition failure never blocks the session save (observer isolation)', function () {
+    [$owner, $campaign, $completed] = previouslyOnTriggerCampaign();
+    $session = previouslyOnTriggerAddSession($owner, $campaign, 7);
+
+    $this->partialMock(PreviouslyOnService::class)
+        ->shouldReceive('upsertUnpublished')
+        ->once()
+        ->andThrow(new RuntimeException('composer exploded'));
+
+    $movedTo = now()->addDays(10)->startOfHour();
+    $session->update(['date_time' => $movedTo]);
+
+    // The AddSessionToCampaign isolation precedent: the recompose throw
+    // is logged and swallowed — the reschedule itself lands.
+    expect($session->fresh()->date_time->toDateTimeString())
+        ->toBe($movedTo->toDateTimeString());
 });

@@ -12,7 +12,6 @@ use App\Services\CampaignRecruitmentSummaryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -189,12 +188,22 @@ class CampaignRecruitmentComposer extends Component
 
     /**
      * Append the goal's "- title" line when its checkbox flips on,
-     * remove that exact line (first match) when it flips off — the
-     * textarea stays the single source of truth. A goal id from another
-     * campaign (or invented) is a no-op: the scoped query never finds it.
+     * remove every exact copy of that line when it flips off — the
+     * textarea stays the single source of truth. Matching is
+     * LINE-EXACT, deliberately: substring containment misfires on
+     * prefix titles ("- Act I" matches "- Act II: The Siege" and
+     * silently adds nothing), and removing the first line must not
+     * leave a stray leading newline behind. A goal id from another
+     * campaign (or invented) is a no-op: the scoped query never finds
+     * it. Re-authorizes like every sibling action (fail-closed
+     * contract).
      */
     public function toggleGoal(string $goalId): void
     {
+        if (! $this->viewerCanManage()) {
+            return;
+        }
+
         /** @var CampaignGoal|null $goal */
         $goal = $this->campaign->goals()->whereKey($goalId)->first();
 
@@ -203,20 +212,20 @@ class CampaignRecruitmentComposer extends Component
         }
 
         $line = '- '.$goal->title;
+        $lines = explode("\n", $this->draft);
 
         if ((bool) ($this->goalChecked[$goalId] ?? false)) {
-            if (! str_contains($this->draft, $line)) {
+            if (! in_array($line, $lines, true)) {
                 $this->draft = trim($this->draft) === '' ? $line : $this->draft."\n".$line;
             }
 
             return;
         }
 
-        if (str_contains($this->draft, "\n".$line)) {
-            $this->draft = Str::replaceFirst("\n".$line, '', $this->draft);
-        } else {
-            $this->draft = Str::replaceFirst($line, '', $this->draft);
-        }
+        $this->draft = implode("\n", array_filter(
+            $lines,
+            fn (string $candidate): bool => $candidate !== $line,
+        ));
     }
 
     /**
@@ -226,6 +235,14 @@ class CampaignRecruitmentComposer extends Component
      */
     public function appendExcerpt(string $entryId): void
     {
+        // Same fail-closed re-authorization as every sibling action —
+        // appendExcerpt reads player-visibility journal bodies into the
+        // (client-visible) draft, so it must never run for a non-GM
+        // under any future nesting change.
+        if (! $this->viewerCanManage()) {
+            return;
+        }
+
         /** @var CampaignJournalEntry|null $entry */
         $entry = $this->campaign->journalEntries()
             ->whereKey($entryId)

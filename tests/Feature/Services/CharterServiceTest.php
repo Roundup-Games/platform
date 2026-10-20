@@ -114,7 +114,7 @@ test('start is idempotent: the second call returns the same row without overwrit
     // The owner edits the draft between the two start() calls.
     $mutated = CharterContent::fromArray($first->content)->toArray();
     $mutated['overview']['pitch'] = 'Hand-edited pitch';
-    CharterService::saveDraft($first, 'Hand-edited title', $mutated);
+    CharterService::saveDraft($owner, $first, 'Hand-edited title', $mutated);
 
     $second = CharterService::start($owner, $campaign, 'blank');
 
@@ -153,7 +153,7 @@ test('saveDraft updates the draft title and normalizes content through fromArray
     $content['overview']['pitch'] = '  Revised pitch  ';
     $content['unknown_section'] = ['nope' => true];
 
-    CharterService::saveDraft($charter, 'Revised title', $content);
+    CharterService::saveDraft($owner, $charter, 'Revised title', $content);
 
     $fresh = $charter->fresh();
     expect($fresh->title)->toBe('Revised title')
@@ -162,10 +162,36 @@ test('saveDraft updates the draft title and normalizes content through fromArray
 });
 
 test('saveDraft rejects a charter that is no longer a draft', function () {
-    $charter = SessionZeroSurvey::factory()->charter()->published()->create();
+    [$owner, $campaign] = charter_campaign_owner();
+    $charter = SessionZeroSurvey::factory()->charter()->published()->create(['campaign_id' => $campaign->id]);
 
-    CharterService::saveDraft($charter, 'x', CharterContent::blank()->toArray());
+    CharterService::saveDraft($owner, $charter, 'x', CharterContent::blank()->toArray());
 })->throws(ValidationException::class);
+
+// ── Per-mutation actor authorization (manageCharter) ─────
+
+test('saveDraft rejects a non-owner actor', function () {
+    [$owner, $campaign] = charter_campaign_owner();
+    $charter = CharterService::start($owner, $campaign);
+    $other = User::factory()->create();
+
+    CharterService::saveDraft($other, $charter, 'x', CharterContent::blank()->toArray());
+})->throws(AuthorizationException::class);
+
+test('publish rejects a non-owner actor', function () {
+    [$owner, $campaign] = charter_campaign_owner();
+    $charter = CharterService::start($owner, $campaign);
+    $other = User::factory()->create();
+
+    CharterService::publish($other, $charter, 'T', charter_valid_content($campaign));
+})->throws(AuthorizationException::class);
+
+test('amend rejects a non-owner actor', function () {
+    [$owner, $campaign, $charter] = charter_published_v1();
+    $other = User::factory()->create();
+
+    CharterService::amend($other, $charter, 'T', charter_amendment_content($campaign, false), 'Tweaks.');
+})->throws(AuthorizationException::class);
 
 // ── publish() ────────────────────────────────────────────
 
@@ -174,7 +200,7 @@ test('publish snapshots immutable version 1 and flips the charter to active', fu
     $charter = CharterService::start($owner, $campaign);
     $content = charter_valid_content($campaign);
 
-    $version = CharterService::publish($charter, 'Published title', $content);
+    $version = CharterService::publish($owner, $charter, 'Published title', $content);
 
     $expected = CharterContent::fromArray($content)->toArray();
     expect($version)->toBeInstanceOf(SessionZeroSurveyVersion::class)
@@ -200,7 +226,7 @@ test('publish with an empty safety toolkit is rejected without writing anything'
     $content['safety']['tools'] = [];
 
     try {
-        CharterService::publish($charter, 'T', $content);
+        CharterService::publish($owner, $charter, 'T', $content);
         $this->fail('Expected ValidationException for missing safety tools.');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKey('safety.tools');
@@ -215,10 +241,10 @@ test('publishing twice is rejected without creating a second version row', funct
     [$owner, $campaign] = charter_campaign_owner();
     $charter = CharterService::start($owner, $campaign);
 
-    CharterService::publish($charter, 'Published', charter_valid_content($campaign));
+    CharterService::publish($owner, $charter, 'Published', charter_valid_content($campaign));
 
     try {
-        CharterService::publish($charter, 'Published', charter_valid_content($campaign));
+        CharterService::publish($owner, $charter, 'Published', charter_valid_content($campaign));
         $this->fail('Expected ValidationException on double publish.');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKey('charter');
@@ -235,7 +261,7 @@ test('publish is transactional: invalid content leaves the charter untouched', f
     $content['logistics']['session_length_other'] = '';
 
     try {
-        CharterService::publish($charter, 'T', $content);
+        CharterService::publish($owner, $charter, 'T', $content);
         $this->fail('Expected ValidationException for missing session-length detail.');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKey('logistics.session_length_other');
@@ -260,7 +286,7 @@ function charter_published_v1(): array
 {
     [$owner, $campaign] = charter_campaign_owner();
     $charter = CharterService::start($owner, $campaign);
-    $version = CharterService::publish($charter, 'Published title', charter_valid_content($campaign));
+    $version = CharterService::publish($owner, $charter, 'Published title', charter_valid_content($campaign));
 
     return [$owner, $campaign, $charter, $version];
 }
@@ -291,7 +317,7 @@ test('amend rejects a draft charter', function () {
     $charter = CharterService::start($owner, $campaign);
 
     try {
-        CharterService::amend($charter, 'T', charter_valid_content($campaign), 'Tweaks.');
+        CharterService::amend($owner, $charter, 'T', charter_valid_content($campaign), 'Tweaks.');
         $this->fail('Expected ValidationException for amending a draft.');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKey('charter')
@@ -302,11 +328,11 @@ test('amend rejects a draft charter', function () {
 });
 
 test('amend rejects an archived charter', function () {
-    [, $campaign, $charter] = charter_published_v1();
+    [$owner, $campaign, $charter] = charter_published_v1();
     $charter->archive();
 
     try {
-        CharterService::amend($charter, 'T', charter_amendment_content($campaign, false), 'Tweaks.');
+        CharterService::amend($owner, $charter, 'T', charter_amendment_content($campaign, false), 'Tweaks.');
         $this->fail('Expected ValidationException for amending an archived charter.');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKey('charter');
@@ -316,18 +342,23 @@ test('amend rejects an archived charter', function () {
 });
 
 test('amend rejects a legacy survey that is not a charter', function () {
+    $owner = User::factory()->create();
     $survey = SessionZeroSurvey::factory()->create();
 
-    CharterService::amend($survey, 'T', CharterContent::blank()->toArray(), 'Tweaks.');
-})->throws(ValidationException::class);
+    // Legacy surveys carry no campaign, so there is nothing to authorize
+    // against — the per-mutation authorization fires before the
+    // not-an-active-charter validation (archived-charter coverage below
+    // still pins that ValidationException path).
+    CharterService::amend($owner, $survey, 'T', CharterContent::blank()->toArray(), 'Tweaks.');
+})->throws(AuthorizationException::class);
 
 test('amend publishes version 2 with changelog and flips the charter row', function () {
-    [, $campaign, $charter, $v1] = charter_published_v1();
+    [$owner, $campaign, $charter, $v1] = charter_published_v1();
     $v1Before = $v1->fresh();
     $content = charter_amendment_content($campaign, false);
     $content['unknown_section'] = ['nope' => true];
 
-    $v2 = CharterService::amend($charter, 'Amended title', $content, '  Tightened the pitch.  ');
+    $v2 = CharterService::amend($owner, $charter, 'Amended title', $content, '  Tightened the pitch.  ');
 
     $normalized = CharterContent::fromArray($content)->toArray();
     expect($v2->session_zero_survey_id)->toBe($charter->id)
@@ -355,9 +386,9 @@ test('amend publishes version 2 with changelog and flips the charter row', funct
 });
 
 test('a safety-section edit amends as a material version', function () {
-    [, $campaign, $charter] = charter_published_v1();
+    [$owner, $campaign, $charter] = charter_published_v1();
 
-    $v2 = CharterService::amend($charter, 'Same title', charter_amendment_content($campaign, true), 'New safety note.');
+    $v2 = CharterService::amend($owner, $charter, 'Same title', charter_amendment_content($campaign, true), 'New safety note.');
 
     expect($v2->is_material)->toBeTrue()
         ->and($v2->changelog)->toBe('New safety note.')
@@ -387,7 +418,7 @@ test('a material amendment resets every signed confirmation to pending re-agreem
         'role' => SessionZeroConfirmation::ROLE_PARTICIPANT,
     ]);
 
-    $v2 = CharterService::amend($charter, 'Reset title', charter_amendment_content($campaign, true), 'Material change.');
+    $v2 = CharterService::amend($owner, $charter, 'Reset title', charter_amendment_content($campaign, true), 'Material change.');
 
     // Participant AND gm rows on v1 flip; the already-pending row is untouched.
     expect(SessionZeroConfirmation::where('session_zero_survey_version_id', $v1->id)
@@ -429,7 +460,7 @@ test('a minor amendment carries the latest signature per user and role onto the 
         'role' => SessionZeroConfirmation::ROLE_PARTICIPANT,
     ]);
 
-    $v2 = CharterService::amend($charter, 'Carried title', charter_amendment_content($campaign, false), 'Pitch only.');
+    $v2 = CharterService::amend($owner, $charter, 'Carried title', charter_amendment_content($campaign, false), 'Pitch only.');
 
     $carried = SessionZeroConfirmation::where('session_zero_survey_version_id', $v2->id)->get();
     expect($carried)->toHaveCount(2);
@@ -476,11 +507,11 @@ test('a second consecutive minor amendment does not duplicate carried rows', fun
         'attestations' => $attestations,
     ]);
 
-    $v2 = CharterService::amend($charter, 'v2', charter_amendment_content($campaign, false), 'Pitch.');
+    $v2 = CharterService::amend($owner, $charter, 'v2', charter_amendment_content($campaign, false), 'Pitch.');
 
     $content3 = charter_amendment_content($campaign, false);
     $content3['overview']['pitch'] = 'Tightened again after session four.';
-    $v3 = CharterService::amend($charter, 'v3', $content3, 'Again.');
+    $v3 = CharterService::amend($owner, $charter, 'v3', $content3, 'Again.');
 
     expect(SessionZeroConfirmation::where('session_zero_survey_version_id', $v1->id)->count())->toBe(2)
         ->and(SessionZeroConfirmation::where('session_zero_survey_version_id', $v2->id)->count())->toBe(2)
@@ -492,7 +523,7 @@ test('a second consecutive minor amendment does not duplicate carried rows', fun
 });
 
 test('a material amendment after a carried minor version resets signatures across all versions', function () {
-    [, $campaign, $charter, $v1] = charter_published_v1();
+    [$owner, $campaign, $charter, $v1] = charter_published_v1();
     SessionZeroConfirmation::factory()->onVersion($v1)->create([
         'user_id' => User::factory()->create()->id,
         'role' => SessionZeroConfirmation::ROLE_PARTICIPANT,
@@ -501,10 +532,10 @@ test('a material amendment after a carried minor version resets signatures acros
         'private_answers' => null,
     ]);
 
-    $v2 = CharterService::amend($charter, 'v2', charter_amendment_content($campaign, false), 'Pitch.');
+    $v2 = CharterService::amend($owner, $charter, 'v2', charter_amendment_content($campaign, false), 'Pitch.');
     expect(SessionZeroConfirmation::where('session_zero_survey_version_id', $v2->id)->count())->toBe(1);
 
-    $v3 = CharterService::amend($charter, 'v3', charter_amendment_content($campaign, true), 'Safety change.');
+    $v3 = CharterService::amend($owner, $charter, 'v3', charter_amendment_content($campaign, true), 'Safety change.');
 
     // EVERY signed row on any earlier version flips — the v1 original that
     // the minor carry left in place AND the v2 carried row.
@@ -518,12 +549,12 @@ test('a material amendment after a carried minor version resets signatures acros
 // ── amend() validation ──────────────────────────────────
 
 test('amend rejects an empty changelog without writing anything', function () {
-    [, $campaign, $charter] = charter_published_v1();
+    [$owner, $campaign, $charter] = charter_published_v1();
     $content = charter_amendment_content($campaign, false);
 
     foreach (['', '   '] as $changelog) {
         try {
-            CharterService::amend($charter, 'T', $content, $changelog);
+            CharterService::amend($owner, $charter, 'T', $content, $changelog);
             $this->fail("Expected ValidationException for changelog [{$changelog}].");
         } catch (ValidationException $e) {
             expect($e->errors())->toHaveKey('changelog');
@@ -535,10 +566,10 @@ test('amend rejects an empty changelog without writing anything', function () {
 });
 
 test('amend rejects an over-long title and changelog', function () {
-    [, $campaign, $charter] = charter_published_v1();
+    [$owner, $campaign, $charter] = charter_published_v1();
 
     try {
-        CharterService::amend($charter, str_repeat('t', 256), charter_amendment_content($campaign, false), str_repeat('c', 2001));
+        CharterService::amend($owner, $charter, str_repeat('t', 256), charter_amendment_content($campaign, false), str_repeat('c', 2001));
         $this->fail('Expected ValidationException for over-long title and changelog.');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKeys(['title', 'changelog']);
@@ -546,12 +577,12 @@ test('amend rejects an over-long title and changelog', function () {
 });
 
 test('amend validates content with the publish rule set and keying', function () {
-    [, $campaign, $charter] = charter_published_v1();
+    [$owner, $campaign, $charter] = charter_published_v1();
     $content = charter_amendment_content($campaign, false);
     $content['safety']['tools'] = [];
 
     try {
-        CharterService::amend($charter, 'T', $content, 'Change.');
+        CharterService::amend($owner, $charter, 'T', $content, 'Change.');
         $this->fail('Expected ValidationException for missing safety tools.');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKey('safety.tools');
@@ -567,7 +598,7 @@ test('amend validates content with the publish rule set and keying', function ()
 // ── Concurrent amend race (DB backstop) ────────────────
 
 test('a concurrent amendment that claimed the version number converges to a validation error', function () {
-    [, $campaign, $charter] = charter_published_v1();
+    [$owner, $campaign, $charter] = charter_published_v1();
 
     // Simulate the concurrent winner: v2 already exists on the charter.
     $charter->versions()->create([
@@ -580,7 +611,7 @@ test('a concurrent amendment that claimed the version number converges to a vali
     ]);
 
     try {
-        CharterService::amend($charter, 'Loser', charter_amendment_content($campaign, false), 'Too late.');
+        CharterService::amend($owner, $charter, 'Loser', charter_amendment_content($campaign, false), 'Too late.');
         $this->fail('Expected ValidationException for the concurrent amend.');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKey('charter')
@@ -639,7 +670,7 @@ function charter_limit_active_charter(User $owner): SessionZeroSurvey
 {
     $campaign = charter_limit_campaign($owner);
     $charter = CharterService::start($owner, $campaign);
-    CharterService::publish($charter, (string) $campaign->name, charter_valid_content($campaign));
+    CharterService::publish($owner, $charter, (string) $campaign->name, charter_valid_content($campaign));
 
     return $charter->refresh();
 }
@@ -698,7 +729,7 @@ test('publish is the authoritative gate: a draft started before the cap cannot f
     charter_limit_active_charter($owner);
 
     try {
-        CharterService::publish($draft, 'Third', charter_valid_content($draftCampaign));
+        CharterService::publish($owner, $draft, 'Third', charter_valid_content($draftCampaign));
         $this->fail('Expected ValidationException at the publish gate.');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKey('charter')
@@ -717,7 +748,7 @@ test('a subscribed GM publishes past the cap freely', function () {
 
     $campaign = charter_limit_campaign($member);
     $draft = CharterService::start($member, $campaign);
-    $version = CharterService::publish($draft, 'Third', charter_valid_content($campaign));
+    $version = CharterService::publish($member, $draft, 'Third', charter_valid_content($campaign));
 
     expect($version->version_number)->toBe(1)
         ->and($draft->fresh()->status)->toBe('active');
@@ -786,7 +817,7 @@ test('archiving frees a slot: the owner may start and publish again', function (
 
     $campaign = charter_limit_campaign($owner);
     $third = CharterService::start($owner, $campaign);
-    CharterService::publish($third, 'Replacement', charter_valid_content($campaign));
+    CharterService::publish($owner, $third, 'Replacement', charter_valid_content($campaign));
 
     expect($third->fresh()->status)->toBe('active');
 });

@@ -63,7 +63,7 @@ function amendment_smoke_published_charter(): array
     $charter = CharterService::start($owner, $campaign);
     $content = CharterContent::quickStart($campaign)->toArray();
     $content['overview']['expected_shape'] = 'ongoing';
-    CharterService::publish($charter, 'The Threshold Heist', $content);
+    CharterService::publish($owner, $charter, 'The Threshold Heist', $content);
 
     return [$owner, $campaign, $charter->refresh()];
 }
@@ -118,7 +118,7 @@ it('resets the whole table on a material amendment and re-signs green end to end
     $fresh = $charter->refresh();
     $content = $fresh->content;
     $content['safety']['signal_how'] = 'Open hand or X-card at any time.';
-    $v2 = CharterService::amend($fresh, (string) $fresh->title, $content, 'We now signal with an open hand or the X-card.');
+    $v2 = CharterService::amend($owner, $fresh, (string) $fresh->title, $content, 'We now signal with an open hand or the X-card.');
 
     // The amendment log line carries ids only — never answer content.
     Log::shouldHaveReceived('info')
@@ -193,7 +193,7 @@ it('carries every signature byte-for-byte through a minor amendment with zero ro
     $fresh = $charter->refresh();
     $content = $fresh->content;
     $content['logistics']['absence_notice'] = '48h';
-    $v2 = CharterService::amend($fresh, (string) $fresh->title, $content, 'Absence window doubled to 48 hours.');
+    $v2 = CharterService::amend($owner, $fresh, (string) $fresh->title, $content, 'Absence window doubled to 48 hours.');
 
     Log::shouldHaveReceived('info')
         ->once()

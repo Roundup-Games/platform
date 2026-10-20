@@ -2,12 +2,16 @@
 
 namespace App\Observers;
 
+use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Jobs\PublishGameToDiscord;
+use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\Game;
+use App\Models\PreviouslyOnDraft;
 use App\Services\DashboardCacheService;
 use App\Services\Discord\DiscordPublisher;
+use App\Services\PreviouslyOnService;
 use App\Support\AutoShareLink;
 use Illuminate\Support\Facades\Log;
 
@@ -51,6 +55,73 @@ class GameObserver
                 ->all();
 
             $this->cache->invalidateForUsers($participantIds, ['contributions', 'recaps']);
+        }
+
+        // D230 Previously-On projection: an unpublished draft is a
+        // projection of its session's state — a moved date/venue
+        // recomposes it in place (the CTA carries that date), and a
+        // canceled/completed session takes its unpublished draft with
+        // it. Isolated: composition NEVER blocks the save.
+        $this->syncPreviouslyOnDraft($game);
+    }
+
+    /**
+     * Keep the campaign's unpublished Previously-On draft in step with a
+     * saved session (D230). Only ever touches an EXISTING unpublished
+     * draft for THIS session — composing brand-new drafts stays owned by
+     * the two product triggers (session creation, the 24h reminder).
+     */
+    private function syncPreviouslyOnDraft(Game $game): void
+    {
+        if ($game->campaign_id === null) {
+            return;
+        }
+
+        // A session leaving Scheduled can never publish its digest —
+        // drop the now-dead draft (published rows are immutable and
+        // stay as history).
+        if ($game->status !== GameStatus::Scheduled) {
+            if ($game->wasChanged('status')) {
+                PreviouslyOnDraft::query()
+                    ->whereBelongsTo($game)
+                    ->whereNull('published_at')
+                    ->delete();
+            }
+
+            return;
+        }
+
+        if (! $game->wasChanged(['date_time', 'location_id'])) {
+            return;
+        }
+
+        if (! PreviouslyOnDraft::query()
+            ->whereBelongsTo($game)
+            ->whereNull('published_at')
+            ->exists()
+        ) {
+            return;
+        }
+
+        // whereKey resolution keeps the type non-null for the composer
+        // (the FK guarantees the row; a phantom null would only mean
+        // there is nothing left to recompose for).
+        $campaign = Campaign::query()->whereKey($game->campaign_id)->first();
+
+        if ($campaign === null) {
+            return;
+        }
+
+        try {
+            app(PreviouslyOnService::class)->upsertUnpublished($campaign, $game);
+        } catch (\Throwable $e) {
+            // The AddSessionToCampaign isolation precedent: a composition
+            // failure is logged and never rolls back the session save.
+            Log::warning('previously_on.recompose_failed', [
+                'game_id' => $game->id,
+                'campaign_id' => $game->campaign_id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

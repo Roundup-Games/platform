@@ -55,7 +55,7 @@ function signing_published_charter(): array
     $charter = CharterService::start($owner, $campaign);
     $content = CharterContent::quickStart($campaign)->toArray();
     $content['overview']['expected_shape'] = 'ongoing';
-    $version = CharterService::publish($charter, 'The Threshold Heist', $content);
+    $version = CharterService::publish($owner, $charter, 'The Threshold Heist', $content);
 
     return [$owner, $campaign, $charter, $version];
 }
@@ -156,7 +156,7 @@ test('sign accepts input without any private answers', function () {
 });
 
 test('sign rejects a user who is not a campaign participant', function () {
-    [, , $charter] = signing_published_charter();
+    [$owner, , $charter] = signing_published_charter();
     $guest = User::factory()->create();
 
     try {
@@ -168,7 +168,7 @@ test('sign rejects a user who is not a campaign participant', function () {
 });
 
 test('sign rejects a participant whose application is still pending', function () {
-    [, $campaign, $charter] = signing_published_charter();
+    [$owner, $campaign, $charter] = signing_published_charter();
     $pendingUser = User::factory()->create();
     CampaignParticipant::factory()->create([
         'campaign_id' => $campaign->id,
@@ -198,7 +198,7 @@ test('sign rejects a draft charter that has no published version', function () {
 });
 
 test('sign rejects an archived charter', function () {
-    [, $campaign, $charter] = signing_published_charter();
+    [$owner, $campaign, $charter] = signing_published_charter();
     [$participant] = signing_approved_participant($campaign);
     $charter->archive();
 
@@ -223,7 +223,7 @@ test('sign rejects a legacy session-zero survey row (kind is not charter)', func
 });
 
 test('signing twice is rejected as already signed', function () {
-    [, $campaign, $charter] = signing_published_charter();
+    [$owner, $campaign, $charter] = signing_published_charter();
     [$participant] = signing_approved_participant($campaign);
 
     CharterSigningService::sign($participant, $charter, signing_valid_input());
@@ -239,7 +239,7 @@ test('signing twice is rejected as already signed', function () {
 });
 
 test('a concurrent insert winning the version unique race converges to already signed', function () {
-    [, $campaign, $charter, $version] = signing_published_charter();
+    [$owner, $campaign, $charter, $version] = signing_published_charter();
     [$participant] = signing_approved_participant($campaign);
 
     // The rival request commits the same (version, user, role) row between
@@ -273,7 +273,7 @@ test('a concurrent insert winning the version unique race converges to already s
 });
 
 test('a missing attestation item is rejected', function () {
-    [, $campaign, $charter] = signing_published_charter();
+    [$owner, $campaign, $charter] = signing_published_charter();
     [$participant] = signing_approved_participant($campaign);
 
     $input = signing_valid_input();
@@ -288,7 +288,7 @@ test('a missing attestation item is rejected', function () {
 });
 
 test('an unticked attestation item is rejected', function () {
-    [, $campaign, $charter] = signing_published_charter();
+    [$owner, $campaign, $charter] = signing_published_charter();
     [$participant] = signing_approved_participant($campaign);
 
     $input = signing_valid_input();
@@ -303,7 +303,7 @@ test('an unticked attestation item is rejected', function () {
 });
 
 test('an overlong private answer text is rejected', function () {
-    [, $campaign, $charter] = signing_published_charter();
+    [$owner, $campaign, $charter] = signing_published_charter();
     [$participant] = signing_approved_participant($campaign);
 
     $input = signing_valid_input();
@@ -353,7 +353,7 @@ test('the owner countersigns once every approved participant has signed', functi
 });
 
 test('countersign rejects anyone but the campaign owner', function () {
-    [, $campaign, $charter] = signing_published_charter();
+    [$owner, $campaign, $charter] = signing_published_charter();
     [$alice] = signing_approved_participant($campaign);
     CharterSigningService::sign($alice, $charter, signing_valid_input());
 
@@ -504,11 +504,13 @@ function signing_amend_material(SessionZeroSurvey $charter, string $changelog): 
     $content = $fresh->content;
     $content['safety']['signal_how'] = 'Open hand or X-card at any time.';
 
-    CharterService::amend($fresh, (string) $fresh->title, $content, $changelog);
+    // The actor is the charter's campaign owner — the same user every
+    // signing_amend_material caller published as.
+    CharterService::amend($fresh->campaign->owner, $fresh, (string) $fresh->title, $content, $changelog);
 }
 
 test('the roster distinguishes re-agreement pending from never signed', function () {
-    [, $campaign, $charter] = signing_published_charter();
+    [$owner, $campaign, $charter] = signing_published_charter();
     [$alice] = signing_approved_participant($campaign);
     [$bob] = signing_approved_participant($campaign);
     [$carol] = signing_approved_participant($campaign);
@@ -541,7 +543,7 @@ test('the roster distinguishes re-agreement pending from never signed', function
     $fresh = $charter->refresh();
     $content = $fresh->content;
     $content['logistics']['absence_notice'] = '48h';
-    CharterService::amend($fresh, (string) $fresh->title, $content, 'Absence window doubled.');
+    CharterService::amend($owner, $fresh, (string) $fresh->title, $content, 'Absence window doubled.');
 
     $roster = CharterSigningService::roster($charter->refresh())->keyBy(
         fn (array $entry): string => (string) $entry['user']->id,
@@ -617,7 +619,7 @@ test('rows without submitted answers never surface through the continuity fallba
 });
 
 test('private answers stay owner-gated while re-agreement is pending', function () {
-    [, $campaign, $charter] = signing_published_charter();
+    [$owner, $campaign, $charter] = signing_published_charter();
     [$alice] = signing_approved_participant($campaign);
     [$bob] = signing_approved_participant($campaign);
 
@@ -675,7 +677,7 @@ test('workspaceHealth reports a participant-less charter as zero percent, never 
     $charter = CharterService::start($owner, $campaign);
     $content = CharterContent::quickStart($campaign)->toArray();
     $content['overview']['expected_shape'] = 'ongoing';
-    CharterService::publish($charter, 'Quiet Table', $content);
+    CharterService::publish($owner, $charter, 'Quiet Table', $content);
 
     $rows = CharterSigningService::workspaceHealth($owner);
 

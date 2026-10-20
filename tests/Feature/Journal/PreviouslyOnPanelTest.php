@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Notifications\BulletinPosted;
 use App\Notifications\Channels\PushChannel;
 use App\Policies\GameBulletinPolicy;
+use App\Services\CampaignJournalService;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Support\Facades\Notification;
@@ -256,4 +257,80 @@ test('a member owner without any draft renders nothing — no panel, no gate', f
         ->assertDontSee(__('journal.title_previously_on_panel', [], 'en'))
         ->assertDontSee(__('journal.action_publish_previously_on', [], 'en'))
         ->assertDontSee(__('journal.title_previously_on_gate', [], 'en'));
+});
+
+// ── D230: projection targeting + explicit refresh ───────
+
+test('the panel targets the next scheduled session — an older unpublished draft renders nothing', function () {
+    [$owner, $campaign, $later] = panelCampaign();
+
+    // The draft belongs to the LATER session; a SOONER scheduled session
+    // exists without a draft yet. The panel targets the sooner session,
+    // so the stale later-session draft never masquerades as current.
+    Game::factory()->create([
+        'campaign_id' => $campaign->id,
+        'owner_id' => $owner->id,
+        'status' => 'scheduled',
+        'date_time' => now()->addDays(2),
+    ]);
+
+    panelDraft($campaign, $later);
+
+    Livewire::actingAs($owner)
+        ->test(CampaignPreviouslyOn::class, ['campaign' => $campaign])
+        ->assertDontSee('PANEL DRAFT')
+        ->assertDontSee(__('journal.action_publish_previously_on', [], 'en'));
+});
+
+test('refresh recomposes the draft from journal writes made after the last compose', function () {
+    [$owner, $campaign, $next] = panelCampaign();
+    $draft = panelDraft($campaign, $next);
+
+    // A late recap lands after composition (the two automatic triggers
+    // already ran — session create and, later, the 24h reminder).
+    $done = Game::factory()->create([
+        'campaign_id' => $campaign->id,
+        'owner_id' => $owner->id,
+        'status' => 'completed',
+        'date_time' => now()->subDay(),
+    ]);
+    app(CampaignJournalService::class)->writeRecap($done, $owner, 'LATE RECAP the vault door was a decoy all along');
+
+    Livewire::actingAs($owner)
+        ->test(CampaignPreviouslyOn::class, ['campaign' => $campaign])
+        ->assertSee('PANEL DRAFT')
+        ->call('refresh')
+        ->assertSee(__('journal.flash_previously_on_refreshed', [], 'en'));
+
+    $fresh = $draft->fresh();
+
+    expect($fresh->body)->toContain('LATE RECAP')
+        ->and($fresh->published_at)->toBeNull();
+});
+
+test('refresh is a no-op for a non-owner', function () {
+    [$owner, $campaign, $next] = panelCampaign();
+    $draft = panelDraft($campaign, $next);
+    $player = panelApprovedPlayer($next);
+
+    Livewire::actingAs($player)
+        ->test(CampaignPreviouslyOn::class, ['campaign' => $campaign])
+        ->call('refresh');
+
+    expect($draft->fresh()->body)->toContain('PANEL DRAFT')
+        ->and(PreviouslyOnDraft::query()->count())->toBe(1);
+});
+
+test('the draft panel states the delivery audience and offers refresh (D230/D231 affordances)', function () {
+    [$owner, $campaign, $next] = panelCampaign();
+    panelDraft($campaign, $next);
+
+    Livewire::actingAs($owner)
+        ->test(CampaignPreviouslyOn::class, ['campaign' => $campaign])
+        ->assertSee(__('journal.content_previously_on_audience', [], 'en'))
+        ->assertSee(__('journal.action_refresh_previously_on', [], 'en'))
+        ->assertSee(__('journal.label_previously_on_composed_at', ['date' => format_date(
+            PreviouslyOnDraft::query()->whereBelongsTo($next)->firstOrFail()->updated_at,
+            'datetime',
+        )], 'en'));
 });

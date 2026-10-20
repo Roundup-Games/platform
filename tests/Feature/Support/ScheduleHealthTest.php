@@ -160,3 +160,32 @@ it('flags sub-grace cadences once two occurrences are unrecorded, not one', func
         ->and(ScheduleHealth::classify($cron, $now, null, Carbon::parse('2026-10-17 11:59:30')))
         ->toBe(ScheduledTaskHealth::AwaitingFirstRun);
 });
+
+it('does not let skipped rows mask a missed occurrence (an overlap-stuck task surfaces as Missed)', function () {
+    $this->travelTo(now()->startOfHour()->setMinute(7));
+
+    /** @var Schedule $schedule */
+    $schedule = app(Schedule::class);
+
+    foreach ($schedule->events() as $event) {
+        $key = TaskIdentity::command($event);
+
+        if ($key === 'horizon:snapshot') {
+            // The mutex holder hung an hour ago (last EXECUTED run), and
+            // every occurrence since has been Skipped — fresh rows that
+            // would satisfy the run check if skipped rows counted.
+            ScheduledTaskRun::factory()->startedAt(now()->subHour())->create(['task_key' => $key]);
+            ScheduledTaskRun::factory()->skipped()->startedAt(now()->subMinute())->create(['task_key' => $key]);
+
+            continue;
+        }
+
+        ScheduledTaskRun::factory()->startedAt(now()->subMinute())->create(['task_key' => $key]);
+    }
+
+    $summary = ScheduleHealth::summary();
+
+    expect($summary['missed'])->toBe(1)
+        ->and($summary['failed_last'])->toBe(0)
+        ->and($summary['awaiting_first'])->toBe(0);
+});

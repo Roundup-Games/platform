@@ -8,6 +8,7 @@ use App\Models\ScheduledTaskRun;
 use Carbon\Carbon;
 use Cron\CronExpression;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Scheduled-work health signals (M068): the counts the dashboard Queue
@@ -17,8 +18,10 @@ use Illuminate\Support\Facades\Cache;
  * Day-one semantics: a task with no recorded runs whose latest due time
  * predates the recording epoch (the oldest run row) is AwaitingFirstRun —
  * expected right after run tracking is deployed — not Missed. Only a due
- * time that passed AFTER recording started (or a skipped occurrence on a
- * task with history) counts as Missed.
+ * time that passed AFTER recording started counts as Missed; skipped
+ * occurrences are excluded from last-executed resolution
+ * (ScheduledTaskRun::latestPerTask), so a task stuck behind an overlap
+ * mutex surfaces as Missed, never as a Skipped-masked Healthy.
  */
 final class ScheduleHealth
 {
@@ -70,20 +73,35 @@ final class ScheduleHealth
         $awaitingFirst = 0;
 
         foreach (ScheduleInventory::events() as $event) {
-            $run = $latestRuns[TaskIdentity::command($event)] ?? null;
+            // One malformed entry must never take the whole tile (and any
+            // page embedding it) down: a task whose cron cannot even be
+            // parsed is broken, so it alerts in the failed bucket while
+            // the log carries the diagnostic. Expressions are
+            // code-controlled today — this is the observability surface's
+            // own resilience rule.
+            try {
+                $run = $latestRuns[TaskIdentity::command($event)] ?? null;
 
-            $health = self::classify(
-                new CronExpression($event->expression),
-                $now,
-                $run?->started_at,
-                $recordingSince,
-            );
+                $health = self::classify(
+                    new CronExpression($event->expression),
+                    $now,
+                    $run?->started_at,
+                    $recordingSince,
+                );
 
-            $counts = $health->counts();
-            $missed += $counts['missed'] ? 1 : 0;
-            $awaitingFirst += $counts['awaiting'] ? 1 : 0;
+                $counts = $health->counts();
+                $missed += $counts['missed'] ? 1 : 0;
+                $awaitingFirst += $counts['awaiting'] ? 1 : 0;
 
-            if ($run?->status === ScheduledTaskRunStatus::Failed) {
+                if ($run?->status === ScheduledTaskRunStatus::Failed) {
+                    $failedLast++;
+                }
+            } catch (\Throwable $e) {
+                Log::error('schedule.health.task_unclassifiable', [
+                    'expression' => $event->expression,
+                    'error' => $e->getMessage(),
+                ]);
+
                 $failedLast++;
             }
         }

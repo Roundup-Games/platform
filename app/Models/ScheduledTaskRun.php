@@ -48,7 +48,15 @@ class ScheduledTaskRun extends Model
     }
 
     /**
-     * Latest run per task key, keyed by task key, newest first.
+     * Latest EXECUTED run per task key, keyed by task key, newest first.
+     *
+     * Skipped rows are deliberately excluded: a skipped occurrence did no
+     * work — its started_at is just the skip time — so it must never
+     * satisfy the "did this task run?" question. Without the exclusion a
+     * task whose withoutOverlapping mutex is held by a hung run keeps
+     * writing Skipped rows that mask the missed occurrence as Healthy
+     * (ScheduleHealth classify + the Scheduled Tasks page share this
+     * resolution). The Skipped rows stay in history for the audit trail.
      *
      * The corpus grows to ~90k rows at steady state (the every-minute
      * escalated automations alone write ~43k rows per 30-day retention
@@ -62,12 +70,14 @@ class ScheduledTaskRun extends Model
     public static function latestPerTask(): array
     {
         $table = (new self)->getTable();
+        $skipped = ScheduledTaskRunStatus::Skipped->value;
 
         return static::query()
             ->select($table.'.*')
-            // Table name is code-controlled (model + migration), never user input.
+            // Table name and the status literal are code-controlled
+            // (model + migration + enum), never user input.
             ->from(new Expression(
-                "(select distinct on (task_key) * from {$table} order by task_key, started_at desc) as {$table}" // @phpstan-ignore argument.type
+                "(select distinct on (task_key) * from {$table} where status != '{$skipped}' order by task_key, started_at desc) as {$table}" // @phpstan-ignore argument.type
             ))
             ->orderByDesc('started_at')
             ->get()

@@ -56,31 +56,22 @@ return new class extends Migration
         'user_relationship' => 'App\\Models\\UserRelationship',
     ];
 
+    /**
+     * Business-discriminator *_type columns whose *_id sibling exists by
+     * coincidence of naming — they are NOT morph columns. Shared by
+     * up() AND down(): up() must never rewrite them, and down()
+     * rewriting them to FQCNs would silently corrupt business data the
+     * forward direction deliberately left untouched.
+     */
+    private const EXCLUDED_TYPE_COLUMNS = [
+        'event_type', 'game_type', 'venue_type', 'ticket_type',
+        'agent_type', 'preference_type', 'tool_type', 'bgg_type', 'join_source',
+    ];
+
     public function up(): void
     {
-        $pairs = DB::table('information_schema.columns')
-            ->where('table_schema', 'public')
-            ->where('column_name', 'like', '%\_type')
-            ->pluck('table_name');
-
-        foreach (array_unique($pairs->all()) as $table) {
-            // Every *_type column on this table whose morph id sibling exists.
-            $typeColumns = DB::table('information_schema.columns')
-                ->where('table_schema', 'public')
-                ->where('table_name', $table)
-                ->where('column_name', 'like', '%\_type')
-                ->pluck('column_name')
-                ->filter(function (string $column) use ($table) {
-                    $idColumn = str_replace('_type', '_id', $column);
-
-                    $exists = DB::table('information_schema.columns')
-                        ->where('table_schema', 'public')
-                        ->where('table_name', $table)
-                        ->where('column_name', $idColumn)
-                        ->exists();
-
-                    return $exists && ! in_array($column, ['event_type', 'game_type', 'venue_type', 'ticket_type', 'agent_type', 'preference_type', 'tool_type', 'bgg_type', 'join_source'], true);
-                });
+        foreach ($this->morphTables() as $table) {
+            $typeColumns = $this->morphTypeColumns($table);
 
             foreach ($typeColumns as $typeColumn) {
                 $converted = 0;
@@ -119,27 +110,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Reverse: alias -> FQCN. Discovers morph pairs the same way.
-        $pairs = DB::table('information_schema.columns')
-            ->where('table_schema', 'public')
-            ->where('column_name', 'like', '%\_type')
-            ->pluck('table_name');
-
-        foreach (array_unique($pairs->all()) as $table) {
-            $typeColumns = DB::table('information_schema.columns')
-                ->where('table_schema', 'public')
-                ->where('table_name', $table)
-                ->where('column_name', 'like', '%\_type')
-                ->pluck('column_name')
-                ->filter(function (string $column) use ($table) {
-                    $idColumn = str_replace('_type', '_id', $column);
-
-                    return DB::table('information_schema.columns')
-                        ->where('table_schema', 'public')
-                        ->where('table_name', $table)
-                        ->where('column_name', $idColumn)
-                        ->exists();
-                });
+        // Reverse: alias -> FQCN. Same discovery as up() — including the
+        // business-discriminator exclusions, so rollback is symmetric
+        // with the forward direction and never rewrites columns up()
+        // deliberately left untouched.
+        foreach ($this->morphTables() as $table) {
+            $typeColumns = $this->morphTypeColumns($table);
 
             foreach ($typeColumns as $typeColumn) {
                 foreach (self::ALIASES as $alias => $fqcn) {
@@ -149,5 +125,49 @@ return new class extends Migration
                 }
             }
         }
+    }
+
+    /**
+     * Every table carrying at least one *_type column in the public
+     * schema (code-controlled discovery — never user input).
+     *
+     * @return list<string>
+     */
+    private function morphTables(): array
+    {
+        $tables = DB::table('information_schema.columns')
+            ->where('table_schema', 'public')
+            ->where('column_name', 'like', '%\_type')
+            ->pluck('table_name');
+
+        return array_values(array_unique($tables->all()));
+    }
+
+    /**
+     * The morph *_type columns on one table: *_id sibling present and
+     * not a known business discriminator.
+     *
+     * @return list<string>
+     */
+    private function morphTypeColumns(string $table): array
+    {
+        $columns = DB::table('information_schema.columns')
+            ->where('table_schema', 'public')
+            ->where('table_name', $table)
+            ->where('column_name', 'like', '%\_type')
+            ->pluck('column_name')
+            ->filter(function (string $column) use ($table): bool {
+                $idColumn = str_replace('_type', '_id', $column);
+
+                $idExists = DB::table('information_schema.columns')
+                    ->where('table_schema', 'public')
+                    ->where('table_name', $table)
+                    ->where('column_name', $idColumn)
+                    ->exists();
+
+                return $idExists && ! in_array($column, self::EXCLUDED_TYPE_COLUMNS, true);
+            });
+
+        return array_values($columns->all());
     }
 };

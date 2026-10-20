@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\GameStatus;
 use App\Models\Game;
 use App\Models\GameBulletin;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -44,13 +45,32 @@ class OneShotEpilogueService
             return null;
         }
 
-        $bulletin = GameBulletin::postBy(
-            gameId: (string) $game->id,
-            userId: (string) $game->owner_id,
-            content: __('games.content_epilogue_prompt'),
-            expiresAt: now()->addDays(30)->toDateTimeString(),
-            isPinned: true,
-        );
+        // The prompt is player-facing copy pinned atop the table's board
+        // for 30 days: resolve it under the GAME's language (the language
+        // the table plays in), never the completing actor's ambient locale
+        // — the scheduler and an English-UI host must both produce the
+        // same prompt as a German table's own host (PreviouslyOnService
+        // composition contract; app locale restored in a finally).
+        $fallback = config('app.fallback_locale', 'en');
+        $locale = $game->language !== ''
+            ? $game->language
+            : (is_string($fallback) && $fallback !== '' ? $fallback : 'en');
+
+        $previous = App::getLocale();
+
+        App::setLocale($locale);
+
+        try {
+            $bulletin = GameBulletin::postBy(
+                gameId: (string) $game->id,
+                userId: (string) $game->owner_id,
+                content: __('games.content_epilogue_prompt'),
+                expiresAt: now()->addDays(30)->toDateTimeString(),
+                isPinned: true,
+            );
+        } finally {
+            App::setLocale($previous);
+        }
 
         Log::info('Epilogue bulletin created', [
             'game_id' => $game->id,

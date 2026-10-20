@@ -55,9 +55,9 @@ class CharterAudit extends Component
 
         $this->campaign = Campaign::findOrFail($id);
 
-        if ((string) $this->campaign->owner_id !== (string) $user->id) {
-            abort(403);
-        }
+        // Same gate as the composer: CampaignPolicy::manageCharter
+        // (owner-only, R084; global admins pass via before()).
+        abort_unless($user->can('manageCharter', $this->campaign), 403);
 
         $this->campaignId = (string) $this->campaign->id;
 
@@ -70,11 +70,16 @@ class CharterAudit extends Component
 
     public function render(): View
     {
+        $member = CharterMemberService::canUseConveniences(authenticatedUser());
+
         return view('livewire.gm.charter.charter-audit', [
             'campaign' => $this->campaign,
             'charter' => $this->charter,
-            'memberConveniences' => CharterMemberService::canUseConveniences(authenticatedUser()),
-            'versions' => $this->auditVersions(),
+            'memberConveniences' => $member,
+            // Free owners render only the member-feature panel — never
+            // query the audit trail (confirmations carry the sensitive
+            // §2 private answers) for a surface that cannot display it.
+            'versions' => $member ? $this->auditVersions() : collect(),
         ]);
     }
 
@@ -98,7 +103,13 @@ class CharterAudit extends Component
 
         return $charter->versions()
             ->reorder('version_number', 'asc')
-            ->with(['confirmations' => fn ($query) => $query->with('user')->orderBy('confirmed_at')])
+            // Projection is the privacy contract made structural: only
+            // the columns the view renders are ever fetched —
+            // private_answers/attestations stay in their rows.
+            ->with(['confirmations' => fn ($query) => $query
+                ->select(['id', 'session_zero_survey_version_id', 'user_id', 'role', 'status', 'confirmed_at'])
+                ->with('user')
+                ->orderBy('confirmed_at')])
             ->get();
     }
 }

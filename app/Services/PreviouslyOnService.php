@@ -83,19 +83,29 @@ class PreviouslyOnService
 
             // ── Recap excerpt (D220: journal entries, never games.recap,
             // never prep-note or in-character bodies) ─────────────
+            // Session-chronology pick, not write-order: a GM backfilling
+            // an older session's recap after writing the newer one (or the
+            // legacy backfill, whose created_at inherits game timestamps)
+            // must never hijack the excerpt. Session recaps (always
+            // game-bound — writeRecap creates through the session relation)
+            // order by the session's date_time; a session-less interlude
+            // recap only feeds the digest when no session recap exists at
+            // all (NULLS LAST). id (UUIDv7) breaks same-session ties
+            // deterministically.
             $recap = $campaign->journalEntries()
                 ->where('kind', JournalEntryKind::Recap)
-                ->orderByDesc('created_at')
+                ->leftJoin('games', 'games.id', '=', 'campaign_journal_entries.game_id')
+                ->select('campaign_journal_entries.*')
+                ->orderByRaw('games.date_time desc nulls last')
+                ->orderByDesc('campaign_journal_entries.id')
                 ->first();
 
             if ($recap !== null) {
-                $excerpt = Str::words($recap->body, self::EXCERPT_WORDS);
-
-                $sections[] = $excerpt."\n"
-                    .__('journal.label_read_full', [], $locale).': '
-                    // Campaign dashboard Journal tab (?tab=journal deep-link,
-                    // S02's #[Url] property) — campaigns.show, not games.show.
-                    .route('campaigns.show', ['locale' => $locale, 'id' => $campaign, 'tab' => 'journal']);
+                // The excerpt stands alone (D231): one bulletin = one body,
+                // so a journal deep-link would dead-end for session-only
+                // guests (viewJournal denies them) — the RSVP link to the
+                // session page below closes the digest for EVERY recipient.
+                $sections[] = Str::words($recap->body, self::EXCERPT_WORDS);
             }
 
             // ── Goals moved: stamps on the LAST completed session ────
@@ -197,6 +207,8 @@ class PreviouslyOnService
      * and the 24h reminder hook check membership first).
      *
      * Semantics:
+     *  - any other unpublished draft of the campaign is superseded
+     *    (deleted) first — see the D230 note below;
      *  - a draft for the session that is already published → null, never
      *    touched (published drafts are immutable);
      *  - a null composition with no existing row → null, nothing written;
@@ -208,6 +220,20 @@ class PreviouslyOnService
      */
     public function upsertUnpublished(Campaign $campaign, Game $nextSession): ?PreviouslyOnDraft
     {
+        // D230 projection model: a campaign carries at most ONE
+        // unpublished draft — the forward-looking one for its next
+        // session. Composing for a target session supersedes (deletes)
+        // every OTHER unpublished draft of the campaign, so drafts can
+        // neither orphan nor accumulate; published rows are immutable
+        // history and are never touched here. This runs on every compose
+        // trigger (session create, 24h reminder, session-edit
+        // recompose), keeping the invariant true no matter who composes.
+        PreviouslyOnDraft::query()
+            ->whereBelongsTo($campaign)
+            ->where('game_id', '!=', $nextSession->id)
+            ->whereNull('published_at')
+            ->delete();
+
         $existing = PreviouslyOnDraft::query()
             ->whereBelongsTo($nextSession)
             ->first();
@@ -312,35 +338,34 @@ class PreviouslyOnService
      * item-type change per participant — the character's current open
      * state, not a firehose of history.
      *
+     * Bounded by construction: DISTINCT ON resolves the per-(participant,
+     * type) winner inside Postgres (the latestPerTask pattern), so the
+     * fetch is at most two rows per participant regardless of campaign
+     * age — the pre-fix shape loaded every state change ever written and
+     * deduped in PHP. Column/literal references are code-controlled.
+     *
      * @return Collection<int, CharacterStateChange>
      */
     private function latestConditionAndItemChanges(Campaign $campaign)
     {
+        /** @var Collection<int, CharacterStateChange> $changes */
         $changes = $campaign->stateChanges()
             ->whereIn('change_type', [CharacterStateChangeType::Condition, CharacterStateChangeType::Item])
             ->whereNotNull('participant_id')
+            // Literals are code-controlled (model + migration), same as
+            // ScheduledTaskRun::latestPerTask's raw expression.
+            ->selectRaw('distinct on (participant_id, change_type) character_state_changes.*')
+            ->orderByRaw('participant_id, change_type, created_at desc, character_state_changes.id desc')
             ->with('participant.user')
-            ->orderByDesc('created_at')
             ->get();
 
-        $seen = [];
-        $latest = [];
-
-        foreach ($changes as $change) {
-            $key = $change->participant_id.'|'.$change->change_type->value;
-
-            if (isset($seen[$key])) {
-                continue;
-            }
-
-            $seen[$key] = true;
-            $latest[] = $change;
-        }
-
-        // Stable render order: per participant (condition before item was
-        // not determinable from created_at ties anyway) — keep the query
-        // order, which is newest-first and deterministic per participant.
-        return collect($latest);
+        // DISTINCT ON pins the leading order terms to the partition keys,
+        // so restore the render order here (newest first, id tiebreak —
+        // same order the pre-fix query produced) on the bounded set.
+        return $changes->sortBy([
+            ['created_at', 'desc'],
+            ['id', 'desc'],
+        ])->values();
     }
 
     /**

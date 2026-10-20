@@ -279,6 +279,69 @@ test('remove nulls the columns and flashes success', function () {
 
 // ── Policy matrix: seated players and guests fail closed ───────────
 
+test('toggleGoal matches whole lines only — prefix titles never collide, first-line removal leaves no stray newline', function () {
+    [$owner, $campaign] = composerCampaign();
+
+    $actOne = $campaign->goals()->create([
+        'title' => 'Act I',
+        'status' => GoalStatus::Active,
+        'sort' => 1,
+    ]);
+    $actTwo = $campaign->goals()->create([
+        'title' => 'Act II: The Siege',
+        'status' => GoalStatus::Active,
+        'sort' => 2,
+    ]);
+
+    // No openComposer: the draft stays empty so the goal line IS the
+    // first line — exactly the stray-newline edge the removal must
+    // survive. (toggleGoal does not depend on the open state.)
+    $component = Livewire::actingAs($owner)
+        ->test(CampaignRecruitmentComposer::class, ['campaign' => $campaign]);
+
+    // Substring containment would see "- Act I" inside "- Act II: The
+    // Siege" and silently drop the Act I line — line-exact keeps both.
+    $component
+        ->set('goalChecked.'.$actTwo->id, true)
+        ->call('toggleGoal', $actTwo->id)
+        ->set('goalChecked.'.$actOne->id, true)
+        ->call('toggleGoal', $actOne->id)
+        ->assertSet('draft', "- Act II: The Siege\n- Act I");
+
+    // Removing the FIRST line must not leave a leading blank line.
+    $component
+        ->set('goalChecked.'.$actTwo->id, false)
+        ->call('toggleGoal', $actTwo->id)
+        ->assertSet('draft', '- Act I');
+});
+
+test('toggleGoal and appendExcerpt re-authorize: a seated player calling them directly changes nothing', function () {
+    [$owner, $campaign] = composerCampaign();
+    $player = composerApprovedPlayer($campaign);
+
+    $goal = $campaign->goals()->create([
+        'title' => 'Break the Emberfall siege',
+        'status' => GoalStatus::Active,
+        'sort' => 1,
+    ]);
+
+    $entry = $campaign->journalEntries()->create([
+        'author_user_id' => $owner->id,
+        'kind' => JournalEntryKind::Recap,
+        'visibility' => JournalEntryVisibility::Players,
+        'body' => 'PLAYER-VISIBILITY-BODY',
+    ]);
+
+    $component = Livewire::actingAs($player)
+        ->test(CampaignRecruitmentComposer::class, ['campaign' => $campaign])
+        ->set('goalChecked.'.$goal->id, true)
+        ->call('toggleGoal', $goal->id)
+        ->call('appendExcerpt', $entry->id)
+        ->assertSet('draft', '');
+
+    expect($entry->body)->toBe('PLAYER-VISIBILITY-BODY');
+});
+
 test('a seated approved player sees no entry button and direct component calls fail closed with zero writes', function () {
     [$owner, $campaign] = composerCampaign();
     $player = composerApprovedPlayer($campaign);

@@ -69,7 +69,7 @@ function charter_view_published(Campaign $campaign, User $owner): SessionZeroSur
     $content['character']['build_constraints'] = 'Level 1 start, standard array.';
     $content['character']['backstory_requested'] = true;
 
-    CharterService::publish($charter, (string) $campaign->name, $content);
+    CharterService::publish($owner, $charter, (string) $campaign->name, $content);
 
     return $charter->refresh();
 }
@@ -177,7 +177,7 @@ describe('ViewCharter Published', function () {
         $content = CharterContent::quickStart($campaign)->toArray();
         $content['overview']['expected_shape'] = 'ongoing';
         $content['overview']['pitch'] = '<script>alert(1)</script>Safe pitch body.';
-        CharterService::publish($charter, (string) $campaign->name, $content);
+        CharterService::publish($owner, $charter, (string) $campaign->name, $content);
 
         $this->get(charter_view_url($charter->refresh()))
             ->assertOk()
@@ -280,7 +280,9 @@ function charter_view_amend_material(SessionZeroSurvey $charter, string $changel
     $content = $fresh->content;
     $content['safety']['signal_how'] = 'Open hand or X-card at any time.';
 
-    return CharterService::amend($fresh, (string) $fresh->title, $content, $changelog);
+    // The actor is the charter's campaign owner — the same user every
+    // caller published as.
+    return CharterService::amend($fresh->campaign->owner, $fresh, (string) $fresh->title, $content, $changelog);
 }
 
 describe('ViewCharter Amendment Banner', function () {
@@ -343,7 +345,7 @@ describe('ViewCharter Amendment Banner', function () {
         $fresh = $charter->refresh();
         $content = $fresh->content;
         $content['overview']['pitch'] = 'A tightened noir pitch after session two.';
-        CharterService::amend($fresh, (string) $fresh->title, $content, 'Pitch tightened.');
+        CharterService::amend($owner, $fresh, (string) $fresh->title, $content, 'Pitch tightened.');
 
         app()->setLocale('en');
 
@@ -484,7 +486,7 @@ describe('ViewCharter Roster Re-Agreement', function () {
         $fresh = $charter->refresh();
         $content = $fresh->content;
         $content['logistics']['absence_notice'] = '48h';
-        CharterService::amend($fresh, (string) $fresh->title, $content, 'Absence window doubled.');
+        CharterService::amend($owner, $fresh, (string) $fresh->title, $content, 'Absence window doubled.');
 
         $this->get(charter_view_url($charter->refresh()))
             ->assertOk()

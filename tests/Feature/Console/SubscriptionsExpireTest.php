@@ -183,3 +183,28 @@ it('is scheduled nightly at 03:15 in the schedule inventory', function () {
     expect(Artisan::call('schedule:list'))->toBe(0)
         ->and(Artisan::output())->toContain('subscriptions:expire');
 });
+
+it('skips a row whose processing throws and still sweeps the rest (per-row failure isolation)', function () {
+    $admin = User::factory()->create();
+
+    // Created first so the un-ordered due query yields the poisoned row
+    // ahead of the healthy one — the sweep must survive past it.
+    $failing = User::factory()->create();
+    $failingSub = subscriptionsExpireAgedComp($failing, $admin);
+
+    $healthy = User::factory()->create();
+    $healthySub = subscriptionsExpireAgedComp($healthy, $admin);
+
+    $this->partialMock(GmRoleService::class)
+        ->shouldReceive('handleSubscriptionLapse')
+        ->once()
+        ->withArgs(fn (User $user): bool => $user->is($failing))
+        ->andThrow(new RuntimeException('lapse exploded'));
+
+    // The documented always-SUCCESS contract: the throw is logged and
+    // skipped, and the healthy row behind it still expires.
+    $this->artisan('subscriptions:expire')->assertSuccessful();
+
+    expect($failingSub->fresh()->status)->toBe('expired')
+        ->and($healthySub->fresh()->status)->toBe('expired');
+});

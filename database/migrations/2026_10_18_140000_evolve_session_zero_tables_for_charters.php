@@ -108,12 +108,25 @@ return new class extends Migration
         DB::statement('ALTER TABLE session_zero_surveys DROP CONSTRAINT IF EXISTS session_zero_surveys_kind_check');
         DB::statement('ALTER TABLE session_zero_surveys DROP CONSTRAINT IF EXISTS session_zero_surveys_status_check');
 
+        // Charter rows must go BEFORE the kind column drop and the NOT
+        // NULL restore: their gm_profile_id is null by design (ownership
+        // derives from the campaign), dropIfExists above only removed
+        // the VERSION rows, and nothing else in this down() touches the
+        // survey rows themselves — without this delete the SET NOT NULL
+        // below fails mid-rollback ("column contains null values") AFTER
+        // kind/campaign_id/current_version were already dropped, leaving
+        // the migration half-applied. Versioned confirmations were
+        // already deleted by 2026_10_19's down() (rollback order runs it
+        // first). Destructive by design: charter data is
+        // forward-ledger-only; the point is a completable, consistent
+        // rollback, never charter preservation.
+        DB::table('session_zero_surveys')->where('kind', 'charter')->delete();
+
         Schema::table('session_zero_surveys', function (Blueprint $table): void {
             $table->dropIndex(['kind', 'status']);
             $table->dropColumn(['kind', 'campaign_id', 'current_version']);
-            // Restore the legacy NOT NULL. Only valid once charter rows
-            // (null gm_profile_id) are gone — the campaign cascade above
-            // removed them with their campaigns.
+            // Restore the legacy NOT NULL — valid now that every
+            // surviving row is a legacy survey with its GMProfile anchor.
             $table->foreignUuid('gm_profile_id')->nullable(false)->change();
         });
     }
