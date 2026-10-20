@@ -220,3 +220,55 @@ test('an in-character post from an approved participant is visible to all player
     Livewire::actingAs($owner)->test(CampaignJournal::class, ['campaign' => $campaign])
         ->assertSee('CHARSTATE INCHAR Ti lights the beacon');
 });
+
+// ── D232: bounded render, on-demand deeper history ──────
+
+test('a long character timeline renders only the latest ten changes, with on-demand deeper history', function () {
+    [$owner, $campaign] = charStateCampaign();
+    [$player, $participant] = charStateApprovedPlayer($campaign);
+
+    // i=1 oldest … i=12 newest: i=3..12 are the eager window, i=1..2
+    // only load on explicit request. Zero-padded markers — "MARK 01"
+    // is never a substring of "MARK 10".
+    foreach (range(1, 12) as $i) {
+        CharacterStateChange::factory()->forParticipant($participant)->create([
+            'change_type' => 'note',
+            'delta' => sprintf('CHARSTATE MARK %02d', $i),
+            'created_at' => now()->subMinutes(100 - $i),
+        ]);
+    }
+
+    $component = Livewire::actingAs($player)->test(CampaignJournal::class, ['campaign' => $campaign]);
+
+    $component
+        ->assertSee('CHARSTATE MARK 12')
+        ->assertSee('CHARSTATE MARK 03')     // 10th of the window — rendered
+        ->assertDontSee('CHARSTATE MARK 02') // below the window — fetched only on click
+        ->assertDontSee('CHARSTATE MARK 01')
+        ->assertSee(__('journal.action_load_earlier_changes', [], 'en'));
+
+    $component
+        ->call('loadOlderStateChanges', $participant->id)
+        ->assertSee('CHARSTATE MARK 02')
+        ->assertSee('CHARSTATE MARK 01');
+});
+
+test('loadOlderStateChanges fails closed for a viewer outside the journal gate', function () {
+    [$owner, $campaign] = charStateCampaign();
+    [$player, $participant] = charStateApprovedPlayer($campaign);
+
+    foreach (range(1, 12) as $i) {
+        CharacterStateChange::factory()->forParticipant($participant)->create([
+            'change_type' => 'note',
+            'delta' => "CHARSTATE CHANGE {$i}",
+            'created_at' => now()->subMinutes(100 - $i),
+        ]);
+    }
+
+    $stranger = User::factory()->create(['profile_complete' => true]);
+
+    Livewire::actingAs($stranger)
+        ->test(CampaignJournal::class, ['campaign' => $campaign])
+        ->call('loadOlderStateChanges', $participant->id)
+        ->assertSet('olderStateChanges', []);
+});

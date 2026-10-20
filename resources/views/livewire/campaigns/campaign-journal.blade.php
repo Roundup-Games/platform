@@ -300,8 +300,10 @@
             @endif
         </section>
 
-        {{-- ═══ Per-character state timelines: newest 3 preview, <details>
-             expands to the full timeline with zero extra requests ═══ --}}
+        {{-- ═══ Per-character state timelines (D232): newest 3 preview,
+             <details> expands to the eagerly loaded window (10); deeper
+             history loads on explicit request — render cost stays flat
+             however long the campaign runs ═══ --}}
         <section class="mt-8" aria-labelledby="journal-states-heading">
             <h2 id="journal-states-heading" class="text-lg font-heading font-bold text-on-surface mb-3">{{ __('journal.heading_state_changes') }}</h2>
 
@@ -326,6 +328,7 @@
                                     <details class="mt-2">
                                         <summary class="text-xs font-medium text-primary cursor-pointer">{{ __('journal.action_show_all') }}</summary>
                                         <ul class="mt-2 space-y-1.5">
+                                            {{-- Everything eagerly loaded beyond the 3-row preview --}}
                                             @foreach($participant->stateChanges->skip(3) as $change)
                                                 <li class="flex flex-wrap items-center gap-2 text-sm" wire:key="states-older-{{ $participant->id }}-{{ $change->id }}">
                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container-highest text-on-surface-variant">
@@ -335,6 +338,31 @@
                                                     <span class="text-xs text-on-surface-variant">{{ format_date($change->created_at, 'datetime') }}</span>
                                                 </li>
                                             @endforeach
+
+                                            {{-- Deeper history fetched on demand (D232) --}}
+                                            @if($participant->state_changes_count > 10)
+                                                @if(array_key_exists($participant->id, $olderStateChanges))
+                                                    @foreach($olderStateChanges[$participant->id] as $change)
+                                                        <li class="flex flex-wrap items-center gap-2 text-sm" wire:key="states-deep-{{ $participant->id }}-{{ $change->id }}">
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container-highest text-on-surface-variant">
+                                                                {{ $change->change_type->label() }}
+                                                            </span>
+                                                            <span class="text-on-surface">{{ $change->delta }}</span>
+                                                            <span class="text-xs text-on-surface-variant">{{ format_date($change->created_at, 'datetime') }}</span>
+                                                        </li>
+                                                    @endforeach
+                                                @else
+                                                    <li class="mt-1">
+                                                        <button type="button"
+                                                                wire:click="loadOlderStateChanges('{{ $participant->id }}')"
+                                                                wire:loading.attr="disabled"
+                                                                wire:target="loadOlderStateChanges('{{ $participant->id }}')"
+                                                                class="text-xs font-medium text-primary hover:underline cursor-pointer">
+                                                            {{ __('journal.action_load_earlier_changes') }}
+                                                        </button>
+                                                    </li>
+                                                @endif
+                                            @endif
                                         </ul>
                                     </details>
                                 @endif

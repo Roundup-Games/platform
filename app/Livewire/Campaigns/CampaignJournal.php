@@ -10,6 +10,7 @@ use App\Models\Campaign;
 use App\Models\CampaignGoal;
 use App\Models\CampaignJournalEntry;
 use App\Models\CampaignParticipant;
+use App\Models\CharacterStateChange;
 use App\Models\User;
 use App\Services\CampaignJournalService;
 use Illuminate\Contracts\View\View;
@@ -37,13 +38,26 @@ use Livewire\WithPagination;
  * @property-read CursorPaginator<int, CampaignJournalEntry> $timeline
  * @property-read array<int, array{status: GoalStatus, goals: Collection<int, CampaignGoal>}> $goalGroups
  * @property-read Collection<int, CampaignParticipant> $participantTimelines
+ * @property-read array<string, Collection<int, CharacterStateChange>> $olderStateChanges
  */
 class CampaignJournal extends Component
 {
     use WithPagination;
 
+    /** D232: eagerly loaded state changes per character (latest first). */
+    private const int STATE_CHANGES_PER_CHARACTER = 10;
+
     #[Locked]
     public Campaign $campaign;
+
+    /**
+     * D232: state changes older than the eagerly-loaded window, fetched
+     * on explicit "Load earlier changes" clicks — keyed by participant
+     * id so the render stays per-character.
+     *
+     * @var array<string, Collection<int, CharacterStateChange>>
+     */
+    public array $olderStateChanges = [];
 
     /** Timeline kind filter: 'all' or a JournalEntryKind value. */
     public string $kindFilter = 'all';
@@ -196,12 +210,15 @@ class CampaignJournal extends Component
     }
 
     /**
-     * Per-character state timelines (S02-T04): the seated table (Approved
-     * and Benched participants — the member-gate set; the owner's own
-     * participant row is Approved) with user + state changes eager-loaded
-     * in one pass, newest-first, so expanding a timeline costs zero extra
-     * requests. Rows of removed members survive in the table (nullOnDelete
-     * precedent) for the S04 scans but are not surfaced here.
+     * Per-character state timelines (S02-T04, bounded per D232): the
+     * seated table (Approved and Benched participants — the member-gate
+     * set; the owner's own participant row is Approved) with user +
+     * state changes eager-loaded in one pass, newest-first — the LATEST
+     * 10 per character only, so Journal-tab render cost stays flat no
+     * matter how long the campaign runs. Deeper history loads on
+     * explicit request (loadOlderStateChanges). Rows of removed members
+     * survive in the table (nullOnDelete precedent) for the S04 scans
+     * but are not surfaced here.
      *
      * @return Collection<int, CampaignParticipant>
      */
@@ -217,11 +234,66 @@ class CampaignJournal extends Component
             ->whereIn('status', [ParticipantStatus::Approved->value, ParticipantStatus::Benched->value])
             ->with([
                 'user',
-                'stateChanges' => fn ($query) => $query->orderByDesc('created_at')->orderByDesc('id'),
+                'stateChanges' => fn ($query) => $query->orderByDesc('created_at')->orderByDesc('id')->limit(self::STATE_CHANGES_PER_CHARACTER),
             ])
+            ->withCount('stateChanges')
             ->get();
 
         return $participants;
+    }
+
+    /**
+     * Load the full remaining state-change history for one character on
+     * explicit request (D232). Keyset-positioned below the eagerly
+     * loaded window's oldest row (created_at, id tuple — same ordering
+     * as the eager load), so it composes correctly no matter when it
+     * fires. Fail-closed: the viewJournal gate re-checked, the
+     * participant must be a seated member of THIS campaign.
+     */
+    public function loadOlderStateChanges(string $participantId): void
+    {
+        if (! $this->canViewJournal() || array_key_exists($participantId, $this->olderStateChanges)) {
+            return;
+        }
+
+        $participant = $this->campaign->participants()
+            ->whereKey($participantId)
+            ->whereIn('status', [ParticipantStatus::Approved->value, ParticipantStatus::Benched->value])
+            ->first();
+
+        if ($participant === null) {
+            return;
+        }
+
+        // The window's oldest row = the 10th newest under
+        // (created_at DESC, id DESC) — fetched at the query level
+        // (offset+limit, Larastan's noUnnecessaryCollectionCall rule).
+        $oldest = $participant->stateChanges()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->offset(self::STATE_CHANGES_PER_CHARACTER - 1)
+            ->limit(1)
+            ->first();
+
+        if ($oldest === null) {
+            $this->olderStateChanges[$participantId] = collect();
+
+            return;
+        }
+
+        /** @var Collection<int, CharacterStateChange> $older */
+        $older = $participant->stateChanges()
+            ->where(function ($query) use ($oldest): void {
+                $query->where('created_at', '<', $oldest->created_at)
+                    ->orWhere(fn ($sub) => $sub
+                        ->where('created_at', '=', $oldest->created_at)
+                        ->where('id', '<', $oldest->id));
+            })
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $this->olderStateChanges[$participantId] = $older;
     }
 
     // ── Authoring actions (S02-T04) ───────────────────────
