@@ -216,8 +216,10 @@ class DashboardSmartPromptServiceTest extends TestCase
     public function just_completed_recap_prompt_respects_recap_and_age(?string $recap, int $hoursAgo, bool $shouldTrigger): void
     {
         $user = User::factory()->create();
+        $campaign = Campaign::factory()->create(['owner_id' => $user->id]);
         Game::factory()->create([
             'owner_id' => $user->id,
+            'campaign_id' => $campaign->id,
             'name' => ['en' => 'Completed Game'],
             'status' => GameStatus::Completed,
             'recap' => $recap,
@@ -240,8 +242,10 @@ class DashboardSmartPromptServiceTest extends TestCase
     {
         $owner = User::factory()->create();
         $user = User::factory()->create(['created_at' => now()->subDays(30)]);
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
+            'campaign_id' => $campaign->id,
             'name' => ['en' => 'Participant Recap'],
             'status' => GameStatus::Completed,
             'recap' => null,
@@ -259,6 +263,27 @@ class DashboardSmartPromptServiceTest extends TestCase
 
         $this->assertEquals('just_completed', $result['type']);
         $this->assertStringContainsString('Participant Recap', $result['message']);
+    }
+
+    #[Test]
+    public function completed_one_shot_game_does_not_trigger_just_completed(): void
+    {
+        // M071/S03, D219: one-shots have no recap surface — the smart prompt
+        // must not point hosts at the retired write path.
+        $user = User::factory()->create();
+        Game::factory()->create([
+            'owner_id' => $user->id,
+            'name' => ['en' => 'One-Shot Game'],
+            'status' => GameStatus::Completed,
+            'campaign_id' => null,
+            'recap' => null,
+            'updated_at' => now()->subHours(24),
+            'date_time' => now()->subDays(2),
+        ]);
+
+        $result = $this->service->getPrompt($user);
+
+        $this->assertNotEquals('just_completed', $result['type']);
     }
 
     // ── Priority 4: Empty week ─────────────────────────

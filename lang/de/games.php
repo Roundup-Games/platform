@@ -265,13 +265,8 @@ return [
     'error_recap_game_not_completed' => 'Ein Recap kann nur für abgeschlossene Spiele verfasst werden.',
     'error_recap_already_written' => 'Für dieses Spiel wurde bereits ein Recap verfasst.',
     'error_recap_not_host' => 'Nur der Host kann ein Recap verfassen.',
-    'error_recap_too_long' => 'Das Recap darf 2000 Zeichen nicht überschreiten.',
     'error_recap_empty' => 'Das Recap darf nicht leer sein.',
     'flash_recap_written' => 'Recap erfolgreich veröffentlicht!',
-    'title_write_recap' => 'Recap verfassen',
-    'content_write_recap_description' => 'Teile mit, was in dieser Runde passiert ist.',
-    'label_recap_placeholder' => 'Teile mit, was in dieser Runde passiert ist…',
-    'action_recap_submit' => 'Recap veröffentlichen',
     // Debriefing
     'title_debriefing_responses' => 'Debriefing-Antworten',
     'title_debriefing_submit' => 'Runden-Debriefing',
@@ -332,6 +327,11 @@ return [
     'hint_bulletin_admin_access' => 'Admin-Zugriff',
     'label_bulletin_unknown_host' => 'Unbekannter Host',
     'content_bulletin_expires_at' => 'Gültig bis :time',
+    // Einmaliges Epilog-Bulletin (M071 S03)
+    'content_epilogue_prompt' => 'Der Tisch hat sich verstreut — hinterlasse deinen Mitspielenden eine Notiz.',
+    'title_epilogue_board' => 'Epilog',
+    'placeholder_epilogue_reply' => 'Hinterlasse eine Notiz für deine Mitspielenden…',
+    'label_epilogue_pinned' => 'Angeheftet',
     // Spot availability
     'content_spots_left_short' => '{1} 1 Platz frei|[2,*] :count Plätze frei',
     'content_availability' => 'Verfügbarkeit',

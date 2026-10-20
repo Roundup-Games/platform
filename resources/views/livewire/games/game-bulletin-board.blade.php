@@ -1,9 +1,13 @@
 <div>
+    @php
+        // D219 epilogue board: completed one-shot (no parent campaign)
+        $isEpilogueBoard = $game->status === \App\Enums\GameStatus::Completed && $game->campaign_id === null;
+    @endphp
     @if($canViewBoard)
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">campaign</span>
-                {{ __('games.title_bulletin_board') }}
+                {{ $isEpilogueBoard ? __('games.title_epilogue_board') : __('games.title_bulletin_board') }}
                 @if($canCreateBulletin && $isElevatedAccess)
                     <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
                         <span class="material-symbols-outlined text-xs" aria-hidden="true">shield_person</span>
@@ -20,7 +24,7 @@
                             wire:model="content"
                             rows="3"
                             maxlength="280"
-                            placeholder="{{ __('games.placeholder_bulletin') }}"
+                            placeholder="{{ $isEpilogueBoard ? __('games.placeholder_epilogue_reply') : __('games.placeholder_bulletin') }}"
                             class="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary resize-none transition-colors"
                             aria-label="{{ __('games.label_bulletin_aria') }}"
                         ></textarea>
@@ -52,6 +56,12 @@
                         <div class="bg-surface rounded-lg p-4 border border-outline-variant/30" role="listitem">
                             <p class="text-sm text-on-surface whitespace-pre-line">{{ $bulletin->content }}</p>
                             <div class="flex items-center gap-3 mt-3 text-xs text-on-surface-variant">
+                                @if($bulletin->is_pinned)
+                                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+                                        <span class="material-symbols-outlined text-xs" aria-hidden="true">push_pin</span>
+                                        {{ __('games.label_epilogue_pinned') }}
+                                    </span>
+                                @endif
                                 <span class="font-medium">{{ $bulletin->user->name ?? __('games.label_bulletin_unknown_host') }}</span>
                                 <span>&middot;</span>
                                 <span>{{ $bulletin->created_at->diffForHumans() }}</span>

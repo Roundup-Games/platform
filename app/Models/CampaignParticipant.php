@@ -12,6 +12,7 @@ use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\CampaignParticipantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
 
@@ -76,6 +77,19 @@ class CampaignParticipant extends Pivot implements ParticipantContract
     public function shortLink(): BelongsTo
     {
         return $this->belongsTo(ShortLink::class);
+    }
+
+    /**
+     * The character's state changes (M071, docs/spec/
+     * campaign-journal-concept.md §2): the rows behind the per-character
+     * state timelines on the Journal tab. Rows survive participant
+     * removal with their participant link nulled (nullOnDelete).
+     *
+     * @return HasMany<CharacterStateChange, $this>
+     */
+    public function stateChanges(): HasMany
+    {
+        return $this->hasMany(CharacterStateChange::class, 'participant_id');
     }
 
     /**

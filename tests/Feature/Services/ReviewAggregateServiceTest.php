@@ -176,10 +176,13 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertCount(3, $result);
         $this->assertEquals('storytelling', $result[0]['name']);
         $this->assertEquals(3, $result[0]['count']);
-        $this->assertEquals('voices', $result[1]['name']);
-        $this->assertEquals(1, $result[1]['count']);
-        $this->assertEquals('world-builder', $result[2]['name']);
-        $this->assertEquals(1, $result[2]['count']);
+        // Tied counts (1 vs 1) have no guaranteed order: topProficiencies()
+        // counts rows fetched from Postgres without ORDER BY, so the tie can
+        // come back in either insertion order. Assert the tied pair as a set.
+        $this->assertEqualsCanonicalizing([
+            ['name' => 'voices', 'count' => 1],
+            ['name' => 'world-builder', 'count' => 1],
+        ], [$result[1], $result[2]]);
     }
 
     public function test_it_limits_to_top_n(): void

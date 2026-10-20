@@ -24,9 +24,11 @@ use App\Enums\BadgeMode;
  *   live since S05 (DebutEvaluator / FirstSeatEvaluator /
  *   FoundingTableEvaluator; the founding launch window lives in
  *   config/badges.php per D208).
- * - campaign_compleat — dormant (D190): shape, tiers and copy
- *   registered now, activation in M071/S05. (Its former dormant pair
- *   chartered activated in M070/S04 — CharteredEvaluator.)
+ * - campaign_compleat — live (D222, M071/S05): the completed-campaign
+ *   journal-coverage milestone — >=6 completed sessions at >=80% recap
+ *   coverage, tiers at 1/3/5 completions (CampaignCompleatEvaluator;
+ *   formerly the dormant D190 pair of chartered, which activated in
+ *   M070/S04).
  *
  * First real evaluator (S02): supporting_member — active paid
  * membership tiered by completed months of support history
@@ -144,8 +146,8 @@ class BadgeRegistry
                 nameKey: 'badges.content_badge_campaign_compleat_name',
                 descriptionKey: 'badges.content_badge_campaign_compleat_description',
                 icon: 'auto_stories',
-                evaluator: NoOpEvaluator::class,
-                isDormant: true,
+                evaluator: CampaignCompleatEvaluator::class,
+                isDormant: false,
                 eligibility: BadgeEligibility::GameMasters,
                 sortOrder: 50,
             ),

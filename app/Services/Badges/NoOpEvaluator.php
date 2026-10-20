@@ -12,8 +12,10 @@ use App\Models\User;
  * - **Dormant definitions** (is_dormant: true) carry NoOpEvaluator as
  *   their standing evaluator: the badge is registered so the shape,
  *   tiers and copy exist, but its signal does not ship until a later
- *   milestone swaps in the real evaluator (Chartered → M070, Campaign
- *   Compleat → M071). Evaluating a dormant badge must never award.
+ *   milestone swaps in the real evaluator. Evaluating a dormant badge
+ *   must never award. No live registrations remain today — chartered
+ *   activated in M070/S04, campaign_compleat in M071/S05 — so the
+ *   class simply holds the slot for the next dormant definition.
  *
  * The former second use — holding the slot for real-but-unwired
  * definitions (Debut, First Seat, Founding Table, S01) — retired in

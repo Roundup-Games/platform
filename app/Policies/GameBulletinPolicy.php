@@ -24,36 +24,59 @@ class GameBulletinPolicy
     }
 
     /**
-     * Create a bulletin: only the game owner (host) when the game is scheduled.
+     * Whether the user is the game host or an approved participant of the game.
      */
-    public function create(User $user, Game $game): bool
+    private function isHostOrApprovedParticipant(User $user, Game $game): bool
     {
-        return $game->status === GameStatus::Scheduled
-            && (string) $game->owner_id === (string) $user->id;
-    }
-
-    /**
-     * View the bulletin board for a game: only for scheduled games.
-     * Game owner or approved participants can view. The creation form
-     * is further gated by the `create` policy (host-only).
-     */
-    public function viewBoard(User $user, Game $game): bool
-    {
-        // Only show bulletin board for scheduled games
-        if ($game->status !== GameStatus::Scheduled) {
-            return false;
-        }
-
-        // Game owner can always view
+        // Game host
         if ((string) $game->owner_id === (string) $user->id) {
             return true;
         }
 
-        // Approved participants can view
+        // Approved participants
         return $game->participants()
             ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->exists();
+    }
+
+    /**
+     * Create a bulletin.
+     *
+     * Scheduled games: host only. Completed one-shots (no parent campaign):
+     * the D219 epilogue board — host and approved participants may each post
+     * a reply. Everything else — canceled games and completed campaign
+     * sessions — stays closed.
+     */
+    public function create(User $user, Game $game): bool
+    {
+        if ($game->status === GameStatus::Scheduled) {
+            return (string) $game->owner_id === (string) $user->id;
+        }
+
+        if ($game->status === GameStatus::Completed && $game->campaign_id === null) {
+            return $this->isHostOrApprovedParticipant($user, $game);
+        }
+
+        return false;
+    }
+
+    /**
+     * View the bulletin board for a game: scheduled games and the completed
+     * one-shot epilogue board (D219). Host or approved participants can view.
+     * The creation form is further gated by the `create` policy (host-only on
+     * scheduled games, table-wide on the epilogue board).
+     */
+    public function viewBoard(User $user, Game $game): bool
+    {
+        // Only show bulletin board for scheduled games and the
+        // completed one-shot epilogue board (D219).
+        if ($game->status === GameStatus::Scheduled
+            || ($game->status === GameStatus::Completed && $game->campaign_id === null)) {
+            return $this->isHostOrApprovedParticipant($user, $game);
+        }
+
+        return false;
     }
 
     /**

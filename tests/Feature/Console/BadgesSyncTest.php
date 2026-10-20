@@ -68,7 +68,7 @@ it('syncs all registry definitions idempotently', function () {
             'description_key' => 'badges.content_badge_campaign_compleat_description',
             'icon' => 'auto_stories',
             'sort_order' => 50,
-            'is_dormant' => true,
+            'is_dormant' => false,
             'eligibility' => 'game_masters',
             'is_active' => true,
         ],

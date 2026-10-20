@@ -5,7 +5,7 @@
 
 CREATE TABLE public.activity_logs (
     subject_type varchar(255) NULL,
-    subject_id varchar(255) NULL,
+    subject_id varchar NULL,
     event_type varchar(255) NOT NULL,
     properties json NULL,
     created_at timestamp NOT NULL,
@@ -26,6 +26,60 @@ CREATE TABLE public.attendance_reports (
     reporter_id varchar NOT NULL,
     reason text NULL,
     CONSTRAINT attendance_reports_status_check CHECK (((status)::text = ANY (ARRAY[('attended'::varchar)::text, ('no_show'::varchar)::text, ('late_cancel'::varchar)::text, ('excused'::varchar)::text, ('cancelled_early'::varchar)::text])))
+);
+
+CREATE TABLE public.badge_definitions (
+    id varchar NOT NULL,
+    key varchar(255) NOT NULL,
+    category varchar(255) NOT NULL,
+    mode varchar(255) NOT NULL,
+    tiers json NULL,
+    name_key varchar(255) NOT NULL,
+    description_key varchar(255) NOT NULL,
+    icon varchar(255) NULL,
+    sort_order integer NOT NULL DEFAULT 0,
+    is_active boolean NOT NULL DEFAULT true,
+    is_dormant boolean NOT NULL DEFAULT false,
+    metadata json NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    eligibility varchar(255) NOT NULL DEFAULT 'all_users'::varchar,
+    holders_count integer NOT NULL DEFAULT 0,
+    eligible_count integer NOT NULL DEFAULT 0,
+    rarity_class varchar(255) NULL,
+    rarity_computed_at timestamp NULL
+);
+
+CREATE TABLE public.badge_events (
+    id varchar NOT NULL,
+    badge_user_id varchar NOT NULL,
+    action varchar(255) NOT NULL,
+    actor_id varchar NULL,
+    reason text NULL,
+    source varchar(255) NOT NULL,
+    evidence_type varchar(255) NULL,
+    evidence_id varchar NULL,
+    metadata json NULL,
+    created_at timestamp NULL
+);
+
+CREATE TABLE public.badge_user (
+    id varchar NOT NULL,
+    user_id varchar NOT NULL,
+    badge_definition_id varchar NOT NULL,
+    tier varchar(255) NULL,
+    source varchar(255) NOT NULL,
+    first_awarded_at timestamp NOT NULL,
+    requalified_through timestamp NULL,
+    last_awarded_at timestamp NULL,
+    lapsed_at timestamp NULL,
+    revoked_at timestamp NULL,
+    revoked_reason text NULL,
+    evidence_type varchar(255) NULL,
+    evidence_id varchar NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    is_featured boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE public.bgg_sync_logs (
@@ -70,6 +124,35 @@ CREATE TABLE public.campaign_game_system (
     game_system_id varchar NOT NULL
 );
 
+CREATE TABLE public.campaign_goals (
+    id varchar NOT NULL,
+    campaign_id varchar NOT NULL,
+    title varchar(200) NOT NULL,
+    description text NULL,
+    status varchar(255) NOT NULL,
+    status_changed_at_game_id varchar NULL,
+    sort integer NOT NULL DEFAULT 0,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    CONSTRAINT campaign_goals_status_check CHECK (((status)::text = ANY ((ARRAY['planned'::varchar, 'active'::varchar, 'achieved'::varchar, 'failed'::varchar, 'abandoned'::varchar])::text[])))
+);
+
+CREATE TABLE public.campaign_journal_entries (
+    id varchar NOT NULL,
+    campaign_id varchar NOT NULL,
+    game_id varchar NULL,
+    author_user_id varchar NOT NULL,
+    author_participant_id varchar NULL,
+    kind varchar(255) NOT NULL,
+    body text NOT NULL,
+    visibility varchar(255) NOT NULL,
+    in_game_date varchar(255) NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    CONSTRAINT campaign_journal_entries_kind_check CHECK (((kind)::text = ANY ((ARRAY['recap'::varchar, 'in_character'::varchar, 'prep_note'::varchar])::text[]))),
+    CONSTRAINT campaign_journal_entries_visibility_check CHECK (((visibility)::text = ANY ((ARRAY['players'::varchar, 'gms'::varchar])::text[])))
+);
+
 CREATE TABLE public.campaign_participants (
     id varchar NOT NULL,
     campaign_id varchar NOT NULL,
@@ -86,7 +169,7 @@ CREATE TABLE public.campaign_participants (
     confirmation_expires_at timestamp NULL,
     confirmation_attempts integer NULL,
     created_at timestamp NULL,
-    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::varchar, 'share_link'::varchar, 'application'::varchar, 'email_invite'::varchar, 'short_link'::varchar, 'discord'::varchar])::text[]))),
+    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::varchar)::text, ('share_link'::varchar)::text, ('application'::varchar)::text, ('email_invite'::varchar)::text, ('short_link'::varchar)::text, ('discord'::varchar)::text]))),
     CONSTRAINT campaign_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::varchar)::text, ('player'::varchar)::text, ('invited'::varchar)::text, ('applicant'::varchar)::text]))),
     CONSTRAINT campaign_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::varchar)::text, ('rejected'::varchar)::text, ('pending'::varchar)::text, ('waitlisted'::varchar)::text, ('benched'::varchar)::text, ('removed'::varchar)::text])))
 );
@@ -119,9 +202,36 @@ CREATE TABLE public.campaigns (
     bench_mode boolean NOT NULL DEFAULT false,
     game_type varchar(20) NULL,
     host_note text NULL,
-    CONSTRAINT campaigns_recurrence_check CHECK (((recurrence)::text = ANY ((ARRAY['weekly'::varchar, 'bi-weekly'::varchar, 'monthly'::varchar, 'custom'::varchar])::text[]))),
+    seo_title json NULL,
+    seo_description json NULL,
+    recruitment_summary text NULL,
+    recruitment_summary_completed_sessions integer NULL,
+    recruitment_summary_refreshed_at timestamp NULL,
+    CONSTRAINT campaigns_recurrence_check CHECK (((recurrence)::text = ANY (ARRAY[('weekly'::varchar)::text, ('bi-weekly'::varchar)::text, ('monthly'::varchar)::text, ('custom'::varchar)::text]))),
     CONSTRAINT campaigns_status_check CHECK (((status)::text = ANY (ARRAY[('active'::varchar)::text, ('cancelled'::varchar)::text, ('completed'::varchar)::text]))),
     CONSTRAINT campaigns_visibility_check CHECK (((visibility)::text = ANY (ARRAY[('public'::varchar)::text, ('protected'::varchar)::text, ('private'::varchar)::text])))
+);
+
+CREATE TABLE public.character_state_changes (
+    id varchar NOT NULL,
+    campaign_id varchar NOT NULL,
+    participant_id varchar NULL,
+    game_id varchar NULL,
+    change_type varchar(255) NOT NULL,
+    delta text NOT NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    CONSTRAINT character_state_changes_change_type_check CHECK (((change_type)::text = ANY ((ARRAY['progression'::varchar, 'item'::varchar, 'condition'::varchar, 'note'::varchar])::text[])))
+);
+
+CREATE TABLE public.charter_templates (
+    id varchar NOT NULL,
+    user_id varchar NOT NULL,
+    name varchar(255) NOT NULL,
+    content json NOT NULL,
+    content_schema integer NOT NULL DEFAULT 1,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
 );
 
 CREATE TABLE public.cities (
@@ -136,6 +246,19 @@ CREATE TABLE public.cities (
     upcoming_activity_count integer NULL,
     verified_venues_count integer NULL,
     recomputed_at timestamp NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    curation_state varchar(20) NOT NULL DEFAULT 'discovered'::varchar,
+    seo_title json NULL,
+    seo_description json NULL
+);
+
+CREATE TABLE public.city_aliases (
+    id varchar NOT NULL,
+    city_id varchar NOT NULL,
+    alias varchar(255) NOT NULL,
+    normalized_key varchar(255) NOT NULL,
+    source varchar(20) NOT NULL DEFAULT 'merge'::varchar,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -156,7 +279,23 @@ CREATE TABLE public.customers (
     trial_ends_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    billable_id varchar(36) NULL
+    billable_id varchar NULL
+);
+
+CREATE TABLE public.cwv_measurements (
+    id varchar NOT NULL,
+    template varchar(50) NOT NULL,
+    url text NOT NULL,
+    strategy varchar(10) NOT NULL,
+    performance_score smallint NULL,
+    lcp_ms integer NULL,
+    inp_ms integer NULL,
+    cls numeric(5,3) NULL,
+    field_data_state varchar(20) NOT NULL DEFAULT 'none'::varchar,
+    payload json NULL,
+    fetched_at timestamp NOT NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
 );
 
 CREATE TABLE public.discord_bulletin_messages (
@@ -925,8 +1064,10 @@ CREATE TABLE public.events (
     language varchar(7) NULL,
     location_id varchar NULL,
     organizer_id varchar NOT NULL,
+    seo_title json NULL,
+    seo_description json NULL,
     CONSTRAINT events_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::varchar)::text, ('published'::varchar)::text, ('registration_open'::varchar)::text, ('registration_closed'::varchar)::text, ('in_progress'::varchar)::text, ('completed'::varchar)::text, ('cancelled'::varchar)::text]))),
-    CONSTRAINT events_type_check CHECK (((type)::text = ANY ((ARRAY['game_day'::varchar, 'social'::varchar, 'convention'::varchar, 'other'::varchar])::text[])))
+    CONSTRAINT events_type_check CHECK (((type)::text = ANY (ARRAY[('game_day'::varchar)::text, ('social'::varchar)::text, ('convention'::varchar)::text, ('other'::varchar)::text])))
 );
 
 CREATE TABLE public.failed_jobs (
@@ -954,10 +1095,11 @@ CREATE TABLE public.game_bulletins (
     id varchar NOT NULL,
     game_id varchar NOT NULL,
     user_id varchar NOT NULL,
-    content varchar(280) NOT NULL,
+    content text NOT NULL,
     expires_at timestamp NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    is_pinned boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE public.game_game_system (
@@ -989,7 +1131,7 @@ CREATE TABLE public.game_participants (
     approved_at timestamp NULL,
     promoted_manually boolean NOT NULL DEFAULT false,
     CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY (ARRAY[('attended'::varchar)::text, ('no_show'::varchar)::text, ('late_cancel'::varchar)::text, ('excused'::varchar)::text, ('cancelled_early'::varchar)::text]))),
-    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::varchar, 'share_link'::varchar, 'application'::varchar, 'email_invite'::varchar, 'short_link'::varchar, 'discord'::varchar])::text[]))),
+    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::varchar)::text, ('share_link'::varchar)::text, ('application'::varchar)::text, ('email_invite'::varchar)::text, ('short_link'::varchar)::text, ('discord'::varchar)::text]))),
     CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::varchar)::text, ('player'::varchar)::text, ('invited'::varchar)::text, ('applicant'::varchar)::text]))),
     CONSTRAINT game_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::varchar)::text, ('rejected'::varchar)::text, ('pending'::varchar)::text, ('waitlisted'::varchar)::text, ('benched'::varchar)::text, ('removed'::varchar)::text])))
 );
@@ -1109,7 +1251,10 @@ CREATE TABLE public.game_systems (
     instructions text NULL,
     platform_score integer NOT NULL DEFAULT 0,
     id varchar NOT NULL,
-    base_game_id varchar NULL
+    base_game_id varchar NULL,
+    seo_title json NULL,
+    seo_description json NULL,
+    canonical_game_system_id varchar NULL
 );
 
 CREATE TABLE public.games (
@@ -1150,6 +1295,9 @@ CREATE TABLE public.games (
     attendance_resolution_method varchar(255) NULL,
     host_note text NULL,
     signup_cutoff_at timestamp NULL,
+    event_id varchar NULL,
+    seo_title json NULL,
+    seo_description json NULL,
     CONSTRAINT games_attendance_resolution_method_check CHECK (((attendance_resolution_method)::text = ANY (ARRAY[('early_consensus'::varchar)::text, ('timeout'::varchar)::text, ('manual'::varchar)::text]))),
     CONSTRAINT games_status_check CHECK (((status)::text = ANY (ARRAY[('scheduled'::varchar)::text, ('canceled'::varchar)::text, ('completed'::varchar)::text]))),
     CONSTRAINT games_visibility_check CHECK (((visibility)::text = ANY (ARRAY[('public'::varchar)::text, ('protected'::varchar)::text, ('private'::varchar)::text])))
@@ -1169,12 +1317,28 @@ CREATE TABLE public.gm_profiles (
 );
 
 CREATE TABLE public.gm_social_links (
-    id bigint NOT NULL,
+    id varchar NOT NULL,
     user_id varchar NOT NULL,
     platform varchar(50) NOT NULL,
     handle varchar(255) NOT NULL,
     instance varchar(255) NULL,
     url varchar(500) NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
+CREATE TABLE public.gsc_snapshots (
+    id varchar NOT NULL,
+    range_start date NOT NULL,
+    range_end date NOT NULL,
+    clicks integer NOT NULL DEFAULT 0,
+    impressions integer NOT NULL DEFAULT 0,
+    ctr numeric(6,4) NOT NULL DEFAULT '0'::numeric,
+    "position" numeric(6,2) NOT NULL DEFAULT '0'::numeric,
+    previous_clicks integer NOT NULL DEFAULT 0,
+    previous_impressions integer NOT NULL DEFAULT 0,
+    top_queries json NULL,
+    top_pages json NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -1224,7 +1388,10 @@ CREATE TABLE public.local_subscriptions (
     updated_at timestamp NULL,
     user_id varchar NOT NULL,
     id varchar NOT NULL,
-    membership_type_id varchar NOT NULL
+    membership_type_id varchar NOT NULL,
+    source varchar(255) NOT NULL DEFAULT 'self_serve'::varchar,
+    granted_by varchar NULL,
+    reason text NULL
 );
 
 CREATE TABLE public.locations (
@@ -1254,12 +1421,15 @@ CREATE TABLE public.locations (
     drift_detected_at timestamp NULL,
     drift_metadata json NULL,
     average_rating numeric(3,2) NULL,
-    review_count integer NOT NULL DEFAULT 0
+    review_count integer NOT NULL DEFAULT 0,
+    city_id varchar NULL,
+    seo_title json NULL,
+    seo_description json NULL
 );
 
 CREATE TABLE public.media (
     model_type varchar(255) NOT NULL,
-    model_id varchar(36) NOT NULL,
+    model_id varchar NOT NULL,
     uuid varchar NULL,
     collection_name varchar(255) NOT NULL,
     name varchar(255) NOT NULL,
@@ -1302,14 +1472,15 @@ CREATE TABLE public.model_has_permissions (
     permission_id bigint NOT NULL,
     model_type varchar(255) NOT NULL,
     team_id varchar(36) NULL,
-    model_id varchar(36) NULL
+    model_id varchar NULL
 );
 
 CREATE TABLE public.model_has_roles (
     role_id bigint NOT NULL,
     model_type varchar(255) NOT NULL,
     team_id varchar(36) NULL,
-    model_id varchar(36) NULL
+    model_id varchar NULL,
+    created_at timestamp NULL
 );
 
 CREATE TABLE public.nearby_discovery_views (
@@ -1329,7 +1500,7 @@ CREATE TABLE public.notifications (
     read_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    notifiable_id varchar(36) NULL
+    notifiable_id varchar NULL
 );
 
 CREATE TABLE public.password_reset_tokens (
@@ -1359,6 +1530,17 @@ CREATE TABLE public.personal_access_tokens (
     tokenable_id varchar NOT NULL
 );
 
+CREATE TABLE public.previously_on_drafts (
+    id varchar NOT NULL,
+    campaign_id varchar NOT NULL,
+    game_id varchar NOT NULL,
+    body text NOT NULL,
+    published_at timestamp NULL,
+    published_bulletin_id varchar NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
 CREATE TABLE public.push_subscriptions (
     endpoint varchar(255) NOT NULL,
     p256h_key varchar(255) NOT NULL,
@@ -1373,7 +1555,7 @@ CREATE TABLE public.push_subscriptions (
 CREATE TABLE public.reviews (
     id varchar NOT NULL,
     reviewable_type varchar(255) NOT NULL,
-    reviewable_id varchar(36) NOT NULL,
+    reviewable_id varchar NOT NULL,
     gm_profile_id varchar NULL,
     rating smallint NOT NULL,
     body text NULL,
@@ -1404,10 +1586,22 @@ CREATE TABLE public.roles (
     updated_at timestamp NULL
 );
 
+CREATE TABLE public.scheduled_task_runs (
+    id varchar NOT NULL,
+    task_key varchar(255) NOT NULL,
+    status varchar(255) NOT NULL,
+    started_at timestamp NOT NULL,
+    finished_at timestamp NULL,
+    runtime_ms bigint NULL,
+    error varchar(500) NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
 CREATE TABLE public.seo (
     id bigint NOT NULL,
     model_type varchar(255) NOT NULL,
-    model_id varchar(36) NULL,
+    model_id varchar NULL,
     description text NULL,
     title varchar(255) NULL,
     image varchar(255) NULL,
@@ -1434,12 +1628,32 @@ CREATE TABLE public.session_zero_confirmations (
     id varchar NOT NULL,
     session_zero_survey_id varchar NOT NULL,
     confirmed_at timestamp NULL,
-    user_id varchar NULL
+    user_id varchar NULL,
+    session_zero_survey_version_id varchar NULL,
+    attestations json NULL,
+    private_answers json NULL,
+    status varchar(255) NOT NULL DEFAULT 'signed'::varchar,
+    role varchar(255) NOT NULL DEFAULT 'participant'::varchar,
+    CONSTRAINT session_zero_confirmations_role_check CHECK (((role)::text = ANY ((ARRAY['participant'::varchar, 'gm'::varchar])::text[]))),
+    CONSTRAINT session_zero_confirmations_status_check CHECK (((status)::text = ANY ((ARRAY['signed'::varchar, 'pending_reagreement'::varchar])::text[])))
+);
+
+CREATE TABLE public.session_zero_survey_versions (
+    id varchar NOT NULL,
+    session_zero_survey_id varchar NOT NULL,
+    version_number integer NOT NULL,
+    content json NOT NULL,
+    content_schema integer NOT NULL DEFAULT 1,
+    changelog text NULL,
+    is_material boolean NOT NULL DEFAULT false,
+    published_at timestamp NOT NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
 );
 
 CREATE TABLE public.session_zero_surveys (
     id varchar NOT NULL,
-    gm_profile_id varchar NOT NULL,
+    gm_profile_id varchar NULL,
     game_id varchar NULL,
     title varchar(255) NOT NULL,
     content json NULL,
@@ -1447,7 +1661,12 @@ CREATE TABLE public.session_zero_surveys (
     status varchar(255) NOT NULL DEFAULT 'active'::varchar,
     confirmation_count integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    kind varchar(255) NOT NULL DEFAULT 'survey'::varchar,
+    campaign_id varchar NULL,
+    current_version integer NULL,
+    CONSTRAINT session_zero_surveys_kind_check CHECK (((kind)::text = ANY ((ARRAY['survey'::varchar, 'charter'::varchar])::text[]))),
+    CONSTRAINT session_zero_surveys_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::varchar, 'active'::varchar, 'archived'::varchar])::text[])))
 );
 
 CREATE TABLE public.sessions (
@@ -1475,7 +1694,7 @@ CREATE TABLE public.short_links (
     code varchar(36) NOT NULL,
     url text NOT NULL,
     linkable_type varchar(255) NOT NULL,
-    linkable_id varchar(255) NOT NULL,
+    linkable_id varchar NOT NULL,
     user_id varchar NULL,
     label varchar(100) NULL,
     purpose varchar(50) NULL,
@@ -1510,11 +1729,11 @@ CREATE TABLE public.subscriptions (
     ends_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    billable_id varchar(36) NULL
+    billable_id varchar NULL
 );
 
 CREATE TABLE public.suppressed_invite_emails (
-    id bigint NOT NULL,
+    id varchar NOT NULL,
     email_hash varchar(64) NOT NULL,
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -1552,7 +1771,9 @@ CREATE TABLE public.teams (
     updated_at timestamp NULL,
     id varchar NOT NULL,
     created_by varchar NOT NULL,
-    language varchar(5) NULL
+    language varchar(5) NULL,
+    seo_title json NULL,
+    seo_description json NULL
 );
 
 CREATE TABLE public.transactions (
@@ -1568,7 +1789,7 @@ CREATE TABLE public.transactions (
     billed_at timestamp NOT NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    billable_id varchar(36) NULL
+    billable_id varchar NULL
 );
 
 CREATE TABLE public.user_app_visits (
@@ -1626,7 +1847,6 @@ CREATE TABLE public.users (
     disabled_at timestamp NULL,
     can_create_public_entries boolean NOT NULL DEFAULT false,
     preferred_language varchar(10) NULL,
-    location json NULL,
     notification_settings json NULL,
     reliability_score json NULL,
     reliability_computed_at timestamp NULL,
@@ -1646,6 +1866,8 @@ CREATE TABLE public.users (
     first_touch_referer_domain varchar(255) NULL,
     first_touch_path varchar(255) NULL,
     signup_content_type varchar(50) NULL,
-    signup_content_slug varchar(255) NULL
+    signup_content_slug varchar(255) NULL,
+    seo_title json NULL,
+    seo_description json NULL
 );
 

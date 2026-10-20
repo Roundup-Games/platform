@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\DisclosureLevel;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
+use App\Enums\JournalEntryKind;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
@@ -26,6 +27,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +49,8 @@ use Spatie\Translatable\HasTranslations;
 
 /**
  * @property Carbon|null $date_time
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property string $hub_item_type
  * @property Carbon $hub_sort_at
  * @property Carbon|null $signup_cutoff_at
@@ -207,8 +211,11 @@ class Game extends Model implements HasMedia, TicketSubject
             if ($game->wasChanged('status') && in_array($game->status?->value, ['completed', 'canceled'])) {
                 app(ShortLinkService::class)->expireLinksForEntity($game);
 
-                // Expire all active bulletins for this game
+                // Expire all active, non-pinned bulletins for this game.
+                // Pinned bulletins (the one-shot Epilogue, M071 S03) survive
+                // completion AND any completed->canceled re-transition.
                 GameBulletin::whereBelongsTo($game)
+                    ->where('is_pinned', false)
                     ->where(function ($q) {
                         $q->whereNull('expires_at')
                             ->orWhere('expires_at', '>', now());
@@ -414,11 +421,57 @@ class Game extends Model implements HasMedia, TicketSubject
     }
 
     /**
+     * The journal entries bound to this session (M071). The campaign-level
+     * journal (all entries, interludes included) lives on Campaign::journalEntries().
+     *
+     * @return HasMany<CampaignJournalEntry, $this>
+     */
+    public function journalEntries(): HasMany
+    {
+        return $this->hasMany(CampaignJournalEntry::class);
+    }
+
+    /**
+     * The session's recap journal entry (M071/S01): the D220 source of truth
+     * behind the games.recap projection. One recap per session is enforced at
+     * the database level by the partial unique index
+     * campaign_journal_entries_one_recap_per_session, so the relation matches
+     * at most one row; latest('created_at') keeps the pick deterministic if
+     * that backstop is ever widened.
+     *
+     * hasOne + where: recaps live in the shared campaign_journal_entries
+     * table, so the kind predicate is part of the relation itself — every
+     * read is scoped without manual where clauses (pattern:
+     * Campaign::charter()). No ofMany(): its internal key-tiebreaker
+     * aggregate (max(id)) is undefined on native uuid columns in Postgres.
+     *
+     * @return HasOne<CampaignJournalEntry, $this>
+     */
+    public function recapEntry(): HasOne
+    {
+        return $this->hasOne(CampaignJournalEntry::class)
+            ->where('campaign_journal_entries.kind', JournalEntryKind::Recap->value)
+            ->latest('created_at');
+    }
+
+    /**
      * @return HasMany<GameBulletin, $this>
      */
     public function bulletins(): HasMany
     {
         return $this->hasMany(GameBulletin::class);
+    }
+
+    /**
+     * The session's Previously On draft (M071/S04, D221): at most one per
+     * session (unique game_id at the database level) — the composed digest
+     * awaiting, or recording, the member GM's one-click publish.
+     *
+     * @return HasOne<PreviouslyOnDraft, $this>
+     */
+    public function previouslyOnDraft(): HasOne
+    {
+        return $this->hasOne(PreviouslyOnDraft::class);
     }
 
     /**

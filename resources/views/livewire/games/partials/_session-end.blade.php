@@ -19,39 +19,41 @@
     </section>
 @endif
 
-{{-- Write Recap (owner only, completed game, no recap yet) --}}
+{{-- Write Recap (campaign sessions only: owner, completed game, no recap yet).
+     One-shot games get the Epilogue bulletin instead — the write-once recap
+     form is retired for them (M071/S03, D219). --}}
 @auth
-    @if($isOwner && $game->status === \App\Enums\GameStatus::Completed && empty($game->recap))
+    @if($isOwner && $game->status === \App\Enums\GameStatus::Completed && empty($game->recap) && $game->campaign_id !== null)
         <section class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6">
             <div class="flex items-center gap-2 mb-2">
                 <span class="material-symbols-outlined text-xl text-tertiary" aria-hidden="true">edit_note</span>
-                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_write_recap') }}</h2>
+                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('journal.title_composer') }}</h2>
             </div>
-            <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_write_recap_description') }}</p>
+            <p class="text-sm text-on-surface-variant mb-4">{{ __('journal.content_composer_description') }}</p>
             <form wire:submit="writeRecap">
                 <div class="mb-3">
                     <textarea
                         id="recap-content"
                         wire:model="recapContent"
                         rows="5"
-                        maxlength="2000"
+                        maxlength="10000"
                         class="w-full rounded-lg border border-outline-variant bg-surface-container-low text-on-surface text-sm px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
-                        placeholder="{{ __('games.label_recap_placeholder') }}"
+                        placeholder="{{ __('journal.label_composer_placeholder') }}"
                     ></textarea>
                     @error('recapContent')
                         <p class="mt-1 text-sm text-error">{{ $message }}</p>
                     @enderror
                     <div class="flex justify-end mt-1">
                         <span class="text-xs text-on-surface-variant"
-                              x-text="'{{ strlen($recapContent ?? '') }}' + '/2000'">
-                            {{ strlen($recapContent ?? '') }}/2000
+                              x-text="'{{ strlen($recapContent ?? '') }}' + '/10000'">
+                            {{ strlen($recapContent ?? '') }}/10000
                         </span>
                     </div>
                 </div>
                 <button type="submit"
                     class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">publish</span>
-                    {{ __('games.action_recap_submit') }}
+                    {{ __('journal.action_composer_submit') }}
                 </button>
             </form>
         </section>

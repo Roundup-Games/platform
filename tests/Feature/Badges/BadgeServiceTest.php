@@ -22,8 +22,10 @@ use Illuminate\Support\Facades\Event;
  * Integration-shaped on purpose: beforeEach runs the real `badges:sync`
  * against the real badge_definitions table, so registry keys ('debut',
  * 'campaign_compleat') resolve exactly as production would. Tiered
- * definitions come from the factory (the registry's remaining dormant
- * tiered definition is campaign_compleat, and dormant refuses awards).
+ * definitions come from the factory — the registry has held no
+ * dormant definitions since campaign_compleat activated in M071/S05,
+ * so dormant fixtures are manufactured through the factory's
+ * dormant() state.
  */
 beforeEach(function () {
     $this->artisan('badges:sync')->assertSuccessful();
@@ -362,10 +364,14 @@ it('refuses new awards for inactive and dormant definitions without writing', fu
     $service = app(BadgeService::class);
 
     $inactive = $service->award($user, 'retired_badge');
-    // 'campaign_compleat' is registered dormant by design (D187/D189):
-    // shape exists, signal ships in M071/S05 — the engine holds the
-    // shape, refuses awards. ('chartered' went live in M070/S04.)
-    $dormant = $service->award($user, 'campaign_compleat', 'bronze');
+    // Manufactured dormant fixture: campaign_compleat went live in
+    // M071/S05, so the registry no longer holds a dormant definition —
+    // the dormancy machinery is pinned through a factory-made row.
+    BadgeDefinition::factory()->dormant()->create([
+        'key' => 'hibernating_badge',
+        'tiers' => ['bronze' => 1],
+    ]);
+    $dormant = $service->award($user, 'hibernating_badge', 'bronze');
 
     expect($inactive)->toBe(BadgeAwardResult::RefusedInactive)
         ->and($dormant)->toBe(BadgeAwardResult::RefusedDormant)

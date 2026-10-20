@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\AttendanceResolutionService;
 use App\Services\AttendanceService;
 use App\Services\NotificationService;
+use App\Services\OneShotEpilogueService;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
 use App\Services\ReliabilityScoreService;
@@ -110,7 +111,9 @@ function getAttendanceIntakeServiceWithMock(): array
         $m->shouldReceive('recomputeAfterAttendance')->zeroOrMoreTimes();
     });
 
-    return [new AttendanceService($mock), $mock];
+    // OneShotEpilogueService is a real dep since M071/S03: it only acts
+    // inside handleGameCompletion, which submitReport never reaches.
+    return [new AttendanceService($mock, new OneShotEpilogueService), $mock];
 }
 
 /**
@@ -652,7 +655,7 @@ describe('early resolution', function () {
         $mock = mock(ReliabilityScoreService::class, function (MockInterface $m) {
             $m->shouldReceive('recomputeAfterAttendance')->zeroOrMoreTimes();
         });
-        $service = new AttendanceService($mock);
+        $service = new AttendanceService($mock, new OneShotEpilogueService);
 
         // Host submits report for player 0
         $result = $service->submitReport($game, $host, [

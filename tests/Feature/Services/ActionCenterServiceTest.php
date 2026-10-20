@@ -207,9 +207,11 @@ class ActionCenterServiceTest extends TestCase
 
     private function seedMissingRecap(): void
     {
+        $campaign = Campaign::factory()->create(['owner_id' => $this->user->id]);
         Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => $campaign->id,
             'status' => 'completed',
             'recap' => null,
             'updated_at' => now()->subDay(),
@@ -531,9 +533,11 @@ class ActionCenterServiceTest extends TestCase
 
     public function test_missing_recap_excludes_games_with_recap(): void
     {
+        $campaign = Campaign::factory()->create(['owner_id' => $this->user->id]);
         Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => $campaign->id,
             'status' => 'completed',
             'recap' => 'A great session!',
             'updated_at' => now()->subDay(),
@@ -544,11 +548,31 @@ class ActionCenterServiceTest extends TestCase
         $this->assertEmpty($recapItems);
     }
 
-    public function test_missing_recap_excludes_games_older_than_7_days(): void
+    public function test_missing_recap_excludes_one_shot_games(): void
     {
+        // M071/S03, D219: one-shots have no recap surface — the nudge must
+        // not point hosts at the retired write path.
         Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => null,
+            'status' => 'completed',
+            'recap' => null,
+            'updated_at' => now()->subDay(),
+        ]);
+
+        $items = $this->service->getItems($this->user);
+        $recapItems = array_filter($items, fn ($i) => $i->type === 'missing_recap');
+        $this->assertEmpty($recapItems);
+    }
+
+    public function test_missing_recap_excludes_games_older_than_7_days(): void
+    {
+        $campaign = Campaign::factory()->create(['owner_id' => $this->user->id]);
+        Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => $campaign->id,
             'status' => 'completed',
             'recap' => null,
             'updated_at' => now()->subDays(10),
@@ -695,10 +719,12 @@ class ActionCenterServiceTest extends TestCase
             'type' => RelationshipType::Follow->value,
         ]);
 
-        // Medium: missing recap (owned, completed, no recap)
+        // Medium: missing recap (owned, completed, campaign session, no recap)
+        $mediumCampaign = Campaign::factory()->create(['owner_id' => $this->user->id]);
         Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => $mediumCampaign->id,
             'status' => 'completed',
             'recap' => null,
             'updated_at' => now()->subDay(),

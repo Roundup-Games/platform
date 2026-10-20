@@ -1,0 +1,390 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\CharacterStateChangeType;
+use App\Enums\GameStatus;
+use App\Enums\GoalStatus;
+use App\Enums\JournalEntryKind;
+use App\Enums\JournalEntryVisibility;
+use App\Enums\ParticipantStatus;
+use App\Models\Campaign;
+use App\Models\CampaignGoal;
+use App\Models\CampaignJournalEntry;
+use App\Models\CampaignParticipant;
+use App\Models\CharacterStateChange;
+use App\Models\Game;
+use App\Models\User;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * Write path for the campaign journal (M071, D220).
+ *
+ * The journal's kind=recap entry is the source of truth for a campaign
+ * session's recap; the games.recap column is a synced projection written in
+ * the SAME transaction, so every recap-reading consumer (action center,
+ * dashboards, activity feed, session-end partial) and GameObserver's
+ * wasChanged('recap') cache invalidation keep working untouched.
+ *
+ * Campaign sessions only (D218, M071/S03): one-shot games get the
+ * Epilogue bulletin instead of a recap writer.
+ */
+class CampaignJournalService
+{
+    /**
+     * Partial unique index that makes one recap per session unconditional
+     * at the database level (see the journal-table migration).
+     */
+    private const ONE_RECAP_PER_SESSION_INDEX = 'campaign_journal_entries_one_recap_per_session';
+
+    public function __construct(
+        private RecapService $recapService,
+    ) {}
+
+    /**
+     * Write a campaign session's recap as a journal entry and sync the
+     * games.recap projection atomically.
+     *
+     * Creates the kind=recap, visibility=players journal entry and updates
+     * games.recap inside ONE transaction, then logs the SessionRecapped
+     * activity and notifies participants via RecapService::announceRecap —
+     * the shared recap effects tail lives exactly once, injected here.
+     *
+     * Validation rules keep the classic recap guards — completed game,
+     * host-only, write-once, non-empty — with two journal deltas: the
+     * session must belong to a campaign (one-shots have no recap writer,
+     * M071/S03), and the body ceiling is 10000 characters (the journal
+     * is the narrative home).
+     *
+     * @throws \LogicException When any validation fails (translated
+     *                         messages) or a concurrent write wins the
+     *                         one-recap-per-session race.
+     */
+    public function writeRecap(Game $game, User $author, string $body): CampaignJournalEntry
+    {
+        if ($game->status !== GameStatus::Completed) {
+            throw new \LogicException(__('games.error_recap_game_not_completed'));
+        }
+
+        if ($game->campaign_id === null) {
+            // D218: the journal is the campaign record — one-shot games
+            // get the Epilogue bulletin instead (M071/S03).
+            throw new \LogicException(__('journal.error_not_campaign_session'));
+        }
+
+        if ((string) $game->owner_id !== (string) $author->id) {
+            throw new \LogicException(__('games.error_recap_not_host'));
+        }
+
+        if (mb_strlen($body) > 10000) {
+            throw new \LogicException(__('journal.error_recap_too_long'));
+        }
+
+        if (empty(trim($body))) {
+            throw new \LogicException(__('games.error_recap_empty'));
+        }
+
+        // Already-written check covers both recap shapes: the legacy
+        // column (migrated or not) and a journal entry (backfilled or a
+        // concurrent write).
+        if (! empty($game->recap) || $game->recapEntry()->exists()) {
+            throw new \LogicException(__('games.error_recap_already_written'));
+        }
+
+        try {
+            $entry = DB::transaction(function () use ($game, $author, $body): CampaignJournalEntry {
+                // Create through the session relation (Eloquent best-practice
+                // R2): game_id is plumbed by the relation, not by hand.
+                $entry = $game->journalEntries()->create([
+                    'campaign_id' => $game->campaign_id,
+                    'author_user_id' => $author->id,
+                    'kind' => JournalEntryKind::Recap,
+                    'visibility' => JournalEntryVisibility::Players,
+                    'body' => $body,
+                ]);
+
+                // D220 projection sync — same transaction as the entry, so
+                // consumers never see a recap column without its journal
+                // entry (or vice versa). GameObserver's wasChanged('recap')
+                // cache invalidation fires on this update.
+                $game->update(['recap' => $body]);
+
+                return $entry;
+            });
+        } catch (QueryException $e) {
+            // The application-level check above narrows the race; the
+            // partial unique index is the unconditional backstop. Rethrow
+            // the losing concurrent write as the already-written error so
+            // callers see one shape.
+            if (($e->errorInfo[0] ?? null) === '23505'
+                && str_contains($e->getMessage(), self::ONE_RECAP_PER_SESSION_INDEX)) {
+                throw new \LogicException(__('games.error_recap_already_written'));
+            }
+
+            throw $e;
+        }
+
+        Log::info('Recap written for game', [
+            'game_id' => $game->id,
+            'campaign_id' => $game->campaign_id,
+            'author_id' => $author->id,
+            'content_length' => mb_strlen($body),
+        ]);
+
+        $this->recapService->announceRecap($game, $author);
+
+        return $entry;
+    }
+
+    /**
+     * Write an in-character journal entry (M071/S02, spec §2).
+     *
+     * Any active participant — Approved or Benched; the owner's own
+     * participant row counts — may post in-character between sessions
+     * (interlude entries: game_id stays null; session-scoped authoring is
+     * the deferred session-end widget surface). Visibility is players.
+     *
+     * @throws \LogicException When any validation fails (translated
+     *                         messages).
+     */
+    public function writeInCharacter(Campaign $campaign, CampaignParticipant $author, string $body, ?string $inGameDate = null): CampaignJournalEntry
+    {
+        if ($author->campaign_id !== $campaign->id) {
+            throw new \LogicException(__('journal.error_not_participant'));
+        }
+
+        if (! in_array($author->status, [ParticipantStatus::Approved, ParticipantStatus::Benched], true)) {
+            throw new \LogicException(__('journal.error_participant_not_active'));
+        }
+
+        if (mb_strlen($body) > 10000) {
+            throw new \LogicException(__('journal.error_body_too_long'));
+        }
+
+        if (empty(trim($body))) {
+            throw new \LogicException(__('journal.error_body_empty'));
+        }
+
+        if ($inGameDate !== null && mb_strlen($inGameDate) > 100) {
+            throw new \LogicException(__('journal.error_in_game_date_too_long'));
+        }
+
+        // Single-row create — no transaction needed (no multi-row
+        // consistency at stake). campaign_id is plumbed by the relation.
+        $entry = $campaign->journalEntries()->create([
+            'author_user_id' => $author->user_id,
+            'author_participant_id' => $author->id,
+            'kind' => JournalEntryKind::InCharacter,
+            'visibility' => JournalEntryVisibility::Players,
+            'body' => $body,
+            'in_game_date' => $inGameDate,
+        ]);
+
+        Log::info('In-character journal entry written', [
+            'campaign_id' => $campaign->id,
+            'author_user_id' => $author->user_id,
+            'content_length' => mb_strlen($body),
+        ]);
+
+        return $entry;
+    }
+
+    /**
+     * Write a GM prep note (M071/S02, spec §2).
+     *
+     * Campaign owner only. The visibility=gms default IS the security
+     * contract: prep notes are invisible to players in every filter —
+     * pinned by test. Interlude entries: game_id stays null.
+     *
+     * @throws \LogicException When any validation fails (translated
+     *                         messages).
+     */
+    public function writePrepNote(Campaign $campaign, User $author, string $body, ?string $inGameDate = null): CampaignJournalEntry
+    {
+        if ((string) $campaign->owner_id !== (string) $author->id) {
+            throw new \LogicException(__('journal.error_not_campaign_owner'));
+        }
+
+        if (mb_strlen($body) > 10000) {
+            throw new \LogicException(__('journal.error_body_too_long'));
+        }
+
+        if (empty(trim($body))) {
+            throw new \LogicException(__('journal.error_body_empty'));
+        }
+
+        if ($inGameDate !== null && mb_strlen($inGameDate) > 100) {
+            throw new \LogicException(__('journal.error_in_game_date_too_long'));
+        }
+
+        $entry = $campaign->journalEntries()->create([
+            'author_user_id' => $author->id,
+            'kind' => JournalEntryKind::PrepNote,
+            'visibility' => JournalEntryVisibility::Gms,
+            'body' => $body,
+            'in_game_date' => $inGameDate,
+        ]);
+
+        Log::info('GM prep note written', [
+            'campaign_id' => $campaign->id,
+            'author_id' => $author->id,
+            'content_length' => mb_strlen($body),
+        ]);
+
+        return $entry;
+    }
+
+    /**
+     * Create a campaign goal (M071/S02, spec §2).
+     *
+     * Owner-only authoring; the board groups by status and orders by
+     * sort. sort is max+1 scoped to the campaign, re-queried under the
+     * transaction (ties are cosmetic — no unique constraint on sort).
+     *
+     * @throws \LogicException When any validation fails (translated
+     *                         messages).
+     */
+    public function createGoal(Campaign $campaign, User $author, string $title, ?string $description = null, GoalStatus $status = GoalStatus::Planned): CampaignGoal
+    {
+        if ((string) $campaign->owner_id !== (string) $author->id) {
+            throw new \LogicException(__('journal.error_not_campaign_owner'));
+        }
+
+        if (mb_strlen($title) > 200) {
+            throw new \LogicException(__('journal.error_title_too_long'));
+        }
+
+        if (empty(trim($title))) {
+            throw new \LogicException(__('journal.error_title_required'));
+        }
+
+        if ($description !== null && mb_strlen($description) > 1000) {
+            throw new \LogicException(__('journal.error_description_too_long'));
+        }
+
+        $goal = DB::transaction(function () use ($campaign, $title, $description, $status): CampaignGoal {
+            // ->max('sort') returns the raw aggregate or null when the
+            // campaign has no goals yet. Narrow with is_numeric() so the
+            // (int) cast gets a typed operand (RecurrenceService pattern).
+            $maxSort = $campaign->goals()->max('sort');
+            $sort = (is_numeric($maxSort) ? (int) $maxSort : 0) + 1;
+
+            return $campaign->goals()->create([
+                'title' => $title,
+                'description' => $description,
+                'status' => $status,
+                'sort' => $sort,
+            ]);
+        });
+
+        Log::info('Campaign goal created', [
+            'campaign_id' => $campaign->id,
+            'goal_id' => $goal->id,
+            'status' => $status->value,
+        ]);
+
+        return $goal;
+    }
+
+    /**
+     * Change a goal's status (M071/S02, spec §2).
+     *
+     * Owner-only. status_changed_at_game_id is the S04 "goals moved
+     * since last session" diff source: the explicit $atGame wins, else
+     * the campaign's latest completed session (max date_time), else
+     * null — the fallback resolves even when called from the tab
+     * without session context. Unchanged statuses are a no-op so a
+     * re-click never restamps the goal.
+     *
+     * @throws \LogicException When the author is not the campaign owner.
+     */
+    public function changeGoalStatus(CampaignGoal $goal, User $author, GoalStatus $newStatus, ?Game $atGame = null): CampaignGoal
+    {
+        $ownerId = Campaign::query()->whereKey($goal->campaign_id)->value('owner_id');
+
+        if ($ownerId !== $author->id) {
+            throw new \LogicException(__('journal.error_not_campaign_owner'));
+        }
+
+        if ($goal->status === $newStatus) {
+            return $goal;
+        }
+
+        $from = $goal->status;
+
+        $goal = DB::transaction(function () use ($goal, $newStatus, $atGame): CampaignGoal {
+            // Resolved under the transaction so the fallback reads the
+            // committed latest completed session, not a stale one.
+            $stampGameId = $atGame !== null
+                ? $atGame->id
+                : Game::query()
+                    ->where('campaign_id', $goal->campaign_id)
+                    ->where('status', GameStatus::Completed)
+                    ->orderByDesc('date_time')
+                    ->value('id');
+
+            $goal->update([
+                'status' => $newStatus,
+                'status_changed_at_game_id' => $stampGameId,
+            ]);
+
+            return $goal;
+        });
+
+        Log::info('Campaign goal status changed', [
+            'goal_id' => $goal->id,
+            'from' => $from->value,
+            'to' => $newStatus->value,
+            'status_changed_at_game_id' => $goal->status_changed_at_game_id,
+        ]);
+
+        return $goal;
+    }
+
+    /**
+     * Log a character state change (M071/S02, spec §2).
+     *
+     * Owner-only: goal/state updates are GM session-flow actions (spec
+     * §1); player self-logging is a later opt-in. $author is the GM
+     * writing the row; $participant is the CHARACTER the change belongs
+     * to (any campaign member — the Journal tab's per-participant form).
+     *
+     * @throws \LogicException When any validation fails (translated
+     *                         messages).
+     */
+    public function logStateChange(Campaign $campaign, User $author, CampaignParticipant $participant, CharacterStateChangeType $type, string $delta, ?Game $game = null): CharacterStateChange
+    {
+        if ((string) $campaign->owner_id !== (string) $author->id) {
+            throw new \LogicException(__('journal.error_not_campaign_owner'));
+        }
+
+        if ($participant->campaign_id !== $campaign->id) {
+            throw new \LogicException(__('journal.error_not_participant'));
+        }
+
+        if (mb_strlen($delta) > 2000) {
+            throw new \LogicException(__('journal.error_delta_too_long'));
+        }
+
+        if (empty(trim($delta))) {
+            throw new \LogicException(__('journal.error_delta_empty'));
+        }
+
+        $change = $campaign->stateChanges()->create([
+            'participant_id' => $participant->id,
+            'game_id' => $game?->id,
+            'change_type' => $type,
+            'delta' => $delta,
+        ]);
+
+        Log::info('Character state change logged', [
+            'campaign_id' => $campaign->id,
+            'participant_id' => $participant->id,
+            'change_type' => $type->value,
+        ]);
+
+        return $change;
+    }
+}

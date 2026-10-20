@@ -643,6 +643,9 @@ class LangFileParser
             'TTRPG', 'OSR', 'Storytelling', 'Gameplay',
             'Rule of Cool', 'West Marches', 'Play-by-Post', 'Session Zero',
             'Sandbox / Open World',
+            // 'Recap' is the established table-language loanword (lang/de/games.php
+            // copy); 'GMs' plural is pinned by the GM-everywhere DE canon (docs/GLOSSARY.md).
+            'Recap', 'GMs',
             // UI terms identical in German
             'In-App', '(optional)', 'Optional', 'Name A–Z',
         ];

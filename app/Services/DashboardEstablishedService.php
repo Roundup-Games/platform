@@ -396,7 +396,7 @@ class DashboardEstablishedService
                 'is_past' => $isPast,
                 'is_hosting' => $isHosting,
                 'player_count' => $playerCount,
-                'needs_recap' => $isPast && empty($game->recap) && $isHosting,
+                'needs_recap' => $isPast && $game->campaign_id !== null && empty($game->recap) && $isHosting,
                 'needs_attendance' => $isPast && ! $isHosting && $userParticipant && $userParticipant->attendance_status === null,
             ];
 

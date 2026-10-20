@@ -399,6 +399,9 @@ class WaitlistService
     /**
      * Get the 1-based position of a waitlisted participant in the queue.
      * Uses (waitlisted_at, id) ordering to break ties when timestamps collide.
+     *
+     * Rows missing waitlisted_at (legacy or externally-seeded data) sort last
+     * instead of failing the comparison query with a null operand.
      */
     public function getWaitlistPosition(Participant $participant): int
     {
@@ -411,8 +414,14 @@ class WaitlistService
         $waitlistedAt = $participant->getWaitlistedAt();
         $participantId = $participant->getId();
 
-        return $entity->participants()
-            ->where('status', ParticipantStatus::Waitlisted->value)
+        $queue = $entity->participants()
+            ->where('status', ParticipantStatus::Waitlisted->value);
+
+        if ($waitlistedAt === null) {
+            return $queue->where('id', '!=', $participantId)->count() + 1;
+        }
+
+        return $queue
             ->where(function ($q) use ($waitlistedAt, $participantId) {
                 $q->where('waitlisted_at', '<', $waitlistedAt)
                     ->orWhere(function ($q2) use ($waitlistedAt, $participantId) {

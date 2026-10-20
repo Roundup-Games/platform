@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\CampaignStatus;
 use App\Enums\DisclosureLevel;
+use App\Enums\GameStatus;
 use App\Enums\GameType;
+use App\Enums\JournalEntryKind;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasCapacity;
 use App\Models\Concerns\HasEntitySeo;
@@ -50,7 +52,12 @@ use Spatie\Translatable\HasTranslations;
  * @property string $hub_item_type
  * @property Carbon $hub_sort_at
  * @property bool $bench_mode
+ * @property string|null $recruitment_summary
+ * @property int|null $recruitment_summary_completed_sessions
+ * @property Carbon|null $recruitment_summary_refreshed_at
  * @property int|null $completed_games_count
+ * @property int|null $completed_sessions_count
+ * @property int|null $covered_sessions_count
  * @property int|null $approved_participant_count
  * @property string|null $pivot_role
  * @property string|null $pivot_status
@@ -128,6 +135,8 @@ class Campaign extends Model implements HasMedia, TicketSubject
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
         'share_token', 'share_token_expires_at', 'bench_mode',
+        'recruitment_summary', 'recruitment_summary_completed_sessions',
+        'recruitment_summary_refreshed_at',
         // Bridge: the dropped game_system_id column is captured by
         // setGameSystemIdAttribute and synced to the gameSystems pivot.
         'game_system_id',
@@ -151,6 +160,8 @@ class Campaign extends Model implements HasMedia, TicketSubject
             'share_token' => 'string',
             'share_token_expires_at' => 'datetime',
             'bench_mode' => 'boolean',
+            'recruitment_summary_completed_sessions' => 'integer',
+            'recruitment_summary_refreshed_at' => 'datetime',
         ];
     }
 
@@ -295,6 +306,117 @@ class Campaign extends Model implements HasMedia, TicketSubject
     {
         return $this->hasOne(SessionZeroSurvey::class)
             ->where('session_zero_surveys.kind', 'charter');
+    }
+
+    /**
+     * The campaign's journal entries (M071, docs/spec/campaign-journal-concept.md
+     * §2): recaps, in-character posts and GM prep notes, ordered oldest-first
+     * through Eloquent's default. The journal keys off campaign_id only — every
+     * campaign type gets one (D218).
+     *
+     * @return HasMany<CampaignJournalEntry, $this>
+     */
+    public function journalEntries(): HasMany
+    {
+        return $this->hasMany(CampaignJournalEntry::class);
+    }
+
+    /**
+     * The campaign's goals (M071, docs/spec/campaign-journal-concept.md
+     * §2): system-agnostic board cards for the Journal tab's goal board,
+     * grouped by status and ordered by sort at read time.
+     *
+     * @return HasMany<CampaignGoal, $this>
+     */
+    public function goals(): HasMany
+    {
+        return $this->hasMany(CampaignGoal::class);
+    }
+
+    /**
+     * The campaign's Previously On drafts (M071/S04,
+     * docs/spec/campaign-journal-concept.md §3, D221): one per target
+     * session (unique game_id at the database level), each awaiting or
+     * recording the member GM's one-click publish.
+     *
+     * @return HasMany<PreviouslyOnDraft, $this>
+     */
+    public function previouslyOnDrafts(): HasMany
+    {
+        return $this->hasMany(PreviouslyOnDraft::class);
+    }
+
+    /**
+     * The campaign's character state changes (M071,
+     * docs/spec/campaign-journal-concept.md §2): the rows behind the
+     * per-character state timelines and the S04 Previously On scans
+     * ((campaign_id, created_at) index).
+     *
+     * @return HasMany<CharacterStateChange, $this>
+     */
+    public function stateChanges(): HasMany
+    {
+        return $this->hasMany(CharacterStateChange::class);
+    }
+
+    // ── Recruitment summary (M071/S05) ────────────────
+
+    /**
+     * Completed campaign sessions (D222): every Game linked via
+     * campaign_id with status completed — session zero included, since a
+     * completed Game linked via campaign_id is a real table sitting.
+     *
+     * Same semantics as CampaignCompleatEvaluator's
+     * completed_sessions_count aggregate; the cross-agreement is pinned
+     * by RecruitmentSummaryServiceTest. A helper (not a withCount
+     * alias) because the composer and the staleness nudge read it on a
+     * hydrated model, while the evaluator keeps its own queries per the
+     * badge-engine convention.
+     */
+    public function completedSessionsCount(): int
+    {
+        return (int) $this->sessions()
+            ->where('games.status', GameStatus::Completed->value)
+            ->count();
+    }
+
+    /**
+     * Sessions covered by a journal recap (D222): distinct game_id count
+     * over kind=recap journal entries whose linked Game is completed.
+     * Interlude recaps (game_id null) and non-recap entries never count.
+     *
+     * Same semantics as CampaignCompleatEvaluator's
+     * covered_sessions_count aggregate; pinned alongside it by
+     * RecruitmentSummaryServiceTest.
+     */
+    public function recapCoveredSessionsCount(): int
+    {
+        return (int) $this->journalEntries()
+            ->where('campaign_journal_entries.kind', JournalEntryKind::Recap->value)
+            ->whereNotNull('campaign_journal_entries.game_id')
+            ->whereHas('game', fn (Builder $game): Builder => $game
+                ->where('games.status', GameStatus::Completed->value))
+            ->distinct()
+            ->count('campaign_journal_entries.game_id');
+    }
+
+    /**
+     * Completed sessions accrued since the recruitment summary was last
+     * stamped (spec §4.1 staleness): 0 when no summary is published,
+     * else max(0, completedSessionsCount() - stamp). The staleness nudge
+     * fires at >= 3 (CampaignRecruitmentSummaryService::isStale).
+     */
+    public function recruitmentSummaryStaleSessions(): int
+    {
+        if ($this->recruitment_summary === null) {
+            return 0;
+        }
+
+        $stamped = is_numeric($this->recruitment_summary_completed_sessions)
+            ? (int) $this->recruitment_summary_completed_sessions
+            : 0;
+
+        return max(0, $this->completedSessionsCount() - $stamped);
     }
 
     // ── Bench ──────────────────────────────────────────

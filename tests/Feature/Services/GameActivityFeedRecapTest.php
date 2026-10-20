@@ -3,12 +3,13 @@
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Services\CampaignJournalService;
 use App\Services\GameActivityFeedService;
-use App\Services\RecapService;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
@@ -23,8 +24,13 @@ beforeEach(function () {
         'type' => RelationshipType::Follow,
     ]);
 
+    // Campaign session fixture (M071/S03, D219): CampaignJournalService is
+    // the sole recap writer now — one-shots have the Epilogue board instead.
+    $campaign = Campaign::factory()->create(['owner_id' => $this->host->id]);
+
     $this->game = Game::factory()->create([
         'owner_id' => $this->host->id,
+        'campaign_id' => $campaign->id,
         'status' => 'completed',
     ]);
 
@@ -40,8 +46,7 @@ describe('GameActivityFeedService — session_recapped', function () {
     it('includes session_recapped in feed when host writes recap', function () {
         Notification::fake();
 
-        $recapService = app(RecapService::class);
-        $recapService->writeRecap($this->game, $this->host, 'Post-session thoughts...');
+        app(CampaignJournalService::class)->writeRecap($this->game, $this->host, 'Post-session thoughts...');
 
         $feedService = app(GameActivityFeedService::class);
         $feed = $feedService->getFeed($this->viewer);

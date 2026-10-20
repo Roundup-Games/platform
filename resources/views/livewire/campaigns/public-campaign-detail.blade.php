@@ -90,6 +90,34 @@
         </section>
     @endif
 
+    {{-- ── Campaign so far ──────────────────────────────────── --}}
+    {{-- GM-published recruitment summary (R082, D222): renders ONLY when a
+         summary was applied via CampaignRecruitmentSummaryService — the
+         column reads straight off the bound model, so no component change
+         is needed. Journal content NEVER renders here; the invariant is
+         pinned by PublicCampaignDetailRecruitmentBlockTest. No summary
+         means no markup: untouched campaigns stay byte-identical. --}}
+    @if($campaign->recruitment_summary)
+        <section class="bg-surface-container-low" aria-label="{{ __('campaigns.heading_campaign_so_far') }}">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 pb-8 sm:pb-10">
+                <div class="max-w-3xl border-2 border-outline-variant rounded-xl bg-surface-container-lowest p-5 sm:p-6">
+                    <h2 class="text-lg sm:text-xl font-heading font-bold tracking-tight text-on-surface mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-xl" aria-hidden="true">auto_stories</span>
+                        {{ __('campaigns.heading_campaign_so_far') }}
+                    </h2>
+                    <div class="text-base sm:text-lg text-on-surface leading-relaxed">
+                        {!! nl2br(e($campaign->recruitment_summary)) !!}
+                    </div>
+                    @if($campaign->recruitment_summary_completed_sessions !== null)
+                        <p class="text-xs text-on-surface-variant mt-3">
+                            {{ __('campaigns.content_last_refreshed_after_session', ['count' => $campaign->recruitment_summary_completed_sessions]) }}
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </section>
+    @endif
+
     {{-- ── Content ──────────────────────────────────────────── --}}
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 bg-surface space-y-6">
 

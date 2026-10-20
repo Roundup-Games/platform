@@ -118,6 +118,11 @@ return [
     // Edit campaign
     'heading_edit_campaign' => 'Edit Campaign',
     'flash_campaign_updated' => 'Campaign updated successfully.',
+    // Campaign so far — the GM-published recruitment summary block on the
+    // public campaign page (M071/S05, R082); :count is the completed-sessions
+    // count the block was last refreshed after.
+    'heading_campaign_so_far' => 'Campaign so far',
+    'content_last_refreshed_after_session' => 'Last refreshed after session :count',
     // Bench mode
     // SEO
     'seo_description_my_campaigns' => 'View and manage your campaigns, invitations, and activity feed on :brand.',

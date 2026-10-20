@@ -130,7 +130,8 @@ class DashboardSmartPromptService
         ];
     }
 
-    // ── Priority 3: Just completed, recap missing ──────
+    // ── Priority 3: Just completed, recap missing (campaign sessions
+    //    only — one-shots have no recap to write, M071/S03 D219) ──
 
     /**
      * @return array<string, mixed>
@@ -139,6 +140,7 @@ class DashboardSmartPromptService
     {
         $game = Game::query()
             ->where('status', GameStatus::Completed)
+            ->whereNotNull('campaign_id')
             ->where('updated_at', '>=', now()->subHours(48))
             ->where(function ($q) use ($user) {
                 $q->whereBelongsTo($user, 'owner')

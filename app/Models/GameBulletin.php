@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property string $content
+ * @property bool $is_pinned
  * @property string $game_id
  * @property int $user_id
  * @property Carbon|null $expires_at
@@ -37,7 +38,27 @@ class GameBulletin extends Model
         'user_id',
         'content',
         'expires_at',
+        'is_pinned',
     ];
+
+    /**
+     * Create a bulletin as a specific application-chosen author.
+     *
+     * Use this in application code (services, jobs) to make the author
+     * explicit application state — never request input. postAsHost stays
+     * the host-facing variant; postBy covers non-request call sites like
+     * the one-shot Epilogue bulletin posted on completion.
+     */
+    public static function postBy(string $gameId, string $userId, string $content, ?string $expiresAt = null, bool $isPinned = false): self
+    {
+        return static::create([
+            'game_id' => $gameId,
+            'user_id' => $userId,
+            'content' => $content,
+            'expires_at' => $expiresAt,
+            'is_pinned' => $isPinned,
+        ]);
+    }
 
     /**
      * Create a bulletin as a specific host user.
@@ -60,6 +81,7 @@ class GameBulletin extends Model
     {
         return [
             'expires_at' => 'datetime',
+            'is_pinned' => 'boolean',
         ];
     }
 

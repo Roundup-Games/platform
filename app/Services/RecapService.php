@@ -3,13 +3,20 @@
 namespace App\Services;
 
 use App\Enums\ActivityType;
-use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\RecapPosted;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Announce-only recap effects tail (M071/S03, D219).
+ *
+ * The one-shot column write path was retired with the Epilogue bulletin;
+ * CampaignJournalService::writeRecap is the only recap writer left and
+ * injects this service solely for announceRecap() — the shared effects
+ * tail (SessionRecapped activity + RecapPosted notifications).
+ */
 class RecapService
 {
     public function __construct(
@@ -18,42 +25,15 @@ class RecapService
     ) {}
 
     /**
-     * Write a recap for a completed game.
+     * Announce a written recap: log the SessionRecapped activity and
+     * notify the approved participants.
      *
-     * Validates the game is completed, the user is the host (owner),
-     * and content length is within limits. Sets the recap column,
-     * logs activity, and notifies participants.
+     * Called by CampaignJournalService::writeRecap (M071, D220) so the
+     * recap effects — activity feed entry, RecapPosted notifications —
+     * exist exactly once for the journal write path.
      */
-    public function writeRecap(Game $game, User $author, string $content): void
+    public function announceRecap(Game $game, User $author): void
     {
-        if ($game->status !== GameStatus::Completed) {
-            throw new \LogicException(__('games.error_recap_game_not_completed'));
-        }
-
-        if (! empty($game->recap)) {
-            throw new \LogicException(__('games.error_recap_already_written'));
-        }
-
-        if ((string) $game->owner_id !== (string) $author->id) {
-            throw new \LogicException(__('games.error_recap_not_host'));
-        }
-
-        if (mb_strlen($content) > 2000) {
-            throw new \LogicException(__('games.error_recap_too_long'));
-        }
-
-        if (empty(trim($content))) {
-            throw new \LogicException(__('games.error_recap_empty'));
-        }
-
-        $game->update(['recap' => $content]);
-
-        Log::info('Recap written for game', [
-            'game_id' => $game->id,
-            'author_id' => $author->id,
-            'content_length' => mb_strlen($content),
-        ]);
-
         // Dashboard cache invalidation is handled by GameObserver::saved()
         // when it detects $game->wasChanged('recap').
 

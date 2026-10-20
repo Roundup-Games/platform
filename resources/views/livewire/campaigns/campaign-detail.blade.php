@@ -118,6 +118,28 @@
             </div>
         @endif
 
+        {{-- ── Tab nav (Overview | Journal) ────────────────────
+             Journal pill renders only for viewers passing
+             CampaignPolicy::viewJournal — the journal is member-gated even on
+             public campaigns (?tab= deep-links via the #[Url] property). --}}
+        @php($viewerCanViewJournal = Auth::user()?->can('viewJournal', $campaign))
+        <div class="flex border-b border-outline-variant/20">
+            <button wire:click="$set('activeTab', 'overview')"
+                    class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ ! ($activeTab === 'journal' && $viewerCanViewJournal) ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-primary' }}">
+                {{ __('journal.tab_overview') }}
+            </button>
+            @if($viewerCanViewJournal)
+                <button wire:click="$set('activeTab', 'journal')"
+                        class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === 'journal' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-primary' }}">
+                    {{ __('journal.tab_journal') }}
+                </button>
+            @endif
+        </div>
+
+        @if($activeTab === 'journal' && $viewerCanViewJournal)
+            {{-- The nested component owns the timeline and its pagination. --}}
+            <livewire:campaigns.campaign-journal :campaign="$campaign" />
+        @else
         <x-registration-cta :message="__('campaigns.guest_nudge_campaign_detail')" />
 
         {{-- Invitation Banner --}}
@@ -658,6 +680,7 @@
                 @endauth
             </aside>
         </div>
+        @endif
     </div>
 
     {{-- Mobile sticky CTA --}}

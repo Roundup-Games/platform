@@ -1,12 +1,19 @@
 <?php
 
-use App\Enums\ParticipantStatus;
 use App\Livewire\Games\GameDetail;
+use App\Models\Campaign;
+use App\Models\CampaignJournalEntry;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use Livewire\Livewire;
+
+// M071/S03-T03 (D219): the one-shot recap write path was retired — one-shots
+// get the Epilogue bulletin instead of the write-once recap form. The three
+// legacy write-behavior tests that lived here (owner writes via Livewire,
+// 2000-char limit, non-owner rejection) were replaced by their D219
+// counterparts; the same coverage survives for campaign sessions in
+// SessionEndJournalComposerTest and CampaignJournalServiceTest.
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -26,45 +33,38 @@ function recapCreateCompletedGame(User $owner, GameSystem $system, array $overri
     ]);
 }
 
-describe('write recap action', function () {
-    it('allows owner to write recap via Livewire', function () {
+describe('retired one-shot recap write path', function () {
+    it('renders no recap form on a completed one-shot session-end', function () {
         $game = recapCreateCompletedGame($this->owner, $this->gameSystem);
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->set('recapContent', 'An epic adventure unfolded!')
-            ->call('writeRecap')
-            ->assertHasNoErrors();
-
-        expect($game->fresh()->recap)->toBe('An epic adventure unfolded!');
+            ->assertDontSee(__('journal.title_composer', [], 'en'))
+            ->assertDontSee(__('journal.action_composer_submit', [], 'en'))
+            ->assertDontSeeHtml('id="recap-content"')
+            ->assertDontSeeHtml('maxlength="2000"');
     });
 
-    it('validates recap content max 2000 chars', function () {
+    it('still renders the journal composer for a completed campaign session', function () {
+        $campaign = Campaign::factory()->create(['owner_id' => $this->owner->id]);
+        $game = recapCreateCompletedGame($this->owner, $this->gameSystem, ['campaign_id' => $campaign->id]);
+
+        Livewire::actingAs($this->owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->assertSee(__('journal.title_composer', [], 'en'))
+            ->assertSeeHtml('id="recap-content"');
+    });
+
+    it('writeRecap on a one-shot writes no recap column and no journal row', function () {
         $game = recapCreateCompletedGame($this->owner, $this->gameSystem);
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->set('recapContent', str_repeat('a', 2001))
+            ->set('recapContent', 'A one-shot tale.')
             ->call('writeRecap')
-            ->assertHasErrors(['recapContent' => 'max']);
-    });
+            ->assertSee(__('journal.error_not_campaign_session', [], 'en'));
 
-    it('rejects recap from non-owner', function () {
-        $game = recapCreateCompletedGame($this->owner, $this->gameSystem);
-        $nonOwner = User::factory()->create();
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $nonOwner->id,
-            'status' => ParticipantStatus::Approved,
-        ]);
-
-        Livewire::actingAs($nonOwner)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->set('recapContent', 'Sneaky recap attempt')
-            ->call('writeRecap');
-
-        // Recap should NOT be written — RecapService throws LogicException for non-hosts
-        expect($game->fresh()->recap)->toBeNull();
+        expect($game->fresh()->recap)->toBeNull()
+            ->and(CampaignJournalEntry::query()->where('game_id', $game->id)->count())->toBe(0);
     });
 });

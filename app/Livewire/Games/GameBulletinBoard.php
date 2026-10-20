@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Games;
 
+use App\Enums\GameStatus;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Policies\GameBulletinPolicy;
+use App\Services\ScopedRoleService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -45,6 +47,7 @@ class GameBulletinBoard extends Component
         return $this->game->bulletins()
             ->notExpired()
             ->with('user')
+            ->orderByDesc('is_pinned')
             ->orderByDesc('created_at')
             ->get();
     }
@@ -63,8 +66,11 @@ class GameBulletinBoard extends Component
             return false;
         }
 
-        // If they can create but aren't the host, the permission comes from admin bypass
-        return $this->canCreateBulletin();
+        // Since D219, approved participants can legitimately create on the
+        // completed one-shot epilogue board — creation rights alone no longer
+        // imply admin bypass. The badge marks global-admin authority only.
+        return $this->canCreateBulletin()
+            && app(ScopedRoleService::class)->isGlobalAdmin($user);
     }
 
     #[Computed]
@@ -99,11 +105,20 @@ class GameBulletinBoard extends Component
         // that could cause visual spoofing. Blade's {{ }} handles HTML escaping.
         $sanitizedContent = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x{200E}-\x{200F}\x{202A}-\x{202E}\x{FEFF}\x{FFF9}-\x{FFFB}]/u', '', $this->content);
 
-        $bulletin = GameBulletin::postAsHost(
+        // The scheduled branch expires bulletins at the game's date_time.
+        // The non-scheduled branch is only reachable for completed one-shots
+        // (the policy denies create elsewhere): epilogue replies get the
+        // ~30-day epilogue window instead, because the game's date_time is
+        // already in the past and would make replies instantly invisible.
+        $expiresAt = $this->game->status === GameStatus::Scheduled
+            ? $this->game->date_time?->toDateTimeString()
+            : now()->addDays(30)->toDateTimeString();
+
+        $bulletin = GameBulletin::postBy(
             gameId: $this->game->id,
             userId: (string) Auth::id(),
             content: $sanitizedContent ?? '',
-            expiresAt: $this->game->date_time?->toDateTimeString(),
+            expiresAt: $expiresAt,
         );
 
         Log::info('Game bulletin created', [

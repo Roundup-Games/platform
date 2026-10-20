@@ -4,7 +4,7 @@ namespace App\Services\Charter;
 
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
-use App\Services\GmRoleService;
+use App\Services\GmMembershipService;
 
 /**
  * Charter membership seam (M070/S04).
@@ -15,10 +15,11 @@ use App\Services\GmRoleService;
  * amendments are free-tier safety and never ask about membership here.
  * R085: active GM members are unlimited.
  *
- * Static methods (CharterService pattern) with a single convenience seam:
- * canUseConveniences() is the one place a future pricing milestone can
- * tighten from "active GM role" to "paid membership" without touching the
- * lifecycle code.
+ * Static methods (CharterService pattern) with the member-capability
+ * seam delegated to GmMembershipService::canUseMemberFeatures (D223):
+ * charter conveniences and Previously On share that one seam, and it is
+ * the pricing milestone's single tightening point — the lifecycle code
+ * below never asks about membership anywhere else.
  */
 class CharterMemberService
 {
@@ -29,13 +30,13 @@ class CharterMemberService
 
     /**
      * May this user use member conveniences (unlimited active charters,
-     * the S04 template/reuse conveniences)? Delegates to the active-GM
-     * check today; tighten to paid-only here when the pricing milestone
-     * lands.
+     * the S04 template/reuse conveniences)? Pure delegation to the D223
+     * membership-capability seam so charter conveniences and Previously
+     * On tighten together (R085).
      */
     public static function canUseConveniences(User $user): bool
     {
-        return app(GmRoleService::class)->isGmActive($user);
+        return GmMembershipService::canUseMemberFeatures($user);
     }
 
     // ── Active-charter accounting ──────────────────────

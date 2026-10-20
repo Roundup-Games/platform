@@ -26,4 +26,19 @@ class GameParticipantFactory extends Factory
             'attendance_status' => AttendanceStatus::Attended,
         ];
     }
+
+    /**
+     * A participant waiting in the FIFO waitlist queue.
+     *
+     * Stamps waitlisted_at — WaitlistService::getWaitlistPosition orders the
+     * queue by it, and rows with status Waitlisted but a null timestamp make
+     * the position comparison fail on Postgres.
+     */
+    public function waitlisted(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => ParticipantStatus::Waitlisted,
+            'waitlisted_at' => now(),
+        ]);
+    }
 }

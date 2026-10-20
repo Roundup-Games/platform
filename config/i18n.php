@@ -95,6 +95,17 @@ return [
             // True cognate — identical in EN and DE
             'heading_server',
         ],
+        'journal' => [
+            // True cognate — the German TTRPG scene says "Journal" for a
+            // campaign journal, and this domain's DE copy has used
+            // "Journal" since S01 (title_composer/action_composer_submit);
+            // identical in EN and DE by design.
+            'tab_journal',
+            // Deliberate loanword plural — 'Recap' is the established
+            // table-language loanword (LangFileParser cognate list);
+            // the plural form is identical in both locales.
+            'filter_recap',
+        ],
         'validation' => [
             // True cognate — the friendly attribute label for `name` is
             // "Name" in both locales

@@ -237,10 +237,11 @@ it('is idempotent — a second sweep writes nothing new', function () {
         ->and(BadgeEvent::query()->count())->toBe($audits);
 });
 
-it('runs the dormant NoOp evaluators harmlessly', function () {
-    // No users, no holds: the one remaining dormant NoOp definition,
-    // campaign_compleat (and, with an empty database, every live
-    // evaluator's empty cohort) sweeps and must neither write nor fail.
+it('sweeps every live evaluator over an empty database without writing', function () {
+    // Zero dormant definitions remain (campaign_compleat activated in
+    // M071/S05 — NoOpEvaluator holds no live registrations), so with no
+    // users and no holds, every live evaluator's empty cohort sweeps
+    // and must neither write nor fail.
     $this->artisan('badges:sweep')->assertSuccessful();
 
     expect(BadgeUser::query()->count())->toBe(0)

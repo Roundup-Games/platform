@@ -34,6 +34,7 @@ use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
@@ -43,6 +44,10 @@ class CampaignDetail extends Component
     use ManagesShortLinks;
 
     public Campaign $campaign;
+
+    /** Tab shown on the detail page (PeoplePage #[Url] pattern; ?tab= deep-links). */
+    #[Url(as: 'tab')]
+    public string $activeTab = 'overview';
 
     /** @var string|null Validated share token captured on mount, persists across Livewire updates */
     #[Locked]

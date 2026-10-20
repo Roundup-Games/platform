@@ -7,6 +7,7 @@ use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\User;
+use App\Services\GmMembershipService;
 use App\Services\ScopedRoleService;
 use App\Traits\ValidatesShortLinkCookie;
 
@@ -72,6 +73,62 @@ class CampaignPolicy
         return $user !== null
             && ((string) $campaign->owner_id === (string) $user->id
                 || $campaign->participants()->whereBelongsTo($user)->exists());
+    }
+
+    /**
+     * View the campaign journal: the owner or a seated participant
+     * (approved or benched) — the member gate behind the Journal tab.
+     *
+     * Deliberately stricter than view(), which admits any authenticated
+     * user to public campaigns (plus short-link/share-token bypasses):
+     * view() is NEVER consulted for journal content — pending/waitlisted
+     * applicants and strangers must not read the journal even on public
+     * campaigns. Global admins pass via before(), consistent with the
+     * other abilities.
+     */
+    public function viewJournal(User $user, Campaign $campaign): bool
+    {
+        if ((string) $campaign->owner_id === (string) $user->id) {
+            return true;
+        }
+
+        return $campaign->participants()
+            ->whereBelongsTo($user)
+            ->whereIn('status', [
+                ParticipantStatus::Approved->value,
+                ParticipantStatus::Benched->value,
+            ])
+            ->exists();
+    }
+
+    /**
+     * Manage Previously On (review and one-click-publish the
+     * auto-composed pre-session digest, M071/S04): the campaign owner
+     * who is an active GM member — the D185 gate, resolved through the
+     * D223 membership-capability seam so Previously On and charter
+     * conveniences always tighten together. Global admins pass via
+     * before(), consistent with the other abilities.
+     */
+    public function managePreviouslyOn(User $user, Campaign $campaign): bool
+    {
+        return (string) $campaign->owner_id === (string) $user->id
+            && GmMembershipService::canUseMemberFeatures($user);
+    }
+
+    /**
+     * Manage the recruitment summary (M071/S05, R082): the owner only.
+     *
+     * Deliberately NO GmMembershipService member gate, unlike
+     * managePreviouslyOn — R082 is a free feature, so every campaign GM
+     * can compose the spoiler-safe "Campaign so far" block for their
+     * public page. Also deliberately NOT viewJournal: seated
+     * participants may read the journal but must never publish blocks.
+     * Global admins pass via before(), consistent with the other
+     * abilities.
+     */
+    public function manageRecruitmentSummary(User $user, Campaign $campaign): bool
+    {
+        return (string) $campaign->owner_id === (string) $user->id;
     }
 
     /**

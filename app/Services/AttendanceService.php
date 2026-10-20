@@ -73,6 +73,7 @@ class AttendanceService
 
     public function __construct(
         private readonly ReliabilityScoreService $reliabilityService,
+        private readonly OneShotEpilogueService $epilogueService,
     ) {}
 
     // ── 1. Report submission (consensus system) ─────────────────
@@ -599,6 +600,13 @@ class AttendanceService
             'window_opens' => $windowOpens->toIso8601String(),
             'window_closes' => $windowCloses->toIso8601String(),
         ]);
+
+        // One-shot Epilogue bulletin (M071 S03, D219): both completion paths
+        // (host completeGame and AutoCompleteGames) converge here, inside the
+        // caller's transaction, after the status save — so the Game::updated
+        // bulletin expiry sweep has already run and the pinned insert is safe.
+        // Campaign games no-op inside the service (journal surface instead).
+        $this->epilogueService->createFor($game);
     }
 
     // ── 6. Dispute flow ────────────────────────────────────────

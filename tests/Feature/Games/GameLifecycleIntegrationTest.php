@@ -6,13 +6,14 @@ use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Jobs\ResolveAttendance;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\AttendanceService;
+use App\Services\CampaignJournalService;
 use App\Services\DebriefingService;
 use App\Services\GameActivityFeedService;
-use App\Services\RecapService;
 use App\Services\ReliabilityScoreService;
 use App\Services\WaitlistService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -38,8 +39,6 @@ class GameLifecycleIntegrationTest extends TestCase
 
     private ReliabilityScoreService $reliabilityService;
 
-    private RecapService $recapService;
-
     private DebriefingService $debriefingService;
 
     protected function setUp(): void
@@ -48,7 +47,6 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->waitlistService = app(WaitlistService::class);
         $this->attendanceService = app(AttendanceService::class);
         $this->reliabilityService = app(ReliabilityScoreService::class);
-        $this->recapService = app(RecapService::class);
         $this->debriefingService = app(DebriefingService::class);
     }
 
@@ -66,8 +64,14 @@ class GameLifecycleIntegrationTest extends TestCase
         // Follower follows host for activity feed
         $follower->followings()->create(['related_user_id' => $host->id, 'type' => 'follow']);
 
+        // The lifecycle's recap step writes through the campaign journal
+        // (M071/S03, D219) — one-shots no longer have a recap writer, so the
+        // fixture is a campaign session.
+        $campaign = Campaign::factory()->create(['owner_id' => $host->id]);
+
         $game = Game::factory()->create([
             'owner_id' => $host->id,
+            'campaign_id' => $campaign->id,
             'date_time' => now()->addDays(3),
             'status' => 'scheduled',
             'max_players' => 3,
@@ -196,8 +200,8 @@ class GameLifecycleIntegrationTest extends TestCase
             'user_id' => $player1->id,
         ]);
 
-        // ── Step 6: Host writes recap (S05) ──
-        $this->recapService->writeRecap($game, $host, 'Amazing session! The party defeated the dragon and saved the village.');
+        // ── Step 6: Host writes recap via the campaign journal (M071/S03) ──
+        app(CampaignJournalService::class)->writeRecap($game, $host, 'Amazing session! The party defeated the dragon and saved the village.');
 
         $game->refresh();
         $this->assertEquals('Amazing session! The party defeated the dragon and saved the village.', $game->recap);

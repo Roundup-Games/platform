@@ -373,6 +373,28 @@ describe('removeFromWaitlist', function () {
 
 // ── getWaitlistPosition ──────────────────────────────────
 
+describe('getWaitlistPosition', function () {
+    it('sorts a waitlisted row without waitlisted_at last instead of failing', function () {
+        ['game' => $game] = createFullStandaloneGame(maxPlayers: 2);
+
+        $this->service->addToWaitlist($game, User::factory()->create());
+        $this->travelTo(now()->addSecond());
+        $anomalous = $this->service->addToWaitlist($game, User::factory()->create());
+
+        // Simulate legacy/externally-seeded data: status Waitlisted, no stamp.
+        $anomalous->update(['waitlisted_at' => null]);
+
+        expect($this->service->getWaitlistPosition($anomalous->fresh()))->toBe(2);
+    });
+
+    it('factory waitlisted state stamps the join timestamp', function () {
+        $participant = GameParticipant::factory()->waitlisted()->create();
+
+        expect($participant->status)->toBe(ParticipantStatus::Waitlisted)
+            ->and($participant->waitlisted_at)->not->toBeNull();
+    });
+});
+
 // ── promoteAllOnCancel ───────────────────────────────────
 
 describe('promoteAllOnCancel', function () {

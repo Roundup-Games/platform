@@ -4,6 +4,7 @@ use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Games\GameBulletinBoard;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\GameParticipant;
@@ -108,8 +109,12 @@ describe('canCreateBulletin', function () {
             ->assertSet('canCreateBulletin', false);
     });
 
-    it('owner cannot create bulletins for a completed game', function () {
-        $this->game->update(['status' => GameStatus::Completed]);
+    it('owner cannot create bulletins for a completed campaign session', function () {
+        $campaign = Campaign::factory()->create(['owner_id' => $this->owner->id]);
+        $this->game->update([
+            'status' => GameStatus::Completed,
+            'campaign_id' => $campaign->id,
+        ]);
 
         Livewire::actingAs($this->owner)
             ->test(GameBulletinBoard::class, ['game' => $this->game])
@@ -137,11 +142,15 @@ describe('canCreateBulletin', function () {
 
 describe('bulletin list', function () {
     it('shows existing non-expired bulletins', function () {
-        GameBulletin::factory()->create([
+        $first = GameBulletin::factory()->create([
             'game_id' => $this->game->id,
             'user_id' => $this->owner->id,
             'content' => 'First update',
         ]);
+        // Stagger created_at: Postgres second-precision timestamps would tie
+        // otherwise, making the created_at ordering ambiguous.
+        $first->created_at = now()->subHour();
+        $first->save();
         GameBulletin::factory()->create([
             'game_id' => $this->game->id,
             'user_id' => $this->owner->id,
@@ -278,6 +287,157 @@ describe('create', function () {
             ->call('create');
 
         expect(GameBulletin::count())->toBe(0);
+    });
+});
+
+// ── Completed One-Shot Epilogue Board (D219) ───────────
+
+describe('completed one-shot epilogue board', function () {
+    beforeEach(function () {
+        $this->game->update([
+            'status' => GameStatus::Completed,
+            'date_time' => now()->subDays(2),
+        ]);
+    });
+
+    it('approved participant can view the board and create an epilogue reply', function () {
+        $participant = createApprovedParticipant($this->game);
+
+        Livewire::actingAs($participant)
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
+            ->assertSet('canViewBoard', true)
+            ->assertSet('canCreateBulletin', true)
+            ->assertSee(__('games.title_epilogue_board', [], 'en'))
+            ->assertSee(__('games.placeholder_epilogue_reply', [], 'en'))
+            ->set('content', 'Thanks for the great game!')
+            ->call('create')
+            ->assertHasNoErrors();
+
+        $bulletin = GameBulletin::first();
+        expect($bulletin)->not->toBeNull();
+        expect($bulletin->user_id)->toBe($participant->id);
+        // Epilogue replies expire ~30 days out — NOT at the (past) date_time
+        expect($bulletin->expires_at)->not->toBeNull();
+        expect($bulletin->expires_at->isFuture())->toBeTrue();
+        expect($bulletin->expires_at->greaterThan(now()->addDays(29)))->toBeTrue();
+        expect($bulletin->expires_at->lessThan(now()->addDays(31)))->toBeTrue();
+        expect($bulletin->expires_at->toDateString())->not->toBe($this->game->date_time->toDateString());
+    });
+
+    it('host can post a reply on the completed one-shot board', function () {
+        Livewire::actingAs($this->owner)
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
+            ->assertSet('canCreateBulletin', true)
+            ->set('content', 'Thanks for playing, everyone!')
+            ->call('create')
+            ->assertHasNoErrors();
+
+        expect(GameBulletin::count())->toBe(1);
+        expect(GameBulletin::first()->user_id)->toBe($this->owner->id);
+    });
+
+    it('renders the pinned bulletin before newer unpinned replies and shows the pin label', function () {
+        $pinned = GameBulletin::factory()->pinned()->create([
+            'game_id' => $this->game->id,
+            'user_id' => $this->owner->id,
+            'content' => 'Pinned epilogue bulletin',
+        ]);
+        // Push the pinned bulletin one day back so the unpinned reply is newer
+        $pinned->created_at = now()->subDay();
+        $pinned->save();
+
+        GameBulletin::factory()->create([
+            'game_id' => $this->game->id,
+            'user_id' => $this->owner->id,
+            'content' => 'Newer unpinned reply',
+        ]);
+
+        $component = Livewire::actingAs($this->owner)
+            ->test(GameBulletinBoard::class, ['game' => $this->game]);
+
+        $bulletins = $component->get('bulletins');
+        expect($bulletins)->toHaveCount(2);
+        expect($bulletins->first()->id)->toBe($pinned->id);
+        expect($bulletins->last()->content)->toBe('Newer unpinned reply');
+
+        $component->assertSee(__('games.label_epilogue_pinned', [], 'en'));
+    });
+
+    it('neither host nor approved participant can view or create on a completed campaign session', function () {
+        $participant = createApprovedParticipant($this->game);
+
+        $campaign = Campaign::factory()->create(['owner_id' => $this->owner->id]);
+        $this->game->update(['campaign_id' => $campaign->id]);
+
+        Livewire::actingAs($this->owner)
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
+            ->assertSet('canViewBoard', false)
+            ->assertSet('canCreateBulletin', false);
+
+        Livewire::actingAs($participant)
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
+            ->assertSet('canViewBoard', false)
+            ->assertSet('canCreateBulletin', false);
+
+        // Direct policy denial for the completed campaign session
+        expect($participant->can('create', [GameBulletin::class, $this->game]))->toBeFalse();
+        expect($this->owner->can('create', [GameBulletin::class, $this->game]))->toBeFalse();
+    });
+
+    it('canceled game board stays closed', function () {
+        $this->game->update(['status' => GameStatus::Canceled]);
+
+        Livewire::actingAs($this->owner)
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
+            ->assertSet('canViewBoard', false)
+            ->assertSet('canCreateBulletin', false);
+    });
+
+    it('waitlisted participant cannot create on a completed one-shot', function () {
+        $waitlisted = User::factory()->create();
+        GameParticipant::create([
+            'game_id' => $this->game->id,
+            'user_id' => $waitlisted->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Waitlisted->value,
+        ]);
+
+        Livewire::actingAs($waitlisted)
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
+            ->assertSet('canViewBoard', false)
+            ->assertSet('canCreateBulletin', false)
+            ->set('content', 'Waitlisted hijack attempt')
+            ->call('create');
+
+        expect(GameBulletin::count())->toBe(0);
+    });
+
+    it('participant poster does not see the admin hint', function () {
+        $participant = createApprovedParticipant($this->game);
+
+        Livewire::actingAs($participant)
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
+            ->assertSet('isElevatedAccess', false)
+            ->assertDontSee(__('games.hint_bulletin_admin_access', [], 'en'));
+    });
+
+    it('flashes success and clears the content field after an epilogue reply', function () {
+        $participant = createApprovedParticipant($this->game);
+
+        Livewire::actingAs($participant)
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
+            ->set('content', 'What a night!')
+            ->call('create')
+            ->assertHasNoErrors()
+            ->assertSet('content', '');
+
+        // The success flash (games.flash_bulletin_created) is the unchanged
+        // scheduled-path line; Livewire's harness does not expose session
+        // flash after call(), so the behavioral pins are cleared input plus
+        // the persisted participant-authored reply.
+        expect(GameBulletin::count())->toBe(1);
+        expect(GameBulletin::first()->user_id)->toBe($participant->id);
+        expect(GameBulletin::first()->content)->toBe('What a night!');
     });
 });
 

@@ -68,8 +68,11 @@ class GameBulletinObserver
             return;
         }
 
-        $notification = new BulletinPosted($game, $author, $bulletin);
-
+        // A FRESH notification instance per recipient: send() memoizes the
+        // per-user resolved channels onto the instance, so a shared one
+        // would deliver recipient N the channels of recipient N-1
+        // (per-recipient channel fidelity, same shape as the Campaigns and
+        // Games fan-outs).
         $participants = $game->participants()
             ->where('status', ParticipantStatus::Approved->value)
             ->where('user_id', '!=', $author->id)
@@ -84,7 +87,7 @@ class GameBulletinObserver
             try {
                 app(NotificationService::class)->send(
                     $participant,
-                    $notification,
+                    new BulletinPosted($game, $author, $bulletin),
                     NotificationCategory::SessionContent,
                 );
             } catch (\Throwable $e) {

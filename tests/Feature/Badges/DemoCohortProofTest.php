@@ -22,10 +22,12 @@ use Illuminate\Support\Facades\DB;
 |   debut, first_seat, founding_table, still_rolling, guild_linked,
 |   regulars_table, trusted_organizer, mentor
 |
-| while Campaign Compleat stays registered but dormant (D187/D189:
-| NoOpEvaluator + is_dormant — zero holds ever). Chartered went live
-| in M070/S04, but the demo fixtures create no charters, so its demo
-| cohort count stays a pinned zero. The
+| while Campaign Compleat and Chartered are both live-but-unheld at toy
+| scale: campaign_compleat activated in M071/S05 (D222), but DemoSeed
+| creates no journal entries, so no fixture reaches six completed
+| sessions at 80% coverage; chartered went live in M070/S04, but the
+| demo fixtures create no charters. Both demo cohort counts stay
+| pinned zeros. The
 | deterministic fixture blocks inside demo:seed are what makes this
 | true at ANY scale; see DemoSeedCommand::createBadgeCohortFixtures().
 */
@@ -101,15 +103,16 @@ it('writes the awarded audit trail for the cohort', function () {
     }
 });
 
-it('keeps campaign compleat dormant while chartered is live but unheld in the demo cohort', function () {
-    // D187/D189: campaign_compleat stays dormant (signal ships M071/S05);
-    // chartered activated in M070/S04 — live definition, but the demo
-    // fixtures create no charters, so the fully-signed signal never
-    // exists at toy scale and the sweep holds nothing.
+it('keeps campaign compleat and chartered live but unheld in the demo cohort', function () {
+    // campaign_compleat activated in M071/S05 (D222) and chartered in
+    // M070/S04: both definitions are live, but the demo fixtures never
+    // create the qualifying signal at toy scale — no journal entries
+    // exist for the 6-completed + 80%-coverage predicate, and no
+    // charters either — so the sweep holds nothing for either.
     $compleat = BadgeDefinition::where('key', 'campaign_compleat')->first();
     $chartered = BadgeDefinition::where('key', 'chartered')->first();
 
-    expect($compleat->is_dormant)->toBeTrue()
+    expect($compleat->is_dormant)->toBeFalse()
         ->and($chartered->is_dormant)->toBeFalse()
         ->and(demoCohortHoldsFor('chartered'))->toBe(0)
         ->and(demoCohortHoldsFor('campaign_compleat'))->toBe(0);

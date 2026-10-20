@@ -10,9 +10,11 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\SessionAddedToCampaign;
+use App\Services\GmMembershipService;
 use App\Services\NotificationService;
 use App\Services\OwnerParticipantService;
 use App\Services\ParticipantService;
+use App\Services\PreviouslyOnService;
 use App\Services\RecurrenceService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -224,6 +226,24 @@ class AddSessionToCampaign extends Component
             Log::error('notification.session_added_dispatch_failed', [
                 'game_id' => $game->id,
                 'campaign_id' => $campaign->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // D221 trigger 1: composing the Previously On draft for the new
+        // session from the campaign journal (refresh-unpublished-or-
+        // compose). The member gate is the D185 gate via the D223 seam —
+        // checked on the campaign OWNER (the GM who publishes), not the
+        // acting admin. Composition NEVER blocks session creation: any
+        // failure is logged and the save continues to the redirect.
+        try {
+            if ($campaign->owner !== null && GmMembershipService::canUseMemberFeatures($campaign->owner)) {
+                app(PreviouslyOnService::class)->upsertUnpublished($campaign, $game);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('previously_on.compose_failed', [
+                'campaign_id' => $campaign->id,
+                'game_id' => $game->id,
                 'error' => $e->getMessage(),
             ]);
         }

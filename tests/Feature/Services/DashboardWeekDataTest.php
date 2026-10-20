@@ -354,8 +354,10 @@ class DashboardWeekDataTest extends TestCase
     public function needs_recap_true_when_past_and_owner_and_no_recap(): void
     {
         $user = User::factory()->create();
+        $campaign = Campaign::factory()->create(['owner_id' => $user->id]);
         Game::factory()->create([
             'owner_id' => $user->id,
+            'campaign_id' => $campaign->id,
             'status' => GameStatus::Completed,
             'date_time' => now()->startOfWeek()->addHours(2), // past
             'recap' => null,
@@ -371,11 +373,33 @@ class DashboardWeekDataTest extends TestCase
     public function needs_recap_false_when_recap_exists(): void
     {
         $user = User::factory()->create();
+        $campaign = Campaign::factory()->create(['owner_id' => $user->id]);
         Game::factory()->create([
             'owner_id' => $user->id,
+            'campaign_id' => $campaign->id,
             'status' => GameStatus::Completed,
             'date_time' => now()->startOfWeek()->addHours(2),
             'recap' => 'Great session! Everyone had fun.',
+        ]);
+
+        $result = $this->service->computeWeekData($user);
+        $allGames = collect($result['days'])->flatMap->games;
+
+        $this->assertFalse($allGames->first()['needs_recap']);
+    }
+
+    #[Test]
+    public function needs_recap_false_for_past_one_shot_without_recap(): void
+    {
+        // M071/S03, D219: one-shots have no recap surface — the week view
+        // must not flag them as needing a recap.
+        $user = User::factory()->create();
+        Game::factory()->create([
+            'owner_id' => $user->id,
+            'campaign_id' => null,
+            'status' => GameStatus::Completed,
+            'date_time' => now()->startOfWeek()->addHours(2), // past
+            'recap' => null,
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -389,8 +413,10 @@ class DashboardWeekDataTest extends TestCase
     {
         $owner = User::factory()->create();
         $user = User::factory()->create();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
+            'campaign_id' => $campaign->id,
             'status' => GameStatus::Completed,
             'date_time' => now()->startOfWeek()->addHours(2),
             'recap' => null,

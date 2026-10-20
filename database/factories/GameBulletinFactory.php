@@ -39,4 +39,13 @@ class GameBulletinFactory extends Factory
     {
         return $this->state(['expires_at' => now()->addMinutes(30)]);
     }
+
+    /**
+     * Pinned bulletin (M071 S03): exempt from the Game completion/cancel
+     * expiry sweep — e.g. the one-shot Epilogue bulletin.
+     */
+    public function pinned(): static
+    {
+        return $this->state(['is_pinned' => true]);
+    }
 }

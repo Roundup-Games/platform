@@ -349,7 +349,10 @@ class ActionCenterService
     // ── 6. Missing Recaps (medium)
 
     /**
-     * Games the user owns that are completed but have no recap, within 7 days.
+     * Campaign games the user owns that are completed but have no recap,
+     * within 7 days. One-shot games are excluded (M071/S03, D219): they
+     * get the Epilogue bulletin instead of a recap, so nudging would
+     * point hosts at a dead surface.
      *
      * @return array<int, ActionItem>
      */
@@ -358,6 +361,7 @@ class ActionCenterService
         $games = Game::query()
             ->whereBelongsTo($user, 'owner')
             ->where('status', GameStatus::Completed)
+            ->whereNotNull('campaign_id')
             ->where('updated_at', '>=', now()->subDays(7))
             ->where(fn ($q) => $q->whereNull('recap')->orWhere('recap', ''))
             ->get();

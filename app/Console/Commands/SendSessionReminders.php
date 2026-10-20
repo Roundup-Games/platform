@@ -5,7 +5,9 @@ namespace App\Console\Commands;
 use App\Enums\NotificationCategory;
 use App\Models\Game;
 use App\Notifications\SessionReminder;
+use App\Services\GmMembershipService;
 use App\Services\NotificationService;
+use App\Services\PreviouslyOnService;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -99,7 +101,7 @@ class SendSessionReminders extends Command
             ->where('date_time', '>', $now)
             ->where('date_time', '<=', $windowEnd)
             ->whereNull($sentAtColumn)
-            ->with(['participants.user', 'owner'])
+            ->with(['participants.user', 'owner', 'campaign.owner.subscriptions'])
             ->get();
 
         $gameCount = $games->count();
@@ -163,6 +165,33 @@ class SendSessionReminders extends Command
                 // on the next run for participants already notified.
                 if (! $dryRun) {
                     $game->update([$sentAtColumn => now()]);
+                }
+            }
+
+            // D221 trigger 2: the 24h reminder window refreshes (or first
+            // composes) the campaign's Previously On draft from the journal
+            // — refresh-unpublished-or-compose, with upsertUnpublished's
+            // published-guard enforcing the never-touch-published rule.
+            // The finally-stamp above means this runs at most once per
+            // session. Dry-run writes no drafts; non-campaign games have
+            // nothing to compose; the member gate (D185 via the D223 seam,
+            // checked on the campaign owner) owns who gets drafts at all.
+            // A refresh failure is logged and never fails the reminder run.
+            if ($window === '24h' && ! $dryRun && $game->campaign_id !== null) {
+                try {
+                    $campaign = $game->campaign;
+
+                    if ($campaign !== null
+                        && $campaign->owner !== null
+                        && GmMembershipService::canUseMemberFeatures($campaign->owner)) {
+                        app(PreviouslyOnService::class)->upsertUnpublished($campaign, $game);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('previously_on.reminder_refresh_failed', [
+                        'campaign_id' => $game->campaign_id,
+                        'game_id' => $game->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
         }

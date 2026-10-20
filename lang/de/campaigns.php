@@ -118,6 +118,12 @@ return [
     // Kampagne bearbeiten
     'heading_edit_campaign' => 'Kampagne bearbeiten',
     'flash_campaign_updated' => 'Kampagne erfolgreich aktualisiert.',
+    // Bisher in der Kampagne — der vom GM veröffentlichte
+    // Rekrutierungszusammenfassungs-Block auf der öffentlichen
+    // Kampagnenseite (M071/S05, R082); :count ist die Anzahl Runden,
+    // nach der zuletzt aktualisiert wurde. Du-Form gemäß Datei-Kanon.
+    'heading_campaign_so_far' => 'Bisher in der Kampagne',
+    'content_last_refreshed_after_session' => 'Zuletzt aktualisiert nach Runde :count',
     // Bankmodus
     // SEO
     'seo_description_my_campaigns' => 'Verwalte deine Kampagnen, Einladungen und den Aktivitäts-Feed auf :brand.',
