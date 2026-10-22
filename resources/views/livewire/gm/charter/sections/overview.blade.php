@@ -96,7 +96,7 @@
         <p class="text-sm font-medium text-on-surface mb-1">{{ __('charter.field_overview_expected_shape_label') }}</p>
         <p class="text-xs text-on-surface-variant mb-3">{{ __('charter.field_overview_expected_shape_help') }}</p>
         <div class="grid sm:grid-cols-3 gap-2">
-            @foreach(['short_arc', 'ongoing', 'open_ended'] as $shape)
+            @foreach(\App\Dto\CharterContent::choicesFor('overview.expected_shape') as $shape)
                 <label class="flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors cursor-pointer {{ ($section['expected_shape'] ?? '') === $shape ? 'border-primary/40 bg-primary/5' : 'border-outline/20 bg-surface-container-high hover:border-outline/40' }}">
                     <input
                         type="radio"

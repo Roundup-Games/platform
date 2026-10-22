@@ -133,7 +133,23 @@ class CampaignJournalService
             'content_length' => mb_strlen($body),
         ]);
 
-        $this->recapService->announceRecap($game, $author);
+        // The announce tail (activity log + notifications) is isolated
+        // on purpose: it runs AFTER the entry and projection committed,
+        // so a failure there must never 500 the host's write action —
+        // the recap IS written, and a retry would only hit the
+        // already-written refusal (same isolation discipline as
+        // GameObserver::composeQuietly for side-effect tails).
+        try {
+            $this->recapService->announceRecap($game, $author);
+        } catch (\Throwable $e) {
+            report($e);
+            Log::error('journal.recap_announce_failed', [
+                'game_id' => (string) $game->id,
+                'campaign_id' => (string) $game->campaign_id,
+                'exception' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return $entry;
     }

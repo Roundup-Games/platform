@@ -1,13 +1,6 @@
 @php($section = $content['ai_tools'] ?? [])
 
-@php($choiceFields = [
-    'ai_prep' => ['welcome_disclosed', 'case_by_case', 'not_at_table'],
-    'ai_transcription' => ['not_at_table', 'gm_private', 'shared_table'],
-    'dice' => ['physical', 'apps_fine', 'whatever_fun'],
-    'sheets' => ['paper_preferred', 'digital_fine', 'either'],
-    'photography' => ['ask_every_time', 'preapproved_table_only', 'no_photos'],
-    'recording' => ['none', 'gm_private', 'shared_table'],
-])
+@php($choiceFields = \App\Dto\CharterContent::choicesForSection('ai_tools', ['ai_prep', 'ai_transcription', 'dice', 'sheets', 'photography', 'recording']))
 
 <div class="space-y-6">
     <div class="grid sm:grid-cols-2 gap-5">

@@ -1,11 +1,6 @@
 @php($section = $content['policies'] ?? [])
 
-@php($choiceFields = [
-    'pvp' => ['none', 'limited', 'open'],
-    'character_death' => ['possible', 'gm_may_fudge', 'player_consent'],
-    'advancement' => ['milestone', 'xp', 'narrative'],
-    'homebrew' => ['no', 'gm_approval', 'free'],
-])
+@php($choiceFields = \App\Dto\CharterContent::choicesForSection('policies', ['pvp', 'character_death', 'advancement', 'homebrew']))
 
 <div class="space-y-6">
     {{-- Enumerated policy selects --}}

@@ -475,6 +475,55 @@ test('amend rejects a legacy survey that is not a charter', function () {
     CharterService::amend($owner, $survey, 'T', CharterContent::blank()->toArray(), 'Tweaks.');
 })->throws(AuthorizationException::class);
 
+test('amend refuses a stale expected base version instead of reverting the winning amendment', function () {
+    [$owner, $campaign, $charter] = charter_published_v1();
+
+    // The "other tab": a second amendment lands after this caller's
+    // edits were hydrated from v1 — current_version moves to 2.
+    CharterService::amend(
+        $owner,
+        $charter,
+        (string) $campaign->name,
+        charter_amendment_content($campaign, true),
+        'Other tab tightened boundaries.',
+    );
+    expect((int) $charter->fresh()->current_version)->toBe(2);
+
+    // The stale tab publishes its v1-built snapshot with the v1 base
+    // expectation: refuse — inserting it as v3 would silently revert
+    // v2's material changes in the live charter.
+    try {
+        CharterService::amend(
+            $owner,
+            $charter,
+            (string) $campaign->name,
+            charter_amendment_content($campaign, false),
+            'Stale tab edits.',
+            expectedBaseVersion: 1,
+        );
+        $this->fail('Expected ValidationException for a stale base version.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('charter')
+            ->and($e->errors()['charter'][0])->toBe(__('charter.error_amended_concurrently'));
+    }
+
+    // Nothing was inserted and the live charter still matches v2.
+    expect(SessionZeroSurveyVersion::where('session_zero_survey_id', $charter->id)->count())->toBe(2)
+        ->and((int) $charter->fresh()->current_version)->toBe(2);
+
+    // An informed retry on the fresh base (the composer re-baselines)
+    // succeeds and cuts v3.
+    CharterService::amend(
+        $owner,
+        $charter,
+        (string) $campaign->name,
+        charter_amendment_content($campaign, false),
+        'Rebased edits.',
+        expectedBaseVersion: 2,
+    );
+    expect((int) $charter->fresh()->current_version)->toBe(3);
+});
+
 test('amend publishes version 2 with changelog and flips the charter row', function () {
     [$owner, $campaign, $charter, $v1] = charter_published_v1();
     $v1Before = $v1->fresh();
@@ -1149,4 +1198,44 @@ test('previous mode is refused for a free owner even on their own published char
     }
 
     expect(SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->exists())->toBeFalse();
+});
+
+// ── Title whitespace + stale-model archive hardening ───
+
+it('refuses a whitespace-only title at publish instead of shipping blank headings', function () {
+    [$owner, $campaign] = charter_campaign_owner();
+    $charter = CharterService::start($owner, $campaign, 'quickstart');
+
+    $content = charter_valid_content($campaign);
+
+    try {
+        CharterService::publish($owner, $charter, '   ', $content);
+        $this->fail('publish should refuse a whitespace-only title');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('title');
+    }
+
+    expect($charter->fresh()->isDraft())->toBeTrue();
+});
+
+it('refuses a stale-model archive with the conditional write, not a double-write', function () {
+    [$owner, $campaign] = charter_campaign_owner();
+    $charter = CharterService::start($owner, $campaign, 'quickstart');
+    CharterService::publish($owner, $charter, 'Conditional archive pin', charter_valid_content($campaign));
+
+    // Stale model: archive through a fresh read, then attempt again
+    // through the in-memory copy that still says active — the
+    // conditional update must see zero rows and refuse.
+    CharterService::archive($owner, $charter->fresh());
+
+    expect($charter->isActive())->toBeTrue(); // still stale in memory
+
+    try {
+        CharterService::archive($owner, $charter);
+        $this->fail('stale-model archive should refuse');
+    } catch (ValidationException $e) {
+        expect($e->errors()['charter'][0])->toBe(__('charter.error_only_active_archivable'));
+    }
+
+    expect($charter->fresh()->isArchived())->toBeTrue();
 });

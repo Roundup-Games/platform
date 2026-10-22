@@ -13,8 +13,11 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use App\Notifications\RecapPosted;
 use App\Services\CampaignJournalService;
+use App\Services\RecapService;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Mockery;
+use RuntimeException;
 use Tests\Traits\CreatesGameInstances;
 use Tests\Traits\InjectsConcurrentDuplicates;
 
@@ -118,6 +121,26 @@ test('writeRecap accepts a body at the 10000-character ceiling', function () {
 });
 
 // ── Shared recap effects (delegated to RecapService::announceRecap) ──
+
+test('writeRecap keeps the persisted recap when the announce tail throws', function () {
+    [$owner, , $session] = journalRecapSession();
+
+    // The announce tail (activity log + notifications) runs AFTER the
+    // entry and projection commit — its failure must never 500 the
+    // write: the recap IS written and a retry would only hit the
+    // already-written refusal.
+    $recapService = Mockery::mock(RecapService::class);
+    $recapService->shouldReceive('announceRecap')->andThrow(new RuntimeException('activity log down'));
+    app()->instance(RecapService::class, $recapService);
+
+    $entry = app(CampaignJournalService::class)
+        ->writeRecap($session, $owner, 'Written while the tail failed.');
+
+    expect($entry)->toBeInstanceOf(CampaignJournalEntry::class)
+        ->and($entry->body)->toBe('Written while the tail failed.')
+        ->and($session->fresh()->recap)->toBe('Written while the tail failed.')
+        ->and(CampaignJournalEntry::where('game_id', $session->id)->where('kind', 'recap')->count())->toBe(1);
+});
 
 test('writeRecap logs the SessionRecapped activity', function () {
     [$owner, , $session] = journalRecapSession();

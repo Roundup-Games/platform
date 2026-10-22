@@ -64,9 +64,9 @@ class RegularsTableEvaluator extends CohortSweepEvaluator
     }
 
     /** Streak broken → quiet grey-out (spec §4). Idempotent inside BadgeService: no hold, already lapsed, admin-revoked, a manual-source grant (never auto-lapsed), or a retired definition (holds freeze) is a no-op. */
-    protected function sweepOnUnqualified(User $user, BadgeService $service): void
+    protected function lapseReason(): ?string
     {
-        $service->lapse($user, self::BADGE_KEY, self::LAPSE_REASON);
+        return self::LAPSE_REASON;
     }
 
     // ── Internals ──────────────────────────────────────
@@ -112,11 +112,8 @@ class RegularsTableEvaluator extends CohortSweepEvaluator
         // needs the Y-M bucket, no per-row Carbon round-trip.
         /** @var Collection<int, string> $dates */
         $dates = GameParticipant::query()
-            ->where('game_participants.user_id', $user->id)
-            ->where('game_participants.attendance_status', AttendanceStatus::Attended->value)
-            ->join('games', 'games.id', '=', 'game_participants.game_id')
-            ->whereNotNull('games.attendance_resolved_at')
-            ->whereNotNull('games.date_time')
+            ->verifiedAttendance()
+            ->whereBelongsTo($user)
             ->pluck('games.date_time');
 
         foreach ($dates as $date) {
@@ -215,11 +212,14 @@ class RegularsTableEvaluator extends CohortSweepEvaluator
      */
     private function latestAttendedParticipant(User $user): ?GameParticipant
     {
+        // Same verified-attendance floor as coveredMonths() (the
+        // single-sourced scope): without the date_time filter Postgres
+        // NULLS-FIRST ordering on DESC could pick a date-less game as
+        // the evidence pointer ahead of every dated row the tier was
+        // computed from.
         return GameParticipant::query()
-            ->where('game_participants.user_id', $user->id)
-            ->where('game_participants.attendance_status', AttendanceStatus::Attended->value)
-            ->join('games', 'games.id', '=', 'game_participants.game_id')
-            ->whereNotNull('games.attendance_resolved_at')
+            ->verifiedAttendance()
+            ->whereBelongsTo($user)
             ->orderByDesc('games.date_time')
             ->select('game_participants.*')
             ->first();

@@ -1,11 +1,13 @@
 <?php
 
 use App\Models\Campaign;
+use App\Models\DiscordGuildOrganizer;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
+use App\Models\LocalSubscription;
 use App\Models\Location;
 use App\Models\Review;
 use App\Models\SessionZeroConfirmation;
@@ -15,6 +17,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Laravel\Paddle\Subscription;
 
 /**
  * UUID identity policy (D170): RFC 9562 uuidv7 for owned primary keys via
@@ -61,14 +64,17 @@ describe('enforced morph map (D170)', function () {
 
         $expected = [
             'campaign' => Campaign::class,
+            'discord_guild_organizer' => DiscordGuildOrganizer::class,
             'event' => Event::class,
             'event_announcement' => EventAnnouncement::class,
             'game' => Game::class,
             'game_participant' => GameParticipant::class,
             'game_system' => GameSystem::class,
+            'local_subscription' => LocalSubscription::class,
             'location' => Location::class,
             'review' => Review::class,
             'session_zero_confirmation' => SessionZeroConfirmation::class,
+            'subscription' => Subscription::class,
             'team' => Team::class,
             'user' => User::class,
             'user_relationship' => UserRelationship::class,

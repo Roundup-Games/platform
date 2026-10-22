@@ -410,6 +410,45 @@ test('loose threads pick the latest condition and latest item change per partici
         ->and($body)->not->toContain('orphan condition delta');
 });
 
+test('loose threads carry only the current roster — a removed participant stays in history, not the digest', function () {
+    [, $campaign, , $next] = previouslyOnCampaign();
+    [$playerA, $participantA] = previouslyOnPlayer($campaign);
+    [, $participantB] = previouslyOnPlayer($campaign);
+    [, $benchedParticipant] = previouslyOnPlayer($campaign);
+
+    CharacterStateChange::factory()->forParticipant($participantA)->create([
+        'change_type' => 'condition',
+        'delta' => 'still at the table',
+        'created_at' => now()->subHours(2),
+    ]);
+    CharacterStateChange::factory()->forParticipant($participantB)->create([
+        'change_type' => 'condition',
+        'delta' => 'departed condition delta',
+        'created_at' => now()->subHours(3),
+    ]);
+    CharacterStateChange::factory()->forParticipant($benchedParticipant)->create([
+        'change_type' => 'item',
+        'delta' => 'bench rider keeps their thread',
+        'created_at' => now()->subHour(),
+    ]);
+
+    // The departure: B leaves the campaign. Their state rows survive
+    // (nullOnDelete keeps the timeline history) but must not surface
+    // as a current thread to the remaining table.
+    $participantB->update(['status' => 'removed']);
+
+    $body = app(PreviouslyOnService::class)->composeBody($campaign, $next);
+
+    expect($body)->toContain('still at the table')
+        // The bench is part of the campaign (Approved + Benched — the
+        // one membership set, CampaignParticipant::scopeCurrentRoster).
+        ->and($body)->toContain('bench rider keeps their thread')
+        // Departed participants' threads stay out of the digest.
+        ->and($body)->not->toContain('departed condition delta')
+        ->and($body)->not->toContain($participantB->user->name)
+        ->and($playerA->name)->toBeString();
+});
+
 // ── Degradation, shape, and type-independence ───────────
 
 test('an empty journal composes null — no junk CTA-only drafts', function () {

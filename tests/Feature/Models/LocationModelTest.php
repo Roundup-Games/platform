@@ -2,14 +2,70 @@
 
 namespace Tests\Feature\Models;
 
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\Location;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class LocationModelTest extends TestCase
 {
     use DatabaseTransactions;
+
+    // ── Charter venue disclosure (D079, single-sourced shape) ──
+
+    /** The one disclosable-set query: owner's campaigns ∪ owner's games ∪ the campaign's own location. */
+    public function test_disclosable_to_scope_resolves_the_owner_disclosable_set(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+
+        $ownCampaignVenue = Location::factory()->create(['name' => 'Own campaign venue']);
+        Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'location_id' => $ownCampaignVenue->id,
+        ]);
+
+        $ownGameVenue = Location::factory()->create(['name' => 'Own game venue']);
+        Game::factory()->create([
+            'owner_id' => $owner->id,
+            'location_id' => $ownGameVenue->id,
+        ]);
+
+        $campaignOwnVenue = Location::factory()->create(['name' => 'The campaign venue itself']);
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $other->id, // even a venue inherited with the campaign stays disclosable
+            'location_id' => $campaignOwnVenue->id,
+        ]);
+
+        Location::factory()->create(['name' => 'Foreign venue']); // nobody's, from this owner's view
+
+        $disclosable = Location::query()
+            ->disclosableTo((string) $owner->id, (string) $campaign->location_id)
+            ->orderBy('name')
+            ->get();
+
+        $this->assertSame(
+            [
+                'Own campaign venue',
+                'Own game venue',
+                'The campaign venue itself',
+            ],
+            $disclosable->pluck('name')->all(),
+        );
+    }
+
+    public function test_disclosable_to_scope_accepts_a_null_campaign_location(): void
+    {
+        $owner = User::factory()->create();
+        $venue = Location::factory()->create();
+        Campaign::factory()->create(['owner_id' => $owner->id, 'location_id' => $venue->id]);
+
+        $this->assertTrue(
+            Location::query()->disclosableTo((string) $owner->id, null)->whereKey($venue->id)->exists()
+        );
+    }
 
     // ── Deduplication (non-trivial upsert logic) ──────────────
 

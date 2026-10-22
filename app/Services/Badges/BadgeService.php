@@ -325,6 +325,15 @@ class BadgeService
             return false;
         }
 
+        // Dormancy freezes holds for the same reason: award()
+        // structurally refuses the re-earn (RefusedDormant), so a
+        // lapse's grey-out-with-re-earn copy would promise something
+        // the write side never delivers — the exact inconsistency the
+        // retirement freeze above exists to prevent.
+        if ($definition->is_dormant) {
+            return false;
+        }
+
         return DB::transaction(function () use ($user, $definition, $reason): bool {
             $held = BadgeUser::query()
                 ->whereBelongsTo($user)

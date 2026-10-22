@@ -139,8 +139,9 @@ it('revokes the GM role on subscription.canceled when no local GM subscription e
         'items' => [],
     ])->assertStatus(200);
 
-    // The webhook's revokeGmRoleFromPayload fired handleSubscriptionLapse,
-    // removing the GM role (no gm_plan local sub to retain it).
+    // The webhook's revokeGmRoleFromPayload retains on GM-plan local
+    // rows only, then lapses via lapseGmBenefits() — GM-tier entitlement
+    // semantics (no gm_plan local sub to retain the role here).
     expect($user->fresh()->hasRole('Game Master'))->toBeFalse();
     assertDatabaseHas('subscriptions', ['paddle_id' => $subId, 'status' => 'canceled']);
 })->group('smoke');

@@ -444,3 +444,61 @@ test('loaded older history is hard-capped — the affordance retires with an hon
 
     expect(count($component->get('olderStateChangeIds')[$participant->id]))->toBe(125);
 });
+
+// ── Client-state hardening (D232 read-back) ─────────────
+
+test("a tampered older-history id list cannot surface another campaign's state changes", function () {
+    // olderStateChangeIds is a public Livewire property by design (the
+    // bounded payload rationale) — so the read-back must re-scope to
+    // THIS campaign before rendering. Foreign uuids never resolve.
+    [$owner, $campaign] = charStateCampaign();
+    [, $participant] = charStateApprovedPlayer($campaign);
+
+    // More than the eager window (10) so the older-history block renders.
+    for ($i = 0; $i < 12; $i++) {
+        CharacterStateChange::factory()->forParticipant($participant)->create([
+            'delta' => "CHARSTATE OWN OLDER {$i}",
+            'created_at' => now()->subMinutes(200 - $i),
+        ]);
+    }
+
+    ['owner' => $otherOwner, 'campaign' => $otherCampaign] = test()->createCampaignWithOwner();
+    [, $otherParticipant] = charStateApprovedPlayer($otherCampaign);
+    $foreign = CharacterStateChange::factory()->forParticipant($otherParticipant)->create([
+        'delta' => 'CHARSTATE FOREIGN SECRET DELTA',
+    ]);
+
+    Livewire::actingAs($owner)->test(CampaignJournal::class, ['campaign' => $campaign])
+        ->set('olderStateChangeIds.'.$participant->id, [$foreign->id])
+        ->assertDontSee('CHARSTATE FOREIGN SECRET DELTA');
+});
+
+test('a malformed persisted keyset cursor self-heals instead of erroring', function () {
+    // The cursor tuple is client-hydrated too: a garbage timestamp would
+    // bind into the created_at comparison and throw SQLSTATE 22007. A
+    // malformed cursor must be discarded — the first-click path re-derives
+    // it server-side — never surface as a 500.
+    [$owner, $campaign] = charStateCampaign();
+    [, $participant] = charStateApprovedPlayer($campaign);
+
+    for ($i = 0; $i < 12; $i++) {
+        CharacterStateChange::factory()->forParticipant($participant)->create([
+            'delta' => "CHARSTATE HISTORY {$i}",
+            'created_at' => now()->subMinutes(200 - $i),
+        ]);
+    }
+
+    $component = Livewire::actingAs($owner)->test(CampaignJournal::class, ['campaign' => $campaign]);
+
+    $component
+        ->set('olderStateChangeIds.'.$participant->id, ['definitely-not-a-uuid'])
+        ->set('olderStateChangeCursor.'.$participant->id, ['at' => 'garbage', 'id' => 'also-not-a-uuid'])
+        ->call('loadOlderStateChanges', $participant->id)
+        ->assertHasNoErrors();
+
+    // Self-healed: the garbage id was filtered, the click ran the
+    // server-derived first-click cursor, and the real older rows loaded.
+    $loaded = $component->get('olderStateChangeIds')[$participant->id];
+    expect($loaded)->not->toContain('definitely-not-a-uuid')
+        ->and(count($loaded))->toBe(2); // 12 rows - 10-window = 2 older rows
+});

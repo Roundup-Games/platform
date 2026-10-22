@@ -34,6 +34,12 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Explicit drop, matching the sibling migrations' convention —
+        // relying on Postgres' implicit DROP COLUMN cascade for the
+        // predicate-only index works, but the correctness argument
+        // stays local and obvious this way.
+        DB::statement('drop index if exists game_bulletins_one_pinned_per_game_unique');
+
         Schema::table('game_bulletins', function (Blueprint $table): void {
             $table->dropColumn(['is_pinned']);
         });

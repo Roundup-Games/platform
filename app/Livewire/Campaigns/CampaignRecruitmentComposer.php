@@ -341,14 +341,23 @@ class CampaignRecruitmentComposer extends Component
             // count apply() would stamp right now — an honest replica.
             // Zero (no completed session yet) hides the line entirely:
             // "after session 0" reads wrong pre-first-session.
-            'refreshedAfterCount' => max(
-                (int) ($this->campaign->recruitment_summary_completed_sessions
-                    ?? $this->campaign->completedSessionsCount()),
-                0,
-            ) > 0
-                ? (int) ($this->campaign->recruitment_summary_completed_sessions
-                    ?? $this->campaign->completedSessionsCount())
-                : null,
+            'refreshedAfterCount' => $this->refreshedAfterCount(),
         ]);
+    }
+
+    /**
+     * The "after session N" the preview should display: the applied
+     * stamp when a block is live, otherwise the count apply() would
+     * stamp right now — null when zero (no completed session yet).
+     */
+    private function refreshedAfterCount(): ?int
+    {
+        $count = max(
+            (int) ($this->campaign->recruitment_summary_completed_sessions
+                ?? $this->campaign->completedSessionsCount()),
+            0,
+        );
+
+        return $count > 0 ? $count : null;
     }
 }

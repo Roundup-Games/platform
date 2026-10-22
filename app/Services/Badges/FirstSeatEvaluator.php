@@ -49,12 +49,13 @@ class FirstSeatEvaluator extends CohortSweepEvaluator
      */
     protected function proposalFor(User $user): ?array
     {
+        // The verified-attendance floor is single-sourced on
+        // GameParticipant::scopeVerifiedAttendance (Attended on an
+        // organizer-resolved, dated game) — the evidence pick only
+        // adds the session-date ordering.
         $evidence = GameParticipant::query()
-            ->where('game_participants.user_id', $user->id)
-            ->where('game_participants.attendance_status', AttendanceStatus::Attended->value)
-            ->join('games', 'games.id', '=', 'game_participants.game_id')
-            ->whereNotNull('games.attendance_resolved_at')
-            ->whereNotNull('games.date_time')
+            ->verifiedAttendance()
+            ->whereBelongsTo($user)
             ->orderBy('games.date_time')
             ->select('game_participants.*')
             ->first();

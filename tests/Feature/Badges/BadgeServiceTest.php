@@ -363,6 +363,32 @@ it('freezes lapse under retirement: no grey-out, no re-earn copy while award ref
         ->and(BadgeUser::query()->first()->lapsed_at)->not->toBeNull();
 });
 
+it('freezes lapse under dormancy: the grey-out re-earn copy would lie while award refuses (RefusedDormant)', function () {
+    $user = User::factory()->create();
+    $service = app(BadgeService::class);
+
+    $service->award($user, 'debut');
+
+    $debut = BadgeDefinition::query()->where('key', 'debut')->firstOrFail();
+    $debut->update(['is_dormant' => true]);
+
+    // Dormancy freezes the hold exactly like retirement: award()
+    // structurally refuses the re-earn, so a lapse's grey-out-with-
+    // re-earn copy would promise a write that never happens.
+    expect($service->lapse($user, 'debut', 'membership_ended'))->toBeFalse();
+
+    $hold = BadgeUser::query()->first();
+
+    expect($hold->lapsed_at)->toBeNull()
+        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Lapsed)->count())->toBe(0);
+
+    // Undorming resumes the lifecycle symmetrically.
+    $debut->update(['is_dormant' => false]);
+
+    expect($service->lapse($user, 'debut', 'membership_ended'))->toBeTrue()
+        ->and(BadgeUser::query()->first()->lapsed_at)->not->toBeNull();
+});
+
 it('returns false when lapsing a badge the user does not hold', function () {
     $user = User::factory()->create();
     $service = app(BadgeService::class);

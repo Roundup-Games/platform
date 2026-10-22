@@ -63,7 +63,11 @@ class MentorEvaluator extends CohortSweepEvaluator
      */
     protected function proposalFor(User $user): ?array
     {
-        $gmProfile = $user->gmProfile()->first();
+        // Property read: baseQuery() eager-loads gmProfile for the
+        // sweep cohort (the skeleton's hook exists exactly for this);
+        // the ->first() form would re-query per user even when the
+        // relation is already loaded.
+        $gmProfile = $user->gmProfile;
 
         if ($gmProfile === null) {
             return null;
@@ -146,5 +150,11 @@ class MentorEvaluator extends CohortSweepEvaluator
     protected function qualifyingCohort(Builder $grouped): Builder
     {
         return $grouped->whereHas('gmProfile');
+    }
+
+    /** Eager-load the profile proposalFor() reads — one query per chunk, not per GM. */
+    protected function baseQuery(): Builder
+    {
+        return parent::baseQuery()->with('gmProfile');
     }
 }

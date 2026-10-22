@@ -49,6 +49,10 @@ class GameBulletinBoard extends Component
             ->with('user')
             ->orderByDesc('is_pinned')
             ->orderByDesc('created_at')
+            // UUIDv7 ids give a stable same-second tiebreak — without
+            // it, two quick notes created in the same second can
+            // interleave differently across requests.
+            ->orderByDesc('id')
             ->get();
     }
 

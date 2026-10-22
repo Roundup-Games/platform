@@ -41,7 +41,7 @@ use Livewire\Component;
 class CharterComposer extends Component
 {
     /** Stored sections + the review step. */
-    private const int TOTAL_STEPS = 8;
+    public const int TOTAL_STEPS = 8;
 
     // ── Context ───────────────────────────────────────────
 
@@ -65,6 +65,16 @@ class CharterComposer extends Component
 
     /** Amendment mode (S03): true between startAmendment() and publish/cancel. */
     public bool $amending = false;
+
+    /**
+     * The charter version this amendment session is editing against
+     * (optimistic-concurrency base). Captured in startAmendment() and
+     * enforced by CharterService::amend: if another tab or GM published
+     * an amendment in between, publishing refuses instead of silently
+     * reverting the intervening version with stale snapshot content.
+     */
+    #[Locked]
+    public int $amendBaseVersion = 0;
 
     /** Required publish-time changelog for an amendment (S03). */
     public string $amendmentChangelog = '';
@@ -133,6 +143,17 @@ class CharterComposer extends Component
             return;
         }
 
+        // Seeds resolve from bound state, not from wire:click arguments:
+        // interpolating a client-settable property into the click's JS
+        // expression puts it inside a JS string literal (self-XSS
+        // shape). The select is wire:model.live — the property IS the
+        // pick. The optional parameter stays for direct callers/tests.
+        $seedId ??= match ($mode) {
+            'template' => $this->templateId,
+            'previous' => $this->previousCharterId,
+            default => null,
+        };
+
         if (in_array($mode, ['template', 'previous'], true) && ($seedId === null || $seedId === '')) {
             return;
         }
@@ -161,6 +182,7 @@ class CharterComposer extends Component
 
         $this->amending = true;
         $this->amendmentChangelog = '';
+        $this->amendBaseVersion = (int) $this->charter->current_version;
         $this->hydrateFromCharter($this->charter);
     }
 
@@ -178,6 +200,7 @@ class CharterComposer extends Component
 
         $this->amending = false;
         $this->amendmentChangelog = '';
+        $this->amendBaseVersion = 0;
         $this->hydrateFromCharter($charter);
     }
 
@@ -349,9 +372,28 @@ class CharterComposer extends Component
                 $validated['title'],
                 $this->content,
                 $validated['amendmentChangelog'],
+                $this->amendBaseVersion,
             );
         } catch (ValidationException $e) {
-            $this->resetErrorBag();
+            // Charter-row-level failures (stale base version, concurrent
+            // amend, lifecycle) mean the local model is outdated — and
+            // the edit buffer with it. Recover BEFORE repopulating the
+            // error bag (hydrateFromCharter resets it): refresh,
+            // re-baseline AND re-hydrate the buffer from the version
+            // that actually won. Re-baselining alone would let the next
+            // click publish the stale buffer as vN+1, wholesale
+            // reverting the winner's amendment — the exact write the
+            // service guard refuses. The GM re-applies edits on top of
+            // the winning content, with the error still explaining why.
+            $rowLevelFailure = array_key_exists('charter', $e->errors());
+
+            if ($rowLevelFailure) {
+                $charter->refresh();
+                $this->amendBaseVersion = (int) $charter->current_version;
+                $this->hydrateFromCharter($charter);
+            } else {
+                $this->resetErrorBag();
+            }
 
             foreach ($e->errors() as $key => $messages) {
                 foreach ((array) $messages as $message) {
@@ -571,11 +613,7 @@ class CharterComposer extends Component
         $userId = (string) authenticatedUser()->id;
 
         return Location::query()
-            ->where(function ($q) use ($userId) {
-                $q->whereHas('campaigns', fn ($cq) => $cq->where('owner_id', $userId))
-                    ->orWhereHas('games', fn ($gq) => $gq->where('owner_id', $userId));
-            })
-            ->when($this->campaign->location_id !== null, fn ($q) => $q->orWhere('id', $this->campaign->location_id))
+            ->disclosableTo($userId, $this->campaign->location_id)
             ->orderBy('name')
             ->get();
     }

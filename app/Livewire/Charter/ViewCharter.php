@@ -105,6 +105,11 @@ class ViewCharter extends Component
 
     private bool $amendedBannerResolved = false;
 
+    /** Memoized campaign owner id — isOwner() runs several times per render. */
+    private ?string $ownerId = null;
+
+    private bool $ownerIdResolved = false;
+
     public function mount(string $uuid): void
     {
         $this->uuid = $uuid;
@@ -315,12 +320,19 @@ class ViewCharter extends Component
      */
     private function isOwner(): bool
     {
+        // Memoized: isOwner() runs several times per render on the
+        // hottest public charter page — without the cache each call
+        // re-queries the campaign relation.
+        if (! $this->ownerIdResolved) {
+            $this->ownerId = $this->resolveCharter()?->campaign?->owner_id;
+            $this->ownerIdResolved = true;
+        }
+
         $user = Auth::user();
-        $ownerId = $this->resolveCharter()?->campaign?->owner_id;
 
         return $user !== null
-            && $ownerId !== null
-            && (string) $ownerId === (string) $user->id;
+            && $this->ownerId !== null
+            && (string) $this->ownerId === (string) $user->id;
     }
 
     /**
@@ -335,15 +347,21 @@ class ViewCharter extends Component
             return $this->canSign;
         }
 
+        // Memoize refusals too: this runs on the hottest public page
+        // (render + prefill + amended banner), and guests hit the early
+        // returns 2-3 times per request otherwise.
+        $this->canSignResolved = true;
+        $this->canSign = false;
+
         $charter = $this->resolveCharter();
         $user = Auth::user();
 
         if ($charter === null || $user === null || ! $charter->isCharter() || ! $charter->isActive()) {
-            return false;
+            return $this->canSign;
         }
 
         if ($this->viewerSignature() !== null) {
-            return false;
+            return $this->canSign;
         }
 
         $this->canSign = CampaignParticipant::query()
@@ -351,7 +369,6 @@ class ViewCharter extends Component
             ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->exists();
-        $this->canSignResolved = true;
 
         return $this->canSign;
     }

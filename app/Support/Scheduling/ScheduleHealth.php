@@ -27,6 +27,13 @@ use Throwable;
 final class ScheduleHealth
 {
     /**
+     * The summary cache key. Bump the version suffix whenever the
+     * cached array's shape changes, so a pre-deploy entry can never be
+     * read back as the new shape.
+     */
+    private const CACHE_KEY = 'admin:schedule-health.v2';
+
+    /**
      * Missed occurrences, tasks whose latest run failed, and tasks still
      * awaiting their first recorded run. Cached 5 minutes — the dashboard
      * tile may therefore lag the Scheduled Tasks page (which computes
@@ -41,7 +48,11 @@ final class ScheduleHealth
      */
     public static function summary(): array
     {
-        $cached = Cache::get('admin:schedule-health');
+        // v2: the 'degraded' key joined the shape — an old-shape entry
+        // under the v1 key would pass is_array() and hand the widget an
+        // array without 'degraded' (undefined-key read). Versioned, not
+        // reused: stale entries simply expire unretrieved.
+        $cached = Cache::get(self::CACHE_KEY);
 
         if (is_array($cached)) {
             /** @var array{missed: int, failed_last: int, awaiting_first: int, degraded: bool} $cached */
@@ -50,7 +61,7 @@ final class ScheduleHealth
 
         $summary = self::compute();
 
-        Cache::put('admin:schedule-health', $summary, now()->addMinutes($summary['degraded'] ? 1 : 5));
+        Cache::put(self::CACHE_KEY, $summary, now()->addMinutes($summary['degraded'] ? 1 : 5));
 
         return $summary;
     }

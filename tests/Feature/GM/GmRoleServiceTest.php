@@ -245,6 +245,101 @@ class GmRoleServiceTest extends TestCase
         $this->assertTrue($user->fresh()->hasRole('Game Master'));
     }
 
+    public function test_activate_gm_subscription_converges_over_dedupe_created_history(): void
+    {
+        $this->seedGmPlan();
+        $user = $this->createSubscribedUser();
+        $gmPlan = MembershipType::query()->where('name', 'Game Master')->firstOrFail();
+        $earliestStart = now()->subYears(2)->startOfDay();
+
+        // The exact post-migration state the active-per-source dedupe
+        // manufactures: an OLDER canceled row beside the NEWER active
+        // row for the same (user, plan, source) key. The old unordered
+        // updateOrCreate could pick the canceled row, flip it to
+        // active, violate the partial unique index, and 500-loop the
+        // violation retry on the same loser pick — forever.
+        LocalSubscription::factory()->create([
+            'user_id' => $user->id,
+            'membership_type_id' => $gmPlan->id,
+            'source' => LocalSubscriptionSource::SelfServe,
+            'status' => 'canceled',
+            'starts_at' => $earliestStart,
+            'canceled_at' => now()->subYear(),
+        ]);
+        LocalSubscription::factory()->create([
+            'user_id' => $user->id,
+            'membership_type_id' => $gmPlan->id,
+            'source' => LocalSubscriptionSource::SelfServe,
+            'status' => 'active',
+            'starts_at' => now()->subMonth(),
+        ]);
+
+        $result = $this->service->activateGmSubscription($user);
+
+        $this->assertTrue($result);
+        $this->assertSame(
+            1,
+            $user->localSubscriptions()
+                ->where('source', LocalSubscriptionSource::SelfServe)
+                ->where('status', 'active')
+                ->count(),
+        );
+
+        // Tenure anchors on the EARLIEST start across all rows of the
+        // key, history included (SupportingMemberEvaluator reads min).
+        $active = $user->localSubscriptions()
+            ->where('source', LocalSubscriptionSource::SelfServe)
+            ->where('status', 'active')
+            ->first();
+        $this->assertTrue($active->starts_at->equalTo($earliestStart));
+        $this->assertTrue($user->fresh()->can_create_public_entries);
+    }
+
+    public function test_activate_gm_subscription_reactivates_the_earliest_canceled_self_serve_row(): void
+    {
+        $this->seedGmPlan();
+        $user = $this->createSubscribedUser();
+        $gmPlan = MembershipType::query()->where('name', 'Game Master')->firstOrFail();
+        $earliestStart = now()->subYears(3)->startOfDay();
+
+        // Canceled-only history (churned supporter returning): the
+        // earliest-started row is the tenure anchor and must be the row
+        // reactivated in place — never a new row beside the history.
+        $earliest = LocalSubscription::factory()->create([
+            'user_id' => $user->id,
+            'membership_type_id' => $gmPlan->id,
+            'source' => LocalSubscriptionSource::SelfServe,
+            'status' => 'canceled',
+            'starts_at' => $earliestStart,
+            'canceled_at' => now()->subYear(),
+        ]);
+        $newest = LocalSubscription::factory()->create([
+            'user_id' => $user->id,
+            'membership_type_id' => $gmPlan->id,
+            'source' => LocalSubscriptionSource::SelfServe,
+            'status' => 'canceled',
+            'starts_at' => now()->subMonths(6),
+            'canceled_at' => now()->subMonth(),
+        ]);
+
+        $result = $this->service->activateGmSubscription($user);
+
+        $this->assertTrue($result);
+        $this->assertSame(
+            1,
+            $user->localSubscriptions()
+                ->where('source', LocalSubscriptionSource::SelfServe)
+                ->where('status', 'active')
+                ->count(),
+        );
+        $this->assertSame($earliest->id, $user->localSubscriptions()
+            ->where('source', LocalSubscriptionSource::SelfServe)
+            ->where('status', 'active')
+            ->first()->id);
+        $this->assertSame('canceled', $newest->fresh()->status);
+        $this->assertTrue($earliest->fresh()->starts_at->equalTo($earliestStart));
+    }
+
     public function test_revoke_gm_role_revokes_can_create_public_entries(): void
     {
         $user = $this->createSubscribedUser();

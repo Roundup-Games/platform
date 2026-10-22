@@ -134,7 +134,7 @@
         @include('livewire.charter.sections.boundaries')
         @include('livewire.charter.sections.safety')
         @include('livewire.charter.sections.policies')
-        @include('livewire.charter.sections.ai-tools')
+        @include('livewire.charter.sections.ai_tools')
         @include('livewire.charter.sections.logistics')
         @include('livewire.charter.sections.character')
         @include('livewire.charter.sections.agreement')

@@ -299,13 +299,15 @@ class PreviouslyOnService
                 );
             });
         } catch (UniqueConstraintViolationException) {
-            // Create-race (unique(game_id)): a concurrent compose (the
-            // 24h reminder and a GM clicking Refresh) won the insert
-            // between the lock miss and the create. Converge on the
-            // winner's row — same outcome the loser would have written,
-            // and the panel refresh path never surfaces a 500 for a lost
-            // race (the LogicException catch is for programming errors,
-            // not this). first(), not firstOrFail(): the winner's row can
+            // Defensive backstop for future callers that bypass the
+            // campaign-row lock taken above: every current composer takes
+            // that lock before the insert, so a concurrent compose cannot
+            // actually reach this catch (the loser blocks on the lock and
+            // sees the winner's row). Converge on the winner's row —
+            // same outcome the loser would have written, and the panel
+            // refresh path never surfaces a 500 for a lost race (the
+            // LogicException catch is for programming errors, not this).
+            // first(), not firstOrFail(): the winner's row can
             // itself be deleted before this re-read (a concurrent
             // supersedes or the observer's status-change sweep), and a
             // ModelNotFoundException would escape that catch — the null
@@ -465,8 +467,12 @@ class PreviouslyOnService
 
     /**
      * The loose-threads heuristic: the latest condition-type and latest
-     * item-type change per participant — the character's current open
-     * state, not a firehose of history.
+     * item-type change per CURRENT participant — the character's
+     * current open state, not a firehose of history. Departed
+     * participants (removed/rejected/waitlisted) are excluded: their
+     * state rows survive in the timeline history (nullOnDelete), but a
+     * digest delivered to the remaining table must not carry a
+     * departed player's character threads forward.
      *
      * Bounded by construction: DISTINCT ON resolves the per-(participant,
      * type) winner inside Postgres (the latestPerTask pattern), so the
@@ -482,6 +488,11 @@ class PreviouslyOnService
         $changes = $campaign->stateChanges()
             ->whereIn('change_type', [CharacterStateChangeType::Condition, CharacterStateChangeType::Item])
             ->whereNotNull('participant_id')
+            // Current roster only (Approved + Benched — the campaign's
+            // one membership set, see CampaignParticipant::scopeCurrentRoster).
+            // Participant-less interlude rows stay excluded by the
+            // whereNotNull above, exactly as before.
+            ->whereHas('participant', fn ($query) => $query->currentRoster())
             // Literals are code-controlled (model + migration), same as
             // ScheduledTaskRun::latestPerTask's raw expression.
             ->selectRaw('distinct on (participant_id, change_type) character_state_changes.*')

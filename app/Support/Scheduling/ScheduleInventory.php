@@ -21,9 +21,12 @@ use Illuminate\Support\Facades;
  */
 final class ScheduleInventory
 {
+    /** Container marker: this helper has required console.php itself. */
+    private const string CONSOLE_LOADED = 'schedule.inventory.console-loaded';
+
     /**
      * All registered schedule events, loading routes/console.php first
-     * when the container's schedule is still empty (web context).
+     * when this process has not kernel-loaded it (web context).
      *
      * @return list<Event>
      */
@@ -31,7 +34,12 @@ final class ScheduleInventory
     {
         $schedule = app(Schedule::class);
 
-        if ($schedule->events() === []) {
+        // Require AT MOST ONCE per process: emptiness is the web-context
+        // signal (console processes arrive kernel-loaded and non-empty),
+        // and the marker stops a legitimately empty console.php from
+        // being re-required — re-registering its Artisan closures — on
+        // every call.
+        if ($schedule->events() === [] && ! app()->bound(self::CONSOLE_LOADED)) {
             // registrations in routes/console.php go through the Schedule
             // FACADE — pin container and facade to the same instance so the
             // definitions land on the schedule this helper returns.
@@ -39,6 +47,11 @@ final class ScheduleInventory
             Facades\Schedule::swap($schedule);
 
             require base_path('routes/console.php');
+
+            // Container-scoped on purpose: it resets with the app (a
+            // static would outlive per-test/per-request containers and
+            // skip the require for the rest of the process).
+            app()->instance(self::CONSOLE_LOADED, true);
         }
 
         return array_values($schedule->events());

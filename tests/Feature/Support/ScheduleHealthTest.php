@@ -138,7 +138,7 @@ it('treats a completely fresh install as all-awaiting, never missed', function (
 it('caches the summary for five minutes', function () {
     ScheduleHealth::summary();
 
-    expect(Cache::has('admin:schedule-health'))->toBeTrue();
+    expect(Cache::has('admin:schedule-health.v2'))->toBeTrue();
 });
 
 it('marks the summary degraded — not all-clear — when the schedule inventory cannot load', function () {

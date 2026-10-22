@@ -132,7 +132,7 @@
                             </select>
                             <button
                                 type="button"
-                                wire:click="startCharter('template', '{{ $templateId }}')"
+                                wire:click="startCharter('template')"
                                 wire:loading.attr="disabled"
                                 @disabled($templateId === '')
                                 class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap"
@@ -163,7 +163,7 @@
                             </select>
                             <button
                                 type="button"
-                                wire:click="startCharter('previous', '{{ $previousCharterId }}')"
+                                wire:click="startCharter('previous')"
                                 wire:loading.attr="disabled"
                                 @disabled($previousCharterId === '')
                                 class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap"

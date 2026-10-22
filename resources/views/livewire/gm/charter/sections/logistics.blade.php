@@ -1,12 +1,6 @@
 @php($section = $content['logistics'] ?? [])
 
-@php($choiceFields = [
-    'food_drink' => ['venue_rules', 'snack_rotation', 'byo', 'group_orders'],
-    'cadence' => ['weekly', 'biweekly', 'monthly', 'irregular'],
-    'session_length' => ['2h', '3h', '4h', 'other'],
-    'absence_notice' => ['asap', '24h', '48h'],
-    'missing_player' => ['skip_session', 'pc_as_npc', 'side_oneshot'],
-])
+@php($choiceFields = \App\Dto\CharterContent::choicesForSection('logistics', ['food_drink', 'cadence', 'session_length', 'absence_notice', 'missing_player']))
 
 <div class="space-y-6">
     {{-- Venue mode --}}
@@ -14,7 +8,7 @@
         <p class="text-sm font-medium text-on-surface mb-1">{{ __('charter.field_logistics_venue_mode_label') }}</p>
         <p class="text-xs text-on-surface-variant mb-3">{{ __('charter.field_logistics_venue_mode_help') }}</p>
         <div class="grid sm:grid-cols-2 gap-2">
-            @foreach(['location', 'rotate'] as $mode)
+            @foreach(\App\Dto\CharterContent::choicesFor('logistics.venue_mode') as $mode)
                 <label class="flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors cursor-pointer {{ ($section['venue_mode'] ?? '') === $mode ? 'border-primary/40 bg-primary/5' : 'border-outline/20 bg-surface-container-high hover:border-outline/40' }}">
                     <input
                         type="radio"

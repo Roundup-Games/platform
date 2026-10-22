@@ -49,12 +49,25 @@ class CompMembershipService
      *
      * @throws RuntimeException When no active local GM plan exists (run
      *                          the MembershipTypeSeeder first).
+     * @throws \InvalidArgumentException When $endsAt lies in the past —
+     *                                   a grant that cannot carry benefits
+     *                                   must refuse loudly, not return a
+     *                                   benefitless active row.
      */
     public function grant(User $user, ?CarbonInterface $endsAt, User $grantedBy, string $reason): LocalSubscription
     {
+        if ($endsAt !== null && $endsAt->isPast()) {
+            throw new \InvalidArgumentException('Comp period end must be in the future (or null for permanent).');
+        }
+
+        // Same determinism rule as GmRoleService::activateGmSubscription:
+        // order by price so several active gm_plan tiers (Game Master,
+        // Game Master+…) resolve to the base plan instead of physical
+        // row order — provenance and badge evidence stay unambiguous.
         $gmPlan = MembershipType::active()
             ->where('type', 'local')
             ->whereJsonContains('metadata->gm_plan', true)
+            ->orderBy('price_cents')
             ->first();
 
         if (! $gmPlan) {

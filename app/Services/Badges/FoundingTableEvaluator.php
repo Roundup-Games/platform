@@ -48,6 +48,18 @@ class FoundingTableEvaluator implements BadgeEvaluator
 
     public function sweep(): void
     {
+        // Window closed: nobody new can ever qualify (every account
+        // created after closure is permanently outside it) and holds
+        // never lapse (spec §4), so the whole-table anti-join below
+        // would iterate an ever-growing population of permanently
+        // unqualifiable accounts forever, concluding nothing. Nothing
+        // to do — the per-user proposalFor() null check below still
+        // covers a window that closes mid-sweep during the running
+        // pass.
+        if ($this->windowClosed()) {
+            return;
+        }
+
         $service = app(BadgeService::class);
 
         // Existing holders are excluded from the cohort: while the
@@ -59,6 +71,7 @@ class FoundingTableEvaluator implements BadgeEvaluator
         // re-proposing would only hit RefusedRevoked anyway. Cost drops
         // to O(new accounts).
         User::query()
+            ->notAnonymized()
             ->whereDoesntHave('badges', fn ($query) => $query
                 ->whereHas('badgeDefinition', fn ($definition) => $definition
                     ->where('key', self::BADGE_KEY)))

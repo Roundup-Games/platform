@@ -10,6 +10,7 @@ use App\Enums\ParticipantStatus;
 use App\Models\Concerns\HasParticipantDefaults;
 use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\CampaignParticipantFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -90,6 +91,26 @@ class CampaignParticipant extends Pivot implements ParticipantContract
     public function stateChanges(): HasMany
     {
         return $this->hasMany(CharacterStateChange::class, 'participant_id');
+    }
+
+    /**
+     * Scope: participants still at the table — Approved plus Benched,
+     * the same membership set CampaignJournalService's write gates and
+     * CampaignPolicy's membership checks resolve. Single-sourced here
+     * so the Previously On digest's loose threads (and future roster
+     * queries) can never drift from it: departed rows (removed,
+     * rejected, waitlisted, pending) stay in the state-change history
+     * (nullOnDelete keeps it) but never surface as current threads.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeCurrentRoster(Builder $query): Builder
+    {
+        return $query->whereIn('status', [
+            ParticipantStatus::Approved->value,
+            ParticipantStatus::Benched->value,
+        ]);
     }
 
     /**

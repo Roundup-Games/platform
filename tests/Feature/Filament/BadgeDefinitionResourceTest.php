@@ -214,6 +214,22 @@ describe('BadgeDefinitionResource — metadata curation', function () {
             ->and($fresh->is_active)->toBeFalse();
     });
 
+    test('accepts the empty JSON object — blank is the clear path, but {} is a valid object', function () {
+        $debut = BadgeDefinition::query()->where('key', 'debut')->firstOrFail();
+
+        actingAs($this->platformAdmin);
+
+        Livewire\Livewire::test(EditBadgeDefinition::class, ['record' => $debut->getKey()])
+            ->fillForm(['metadata' => '{}'])
+            ->call('save')
+            ->assertHasNoErrors();
+
+        // An empty object means "no overrides" — same as blank, never a
+        // false 'must be a valid JSON object' rejection (json_decode
+        // gives [] and array_is_list([]) is true).
+        expect($debut->fresh()->metadata)->toBe([]);
+    });
+
     test('rejects malformed JSON with a validation error', function () {
         $debut = BadgeDefinition::query()->where('key', 'debut')->firstOrFail();
 

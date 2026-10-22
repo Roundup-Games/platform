@@ -177,6 +177,24 @@ class CampaignPreviouslyOn extends Component
             session()->flash('error', $e->getMessage());
 
             return;
+        } catch (\Throwable $e) {
+            // Same rationale as refresh(): publish also takes the
+            // campaign-row lock and the draft row under lockForUpdate —
+            // a lock timeout or serialization failure under load degrades
+            // to the unavailable flash, never an uncaught error modal on
+            // a one-click GM action. report() keeps the distinction
+            // between infra degradation and a real defect (TypeError,
+            // NRE) observable — the flash alone would swallow both.
+            report($e);
+            logger()->error('previously_on.publish_failed', [
+                'campaign_id' => (string) $this->campaign->id,
+                'exception' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+
+            session()->flash('error', __('journal.error_previously_on_not_available'));
+
+            return;
         }
 
         session()->flash('success', __('journal.flash_previously_on_published'));
@@ -218,8 +236,13 @@ class CampaignPreviouslyOn extends Component
         try {
             app(PreviouslyOnService::class)->upsertUnpublished($this->campaign, $draft->game);
         } catch (\Throwable $e) {
-            logger()->warning('previously_on.refresh_failed', [
+            // report() keeps infra degradation distinguishable from a
+            // real defect in the compose path — the flash alone would
+            // swallow both (same discipline as publish()).
+            report($e);
+            logger()->error('previously_on.refresh_failed', [
                 'campaign_id' => (string) $this->campaign->id,
+                'exception' => $e::class,
                 'error' => $e->getMessage(),
             ]);
 

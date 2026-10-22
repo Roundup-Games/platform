@@ -54,9 +54,9 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
     }
 
     /** Streak broken → quiet grey-out (spec §4). Idempotent inside BadgeService: no hold, already lapsed, admin-revoked, a manual-source grant (never auto-lapsed), or a retired definition (holds freeze) is a no-op. */
-    protected function sweepOnUnqualified(User $user, BadgeService $service): void
+    protected function lapseReason(): ?string
     {
-        $service->lapse($user, self::BADGE_KEY, self::LAPSE_REASON);
+        return self::LAPSE_REASON;
     }
 
     private const LAPSE_REASON = 'streak_broken';

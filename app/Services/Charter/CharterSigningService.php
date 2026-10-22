@@ -4,6 +4,7 @@ namespace App\Services\Charter;
 
 use App\Dto\CharterContent;
 use App\Enums\ParticipantStatus;
+use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
@@ -98,6 +99,13 @@ class CharterSigningService
         foreach (CharterContent::AGREEMENT_ITEMS as $item) {
             $rules['attestations.'.$item] = ['required', 'boolean', 'accepted'];
         }
+        // The container rules keep boundaryCategories() iterating a
+        // bounded, well-typed shape even on a hand-crafted payload —
+        // scalar or nested values are dropped as validation failures,
+        // never walked.
+        $rules['private_answers'] = ['nullable', 'array'];
+        $rules['private_answers.my_lines_categories'] = ['nullable', 'array', 'max:'.count(CharterContent::BOUNDARY_CATEGORIES)];
+        $rules['private_answers.my_veils_categories'] = ['nullable', 'array', 'max:'.count(CharterContent::BOUNDARY_CATEGORIES)];
         $rules['private_answers.my_lines_text'] = ['nullable', 'string', 'max:2000'];
         $rules['private_answers.my_veils_text'] = ['nullable', 'string', 'max:2000'];
         $rules['private_answers.note_to_gm'] = ['nullable', 'string', 'max:2000'];
@@ -396,6 +404,7 @@ class CharterSigningService
      *     percentSigned: int,
      *     daysOutstanding: ?int,
      *     countersigned: bool,
+     *     campaign: ?Campaign,
      * }>
      */
     public static function workspaceHealth(User $owner): array

@@ -14,7 +14,9 @@ use App\Services\GmRoleService;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
+use Tests\Traits\InjectsConcurrentDuplicates;
 
 /**
  * CompMembershipService (M069 S03 T2, R083): comp grants must create a
@@ -29,6 +31,7 @@ use Spatie\Permission\Models\Role;
  * active membership remains; badge lapse stays sweep-owned (quiet, then
  * SupportingMemberEvaluator::sweep() stamps it with a Lapsed audit row).
  */
+uses(InjectsConcurrentDuplicates::class);
 
 /**
  * Seed/fetch the GM plan (unique prefix: Pest compiles every test file
@@ -285,4 +288,68 @@ it('writes no rows when the GM plan is missing', function () {
         ->and(LocalSubscription::query()->count())->toBe(0)
         ->and(BadgeUser::query()->count())->toBe(0)
         ->and(BadgeEvent::query()->count())->toBe(0);
+});
+
+// ── Converge-on-violation backstop (partial unique index race) ──
+
+it('converges when a concurrent grant wins the insert race — one active comp row, winner semantics preserved', function () {
+    $plan = compMembershipGmPlan();
+    $user = User::factory()->create();
+    $admin = User::factory()->create();
+
+    // The lost race: a conflicting active comp row lands between the
+    // locked read and the INSERT — the loser's insert hits the real
+    // partial unique index and must converge, not 500.
+    $disarm = $this->injectDuplicateOnCreate(LocalSubscription::class, fn () => [
+        'id' => (string) Str::uuid(),
+        'user_id' => $user->id,
+        'membership_type_id' => $plan->id,
+        'status' => 'active',
+        'source' => LocalSubscriptionSource::Comp->value,
+        'starts_at' => now()->subDays(3)->toDateTimeString(),
+        'ends_at' => null,
+        'canceled_at' => null,
+        'granted_by' => $admin->id,
+        'reason' => 'concurrent winner',
+    ]);
+
+    try {
+        $subscription = app(CompMembershipService::class)
+            ->grant($user, now()->addMonths(3), $admin, 'loser grant that must converge');
+    } finally {
+        $disarm();
+    }
+
+    // The catch converged instead of surfacing a 500: exactly one
+    // active comp row carrying the caller's reason/period, returned to
+    // the caller. (The injected winner rolls back with the loser's
+    // savepoint — the trait's documented parity limitation — so the
+    // retry re-creates from scratch with starts_at=now; winner-row
+    // starts_at survival is therefore not assertable through this
+    // harness, only through the re-grant tests above.)
+    $active = $user->localSubscriptions()
+        ->where('source', LocalSubscriptionSource::Comp)
+        ->where('status', 'active')
+        ->get();
+
+    expect($active)->toHaveCount(1)
+        ->and($active->first()->reason)->toBe('loser grant that must converge')
+        ->and($active->first()->ends_at?->isSameDay(now()->addMonths(3)))->toBeTrue()
+        ->and($subscription->is($active->first()))->toBeTrue();
+});
+
+it('rejects a past period end instead of writing a benefitless active comp', function () {
+    $plan = compMembershipGmPlan();
+    $user = User::factory()->create();
+    $admin = User::factory()->create();
+
+    try {
+        app(CompMembershipService::class)->grant($user, now()->subDay(), $admin, 'stale period');
+        $this->fail('grant should refuse a past ends_at');
+    } catch (InvalidArgumentException) {
+        // Loud refusal, no rows, no role.
+    }
+
+    expect($user->localSubscriptions()->count())->toBe(0)
+        ->and($user->isGM())->toBeFalse();
 });

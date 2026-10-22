@@ -183,7 +183,9 @@ class CharterService
         // varchar(255) — an unvalidated autosave past it would surface
         // as a Postgres error (500), not a form error. Drafts tolerate
         // everything else (the tolerant normalizer fills gaps); the
-        // title is the one always-written free-text field.
+        // title is the one always-written free-text field. Trimmed
+        // first: whitespace-only must fail `required`, never publish.
+        $title = trim($title);
         $validator = Validator::make(['title' => $title], [
             'title' => ['required', 'string', 'max:255'],
         ]);
@@ -271,6 +273,8 @@ class CharterService
             // column, and a future direct service caller must hit the
             // form error, never a Postgres "value too long" 500 — the
             // same boundary rule saveDraft() documents.
+            $title = trim($title);
+
             $validator = Validator::make(
                 array_merge($normalized, ['title' => $title]),
                 array_merge(CharterContent::rules(), [
@@ -338,21 +342,32 @@ class CharterService
      * roster so it stops consuming a free-tier slot (R084). Owner-gated
      * through the campaign owner (R084 idiom, never GmRoleService) and
      * restricted to active charters — drafts are abandoned by deleting
-     * nothing, archived charters are frozen history. Delegates to the
-     * model's archive() helper; the immutable version rows stay put and
+     * nothing, archived charters are frozen history. This is the ONE
+     * guarded archive path — a conditional, owner-checked write (the
+     * model's bare archive() helper is a raw writer with no guards and
+     * no lifecycle check); the immutable version rows stay put and
      * the S02/S03 gates keep refusing sign/amend on archived rows.
      */
     public static function archive(User $user, SessionZeroSurvey $charter): void
     {
         self::authorizeCharter($user, $charter);
 
-        if (! $charter->isActive()) {
+        // Conditional write (the saveDraft idiom): the in-memory
+        // isActive() read races a concurrent archive from another tab
+        // (double-write) or an amend-publish (which must stay active —
+        // the version index owns that transition). Zero affected rows
+        // means the row was no longer active at write time: refuse
+        // atomically instead of acting on stale state.
+        $archived = SessionZeroSurvey::query()
+            ->whereKey($charter->getKey())
+            ->where('status', 'active')
+            ->update(['status' => 'archived']);
+
+        if ($archived === 0) {
             throw ValidationException::withMessages([
                 'charter' => __('charter.error_only_active_archivable'),
             ]);
         }
-
-        $charter->archive();
 
         Log::info('Charter archived', [
             'survey_id' => $charter->id,
@@ -374,15 +389,23 @@ class CharterService
      * are minor (concept §3).
      *
      * @param  array<string, mixed>  $content
+     * @param  int|null  $expectedBaseVersion  Optimistic-concurrency guard: the
+     *                                         current_version the caller's edits were built against. When
+     *                                         non-null and the locked re-read moved on (another tab or GM
+     *                                         published an amendment in between), the call refuses instead
+     *                                         of silently inserting a new version built from stale content
+     *                                         — which would revert the intervening amendment wholesale.
+     *                                         Null asserts the caller holds a freshly loaded charter and
+     *                                         is the only writer (setup helpers, service-to-service).
      *
      * @throws AuthorizationException when the actor may not manage this charter's campaign
-     * @throws ValidationException when the charter is not an active published charter, title/changelog/content validation fails, or a concurrent amend won the version race
+     * @throws ValidationException when the charter is not an active published charter, title/changelog/content validation fails, the expected base version is stale, or a concurrent amend won the version race
      */
-    public static function amend(User $actor, SessionZeroSurvey $charter, string $title, array $content, string $changelog): SessionZeroSurveyVersion
+    public static function amend(User $actor, SessionZeroSurvey $charter, string $title, array $content, string $changelog, ?int $expectedBaseVersion = null): SessionZeroSurveyVersion
     {
         self::authorizeCharter($actor, $charter);
 
-        $version = DB::transaction(function () use ($charter, $title, $content, $changelog): SessionZeroSurveyVersion {
+        $version = DB::transaction(function () use ($charter, $title, $content, $changelog, $expectedBaseVersion): SessionZeroSurveyVersion {
             // Lock the charter row and re-check liveness from the
             // locked read: archive() flips status via a plain UPDATE,
             // which blocks on this lock and lands only AFTER the
@@ -409,8 +432,21 @@ class CharterService
                 ]);
             }
 
+            // Optimistic concurrency (the stale-tab guard): the composer's
+            // edits are hydrated from the version it started amending
+            // against. If another amendment landed since, inserting this
+            // snapshot as vN+1 would silently REVERT it in the live
+            // charter — the version unique index only catches same-number
+            // races, not content built on an outdated base.
+            if ($expectedBaseVersion !== null && (int) $charter->current_version !== $expectedBaseVersion) {
+                throw ValidationException::withMessages([
+                    'charter' => __('charter.error_amended_concurrently'),
+                ]);
+            }
+
             $normalized = CharterContent::fromArray($content)->toArray();
             $changelog = trim($changelog);
+            $title = trim($title);
 
             $validator = Validator::make(
                 array_merge($normalized, ['title' => $title, 'changelog' => $changelog]),
@@ -567,13 +603,12 @@ class CharterService
         $ownerId = (string) $campaign->owner_id;
         $campaignLocationId = $campaign->location_id;
 
+        // The same shape the composer's picker offers (single-sourced
+        // in Location::scopeDisclosableTo): a venue the owner's table
+        // already plays at, or the campaign's own.
         $disclosable = Location::query()
             ->whereKey($locationId)
-            ->where(function ($query) use ($ownerId, $campaignLocationId): void {
-                $query->whereHas('campaigns', fn ($cq) => $cq->where('owner_id', $ownerId))
-                    ->orWhereHas('games', fn ($gq) => $gq->where('owner_id', $ownerId))
-                    ->when($campaignLocationId !== null, fn ($qq) => $qq->orWhere('id', $campaignLocationId));
-            })
+            ->disclosableTo($ownerId, $campaignLocationId)
             ->exists();
 
         if (! $disclosable) {

@@ -147,7 +147,16 @@ class BillingPortal extends Component
             'user_id' => $user->id,
         ]);
 
-        app(GmRoleService::class)->activateGmSubscription($user);
+        // Reactivate on the tier the user actually had: a plan-less
+        // call would fall back to the cheapest gm_plan tier, silently
+        // downgrading a canceled Game Master+ row to the base plan. A
+        // tier that is no longer offered falls back to that resolution
+        // instead of activating onto a deactivated plan.
+        $canceledPlan = $canceledGmSub->membershipType;
+        app(GmRoleService::class)->activateGmSubscription(
+            $user,
+            ($canceledPlan !== null && $canceledPlan->status === 'active') ? $canceledPlan : null,
+        );
 
         session()->flash('success', __('billing.content_gm_subscription_reactivated'));
     }

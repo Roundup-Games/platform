@@ -89,11 +89,30 @@ abstract class CohortSweepEvaluator implements BadgeEvaluator
     /**
      * What a null proposal does during sweep(). Default: nothing —
      * milestone/one-time badges never lapse (spec §2.1). Requalifying
-     * badges override to park the hold (spec §4: lapse honestly).
+     * badges return their lapse reason to park the hold through
+     * BadgeService::lapse (spec §4: lapse honestly).
+     *
+     * The hook replaces the copy-pasted `$service->lapse(...)` body
+     * three evaluators used to carry: the skeleton owns the call, the
+     * badge owns only its reason string.
      */
     protected function sweepOnUnqualified(User $user, BadgeService $service): void
     {
+        $reason = $this->lapseReason();
+
+        if ($reason !== null) {
+            $service->lapse($user, $this->badgeKey(), $reason);
+        }
+    }
+
+    /**
+     * The BadgeService::lapse reason a null proposal parks a hold with,
+     * or null when the badge never lapses (milestone/one-time).
+     */
+    protected function lapseReason(): ?string
+    {
         // Parks nothing by design — see the docblock.
+        return null;
     }
 
     /**
@@ -104,7 +123,12 @@ abstract class CohortSweepEvaluator implements BadgeEvaluator
      */
     protected function baseQuery(): Builder
     {
-        return User::query();
+        // Anonymized accounts are frozen out of every sweep cohort:
+        // erasure means no new badge_user/badge_events rows and no
+        // notifications post-erasure. Existing holds are simply never
+        // re-evaluated (they cannot lapse or upgrade either — frozen,
+        // not parked).
+        return User::query()->notAnonymized();
     }
 
     public function evaluate(User $user): ?BadgeAward

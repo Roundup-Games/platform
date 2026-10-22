@@ -57,6 +57,9 @@ class BadgeEventsRelationManager extends RelationManager
                     ->badge()
                     ->formatStateUsing(fn (BadgeEvent $record): ?string => $record->evidence_type),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            // Same eager-load rule as the sibling badges manager: the
+            // actor.name column must not fire a query per row.
+            ->modifyQueryUsing(fn ($query) => $query->with(['actor']));
     }
 }

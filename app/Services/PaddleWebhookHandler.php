@@ -791,15 +791,17 @@ class PaddleWebhookHandler
                 return;
             }
 
-            // Don't revoke if user has an active local GM subscription.
-            // Deliberately narrower than the last-active-membership
-            // seam: the webhook retains on GM-plan local rows only
-            // (hasGmSubscription()), then lapses UNCONDITIONALLY via
-            // lapseGmBenefits() — a user whose sole survivor is a
-            // non-GM local plan loses GM benefits here, where every
-            // other path retains them. Pinned by
-            // PaddleWebhookLifecycleSmokeTest; see the predicate note
-            // on GmRoleService::handleSubscriptionLapse().
+            // Retention guard — narrower than the last-active-membership
+            // seam ON PURPOSE (settled in 6c0b19ed, pinned by
+            // PaddleWebhookLifecycleSmokeTest): the webhook retains on
+            // GM-plan local rows only (hasGmSubscription()), then lapses
+            // via lapseGmBenefits() — a user whose sole survivor is a
+            // non-GM local plan loses GM benefits here, where the
+            // portal/comp/expiry paths (handleSubscriptionLapse) retain
+            // them. GM-tier entitlement semantics: a player-tier plan
+            // does not sustain GM creation rights through THIS path.
+            // The residual cross-path inconsistency is a tracked
+            // follow-up (see the D-entry on handleSubscriptionLapse).
             if ($user->hasGmSubscription()) {
                 Log::info('Keeping GM role: user has active local GM subscription', [
                     'user_id' => $user->id,

@@ -111,7 +111,11 @@ class BadgeDefinitionResource extends Resource
                                     // lists, which is_array() would let through —
                                     // a list here dehydrates into a metadata
                                     // object the display side cannot render.
-                                    if (! is_array($decoded) || array_is_list($decoded)) {
+                                    // The empty object decodes to [] (which
+                                    // array_is_list reports as a list) and is
+                                    // a valid object: blank is the clear
+                                    // path, but '{}' must not be refused.
+                                    if (! is_array($decoded) || ($decoded !== [] && array_is_list($decoded))) {
                                         $fail('The :attribute must be a valid JSON object.');
                                     }
                                 },

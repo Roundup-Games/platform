@@ -233,11 +233,14 @@ class GmRoleService
      *
      * Retention-predicate note: this seam retains on ANY active
      * membership (the M069/M071 portal/comp/expiry semantics). The
-     * Paddle subscription.canceled webhook deliberately retains on the
-     * narrower hasGmSubscription() (GM-plan local rows only) and calls
-     * the unguarded lapseGmBenefits() below — a pre-existing divergence
-     * pinned by PaddleWebhookLifecycleSmokeTest that only differs for a
-     * user whose sole surviving membership is a non-GM local plan.
+     * Paddle subscription.canceled webhook intentionally retains on
+     * the narrower hasGmSubscription() (GM-plan local rows only) and
+     * calls the unguarded lapseGmBenefits() below — a divergence
+     * settled in 6c0b19ed and pinned by PaddleWebhookLifecycleSmokeTest
+     * that differs for a user whose sole surviving membership is a
+     * non-GM local plan (GM-tier entitlement: the webhook lapses, the
+     * portal paths retain). Tracked for a future product call on
+     * unifying the retention predicate.
      *
      * Revokes the GM role but preserves the GMProfile for historical
      * data, then dispatches MembershipEnded after the revoke commits.
@@ -314,25 +317,57 @@ class GmRoleService
             // re-grant renews, it never rewrites history" rule): a
             // churned-and-returned supporter keeps their original start
             // date, because SupportingMemberEvaluator reads the EARLIEST
-            // starts_at for tenure tiers — with one physical row per
-            // (plan, source) a rewritten start would erase the history.
+            // starts_at for tenure tiers. The EARLIEST across ALL rows
+            // of the key, history included: the active-per-source dedupe
+            // migration keeps the newest-active row and cancels the
+            // rest, so the surviving active row can carry a LATER
+            // starts_at than its canceled siblings — reading any single
+            // row ("value('starts_at')" without ordering) can anchor
+            // tenure on an arbitrary history row.
             $existingStartsAt = $user->localSubscriptions()
                 ->where('membership_type_id', $gmPlan->id)
                 ->where('source', LocalSubscriptionSource::SelfServe)
-                ->value('starts_at');
+                ->min('starts_at');
 
-            $user->localSubscriptions()->updateOrCreate(
-                [
-                    'membership_type_id' => $gmPlan->id,
-                    'source' => LocalSubscriptionSource::SelfServe,
-                ],
-                [
+            // Prefer the LIVE row, fall back to the earliest-started
+            // history row (both under the row lock, mirroring
+            // CompMembershipService::persistGrant). An unordered pick
+            // over the dedupe-manufactured state (newer active + older
+            // canceled rows for the same key) can select a CANCELED row,
+            // flip it to active, and violate the partial unique index —
+            // and the violation-retry re-picks the same loser forever,
+            // 500-looping every later activation for exactly the users
+            // the dedupe migration was written for.
+            $existing = $user->localSubscriptions()
+                ->where('membership_type_id', $gmPlan->id)
+                ->where('source', LocalSubscriptionSource::SelfServe)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->first()
+                ?? $user->localSubscriptions()
+                    ->where('membership_type_id', $gmPlan->id)
+                    ->where('source', LocalSubscriptionSource::SelfServe)
+                    ->orderBy('starts_at')
+                    ->lockForUpdate()
+                    ->first();
+
+            if ($existing !== null) {
+                $existing->fill([
                     'status' => 'active',
                     'starts_at' => $existingStartsAt ?? now(),
                     'ends_at' => null,
                     'canceled_at' => null,
-                ],
-            );
+                ])->save();
+            } else {
+                $user->localSubscriptions()->create([
+                    'membership_type_id' => $gmPlan->id,
+                    'source' => LocalSubscriptionSource::SelfServe,
+                    'status' => 'active',
+                    'starts_at' => now(),
+                    'ends_at' => null,
+                    'canceled_at' => null,
+                ]);
+            }
 
             // Grant public game/campaign creation for active GMs
             $user->can_create_public_entries = true;

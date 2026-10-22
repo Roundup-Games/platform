@@ -69,7 +69,7 @@
         <p class="text-sm font-medium text-on-surface mb-1">{{ __('charter.field_safety_revisit_label') }}</p>
         <p class="text-xs text-on-surface-variant mb-3">{{ __('charter.field_safety_revisit_help') }}</p>
         <div class="grid sm:grid-cols-3 gap-2">
-            @foreach(['each_session', 'end_of_arc', 'on_request'] as $revisit)
+            @foreach(\App\Dto\CharterContent::choicesFor('safety.revisit') as $revisit)
                 <label class="flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors cursor-pointer {{ ($section['revisit'] ?? '') === $revisit ? 'border-primary/40 bg-primary/5' : 'border-outline/20 bg-surface-container-high hover:border-outline/40' }}">
                     <input
                         type="radio"

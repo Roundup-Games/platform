@@ -45,9 +45,10 @@ class GameBulletin extends Model
      * Create a bulletin as a specific application-chosen author.
      *
      * Use this in application code (services, jobs) to make the author
-     * explicit application state — never request input. postAsHost stays
-     * the host-facing variant; postBy covers non-request call sites like
-     * the one-shot Epilogue bulletin posted on completion.
+     * explicit application state — never request input. postBy is the
+     * canonical application write path: services (the one-shot Epilogue
+     * bulletin posted on completion), jobs, and the host-facing board
+     * all create through it.
      */
     public static function postBy(string $gameId, string $userId, string $content, ?string $expiresAt = null, bool $isPinned = false): self
     {

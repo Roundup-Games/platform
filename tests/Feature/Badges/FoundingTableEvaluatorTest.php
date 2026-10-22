@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Badges\BadgeService;
 use App\Services\Badges\FoundingTableEvaluator;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Tests\Traits\CapturesLogRecords;
 
 uses(CapturesLogRecords::class);
@@ -43,6 +44,23 @@ function foundingTableHold(): ?BadgeUser
 
 beforeEach(function () {
     $this->artisan('badges:sync')->assertSuccessful();
+});
+
+it('freezes anonymized accounts out of the whole-table sweep — no rows, no notification, post-erasure', function () {
+    $erased = User::factory()->create();
+    $erased->forceFill(['anonymized_at' => now()])->save();
+    $fresh = User::factory()->create();
+
+    app(FoundingTableEvaluator::class)->sweep();
+
+    $keys = static fn (User $user) => BadgeUser::query()
+        ->whereHas('badgeDefinition', fn ($query) => $query->where('key', 'founding_table'))
+        ->where('user_id', $user->id)
+        ->count();
+
+    expect($keys($erased))->toBe(0)
+        ->and($keys($fresh))->toBe(1)
+        ->and($erased->notifications()->count())->toBe(0);
 });
 
 it('isolates one poisoned user during the sweep — later users still get their pass', function () {
@@ -125,6 +143,25 @@ it('writes nothing at all once the window has closed', function () {
 
     expect(BadgeUser::query()->count())->toBe(0)
         ->and(BadgeEvent::query()->count())->toBe(0);
+});
+
+it('short-circuits the closed-window sweep before any cohort query — the scan does not run forever', function () {
+    config(['badges.founding_table.closes_at' => now()->subDay()->toIso8601String()]);
+    User::factory()->create();
+
+    $connection = DB::connection();
+    $connection->enableQueryLog();
+    $connection->flushQueryLog();
+
+    app(FoundingTableEvaluator::class)->sweep();
+
+    // Post-closure every account ever created is permanently outside
+    // the window: the nightly sweep must not even build the cohort
+    // query, let alone iterate an ever-growing unqualifiable
+    // population.
+    expect($connection->getQueryLog())->toBe([]);
+
+    $connection->disableQueryLog();
 });
 
 it('never strips an existing hold when the window closes', function () {

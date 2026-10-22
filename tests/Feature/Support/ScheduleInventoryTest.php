@@ -2,6 +2,7 @@
 
 use App\Support\Scheduling\ScheduleInventory;
 use App\Support\Scheduling\TaskIdentity;
+use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 
 //
@@ -39,4 +40,40 @@ it('does not double-load when events are already registered', function () {
 
     expect($events)->not->toBeEmpty()
         ->and(ScheduleInventory::events())->toBe($events);
+});
+
+// ── Shipped schedule-flag pin (the overlap contract, executable) ──
+
+it('pins the overlap-guard flags the concurrency comments promise', function () {
+    // The hardening contract — e.g. subscriptions:expire's 10-minute
+    // overlap mutex (a re-dispatched MembershipEnded cascade) — lives
+    // in route comments unless something executable reads the REAL
+    // schedule. A copy-paste casualty that drops a chain call must
+    // fail here, not in production.
+    $events = collect(ScheduleInventory::events());
+
+    $byCommand = static fn (string $needle) => $events->first(
+        fn (Event $event): bool => str_contains(TaskIdentity::command($event), $needle)
+    );
+
+    // subscriptions:expire — the 10-minute overlap mutex (the TTL
+    // lands on expiresAt; withoutOverlapping itself is just the bool).
+    $expire = $byCommand('subscriptions:expire');
+    expect($expire)->not->toBeNull()
+        ->and($expire->withoutOverlapping)->toBeTrue()
+        ->and($expire->expiresAt)->toBe(10)
+        ->and($expire->onOneServer)->toBeTrue();
+
+    // Every other shipped entry is single-server.
+    $multiServer = $events->filter(fn (Event $event): bool => ! $event->onOneServer);
+    expect($multiServer)->toBeEmpty();
+
+    // The heavy nightly jobs the queue-trust contract names run in the
+    // background with an overlap guard of their own.
+    foreach (['badges:sweep', 'bgg:weekly-sync'] as $needle) {
+        $event = $byCommand($needle);
+        expect($event)->not->toBeNull("no scheduled entry matches [{$needle}]")
+            ->and($event->runInBackground)->toBeTrue()
+            ->and($event->withoutOverlapping)->toBeTrue();
+    }
 });

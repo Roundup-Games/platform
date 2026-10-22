@@ -15,9 +15,11 @@ use App\Models\User;
 use App\Services\CampaignJournalService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\CursorPaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -352,13 +354,29 @@ class CampaignJournal extends Component
             return;
         }
 
-        $loadedIds = $this->olderStateChangeIds[$participantId] ?? [];
+        $loadedIds = array_values(array_filter(
+            $this->olderStateChangeIds[$participantId] ?? [],
+            fn (string $id): bool => Str::isUuid($id),
+        ));
 
-        if ($loadedIds !== [] && isset($this->olderStateChangeCursor[$participantId])) {
+        $cursor = $this->olderStateChangeCursor[$participantId] ?? null;
+        // The docblock shape is the writer's contract, not the client's:
+        // a tampered payload may miss keys or carry non-strings, so every
+        // component is read through the null-coalescing cast first.
+        $cursorAt = (string) ($cursor['at'] ?? '');
+        $cursorId = (string) ($cursor['id'] ?? '');
+        $cursorWellFormed = $cursor !== null
+            && $cursorAt !== ''
+            && Str::isUuid($cursorId)
+            && str_starts_with($cursorAt, '20')
+            && Carbon::canBeCreatedFromFormat($cursorAt, 'Y-m-d H:i:s');
+
+        if ($loadedIds !== [] && $cursorWellFormed) {
             // Keyset cursor = the oldest row already displayed, persisted
             // from the previous chunk (the ids alone do not carry it).
-            $cursorAt = (string) $this->olderStateChangeCursor[$participantId]['at'];
-            $cursorId = (string) $this->olderStateChangeCursor[$participantId]['id'];
+            // Malformed persisted state (tampered updates payload) is
+            // discarded — the first-click path re-derives the cursor
+            // server-side instead of binding garbage into the query.
         } else {
             // First click: the cursor is the window's oldest row = the
             // 10th newest under (created_at DESC, id DESC) — fetched at
@@ -370,6 +388,13 @@ class CampaignJournal extends Component
                 ->offset(self::STATE_CHANGES_PER_CHARACTER - 1)
                 ->limit(1)
                 ->first();
+
+            if ($loadedIds !== []) {
+                // Tampered/discarded history state: restart from the
+                // server-derived cursor instead of stacking onto it.
+                $loadedIds = [];
+                unset($this->olderStateChangeCursor[$participantId]);
+            }
 
             if ($oldest === null) {
                 // Fewer rows than the window holds: nothing older exists.
@@ -440,7 +465,21 @@ class CampaignJournal extends Component
      */
     public function olderChangesFor(string $participantId): array
     {
-        $ids = $this->olderStateChangeIds[$participantId] ?? [];
+        // Same gate as loadOlderStateChanges: the snapshot method is
+        // public, and the asymmetry would become a leak the moment the
+        // component is re-nested outside the gated Journal tab.
+        if (! $this->canViewJournal()) {
+            return [];
+        }
+
+        $ids = array_slice(
+            array_values(array_filter(
+                $this->olderStateChangeIds[$participantId] ?? [],
+                fn (string $id): bool => Str::isUuid($id),
+            )),
+            0,
+            self::MAX_OLDER_STATE_CHANGE_IDS,
+        );
 
         if ($ids === []) {
             return [];
@@ -448,8 +487,12 @@ class CampaignJournal extends Component
 
         $tuples = [];
 
+        // The id set is client-hydrated state, so the read-back re-scopes
+        // to THIS campaign before rendering: foreign ids never resolve,
+        // and a tampered list cannot widen the query beyond the cap.
         foreach (CharacterStateChange::query()
             ->whereKey($ids)
+            ->where('campaign_id', $this->campaign->id)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get() as $change) {

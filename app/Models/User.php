@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContentLanguage;
+use App\Enums\LocalSubscriptionSource;
 use App\Enums\OAuthProvider;
 use App\Enums\RelationshipType;
 use App\Models\Concerns\HasEntitySeo;
@@ -587,6 +588,20 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function localSubscriptions()
     {
         return $this->hasMany(LocalSubscription::class);
+    }
+
+    /**
+     * The user's active comp membership row, if any — the admin
+     * withdraw gate reads this; eager-loadable so per-row visibility
+     * checks stay query-free.
+     *
+     * @return HasOne<LocalSubscription, $this>
+     */
+    public function activeComp(): HasOne
+    {
+        return $this->hasOne(LocalSubscription::class)
+            ->where('source', LocalSubscriptionSource::Comp->value)
+            ->active();
     }
 
     /**

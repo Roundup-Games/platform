@@ -325,6 +325,31 @@ class Location extends Model implements TicketSubject
     }
 
     /**
+     * Scope: locations a campaign owner may disclose in a charter
+     * (D079) — every location their own campaigns or games already
+     * use, plus the campaign's own location (which may predate their
+     * ownership of that campaign).
+     *
+     * The single source of this shape: the charter composer's venue
+     * picker and CharterService's disclosure gate MUST resolve through
+     * here, so the picker can never offer a venue the gate refuses (or
+     * drift into leaking one it withholds).
+     *
+     * @param  Builder<static>  $query
+     * @param  string  $ownerId  the campaign owner's user id
+     * @param  string|null  $campaignLocationId  the chartering campaign's location, null when unplaced
+     * @return Builder<static>
+     */
+    public function scopeDisclosableTo(Builder $query, string $ownerId, ?string $campaignLocationId): Builder
+    {
+        return $query->where(function (Builder $query) use ($ownerId, $campaignLocationId): void {
+            $query->whereHas('campaigns', fn (Builder $campaigns): Builder => $campaigns->where('owner_id', $ownerId))
+                ->orWhereHas('games', fn (Builder $games): Builder => $games->where('owner_id', $ownerId))
+                ->when($campaignLocationId !== null, fn (Builder $q): Builder => $q->orWhere('id', $campaignLocationId));
+        });
+    }
+
+    /**
      * Scope to locations within a bounding box.
      * Used for proximity queries per D037 (10km bounding box approximation).
      *

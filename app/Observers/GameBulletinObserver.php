@@ -28,6 +28,17 @@ use Illuminate\Support\Facades\Log;
  */
 class GameBulletinObserver
 {
+    /**
+     * Bulletin fan-out must observe committed state: PreviouslyOnService
+     * creates the bulletin inside its publish transaction, and a
+     * post-insert failure (draft stamp, commit-time deadlock) would
+     * otherwise leave every approved participant notified — and Discord
+     * queued — for a bulletin that rolled back out of existence.
+     * afterCommit only ever moves fan-out LATER (single-statement paths
+     * now fire just past their implicit commit), never earlier.
+     */
+    public bool $afterCommit = true;
+
     public function __construct(
         private DashboardCacheService $cache,
     ) {}

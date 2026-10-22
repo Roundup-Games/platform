@@ -1,6 +1,8 @@
 <?php
 
 use App\Support\Queue\JobCatalog;
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\Finder\SplFileInfo;
 
 //
 // JobCatalog: the expected job fleet, reflected from app/Jobs. The catalog
@@ -11,8 +13,13 @@ beforeEach(function () {
 });
 
 it('includes every job class in app/Jobs', function () {
-    $onDisk = collect(glob(app_path('Jobs').'/*.php'))
-        ->map(fn (string $path): string => basename($path, '.php'))
+    // Recursive scan, mirroring the catalog's discovery: a job in a
+    // subdirectory must appear in BOTH or this pin is vacuous.
+    $onDisk = collect(Finder::create()
+        ->files()
+        ->in(app_path('Jobs'))
+        ->name('*.php'))
+        ->map(fn (SplFileInfo $file): string => str_replace(DIRECTORY_SEPARATOR, '\\', str_replace('.php', '', $file->getRelativePathname())))
         ->values()
         ->all();
 

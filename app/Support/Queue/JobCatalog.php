@@ -6,6 +6,7 @@ use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Support\Facades\Cache;
 use ReflectionClass;
+use Symfony\Component\Finder\Finder;
 
 /**
  * Static inventory of the job fleet (M068, 2026-10-17).
@@ -56,9 +57,24 @@ final class JobCatalog
 
         $jobs = [];
 
-        foreach (glob(app_path('Jobs').'/*.php') ?: [] as $path) {
-            $short = basename($path, '.php');
-            $class = 'App\\Jobs\\'.$short;
+        // Recursive discovery: a namespaced Jobs/<Subdir>/ class is a
+        // real job too, and a flat glob would silently drop it from
+        // the admin fleet view (and from this catalog's consumers).
+        $finder = Finder::create()
+            ->files()
+            ->in(app_path('Jobs'))
+            ->name('*.php')
+            ->sortByName();
+
+        foreach ($finder as $file) {
+            // Suffix-only strip: a path containing '.php' anywhere but
+            // the end (a Jobs/Legacy.php/ directory name) must not
+            // corrupt the derived class name. preg_replace null (PCRE
+            // error) falls back to the raw path — class_exists filters
+            // anything unresolvable anyway.
+            $relative = preg_replace('/\.php$/', '', $file->getRelativePathname()) ?? $file->getRelativePathname();
+            $short = str_replace(DIRECTORY_SEPARATOR, '\\', $relative);
+            $class = 'App\Jobs\\'.$short;
 
             if (! class_exists($class)) {
                 continue;
@@ -66,7 +82,7 @@ final class JobCatalog
 
             $reflection = new ReflectionClass($class);
             $defaults = $reflection->getDefaultProperties();
-            $source = file_get_contents($path) ?: '';
+            $source = file_get_contents($file->getRealPath() ?: '') ?: '';
 
             [$queue, $queueInferred] = self::resolveQueue($source);
 

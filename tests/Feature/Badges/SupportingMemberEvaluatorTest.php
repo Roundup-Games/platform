@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\LocalSubscriptionSource;
+use App\Models\BadgeUser;
 use App\Models\MembershipType;
 use App\Models\User;
 use App\Services\Badges\SupportingMemberEvaluator;
@@ -78,6 +79,30 @@ it('clamps a future starts_at to zero elapsed months instead of abs()-flipping i
     supportingMemberSub($user, LocalSubscriptionSource::Comp->value, now()->addMonths(13)->toDateTimeString());
 
     expect(app(SupportingMemberEvaluator::class)->evaluate($user)?->tierKey)->toBe('year_1');
+});
+
+it('excludes anonymized accounts from the sweep cohort even with a qualifying membership', function () {
+    // The overridden baseQuery() composes parent::baseQuery() precisely
+    // so the notAnonymized freeze survives the eager-load override:
+    // erasure must mean no new badge rows or notifications, ever.
+    $erased = User::factory()->create();
+    $erased->forceFill(['anonymized_at' => now()])->save();
+    supportingMemberSub($erased, LocalSubscriptionSource::SelfServe->value, now()->toDateTimeString());
+
+    $active = User::factory()->create();
+    supportingMemberSub($active, LocalSubscriptionSource::SelfServe->value, now()->toDateTimeString());
+
+    $this->artisan('badges:sync')->assertSuccessful();
+    app(SupportingMemberEvaluator::class)->sweep();
+
+    $holds = static fn (User $user) => BadgeUser::query()
+        ->whereHas('badgeDefinition', fn ($query) => $query->where('key', 'supporting_member'))
+        ->where('user_id', $user->id)
+        ->count();
+
+    expect($holds($erased))->toBe(0)
+        ->and($holds($active))->toBe(1)
+        ->and($erased->notifications()->count())->toBe(0);
 });
 
 it('proposes nothing without an active membership', function () {

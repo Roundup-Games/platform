@@ -44,6 +44,20 @@
             return $value ? (string) __('common.action_yes') : (string) __('common.action_no');
         }
         if (is_int($value) || is_float($value)) {
+            // Tone axes (1–5) localize through the same low/high labels
+            // the sliders carry: a material §1 tone change renders
+            // "Serious (1) → Lighthearted (5)" in the re-agreement
+            // banner, not bare integers. The middle position (3) has no
+            // label key and stays numeric.
+            if (is_int($value) && $field !== null && str_starts_with($field, 'tone_')
+                && ($value <= 2 || $value >= 4)) {
+                $endKey = 'charter.field_overview_'.$field.'_'.($value <= 2 ? 'low' : 'high');
+
+                if (\Illuminate\Support\Facades\Lang::has($endKey)) {
+                    return (string) __($endKey).' ('.$value.')';
+                }
+            }
+
             return (string) $value;
         }
         if (is_string($value)) {

@@ -38,9 +38,9 @@ class SupportingMemberEvaluator extends CohortSweepEvaluator
     }
 
     /** Quiet lapse (spec §4): membership gone → park the badge. Idempotent — no hold, already lapsed, admin-revoked, a manual-source grant (never auto-lapsed), or a retired definition (holds freeze) is a no-op inside BadgeService. */
-    protected function sweepOnUnqualified(User $user, BadgeService $service): void
+    protected function lapseReason(): ?string
     {
-        $service->lapse($user, self::BADGE_KEY, self::LAPSE_REASON);
+        return self::LAPSE_REASON;
     }
 
     // ── Internals ──────────────────────────────────────
@@ -106,8 +106,13 @@ class SupportingMemberEvaluator extends CohortSweepEvaluator
 
         // The billable relation resolves to a generic Model whose
         // created_at Larastan types as string|null, so the timestamp is
-        // fetched as a scalar and normalized here.
+        // fetched as a scalar and normalized here. toBase() skips model
+        // hydration on purpose: shouldBeStrict(! production) makes a
+        // partially-hydrated model (value() selects only created_at)
+        // throw MissingAttributeException — the strict-mode crash this
+        // query caused for any Paddle subscriber in dev/test.
         $cashierStartedAt = $this->asCarbon($user->subscriptions()
+            ->toBase()
             ->whereNotNull('created_at')
             ->orderBy('created_at')
             ->value('created_at'));
@@ -170,6 +175,10 @@ class SupportingMemberEvaluator extends CohortSweepEvaluator
      */
     protected function baseQuery(): Builder
     {
-        return User::query()->with('subscriptions');
+        // User::query() here must carry the base predicate chain —
+        // anonymized users are frozen out of the cohort too. Compose
+        // parent::baseQuery() instead of User::query() so this override
+        // stays eager-load-only as its contract requires.
+        return parent::baseQuery()->with('subscriptions');
     }
 }

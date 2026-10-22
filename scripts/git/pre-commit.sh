@@ -55,7 +55,8 @@ if [[ "${1:-}" == "--stage" ]]; then
     if ! git diff --quiet || ! git diff --cached --quiet \
         || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
         git add -A
-        printf "  ${CYN}📦 %-8s${RST} %s\n" "stage" "working tree staged for the CI-parity gate"
+        staged_count=$(git diff --cached --name-only | wc -l | tr -d ' ')
+        printf "  ${CYN}📦 %-8s${RST} %s\n" "stage" "working tree staged for the CI-parity gate (${staged_count} files)"
     fi
 elif [[ -n "${1:-}" ]]; then
     printf "usage: scripts/git/pre-commit.sh [--stage]\n" >&2
@@ -105,6 +106,13 @@ printf "\n${CYN}🔍 Pre-commit checks on ${php_count} PHP file(s)${RST}\n\n"
 staged_lang=$(git diff --cached --name-only --diff-filter=ACM -- 'lang/' || true)
 if [[ -z "$staged_php" && -z "$staged_lang" ]]; then
     echo "  No source files staged — skipping checks."
+    # A clean tree under --stage checked NOTHING: that exit 0 must never
+    # be cited as a green CI-parity run (K008's vacuous-green trap).
+    # Make the emptiness impossible to miss in scrollback.
+    if [[ "${1:-}" == "--stage" ]]; then
+        echo "  ⚠️  --stage ran against an already-clean tree: no checks executed."
+        echo "     Prove CI parity for committed work with: composer ci-mirror"
+    fi
     exit 0
 fi
 

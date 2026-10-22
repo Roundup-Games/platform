@@ -530,3 +530,57 @@ test('charter locale labels cover the DTO vocabularies and agreement copy', func
         ]);
     }
 });
+
+// ── Choice vocabulary single-sourcing ───────────────────
+
+test('choicesFor derives every enumerated field from its validation rule — UI selects can never drift from rules', function () {
+    // The composer partials build their selects from choicesFor(), so
+    // this pins BOTH sides at once: adding a choice to rules() flows to
+    // the UI automatically, and a field without an in: rule refuses
+    // loudly instead of rendering an empty select.
+    $expectations = [
+        'overview.expected_shape' => ['short_arc', 'ongoing', 'open_ended'],
+        'safety.revisit' => ['each_session', 'end_of_arc', 'on_request'],
+        'policies.pvp' => ['none', 'limited', 'open'],
+        'policies.character_death' => ['possible', 'gm_may_fudge', 'player_consent'],
+        'policies.advancement' => ['milestone', 'xp', 'narrative'],
+        'policies.homebrew' => ['no', 'gm_approval', 'free'],
+        'ai_tools.ai_prep' => ['welcome_disclosed', 'case_by_case', 'not_at_table'],
+        'ai_tools.recording' => ['none', 'gm_private', 'shared_table'],
+        'logistics.venue_mode' => ['location', 'rotate'],
+        'logistics.food_drink' => ['venue_rules', 'snack_rotation', 'byo', 'group_orders'],
+        'logistics.cadence' => ['weekly', 'biweekly', 'monthly', 'irregular'],
+        'logistics.session_length' => ['2h', '3h', '4h', 'other'],
+        'logistics.absence_notice' => ['asap', '24h', '48h'],
+        'logistics.missing_player' => ['skip_session', 'pc_as_npc', 'side_oneshot'],
+    ];
+
+    foreach ($expectations as $field => $choices) {
+        expect(CharterContent::choicesFor($field))->toBe($choices);
+    }
+
+    // A field without an enumerated vocabulary refuses loudly.
+    expect(fn () => CharterContent::choicesFor('overview.pitch'))->toThrow(InvalidArgumentException::class);
+});
+
+test('every dependent rule in the schema is a required_if — the only form the composer prefixer rewrites', function () {
+    // The stepper's prefixedRulesFor() rewrites required_if field paths
+    // for the component's content-rooted data; any other dependent rule
+    // (required_unless, prohibited_if, exclude_if…) would pass through
+    // un-prefixed and silently never engage at the step layer while
+    // still validating at publish. This pin forces whoever adds such a
+    // rule to extend the prefixer first.
+    $dependent = '/^(required|prohibited|exclude|missing)_(if|unless|with|without):/';
+
+    foreach (CharterContent::rules() as $key => $rules) {
+        foreach ($rules as $rule) {
+            if (preg_match($dependent, $rule) === 1) {
+                expect(str_starts_with($rule, 'required_if:'))->toBeTrue(
+                    "rules()[{$key}] uses [{$rule}] — extend prefixedRulesFor() to handle this dependent rule type"
+                );
+            }
+        }
+    }
+
+    expect(true)->toBeTrue(); // the loop asserts nothing when the vocabulary is clean
+});

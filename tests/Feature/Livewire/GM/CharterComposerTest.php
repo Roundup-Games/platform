@@ -245,6 +245,28 @@ describe('CharterComposer Stepping', function () {
             ->assertSet('step', 2)
             ->assertHasNoErrors();
     });
+
+    it('renders every stepper step without a missing partial (section ids resolve 1:1 to view files)', function () {
+        [$owner, $campaign] = charter_composer_owner_campaign();
+
+        foreach (CharterContent::SECTIONS as $section) {
+            expect(view()->exists('livewire.gm.charter.sections.'.$section))
+                ->toBeTrue("section [{$section}] has no matching view file");
+        }
+
+        $component = Livewire::actingAs($owner)
+            ->test(CharterComposer::class, ['id' => $campaign->id])
+            ->call('startCharter', 'quickstart');
+
+        // Steps 1..7 render their section partial through the dynamic
+        // include; step 8 renders the review step. Every step must render
+        // cleanly — a renamed section file previously 500'd on step 5.
+        foreach (range(1, CharterComposer::TOTAL_STEPS) as $stepNumber) {
+            $component->set('step', $stepNumber)
+                ->assertSet('step', $stepNumber)
+                ->assertHasNoErrors("step {$stepNumber} render");
+        }
+    });
 });
 
 // ── Publish ─────────────────────────────────────────────
@@ -516,6 +538,54 @@ describe('CharterComposer Amendments', function () {
 
         expect($v2->changelog)->toBe('We check in on boundaries on request now.')
             ->and($v2->is_material)->toBeTrue();
+    });
+
+    it('refuses to publish a stale-tab amendment and re-baselines for an informed retry', function () {
+        [$owner, $campaign, $charter] = charter_composer_published_charter();
+
+        $component = Livewire::actingAs($owner)
+            ->test(CharterComposer::class, ['id' => $campaign->id])
+            ->call('startAmendment');
+
+        // The base version the tab captured when amending started.
+        $component->assertSet('amendBaseVersion', 1);
+
+        // Another tab publishes v2 while this tab holds its v1-built edits.
+        CharterService::amend(
+            $owner,
+            $charter->fresh(),
+            (string) $campaign->name,
+            charter_composer_valid_content($campaign),
+            'Other tab got there first.',
+        );
+        expect((int) $charter->fresh()->current_version)->toBe(2);
+
+        $winningPitch = charter_composer_valid_content($campaign)['overview']['pitch'];
+
+        $staleContent = charter_composer_valid_content($campaign);
+        $staleContent['overview']['pitch'] = 'Pitch written against v1.';
+
+        // Publishing the stale snapshot is refused — v2's changes are
+        // not silently reverted — and the composer re-baselines to the
+        // winning version so an explicit retry can proceed.
+        $component
+            ->set('content', $staleContent)
+            ->call('goToStep', 8)
+            ->set('amendmentChangelog', 'Stale tab edit.')
+            ->call('publish')
+            ->assertSet('amending', true)
+            ->assertHasErrors('charter')
+            ->assertSee(__('charter.error_amended_concurrently', [], 'en'))
+            ->assertSet('amendBaseVersion', 2)
+            // The edit buffer is re-hydrated from the winner, not just
+            // re-baselined: a stale buffer surviving the re-baseline
+            // would let the very next click publish v1 content as v3,
+            // wholesale reverting v2 — the write the service guard
+            // refused once already.
+            ->assertSet('content.overview.pitch', $winningPitch);
+
+        expect(SessionZeroSurveyVersion::where('session_zero_survey_id', $charter->id)->count())->toBe(2)
+            ->and((int) $charter->fresh()->current_version)->toBe(2);
     });
 
     it('restores the published panel and drops session-local edits on cancel', function () {

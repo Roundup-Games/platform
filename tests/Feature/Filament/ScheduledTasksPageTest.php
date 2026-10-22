@@ -3,6 +3,8 @@
 use App\Filament\Pages\System\ScheduledTasksPage;
 use App\Models\ScheduledTaskRun;
 use App\Models\User;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Features\SupportTesting\Testable;
 
 use function Pest\Laravel\actingAs;
@@ -93,6 +95,22 @@ it('serves the page over a full HTTP request with rendered run rows', function (
         ->assertOk()
         ->assertSee('attendance:resolve')
         ->assertSee('42.5s');
+});
+
+it('degrades to the danger banner instead of a 500 when the schedule inventory fails live', function () {
+    // The page is the primary diagnostic surface of a broken deploy —
+    // it must render (banner + empty table) precisely when the
+    // inventory cannot load, not 500 before the banner is reachable.
+    Cache::flush();
+
+    $this->mock(Schedule::class)
+        ->shouldReceive('events')
+        ->andThrow(new RuntimeException('schedule definitions exploded'));
+
+    pageRenders()
+        ->assertOk()
+        ->assertSee('Schedule inventory failed to load')
+        ->assertSee('No scheduled tasks found.');
 });
 
 it('is admin-only', function () {

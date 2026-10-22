@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Enums\ContentLanguage;
-use App\Enums\LocalSubscriptionSource;
 use App\Filament\Components\SeoFields;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers\BadgeEventsRelationManager;
@@ -237,6 +236,10 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // The withdraw-comp action's per-row visible() gate reads
+            // activeComp — eager-load it once instead of one exists()
+            // query per rendered user row.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('activeComp'))
             ->columns([
                 ImageColumn::make('avatar_url')
                     ->label('')
@@ -417,11 +420,11 @@ class UserResource extends Resource
                     }),
                 Action::make('withdrawCompMembership')
                     ->label('Withdraw comp')
+                    // activeComp is eager-loaded on the table query — the
+                    // per-row gate stays query-free instead of issuing one
+                    // exists() per rendered user.
                     ->visible(fn (User $record): bool => (auth()->user()?->isAdmin() ?? false)
-                        && $record->localSubscriptions()
-                            ->where('source', LocalSubscriptionSource::Comp)
-                            ->active()
-                            ->exists())
+                        && $record->activeComp !== null)
                     ->icon(Heroicon::OutlinedArrowUturnLeft)
                     ->color('warning')
                     ->modalHeading('Withdraw comp membership')

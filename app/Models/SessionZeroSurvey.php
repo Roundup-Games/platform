@@ -199,6 +199,12 @@ class SessionZeroSurvey extends Model
             ->first();
     }
 
+    /**
+     * Raw writer: flips status with NO lifecycle guard and NO owner
+     * check. Production callers use CharterService::archive (guarded,
+     * active-only); this helper exists for tests and fixtures. Do not
+     * reach for it from feature code.
+     */
     public function archive(): void
     {
         $this->update(['status' => 'archived']);

@@ -378,6 +378,45 @@ class CharterContent
     }
 
     /**
+     * The choice vocabulary of one enumerated field, derived from its
+     * rules() `in:` list — the single source the composer selects and
+     * the validation share, so a new choice can never exist in the UI
+     * and not the rules (silent publish-block) or vice versa (a
+     * selection the normalizer quietly resets).
+     *
+     * @param  string  $field  Full dotted path, e.g. 'logistics.cadence'.
+     * @return list<string>
+     */
+    public static function choicesFor(string $field): array
+    {
+        foreach (self::rules()[$field] ?? [] as $rule) {
+            if (str_starts_with($rule, 'in:')) {
+                return explode(',', substr($rule, strlen('in:')));
+            }
+        }
+
+        throw new \InvalidArgumentException("Charter field [{$field}] has no enumerated choices.");
+    }
+
+    /**
+     * Choice maps for a section's select fields, keyed by bare field
+     * name — the shape the composer partials iterate.
+     *
+     * @param  list<string>  $fields
+     * @return array<string, list<string>>
+     */
+    public static function choicesForSection(string $section, array $fields): array
+    {
+        $map = [];
+
+        foreach ($fields as $field) {
+            $map[$field] = self::choicesFor($section.'.'.$field);
+        }
+
+        return $map;
+    }
+
+    /**
      * Stepper-step validation subset: only the rules of one section.
      *
      * @return array<string, array<int, string>>

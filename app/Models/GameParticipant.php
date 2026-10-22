@@ -11,6 +11,7 @@ use App\Enums\ParticipantStatus;
 use App\Models\Concerns\HasParticipantDefaults;
 use App\Models\Concerns\HasPlatformUuid;
 use Database\Factories\GameParticipantFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -114,5 +115,29 @@ class GameParticipant extends Pivot implements ParticipantContract
     public function getEntityMeta(): EntityMeta
     {
         return EntityMeta::forGame();
+    }
+
+    /**
+     * A VERIFIED attendance: an Attended row on a game the organizer
+     * resolved (attendance_resolved_at set) that carries a session
+     * date. The anti-gaming floor for attendance-driven badges
+     * (First Seat, Regulars Table) — single-sourced here so every
+     * consumer agrees on what counts (INV-style query-shape rule:
+     * never re-implement the clause inline).
+     *
+     * Joins games — callers ordering by session date use
+     * games.date_time, and model hydration needs
+     * ->select('game_participants.*') when rows are fetched.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeVerifiedAttendance(Builder $query): Builder
+    {
+        return $query
+            ->where('game_participants.attendance_status', AttendanceStatus::Attended->value)
+            ->join('games', 'games.id', '=', 'game_participants.game_id')
+            ->whereNotNull('games.attendance_resolved_at')
+            ->whereNotNull('games.date_time');
     }
 }
