@@ -14,9 +14,11 @@ use App\Models\User;
 use App\Notifications\RecapPosted;
 use App\Services\CampaignJournalService;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Tests\Traits\CreatesGameInstances;
+use Tests\Traits\InjectsConcurrentDuplicates;
 
-uses(CreatesGameInstances::class);
+uses(CreatesGameInstances::class, InjectsConcurrentDuplicates::class);
 
 // M071/S01-T03 — CampaignJournalService::writeRecap: journal entry as the
 // recap source of truth (D220), games.recap synced in the SAME transaction,
@@ -65,6 +67,43 @@ test('writeRecap creates the recap entry and syncs games.recap atomically', func
     $freshEntry = CampaignJournalEntry::query()->findOrFail($entry->id);
     expect($freshEntry->game_id)->toBe($session->id)
         ->and($freshEntry->kind)->toBe(JournalEntryKind::Recap);
+});
+
+test('writeRecap rethrows a lost one-recap-per-session race as the already-written error — the partial-index backstop', function () {
+    // The application-level recapEntry()->exists() check narrows the
+    // race; the partial unique index is the unconditional backstop. This
+    // pins the LOSER path: a competing recap row lands between the check
+    // and the insert (the injection fires via the creating event, inside
+    // that exact window), the real 23505 surfaces through the real
+    // partial index, and the catch converts it to the one error shape
+    // callers know.
+    [$owner, $campaign, $session] = journalRecapSession();
+
+    $disarm = $this->injectDuplicateOnCreate(CampaignJournalEntry::class, fn (CampaignJournalEntry $entry): array => [
+        'id' => (string) Str::uuid(),
+        'campaign_id' => (string) $entry->campaign_id,
+        'game_id' => (string) $entry->game_id,
+        'author_user_id' => (string) $entry->author_user_id,
+        'kind' => 'recap',
+        'visibility' => 'players',
+        'body' => 'The write that won the race.',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    try {
+        app(CampaignJournalService::class)->writeRecap($session, $owner, 'The write that lost.');
+        $this->fail('Expected LogicException for the lost recap race.');
+    } catch (LogicException $e) {
+        expect($e->getMessage())->toBe(__('games.error_recap_already_written'));
+    } finally {
+        $disarm();
+    }
+
+    // The loser wrote nothing: the savepoint rollback removed both the
+    // duplicate and the losing insert, and the projection stayed clean.
+    expect(CampaignJournalEntry::query()->whereBelongsTo($session)->count())->toBe(0)
+        ->and($session->fresh()->recap)->toBeNull();
 });
 
 test('writeRecap accepts a body at the 10000-character ceiling', function () {

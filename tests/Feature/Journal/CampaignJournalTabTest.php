@@ -289,6 +289,67 @@ test('kind filter narrows the timeline and switching filters resets pagination',
         ->assertDontSee('JOURNALTAB RECAP MARKER 5');
 });
 
+test('the Newer button walks back to the previous page — previousCursor wiring, not just forward', function () {
+    // The forward test above pins nextCursor; this pins the blade's
+    // other button: previousCursor() (pointsToNextItems=false) must
+    // re-render the NEWER window, including the ?? cursor fallback shape
+    // when the paginator carries no previous cursor.
+    [$owner, $campaign] = journalTabCampaign();
+
+    // 25 recaps with strictly descending created_at (marker 25 newest):
+    // page 1 holds markers 25..6, page 2 holds 5..1.
+    foreach (range(1, 25) as $i) {
+        CampaignJournalEntry::factory()->create([
+            'campaign_id' => $campaign->id,
+            'author_user_id' => $owner->id,
+            'kind' => JournalEntryKind::Recap,
+            'visibility' => JournalEntryVisibility::Players,
+            'body' => "JOURNALTAB RECAP MARKER {$i}",
+            'created_at' => now()->subMinutes(100 - $i),
+        ]);
+    }
+
+    $journal = Livewire::actingAs($owner)->test(CampaignJournal::class, ['campaign' => $campaign]);
+
+    // Forward to page 2, built the way the paginator does (cursor after
+    // marker 6, the last row of page 1).
+    $lastOfPageOne = CampaignJournalEntry::query()
+        ->where('body', 'JOURNALTAB RECAP MARKER 6')
+        ->firstOrFail();
+    $pageTwoCursor = (new Cursor([
+        'created_at' => $lastOfPageOne->created_at,
+        'id' => $lastOfPageOne->id,
+    ], pointsToNextItems: true))->encode();
+
+    $journal->call('setPage', $pageTwoCursor, 'cursor')
+        ->assertSee('JOURNALTAB RECAP MARKER 5')
+        ->assertSee('JOURNALTAB RECAP MARKER 1')
+        ->assertDontSee('JOURNALTAB RECAP MARKER 25');
+
+    // Back to the newer window, built the way the blade does: the
+    // paginator's previousCursor() after page 2 = the page's newest row
+    // (marker 5), pointing at previous items.
+    $newestOfPageTwo = CampaignJournalEntry::query()
+        ->where('body', 'JOURNALTAB RECAP MARKER 5')
+        ->firstOrFail();
+    $newerCursor = (new Cursor([
+        'created_at' => $newestOfPageTwo->created_at,
+        'id' => $newestOfPageTwo->id,
+    ], pointsToNextItems: false))->encode();
+
+    $journal->call('setPage', $newerCursor, 'cursor')
+        ->assertSee('JOURNALTAB RECAP MARKER 25')
+        ->assertSee('JOURNALTAB RECAP MARKER 6')
+        ->assertDontSee('JOURNALTAB RECAP MARKER 5');
+
+    // The Newer button itself renders on a paginated page (page 2 has a
+    // previous window) and the Older button still does (a next window
+    // exists only on page 1 — on the last page it must NOT render).
+    $journal->call('setPage', $pageTwoCursor, 'cursor')
+        ->assertSee(__('journal.action_newer_entries', [], 'en'))
+        ->assertDontSee(__('journal.action_older_entries', [], 'en'));
+});
+
 // ── (e) Direct policy assertions ─────────────────────────
 
 test('viewJournal grants only owner, seated participants and global admins', function () {

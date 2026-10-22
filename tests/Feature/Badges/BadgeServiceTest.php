@@ -13,6 +13,8 @@ use App\Services\Badges\Events\BadgeAwarded;
 use App\Services\Badges\Events\BadgeRevoked;
 use App\Services\Badges\Events\BadgeUpgraded;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Str;
+use Tests\Traits\InjectsConcurrentDuplicates;
 
 /**
  * BadgeService engine tests (M069 / D186, spec §2.2): idempotent award,
@@ -27,8 +29,50 @@ use Illuminate\Support\Facades\Event;
  * so dormant fixtures are manufactured through the factory's
  * dormant() state.
  */
+uses(InjectsConcurrentDuplicates::class);
+
 beforeEach(function () {
     $this->artisan('badges:sync')->assertSuccessful();
+});
+
+it('treats a concurrent duplicate insert as AlreadyHeld — the unique(user, definition) backstop, not an exception', function () {
+    // The docblock guarantee #1, finally exercised for real: a racing
+    // insert wins the constraint between award()'s locked read and its
+    // INSERT. The injection fires in exactly that window (creating
+    // event: after lockForUpdate, before the INSERT statement), inserts
+    // the conflicting row through the real index, and award()'s own
+    // INSERT raises the real SQLSTATE 23505 — the real catch maps it.
+    $user = User::factory()->create();
+
+    // Allow-listed fake: the domain event is asserted NOT dispatched
+    // (the loser must not notify), while model events stay real so the
+    // injection itself still fires.
+    Event::fake([BadgeAwarded::class]);
+
+    $disarm = $this->injectDuplicateOnCreate(BadgeUser::class, fn (BadgeUser $hold): array => [
+        'id' => (string) Str::uuid(),
+        'user_id' => (string) $hold->user_id,
+        'badge_definition_id' => (string) $hold->badge_definition_id,
+        'tier' => null,
+        'source' => 'automatic',
+        'first_awarded_at' => now(),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    try {
+        $result = app(BadgeService::class)->award($user, 'debut');
+    } finally {
+        $disarm();
+    }
+
+    // The loser converges on the winner's outcome, writes nothing, and
+    // never dispatches: no hold row, no audit row, no domain event.
+    expect($result)->toBe(BadgeAwardResult::AlreadyHeld)
+        ->and(BadgeUser::query()->count())->toBe(0)
+        ->and(BadgeEvent::query()->count())->toBe(0);
+
+    Event::assertNotDispatched(BadgeAwarded::class);
 });
 
 it('awards idempotently: the second award is a no-op with exactly one audit row', function () {
