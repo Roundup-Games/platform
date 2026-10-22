@@ -9,6 +9,7 @@ use App\Models\Campaign;
 use App\Models\CampaignGoal;
 use App\Models\CampaignJournalEntry;
 use App\Services\CampaignRecruitmentSummaryService;
+use App\Support\TableLocale;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -254,9 +255,13 @@ class CampaignRecruitmentComposer extends Component
             return;
         }
 
-        $block = __('journal.label_recruitment_excerpt', [
+        // Label and date resolve under the campaign's table locale —
+        // the same single-language contract draft() seeds under
+        // (CampaignRecruitmentSummaryService: a DE campaign with an
+        // EN-UI GM gets a fully German block, ambient locale restored).
+        $block = TableLocale::with($this->campaign->language, fn (): string => __('journal.label_recruitment_excerpt', [
             'session' => format_date($entry->game?->date_time),
-        ])."\n".$entry->body;
+        ]))."\n".$entry->body;
 
         $this->draft = trim($this->draft) === '' ? $block : $this->draft."\n\n".$block;
     }
@@ -334,8 +339,16 @@ class CampaignRecruitmentComposer extends Component
             // The preview's "Last refreshed after session N" line shows
             // the applied stamp when a block is live, otherwise the
             // count apply() would stamp right now — an honest replica.
-            'refreshedAfterCount' => $this->campaign->recruitment_summary_completed_sessions
-                ?? $this->campaign->completedSessionsCount(),
+            // Zero (no completed session yet) hides the line entirely:
+            // "after session 0" reads wrong pre-first-session.
+            'refreshedAfterCount' => max(
+                (int) ($this->campaign->recruitment_summary_completed_sessions
+                    ?? $this->campaign->completedSessionsCount()),
+                0,
+            ) > 0
+                ? (int) ($this->campaign->recruitment_summary_completed_sessions
+                    ?? $this->campaign->completedSessionsCount())
+                : null,
         ]);
     }
 }

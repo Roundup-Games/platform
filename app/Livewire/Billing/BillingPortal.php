@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Billing;
 
+use App\Enums\LocalSubscriptionSource;
 use App\Models\MembershipType;
 use App\Services\GmRoleService;
 use Illuminate\Contracts\View\View;
@@ -45,9 +46,21 @@ class BillingPortal extends Component
 
         $subscription->cancel();
 
-        // If the user also has a GM role, revoke it (Paddle subscription lapsed)
+        // Benefits follow the LAST active membership — the invariant is
+        // single-sourced inside GmRoleService::handleSubscriptionLapse()
+        // (a live hasActiveMembership() re-check decides the lapse):
+        // canceling the Paddle relationship never strips GM benefits
+        // while any active membership remains — a surviving comp or
+        // self-serve GM plan keeps them. With no other membership,
+        // Cashier keeps the canceled sub valid through its paid-out
+        // grace period (subscribed() = active OR onGracePeriod), so
+        // benefits ride the grace period and lapse when the
+        // subscription.canceled webhook ends the membership — identical
+        // to a cancellation made directly in the Paddle customer portal.
+        // (The webhook's own retain-guard is deliberately narrower — see
+        // GmRoleService::handleSubscriptionLapse's predicate note.)
         if ($user->isGM()) {
-            app(GmRoleService::class)->revokeGMRole($user);
+            app(GmRoleService::class)->handleSubscriptionLapse($user);
         }
 
         Log::info('Subscription canceled successfully', [
@@ -95,17 +108,19 @@ class BillingPortal extends Component
     {
         $user = authenticatedUser();
 
-        if (! $user->hasGmSubscription()) {
-            session()->flash('error', __('billing.error_no_active_gm_subscription_to_cancel'));
-
-            return;
-        }
-
         Log::info('User initiated GM subscription cancellation', [
             'user_id' => $user->id,
         ]);
 
-        app(GmRoleService::class)->deactivateGmSubscription($user);
+        // Self-serve only: a comp grant is ended by its granter
+        // (CompMembershipService::withdraw), never through this portal.
+        // The boolean return decides the flash — nothing canceled means
+        // there was nothing this action could cancel.
+        if (! app(GmRoleService::class)->deactivateGmSubscription($user)) {
+            session()->flash('error', __('billing.error_no_active_gm_subscription_to_cancel'));
+
+            return;
+        }
 
         session()->flash('success', __('billing.content_gm_subscription_canceled'));
     }
@@ -114,9 +129,11 @@ class BillingPortal extends Component
     {
         $user = authenticatedUser();
 
-        // Check if they have a canceled GM subscription they can reactivate
+        // Reactivate is a self-serve concern only: a canceled/withdrawn
+        // comp row must never be revivable from the member portal.
         $canceledGmSub = $user->localSubscriptions()
             ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->where('source', LocalSubscriptionSource::SelfServe)
             ->where('status', 'canceled')
             ->first();
 
@@ -159,7 +176,10 @@ class BillingPortal extends Component
                 'plan_id' => $plan->id,
             ]);
 
-            $result = app(GmRoleService::class)->activateGmSubscription($user);
+            // The plan the user clicked, not a re-resolved "the GM
+            // plan" — with tier variants live, re-resolution could
+            // activate a different row than the one on the button.
+            $result = app(GmRoleService::class)->activateGmSubscription($user, $plan);
 
             if ($result) {
                 session()->flash('success', __('billing.content_gm_subscription_activated'));
@@ -185,16 +205,28 @@ class BillingPortal extends Component
         $transactions = $user->transactions()->latest('billed_at')->take(10)->get();
         $membershipTypes = MembershipType::active()->orderBy('price_cents')->get();
 
-        // Check for active GM (local) subscription
+        // GM (local) subscription card — active or canceled. Self-serve
+        // first: it is the row this portal's cancel/reactivate actions
+        // own; a comp row surfaces only for comp-only users (status
+        // display without the self-serve controls).
         $gmSubscription = $user->localSubscriptions()
             ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
-            ->first(); // active or canceled
+            ->orderByRaw('source = ? desc', [LocalSubscriptionSource::SelfServe->value])
+            ->first();
+
+        // The card's status pill reflects live BENEFIT state, not the
+        // displayed row's status: a canceled self-serve row beside an
+        // active comp means GM tools are still live (the
+        // last-active-membership invariant), and the pill must not claim
+        // "Inactive" while benefits survive.
+        $gmBenefitsActive = app(GmRoleService::class)->isGmActive($user);
 
         return view('livewire.billing.billing-portal', [
             'subscription' => $subscription,
             'transactions' => $transactions,
             'membershipTypes' => $membershipTypes,
             'gmSubscription' => $gmSubscription,
+            'gmBenefitsActive' => $gmBenefitsActive,
         ]);
     }
 

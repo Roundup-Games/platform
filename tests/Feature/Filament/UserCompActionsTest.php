@@ -3,9 +3,11 @@
 use App\Enums\LocalSubscriptionSource;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\BadgeUser;
+use App\Models\LocalSubscription;
 use App\Models\MembershipType;
 use App\Models\User;
 use App\Services\GmRoleService;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -131,4 +133,55 @@ it('withdraws the comp through the record action and downgrades benefits (single
 
     expect($this->member->localSubscriptions()->first()->status)->toBe('canceled')
         ->and(app(GmRoleService::class)->isGmActive($this->member))->toBeFalse();
+});
+
+// ── admin-capability isolation (f36f6012 hardening) ──────
+// canAccessPanel() admits Service Admins to the panel; isAdmin() does
+// not include them. Comp granting is an admin-only capability — a
+// Service Admin who can browse the user table must neither see nor
+// execute the comp actions. The gate is load-bearing, so it is pinned.
+
+it('hides the comp actions from a Service Admin — panel admission is not comp-granting power', function () {
+    $serviceAdmin = User::factory()->create();
+    $serviceAdmin->assignRole('Service Admin');
+    $serviceAdmin->unsetRelations();
+
+    actingAs($serviceAdmin);
+
+    expect(ListUsers::canAccess())->toBeTrue() // in the panel…
+        ->and($serviceAdmin->canAccessPanel(Filament::getPanel('admin')))->toBeTrue()
+        ->and($serviceAdmin->isAdmin())->toBeFalse(); // …but not an admin
+
+    Livewire\Livewire::test(ListUsers::class)
+        ->assertOk()
+        ->assertActionHidden(TestAction::make('grantCompMembership')->table($this->member))
+        ->assertActionHidden(TestAction::make('withdrawCompMembership')->table($this->member));
+});
+
+it('refuses a direct comp-action invocation from a Service Admin — the in-action gate creates nothing', function () {
+    $serviceAdmin = User::factory()->create();
+    $serviceAdmin->assignRole('Service Admin');
+    $serviceAdmin->unsetRelations();
+
+    actingAs($serviceAdmin);
+
+    // Livewire can invoke an action without re-running visible() — the
+    // in-action server-side gate is the defense. callTableAction asserts
+    // visibility first (it would pass for the wrong reason), so the
+    // action closure is resolved and executed directly — the same code
+    // path a forged request reaches.
+    $page = Livewire\Livewire::test(ListUsers::class);
+    $closure = $page->instance()->getTable()->getAction('grantCompMembership')->getActionFunction();
+
+    expect($closure)->not->toBeNull();
+
+    $closure($this->member, [
+        'period' => 'permanent',
+        'reason' => 'should never land',
+    ]);
+
+    expect(LocalSubscription::query()
+        ->where('user_id', $this->member->id)
+        ->where('source', LocalSubscriptionSource::Comp->value)
+        ->exists())->toBeFalse();
 });

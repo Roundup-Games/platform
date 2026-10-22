@@ -4,6 +4,7 @@ use App\Enums\CharacterStateChangeType;
 use App\Enums\GoalStatus;
 use App\Enums\JournalEntryKind;
 use App\Enums\JournalEntryVisibility;
+use App\Livewire\Campaigns\CampaignJournal;
 use App\Models\Campaign;
 use App\Models\CampaignGoal;
 use App\Models\CampaignJournalEntry;
@@ -92,6 +93,19 @@ test('writeInCharacter creates a players-visible interlude entry for an approved
         ->and($fresh->visibility)->toBe(JournalEntryVisibility::Players)
         ->and($fresh->body)->toBe('Ti writes home about the amulet.')
         ->and($fresh->in_game_date)->toBe('9. Flockentag, 1372 Dal');
+});
+
+test('writeInCharacter normalizes a whitespace-only in-game date to null — no empty date chip', function () {
+    [$owner, $campaign] = journalWriteCampaign();
+    $player = journalApprovedParticipant($campaign);
+
+    // The timeline renders the date chip on truthiness: a stored '   '
+    // would render an empty chip, so whitespace-only input is null at
+    // the writer seam (the body fields already trim-check).
+    $entry = app(CampaignJournalService::class)
+        ->writeInCharacter($campaign, $player, 'A letter with no dateline.', '   ');
+
+    expect($entry->fresh()->in_game_date)->toBeNull();
 });
 
 test('writeInCharacter accepts the owner participant row and a benched participant', function () {
@@ -205,6 +219,31 @@ test('writeInCharacter rejects an in-game date over 100 characters', function ()
 });
 
 // ── writePrepNote ───────────────────────────────────────
+
+test('the in-character authoring surface is rate limited — 10 posts per hour per member per campaign', function () {
+    // Journal entries are member-visible UGC: the component throttle
+    // matches the platform convention (venue proposals, support,
+    // system requests) so a hostile member cannot flood the timeline.
+    ['owner' => $owner, 'campaign' => $campaign] = test()->createCampaignWithOwner();
+    $participant = journalApprovedParticipant($campaign);
+
+    $component = Livewire::actingAs($participant->user)->test(CampaignJournal::class, ['campaign' => $campaign]);
+
+    for ($post = 1; $post <= 10; $post++) {
+        $component
+            ->set('inCharacterBody', "Post number {$post}")
+            ->call('postInCharacter');
+    }
+
+    expect(CampaignJournalEntry::query()->whereBelongsTo($campaign)->count())->toBe(10);
+
+    $component
+        ->set('inCharacterBody', 'One post too many')
+        ->call('postInCharacter')
+        ->assertHasNoErrors();
+
+    expect(CampaignJournalEntry::query()->whereBelongsTo($campaign)->count())->toBe(10);
+});
 
 test('writePrepNote creates a gms-visible interlude entry for the owner', function () {
     [$owner, $campaign] = journalWriteCampaign();
@@ -386,6 +425,25 @@ test('changeGoalStatus stamps the explicit game and updates the status', functio
         ->and($updated->id)->toBe($goal->id);
 });
 
+test('changeGoalStatus rejects an explicit game from another campaign', function () {
+    [$owner, $campaign] = journalWriteCampaign();
+    $goal = app(CampaignJournalService::class)->createGoal($campaign, $owner, 'Find the informant');
+
+    // A foreign session would stamp a goals-moved source the campaign
+    // never ran, silently dropping the goal out of the Previously On scan.
+    ['owner' => $otherOwner, 'campaign' => $otherCampaign] = test()->createCampaignWithOwner();
+    $foreignSession = journalCompletedSession($otherCampaign, $otherOwner, '2026-03-01 18:00:00');
+
+    try {
+        app(CampaignJournalService::class)->changeGoalStatus($goal, $owner, GoalStatus::Achieved, $foreignSession);
+        $this->fail('Expected LogicException for a foreign stamp game.');
+    } catch (LogicException $e) {
+        expect($e->getMessage())->toBe(__('journal.error_not_campaign_session'));
+    }
+
+    expect(CampaignGoal::query()->findOrFail($goal->id)->status)->toBe(GoalStatus::Planned);
+});
+
 test('changeGoalStatus falls back to the latest completed session when no game is given', function () {
     [$owner, $campaign] = journalWriteCampaign();
     $earlier = journalCompletedSession($campaign, $owner, '2026-01-10 18:00:00');
@@ -518,6 +576,59 @@ test('logStateChange rejects a non-owner author', function () {
     expect(CharacterStateChange::query()->where('campaign_id', $campaign->id)->count())->toBe(0);
 });
 
+test('logStateChange rejects a game from another campaign', function () {
+    [$owner, $campaign] = journalWriteCampaign();
+    $ti = journalApprovedParticipant($campaign);
+
+    ['owner' => $otherOwner, 'campaign' => $otherCampaign] = test()->createCampaignWithOwner();
+    $foreignSession = journalCompletedSession($otherCampaign, $otherOwner, '2026-03-01 18:00:00');
+
+    try {
+        app(CampaignJournalService::class)->logStateChange(
+            $campaign,
+            $owner,
+            $ti,
+            CharacterStateChangeType::Note,
+            'Cross-linked history.',
+            $foreignSession,
+        );
+        $this->fail('Expected LogicException for a foreign session game.');
+    } catch (LogicException $e) {
+        expect($e->getMessage())->toBe(__('journal.error_not_campaign_session'));
+    }
+
+    expect(CharacterStateChange::query()->where('campaign_id', $campaign->id)->count())->toBe(0);
+});
+
+test('logStateChange rejects a participant row that is not seated at the table', function () {
+    [$owner, $campaign] = journalWriteCampaign();
+    // A pending applicant: same campaign, but never approved — state
+    // history must not grow on characters that were never at the table
+    // (the S04 loose-threads scan reads exactly this table).
+    $pending = CampaignParticipant::factory()->create([
+        'campaign_id' => $campaign->id,
+        'user_id' => User::factory()->create(['profile_complete' => true])->id,
+        'role' => 'player',
+        'status' => 'pending',
+    ]);
+
+    try {
+        app(CampaignJournalService::class)->logStateChange(
+            $campaign,
+            $owner,
+            $pending,
+            CharacterStateChangeType::Note,
+            'Never sat down.',
+        );
+        $this->fail('Expected LogicException for a non-seated participant.');
+    } catch (LogicException $e) {
+        // Dedicated GM-path copy — never the in-character wording.
+        expect($e->getMessage())->toBe(__('journal.error_participant_not_seated'));
+    }
+
+    expect(CharacterStateChange::query()->where('campaign_id', $campaign->id)->count())->toBe(0);
+});
+
 test('logStateChange rejects a participant row from another campaign', function () {
     [$owner, $campaignA] = journalWriteCampaign();
     [, $campaignB] = journalWriteCampaign();
@@ -533,7 +644,8 @@ test('logStateChange rejects a participant row from another campaign', function 
         );
         $this->fail('Expected LogicException for a foreign participant row.');
     } catch (LogicException $e) {
-        expect($e->getMessage())->toBe(__('journal.error_not_participant'));
+        // Dedicated GM-path copy — never the in-character wording.
+        expect($e->getMessage())->toBe(__('journal.error_participant_not_in_campaign'));
     }
 
     expect(CharacterStateChange::query()->where('campaign_id', $campaignA->id)->count())->toBe(0);

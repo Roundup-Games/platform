@@ -143,7 +143,9 @@ class GMProfileTest extends TestCase
 
         $profileId = $profile->id;
 
-        $service->handleSubscriptionLapse($user);
+        // Raw lapse mechanics — the guarded seam would skip for this
+        // still-subscribed fixture user.
+        $service->lapseGmBenefits($user);
 
         $preserved = GMProfile::find($profileId);
         $this->assertNotNull($preserved);

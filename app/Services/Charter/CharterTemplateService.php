@@ -8,6 +8,7 @@ use App\Models\SessionZeroSurvey;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -21,13 +22,14 @@ use Illuminate\Validation\ValidationException;
  * under a name; CharterService::start('template') seeds a new charter
  * from that snapshot.
  *
- * Gates (CharterService pattern): the campaign owner (owner_id
- * comparison — R084 idiom, never GmRoleService) may act on their own
- * charters, and the member seam (CharterMemberService::canUseConveniences)
- * decides who may use conveniences at all — the one place a future
- * pricing milestone can tighten from "active GM role" to "paid
- * membership". Free-tier lifecycle (drafting, publishing, signing) never
- * touches this service.
+ * Gates (CharterService pattern): the campaign owner (the
+ * manageCharter policy ability — R084/D211 idiom, never GmRoleService;
+ * global admins pass via before() like every charter surface) may act on
+ * their own charters, and the member seam
+ * (CharterMemberService::canUseConveniences) decides who may use
+ * conveniences at all — the one place a future pricing milestone can
+ * tighten from "active GM role" to "paid membership". Free-tier
+ * lifecycle (drafting, publishing, signing) never touches this service.
  */
 class CharterTemplateService
 {
@@ -44,9 +46,13 @@ class CharterTemplateService
      */
     public static function saveFromCharter(User $user, SessionZeroSurvey $charter, string $name): CharterTemplate
     {
-        if ((string) $charter->campaign?->owner_id !== (string) $user->id) {
-            throw new AuthorizationException('Only the campaign owner can save their charter as a template.');
+        $campaign = $charter->campaign;
+
+        if ($campaign === null) {
+            throw new AuthorizationException('This charter has no campaign to authorize against.');
         }
+
+        Gate::forUser($user)->authorize('manageCharter', $campaign);
 
         if (! CharterMemberService::canUseConveniences($user)) {
             throw ValidationException::withMessages([

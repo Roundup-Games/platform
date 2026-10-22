@@ -128,6 +128,46 @@ it('forgives one skipped month per rolling six-month window', function () {
     expect(app(RegularsTableEvaluator::class)->evaluate($user)?->tierKey)->toBe('silver');
 });
 
+it('does not forgive two walked misses exactly six months apart — the trailing window is inclusive', function () {
+    // The grace rule's exact boundary, pinned deliberately (see the
+    // evaluator docblock): February's miss sits in August's trailing
+    // window (Feb..Jul), so August — exactly six months later — is NOT
+    // forgiven, and the run dies at the August miss. Under the looser
+    // reading (misses six months apart independent) August would be
+    // forgiven and this dataset would earn silver.
+    $this->travelTo(Carbon::parse('2026-08-15 12:00:00'));
+
+    $user = User::factory()->create();
+
+    // Covered: January and March..July. Misses: February and August
+    // (the open month) — exactly six months apart.
+    regularsAttendMonth($user, '2026-01');
+    foreach (['2026-03', '2026-04', '2026-05', '2026-06', '2026-07'] as $month) {
+        regularsAttendMonth($user, $month);
+    }
+
+    expect(app(RegularsTableEvaluator::class)->evaluate($user))->toBeNull();
+});
+
+it('forgives two walked misses seven months apart — the second has a clean half-year behind it', function () {
+    // The mirror of the boundary above: February no longer sits in
+    // September's trailing window (Mar..Aug), so the second miss is
+    // forgiven and the run spans all nine walked calendar months —
+    // silver.
+    $this->travelTo(Carbon::parse('2026-09-15 12:00:00'));
+
+    $user = User::factory()->create();
+
+    // Covered: January and March..August. Misses: February and
+    // September (the open month) — seven months apart.
+    regularsAttendMonth($user, '2026-01');
+    foreach (['2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08'] as $month) {
+        regularsAttendMonth($user, $month);
+    }
+
+    expect(app(RegularsTableEvaluator::class)->evaluate($user)?->tierKey)->toBe('silver');
+});
+
 it('breaks the run on a second miss inside one six-month window', function () {
     $this->travelTo(Carbon::parse('2026-06-15 12:00:00'));
 
@@ -368,6 +408,23 @@ it('sweeps current holders even when their participation history is gone', funct
     $this->travelTo(Carbon::parse('2026-06-15 12:00:00'));
 
     $user = User::factory()->create();
+
+    // An AUTOMATIC hold (sweep provenance): the sweep governs its own
+    // awards — the streak is dead on arrival and the hold lapses.
+    app(BadgeService::class)->award($user, 'regulars_table', 'bronze');
+
+    // No Attended rows at all: the cohort's holder arm is what pulls
+    // this user in.
+    app(RegularsTableEvaluator::class)->sweep();
+
+    expect(regularsTableHold()?->lapsed_at)->not->toBeNull()
+        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Lapsed)->count())->toBe(1);
+});
+
+it('never lapses a manual grant — an admin decision outlives the live signal', function () {
+    $this->travelTo(Carbon::parse('2026-06-15 12:00:00'));
+
+    $user = User::factory()->create();
     $admin = User::factory()->create();
 
     app(BadgeService::class)->award(
@@ -377,13 +434,16 @@ it('sweeps current holders even when their participation history is gone', funct
         null,
         BadgeSource::Manual,
         $admin,
-        'Grandfathered before the badge engine shipped',
+        'Offline club table, attendance not tracked on the platform',
     );
 
-    // No Attended rows at all: the cohort's holder arm is what pulls
-    // this user in — the streak is dead on arrival and the hold lapses.
+    // No Attended rows: the sweep pulls the holder in, sees a null
+    // proposal, and must NOT undo the admin's explicit grant — lapse()
+    // exempts manual-source holds (revocation stays the admin's move).
     app(RegularsTableEvaluator::class)->sweep();
 
-    expect(regularsTableHold()?->lapsed_at)->not->toBeNull()
-        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Lapsed)->count())->toBe(1);
+    $hold = regularsTableHold();
+    expect($hold?->lapsed_at)->toBeNull()
+        ->and($hold?->source)->toBe(BadgeSource::Manual)
+        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Lapsed)->count())->toBe(0);
 });

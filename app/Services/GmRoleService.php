@@ -2,12 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\LocalSubscriptionSource;
 use App\Events\MembershipActivated;
 use App\Events\MembershipEnded;
 use App\Models\GMProfile;
-use App\Models\LocalSubscription;
 use App\Models\MembershipType;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
@@ -21,12 +22,19 @@ class GmRoleService
      *
      * Creates a LocalSubscription, assigns the GM role, and activates the GMProfile.
      * Idempotent — safe to call if already subscribed.
+     *
+     * Pass the plan the user actually chose when the caller has one
+     * (BillingPortal resolves and validates the clicked row); the lookup
+     * is a fallback for plan-less callers (MembershipPage), ordered by
+     * price so several active gm_plan rows resolve deterministically
+     * instead of by physical row order.
      */
-    public function activateGmSubscription(User $user): bool
+    public function activateGmSubscription(User $user, ?MembershipType $plan = null): bool
     {
-        $gmPlan = MembershipType::active()
+        $gmPlan = $plan ?? MembershipType::active()
             ->where('type', 'local')
             ->whereJsonContains('metadata->gm_plan', true)
+            ->orderBy('price_cents')
             ->first();
 
         if (! $gmPlan) {
@@ -35,47 +43,18 @@ class GmRoleService
             return false;
         }
 
-        DB::transaction(function () use ($user, $gmPlan) {
-            // Ensure the role exists (defense against unseeded DB)
-            $role = Role::firstOrCreate([
-                'name' => self::ROLE_NAME,
-                'guard_name' => 'web',
-                'team_id' => null,
-            ]);
-
-            // Create or reactivate the local subscription
-            $subscription = $user->localSubscriptions()->updateOrCreate(
-                [
-                    'membership_type_id' => $gmPlan->id,
-                ],
-                [
-                    'status' => 'active',
-                    'starts_at' => now(),
-                    'ends_at' => null,
-                    'canceled_at' => null,
-                ],
-            );
-
-            // Grant public game/campaign creation for active GMs
-            $user->can_create_public_entries = true;
-            $user->save();
-
-            // Assign the GM role at global scope
-            if (! $user->hasRole(self::ROLE_NAME)) {
-                $user->assignRole($role);
-            }
-
-            // Create or reactivate the GMProfile
-            $profile = $user->gmProfile()->updateOrCreate([], ['is_active' => true]);
-
-            Log::info('GM subscription activated', [
-                'user_id' => $user->id,
-                'gm_profile_id' => $profile->id,
-                'local_subscription_id' => $subscription->id,
-            ]);
-
-            return true;
-        });
+        try {
+            $this->persistActivation($user, $gmPlan);
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent activation (double-click on Start/Reactivate)
+            // won the insert — the partial unique index (one active row
+            // per user, plan, source) turned this lookup-then-write into
+            // a loser. Converge on the winner's row instead of surfacing
+            // a 500: the retry's updateOrCreate finds the committed row
+            // and takes the update path (same semantics as
+            // CompMembershipService::persistGrant).
+            $this->persistActivation($user, $gmPlan);
+        }
 
         // Membership domain event AFTER the transaction commits
         // (after-commit discipline, cf. BadgeService): the queued badge
@@ -89,61 +68,57 @@ class GmRoleService
     }
 
     /**
-     * Deactivate the GM subscription for the user.
+     * Deactivate the user's SELF-SERVE GM subscription (the billing
+     * portal's cancel action).
      *
-     * Marks the LocalSubscription as canceled, removes the GM role,
-     * and deactivates the GMProfile. Does NOT delete the profile or reviews.
+     * Scoped to source=self_serve on purpose (the mirror of
+     * activateGmSubscription's scoping): with the M069 comp model a comp
+     * and a self-serve row can both be active on the same GM plan, and
+     * a source-blind pick could cancel the admin-granted comp — only
+     * CompMembershipService::withdraw ends a comp. GM benefits (role,
+     * public-entry rights, GMProfile) lapse only when NO active
+     * membership remains after the cancel (the withdraw semantics);
+     * a surviving comp keeps them alive.
+     *
+     * Does NOT delete the profile or reviews (revokeGMRole contract).
+     *
+     * @return bool True when a self-serve row was canceled, false when
+     *              the user has no active self-serve GM subscription
+     *              (nothing was touched — the caller must not report
+     *              a cancellation).
      */
-    public function deactivateGmSubscription(User $user): void
+    public function deactivateGmSubscription(User $user): bool
     {
-        $canceled = DB::transaction(function () use ($user) {
-            // Mark local subscription as canceled
-            $subscription = LocalSubscription::whereBelongsTo($user)
-                ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
-                ->active()
-                ->first();
+        $subscription = $user->localSubscriptions()
+            ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->where('source', LocalSubscriptionSource::SelfServe)
+            ->active()
+            ->first();
 
-            $canceledSubscription = false;
+        if ($subscription === null) {
+            return false;
+        }
 
-            if ($subscription) {
-                $subscription->update([
-                    'status' => 'canceled',
-                    'canceled_at' => now(),
-                ]);
-
-                $canceledSubscription = true;
-            }
-
-            // Remove the GM role
-            if ($user->hasRole(self::ROLE_NAME)) {
-                $user->removeRole(self::ROLE_NAME);
-            }
-
-            // Revoke public game/campaign creation
-            $user->can_create_public_entries = false;
-            $user->save();
-
-            // Deactivate the GMProfile
-            $profile = $user->gmProfile;
-            if ($profile && $profile->is_active) {
-                $profile->is_active = false;
-                $profile->save();
-            }
+        DB::transaction(function () use ($user, $subscription): void {
+            $subscription->update([
+                'status' => 'canceled',
+                'canceled_at' => now(),
+            ]);
 
             Log::info('GM subscription deactivated', [
                 'user_id' => $user->id,
+                'local_subscription_id' => $subscription->id,
             ]);
-
-            return $canceledSubscription;
         });
 
-        // Announce the ended membership only when a subscription row
-        // actually transitioned — role/profile cleanup without a canceled
-        // row is not a membership change. Badge lapse is sweep-owned and
-        // quiet (spec §4): nothing badge-side listens to this event.
-        if ($canceled) {
-            MembershipEnded::dispatch($user);
-        }
+        // Benefits follow the last active membership — the invariant is
+        // single-sourced inside handleSubscriptionLapse(): a live
+        // hasActiveMembership() re-check there decides the lapse, so a
+        // surviving comp (or any other active membership) keeps the
+        // role/profile alive and no MembershipEnded fires.
+        $this->handleSubscriptionLapse($user);
+
+        return true;
     }
 
     /**
@@ -245,11 +220,54 @@ class GmRoleService
     }
 
     /**
-     * Handle a subscription lapse (e.g., from Paddle webhook).
+     * Handle a GM-benefits lapse: the LAST-active-membership seam.
      *
-     * Revokes the GM role but preserves the GMProfile for historical data.
+     * The invariant is single-sourced here: benefits (role, public-entry
+     * rights, GMProfile) lapse only when NO active membership remains —
+     * a live hasActiveMembership() re-check (Cashier subscribed() plus
+     * any active local plan) decides. Callers invoke this whenever a
+     * membership ended; the seam itself sorts out whether another
+     * membership survives. The copy-pasted check-then-act guards that
+     * used to live at every call site raced grants that committed
+     * between their check and the revoke.
+     *
+     * Retention-predicate note: this seam retains on ANY active
+     * membership (the M069/M071 portal/comp/expiry semantics). The
+     * Paddle subscription.canceled webhook deliberately retains on the
+     * narrower hasGmSubscription() (GM-plan local rows only) and calls
+     * the unguarded lapseGmBenefits() below — a pre-existing divergence
+     * pinned by PaddleWebhookLifecycleSmokeTest that only differs for a
+     * user whose sole surviving membership is a non-GM local plan.
+     *
+     * Revokes the GM role but preserves the GMProfile for historical
+     * data, then dispatches MembershipEnded after the revoke commits.
+     *
+     * @return bool True when the lapse ran (role revoked + MembershipEnded
+     *              dispatched); false when another active membership
+     *              retains the benefits.
      */
-    public function handleSubscriptionLapse(User $user): void
+    public function handleSubscriptionLapse(User $user): bool
+    {
+        if ($user->hasActiveMembership()) {
+            Log::info('GM benefits retained: another active membership remains', [
+                'user_id' => $user->id,
+            ]);
+
+            return false;
+        }
+
+        return $this->lapseGmBenefits($user);
+    }
+
+    /**
+     * The unguarded lapse: revoke GM benefits and dispatch MembershipEnded.
+     *
+     * Retention is the caller's concern — today only the Paddle webhook
+     * uses this directly (its narrow hasGmSubscription() retain-guard
+     * predates the last-active-membership invariant; see
+     * handleSubscriptionLapse). Every other path goes through the seam.
+     */
+    public function lapseGmBenefits(User $user): bool
     {
         Log::info('GM subscription lapse handling started', [
             'user_id' => $user->id,
@@ -261,8 +279,77 @@ class GmRoleService
             'user_id' => $user->id,
         ]);
 
-        // Paddle-side membership end — the same domain event as local
-        // deactivation, so consumers never care which path ended it.
+        // Membership end — the same domain event from every path, so
+        // consumers never care which membership ended it.
         MembershipEnded::dispatch($user);
+
+        return true;
+    }
+
+    /**
+     * The transactional write behind activateGmSubscription(): the
+     * self-serve subscription row, entry rights, GM role, and profile —
+     * re-invoked after a unique-violation loss (the second updateOrCreate
+     * hits the winner's row and takes the update path).
+     */
+    private function persistActivation(User $user, MembershipType $gmPlan): void
+    {
+        DB::transaction(function () use ($user, $gmPlan): void {
+            // Ensure the role exists (defense against unseeded DB)
+            $role = Role::firstOrCreate([
+                'name' => self::ROLE_NAME,
+                'guard_name' => 'web',
+                'team_id' => null,
+            ]);
+
+            // Create or reactivate the user's SELF-SERVE local
+            // subscription row. Scoped to source=self_serve on purpose:
+            // matching on the plan alone would flip an expired/withdrawn
+            // COMP row back to active with ends_at null while keeping its
+            // source/granted_by/reason — provenance that lies (comp
+            // reporting would count a self-serve revival as an admin
+            // grant). Comp re-grants route through
+            // CompMembershipService::grant, which owns those columns.
+            // starts_at survives reactivation (the comp path's "a
+            // re-grant renews, it never rewrites history" rule): a
+            // churned-and-returned supporter keeps their original start
+            // date, because SupportingMemberEvaluator reads the EARLIEST
+            // starts_at for tenure tiers — with one physical row per
+            // (plan, source) a rewritten start would erase the history.
+            $existingStartsAt = $user->localSubscriptions()
+                ->where('membership_type_id', $gmPlan->id)
+                ->where('source', LocalSubscriptionSource::SelfServe)
+                ->value('starts_at');
+
+            $user->localSubscriptions()->updateOrCreate(
+                [
+                    'membership_type_id' => $gmPlan->id,
+                    'source' => LocalSubscriptionSource::SelfServe,
+                ],
+                [
+                    'status' => 'active',
+                    'starts_at' => $existingStartsAt ?? now(),
+                    'ends_at' => null,
+                    'canceled_at' => null,
+                ],
+            );
+
+            // Grant public game/campaign creation for active GMs
+            $user->can_create_public_entries = true;
+            $user->save();
+
+            // Assign the GM role at global scope
+            if (! $user->hasRole(self::ROLE_NAME)) {
+                $user->assignRole($role);
+            }
+
+            // Create or reactivate the GMProfile
+            $profile = $user->gmProfile()->updateOrCreate([], ['is_active' => true]);
+
+            Log::info('GM subscription activated', [
+                'user_id' => $user->id,
+                'gm_profile_id' => $profile->id,
+            ]);
+        });
     }
 }

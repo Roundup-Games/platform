@@ -77,6 +77,26 @@ test('saveFromCharter refuses anyone but the campaign owner', function () {
     CharterTemplateService::saveFromCharter($otherMember, $charter, 'Not mine');
 })->throws(AuthorizationException::class);
 
+test('saveFromCharter resolves authorization through manageCharter — global admins pass like every charter surface', function () {
+    seedRoles();
+
+    // A subscribed GM who is also a Platform Admin, acting on a campaign
+    // they do NOT own: the raw owner_id comparison used to 403 here,
+    // diverging from the manageCharter idiom (admin before() bypass) the
+    // rest of the charter surfaces resolve through.
+    $owner = $this->createSubscribedGm();
+    $charter = charter_tpl_published_charter($owner);
+
+    $admin = $this->createSubscribedGm();
+    $admin->assignRole('Platform Admin');
+    $admin->unsetRelations();
+
+    $template = CharterTemplateService::saveFromCharter($admin, $charter, 'Assisted save');
+
+    expect($template->user_id)->toBe($admin->id)
+        ->and($template->name)->toBe('Assisted save');
+});
+
 test('saveFromCharter refuses a free owner with the member-only error', function () {
     $owner = User::factory()->create();
     $charter = charter_tpl_published_charter($owner);

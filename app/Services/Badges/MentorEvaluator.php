@@ -3,14 +3,12 @@
 namespace App\Services\Badges;
 
 use App\Enums\AttendanceStatus;
-use App\Models\BadgeUser;
 use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
-use LogicException;
 
 /**
  * Mentor (spec §3 GM Craft row, D190): published 5/5 Game reviews from
@@ -42,47 +40,16 @@ use LogicException;
  *
  * Tier thresholds live in the registry entry (single source of truth).
  */
-class MentorEvaluator implements BadgeEvaluator
+class MentorEvaluator extends CohortSweepEvaluator
 {
     private const BADGE_KEY = 'mentor';
 
+    protected function badgeKey(): string
+    {
+        return self::BADGE_KEY;
+    }
+
     private const PERFECT_RATING = 5;
-
-    public function evaluate(User $user): ?BadgeAward
-    {
-        $proposal = $this->proposalFor($user);
-
-        if ($proposal === null) {
-            return null;
-        }
-
-        [$tierKey, $evidence] = $proposal;
-
-        return BadgeAward::for(self::BADGE_KEY, $tierKey, $evidence);
-    }
-
-    public function sweep(): void
-    {
-        $service = app(BadgeService::class);
-
-        $this->cohort()->chunkById(200, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                $proposal = $this->proposalFor($user);
-
-                if ($proposal === null) {
-                    // Milestone badges never lapse (spec §2.1): a review
-                    // history under every threshold parks nothing — the
-                    // next first-timer's review keeps counting toward bronze.
-                    continue;
-                }
-
-                [$tierKey, $evidence] = $proposal;
-
-                $service->award($user, self::BADGE_KEY, $tierKey, $evidence);
-            }
-        });
-    }
 
     // ── Internals ──────────────────────────────────────
 
@@ -94,7 +61,7 @@ class MentorEvaluator implements BadgeEvaluator
      *
      * @return array{0: string, 1: Review}|null
      */
-    private function proposalFor(User $user): ?array
+    protected function proposalFor(User $user): ?array
     {
         $gmProfile = $user->gmProfile()->first();
 
@@ -106,14 +73,7 @@ class MentorEvaluator implements BadgeEvaluator
             ->distinct()
             ->count('reviews.reviewer_id');
 
-        $tierKey = null;
-
-        foreach ($this->tierThresholds() as $tier => $threshold) {
-            if ($distinctReviewers >= $threshold) {
-                // Thresholds ascend, so the last match is the highest earned.
-                $tierKey = $tier;
-            }
-        }
+        $tierKey = $this->tierFor($distinctReviewers);
 
         if ($tierKey === null) {
             return null;
@@ -182,52 +142,9 @@ class MentorEvaluator implements BadgeEvaluator
             ->first();
     }
 
-    /**
-     * Tier thresholds from the registry entry — the same array
-     * badges:sync mirrors into badge_definitions, so the evaluator and
-     * the write side can never disagree about what a tier means.
-     *
-     * @return array<string, int>
-     */
-    private function tierThresholds(): array
+    /** GMs (a profile exists — reviews flow through it); holders join through the skeleton's holders half. */
+    protected function qualifyingCohort(Builder $grouped): Builder
     {
-        $definition = app(BadgeRegistry::class)->find(self::BADGE_KEY);
-
-        if ($definition === null) {
-            throw new LogicException(sprintf('%s is missing from the badge registry', self::BADGE_KEY));
-        }
-
-        $tiers = $definition->tiers;
-
-        // Thresholds are declared ascending; sort defensively so the
-        // "last match wins" tier pick above can never mis-order.
-        asort($tiers);
-
-        return $tiers;
-    }
-
-    /**
-     * Users in this badge's orbit: anyone with a GM profile (a review
-     * could have landed or crossed a tier at any time) plus current
-     * holders (so a revoked hold requalifies through the audited
-     * pipeline once its evidence exists again).
-     *
-     * The whole predicate is ONE grouped where for the chunkById
-     * reason (see SupportingMemberEvaluator): the cursor's id > last
-     * is a top-level AND, and SQL AND binds tighter than OR — an
-     * ungrouped cohort predicate would re-match users in every chunk
-     * and loop forever.
-     *
-     * @return Builder<User>
-     */
-    private function cohort(): Builder
-    {
-        return User::query()
-            ->where(function (Builder $query): void {
-                $query->whereHas('gmProfile')
-                    ->orWhereIn('id', BadgeUser::query()
-                        ->whereHas('badgeDefinition', fn (Builder $definition) => $definition->where('key', self::BADGE_KEY))
-                        ->select('user_id'));
-            });
+        return $grouped->whereHas('gmProfile');
     }
 }

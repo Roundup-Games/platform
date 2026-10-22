@@ -230,15 +230,20 @@ class AddSessionToCampaign extends Component
             ]);
         }
 
-        // D221 trigger 1: composing the Previously On draft for the new
-        // session from the campaign journal (refresh-unpublished-or-
-        // compose). The member gate is the D185 gate via the D223 seam —
-        // checked on the campaign OWNER (the GM who publishes), not the
-        // acting admin. Composition NEVER blocks session creation: any
-        // failure is logged and the save continues to the redirect.
+        // D221 trigger 1: (re)compose the Previously On draft for the
+        // campaign's chronologically-NEXT session — NOT the session that
+        // was just created. The new session is usually further out than
+        // an existing one; composing for it directly would supersede the
+        // next session's draft and blank the panel (D230 drift — see
+        // PreviouslyOnService::composeForNextSession). When the new
+        // session IS the next one, the compose targets it naturally.
+        // The member gate is the D185 gate via the D223 seam — checked
+        // on the campaign OWNER (the GM who publishes), not the acting
+        // admin. Composition NEVER blocks session creation: any failure
+        // is logged and the save continues to the redirect.
         try {
             if ($campaign->owner !== null && GmMembershipService::canUseMemberFeatures($campaign->owner)) {
-                app(PreviouslyOnService::class)->upsertUnpublished($campaign, $game);
+                app(PreviouslyOnService::class)->composeForNextSession($campaign);
             }
         } catch (\Throwable $e) {
             Log::warning('previously_on.compose_failed', [

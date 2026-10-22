@@ -6,12 +6,15 @@ use App\Enums\CharacterStateChangeType;
 use App\Enums\GameStatus;
 use App\Enums\GoalStatus;
 use App\Enums\JournalEntryKind;
+use App\Enums\JournalEntryVisibility;
 use App\Models\Campaign;
 use App\Models\CharacterStateChange;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\PreviouslyOnDraft;
 use App\Models\User;
+use App\Support\TableLocale;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +75,7 @@ class PreviouslyOnService
      */
     public function composeBody(Campaign $campaign, Game $nextSession): ?string
     {
-        $locale = $this->locale($nextSession->language ?? null);
+        $locale = TableLocale::resolve($nextSession->language ?? null);
 
         $previous = App::getLocale();
 
@@ -92,8 +95,14 @@ class PreviouslyOnService
             // recap only feeds the digest when no session recap exists at
             // all (NULLS LAST). id (UUIDv7) breaks same-session ties
             // deterministically.
+            // visibility=players pinned (defense-in-depth): today every
+            // recap writer forces Players, but the CHECK constraint
+            // permits kind=recap/visibility=gms — a future writer must
+            // not leak GM-only text into a bulletin delivered to every
+            // approved participant.
             $recap = $campaign->journalEntries()
                 ->where('kind', JournalEntryKind::Recap)
+                ->where('campaign_journal_entries.visibility', JournalEntryVisibility::Players->value)
                 ->leftJoin('games', 'games.id', '=', 'campaign_journal_entries.game_id')
                 ->select('campaign_journal_entries.*')
                 ->orderByRaw('games.date_time desc nulls last')
@@ -220,19 +229,13 @@ class PreviouslyOnService
      */
     public function upsertUnpublished(Campaign $campaign, Game $nextSession): ?PreviouslyOnDraft
     {
-        // D230 projection model: a campaign carries at most ONE
-        // unpublished draft — the forward-looking one for its next
-        // session. Composing for a target session supersedes (deletes)
-        // every OTHER unpublished draft of the campaign, so drafts can
-        // neither orphan nor accumulate; published rows are immutable
-        // history and are never touched here. This runs on every compose
-        // trigger (session create, 24h reminder, session-edit
-        // recompose), keeping the invariant true no matter who composes.
-        PreviouslyOnDraft::query()
-            ->whereBelongsTo($campaign)
-            ->where('game_id', '!=', $nextSession->id)
-            ->whereNull('published_at')
-            ->delete();
+        // The D230 supersedes-delete runs INSIDE the transaction below
+        // (under the campaign-row lock): outside it, two concurrent
+        // composes for different sessions — e.g. the session-edit
+        // recompose racing the 24h reminder — could both delete-then-
+        // create and both survive, leaving two unpublished drafts. The
+        // unique(game_id) index only prevents same-session duplicates,
+        // so the campaign row is the shared serialization anchor.
 
         $existing = PreviouslyOnDraft::query()
             ->whereBelongsTo($nextSession)
@@ -248,13 +251,76 @@ class PreviouslyOnService
             return $existing;
         }
 
-        $draft = PreviouslyOnDraft::query()->updateOrCreate(
-            ['game_id' => $nextSession->id],
-            [
-                'campaign_id' => $campaign->id,
-                'body' => $body,
-            ],
-        );
+        // The published guard re-checked UNDER LOCK: publish() flips
+        // published_at in its own transaction, and an unlocked
+        // updateOrCreate could overwrite the audit-trail body of a draft
+        // whose bulletin already went out (a GM clicking Publish while a
+        // reminder recompose races). The row lock serializes the two —
+        // whoever commits second sees the published row and stands down.
+        try {
+            $draft = DB::transaction(function () use ($campaign, $nextSession, $body): ?PreviouslyOnDraft {
+                // Serialize every compose trigger for this campaign on
+                // the campaign row (publish() locks only the draft row —
+                // no lock-order inversion, no deadlock). Held for the
+                // delete + upsert pair below, making D230's at-most-one
+                // unpublished draft atomic.
+                Campaign::query()->whereKey($campaign->id)->lockForUpdate()->first();
+
+                // D230 projection model: a campaign carries at most ONE
+                // unpublished draft — the forward-looking one for its
+                // next session. Composing for a target session supersedes
+                // (deletes) every OTHER unpublished draft of the campaign,
+                // so drafts can neither orphan nor accumulate; published
+                // rows are immutable history and are never touched here.
+                // This runs on every compose trigger (session create, 24h
+                // reminder, session-edit recompose), keeping the
+                // invariant true no matter who composes.
+                PreviouslyOnDraft::query()
+                    ->whereBelongsTo($campaign)
+                    ->where('game_id', '!=', $nextSession->id)
+                    ->whereNull('published_at')
+                    ->delete();
+
+                $locked = PreviouslyOnDraft::query()
+                    ->whereBelongsTo($nextSession)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($locked !== null && $locked->published_at !== null) {
+                    return null;
+                }
+
+                return PreviouslyOnDraft::query()->updateOrCreate(
+                    ['game_id' => $nextSession->id],
+                    [
+                        'campaign_id' => $campaign->id,
+                        'body' => $body,
+                    ],
+                );
+            });
+        } catch (UniqueConstraintViolationException) {
+            // Create-race (unique(game_id)): a concurrent compose (the
+            // 24h reminder and a GM clicking Refresh) won the insert
+            // between the lock miss and the create. Converge on the
+            // winner's row — same outcome the loser would have written,
+            // and the panel refresh path never surfaces a 500 for a lost
+            // race (the LogicException catch is for programming errors,
+            // not this). first(), not firstOrFail(): the winner's row can
+            // itself be deleted before this re-read (a concurrent
+            // supersedes or the observer's status-change sweep), and a
+            // ModelNotFoundException would escape that catch — the null
+            // guard below already handles a vanished winner.
+            $draft = PreviouslyOnDraft::query()
+                ->whereBelongsTo($nextSession)
+                ->first();
+        }
+
+        // publish() won the race and the locked row stood down — the
+        // published history is untouchable, exactly like the early
+        // return above.
+        if ($draft === null) {
+            return null;
+        }
 
         Log::info($existing === null ? 'previously_on.draft_composed' : 'previously_on.draft_refreshed', [
             'campaign_id' => $campaign->id,
@@ -263,6 +329,50 @@ class PreviouslyOnService
         ]);
 
         return $draft;
+    }
+
+    /**
+     * The campaign's chronologically-NEXT scheduled session, or null —
+     * the ONE definition of "next" (D230). The panel's draft preview and
+     * every composer trigger resolve through here, so the two can never
+     * disagree about which session a draft belongs to.
+     */
+    public function nextSession(Campaign $campaign): ?Game
+    {
+        /** @var Game|null $next */
+        $next = $campaign->sessions()
+            ->where('status', GameStatus::Scheduled->value)
+            ->orderBy('date_time')
+            ->first();
+
+        return $next;
+    }
+
+    /**
+     * Compose for the campaign's chronologically-NEXT scheduled session
+     * (refresh-unpublished-or-compose), or null when none is scheduled.
+     *
+     * D230's invariant owner: a campaign carries at most one unpublished
+     * draft, the forward-looking one for its next session — the same
+     * session the Journal tab's panel resolves (CampaignPreviouslyOn::
+     * latestDraft). Every automatic trigger that does not already have a
+     * specific in-hand session MUST route through here: composing for a
+     * newly created LATER session through upsertUnpublished() directly
+     * would supersede (delete) the next session's draft and blank the
+     * panel until the 24h reminder recomposed it — exactly the drift
+     * this method exists to make impossible. Call sites with a specific
+     * session already resolved (the observer's recompose, the panel's
+     * refresh) keep calling upsertUnpublished() directly.
+     */
+    public function composeForNextSession(Campaign $campaign): ?PreviouslyOnDraft
+    {
+        $nextSession = $this->nextSession($campaign);
+
+        if ($nextSession === null) {
+            return null;
+        }
+
+        return $this->upsertUnpublished($campaign, $nextSession);
     }
 
     /**
@@ -286,13 +396,33 @@ class PreviouslyOnService
      */
     public function publish(PreviouslyOnDraft $draft, User $publisher): GameBulletin
     {
+        // Service-layer re-authorization (the CampaignJournalService
+        // triple-layer idiom): the panel checks CampaignPolicy::
+        // managePreviouslyOn before calling, and this guard resolves the
+        // same ability — including the policy's global-admin before() —
+        // so no caller can reach the bulletin write unvetted.
+        if ($draft->campaign === null || ! $publisher->can('managePreviouslyOn', $draft->campaign)) {
+            throw new \LogicException(__('journal.error_previously_on_not_available'));
+        }
+
         return DB::transaction(function () use ($draft, $publisher): GameBulletin {
             // Re-fetch under lock so a concurrent publish cannot slip a
-            // second bulletin through the same draft.
+            // second bulletin through the same draft. first(), not
+            // firstOrFail(): the row can be deleted between the panel's
+            // resolution and this lock (the GameObserver status-leave
+            // sweep when AutoCompleteGames finishes the session, or the
+            // retarget supersedes-delete) — a ModelNotFoundException is
+            // a RuntimeException and would escape the panel's
+            // LogicException catch as a 500. Converge on the same flash
+            // path instead (the upsertUnpublished race-precedent).
             $locked = PreviouslyOnDraft::query()
                 ->whereKey($draft->id)
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->first();
+
+            if ($locked === null) {
+                throw new \LogicException(__('journal.error_previously_on_not_available'));
+            }
 
             if ($locked->published_at !== null) {
                 throw new \LogicException(__('journal.error_draft_already_published'));
@@ -366,17 +496,5 @@ class PreviouslyOnService
             ['created_at', 'desc'],
             ['id', 'desc'],
         ])->values();
-    }
-
-    /**
-     * Resolve the composition locale the same way the Discord bulletin
-     * teaser does: the game's language, falling back to the app fallback
-     * locale.
-     */
-    private function locale(?string $language): string
-    {
-        $resolved = $language !== null && $language !== '' ? $language : config('app.fallback_locale', 'en');
-
-        return is_string($resolved) && $resolved !== '' ? $resolved : 'en';
     }
 }

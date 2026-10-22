@@ -441,13 +441,16 @@ class CharterComposer extends Component
     #[Computed]
     public function previousCharters(): Collection
     {
+        // Minimal projection: the start screen's select renders id and
+        // title only — the content snapshot (jsonb, tens of KB per
+        // charter) must not ride along (workspaceHealth's own rule).
         return SessionZeroSurvey::query()
             ->charter()
             ->whereNotNull('current_version')
             ->where('campaign_id', '!=', $this->campaign->id)
             ->whereHas('campaign', fn ($query) => $query->whereBelongsTo(authenticatedUser(), 'owner'))
             ->orderBy('title')
-            ->get();
+            ->get(['id', 'title']);
     }
 
     /**
@@ -541,23 +544,9 @@ class CharterComposer extends Component
             return [];
         }
 
-        $changes = CharterDiff::changes($current->content ?? [], $this->content);
-
-        foreach ($changes as $index => $change) {
-            if ($change['section'] !== 'logistics' || $change['field'] !== 'location_id') {
-                continue;
-            }
-
-            foreach (['old', 'new'] as $side) {
-                $uuid = $change[$side];
-                if (is_string($uuid) && $uuid !== '') {
-                    $name = Location::query()->whereKey($uuid)->value('name');
-                    $changes[$index][$side] = is_string($name) && $name !== '' ? $name : $uuid;
-                }
-            }
-        }
-
-        return $changes;
+        return CharterDiff::resolveLocationNames(
+            CharterDiff::changes($current->content ?? [], $this->content),
+        );
     }
 
     /** Share link for a published charter (T05 owns the named route). */
@@ -565,7 +554,7 @@ class CharterComposer extends Component
     public function shareableLink(): ?string
     {
         return $this->shareableUuid() !== null
-            ? url('/'.app()->getLocale().'/charter/'.$this->shareableUuid())
+            ? route('charter.view', $this->shareableUuid())
             : null;
     }
 
@@ -599,7 +588,6 @@ class CharterComposer extends Component
             'campaign' => $this->campaign,
             'state' => $this->state(),
             'railSections' => $this->railSections(),
-            'locations' => $this->locations(),
             'shareableUuid' => $this->shareableUuid(),
             'shareableLink' => $this->shareableLink(),
         ]);
@@ -648,13 +636,34 @@ class CharterComposer extends Component
      * Component-rule view of one section's DTO rules: keys prefixed with
      * "content." so Livewire validates the nested public array.
      *
+     * Dependent-rule parameters carry field paths too: Livewire's
+     * validator receives the component's data with `content` at the
+     * root, so `required_if:logistics.venue_mode,location` must become
+     * `required_if:content.logistics.venue_mode,location` — otherwise
+     * Laravel's validateRequiredIf() early-returns on the un-prefixed
+     * path (Arr::has misses) and the rule passes unconditionally. Only
+     * the FIRST parameter of required_if is a field path; the rest are
+     * comparison values.
+     *
      * @return array<string, array<int, string>>
      */
     private function prefixedRulesFor(string $section): array
     {
         $rules = [];
         foreach (CharterContent::rulesForSection($section) as $key => $sectionRules) {
-            $rules['content.'.$key] = $sectionRules;
+            $rules['content.'.$key] = array_map(
+                static function (string $rule): string {
+                    if (! str_starts_with($rule, 'required_if:')) {
+                        return $rule;
+                    }
+
+                    $parameters = substr($rule, strlen('required_if:'));
+                    [$field, $values] = array_pad(explode(',', $parameters, 2), 2, null);
+
+                    return 'required_if:content.'.$field.($values !== null ? ','.$values : '');
+                },
+                $sectionRules,
+            );
         }
 
         return $rules;

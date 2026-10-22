@@ -166,7 +166,9 @@ class ViewSessionZeroTest extends TestCase
         Livewire::actingAs($user)
             ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSet('confirmed', true)
-            ->assertSee($confirmation->confirmed_at->format('F j, Y'));
+            // Wording-agnostic pin (K004 spirit): the property renders
+            // through the global format_date helper, locale-aware.
+            ->assertSee(format_date($confirmation->confirmed_at, 'datetime'));
     }
 
     // ── GM Management View ───────────────────────────────

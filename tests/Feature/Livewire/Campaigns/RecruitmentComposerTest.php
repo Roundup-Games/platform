@@ -11,6 +11,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\CampaignRecruitmentSummaryService;
+use App\Support\TableLocale;
 use Livewire\Livewire;
 use Tests\Traits\CreatesGameInstances;
 
@@ -204,6 +205,37 @@ test('appendExcerpt adds the labeled body and prep-note or gms-visibility entrie
         ->assertSet('draft', fn (string $draft): bool => substr_count($draft, 'COMPOSEREXCERPT') === 1);
 });
 
+test('appendExcerpt composes its label under the campaign table locale, not the GM UI locale', function () {
+    [$owner, $campaign] = composerCampaign(['language' => 'de']);
+    $session = composerCompletedSession($campaign, $owner);
+
+    $entry = CampaignJournalEntry::factory()->forCampaignSession($session)->create([
+        'kind' => JournalEntryKind::Recap,
+        'visibility' => JournalEntryVisibility::Players,
+        'body' => 'LOCALEMARKER der Heist endet',
+    ]);
+
+    // A German table with an English-UI GM: the excerpt label and its
+    // date must resolve in German — the single-language contract
+    // draft() seeds under (TableLocale), so the whole published block
+    // targets one audience.
+    app()->setLocale('en');
+
+    // The label text AND its formatted date both resolve under the
+    // table locale — compute the expectation in-locale too (the __()
+    // locale param alone would leave format_date on the ambient one).
+    $deLabel = TableLocale::with('de', fn (): string => __('journal.label_recruitment_excerpt', [
+        'session' => format_date($entry->game?->date_time),
+    ]));
+
+    Livewire::actingAs($owner)
+        ->test(CampaignRecruitmentComposer::class, ['campaign' => $campaign])
+        ->call('openComposer')
+        ->call('appendExcerpt', $entry->id)
+        ->assertSet('draft', fn (string $draft): bool => str_contains($draft, $deLabel)
+            && str_contains($draft, 'LOCALEMARKER der Heist endet'));
+});
+
 // ── The checklist gate and the apply/remove write path ─────────────
 
 test('apply with an unchecked spoiler-safety box flashes the error and writes nothing', function () {
@@ -258,6 +290,7 @@ test('apply with the complete checklist writes all three columns, flashes succes
 
 test('remove nulls the columns and flashes success', function () {
     [$owner, $campaign] = composerCampaign();
+    composerCompletedSession($campaign, $owner);
 
     app(CampaignRecruitmentSummaryService::class)
         ->apply($campaign, $owner, 'Live block.', composerChecklist());
@@ -265,7 +298,10 @@ test('remove nulls the columns and flashes success', function () {
     Livewire::actingAs($owner)
         ->test(CampaignRecruitmentComposer::class, ['campaign' => $campaign->fresh()])
         ->call('openComposer')
-        ->assertSee(__('campaigns.content_last_refreshed_after_session', ['count' => 0], 'en'))
+        // One completed session: the honest-replica stamp reads "after
+        // session 1" — the session-0 form is hidden pre-first-session.
+        ->assertSee(__('campaigns.content_last_refreshed_after_session', ['count' => 1], 'en'))
+        ->assertDontSee(__('campaigns.content_last_refreshed_after_session', ['count' => 0], 'en'))
         ->call('remove')
         ->assertSee(__('journal.flash_recruitment_removed', [], 'en'));
 

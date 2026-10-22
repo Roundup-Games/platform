@@ -25,7 +25,7 @@ return [
     'content_badge_guild_linked_name' => 'Guild Linked',
     'content_badge_guild_linked_description' => 'A Discord guild has stayed connected to Roundup for over thirty days — its calendar keeps filling with sessions.',
     'content_badge_trusted_organizer_name' => 'Trusted Organizer',
-    'content_badge_trusted_organizer_description' => 'Quarter after quarter of well-run events — three or more completed per quarter, an attendee rating of 4.5 or better, and every cancellation announced. One, three or six quarters in a row.',
+    'content_badge_trusted_organizer_description' => 'Quarter after quarter of well-run events — three or more completed per quarter, an attendee rating of 4.5 or better, and cancellations announced (fewer than one in ten unannounced). One, three or six quarters in a row.',
     'content_badge_mentor_name' => 'Mentor',
     'content_badge_mentor_description' => 'Five, fifteen or forty players rated their first-ever session at this table a perfect five — first impressions done right.',
     // Tier labels interpolated into award-moment copy (M069 S02 T5).

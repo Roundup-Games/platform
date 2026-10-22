@@ -3,6 +3,8 @@
 namespace App\Services\Badges;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * An evaluator's proposed award (spec §2.2) — a pure value, never a write.
@@ -41,20 +43,29 @@ final readonly class BadgeAward
         /** @var mixed $key */
         $key = $evidence->getKey();
 
+        // badge_user.evidence_id is a native uuid column: a non-uuid
+        // key would crash the INSERT with a Postgres uuid-parse error.
+        // Carry a null pointer instead — the audit row still records
+        // the morph type and the award stands on its derivation.
+        // (Defense-in-depth: current evaluators only propose uuid-keyed
+        // evidence — SupportingMemberEvaluator resolves LocalSubscription
+        // precisely to stay inside this constraint.)
+        $evidenceId = is_scalar($key) ? (string) $key : null;
+
+        if ($evidenceId !== null && ! Str::isUuid($evidenceId)) {
+            Log::warning('badges.award.evidence_id_not_uuid', [
+                'badge' => $badgeKey,
+                'evidence_type' => $evidence->getMorphClass(),
+            ]);
+
+            $evidenceId = null;
+        }
+
         return new self(
             $badgeKey,
             $tierKey,
             $evidence->getMorphClass(),
-            is_scalar($key) ? (string) $key : null,
+            $evidenceId,
         );
-    }
-
-    /**
-     * Award with a raw morph type/id evidence pair, for callers that hold
-     * identifiers but no hydrated model (sweeps, backfills).
-     */
-    public static function fromEvidencePair(string $badgeKey, ?string $tierKey, ?string $evidenceType, ?string $evidenceId): self
-    {
-        return new self($badgeKey, $tierKey, $evidenceType, $evidenceId);
     }
 }

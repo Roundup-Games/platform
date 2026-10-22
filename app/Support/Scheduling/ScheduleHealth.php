@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Cron\CronExpression;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Scheduled-work health signals (M068): the counts the dashboard Queue
@@ -32,12 +33,24 @@ final class ScheduleHealth
      * per-row health live) by up to one TTL; deliberate trade of freshness
      * for a Redis-bound dashboard.
      *
-     * @return array{missed: int, failed_last: int, awaiting_first: int}
+     * A degraded result (the schedule inventory itself failed to load) is
+     * distinguishable from a healthy zero and cached for one minute only,
+     * so the tile never reports "all clear" for a broken deploy for long.
+     *
+     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool}
      */
     public static function summary(): array
     {
-        /** @var array{missed: int, failed_last: int, awaiting_first: int} $summary */
-        $summary = Cache::remember('admin:schedule-health', now()->addMinutes(5), fn (): array => self::compute());
+        $cached = Cache::get('admin:schedule-health');
+
+        if (is_array($cached)) {
+            /** @var array{missed: int, failed_last: int, awaiting_first: int, degraded: bool} $cached */
+            return $cached;
+        }
+
+        $summary = self::compute();
+
+        Cache::put('admin:schedule-health', $summary, now()->addMinutes($summary['degraded'] ? 1 : 5));
 
         return $summary;
     }
@@ -60,7 +73,7 @@ final class ScheduleHealth
     }
 
     /**
-     * @return array{missed: int, failed_last: int, awaiting_first: int}
+     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool}
      */
     private static function compute(): array
     {
@@ -72,7 +85,24 @@ final class ScheduleHealth
         $failedLast = 0;
         $awaitingFirst = 0;
 
-        foreach (ScheduleInventory::events() as $event) {
+        // The per-event resilience rule extends to the inventory load
+        // itself: a schedule definition that throws while resolving must
+        // degrade the tile to a DEGRADED all-zero result — visibly not a
+        // healthy zero (the widget renders it like the Horizon-unreachable
+        // branch) — not 500 every page embedding summary(). If
+        // schedule:work cannot even load the schedule, the deploy is
+        // broken; the log carries the why.
+        try {
+            $events = ScheduleInventory::events();
+        } catch (Throwable $e) {
+            logger()->warning('schedule.health.inventory_unavailable', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['missed' => 0, 'failed_last' => 0, 'awaiting_first' => 0, 'degraded' => true];
+        }
+
+        foreach ($events as $event) {
             // One malformed entry must never take the whole tile (and any
             // page embedding it) down: a task whose cron cannot even be
             // parsed is broken, so it alerts in the failed bucket while
@@ -96,7 +126,7 @@ final class ScheduleHealth
                 if ($run?->status === ScheduledTaskRunStatus::Failed) {
                     $failedLast++;
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 Log::error('schedule.health.task_unclassifiable', [
                     'expression' => $event->expression,
                     'error' => $e->getMessage(),
@@ -106,7 +136,7 @@ final class ScheduleHealth
             }
         }
 
-        return ['missed' => $missed, 'failed_last' => $failedLast, 'awaiting_first' => $awaitingFirst];
+        return ['missed' => $missed, 'failed_last' => $failedLast, 'awaiting_first' => $awaitingFirst, 'degraded' => false];
     }
 
     /**

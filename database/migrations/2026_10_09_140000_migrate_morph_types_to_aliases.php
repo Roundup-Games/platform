@@ -74,13 +74,7 @@ return new class extends Migration
             $typeColumns = $this->morphTypeColumns($table);
 
             foreach ($typeColumns as $typeColumn) {
-                $converted = 0;
-
-                foreach (self::ALIASES as $alias => $fqcn) {
-                    $converted += DB::table($table)
-                        ->where($typeColumn, $fqcn)
-                        ->update([$typeColumn => $alias]);
-                }
+                $converted = $this->convertColumn($table, $typeColumn, array_flip(self::ALIASES));
 
                 if ($converted > 0) {
                     Log::info('morph aliases migrated', [
@@ -118,13 +112,57 @@ return new class extends Migration
             $typeColumns = $this->morphTypeColumns($table);
 
             foreach ($typeColumns as $typeColumn) {
-                foreach (self::ALIASES as $alias => $fqcn) {
-                    DB::table($table)
-                        ->where($typeColumn, $alias)
-                        ->update([$typeColumn => $fqcn]);
-                }
+                $this->convertColumn($table, $typeColumn, self::ALIASES);
             }
         }
+    }
+
+    /**
+     * Convert one column's mapped values in a SINGLE scan: one cheap
+     * existence probe, then one CASE-based UPDATE — instead of one
+     * UPDATE per mapping (each a sequential scan with row locks inside
+     * the deploy window this migration must share with the atomic code
+     * cutover). Identifiers and literals are quoted; both come from
+     * schema discovery and the frozen map, never user input.
+     *
+     * @param  array<string, string>  $map  from-value => to-value
+     */
+    private function convertColumn(string $table, string $column, array $map): int
+    {
+        $targets = array_keys($map);
+
+        if (! DB::table($table)->whereIn($column, $targets)->limit(1)->exists()) {
+            return 0;
+        }
+
+        $cases = implode(' ', array_map(
+            fn (string $from, string $to): string => sprintf(
+                'WHEN %s THEN %s',
+                $this->quoteLiteral($from),
+                $this->quoteLiteral($to),
+            ),
+            array_keys($map),
+            $map,
+        ));
+
+        return DB::table($table)
+            ->whereIn($column, $targets)
+            ->update([$column => DB::raw(sprintf(
+                'CASE %s %s ELSE %s END',
+                $this->quoteIdent($column),
+                $cases,
+                $this->quoteIdent($column),
+            ))]);
+    }
+
+    private function quoteLiteral(string $value): string
+    {
+        return "'".str_replace("'", "''", $value)."'";
+    }
+
+    private function quoteIdent(string $identifier): string
+    {
+        return '"'.str_replace('"', '""', $identifier).'"';
     }
 
     /**

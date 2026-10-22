@@ -173,7 +173,6 @@ CREATE TABLE public.badge_events (
     source character varying(255) NOT NULL,
     evidence_type character varying(255),
     evidence_id uuid,
-    metadata jsonb,
     created_at timestamp(0) without time zone
 );
 
@@ -283,7 +282,7 @@ CREATE TABLE public.campaign_goals (
     sort integer DEFAULT 0 NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    CONSTRAINT campaign_goals_status_check CHECK (((status)::text = ANY ((ARRAY['planned'::character varying, 'active'::character varying, 'achieved'::character varying, 'failed'::character varying, 'abandoned'::character varying])::text[])))
+    CONSTRAINT campaign_goals_status_check CHECK (((status)::text = ANY (ARRAY[('planned'::character varying)::text, ('active'::character varying)::text, ('achieved'::character varying)::text, ('failed'::character varying)::text, ('abandoned'::character varying)::text])))
 );
 
 
@@ -303,8 +302,8 @@ CREATE TABLE public.campaign_journal_entries (
     in_game_date character varying(255),
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    CONSTRAINT campaign_journal_entries_kind_check CHECK (((kind)::text = ANY ((ARRAY['recap'::character varying, 'in_character'::character varying, 'prep_note'::character varying])::text[]))),
-    CONSTRAINT campaign_journal_entries_visibility_check CHECK (((visibility)::text = ANY ((ARRAY['players'::character varying, 'gms'::character varying])::text[])))
+    CONSTRAINT campaign_journal_entries_kind_check CHECK (((kind)::text = ANY (ARRAY[('recap'::character varying)::text, ('in_character'::character varying)::text, ('prep_note'::character varying)::text]))),
+    CONSTRAINT campaign_journal_entries_visibility_check CHECK (((visibility)::text = ANY (ARRAY[('players'::character varying)::text, ('gms'::character varying)::text])))
 );
 
 
@@ -390,7 +389,7 @@ CREATE TABLE public.character_state_changes (
     delta text NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    CONSTRAINT character_state_changes_change_type_check CHECK (((change_type)::text = ANY ((ARRAY['progression'::character varying, 'item'::character varying, 'condition'::character varying, 'note'::character varying])::text[])))
+    CONSTRAINT character_state_changes_change_type_check CHECK (((change_type)::text = ANY (ARRAY[('progression'::character varying)::text, ('item'::character varying)::text, ('condition'::character varying)::text, ('note'::character varying)::text])))
 );
 
 
@@ -3469,8 +3468,8 @@ CREATE TABLE public.session_zero_confirmations (
     private_answers jsonb,
     status character varying(255) DEFAULT 'signed'::character varying NOT NULL,
     role character varying(255) DEFAULT 'participant'::character varying NOT NULL,
-    CONSTRAINT session_zero_confirmations_role_check CHECK (((role)::text = ANY ((ARRAY['participant'::character varying, 'gm'::character varying])::text[]))),
-    CONSTRAINT session_zero_confirmations_status_check CHECK (((status)::text = ANY ((ARRAY['signed'::character varying, 'pending_reagreement'::character varying])::text[])))
+    CONSTRAINT session_zero_confirmations_role_check CHECK (((role)::text = ANY (ARRAY[('participant'::character varying)::text, ('gm'::character varying)::text]))),
+    CONSTRAINT session_zero_confirmations_status_check CHECK (((status)::text = ANY (ARRAY[('signed'::character varying)::text, ('pending_reagreement'::character varying)::text])))
 );
 
 
@@ -3510,8 +3509,8 @@ CREATE TABLE public.session_zero_surveys (
     kind character varying(255) DEFAULT 'survey'::character varying NOT NULL,
     campaign_id uuid,
     current_version integer,
-    CONSTRAINT session_zero_surveys_kind_check CHECK (((kind)::text = ANY ((ARRAY['survey'::character varying, 'charter'::character varying])::text[]))),
-    CONSTRAINT session_zero_surveys_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'active'::character varying, 'archived'::character varying])::text[])))
+    CONSTRAINT session_zero_surveys_kind_check CHECK (((kind)::text = ANY (ARRAY[('survey'::character varying)::text, ('charter'::character varying)::text]))),
+    CONSTRAINT session_zero_surveys_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::character varying)::text, ('active'::character varying)::text, ('archived'::character varying)::text])))
 );
 
 
@@ -5977,6 +5976,20 @@ CREATE INDEX attendance_reports_reporter_idx ON public.attendance_reports USING 
 
 
 --
+-- Name: badge_events_badge_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX badge_events_badge_user_id_index ON public.badge_events USING btree (badge_user_id);
+
+
+--
+-- Name: badge_user_badge_definition_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX badge_user_badge_definition_id_index ON public.badge_user USING btree (badge_definition_id);
+
+
+--
 -- Name: badge_user_revoked_at_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6523,6 +6536,13 @@ CREATE UNIQUE INDEX game_applications_game_id_user_id_unique ON public.game_appl
 
 
 --
+-- Name: game_bulletins_one_pinned_per_game_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX game_bulletins_one_pinned_per_game_unique ON public.game_bulletins USING btree (game_id) WHERE (is_pinned = true);
+
+
+--
 -- Name: game_bulletins_game_id_created_at_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6779,6 +6799,13 @@ CREATE INDEX jobs_queue_index ON public.jobs USING btree (queue);
 --
 
 CREATE UNIQUE INDEX linked_accounts_user_id_provider_index ON public.linked_accounts USING btree (user_id, provider);
+
+
+--
+-- Name: local_subscriptions_one_active_per_source_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX local_subscriptions_one_active_per_source_unique ON public.local_subscriptions USING btree (user_id, membership_type_id, source) WHERE ((status)::text = 'active'::text);
 
 
 --
@@ -8663,6 +8690,8 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 275	2026_10_20_140000_create_previously_on_drafts_table	10
 276	2026_10_20_141000_widen_game_bulletins_content_for_previously_on	10
 277	2026_10_20_150000_add_recruitment_summary_columns_to_campaigns_table	11
+278	2026_10_20_160000_add_badge_query_indexes	12
+280	2026_10_21_010000_add_active_per_source_unique_to_local_subscriptions	13
 \.
 
 
@@ -8670,7 +8699,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 277, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 280, true);
 
 
 --

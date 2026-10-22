@@ -109,6 +109,13 @@ php artisan test tests/Feature/Games/GameTest.php
 
 When adding a feature, tag at least one test with `->group('smoke')` to cover the critical path.
 
+### End-to-end (Playwright)
+
+`npm run e2e` runs the Playwright smoke spec (`e2e/`). It is intentionally
+not part of CI: the spec expects a running stack (`composer run dev`) and
+is executed as part of the release/UAT flow instead. If you touch guest
+entry surfaces, run it locally before pushing.
+
 ## Translations
 
 We maintain English (`lang/en/`) and German (`lang/de/`) translations. See [lang/CONTRIBUTING_TRANSLATIONS.md](lang/CONTRIBUTING_TRANSLATIONS.md) for the full guide on adding and maintaining translations.

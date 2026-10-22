@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Schema;
  *    rather than deleting, so the audit trail keeps its referent and
  *    "last held" stays legible (spec principle 4).
  *  - badge_events — append-only audit trail (awarded/upgraded/revoked/
- *    granted_manually/lapsed/requalified) with actor, reason, source and
+ *    lapsed/requalified) with actor, reason, source and
  *    an evidence morph pointer. created_at only, no updated_at: rows are
  *    immutable facts, cf. ActivityLog.
  */
@@ -62,6 +62,8 @@ return new class extends Migration
             $table->string('source');
             $table->timestamp('first_awarded_at');
             // Requalifying-mode badges: the window the qualification covers.
+            // Requalification watermark (see BadgeUser docblock): the
+            // moment a recurring badge re-qualified — not a window end.
             $table->timestamp('requalified_through')->nullable();
             $table->timestamp('last_awarded_at')->nullable();
             // Failed requalification greys out (spec principle 4) — the row
@@ -93,7 +95,6 @@ return new class extends Migration
             $table->string('source');
             $table->string('evidence_type')->nullable();
             $table->uuid('evidence_id')->nullable();
-            $table->jsonb('metadata')->nullable();
             // Append-only audit trail: no updated_at column. The model runs
             // with $timestamps = false and sets created_at manually
             // (cf. ActivityLog).

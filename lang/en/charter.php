@@ -14,6 +14,7 @@ return [
     // Campaign-detail entry card (owner-only)
     'title_entry' => 'Campaign Charter',
     'description_entry_teaser' => 'Collect expectations, boundaries, and safety tools before session one — and get everyone\'s signed agreement.',
+    'description_entry_teaser_participant' => 'This campaign runs on a charter — read it, review your boundaries, and sign.',
     'action_create_charter' => 'Create charter',
     'action_continue_charter' => 'Continue charter',
     'action_view_charter' => 'View charter',
@@ -334,6 +335,7 @@ return [
     'error_already_signed' => 'You have already signed this version of the charter.',
     'error_already_countersigned' => 'This charter version has already been countersigned.',
     'error_countersign_pending_signatures' => ':count approved participants have not signed the charter yet.',
+    'error_countersign_no_participants' => 'The charter has no approved participants yet — the GM countersigns after the table has signed.',
 
     // Amendment guards (M070/S03)
     'error_only_active_amendable' => 'Only a published charter can be amended — drafts are published, archived charters are frozen history.',
@@ -383,6 +385,7 @@ return [
     'label_roster_answer_note' => 'Note to the GM',
     'description_roster_privacy' => 'Private answers are visible only to you and the participant — they can never be edited.',
     'action_countersign_charter' => 'Countersign the charter',
+    'description_countersign_no_participants' => 'No approved participants yet — the GM countersigns once the table has signed.',
     'description_countersign_pending' => ':count approved participants have not signed yet.',
     'content_gm_strip_countersigned' => 'Countersigned v:version on :date',
     'flash_countersigned_success' => 'Charter countersigned.',
@@ -451,6 +454,8 @@ return [
     'field_template_name' => 'Template name',
     'flash_template_saved' => 'Template saved.',
     'error_templates_member_only' => 'Saved charter templates are one of the conveniences that come with membership.',
+    'error_seeds_member_only' => 'Starting a charter from a saved template or a previous charter is one of the conveniences that come with membership.',
+    'error_location_not_available' => 'That venue is not available for this charter. Pick one of your own venues instead.',
     'error_template_not_yours' => 'That template does not exist or is not one of yours.',
     'error_previous_not_yours' => 'That charter does not exist or is not one of yours.',
     'label_template_empty' => 'Nothing here yet — save a charter as a template, or publish one, and it becomes reusable here.',

@@ -352,6 +352,38 @@ test('sectionComplete flips as content fills in', function () {
     expect(CharterContent::sectionComplete('logistics', $content))->toBeTrue();
 });
 
+test('sectionComplete logistics mirrors the publish rules field-for-field', function () {
+    $content = CharterContent::blank()->toArray();
+
+    // Everything the OLD completeness check looked at…
+    $content['logistics']['venue_mode'] = 'location';
+    $content['logistics']['cadence'] = 'weekly';
+    $content['logistics']['session_length'] = '3h';
+    $content['logistics']['comms'] = ['discord'];
+
+    // …but publish() also requires location (venue_mode=location),
+    // food_drink, absence_notice and missing_player: the stepper dot
+    // must not report complete for a section publish() would reject.
+    expect(CharterContent::sectionComplete('logistics', $content))->toBeFalse();
+
+    $content['logistics']['food_drink'] = 'byo';
+    expect(CharterContent::sectionComplete('logistics', $content))->toBeFalse();
+
+    $content['logistics']['absence_notice'] = '24h';
+    expect(CharterContent::sectionComplete('logistics', $content))->toBeFalse();
+
+    $content['logistics']['missing_player'] = 'pc_as_npc';
+    expect(CharterContent::sectionComplete('logistics', $content))->toBeFalse();
+
+    $content['logistics']['location_id'] = (string) Str::uuid();
+    expect(CharterContent::sectionComplete('logistics', $content))->toBeTrue();
+
+    // A rotating venue needs no location at all.
+    $content['logistics']['venue_mode'] = 'rotate';
+    $content['logistics']['location_id'] = null;
+    expect(CharterContent::sectionComplete('logistics', $content))->toBeTrue();
+});
+
 // ── isMaterialChange() (M070/S03) ────────────────────────
 
 test('a change in any material section is material', function () {

@@ -33,6 +33,14 @@ enum BadgeAwardResult: string
     case RefusedDormant = 'refused_dormant';
 
     /**
+     * The hold exists but is admin-revoked and the proposal is automatic:
+     * revocation is sticky against the sweep — only an explicit manual
+     * re-grant reverses it (the mirror of lapse()'s manual-source
+     * exemption). No writes, no event.
+     */
+    case RefusedRevoked = 'refused_revoked';
+
+    /**
      * @return string[]
      */
     public static function values(): array

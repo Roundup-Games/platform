@@ -146,13 +146,10 @@ test('sign accepts input without any private answers', function () {
 
     $confirmation = CharterSigningService::sign($participant, $charter, $input);
 
-    expect($confirmation->private_answers)->toBe([
-        'my_lines_categories' => [],
-        'my_veils_categories' => [],
-        'my_lines_text' => null,
-        'my_veils_text' => null,
-        'note_to_gm' => null,
-    ]);
+    // Nothing declared stores NULL — never an all-empty array that
+    // would shadow previously submitted answers on the GM roster
+    // (privateAnswersFor continuity; see sign()'s empty-shape guard).
+    expect($confirmation->private_answers)->toBeNull();
 });
 
 test('sign rejects a user who is not a campaign participant', function () {
@@ -377,6 +374,19 @@ test('countersign is refused while approved participants are still pending', fun
         $this->fail('Expected ValidationException while a participant is pending.');
     } catch (ValidationException $e) {
         expect($e->errors()['charter'][0])->toBe(__('charter.error_countersign_pending_signatures', ['count' => 1]));
+    }
+
+    expect(SessionZeroConfirmation::query()->where('role', SessionZeroConfirmation::ROLE_GM)->count())->toBe(0);
+});
+
+test('countersign is refused when the charter has zero approved participants — silence is never consent', function () {
+    [$owner, $campaign, $charter] = signing_published_charter();
+
+    try {
+        CharterSigningService::countersign($owner, $charter);
+        $this->fail('Expected ValidationException for an empty approved roster.');
+    } catch (ValidationException $e) {
+        expect($e->errors()['charter'][0])->toBe(__('charter.error_countersign_no_participants'));
     }
 
     expect(SessionZeroConfirmation::query()->where('role', SessionZeroConfirmation::ROLE_GM)->count())->toBe(0);
@@ -646,8 +656,13 @@ test('workspaceHealth returns the owners charter row with the roster math', func
 
     $rows = CharterSigningService::workspaceHealth($owner);
 
+    // The eager-loaded campaign model rides along for route()
+    // generation (eloquent-practices convention: models, not ids) —
+    // asserted by identity, then excluded from the strict scalar-shape
+    // comparison (two live model instances are never ===).
     expect($rows)->toHaveCount(1)
-        ->and($rows[0])->toBe([
+        ->and($rows[0]['campaign']->is($campaign))->toBeTrue()
+        ->and(collect($rows[0])->except('campaign')->all())->toBe([
             'campaign_id' => $campaign->id,
             'campaign_name' => $campaign->name,
             'charter_uuid' => $charter->uuid,
@@ -658,8 +673,35 @@ test('workspaceHealth returns the owners charter row with the roster math', func
             'pendingCount' => 1,
             'percentSigned' => 50,
             'daysOutstanding' => 5,
-            'fullySigned' => false,
+            'countersigned' => false,
         ]);
+
+    Carbon::setTestNow();
+});
+
+test('workspaceHealth orders by newest ACTIVITY — a later signature outranks an older row save', function () {
+    Carbon::setTestNow(Carbon::parse('2026-10-19 09:00:00'));
+
+    [$owner, $campaignA, $charterA] = signing_published_charter();
+    [$alice] = signing_approved_participant($campaignA);
+
+    // Charter B publishes a day later — its survey row is the NEWER row.
+    Carbon::setTestNow(Carbon::parse('2026-10-20 09:00:00'));
+    [$ownerB, $campaignB, $charterB] = signing_published_charter();
+    $campaignB->forceFill(['owner_id' => $owner->id])->save();
+    $campaignB->refresh();
+
+    // Charter A is signed on day three: the signature is the newest
+    // activity in the workspace, even though B's survey row was saved
+    // more recently than A's last row-level touch.
+    Carbon::setTestNow(Carbon::parse('2026-10-22 09:00:00'));
+    CharterSigningService::sign($alice, $charterA, signing_valid_input());
+
+    $rows = CharterSigningService::workspaceHealth($owner);
+    $campaignIds = array_map(fn (array $row) => $row['campaign_id'], $rows);
+
+    expect($campaignIds)->toBe([$campaignA->id, $campaignB->id])
+        ->and($rows[0]['signedCount'])->toBe(1);
 
     Carbon::setTestNow();
 });
@@ -688,7 +730,7 @@ test('workspaceHealth reports a participant-less charter as zero percent, never 
         ->and($rows[0]['pendingCount'])->toBe(0)
         ->and($rows[0]['percentSigned'])->toBe(0)
         ->and($rows[0]['daysOutstanding'])->toBeNull()
-        ->and($rows[0]['fullySigned'])->toBeFalse();
+        ->and($rows[0]['countersigned'])->toBeFalse();
 });
 
 test('workspaceHealth reports 100 percent and the countersign trail once everyone signs', function () {
@@ -708,7 +750,7 @@ test('workspaceHealth reports 100 percent and the countersign trail once everyon
         ->and($rows[0]['percentSigned'])->toBe(100)
         // A fully signed charter is never "outstanding", even days later.
         ->and($rows[0]['daysOutstanding'])->toBeNull()
-        ->and($rows[0]['fullySigned'])->toBeTrue();
+        ->and($rows[0]['countersigned'])->toBeTrue();
 });
 
 test('workspaceHealth loses the countersign trail when a material amendment resets signatures', function () {
@@ -728,7 +770,7 @@ test('workspaceHealth loses the countersign trail when a material amendment rese
         ->and($rows[0]['signedCount'])->toBe(0)
         ->and($rows[0]['pendingCount'])->toBe(1)
         ->and($rows[0]['percentSigned'])->toBe(0)
-        ->and($rows[0]['fullySigned'])->toBeFalse();
+        ->and($rows[0]['countersigned'])->toBeFalse();
 });
 
 test('workspaceHealth includes draft and archived charters without version math', function () {
@@ -753,7 +795,7 @@ test('workspaceHealth includes draft and archived charters without version math'
         ->and($rows[$campaign->id]['current_version'])->toBe(1)
         ->and($rows[$campaign->id]['approvedCount'])->toBe(0)
         ->and($rows[$campaign->id]['daysOutstanding'])->toBeNull()
-        ->and($rows[$campaign->id]['fullySigned'])->toBeFalse();
+        ->and($rows[$campaign->id]['countersigned'])->toBeFalse();
 
     // A draft has no version: participants exist, nobody is outstanding
     // against a version that does not exist yet.
@@ -764,7 +806,7 @@ test('workspaceHealth includes draft and archived charters without version math'
         ->and($rows[$second->id]['pendingCount'])->toBe(1)
         ->and($rows[$second->id]['percentSigned'])->toBe(0)
         ->and($rows[$second->id]['daysOutstanding'])->toBeNull()
-        ->and($rows[$second->id]['fullySigned'])->toBeFalse();
+        ->and($rows[$second->id]['countersigned'])->toBeFalse();
 });
 
 test('workspaceHealth clamps percent and pending when a signer leaves the approved roster', function () {
@@ -834,4 +876,40 @@ test('workspaceHealth is empty for an owner without charters', function () {
     [$owner] = signing_owner_campaign();
 
     expect(CharterSigningService::workspaceHealth($owner))->toBe([]);
+});
+
+// ── Disabled accounts (review pass 4: consent-surface backstop) ──
+
+test('sign is refused for a disabled participant on a residual session', function () {
+    [$owner, $campaign, $charter] = signing_published_charter();
+    [$participant] = signing_approved_participant($campaign);
+    $participant->update(['is_disabled' => true, 'disabled_at' => now()]);
+
+    try {
+        CharterSigningService::sign($participant, $charter, signing_valid_input());
+        $this->fail('Expected ValidationException: disabled accounts cannot sign.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('charter')
+            ->and($e->errors()['charter'][0])->toBe(__('auth.error_your_account_has_been_disabled'));
+    }
+
+    expect($charter->confirmations()->whereBelongsTo($participant)->exists())->toBeFalse();
+});
+
+test('countersign is refused for a disabled owner', function () {
+    [$owner, $campaign, $charter] = signing_published_charter();
+    [$participant] = signing_approved_participant($campaign);
+    CharterSigningService::sign($participant, $charter, signing_valid_input());
+
+    $owner->update(['is_disabled' => true, 'disabled_at' => now()]);
+
+    try {
+        CharterSigningService::countersign($owner, $charter);
+        $this->fail('Expected ValidationException: disabled owners cannot countersign.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('charter')
+            ->and($e->errors()['charter'][0])->toBe(__('auth.error_your_account_has_been_disabled'));
+    }
+
+    expect($charter->confirmations()->where('role', SessionZeroConfirmation::ROLE_GM)->exists())->toBeFalse();
 });

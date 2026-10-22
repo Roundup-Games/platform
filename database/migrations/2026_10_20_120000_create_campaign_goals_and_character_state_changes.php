@@ -92,6 +92,19 @@ return new class extends Migration
 
     public function down(): void
     {
+        // User-authored content (character state history, goal boards):
+        // one-way once live — refuse to destroy rows, drop when empty.
+        foreach (['character_state_changes', 'campaign_goals'] as $table) {
+            $rows = DB::table($table)->count();
+
+            if ($rows > 0) {
+                throw new RuntimeException(
+                    "{$table} holds {$rows} user-authored row(s) — refusing to drop. ".
+                    'Restore from a backup or continue on a disposable environment (migrate:fresh).',
+                );
+            }
+        }
+
         Schema::dropIfExists('character_state_changes');
         Schema::dropIfExists('campaign_goals');
     }

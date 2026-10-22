@@ -38,7 +38,7 @@ class BadgeEventsRelationManager extends RelationManager
                         BadgeEventAction::Revoked => 'danger',
                         BadgeEventAction::Lapsed => 'warning',
                         BadgeEventAction::Requalified, BadgeEventAction::Upgraded => 'info',
-                        BadgeEventAction::Awarded, BadgeEventAction::GrantedManually => 'success',
+                        BadgeEventAction::Awarded => 'success',
                     })
                     ->sortable(),
                 TextColumn::make('source')

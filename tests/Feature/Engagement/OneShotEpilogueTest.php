@@ -9,6 +9,7 @@ use App\Models\GameBulletin;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\OneShotEpilogueService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Config;
 use Livewire\Livewire;
 
@@ -132,6 +133,32 @@ describe('expiry sweep guard (Game::updated)', function () {
 });
 
 describe('idempotency (OneShotEpilogueService)', function () {
+    it('enforces one pinned bulletin per game at the database level', function () {
+        // The partial unique index is the concurrent-completion backstop
+        // (the service's exists()-check is check-then-insert; two racing
+        // completions could both pass it). Bypass the service and pin
+        // directly: the second insert must violate the index.
+        $game = epilogueCreateScheduledOneShot($this->owner, $this->gameSystem, [
+            'status' => GameStatus::Completed->value,
+        ]);
+
+        GameBulletin::postBy(
+            gameId: (string) $game->id,
+            userId: (string) $this->owner->id,
+            content: 'first pinned',
+            expiresAt: now()->addDays(30)->toDateTimeString(),
+            isPinned: true,
+        );
+
+        GameBulletin::postBy(
+            gameId: (string) $game->id,
+            userId: (string) $this->owner->id,
+            content: 'second pinned',
+            expiresAt: now()->addDays(30)->toDateTimeString(),
+            isPinned: true,
+        );
+    })->throws(UniqueConstraintViolationException::class);
+
     it('creates only one pinned bulletin when invoked twice on a completed one-shot', function () {
         $game = Game::factory()->create([
             'owner_id' => $this->owner->id,

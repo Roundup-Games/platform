@@ -45,8 +45,8 @@
                     @enderror
                     <div class="flex justify-end mt-1">
                         <span class="text-xs text-on-surface-variant"
-                              x-text="'{{ strlen($recapContent ?? '') }}' + '/10000'">
-                            {{ strlen($recapContent ?? '') }}/10000
+                              x-text="'{{ mb_strlen($recapContent ?? '') }}' + '/10000'">
+                            {{ mb_strlen($recapContent ?? '') }}/10000
                         </span>
                     </div>
                 </div>

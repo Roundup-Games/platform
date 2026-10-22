@@ -493,6 +493,30 @@ class CampaignDetail extends Component
         return CharterService::charterFor($this->campaign);
     }
 
+    /**
+     * The charter an APPROVED participant may discover here: only a
+     * published one (active or archived). Drafts stay owner-only — the
+     * capability-link trust model 404s them for everyone else, and this
+     * card must not leak a draft's existence either. Pending/waitlisted
+     * viewers get nothing until approved (the same member gate the
+     * charter's signature panel applies).
+     */
+    #[Computed]
+    public function participantCharter(): ?SessionZeroSurvey
+    {
+        $participant = $this->viewerParticipant();
+
+        if ($participant === null || $participant->status?->value !== ParticipantStatus::Approved->value) {
+            return null;
+        }
+
+        $charter = CharterService::charterFor($this->campaign);
+
+        return $charter !== null && ! $charter->isDraft()
+            ? $charter
+            : null;
+    }
+
     // ── Render ─────────────────────────────────────────
 
     public function render(): View
@@ -526,6 +550,7 @@ class CampaignDetail extends Component
         return view('livewire.campaigns.campaign-detail', [
             'campaign' => $this->campaign,
             'isOwner' => $this->isOwner(),
+            'participantCharter' => $this->participantCharter(),
             'isParticipant' => $this->isParticipant(),
             'userInvitation' => $this->userInvitation(),
             'canApplyDirectly' => $this->canApplyDirectly(),

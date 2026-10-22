@@ -4,6 +4,8 @@ use App\Dto\CharterContent;
 use App\Livewire\GM\Charter\CharterComposer;
 use App\Models\Campaign;
 use App\Models\CharterTemplate;
+use App\Models\Game;
+use App\Models\Location;
 use App\Models\SessionZeroSurvey;
 use App\Models\SessionZeroSurveyVersion;
 use App\Models\User;
@@ -199,6 +201,35 @@ describe('CharterComposer Stepping', function () {
         expect($charter->content['overview']['pitch'])->toBe('A noir intrigue campaign in the city of Threshold.');
     });
 
+    it('enforces the required_if venue rule on step-forward validation (dependent parameters resolve under the content prefix)', function () {
+        [$owner, $campaign] = charter_composer_owner_campaign();
+
+        $component = Livewire::actingAs($owner)
+            ->test(CharterComposer::class, ['id' => $campaign->id])
+            ->call('startCharter', 'quickstart')
+            // quickstart seeds the campaign-derived copy but leaves the
+            // shape decision open — complete §1 so the jump lands on §6.
+            ->set('content.overview.expected_shape', 'ongoing')
+            ->call('goToStep', 6)
+            ->assertSet('step', 6);
+
+        // venue_mode=location without a venue: the dependent rule must fail
+        // the step move — an un-prefixed required_if parameter silently
+        // passes component validation and only bounces the GM at publish.
+        $component->set('content.logistics.venue_mode', 'location')
+            ->set('content.logistics.location_id', '')
+            ->call('goToStep', 7)
+            ->assertHasErrors(['content.logistics.location_id'])
+            ->assertSet('step', 6);
+
+        // rotate mode needs no venue — the rule is conditional, not a
+        // blanket requirement on location_id.
+        $component->set('content.logistics.venue_mode', 'rotate')
+            ->call('goToStep', 7)
+            ->assertHasNoErrors(['content.logistics.location_id'])
+            ->assertSet('step', 7);
+    });
+
     it('allows stepping back without validating the section being left', function () {
         [$owner, $campaign] = charter_composer_owner_campaign();
 
@@ -336,6 +367,40 @@ describe('CharterComposer Amendments', function () {
             // Amendment mode is never mistaken for a draft.
             ->assertDontSee(__('charter.content_draft_banner', [], 'en'))
             ->assertDontSee(__('charter.action_save_draft', [], 'en'));
+    });
+
+    it('resolves venue names in the review-step amendment diff', function () {
+        [$owner, $campaign] = charter_composer_owner_campaign();
+        $oldVenue = Location::factory()->create(['name' => 'The Gilded Tankard']);
+        $newVenue = Location::factory()->create(['name' => 'Alley Door Games']);
+
+        // Both venues owner-disclosable (the D079 gate the service
+        // enforces on publish/amend): each is a venue of the owner's
+        // own game — exactly the set the composer's picker offers.
+        Game::factory()->create(['owner_id' => $owner->id, 'location_id' => $oldVenue->id]);
+        Game::factory()->create(['owner_id' => $owner->id, 'location_id' => $newVenue->id]);
+
+        // v1 published with a fixed venue; the amendment moves the table.
+        $charter = CharterService::start($owner, $campaign);
+        $v1Content = charter_composer_valid_content($campaign);
+        $v1Content['logistics']['venue_mode'] = 'location';
+        $v1Content['logistics']['location_id'] = (string) $oldVenue->id;
+        CharterService::publish($owner, $charter, 'Venue charter', $v1Content);
+
+        Livewire::actingAs($owner)
+            ->test(CharterComposer::class, ['id' => $campaign->id])
+            ->call('startAmendment')
+            ->set('content.logistics.venue_mode', 'location')
+            ->set('content.logistics.location_id', (string) $newVenue->id)
+            ->call('goToStep', 8)
+            ->assertOk()
+            // Names on BOTH sides — never the raw uuid (§6 displays the
+            // venue; the participant banner resolves through the same
+            // CharterDiff::resolveLocationNames call).
+            ->assertSee('The Gilded Tankard')
+            ->assertSee('Alley Door Games')
+            ->assertDontSee((string) $oldVenue->id)
+            ->assertDontSee((string) $newVenue->id);
     });
 
     it('keeps the published charter row identical while stepping in amendment mode', function () {
@@ -756,6 +821,26 @@ describe('CharterComposer Member Conveniences', function () {
         $draft = SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->first();
         expect($draft)->not->toBeNull()
             ->and($draft->content)->toBe($template->content);
+    });
+
+    it('seeds starts behind a disabled placeholder — the displayed first option is never a silent no-op pick', function () {
+        $member = $this->createSubscribedGm();
+        [, $source] = charter_composer_member_charter($member);
+        $template = CharterTemplateService::saveFromCharter($member, $source, 'Standard charter');
+
+        $target = charter_composer_limit_campaign($member);
+
+        // The select renders a disabled placeholder as the initial
+        // selection: with exactly one template, re-selecting the
+        // displayed option must fire a change event (otherwise the
+        // browser shows template #1 while templateId stays '' and
+        // startCharter silently no-ops).
+        Livewire::actingAs($member)
+            ->test(CharterComposer::class, ['id' => $target->id])
+            ->assertSet('templateId', '')
+            ->assertSeeHtml('<option value="" disabled selected>'.__('charter.placeholder_choose_option', [], 'en').'</option>')
+            ->call('startCharter', 'template', '')
+            ->assertSet('state', 'start'); // the empty-seed guard still refuses
     });
 
     it('member starts from a previous charter through the real action', function () {

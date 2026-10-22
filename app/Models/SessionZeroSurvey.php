@@ -175,14 +175,26 @@ class SessionZeroSurvey extends Model
     /**
      * The published snapshot current_version points at, or null while the
      * charter is still a draft (or the pointer dangles — defensive).
+     *
+     * Memoized per pointer value: versions are immutable append-only
+     * snapshots, so a (survey, version_number) pair always resolves to
+     * the same row. Surfaces like ViewCharter resolve the current
+     * version several times per render (render, amended banner, viewer
+     * signature, roster math) — without the memo each call re-queries.
+     * Keyed by the pointer so a publish/amend on the same in-memory
+     * instance correctly resolves the new version.
+     *
+     * @var array<int|string, ?SessionZeroSurveyVersion>
      */
+    private array $currentVersionMemo = [];
+
     public function currentVersion(): ?SessionZeroSurveyVersion
     {
         if ($this->current_version === null) {
             return null;
         }
 
-        return $this->versions()
+        return $this->currentVersionMemo[$this->current_version] ??= $this->versions()
             ->where('version_number', $this->current_version)
             ->first();
     }

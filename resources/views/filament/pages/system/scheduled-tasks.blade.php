@@ -1,6 +1,14 @@
 <x-filament-panels::page>
     <div class="filament-tables-container space-y-6">
-        @if($health['missed'] > 0 || $health['failed_last'] > 0)
+        @if($health['degraded'] ?? false)
+            <x-filament::section icon="heroicon-o-exclamation-triangle" icon-color="danger">
+                <x-slot name="heading">Schedule inventory failed to load</x-slot>
+                <p class="text-sm text-danger-700 dark:text-danger-300">
+                    The schedule definitions could not be resolved, so the counts and per-row health below may be incomplete —
+                    treat them as unknown, not clear. Check the application log for <code>schedule.health.inventory_unavailable</code>.
+                </p>
+            </x-filament::section>
+        @elseif($health['missed'] > 0 || $health['failed_last'] > 0)
             <x-filament::section icon="heroicon-o-exclamation-triangle" icon-color="danger">
                 <x-slot name="heading">Scheduled work needs attention</x-slot>
                 <ul class="list-disc pl-5 space-y-1 text-sm text-danger-700 dark:text-danger-300">
@@ -95,9 +103,15 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3">
-                                <span class="text-xs {{ $task['next_run']->isPast() ? 'text-danger-600 dark:text-danger-400' : 'text-success-600 dark:text-success-400' }}">
-                                    {{ $task['next_run']->format('M j, H:i') }}
-                                </span>
+                                @if($task['next_run'] === null)
+                                    <span class="text-xs text-danger-600 dark:text-danger-400" title="Cron expression could not be parsed — see logs">
+                                        unparseable
+                                    </span>
+                                @else
+                                    <span class="text-xs {{ $task['next_run']->isPast() ? 'text-danger-600 dark:text-danger-400' : 'text-success-600 dark:text-success-400' }}">
+                                        {{ $task['next_run']->format('M j, H:i') }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-4 py-3">
                                 @if($task['without_overlapping'])

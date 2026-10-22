@@ -14,8 +14,9 @@ use App\Models\User;
 use App\Services\PreviouslyOnService;
 use Illuminate\Support\Facades\App;
 use Tests\Traits\CreatesGameInstances;
+use Tests\Traits\CreatesUsers;
 
-uses(CreatesGameInstances::class);
+uses(CreatesGameInstances::class, CreatesUsers::class);
 
 // M071/S04-T01 — PreviouslyOnService: the draft-first digest composer
 // (spec §3.1) and the one-click publisher. Composition reads journal
@@ -36,7 +37,13 @@ uses(CreatesGameInstances::class);
  */
 function previouslyOnCampaign(?string $gameType = null): array
 {
-    ['owner' => $owner, 'campaign' => $campaign] = test()->createCampaignWithOwner();
+    // A MEMBER GM owns the campaign (createSubscribedGm): publishing
+    // Previously On routes through CampaignPolicy::managePreviouslyOn
+    // (owner + D223 member seam), which the service re-resolves — the
+    // bare-owner fixture predates that service-level guard and asserted
+    // a flow production can never reach.
+    $owner = test()->createSubscribedGm();
+    $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
 
     $sessionOverrides = [];
     if ($gameType !== null) {
@@ -142,6 +149,39 @@ test('a divergent games.recap projection never leaks into the body (D220)', func
 
     expect($body)->toContain('the journal source of truth')
         ->and($body)->not->toContain('SECRET PROJECTION TEXT');
+});
+
+test('a gms-visibility recap row never reaches the digest excerpt', function () {
+    [, $campaign, $completed, $next] = previouslyOnCampaign();
+
+    previouslyOnRecap($completed, 'players-visible recap');
+
+    // kind=recap + visibility=gms is CHECK-constraint-legal, and every
+    // writer today forces Players — but the digest excerpt must pin the
+    // visibility itself, so a future writer can never leak GM-only
+    // text into a bulletin delivered to every approved participant.
+    // Placed on a NEWER completed session so the excerpt ordering would
+    // pick it if the filter were missing (one recap per session is the
+    // S01 partial unique, so it cannot share $completed).
+    $newerSession = Game::factory()->create([
+        'campaign_id' => $campaign->id,
+        'owner_id' => $completed->owner_id,
+        'status' => 'completed',
+        'date_time' => now()->subHour(),
+    ]);
+
+    CampaignJournalEntry::factory()
+        ->forCampaignSession($newerSession)
+        ->create([
+            'kind' => JournalEntryKind::Recap,
+            'visibility' => JournalEntryVisibility::Gms,
+            'body' => 'GM-EYES-ONLY RECAP TEXT',
+        ]);
+
+    $body = app(PreviouslyOnService::class)->composeBody($campaign, $next);
+
+    expect($body)->toContain('players-visible recap')
+        ->and($body)->not->toContain('GM-EYES-ONLY RECAP TEXT');
 });
 
 test('prep-note and in-character bodies stay out of the digest even when newest', function () {
@@ -469,6 +509,33 @@ test('upsertUnpublished creates a draft, then refreshes it in place — never a 
         ->and(PreviouslyOnDraft::query()->count())->toBe(1);
 });
 
+test("composing for a different upcoming session supersedes the older session's unpublished draft (D230)", function () {
+    $service = app(PreviouslyOnService::class);
+    [$owner, $campaign, $completed, $next] = previouslyOnCampaign();
+
+    previouslyOnRecap($completed, 'stale composition');
+    $stale = $service->upsertUnpublished($campaign, $next);
+
+    // The table skips a week: a NEWER upcoming session becomes the next
+    // target (session canceled/rescheduled and a replacement scheduled).
+    $replacement = Game::factory()->create([
+        'campaign_id' => $campaign->id,
+        'owner_id' => $owner->id,
+        'status' => 'scheduled',
+        'date_time' => now()->addDays(3),
+    ]);
+
+    $fresh = $service->upsertUnpublished($campaign, $replacement);
+
+    // The load-bearing D230 invariant: at most ONE unpublished draft per
+    // campaign — the older session's draft is deleted, the replacement's
+    // draft is the only one left, published rows stay untouched.
+    expect(PreviouslyOnDraft::find($stale->id))->toBeNull()
+        ->and($fresh)->toBeInstanceOf(PreviouslyOnDraft::class)
+        ->and($fresh->published_at)->toBeNull()
+        ->and($campaign->previouslyOnDrafts()->whereNull('published_at')->count())->toBe(1);
+});
+
 test('upsertUnpublished never touches a published draft', function () {
     $service = app(PreviouslyOnService::class);
     [$owner, $campaign, $completed, $next] = previouslyOnCampaign();
@@ -515,6 +582,30 @@ test('a null composition leaves an existing unpublished draft untouched', functi
 });
 
 // ── publish (one bulletin, stamped, guarded) ────────────
+
+test('publish re-authorizes at the service layer — an actor the panel would refuse never reaches the write', function () {
+    $service = app(PreviouslyOnService::class);
+    [$owner, $campaign, $completed, $next] = previouslyOnCampaign();
+
+    previouslyOnRecap($completed, 'the digest recap');
+    $draft = $service->upsertUnpublished($campaign, $next);
+
+    // The service resolves the same ability the panel does
+    // (CampaignPolicy::managePreviouslyOn: owner + D223 member seam)
+    // — a signed-in non-owner is refused with zero rows written, no
+    // matter which caller hands the draft over.
+    $stranger = User::factory()->create(['profile_complete' => true]);
+
+    try {
+        $service->publish($draft, $stranger);
+        $this->fail('Expected LogicException for a non-owner publisher.');
+    } catch (LogicException $e) {
+        expect($e->getMessage())->toBe(__('journal.error_previously_on_not_available', [], 'en'));
+    }
+
+    expect($next->bulletins()->count())->toBe(0)
+        ->and($draft->fresh()->published_at)->toBeNull();
+});
 
 test('publish creates exactly one unpinned bulletin expiring a week after the session and stamps the draft', function () {
     $service = app(PreviouslyOnService::class);

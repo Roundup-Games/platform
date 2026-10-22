@@ -324,6 +324,7 @@ return [
     'action_bulletin_post' => 'Posten',
     'flash_bulletin_created' => 'Update erfolgreich veröffentlicht.',
     'error_bulletin_unauthorized' => 'Du bist nicht berechtigt, Updates zu veröffentlichen.',
+    'error_bulletin_empty' => 'Das Update darf nicht leer sein.',
     'hint_bulletin_admin_access' => 'Admin-Zugriff',
     'label_bulletin_unknown_host' => 'Unbekannter Host',
     'content_bulletin_expires_at' => 'Gültig bis :time',

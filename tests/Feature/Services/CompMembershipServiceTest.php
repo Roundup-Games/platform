@@ -11,6 +11,9 @@ use App\Models\User;
 use App\Services\Badges\SupportingMemberEvaluator;
 use App\Services\CompMembershipService;
 use App\Services\GmRoleService;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -133,6 +136,64 @@ it('updates the comp row in place on re-grant instead of duplicating', function 
         ->and($user->localSubscriptions()->first()->ends_at)->not->toBeNull()
         ->and(BadgeUser::query()->count())->toBe(1)
         ->and(BadgeEvent::query()->count())->toBe(1);
+
+    // A re-grant renews, it never rewrites history: the FIRST grant's
+    // starts_at survives (the row keeps the original grant date).
+    $originalStart = $user->localSubscriptions()->first()->starts_at;
+    Carbon::setTestNow(Carbon::parse('+6 months'));
+
+    $service->grant($user, null, $admin, 'Third grant');
+
+    Carbon::setTestNow();
+
+    expect($user->localSubscriptions()->count())->toBe(1)
+        ->and($user->localSubscriptions()->first()->starts_at->equalTo($originalStart))->toBeTrue()
+        ->and($user->localSubscriptions()->first()->reason)->toBe('Third grant');
+});
+
+it('enforces one active row per (user, plan, source) structurally — and allows comp beside self-serve', function () {
+    $service = app(CompMembershipService::class);
+    $user = User::factory()->create();
+    $admin = User::factory()->create();
+
+    $service->grant($user, null, $admin, 'Comp grant');
+
+    $plan = MembershipType::active()
+        ->where('type', 'local')
+        ->whereJsonContains('metadata->gm_plan', true)
+        ->firstOrFail();
+
+    // Same source, second active row: the partial unique index refuses
+    // it outright — the double-grant/double-click race can never land.
+    // Own savepoint so the violation cannot abort the test transaction.
+    expect(function () use ($user, $plan): void {
+        DB::transaction(fn () => $user->localSubscriptions()->create([
+            'membership_type_id' => $plan->id,
+            'status' => 'active',
+            'starts_at' => now(),
+            'source' => LocalSubscriptionSource::Comp,
+        ]));
+    })->toThrow(QueryException::class);
+
+    // Different source on the same plan: allowed — that is the "second
+    // active membership remains" semantics the expiry sweep depends on.
+    $user->localSubscriptions()->create([
+        'membership_type_id' => $plan->id,
+        'status' => 'active',
+        'starts_at' => now(),
+        'source' => LocalSubscriptionSource::SelfServe,
+    ]);
+
+    expect($user->localSubscriptions()->active()->count())->toBe(2);
+
+    // Expired history stays unlimited: expire the comp, re-grant — the
+    // expired row is history, the fresh comp is the only active comp.
+    $expired = $user->localSubscriptions()->where('source', LocalSubscriptionSource::Comp)->first();
+    $expired->update(['status' => 'expired']);
+    $service->grant($user, null, $admin, 'Fresh comp after expiry');
+
+    expect($user->localSubscriptions()->count())->toBe(3)
+        ->and($user->localSubscriptions()->active()->where('source', LocalSubscriptionSource::Comp->value)->count())->toBe(1);
 });
 
 it('withdraws the comp: benefits lapse, the badge follows only via the sweep', function () {

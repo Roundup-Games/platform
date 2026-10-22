@@ -14,6 +14,7 @@ return [
     // Einstiegskarte auf der Kampagnenseite (nur für dich sichtbar)
     'title_entry' => 'Kampagnen-Charta',
     'description_entry_teaser' => 'Erwartungen, Grenzen und Safety-Tools klären, bevor die erste Runde startet — und die Unterschrift aller einholen.',
+    'description_entry_teaser_participant' => 'Diese Kampagne läuft mit einer Charta — lies sie, prüfe deine Grenzen und unterschreibe.',
     'action_create_charter' => 'Charta erstellen',
     'action_continue_charter' => 'Charta weiterbearbeiten',
     'action_view_charter' => 'Charta ansehen',
@@ -334,6 +335,7 @@ return [
     'error_already_signed' => 'Du hast diese Version der Charta bereits unterschrieben.',
     'error_already_countersigned' => 'Diese Charta-Version wurde bereits gegengezeichnet.',
     'error_countersign_pending_signatures' => ':count zugelassene Teilnehmer haben die Charta noch nicht unterschrieben.',
+    'error_countersign_no_participants' => 'Die Charta hat noch keine zugelassenen Teilnehmer — der GM zeichnet gegen, nachdem der Tisch unterschrieben hat.',
 
     // Änderungs-Guards (M070/S03)
     'error_only_active_amendable' => 'Geändert werden kann nur eine veröffentlichte Charta — Entwürfe werden veröffentlicht, archivierte Chartas sind fixierte Geschichte.',
@@ -384,6 +386,7 @@ return [
     'label_roster_answer_note' => 'Notiz an den GM',
     'description_roster_privacy' => 'Private Antworten sehen nur du und der jeweilige Teilnehmer — bearbeiten lassen sie sich nie.',
     'action_countersign_charter' => 'Charta gegenzeichnen',
+    'description_countersign_no_participants' => 'Noch keine zugelassenen Teilnehmer — der GM zeichnet gegen, sobald der Tisch unterschrieben hat.',
     'description_countersign_pending' => ':count zugelassene Teilnehmer haben noch nicht unterschrieben.',
     'content_gm_strip_countersigned' => 'Gegengezeichnet — v:version am :date',
     'flash_countersigned_success' => 'Charta gegengezeichnet.',
@@ -455,6 +458,8 @@ return [
     'field_template_name' => 'Name der Vorlage',
     'flash_template_saved' => 'Vorlage gespeichert.',
     'error_templates_member_only' => 'Gespeicherte Charta-Vorlagen sind eine der Komfortfunktionen der Mitgliedschaft.',
+    'error_seeds_member_only' => 'Der Start einer Charta aus einer gespeicherten Vorlage oder einer früheren Charta gehört zu den Komfortfunktionen der Mitgliedschaft.',
+    'error_location_not_available' => 'Dieser Ort steht für diese Charta nicht zur Verfügung. Wähle einen deiner eigenen Orte.',
     'error_template_not_yours' => 'Diese Vorlage existiert nicht oder gehört dir nicht.',
     'error_previous_not_yours' => 'Diese Charta existiert nicht oder gehört dir nicht.',
     'label_template_empty' => 'Noch nichts hier — speichere eine Charta als Vorlage oder veröffentliche eine, dann kannst du sie hier wiederverwenden.',

@@ -119,6 +119,13 @@
                                 class="w-full rounded-lg bg-surface-container-high border border-outline/20 text-on-surface text-sm px-4 py-2.5 mb-4"
                                 aria-label="{{ __('charter.title_template_card') }}"
                             >
+                                {{-- The placeholder makes the first real
+                                     option REQUIRE a pick: without it the
+                                     browser displays option #1 while the
+                                     model stays '' and re-selecting the
+                                     displayed option fires no change —
+                                     startCharter would silently no-op. --}}
+                                <option value="" disabled selected>{{ __('charter.placeholder_choose_option') }}</option>
                                 @foreach($this->templates as $template)
                                     <option value="{{ $template->id }}">{{ $template->name }}</option>
                                 @endforeach
@@ -127,6 +134,7 @@
                                 type="button"
                                 wire:click="startCharter('template', '{{ $templateId }}')"
                                 wire:loading.attr="disabled"
+                                @disabled($templateId === '')
                                 class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap"
                             >
                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
@@ -148,6 +156,7 @@
                                 class="w-full rounded-lg bg-surface-container-high border border-outline/20 text-on-surface text-sm px-4 py-2.5 mb-4"
                                 aria-label="{{ __('charter.title_previous_card') }}"
                             >
+                                <option value="" disabled selected>{{ __('charter.placeholder_choose_option') }}</option>
                                 @foreach($this->previousCharters as $previous)
                                     <option value="{{ $previous->id }}">{{ $previous->title }}</option>
                                 @endforeach
@@ -156,6 +165,7 @@
                                 type="button"
                                 wire:click="startCharter('previous', '{{ $previousCharterId }}')"
                                 wire:loading.attr="disabled"
+                                @disabled($previousCharterId === '')
                                 class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap"
                             >
                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
@@ -266,6 +276,12 @@
                             <p class="mt-1 text-xs text-error">{{ $message }}</p>
                         @enderror
                     </div>
+                    @error('charter')
+                        {{-- Service-level refusals (e.g. the member-only
+                             template gate) — the field error alone left a
+                             crafted refusal silent on this panel. --}}
+                        <p class="mt-1 text-xs text-error">{{ $message }}</p>
+                    @enderror
                 @endif
 
                 <div class="mt-6 flex items-center justify-center gap-3">
@@ -333,6 +349,14 @@
             <div class="mt-6 bg-surface-container-low rounded-xl shadow-ambient border border-primary/20 px-6 py-4 flex items-center gap-3">
                 <span class="material-symbols-outlined text-primary shrink-0" aria-hidden="true">published_with_changes</span>
                 <p class="text-sm text-on-surface-variant flex-1">{{ __('charter.label_amendment_in_progress') }}</p>
+                {{-- Autosave/publish errors land on the 'charter' key —
+                     surface them here (always visible) instead of only in
+                     the step-8 agreement block, or a GM on step 2 gets a
+                     silent no-op when the draft was published/archived in
+                     another tab. --}}
+                @error('charter')
+                    <p class="text-xs text-error shrink-0">{{ $message }}</p>
+                @enderror
                 <button
                     type="button"
                     wire:click="cancelAmendment"
@@ -346,7 +370,14 @@
         @else
             <div class="mt-6 bg-surface-container-low rounded-xl shadow-ambient px-6 py-4 flex items-center gap-3">
                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">visibility_off</span>
-                <p class="text-sm text-on-surface-variant flex-1">{{ __('charter.content_draft_banner') }}</p>
+                <p class="text-sm text-on-surface-variant flex-1">
+                    {{ __('charter.content_draft_banner') }}
+                    {{-- Same always-visible error surface as the amendment
+                         banner — autosave failures must never be silent. --}}
+                    @error('charter')
+                        <span class="block mt-1 text-xs text-error">{{ $message }}</span>
+                    @enderror
+                </p>
                 @if($draftSaved)
                     <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
@@ -366,7 +397,7 @@
                 type="text"
                 wire:model="title"
                 class="w-full rounded-lg bg-surface-container-high border border-outline/20 text-on-surface text-sm placeholder:text-on-surface-variant focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-colors px-4 py-2.5"
-            />
+                maxlength="255"/>
             @error('title')
                 <p class="mt-1 text-xs text-error">{{ $message }}</p>
             @enderror

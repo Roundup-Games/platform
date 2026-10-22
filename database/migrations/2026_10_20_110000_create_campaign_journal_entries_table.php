@@ -100,8 +100,21 @@ return new class extends Migration
 
     public function down(): void
     {
+        // One-way by design once the journal is live: the table holds
+        // user-authored content (in-character posts, GM prep notes,
+        // post-go-live recaps) that a re-run of up() can NOT re-create —
+        // only the go-live backfill rows regenerate from games.recap.
+        // Refuse loudly instead of silently destroying them; an empty
+        // table (fresh install rollback) drops normally.
+        $entries = DB::table('campaign_journal_entries')->count();
+
+        if ($entries > 0) {
+            throw new RuntimeException(
+                "campaign_journal_entries holds {$entries} row(s) of user-authored journal content — ".
+                'refusing to drop. Restore from a backup or continue on a disposable environment (migrate:fresh).',
+            );
+        }
+
         Schema::dropIfExists('campaign_journal_entries');
-        // Backfilled entries die with the table, but a re-run of up()
-        // re-creates them: the source games.recap values are never cleared.
     }
 };

@@ -4,7 +4,7 @@ namespace App\View\Components;
 
 use App\Enums\BadgeRarity;
 use App\Models\BadgeDefinition;
-use Illuminate\Support\Facades\Lang;
+use App\Services\Badges\BadgeCopy;
 use Illuminate\View\Component;
 use Illuminate\View\View;
 
@@ -21,10 +21,10 @@ use Illuminate\View\View;
  *   beats the synced registry column — "S04 display surfaces consume the
  *   metadata overrides curated here" — with a neutral trophy glyph as the
  *   last resort for un-glyphed factory rows.
- * - name / tier label: registry-agnostic copies of the exact fallback chain
- *   the award moment uses (BadgeAwardedNotification::badgeName() /
- *   tierLabel()): lang key -> Lang::has -> __() -> humanized registry key.
- *   Never a second convention, never a raw missing-key string.
+ * - name / tier label: resolved through BadgeCopy — the one fallback
+ *   chain the award notification and the gallery tier ladder also use
+ *   (lang key -> Lang::has -> __() -> humanized registry key). Never a
+ *   second convention, never a raw missing-key string.
  * - rarity: enum-cast from badge_definitions.rarity_class, null until the
  *   nightly badges:rarity job first populates it (D195). Drives colour
  *   mapping only — holder counts and %-gating belong to the gallery.
@@ -74,36 +74,19 @@ class BadgeChip extends Component
     }
 
     /**
-     * Same resolution chain as BadgeAwardedNotification::badgeName() —
-     * a key the lang files do not know degrades to the humanized registry
-     * key instead of a raw missing-translation string.
+     * Display copy resolves through BadgeCopy — the single fallback
+     * chain shared with the award notification and the gallery ladder
+     * (lang key -> __() -> humanized key; never a raw missing-key
+     * string, never a second convention).
      */
     private function resolveName(): string
     {
-        $nameKey = $this->definition->name_key;
-
-        if ($nameKey !== '' && Lang::has($nameKey)) {
-            return (string) __($nameKey);
-        }
-
-        return str_replace('_', ' ', ucfirst($this->definition->key));
+        return BadgeCopy::name($this->definition->name_key, $this->definition->key);
     }
 
-    /**
-     * Same resolution chain as BadgeAwardedNotification::tierLabel() —
-     * null for tierless badges, humanized tier key when lang misses.
-     */
     private function resolveTierLabel(): ?string
     {
-        if ($this->tier === null) {
-            return null;
-        }
-
-        $key = "badges.content_badge_tier_{$this->tier}";
-
-        return Lang::has($key)
-            ? (string) __($key)
-            : str_replace('_', ' ', ucfirst($this->tier));
+        return BadgeCopy::tierLabel($this->tier);
     }
 
     /**

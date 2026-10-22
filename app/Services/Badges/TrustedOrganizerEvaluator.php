@@ -3,15 +3,14 @@
 namespace App\Services\Badges;
 
 use App\Enums\EventStatus;
-use App\Models\BadgeUser;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
 use App\Models\Review;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use LogicException;
 
 /**
  * Trusted Organizer (spec §3 Events & Organizing row, M069 S05 T4,
@@ -45,9 +44,20 @@ use LogicException;
  *
  * Tier thresholds live in the registry entry (single source of truth).
  */
-class TrustedOrganizerEvaluator implements BadgeEvaluator
+class TrustedOrganizerEvaluator extends CohortSweepEvaluator
 {
     private const BADGE_KEY = 'trusted_organizer';
+
+    protected function badgeKey(): string
+    {
+        return self::BADGE_KEY;
+    }
+
+    /** Streak broken → quiet grey-out (spec §4). Idempotent inside BadgeService: no hold, already lapsed, admin-revoked, a manual-source grant (never auto-lapsed), or a retired definition (holds freeze) is a no-op. */
+    protected function sweepOnUnqualified(User $user, BadgeService $service): void
+    {
+        $service->lapse($user, self::BADGE_KEY, self::LAPSE_REASON);
+    }
 
     private const LAPSE_REASON = 'streak_broken';
 
@@ -60,44 +70,6 @@ class TrustedOrganizerEvaluator implements BadgeEvaluator
     /** Unannounced-cancellation share of a quarter's events must stay strictly below. */
     private const MAX_UNANNOUNCED_CANCELLATION_RATE = 0.1;
 
-    public function evaluate(User $user): ?BadgeAward
-    {
-        $proposal = $this->proposalFor($user);
-
-        if ($proposal === null) {
-            return null;
-        }
-
-        [$tierKey, $evidence] = $proposal;
-
-        return BadgeAward::for(self::BADGE_KEY, $tierKey, $evidence);
-    }
-
-    public function sweep(): void
-    {
-        $service = app(BadgeService::class);
-
-        $this->cohort()->chunkById(200, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                $proposal = $this->proposalFor($user);
-
-                if ($proposal === null) {
-                    // Streak broken → quiet grey-out (spec §4). Idempotent
-                    // inside BadgeService: no hold, already lapsed, or
-                    // admin-revoked is a no-op.
-                    $service->lapse($user, self::BADGE_KEY, self::LAPSE_REASON);
-
-                    continue;
-                }
-
-                [$tierKey, $evidence] = $proposal;
-
-                $service->award($user, self::BADGE_KEY, $tierKey, $evidence);
-            }
-        });
-    }
-
     // ── Internals ──────────────────────────────────────
 
     /**
@@ -108,7 +80,7 @@ class TrustedOrganizerEvaluator implements BadgeEvaluator
      *
      * @return array{0: string, 1: Event}|null
      */
-    private function proposalFor(User $user): ?array
+    protected function proposalFor(User $user): ?array
     {
         $quarters = $this->quarterlyEvents($user);
 
@@ -124,7 +96,12 @@ class TrustedOrganizerEvaluator implements BadgeEvaluator
         // must END there, so the first miss — an empty or unqualifying
         // quarter — terminates it. Earlier qualifying runs are history,
         // not streak: once the chain rebuilds it restarts at bronze.
-        for ($quarter = $end; $quarter >= $earliest; $quarter--) {
+        // The top tier's threshold caps the walk: a longer streak earns
+        // nothing further, so qualifying quarters past it cost queries
+        // for nothing (and the load window already excludes them).
+        $maxStreak = $this->maxTierThreshold();
+
+        for ($quarter = $end; $quarter >= $earliest && $streak < $maxStreak; $quarter--) {
             $events = $quarters[$quarter] ?? null;
 
             if ($events === null || ! $this->quarterQualifies($events)) {
@@ -138,14 +115,7 @@ class TrustedOrganizerEvaluator implements BadgeEvaluator
             return null;
         }
 
-        $tierKey = null;
-
-        foreach ($this->tierThresholds() as $tier => $threshold) {
-            if ($streak >= $threshold) {
-                // Thresholds ascend, so the last match is the highest earned.
-                $tierKey = $tier;
-            }
-        }
+        $tierKey = $this->tierFor($streak);
 
         if ($tierKey === null) {
             return null;
@@ -166,19 +136,38 @@ class TrustedOrganizerEvaluator implements BadgeEvaluator
     }
 
     /**
-     * Every event the user organizes, bucketed by calendar-quarter
-     * index (year * 4 + quarter) from start_date — status-agnostic on
-     * purpose: completed events feed criterion (a), cancelled ones the
-     * denominator of criterion (c). The open current quarter lands in
-     * its own bucket, which the streak walker never visits.
+     * The organizer's events from the RELEVANT window only, bucketed by
+     * calendar-quarter index (year * 4 + quarter) from start_date —
+     * status-agnostic on purpose: completed events feed criterion (a),
+     * cancelled ones the denominator of criterion (c). The open current
+     * quarter lands in its own bucket, which the streak walker never
+     * visits.
+     *
+     * The window is bounded to the highest tier threshold's worth of
+     * closed quarters (gold = 6) and is LOSSLESS: tiers cap at that
+     * threshold, so a streak beyond it earns nothing more, and the walk
+     * breaks on the first unqualifying quarter anyway — events older
+     * than the window can never change the outcome, so they are not
+     * loaded or hydrated at all (the pre-fix shape pulled every event
+     * the organizer ever ran).
      *
      * @return array<int, list<Event>>
      */
     private function quarterlyEvents(User $user): array
     {
+        $maxQuarters = $this->maxTierThreshold();
+        $oldestIndex = $this->mostRecentClosedQuarterIndex() - $maxQuarters + 1;
+
         $events = Event::query()
             ->whereBelongsTo($user, 'organizer')
             ->whereNotNull('start_date')
+            ->where('start_date', '>=', $this->quarterStartDate($oldestIndex))
+            // Upper bound: the streak walker stops at the most recent
+            // CLOSED quarter, so future-scheduled events hydrate into
+            // buckets it can never visit — pure wasted rows per
+            // organizer per night, growing with how far ahead they
+            // schedule.
+            ->where('start_date', '<=', now())
             ->get();
 
         $grouped = [];
@@ -338,6 +327,38 @@ class TrustedOrganizerEvaluator implements BadgeEvaluator
         return $year * 4 + intdiv($month - 1, 3);
     }
 
+    /**
+     * The highest quarter threshold the ladder grants (gold's streak).
+     * The registry entry is typed tiers as threshold => value, but the
+     * max() guard keeps Larastan's non-empty-array proof honest — an
+     * entry without tiers can never reach here (tierThresholds throws
+     * for a missing entry first).
+     */
+    private function maxTierThreshold(): int
+    {
+        $thresholds = array_values(array_map('intval', $this->tierThresholds()));
+
+        return $thresholds === [] ? 1 : max($thresholds);
+    }
+
+    /**
+     * First day of a quarter index's calendar quarter — the inclusive
+     * lower bound of the load window (quarterIndex's inverse).
+     */
+    private function quarterStartDate(int $index): CarbonImmutable
+    {
+        $date = CarbonImmutable::create(intdiv($index, 4), ($index % 4) * 3 + 1, 1);
+
+        if ($date === null) {
+            // Quarter indexes are code-computed from the real calendar,
+            // so this is unreachable — but the guard keeps the return
+            // type honest instead of lying to the analyzer.
+            throw new \LogicException("Unresolvable quarter index [{$index}].");
+        }
+
+        return $date->startOfDay();
+    }
+
     private function mostRecentClosedQuarterIndex(): int
     {
         $now = now();
@@ -345,52 +366,25 @@ class TrustedOrganizerEvaluator implements BadgeEvaluator
         return $this->quarterIndex((int) $now->format('Y'), (int) $now->format('n')) - 1;
     }
 
-    /**
-     * Tier thresholds from the registry entry — the same array
-     * badges:sync mirrors into badge_definitions, so the evaluator and
-     * the write side can never disagree about what a tier means.
-     *
-     * @return array<string, int>
-     */
-    private function tierThresholds(): array
+    /** Anyone who has organized an event (streaks are rebuilt from history); holders join through the skeleton's holders half. */
+    protected function qualifyingCohort(Builder $grouped): Builder
     {
-        $definition = app(BadgeRegistry::class)->find(self::BADGE_KEY);
+        // Tightened to the qualification floor: criterion (a) needs
+        // >= 3 Completed events inside the closed-quarters window, so an
+        // organizer with zero completed events there can never qualify —
+        // the loose whereHas(organizedEvents) shape would sweep every
+        // one-event organizer through a full proposalFor() pass (events
+        // load plus per-quarter announcement/rating queries) for nothing
+        // in the nightly run.
+        $windowStart = $this->quarterStartDate(
+            $this->mostRecentClosedQuarterIndex() - $this->maxTierThreshold() + 1,
+        );
 
-        if ($definition === null) {
-            throw new LogicException(sprintf('%s is missing from the badge registry', self::BADGE_KEY));
-        }
-
-        $tiers = $definition->tiers;
-
-        // Thresholds are declared ascending; sort defensively so the
-        // "last match wins" tier pick above can never mis-order.
-        asort($tiers);
-
-        return $tiers;
-    }
-
-    /**
-     * Users in this badge's orbit: anyone with at least one organized
-     * event (its dates or status can change any time) plus current
-     * holders (whose history may have been pruned — their hold must
-     * still lapse or requalify through the audited pipeline).
-     *
-     * The whole predicate is ONE grouped where for the chunkById
-     * reason (see SupportingMemberEvaluator): the cursor's id > last
-     * is a top-level AND, and SQL AND binds tighter than OR — an
-     * ungrouped cohort predicate would re-match users in every chunk
-     * and loop forever.
-     *
-     * @return Builder<User>
-     */
-    private function cohort(): Builder
-    {
-        return User::query()
-            ->where(function (Builder $query): void {
-                $query->whereHas('organizedEvents')
-                    ->orWhereIn('id', BadgeUser::query()
-                        ->whereHas('badgeDefinition', fn (Builder $definition) => $definition->where('key', self::BADGE_KEY))
-                        ->select('user_id'));
-            });
+        return $grouped->whereHas(
+            'organizedEvents',
+            fn (Builder $query): Builder => $query
+                ->where('status', EventStatus::Completed->value)
+                ->where('start_date', '>=', $windowStart),
+        );
     }
 }

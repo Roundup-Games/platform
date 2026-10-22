@@ -5,12 +5,10 @@ namespace App\Services\Badges;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\JournalEntryKind;
-use App\Models\BadgeUser;
 use App\Models\Campaign;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use LogicException;
 
 /**
  * Campaign Compleat (spec §3 GM Craft row, D222; live since M071/S05):
@@ -64,48 +62,17 @@ use LogicException;
  * six completed sessions at 80% coverage (pinned by
  * DemoCohortProofTest).
  */
-class CampaignCompleatEvaluator implements BadgeEvaluator
+class CampaignCompleatEvaluator extends CohortSweepEvaluator
 {
     private const BADGE_KEY = 'campaign_compleat';
 
+    protected function badgeKey(): string
+    {
+        return self::BADGE_KEY;
+    }
+
     /** D222: the minimum completed-session floor a qualifying campaign must reach. */
     private const MIN_COMPLETED_SESSIONS = 6;
-
-    public function evaluate(User $user): ?BadgeAward
-    {
-        $proposal = $this->proposalFor($user);
-
-        if ($proposal === null) {
-            return null;
-        }
-
-        [$tierKey, $evidence] = $proposal;
-
-        return BadgeAward::for(self::BADGE_KEY, $tierKey, $evidence);
-    }
-
-    public function sweep(): void
-    {
-        $service = app(BadgeService::class);
-
-        $this->cohort()->chunkById(200, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                $proposal = $this->proposalFor($user);
-
-                if ($proposal === null) {
-                    // Milestone badges never lapse (spec §2.1): an owner
-                    // of completed-but-below-threshold campaigns parks
-                    // nothing — the completions keep aging toward bronze.
-                    continue;
-                }
-
-                [$tierKey, $evidence] = $proposal;
-
-                $service->award($user, self::BADGE_KEY, $tierKey, $evidence);
-            }
-        });
-    }
 
     // ── Internals ──────────────────────────────────────
 
@@ -117,21 +84,14 @@ class CampaignCompleatEvaluator implements BadgeEvaluator
      *
      * @return array{0: string, 1: Campaign}|null
      */
-    private function proposalFor(User $user): ?array
+    protected function proposalFor(User $user): ?array
     {
         $qualifying = $this->completedCampaignsWithCounts($user)
             ->filter(fn (Campaign $campaign): bool => $this->qualifies($campaign));
 
         $count = $qualifying->count();
 
-        $tierKey = null;
-
-        foreach ($this->tierThresholds() as $tier => $threshold) {
-            if ($count >= $threshold) {
-                // Thresholds ascend, so the last match is the highest earned.
-                $tierKey = $tier;
-            }
-        }
+        $tierKey = $this->tierFor($count);
 
         if ($tierKey === null) {
             return null;
@@ -191,53 +151,10 @@ class CampaignCompleatEvaluator implements BadgeEvaluator
             && $covered * 5 >= $completed * 4;
     }
 
-    /**
-     * Tier thresholds from the registry entry — the same array
-     * badges:sync mirrors into badge_definitions, so the evaluator and
-     * the write side can never disagree about what a tier means.
-     *
-     * @return array<string, int>
-     */
-    private function tierThresholds(): array
+    /** Owners of completed campaigns (completions keep aging toward thresholds); holders join through the skeleton's holders half. */
+    protected function qualifyingCohort(Builder $grouped): Builder
     {
-        $definition = app(BadgeRegistry::class)->find(self::BADGE_KEY);
-
-        if ($definition === null) {
-            throw new LogicException(sprintf('%s is missing from the badge registry', self::BADGE_KEY));
-        }
-
-        $tiers = $definition->tiers;
-
-        // Thresholds are declared ascending; sort defensively so the
-        // "last match wins" tier pick above can never mis-order.
-        asort($tiers);
-
-        return $tiers;
-    }
-
-    /**
-     * Users in this badge's orbit: anyone owning a completed campaign
-     * (the coverage math crosses thresholds as sessions finish and
-     * recaps land) plus current holders (so a revoked hold
-     * requalifies through the audited pipeline).
-     *
-     * The whole predicate is ONE grouped where for the chunkById
-     * reason (see SupportingMemberEvaluator): the cursor's id > last
-     * is a top-level AND, and SQL AND binds tighter than OR — an
-     * ungrouped cohort predicate would re-match users in every chunk
-     * and loop forever.
-     *
-     * @return Builder<User>
-     */
-    private function cohort(): Builder
-    {
-        return User::query()
-            ->where(function (Builder $query): void {
-                $query->whereHas('ownedCampaigns', fn (Builder $campaign): Builder => $campaign
-                    ->where('campaigns.status', CampaignStatus::Completed->value))
-                    ->orWhereIn('id', BadgeUser::query()
-                        ->whereHas('badgeDefinition', fn (Builder $definition) => $definition->where('key', self::BADGE_KEY))
-                        ->select('user_id'));
-            });
+        return $grouped->whereHas('ownedCampaigns', fn (Builder $campaign): Builder => $campaign
+            ->where('campaigns.status', CampaignStatus::Completed->value));
     }
 }

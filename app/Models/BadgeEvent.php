@@ -14,9 +14,9 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Append-only audit-trail entry for one badge lifecycle action (D186,
- * spec §2.3): awarded / upgraded / revoked / granted_manually / lapsed /
- * requalified — with actor, reason, source and the evidence that
- * justified the action.
+ * spec §2.3): awarded / upgraded / revoked / lapsed / requalified —
+ * with actor, reason, source and the evidence that justified the
+ * action (manual grants are Awarded with source=manual).
  *
  * Rows are immutable facts: the table has no updated_at, the model runs
  * with $timestamps = false, and writers set created_at explicitly
@@ -30,7 +30,6 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property BadgeSource $source
  * @property string|null $evidence_type
  * @property string|null $evidence_id
- * @property array<string, mixed>|null $metadata
  * @property Carbon|null $created_at
  */
 class BadgeEvent extends Model
@@ -48,7 +47,6 @@ class BadgeEvent extends Model
         'source',
         'evidence_type',
         'evidence_id',
-        'metadata',
         'created_at',
     ];
 
@@ -57,7 +55,6 @@ class BadgeEvent extends Model
         return [
             'action' => BadgeEventAction::class,
             'source' => BadgeSource::class,
-            'metadata' => 'array',
             'created_at' => 'datetime',
         ];
     }

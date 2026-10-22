@@ -25,7 +25,6 @@ class BadgeEventFactory extends Factory
             'source' => BadgeSource::Automatic,
             'evidence_type' => null,
             'evidence_id' => null,
-            'metadata' => null,
             // Table has no updated_at; writers set created_at explicitly.
             'created_at' => now(),
         ];
@@ -34,7 +33,7 @@ class BadgeEventFactory extends Factory
     public function grantedManually(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'action' => BadgeEventAction::GrantedManually,
+            'action' => BadgeEventAction::Awarded,
             'source' => BadgeSource::Manual,
             'actor_id' => User::factory(),
             'reason' => 'Community recognition (test fixture)',

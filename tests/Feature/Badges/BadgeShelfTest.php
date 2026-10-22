@@ -302,3 +302,40 @@ describe('toggleFeatured action', function () {
         expect($hold->fresh()->is_featured)->toBeFalse();
     });
 });
+
+describe('lapsed holds and featuring', function () {
+    it('never newly features a lapsed hold — the slot must go to a badge that displays', function () {
+        $user = User::factory()->create();
+
+        $hold = BadgeUser::factory()->for($user)
+            ->for(shelfDefinition('debut', 'content_badge_debut_name', 1))
+            ->lapsed()
+            ->create();
+
+        Livewire::actingAs($user)
+            ->test(AuthenticatedProfile::class, ['user' => $user])
+            ->call('toggleFeatured', $hold->id)
+            ->assertHasNoErrors();
+
+        expect($hold->fresh()->is_featured)->toBeFalse();
+    });
+
+    it('still allows unfeaturing an already-featured hold that later lapsed', function () {
+        $user = User::factory()->create();
+
+        $hold = BadgeUser::factory()->for($user)
+            ->for(shelfDefinition('debut', 'content_badge_debut_name', 1))
+            ->lapsed()
+            ->featured()
+            ->create();
+
+        Livewire::actingAs($user)
+            ->test(AuthenticatedProfile::class, ['user' => $user])
+            ->call('toggleFeatured', $hold->id)
+            ->assertHasNoErrors();
+
+        // The belt-and-braces path: BadgeService::lapse already cleared
+        // the flag; a stale row can still be un-featured, never stuck.
+        expect($hold->fresh()->is_featured)->toBeFalse();
+    });
+});

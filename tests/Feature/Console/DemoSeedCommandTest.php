@@ -127,3 +127,29 @@ it('tears down every demo row and side effect', function () {
     expect(BadgeUser::whereIn('user_id', $demoUserIds)->count())->toBe(0);
     expect(BadgeEvent::whereHas('badgeUser', fn ($query) => $query->whereIn('user_id', $demoUserIds))->count())->toBe(0);
 });
+
+it('refuses to seed in production-ish environments (defense-in-depth under the registration gate)', function () {
+    // The AppServiceProvider registration gate only excludes exactly
+    // "production"; the in-command guard is the layer that must refuse
+    // the other prod-adjacent names (prod, live, staging) even under
+    // direct instantiation — pin it so the guard list cannot regress
+    // silently. Nothing must be written on refusal.
+    // app()->environment() resolves the container's 'env' binding, not
+    // live config('app.env') — rebind it to the prod-adjacent name.
+    app()->instance('env', 'staging');
+
+    $this->artisan('demo:seed', ['--users' => 5, '--gms' => 1])
+        ->expectsOutput('demo:seed is a development tool and is disabled in production.')
+        ->assertFailed();
+
+    expect(User::query()->where('email', 'like', '%@demo.roundup.games')->doesntExist())
+        ->toBeTrue();
+});
+
+it('refuses to tear down in production-ish environments too', function () {
+    app()->instance('env', 'prod');
+
+    $this->artisan('demo:teardown')
+        ->expectsOutput('demo:teardown is a development tool and is disabled in production.')
+        ->assertFailed();
+});

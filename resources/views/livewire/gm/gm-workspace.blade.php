@@ -325,7 +325,7 @@
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
                                 @if(in_array($row['status'], ['draft', 'active']))
-                                    <a href="{{ route('campaigns.charter', $row['campaign_id']) }}" wire:navigate
+                                    <a href="{{ route('campaigns.charter', $row['campaign']) }}" wire:navigate
                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $row['status'] === 'draft' ? 'edit' : 'history_edu' }}</span>
                                         {{ __($row['status'] === 'draft' ? 'charter.action_continue_charter' : 'charter.action_amend_charter') }}

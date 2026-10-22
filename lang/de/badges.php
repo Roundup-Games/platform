@@ -14,7 +14,7 @@ return [
     'content_badge_chartered_name' => 'Charta besiegelt',
     'content_badge_chartered_description' => 'Eine Kampagne geleitet, deren Charta vom gesamten Tisch unterschrieben wurde.',
     'content_badge_campaign_compleat_name' => 'Kampagne vollendet',
-    'content_badge_campaign_compleat_description' => 'Eine Kampagne mit mindestens sechs Spielrunden abgeschlossen — mit Journal, das die Geschichte belegt.',
+    'content_badge_campaign_compleat_description' => 'Eine Kampagne mit mindestens sechs Spielrunden abgeschlossen — mit Journal-Einträgen für mindestens 80 % davon.',
     // Money-Badge-Ehrlichkeit (Spec §1.5): die Copy bescheinigt
     // finanzielle Unterstützung, nie Können.
     'content_badge_supporting_member_name' => 'Fördermitglied',

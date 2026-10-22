@@ -141,6 +141,22 @@ it('caches the summary for five minutes', function () {
     expect(Cache::has('admin:schedule-health'))->toBeTrue();
 });
 
+it('marks the summary degraded — not all-clear — when the schedule inventory cannot load', function () {
+    // A schedule definition that fatal-errors while resolving means the
+    // safety signal itself is broken; zeros must read as "unknown", never
+    // as "on time".
+    $this->mock(Schedule::class)
+        ->shouldReceive('events')
+        ->andThrow(new RuntimeException('schedule definitions exploded'));
+
+    $summary = ScheduleHealth::summary();
+
+    expect($summary['degraded'])->toBeTrue()
+        ->and($summary['missed'])->toBe(0)
+        ->and($summary['failed_last'])->toBe(0)
+        ->and($summary['awaiting_first'])->toBe(0);
+});
+
 it('flags sub-grace cadences once two occurrences are unrecorded, not one', function () {
     // Every-minute task: the most recent due time is always inside the
     // 2-minute grace, so the judgment falls back to the occurrence before

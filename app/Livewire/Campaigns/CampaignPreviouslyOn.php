@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Campaigns;
 
-use App\Enums\GameStatus;
 use App\Models\Campaign;
 use App\Models\PreviouslyOnDraft;
 use App\Services\GmMembershipService;
@@ -119,10 +118,9 @@ class CampaignPreviouslyOn extends Component
             return null;
         }
 
-        $nextSession = $this->campaign->sessions()
-            ->where('status', GameStatus::Scheduled->value)
-            ->orderBy('date_time')
-            ->first();
+        // The service's ONE definition of "next" (D230) — never a
+        // second resolution that could disagree with the composer.
+        $nextSession = app(PreviouslyOnService::class)->nextSession($this->campaign);
 
         if ($nextSession !== null) {
             /** @var PreviouslyOnDraft|null $draft */
@@ -211,10 +209,21 @@ class CampaignPreviouslyOn extends Component
             return;
         }
 
+        // The service's own refusals are returns, but the campaign-row
+        // lock can still surface as a serialization failure or statement
+        // timeout under load — infra exceptions degrade to the same
+        // unavailable flash the other panel actions use (the identical
+        // call in GameObserver::composeQuietly catches \Throwable), never
+        // an uncaught error modal on a panel refresh.
         try {
             app(PreviouslyOnService::class)->upsertUnpublished($this->campaign, $draft->game);
         } catch (\Throwable $e) {
-            session()->flash('error', __('journal.error_previously_on_refresh_failed'));
+            logger()->warning('previously_on.refresh_failed', [
+                'campaign_id' => (string) $this->campaign->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            session()->flash('error', __('journal.error_previously_on_not_available'));
 
             return;
         }

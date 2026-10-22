@@ -10,6 +10,7 @@ use App\Support\Scheduling\TaskIdentity;
 use Carbon\Carbon;
 use Cron\CronExpression;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\Log;
 use UnitEnum;
 
 class ScheduledTasksPage extends Page
@@ -28,12 +29,16 @@ class ScheduledTasksPage extends Page
 
     public function getViewData(): array
     {
-        $tasks = $this->getTasks();
+        // recordingSince() is an uncached min(started_at) aggregate —
+        // computed ONCE here and threaded into getTasks() instead of
+        // being re-run there (it was queried twice per render).
+        $recordingSince = ScheduleHealth::recordingSince();
+        $tasks = $this->getTasks($recordingSince);
 
         return [
             'tasks' => $tasks,
             'health' => ScheduleHealth::summary(),
-            'recording_since' => ScheduleHealth::recordingSince(),
+            'recording_since' => $recordingSince,
             'total_tasks' => count($tasks),
         ];
     }
@@ -48,12 +53,15 @@ class ScheduledTasksPage extends Page
      * history (what actually ran and how it ended). One row per schedule
      * event, keyed by the shared TaskIdentity command string.
      *
+     * @param  ?Carbon  $recordingSince  Pre-computed epoch (see
+     *                                   getViewData) — null keeps the
+     *                                   query local for non-page callers.
      * @return list<array{
      *     command: string,
      *     description: string|null,
      *     expression: string,
      *     human_expression: string,
-     *     next_run: Carbon,
+     *     next_run: Carbon|null,
      *     without_overlapping: bool|int|null,
      *     on_one_server: bool,
      *     last_run: ScheduledTaskRun|null,
@@ -63,35 +71,63 @@ class ScheduledTasksPage extends Page
      *     health: ScheduledTaskHealth,
      * }>
      */
-    public function getTasks(): array
+    public function getTasks(?Carbon $recordingSince = null): array
     {
         $events = ScheduleInventory::events();
         $now = Carbon::now();
 
         $latestRuns = ScheduledTaskRun::latestPerTask();
-        $recordingSince = ScheduleHealth::recordingSince();
+        $recordingSince ??= ScheduleHealth::recordingSince();
 
         $tasks = [];
 
         foreach ($events as $event) {
             $command = TaskIdentity::command($event);
-            $cron = new CronExpression($event->expression);
             $lastRun = $latestRuns[$command] ?? null;
 
-            $tasks[] = [
-                'command' => $command,
-                'description' => ($event->description ?? null) ?: null,
-                'expression' => $event->expression,
-                'human_expression' => TaskIdentity::humanizeExpression($event->expression),
-                'next_run' => Carbon::instance($cron->getNextRunDate($now->toDateTime(), 0, true)),
-                'without_overlapping' => $event->withoutOverlapping ?: null,
-                'on_one_server' => (bool) $event->onOneServer,
-                'last_run' => $lastRun,
-                'last_run_color' => $lastRun?->status->badgeColor(),
-                'last_run_ago' => $lastRun?->started_at->diffForHumans(),
-                'last_run_duration' => $this->formatDuration($lastRun?->runtime_ms),
-                'health' => ScheduleHealth::classify($cron, $now, $lastRun?->started_at, $recordingSince),
-            ];
+            // Same resilience rule as ScheduleHealth::compute(): one
+            // malformed expression must not take the whole diagnostic
+            // page down — the row degrades to a missed-health entry and
+            // the log carries the diagnostic. An unparseable schedule
+            // never runs, so "missed" is also the honest classification.
+            try {
+                $cron = new CronExpression($event->expression);
+
+                $tasks[] = [
+                    'command' => $command,
+                    'description' => ($event->description ?? null) ?: null,
+                    'expression' => $event->expression,
+                    'human_expression' => TaskIdentity::humanizeExpression($event->expression),
+                    'next_run' => Carbon::instance($cron->getNextRunDate($now->toDateTime(), 0, true)),
+                    'without_overlapping' => $event->withoutOverlapping ?: null,
+                    'on_one_server' => (bool) $event->onOneServer,
+                    'last_run' => $lastRun,
+                    'last_run_color' => $lastRun?->status->badgeColor(),
+                    'last_run_ago' => $lastRun?->started_at->diffForHumans(),
+                    'last_run_duration' => $this->formatDuration($lastRun?->runtime_ms),
+                    'health' => ScheduleHealth::classify($cron, $now, $lastRun?->started_at, $recordingSince),
+                ];
+            } catch (\Throwable $e) {
+                Log::error('schedule.tasks_page.task_unclassifiable', [
+                    'expression' => $event->expression,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $tasks[] = [
+                    'command' => $command,
+                    'description' => ($event->description ?? null) ?: null,
+                    'expression' => $event->expression,
+                    'human_expression' => TaskIdentity::humanizeExpression($event->expression),
+                    'next_run' => null,
+                    'without_overlapping' => $event->withoutOverlapping ?: null,
+                    'on_one_server' => (bool) $event->onOneServer,
+                    'last_run' => $lastRun,
+                    'last_run_color' => $lastRun?->status->badgeColor(),
+                    'last_run_ago' => $lastRun?->started_at->diffForHumans(),
+                    'last_run_duration' => $this->formatDuration($lastRun?->runtime_ms),
+                    'health' => ScheduledTaskHealth::Missed,
+                ];
+            }
         }
 
         usort($tasks, fn (array $a, array $b): int => strcmp($a['command'], $b['command']));

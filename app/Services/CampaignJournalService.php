@@ -167,6 +167,11 @@ class CampaignJournalService
             throw new \LogicException(__('journal.error_body_empty'));
         }
 
+        // Whitespace-only input normalizes to null: the blade's
+        // in_game_date chip renders on truthiness, and '   ' would
+        // store as a non-null date-less string (empty chip).
+        $inGameDate = $inGameDate !== null && trim($inGameDate) === '' ? null : $inGameDate;
+
         if ($inGameDate !== null && mb_strlen($inGameDate) > 100) {
             throw new \LogicException(__('journal.error_in_game_date_too_long'));
         }
@@ -214,6 +219,9 @@ class CampaignJournalService
         if (empty(trim($body))) {
             throw new \LogicException(__('journal.error_body_empty'));
         }
+
+        // Whitespace-only input normalizes to null (see writeInCharacter).
+        $inGameDate = $inGameDate !== null && trim($inGameDate) === '' ? null : $inGameDate;
 
         if ($inGameDate !== null && mb_strlen($inGameDate) > 100) {
             throw new \LogicException(__('journal.error_in_game_date_too_long'));
@@ -304,8 +312,17 @@ class CampaignJournalService
     {
         $ownerId = Campaign::query()->whereKey($goal->campaign_id)->value('owner_id');
 
-        if ($ownerId !== $author->id) {
+        // value() returns mixed; is_string narrows before the strict
+        // compare (a null/odd driver value simply fails the check).
+        if (! is_string($ownerId) || $ownerId !== (string) $author->id) {
             throw new \LogicException(__('journal.error_not_campaign_owner'));
+        }
+
+        // An explicit stamp game must belong to the goal's campaign —
+        // a foreign session's id would silently drop the goal out of the
+        // Previously On "goals moved" scan (it keys on this stamp).
+        if ($atGame !== null && $atGame->campaign_id !== $goal->campaign_id) {
+            throw new \LogicException(__('journal.error_not_campaign_session'));
         }
 
         if ($goal->status === $newStatus) {
@@ -361,7 +378,23 @@ class CampaignJournalService
         }
 
         if ($participant->campaign_id !== $campaign->id) {
-            throw new \LogicException(__('journal.error_not_participant'));
+            throw new \LogicException(__('journal.error_participant_not_in_campaign'));
+        }
+
+        // The same seated-member guard writeInCharacter enforces: the GM
+        // may only stamp changes onto characters that are actually at
+        // the table — a pending/waitlisted/removed row must never grow
+        // state history (it would surface in the S04 loose-threads scan).
+        if (! in_array($participant->status, [ParticipantStatus::Approved, ParticipantStatus::Benched], true)) {
+            throw new \LogicException(__('journal.error_participant_not_seated'));
+        }
+
+        // A stamped session must belong to this campaign — same guard
+        // writeRecap enforces; a foreign game_id would cross-link state
+        // history to a session this campaign never ran (the timeline and
+        // the D232 bounds key on the pair).
+        if ($game !== null && $game->campaign_id !== $campaign->id) {
+            throw new \LogicException(__('journal.error_not_campaign_session'));
         }
 
         if (mb_strlen($delta) > 2000) {

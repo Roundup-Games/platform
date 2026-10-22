@@ -105,6 +105,16 @@ class GameBulletinBoard extends Component
         // that could cause visual spoofing. Blade's {{ }} handles HTML escaping.
         $sanitizedContent = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x{200E}-\x{200F}\x{202A}-\x{202E}\x{FEFF}\x{FFF9}-\x{FFFB}]/u', '', $this->content);
 
+        // The sanitizer can strip a technically-non-empty string to
+        // nothing (control/bidi/zero-width only): validating the RAW
+        // value would let an empty bulletin through to every approved
+        // participant's fan-out. Gate on what will actually be stored.
+        if (trim((string) $sanitizedContent) === '') {
+            $this->addError('content', __('games.error_bulletin_empty'));
+
+            return;
+        }
+
         // The scheduled branch expires bulletins at the game's date_time.
         // The non-scheduled branch is only reachable for completed one-shots
         // (the policy denies create elsewhere): epilogue replies get the

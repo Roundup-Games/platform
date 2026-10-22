@@ -17,6 +17,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -38,7 +39,6 @@ use Livewire\WithPagination;
  * @property-read CursorPaginator<int, CampaignJournalEntry> $timeline
  * @property-read array<int, array{status: GoalStatus, goals: Collection<int, CampaignGoal>}> $goalGroups
  * @property-read Collection<int, CampaignParticipant> $participantTimelines
- * @property-read array<string, Collection<int, CharacterStateChange>> $olderStateChanges
  */
 class CampaignJournal extends Component
 {
@@ -50,14 +50,52 @@ class CampaignJournal extends Component
     #[Locked]
     public Campaign $campaign;
 
+    /** D232: older-history rows loaded per "Load earlier changes" click. */
+    private const int OLDER_STATE_CHANGES_CHUNK = 25;
+
+    /** Upper bound of loaded older-history ids per character (5 chunks). */
+    private const int MAX_OLDER_STATE_CHANGE_IDS = 125;
+
     /**
      * D232: state changes older than the eagerly-loaded window, fetched
      * on explicit "Load earlier changes" clicks — keyed by participant
-     * id so the render stays per-character.
+     * id. Only the row IDS are kept in component state, hard-capped at
+     * MAX_OLDER_STATE_CHANGE_IDS: public Livewire properties are
+     * re-serialized into every round-trip, so the payload stays a
+     * bounded list of uuids — never hydrated models or deltas, which
+     * would bloat each request linearly with history depth.
      *
-     * @var array<string, Collection<int, CharacterStateChange>>
+     * @var array<string, array<int, string>>
      */
-    public array $olderStateChanges = [];
+    public array $olderStateChangeIds = [];
+
+    /**
+     * The keyset cursor per participant: the (created_at, id) of the
+     * oldest LOADED older row. Display tuples are re-rendered from the
+     * ids on each request, so only the cursor needs to persist.
+     *
+     * @var array<string, array{at: string, id: string}>
+     */
+    public array $olderStateChangeCursor = [];
+
+    /**
+     * Per participant: true once the whole remaining history has been
+     * loaded — hides the "Load earlier changes" affordance.
+     *
+     * @var array<string, bool>
+     */
+    public array $olderStateChangesExhausted = [];
+
+    /**
+     * Per participant: true once MAX_OLDER_STATE_CHANGE_IDS rows are
+     * loaded — deeper history exists but stays unrendered. The on-demand
+     * surface is a "recent history" affordance, not an archive reader;
+     * the cap keeps one GM's deep dive from pinning megabytes into every
+     * later round-trip (filter switches, goal edits, form posts).
+     *
+     * @var array<string, bool>
+     */
+    public array $olderStateChangesCapped = [];
 
     /** Timeline kind filter: 'all' or a JournalEntryKind value. */
     public string $kindFilter = 'all';
@@ -124,6 +162,13 @@ class CampaignJournal extends Component
         return $user?->can('viewJournal', $this->campaign) ?? false;
     }
 
+    /**
+     * The journal's GM surfaces (gms-visibility entries, the GM Notes
+     * filter, the write forms) key on CAMPAIGN OWNERSHIP — not the
+     * policy's admin-before grant. A global admin passes viewJournal
+     * but reads the member journal: deliberately fail-closed (no
+     * GM-note leak) at the cost of no "content hidden" signal.
+     */
     #[Computed]
     public function isGm(): bool
     {
@@ -212,13 +257,30 @@ class CampaignJournal extends Component
     /**
      * Per-character state timelines (S02-T04, bounded per D232): the
      * seated table (Approved and Benched participants — the member-gate
-     * set; the owner's own participant row is Approved) with user +
-     * state changes eager-loaded in one pass, newest-first — the LATEST
-     * 10 per character only, so Journal-tab render cost stays flat no
-     * matter how long the campaign runs. Deeper history loads on
-     * explicit request (loadOlderStateChanges). Rows of removed members
-     * survive in the table (nullOnDelete precedent) for the S04 scans
-     * but are not surfaced here.
+     * set; the owner's own participant row is Approved) with user eager-
+     * loaded and the LATEST 10 state changes PER CHARACTER attached in
+     * one windowed query, newest-first — so Journal-tab render cost
+     * stays flat no matter how long the campaign runs or how many
+     * characters are seated. Deeper history loads on explicit request
+     * (loadOlderStateChanges). Rows of removed members survive in the
+     * table as campaign history (nullOnDelete precedent); both the S04
+     * digest scan and this timeline skip them — there is no seated
+     * character left to attribute.
+     *
+     * The window function is load-bearing: an eager-load closure with
+     * ->limit() applies the limit to the COMBINED whereIn(participant_id)
+     * query — one global top-10 across every seated character, where the
+     * most-active character swallows the window and the rest render
+     * empty with an unreachable history. row_number() partitions per
+     * participant inside Postgres, the ScheduledTaskRun::latestPerTask /
+     * PreviouslyOnService::latestConditionAndItemChanges shape.
+     *
+     * The window is filtered INSIDE SQL (fromSub + window_row <= N), so
+     * the query and hydration cost — not just the render cost — stays
+     * flat no matter how long the campaign runs; and the outer ORDER BY
+     * makes newest-first a SQL contract instead of the WindowAgg sort's
+     * side effect. Column and literal references are code-controlled
+     * (model + migration).
      *
      * @return Collection<int, CampaignParticipant>
      */
@@ -229,30 +291,55 @@ class CampaignJournal extends Component
             return collect();
         }
 
-        /** @var Collection<int, CampaignParticipant> $participants */
+        /** @var \Illuminate\Database\Eloquent\Collection<int, CampaignParticipant> $participants */
         $participants = $this->campaign->participants()
             ->whereIn('status', [ParticipantStatus::Approved->value, ParticipantStatus::Benched->value])
-            ->with([
-                'user',
-                'stateChanges' => fn ($query) => $query->orderByDesc('created_at')->orderByDesc('id')->limit(self::STATE_CHANGES_PER_CHARACTER),
-            ])
+            ->with('user')
             ->withCount('stateChanges')
             ->get();
+
+        /** @var Collection<string, Collection<int, CharacterStateChange>> $windowed */
+        $windowed = CharacterStateChange::query()
+            ->fromSub(
+                CharacterStateChange::query()
+                    ->whereIn('participant_id', $participants->modelKeys())
+                    ->selectRaw('character_state_changes.*, row_number() over (partition by participant_id order by created_at desc, id desc) as window_row'),
+                'windowed_state_changes'
+            )
+            ->where('window_row', '<=', self::STATE_CHANGES_PER_CHARACTER)
+            ->orderBy('participant_id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('participant_id');
+
+        $participants->each(fn (CampaignParticipant $participant): CampaignParticipant => $participant->setRelation(
+            'stateChanges',
+            $windowed->get($participant->id, collect()),
+        ));
 
         return $participants;
     }
 
     /**
-     * Load the full remaining state-change history for one character on
-     * explicit request (D232). Keyset-positioned below the eagerly
-     * loaded window's oldest row (created_at, id tuple — same ordering
-     * as the eager load), so it composes correctly no matter when it
-     * fires. Fail-closed: the viewJournal gate re-checked, the
-     * participant must be a seated member of THIS campaign.
+     * Load the NEXT bounded chunk of older state changes for one
+     * character on explicit request (D232): one round-trip never fetches
+     * an unbounded history, and repeated clicks walk the keyset down
+     * until exhausted. The cursor sits below everything already
+     * displayed — the last loaded older row when present, otherwise the
+     * eager window's oldest row (created_at, id tuple — the same
+     * ordering the window uses), so the first click composes correctly
+     * no matter when it fires. Fail-closed: the viewJournal gate
+     * re-checked, the participant must be a seated member of THIS
+     * campaign.
      */
     public function loadOlderStateChanges(string $participantId): void
     {
-        if (! $this->canViewJournal() || array_key_exists($participantId, $this->olderStateChanges)) {
+        if (
+            ! $this->canViewJournal()
+            || ! empty($this->olderStateChangesExhausted[$participantId])
+            || ! empty($this->olderStateChangesCapped[$participantId])
+        ) {
             return;
         }
 
@@ -265,35 +352,116 @@ class CampaignJournal extends Component
             return;
         }
 
-        // The window's oldest row = the 10th newest under
-        // (created_at DESC, id DESC) — fetched at the query level
-        // (offset+limit, Larastan's noUnnecessaryCollectionCall rule).
-        $oldest = $participant->stateChanges()
+        $loadedIds = $this->olderStateChangeIds[$participantId] ?? [];
+
+        if ($loadedIds !== [] && isset($this->olderStateChangeCursor[$participantId])) {
+            // Keyset cursor = the oldest row already displayed, persisted
+            // from the previous chunk (the ids alone do not carry it).
+            $cursorAt = (string) $this->olderStateChangeCursor[$participantId]['at'];
+            $cursorId = (string) $this->olderStateChangeCursor[$participantId]['id'];
+        } else {
+            // First click: the cursor is the window's oldest row = the
+            // 10th newest under (created_at DESC, id DESC) — fetched at
+            // the query level (offset+limit, Larastan's
+            // noUnnecessaryCollectionCall rule).
+            $oldest = $participant->stateChanges()
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->offset(self::STATE_CHANGES_PER_CHARACTER - 1)
+                ->limit(1)
+                ->first();
+
+            if ($oldest === null) {
+                // Fewer rows than the window holds: nothing older exists.
+                $this->olderStateChangesExhausted[$participantId] = true;
+
+                return;
+            }
+
+            $cursorAt = (string) $oldest->created_at;
+            $cursorId = (string) $oldest->id;
+        }
+
+        // CHUNK + 1 fetched so "more exists" is detected from the rows
+        // themselves — no extra COUNT(*) round-trip per click.
+        /** @var Collection<int, CharacterStateChange> $older */
+        $older = $participant->stateChanges()
+            ->where(function ($query) use ($cursorAt, $cursorId): void {
+                $query->where('created_at', '<', $cursorAt)
+                    ->orWhere(fn ($sub) => $sub
+                        ->where('created_at', '=', $cursorAt)
+                        ->where('id', '<', $cursorId));
+            })
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->offset(self::STATE_CHANGES_PER_CHARACTER - 1)
-            ->limit(1)
-            ->first();
+            ->limit(self::OLDER_STATE_CHANGES_CHUNK + 1)
+            ->get();
 
-        if ($oldest === null) {
-            $this->olderStateChanges[$participantId] = collect();
+        $more = $older->count() > self::OLDER_STATE_CHANGES_CHUNK;
+        $chunk = $older->take(self::OLDER_STATE_CHANGES_CHUNK);
+
+        $loadedIds = array_merge($loadedIds, $chunk->map(fn (CharacterStateChange $change): string => (string) $change->id)->all());
+        $this->olderStateChangeIds[$participantId] = $loadedIds;
+
+        if (! $more) {
+            $this->olderStateChangesExhausted[$participantId] = true;
 
             return;
         }
 
-        /** @var Collection<int, CharacterStateChange> $older */
-        $older = $participant->stateChanges()
-            ->where(function ($query) use ($oldest): void {
-                $query->where('created_at', '<', $oldest->created_at)
-                    ->orWhere(fn ($sub) => $sub
-                        ->where('created_at', '=', $oldest->created_at)
-                        ->where('id', '<', $oldest->id));
-            })
+        if (count($loadedIds) >= self::MAX_OLDER_STATE_CHANGE_IDS) {
+            // Bound reached: deeper history exists, but the loaded set
+            // must not grow without limit. The cursor stops here too —
+            // the capped flag retires the affordance.
+            $this->olderStateChangesCapped[$participantId] = true;
+
+            return;
+        }
+
+        $oldestLoaded = $chunk->last();
+
+        if ($oldestLoaded !== null) {
+            $this->olderStateChangeCursor[$participantId] = [
+                'at' => (string) $oldestLoaded->created_at,
+                'id' => (string) $oldestLoaded->id,
+            ];
+        }
+    }
+
+    /**
+     * Display tuples for one character's loaded older history, built
+     * fresh on every render from the bounded id set — one query per
+     * character with loaded history. Rendering from the ids (not cached
+     * tuples) is what keeps dates locale-current: format_date runs per
+     * request, so a mid-session locale switch re-localizes loaded rows
+     * too.
+     *
+     * @return list<array{id: string, label: string, delta: string, when: string}>
+     */
+    public function olderChangesFor(string $participantId): array
+    {
+        $ids = $this->olderStateChangeIds[$participantId] ?? [];
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $tuples = [];
+
+        foreach (CharacterStateChange::query()
+            ->whereKey($ids)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->get();
+            ->get() as $change) {
+            $tuples[] = [
+                'id' => (string) $change->id,
+                'label' => $change->change_type->label(),
+                'delta' => $change->delta,
+                'when' => format_date($change->created_at, 'datetime'),
+            ];
+        }
 
-        $this->olderStateChanges[$participantId] = $older;
+        return $tuples;
     }
 
     // ── Authoring actions (S02-T04) ───────────────────────
@@ -352,6 +520,19 @@ class CampaignJournal extends Component
 
         if ($participant === null) {
             session()->flash('error', __('journal.error_participant_not_active'));
+
+            return;
+        }
+
+        // Rate limit (10/h per member per campaign): journal entries are
+        // member-visible UGC — public campaigns seat any authenticated
+        // member, and every comparable member surface (venue proposals,
+        // support, system requests) throttles the same way.
+        $rateLimitKey = 'journal:'.$this->campaign->id.':'.$participant->user_id;
+
+        if (! RateLimiter::attempt($rateLimitKey, 10, fn () => true, decaySeconds: 3600)) {
+            $minutes = max(1, (int) ceil(RateLimiter::availableIn($rateLimitKey) / 60));
+            session()->flash('error', __('journal.error_rate_limited', ['minutes' => $minutes]));
 
             return;
         }
@@ -496,11 +677,27 @@ class CampaignJournal extends Component
         session()->flash('success', __('journal.flash_state_change_logged'));
         $this->reset('stateParticipantId', 'stateChangeType', 'stateDelta');
         unset($this->participantTimelines);
+        // The new row shifts the eager window down — any loaded older
+        // history for this character is now stale (the row that just
+        // fell out of the window is missing from it AND from the loaded
+        // chunk, silently invisible until reload). Drop both markers so
+        // "Load earlier" re-walks the keyset from the new window edge.
+        unset(
+            $this->olderStateChangeIds[$participant->id],
+            $this->olderStateChangeCursor[$participant->id],
+            $this->olderStateChangesExhausted[$participant->id],
+            $this->olderStateChangesCapped[$participant->id],
+        );
     }
 
     public function render(): View
     {
         return view('livewire.campaigns.campaign-journal', [
+            // The eager window size, shared with the blade's "load
+            // earlier changes" affordance so the visibility threshold
+            // can never drift from the window the cursor math composes
+            // with (STATE_CHANGES_PER_CHARACTER).
+            'stateChangesWindow' => self::STATE_CHANGES_PER_CHARACTER,
             'canViewJournal' => $this->canViewJournal(),
             'isGm' => $this->isGm(),
             'canPostInCharacter' => $this->canPostInCharacter(),

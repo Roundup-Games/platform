@@ -106,6 +106,38 @@ test('the GM logs a state change through the action and the timeline rerenders',
     ]);
 });
 
+test('logging a state change resets the loaded older-history markers for that character', function () {
+    // The unset() pair in logStateChange is load-bearing: a stale
+    // olderStateChanges keyset cursor would silently skip the row that
+    // just fell out of the eager window, and a stale exhausted flag
+    // would hide the "Load earlier changes" affordance. Pin both resets.
+    [$owner, $campaign] = charStateCampaign();
+    [, $participant] = charStateApprovedPlayer($campaign);
+
+    // 15 rows: the eager window holds the latest 10, so older history
+    // exists to load (5 rows, exhausted after one click).
+    for ($i = 0; $i < 15; $i++) {
+        CharacterStateChange::factory()->forParticipant($participant)->create([
+            'delta' => "HISTORY ROW {$i}",
+            'created_at' => now()->subMinutes(100 - $i),
+        ]);
+    }
+
+    $component = Livewire::actingAs($owner)->test(CampaignJournal::class, ['campaign' => $campaign]);
+
+    $component->call('loadOlderStateChanges', $participant->id)
+        ->assertSet('olderStateChangeIds.'.$participant->id, fn ($ids) => count($ids) === 5)
+        ->assertSet('olderStateChangesExhausted.'.$participant->id, true);
+
+    $component->set('stateParticipantId', $participant->id)
+        ->set('stateChangeType', 'progression')
+        ->set('stateDelta', 'CHARSTATE MARKER RESET')
+        ->call('logStateChange')
+        ->assertSet('olderStateChangeIds.'.$participant->id, null)
+        ->assertSet('olderStateChangeCursor.'.$participant->id, null)
+        ->assertSet('olderStateChangesExhausted.'.$participant->id, null);
+});
+
 test('an empty state delta is flashed as an error and nothing is written', function () {
     [$owner, $campaign] = charStateCampaign();
     [, $participant] = charStateApprovedPlayer($campaign);
@@ -270,5 +302,145 @@ test('loadOlderStateChanges fails closed for a viewer outside the journal gate',
     Livewire::actingAs($stranger)
         ->test(CampaignJournal::class, ['campaign' => $campaign])
         ->call('loadOlderStateChanges', $participant->id)
-        ->assertSet('olderStateChanges', []);
+        ->assertSet('olderStateChangeIds', []);
+});
+
+// ── Regression guards (2026-10-20 review) ───────────────
+
+test('loadOlderStateChanges rejects a seated participant of a DIFFERENT campaign', function () {
+    [$owner, $campaign] = charStateCampaign();
+    [$player, $participant] = charStateApprovedPlayer($campaign);
+
+    foreach (range(1, 12) as $i) {
+        CharacterStateChange::factory()->forParticipant($participant)->create([
+            'change_type' => 'note',
+            'delta' => "CHARSTATE CHANGE {$i}",
+            'created_at' => now()->subMinutes(100 - $i),
+        ]);
+    }
+
+    // A genuinely approved player — of another campaign: the campaign-
+    // scoped participant resolution must refuse to load their history.
+    ['campaign' => $otherCampaign] = test()->createCampaignWithOwner();
+    [$otherPlayer] = charStateApprovedPlayer($otherCampaign);
+
+    Livewire::actingAs($otherPlayer)
+        ->test(CampaignJournal::class, ['campaign' => $campaign])
+        ->call('loadOlderStateChanges', $participant->id)
+        ->assertSet('olderStateChangeIds', []);
+});
+
+test('each character in a multi-participant campaign gets its own ten-change window', function () {
+    [$owner, $campaign] = charStateCampaign();
+    [$playerA, $participantA] = charStateApprovedPlayer($campaign);
+    [$playerB, $participantB] = charStateApprovedPlayer($campaign);
+
+    // Twelve changes PER character, interleaved in time so a single
+    // global top-10 would hand the whole window to one of them — the
+    // eager-load limit() trap this test pins: the window is per
+    // participant (row_number partition), never a combined query.
+    foreach (range(1, 12) as $i) {
+        CharacterStateChange::factory()->forParticipant($participantA)->create([
+            'change_type' => 'note',
+            'delta' => sprintf('CHARSTATE ALPHA %02d', $i),
+            'created_at' => now()->subMinutes(100 - $i),
+        ]);
+        CharacterStateChange::factory()->forParticipant($participantB)->create([
+            'change_type' => 'note',
+            'delta' => sprintf('CHARSTATE BRAVO %02d', $i),
+            'created_at' => now()->subMinutes(100 - $i),
+        ]);
+    }
+
+    $component = Livewire::actingAs($playerA)->test(CampaignJournal::class, ['campaign' => $campaign]);
+
+    // Both characters show their own window edge (their 10th row) and
+    // nothing below it…
+    $component
+        ->assertSee('CHARSTATE ALPHA 03')
+        ->assertDontSee('CHARSTATE ALPHA 02')
+        ->assertSee('CHARSTATE BRAVO 03')
+        ->assertDontSee('CHARSTATE BRAVO 02');
+
+    // …and BOTH load-earlier affordances are reachable (the button
+    // renders inside stateChanges->isNotEmpty() — a starved window
+    // used to hide it and strand the history).
+    $html = $component->html();
+    expect($html)->toContain($participantA->id)->toContain($participantB->id);
+    expect(substr_count($html, __('journal.action_load_earlier_changes', [], 'en')))->toBe(2);
+});
+
+test('older history loads in bounded chunks until exhausted, then the affordance disappears', function () {
+    [$owner, $campaign] = charStateCampaign();
+    [$player, $participant] = charStateApprovedPlayer($campaign);
+
+    // i=1 oldest … i=40 newest: the window holds 31..40, leaving 30
+    // older rows — one over the 25-row chunk, so the second click is
+    // the exhaustive one.
+    foreach (range(1, 40) as $i) {
+        CharacterStateChange::factory()->forParticipant($participant)->create([
+            'change_type' => 'note',
+            'delta' => sprintf('CHARSTATE MARK %02d', $i),
+            'created_at' => now()->subMinutes(100 - $i),
+        ]);
+    }
+
+    $component = Livewire::actingAs($player)->test(CampaignJournal::class, ['campaign' => $campaign]);
+
+    // First click: the newest 25 older rows (30 … 06) — bounded, not
+    // the whole history.
+    $component
+        ->call('loadOlderStateChanges', $participant->id)
+        ->assertSee('CHARSTATE MARK 30')
+        ->assertSee('CHARSTATE MARK 06')
+        ->assertDontSee('CHARSTATE MARK 05')
+        ->assertSee(__('journal.action_load_earlier_changes', [], 'en'));
+
+    // Second click: the remaining five, and the affordance disappears.
+    $component
+        ->call('loadOlderStateChanges', $participant->id)
+        ->assertSee('CHARSTATE MARK 05')
+        ->assertSee('CHARSTATE MARK 01')
+        ->assertDontSee(__('journal.action_load_earlier_changes', [], 'en'));
+
+    // The loaded history is a bounded id set, never hydrated models or
+    // display tuples — the payload stays kilobytes even on deep dives.
+    expect($component->get('olderStateChangeIds')[$participant->id])->each->toBeString();
+    expect(count($component->get('olderStateChangeIds')[$participant->id]))->toBe(30);
+    expect($component->get('olderStateChangesExhausted')[$participant->id])->toBeTrue();
+});
+
+test('loaded older history is hard-capped — the affordance retires with an honest note, not unbounded state', function () {
+    // 200 older rows: 8 chunks of 25 exist, but component state stops at
+    // 125 ids (5 chunks). The sixth click is a no-op and the cap note
+    // replaces the button — one GM's deep dive never pins megabytes of
+    // deltas into every later round-trip.
+    [$owner, $campaign] = charStateCampaign();
+    [, $participant] = charStateApprovedPlayer($campaign);
+
+    for ($i = 0; $i < 200; $i++) {
+        CharacterStateChange::factory()->forParticipant($participant)->create([
+            'delta' => "DEEP ROW {$i}",
+            'created_at' => now()->subMinutes(500 - $i),
+        ]);
+    }
+
+    $component = Livewire::actingAs($owner)->test(CampaignJournal::class, ['campaign' => $campaign]);
+
+    for ($click = 0; $click < 5; $click++) {
+        $component->call('loadOlderStateChanges', $participant->id);
+    }
+
+    $component
+        ->assertSet('olderStateChangesCapped.'.$participant->id, true)
+        ->assertSet('olderStateChangesExhausted.'.$participant->id, null)
+        ->assertDontSee(__('journal.action_load_earlier_changes', [], 'en'))
+        ->assertSee(__('journal.label_history_capped', ['count' => 125], 'en'));
+
+    expect(count($component->get('olderStateChangeIds')[$participant->id]))->toBe(125);
+
+    // The capped surface is inert: another click changes nothing.
+    $component->call('loadOlderStateChanges', $participant->id);
+
+    expect(count($component->get('olderStateChangeIds')[$participant->id]))->toBe(125);
 });

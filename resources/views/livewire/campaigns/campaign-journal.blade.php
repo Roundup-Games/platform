@@ -339,19 +339,23 @@
                                                 </li>
                                             @endforeach
 
-                                            {{-- Deeper history fetched on demand (D232) --}}
-                                            @if($participant->state_changes_count > 10)
-                                                @if(array_key_exists($participant->id, $olderStateChanges))
-                                                    @foreach($olderStateChanges[$participant->id] as $change)
-                                                        <li class="flex flex-wrap items-center gap-2 text-sm" wire:key="states-deep-{{ $participant->id }}-{{ $change->id }}">
+                                            {{-- Deeper history fetched on demand in bounded
+                                                 chunks (D232): loaded rows render first, the
+                                                 affordance stays until the keyset is exhausted --}}
+                                            @if($participant->state_changes_count > $stateChangesWindow)
+                                                @if(!empty($olderStateChangeIds[$participant->id]))
+                                                    {{-- Tuples re-render from the bounded id set each request (locale-current dates) --}}
+                                                    @foreach($this->olderChangesFor($participant->id) as $change)
+                                                        <li class="flex flex-wrap items-center gap-2 text-sm" wire:key="states-deep-{{ $participant->id }}-{{ $change['id'] }}">
                                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container-highest text-on-surface-variant">
-                                                                {{ $change->change_type->label() }}
+                                                                {{ $change['label'] }}
                                                             </span>
-                                                            <span class="text-on-surface">{{ $change->delta }}</span>
-                                                            <span class="text-xs text-on-surface-variant">{{ format_date($change->created_at, 'datetime') }}</span>
+                                                            <span class="text-on-surface">{{ $change['delta'] }}</span>
+                                                            <span class="text-xs text-on-surface-variant">{{ $change['when'] }}</span>
                                                         </li>
                                                     @endforeach
-                                                @else
+                                                @endif
+                                                @if(empty($olderStateChangesExhausted[$participant->id]) && empty($olderStateChangesCapped[$participant->id]))
                                                     <li class="mt-1">
                                                         <button type="button"
                                                                 wire:click="loadOlderStateChanges('{{ $participant->id }}')"
@@ -360,6 +364,10 @@
                                                                 class="text-xs font-medium text-primary hover:underline cursor-pointer">
                                                             {{ __('journal.action_load_earlier_changes') }}
                                                         </button>
+                                                    </li>
+                                                @elseif(!empty($olderStateChangesCapped[$participant->id]))
+                                                    <li class="mt-1 text-xs text-on-surface-variant">
+                                                        {{ __('journal.label_history_capped', ['count' => count($olderStateChangeIds[$participant->id])]) }}
                                                     </li>
                                                 @endif
                                             @endif

@@ -387,6 +387,39 @@ describe('getWaitlistPosition', function () {
         expect($this->service->getWaitlistPosition($anomalous->fresh()))->toBe(2);
     });
 
+    it('gives distinct id-ordered positions to multiple rows without waitlisted_at', function () {
+        // Two stamped rows plus two null-stamped rows: the position must
+        // mirror the promotion read order exactly — both stamped rows
+        // first (by timestamp), then the null rows by id. The pre-2026-10
+        // shape reported count+1 for every null row, tying them all at
+        // the same position; worse, comparing waitlisted_at against null
+        // matched nothing, so a lone null row queue-jumped to position 1.
+        ['game' => $game] = createFullStandaloneGame(maxPlayers: 2);
+
+        $this->service->addToWaitlist($game, User::factory()->create());
+        $this->travelTo(now()->addSecond());
+        $this->service->addToWaitlist($game, User::factory()->create());
+        $this->travelTo(now()->addSecond());
+        $nullA = $this->service->addToWaitlist($game, User::factory()->create());
+        $this->travelTo(now()->addSecond());
+        $nullB = $this->service->addToWaitlist($game, User::factory()->create());
+
+        $nullA->update(['waitlisted_at' => null]);
+        $nullB->update(['waitlisted_at' => null]);
+
+        $nulls = GameParticipant::query()
+            ->whereBelongsTo($game)
+            ->where('status', ParticipantStatus::Waitlisted->value)
+            ->whereNull('waitlisted_at')
+            ->orderBy('id')
+            ->get();
+        $firstNull = $nulls->first();
+        $secondNull = $nulls->last();
+
+        expect($this->service->getWaitlistPosition($firstNull))->toBe(3)
+            ->and($this->service->getWaitlistPosition($secondNull))->toBe(4);
+    });
+
     it('factory waitlisted state stamps the join timestamp', function () {
         $participant = GameParticipant::factory()->waitlisted()->create();
 

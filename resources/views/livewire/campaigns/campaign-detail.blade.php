@@ -313,6 +313,28 @@
                         </a>
                     @endif
                 </div>
+            @elseif($participantCharter)
+                {{-- Discovery for approved participants (spec §3/§4): the
+                     campaign page is a primary entry point to a PUBLISHED
+                     charter — drafts stay owner-only, matching the
+                     capability-link 404 the charter view itself applies. --}}
+                <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 mb-6 flex items-center justify-between gap-4">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">history_edu</span>
+                        <div class="min-w-0">
+                            <p class="font-medium text-on-surface flex items-center gap-2 flex-wrap">
+                                {{ __('charter.title_entry') }}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">{{ __('charter.label_version_badge', ['version' => $participantCharter->current_version]) }}</span>
+                            </p>
+                            <p class="text-sm text-on-surface-variant">{{ __('charter.description_entry_teaser_participant') }}</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('charter.view', $participantCharter->uuid) }}" wire:navigate
+                       class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors whitespace-nowrap shrink-0">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">open_in_new</span>
+                        {{ __('charter.action_view_charter') }}
+                    </a>
+                </div>
             @endif
 
             @if($isOwner && !empty($planAheadNudge))

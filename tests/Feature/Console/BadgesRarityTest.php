@@ -5,6 +5,7 @@ use App\Models\BadgeDefinition;
 use App\Models\BadgeUser;
 use App\Models\User;
 use App\Services\Badges\BadgesRarity as BadgesRarityService;
+use App\Services\GmRoleService;
 use App\Support\Scheduling\TaskIdentity;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
@@ -137,13 +138,17 @@ it('scopes the game master denominator to non-anonymized GMs only', function () 
     $chartered = badgesRarityDefinition('chartered');
     badgesRarityAward($chartered, $gms[0]);
     badgesRarityAward($chartered, $gms[1]);
+    // An anonymized holder leaves BOTH sides — numerator and denominator
+    // share one population rule, so the share can never exceed 100%.
+    badgesRarityAward($chartered, $anonymizedGm);
 
     $this->artisan('badges:rarity')->assertSuccessful();
 
     $chartered->refresh();
 
     // GM-craft badge: 2 holders over the 4 non-anonymized GMs → 50%,
-    // an "uncommon" GM badge — not 2/14 mis-graded against all users.
+    // an "uncommon" GM badge — not 2/14 mis-graded against all users,
+    // and not 3/4 graded on a holder the eligible pool already forgot.
     expect($chartered->eligible_count)->toBe(4)
         ->and($chartered->holders_count)->toBe(2)
         ->and($chartered->rarity_class)->toBe(BadgeRarity::Uncommon);
@@ -151,6 +156,36 @@ it('scopes the game master denominator to non-anonymized GMs only', function () 
     // The all-users denominator counts every non-anonymized user
     // (10 players + 4 GMs); the anonymized GM is excluded there too.
     expect(badgesRarityDefinition('supporting_member')->refresh()->eligible_count)->toBe(14);
+});
+
+it('keeps the GM-craft numerator inside the eligible pool — an ex-GM holder cannot push the share past 100%', function () {
+    // Churn: a holder loses the Game Master role on membership lapse
+    // (revokeGMRole), but the milestone hold never lapses — only admin
+    // revocation removes it. Without a role filter on the numerator,
+    // holders outlive the denominator and the share climbs past 100%.
+    $exGm = User::factory()->create();
+    $exGm->assignRole('Game Master');
+
+    $currentGm = User::factory()->create();
+    $currentGm->assignRole('Game Master');
+
+    $chartered = badgesRarityDefinition('chartered');
+    badgesRarityAward($chartered, $exGm);
+    badgesRarityAward($chartered, $currentGm);
+
+    app(GmRoleService::class)->revokeGMRole($exGm);
+    $exGm->refresh();
+
+    $this->artisan('badges:rarity')->assertSuccessful();
+
+    $chartered->refresh();
+
+    // The numerator shares the denominator's population: 1 GM holder
+    // over 1 eligible GM → 100% — never 2/1 (200%) with the ex-GM
+    // holder still counted on top.
+    expect($chartered->eligible_count)->toBe(1)
+        ->and($chartered->holders_count)->toBe(1)
+        ->and($chartered->rarity_class)->toBe(BadgeRarity::fromPercentage(100.0));
 });
 
 it('is div-by-zero safe on an empty platform', function () {

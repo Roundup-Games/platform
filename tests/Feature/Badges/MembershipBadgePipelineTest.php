@@ -3,14 +3,22 @@
 use App\Enums\BadgeEventAction;
 use App\Events\MembershipActivated;
 use App\Events\MembershipEnded;
+use App\Listeners\BadgePipeline;
 use App\Models\BadgeEvent;
 use App\Models\BadgeUser;
 use App\Models\MembershipType;
 use App\Models\User;
+use App\Services\Badges\BadgeAward;
+use App\Services\Badges\BadgeEvaluator;
+use App\Services\Badges\DebutEvaluator;
 use App\Services\Badges\SupportingMemberEvaluator;
 use App\Services\GmRoleService;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
+use Tests\Traits\CapturesLogRecords;
+
+uses(CapturesLogRecords::class);
 
 /**
  * The membership → badge award pipeline (M069 S02 T2, spec §2.2/§2.5):
@@ -72,6 +80,38 @@ beforeEach(function () {
     // pipeline semantics in isolation; FoundingTableEvaluatorTest owns
     // the window logic and the fan-out pin.
     config(['badges.founding_table.closes_at' => '2020-01-01T00:00:00+00:00']);
+});
+
+it('isolates one evaluator failure without costing the other badges their immediate award', function () {
+    // Bind debut's evaluator to a throwing stub: the pipeline must log
+    // the failure and keep going, so supporting_member still lands on
+    // the same MembershipActivated event (the BadgesSweep isolation
+    // contract, mirrored on the event path).
+    app()->bind(DebutEvaluator::class, function (): BadgeEvaluator {
+        return new class implements BadgeEvaluator
+        {
+            public function evaluate(User $user): ?BadgeAward
+            {
+                throw new RuntimeException('evaluator exploded');
+            }
+
+            public function sweep(): void {}
+        };
+    });
+
+    $handler = $this->captureLogRecords();
+
+    $user = User::factory()->create();
+    expect(app(GmRoleService::class)->activateGmSubscription($user))->toBeTrue();
+
+    $failure = $this->logRecord('badges.pipeline.evaluator_failed');
+
+    expect($failure)->not->toBeNull()
+        ->and($failure['level_name'])->toBe('ERROR')
+        ->and($failure['context']['badge'])->toBe('debut')
+        ->and($failure['context']['exception_class'])->toBe('RuntimeException')
+        // The surviving evaluator's award is the whole point.
+        ->and(membershipBadgeSupportingHold())->not->toBeNull();
 });
 
 it('awards Supporting Member instantly when a GM subscription is activated', function () {
@@ -314,4 +354,20 @@ it('registers the BadgePipeline listener exactly once for MembershipActivated (a
             ->filter(fn (callable $listener): bool => str_contains((string) (new ReflectionFunction($listener))->getStaticVariables()['listener'] ?? '', 'BadgePipeline'))
             ->count())
         ->toBe(0);
+});
+
+it('resolves evidence best-effort: null pointers, non-model aliases, and vanished records award with null evidence', function () {
+    // The eligibility decision already happened in the evaluator; the
+    // rehydrate step must degrade to a null pointer, never fail the job.
+    $pipeline = new BadgePipeline;
+    $resolve = new ReflectionMethod(BadgePipeline::class, 'resolveEvidence');
+
+    $user = User::factory()->create();
+    $vanished = (string) Str::uuid();
+
+    expect($resolve->invoke($pipeline, null, (string) $user->id))->toBeNull()
+        ->and($resolve->invoke($pipeline, 'user', null))->toBeNull()
+        ->and($resolve->invoke($pipeline, 'not-a-morph-alias', (string) $user->id))->toBeNull()
+        ->and($resolve->invoke($pipeline, 'user', $vanished))->toBeNull()
+        ->and($resolve->invoke($pipeline, 'user', (string) $user->id)->is($user))->toBeTrue();
 });

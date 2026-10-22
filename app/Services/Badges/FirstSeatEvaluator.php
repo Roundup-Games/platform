@@ -3,7 +3,6 @@
 namespace App\Services\Badges;
 
 use App\Enums\AttendanceStatus;
-use App\Models\BadgeUser;
 use App\Models\GameParticipant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,53 +27,29 @@ use Illuminate\Database\Eloquent\Builder;
  *   so a null proposal never parks a hold; admin revocation is the
  *   removal path.
  */
-class FirstSeatEvaluator implements BadgeEvaluator
+class FirstSeatEvaluator extends CohortSweepEvaluator
 {
     private const BADGE_KEY = 'first_seat';
 
-    public function evaluate(User $user): ?BadgeAward
+    protected function badgeKey(): string
     {
-        $evidence = $this->proposalFor($user);
-
-        if ($evidence === null) {
-            return null;
-        }
-
-        return BadgeAward::for(self::BADGE_KEY, null, $evidence);
-    }
-
-    public function sweep(): void
-    {
-        $service = app(BadgeService::class);
-
-        $this->cohort()->chunkById(200, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                $evidence = $this->proposalFor($user);
-
-                if ($evidence === null) {
-                    // OneTime, no lapse: nothing to park and nothing
-                    // to strip — a null proposal simply means this
-                    // member of the cohort has no verified seat yet.
-                    continue;
-                }
-
-                $service->award($user, self::BADGE_KEY, null, $evidence);
-            }
-        });
+        return self::BADGE_KEY;
     }
 
     // ── Internals ──────────────────────────────────────
 
     /**
-     * The earliest verified seat by session date: the user's earliest
-     * Attended participant row on an organizer-resolved game (morph
-     * alias 'game_participant' per D170). Ordered by games.date_time,
-     * the session date — never the resolution date.
+     * The earliest verified seat by session date (evidence pointer,
+     * morph alias 'game_participant' per D170): the user's earliest
+     * Attended participant row on an organizer-resolved game, ordered
+     * by games.date_time — the session date, never the resolution
+     * date.
+     *
+     * @return array{0: string|null, 1: GameParticipant|null}|null
      */
-    private function proposalFor(User $user): ?GameParticipant
+    protected function proposalFor(User $user): ?array
     {
-        return GameParticipant::query()
+        $evidence = GameParticipant::query()
             ->where('game_participants.user_id', $user->id)
             ->where('game_participants.attendance_status', AttendanceStatus::Attended->value)
             ->join('games', 'games.id', '=', 'game_participants.game_id')
@@ -83,6 +58,8 @@ class FirstSeatEvaluator implements BadgeEvaluator
             ->orderBy('games.date_time')
             ->select('game_participants.*')
             ->first();
+
+        return $evidence === null ? null : [null, $evidence];
     }
 
     /**
@@ -97,17 +74,14 @@ class FirstSeatEvaluator implements BadgeEvaluator
      * ungrouped cohort predicate would re-match users in every chunk
      * and loop forever.
      *
+     * Anyone with an Attended participant row (backfillable at any
+     * time); holders join through the skeleton's holders half.
+     *
      * @return Builder<User>
      */
-    private function cohort(): Builder
+    protected function qualifyingCohort(Builder $grouped): Builder
     {
-        return User::query()
-            ->where(function (Builder $query): void {
-                $query->whereHas('gameParticipations', fn (Builder $participation): Builder => $participation
-                    ->where('game_participants.attendance_status', AttendanceStatus::Attended->value))
-                    ->orWhereIn('id', BadgeUser::query()
-                        ->whereHas('badgeDefinition', fn (Builder $definition) => $definition->where('key', self::BADGE_KEY))
-                        ->select('user_id'));
-            });
+        return $grouped->whereHas('gameParticipations', fn (Builder $participation): Builder => $participation
+            ->where('game_participants.attendance_status', AttendanceStatus::Attended->value));
     }
 }

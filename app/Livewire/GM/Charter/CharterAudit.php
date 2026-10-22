@@ -103,6 +103,10 @@ class CharterAudit extends Component
 
         return $charter->versions()
             ->reorder('version_number', 'asc')
+            // Version rows carry the full charter content snapshot
+            // (jsonb, tens of KB each) and the audit view renders only
+            // number/date/material/changelog — select those.
+            ->select(['id', 'session_zero_survey_id', 'version_number', 'changelog', 'is_material', 'published_at'])
             // Projection is the privacy contract made structural: only
             // the columns the view renders are ever fetched —
             // private_answers/attestations stay in their rows.

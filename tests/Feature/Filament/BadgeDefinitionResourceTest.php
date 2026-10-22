@@ -8,7 +8,9 @@ use App\Models\BadgeDefinition;
 use App\Models\BadgeUser;
 use App\Models\User;
 use App\Services\Badges\BadgeService;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Illuminate\Contracts\Pagination\Paginator;
 use Spatie\Permission\PermissionRegistrar;
 
 use function Pest\Laravel\actingAs;
@@ -68,11 +70,53 @@ describe('BadgeDefinitionResource — access', function () {
 
         get('/admin/badge-definitions')->assertForbidden();
     });
+
+    test('keeps the list readable but the edit surface admin-only for a Service Admin', function () {
+        // Before BadgeDefinitionPolicy existed, Filament's
+        // allow-when-no-policy fallback admitted every panel user to the
+        // metadata edit page. Panel admission (list/inspection) stays;
+        // metadata overrides are a curation capability (isAdmin only).
+        $serviceAdmin = User::factory()->create();
+        $serviceAdmin->assignRole('Service Admin');
+        $serviceAdmin->unsetRelations();
+
+        $debut = BadgeDefinition::query()->where('key', 'debut')->firstOrFail();
+
+        actingAs($serviceAdmin);
+
+        get('/admin/badge-definitions')->assertSuccessful();
+
+        get("/admin/badge-definitions/{$debut->getKey()}/edit")->assertForbidden();
+    });
 });
 
 // ── Retirement ────────────────────────────────────────
 
 describe('BadgeDefinitionResource — retirement', function () {
+    test('hides the retire toggle from a Service Admin and refuses a direct invocation', function () {
+        $serviceAdmin = User::factory()->create();
+        $serviceAdmin->assignRole('Service Admin');
+        $serviceAdmin->unsetRelations();
+
+        actingAs($serviceAdmin);
+
+        $debut = BadgeDefinition::query()->where('key', 'debut')->firstOrFail();
+
+        Livewire\Livewire::test(ListBadgeDefinitions::class)
+            ->assertOk()
+            ->assertActionHidden(TestAction::make('toggleActive')->table($debut));
+
+        // Direct closure execution — the forged-request path (comp idiom).
+        $page = Livewire\Livewire::test(ListBadgeDefinitions::class);
+        $closure = $page->instance()->getTable()->getAction('toggleActive', $debut)->getActionFunction();
+
+        expect($closure)->not->toBeNull();
+
+        $closure($debut, []);
+
+        expect($debut->fresh()->is_active)->toBeTrue();
+    });
+
     test('retiring a badge refuses new awards while existing holds stay displayed', function () {
         $holder = User::factory()->create();
         $service = app(BadgeService::class);
@@ -100,6 +144,44 @@ describe('BadgeDefinitionResource — retirement', function () {
 
         expect($debut->fresh()->is_active)->toBeTrue()
             ->and($service->award(User::factory()->create(), 'debut'))->toBe(BadgeAwardResult::Awarded);
+    });
+});
+
+// ── Holders count semantics ───────────────────────────
+
+describe('BadgeDefinitionResource — holders count', function () {
+    test('counts non-revoked holds only, matching the gallery and rarity population', function () {
+        $service = app(BadgeService::class);
+
+        $kept = User::factory()->create();
+        $revoked = User::factory()->create();
+
+        expect($service->award($kept, 'debut'))->toBe(BadgeAwardResult::Awarded)
+            ->and($service->award($revoked, 'debut'))->toBe(BadgeAwardResult::Awarded);
+
+        // The admin-revoked hold drops out of the count the public
+        // gallery and BadgesRarity use — the admin surface must show the
+        // same population, not all badge_user rows.
+        $service->revoke($revoked, 'debut', 'Test cleanup', $this->platformAdmin);
+
+        $debut = BadgeDefinition::query()->where('key', 'debut')->firstOrFail();
+
+        actingAs($this->platformAdmin);
+
+        // Pin the number on the component's real table records — the
+        // exact constrained-count query the rendered Holders column reads
+        // (assertTableColumnStateSet re-fetches through a non-aggregate
+        // path, and the column name is the snake_case alias regardless).
+        $records = Livewire\Livewire::test(ListBadgeDefinitions::class)
+            ->assertSuccessful()
+            ->instance()
+            ->getTableRecords();
+
+        $rows = $records instanceof Paginator
+            ? $records->getCollection()
+            : collect($records);
+
+        expect($rows->firstWhere('id', $debut->id)->badge_users_count)->toBe(1);
     });
 });
 

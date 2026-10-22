@@ -10,6 +10,9 @@ use App\Models\User;
 use App\Services\Badges\BadgeService;
 use App\Services\Badges\DebutEvaluator;
 use Carbon\Carbon;
+use Tests\Traits\CapturesLogRecords;
+
+uses(CapturesLogRecords::class);
 
 /**
  * DebutEvaluator (M069 S05 T1, spec §3 Milestones row): hosted your
@@ -52,6 +55,34 @@ beforeEach(function () {
     $this->artisan('badges:sync')->assertSuccessful();
 });
 
+it('isolates one poisoned user during the sweep — later users still get their nightly pass', function () {
+    // chunkById order is deterministic, so an unguarded per-user throw
+    // would starve the same badge's whole tail cohort every night. A
+    // poisoned row is logged and skipped; the sweep continues.
+    $first = User::factory()->create();
+    $second = User::factory()->create();
+    debutHostGame($first, now()->subDay());
+    debutHostGame($second, now()->subDay());
+
+    $awarded = [];
+    $this->captureLogRecords();
+
+    $this->mock(BadgeService::class)
+        ->shouldReceive('award')
+        ->andReturnUsing(function (User $user) use (&$awarded, $first): void {
+            if ($user->is($first)) {
+                throw new RuntimeException('poisoned row');
+            }
+
+            $awarded[] = $user->id;
+        });
+
+    app(DebutEvaluator::class)->sweep();
+
+    expect($awarded)->toBe([$second->id])
+        ->and($this->logRecord('badges.sweep.user_failed')['context']['user_id'])->toBe($first->id);
+});
+
 it('proposes the badge for a past hosted game', function () {
     $user = User::factory()->create();
     $game = debutHostGame($user, now()->subDays(2));
@@ -83,6 +114,26 @@ it('points the award at the earliest qualifying game', function () {
     debutHostGame($user, now()->subDays(10));
 
     expect(app(DebutEvaluator::class)->evaluate($user)?->evidenceId)->toBe((string) $earliest->id);
+});
+
+it('never resurrects an admin-revoked hold: the sweep respects revocation (the removal path)', function () {
+    $user = User::factory()->create();
+    $admin = User::factory()->create();
+    debutHostGame($user, now()->subDays(30));
+
+    app(BadgeService::class)->award($user, 'debut');
+    app(BadgeService::class)->revoke($user, 'debut', 'Issued in error (test fixture)', $admin);
+
+    // The evidence still qualifies, but revocation is sticky against
+    // automatic proposals — the sweep converges on revoked, not awarded.
+    app(DebutEvaluator::class)->sweep();
+
+    $hold = debutHold();
+
+    expect($hold)->not->toBeNull()
+        ->and($hold->revoked_at)->not->toBeNull()
+        ->and($hold->lapsed_at)->toBeNull()
+        ->and(BadgeEvent::query()->count())->toBe(2);
 });
 
 it('never proposes for a canceled game', function () {

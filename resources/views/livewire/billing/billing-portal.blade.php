@@ -115,16 +115,18 @@
 
             <div class="flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center gap-4">
-                    <div class="shrink-0 w-10 h-10 rounded-full {{ $gmSubscription->isActive() ? 'bg-secondary-container' : 'bg-tertiary-container' }} flex items-center justify-center">
-                        <span class="material-symbols-outlined text-lg {{ $gmSubscription->isActive() ? 'text-on-secondary-container' : 'text-on-tertiary-container' }}" style="font-variation-settings: 'FILL' 1" aria-hidden="true">school</span>
+                    <div class="shrink-0 w-10 h-10 rounded-full {{ $gmBenefitsActive ? 'bg-secondary-container' : 'bg-tertiary-container' }} flex items-center justify-center">
+                        <span class="material-symbols-outlined text-lg {{ $gmBenefitsActive ? 'text-on-secondary-container' : 'text-on-tertiary-container' }}" style="font-variation-settings: 'FILL' 1" aria-hidden="true">school</span>
                     </div>
                     <div>
+                        {{-- Benefit state, not row state: a canceled self-serve row
+                             beside a surviving comp is still live GM tools. --}}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
-                            {{ $gmSubscription->isActive() ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-container text-on-tertiary-container' }}">
-                            {{ $gmSubscription->isActive() ? __('common.status_active') : __('common.content_inactive') }}
+                            {{ $gmBenefitsActive ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-container text-on-tertiary-container' }}">
+                            {{ $gmBenefitsActive ? __('common.status_active') : __('common.content_inactive') }}
                         </span>
                         <p class="mt-1 text-sm text-on-surface-variant">
-                            @if($gmSubscription->isActive())
+                            @if($gmBenefitsActive)
                                 {{ __('billing.content_gm_tools_active_description') }}
                             @else
                                 {{ __('billing.content_gm_tools_inactive_description') }}
@@ -133,24 +135,29 @@
                     </div>
                 </div>
                 <div>
-                    @if($gmSubscription->isActive())
-                        <x-confirm-action
-                            action="cancelGmSubscription"
-                            id="cancel-gm-subscription"
-                            :trigger-label="__('billing.action_deactivate')"
-                            trigger-class="px-4 py-2 border border-error/40 text-error rounded-lg hover:bg-error-container transition-colors text-sm font-medium"
-                            :confirm-label="__('billing.action_deactivate')"
-                            :cancel-label="__('common.action_cancel')"
-                            :message="__('billing.error_are_you_sure_you_want_to_deactivate_your_gm_tools')"
-                            variant="standalone"
-                            severity="destructive"
-                            confirm-icon="block"
-                        />
-                    @else
-                        <button wire:click="reactivateGmSubscription"
-                                class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
-                            {{ __('billing.action_reactivate') }}
-                        </button>
+                    {{-- Self-serve controls only: a comp-held GM plan is ended
+                         by its granter, so comp holders see status without a
+                         cancel/reactivate action for a row they do not own. --}}
+                    @if($gmSubscription->source === \App\Enums\LocalSubscriptionSource::SelfServe)
+                        @if($gmSubscription->isActive())
+                            <x-confirm-action
+                                action="cancelGmSubscription"
+                                id="cancel-gm-subscription"
+                                :trigger-label="__('billing.action_deactivate')"
+                                trigger-class="px-4 py-2 border border-error/40 text-error rounded-lg hover:bg-error-container transition-colors text-sm font-medium"
+                                :confirm-label="__('billing.action_deactivate')"
+                                :cancel-label="__('common.action_cancel')"
+                                :message="__('billing.error_are_you_sure_you_want_to_deactivate_your_gm_tools')"
+                                variant="standalone"
+                                severity="destructive"
+                                confirm-icon="block"
+                            />
+                        @else
+                            <button wire:click="reactivateGmSubscription"
+                                    class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                                {{ __('billing.action_reactivate') }}
+                            </button>
+                        @endif
                     @endif
                 </div>
             </div>

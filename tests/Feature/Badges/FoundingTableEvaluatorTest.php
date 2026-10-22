@@ -1,11 +1,18 @@
 <?php
 
+use App\Dto\BadgeAwardResult;
 use App\Enums\BadgeEventAction;
+use App\Enums\BadgeSource;
 use App\Events\MembershipActivated;
 use App\Models\BadgeEvent;
 use App\Models\BadgeUser;
 use App\Models\User;
+use App\Services\Badges\BadgeService;
 use App\Services\Badges\FoundingTableEvaluator;
+use Illuminate\Database\Eloquent\Model;
+use Tests\Traits\CapturesLogRecords;
+
+uses(CapturesLogRecords::class);
 
 /**
  * FoundingTableEvaluator (M069 S05 T1, spec §3 Support & Tenure row,
@@ -36,6 +43,29 @@ function foundingTableHold(): ?BadgeUser
 
 beforeEach(function () {
     $this->artisan('badges:sync')->assertSuccessful();
+});
+
+it('isolates one poisoned user during the sweep — later users still get their pass', function () {
+    $first = User::factory()->create();
+    $second = User::factory()->create();
+
+    $awarded = [];
+    $this->captureLogRecords();
+
+    $this->mock(BadgeService::class)
+        ->shouldReceive('award')
+        ->andReturnUsing(function (User $user) use (&$awarded, $first): void {
+            if ($user->is($first)) {
+                throw new RuntimeException('poisoned row');
+            }
+
+            $awarded[] = $user->id;
+        });
+
+    app(FoundingTableEvaluator::class)->sweep();
+
+    expect($awarded)->toBe([$second->id])
+        ->and($this->logRecord('badges.sweep.user_failed')['context']['badge'])->toBe('founding_table');
 });
 
 it('proposes the badge for every account while the window is open', function () {
@@ -116,6 +146,38 @@ it('never strips an existing hold when the window closes', function () {
         ->and($hold->lapsed_at)->toBeNull()
         ->and($hold->revoked_at)->toBeNull()
         ->and(BadgeEvent::query()->count())->toBe(1);
+});
+
+it('excludes existing holders from the sweep cohort — the nightly pass costs O(new accounts), not O(users)', function () {
+    $holder = User::factory()->create();
+
+    app(FoundingTableEvaluator::class)->sweep();
+    expect(foundingTableHold())->not->toBeNull();
+
+    $newcomer = User::factory()->create();
+
+    // A recording subclass pins the cohort shape (a Mockery spy cannot
+    // pass through award()'s final DTO return): while the window is
+    // open this sweep runs nightly, and the holder must be filtered
+    // out at query level — iterating every account just to conclude
+    // AlreadyHeld is O(users) round trips forever.
+    $recorder = new class extends BadgeService
+    {
+        /** @var list<string> */
+        public array $awardedUsers = [];
+
+        public function award(User $user, string $key, ?string $tier = null, ?Model $evidence = null, BadgeSource $source = BadgeSource::Automatic, ?User $actor = null, ?string $reason = null): BadgeAwardResult
+        {
+            $this->awardedUsers[] = (string) $user->id;
+
+            return parent::award($user, $key, $tier, $evidence, $source, $actor, $reason);
+        }
+    };
+    app()->instance(BadgeService::class, $recorder);
+
+    app(FoundingTableEvaluator::class)->sweep();
+
+    expect($recorder->awardedUsers)->toBe([(string) $newcomer->id]);
 });
 
 it('is idempotent — a second sweep writes nothing new', function () {

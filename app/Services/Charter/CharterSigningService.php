@@ -55,10 +55,31 @@ class CharterSigningService
      * so serializing the roster against every bench mutation would buy
      * nothing — the roster math self-heals on the next recompute.
      *
+     * Second accepted race (same class): activeVersion() is an unlocked
+     * read, so a signer who loaded vN as current can commit a signed
+     * row on vN AFTER a material amendment committed on vN+1 (whose
+     * resetAgreement already ran). Benign and self-healing — the roster
+     * shows that signer a plain pending chip, the gates recompute on
+     * vN+1 — but the audit trail permanently carries a signature on a
+     * version that was already superseded when written. Locking the
+     * version read against amendments would serialize two high-volume,
+     * user-paced flows for a cosmetic artifact; not worth it.
+     *
      * @throws ValidationException charter not active/published, caller not an approved participant, already signed, or attestation/text validation failed
      */
     public static function sign(User $user, SessionZeroSurvey $charter, array $input): SessionZeroConfirmation
     {
+        // The charter route is deliberately outside the not.disabled
+        // middleware (capability-link trust), and remember-me session
+        // restoration bypasses the runtime guard — so the consent/audit
+        // surface re-checks here. A banned account must not land an
+        // immutable, version-pinned signature.
+        if ($user->isDisabled()) {
+            throw ValidationException::withMessages([
+                'charter' => __('auth.error_your_account_has_been_disabled'),
+            ]);
+        }
+
         $version = self::activeVersion($charter);
 
         if (! self::isApprovedParticipant($charter, $user)) {
@@ -107,6 +128,24 @@ class CharterSigningService
             'note_to_gm' => self::optionalText($private['note_to_gm'] ?? null),
         ] : null;
 
+        // An all-empty shape stores NULL, not an empty array: the roster's
+        // continuity view (privateAnswersFor) skips null rows and falls
+        // through to the participant's previously submitted answers — an
+        // all-empty array on a re-sign would otherwise shadow them with
+        // "no answers" after exactly the material amendment the carry
+        // rule exists for. The re-sign form prefills prior answers
+        // (ViewCharter), so reaching here empty means nothing was
+        // declared — on either version.
+        if ($privateAnswers !== null
+            && $privateAnswers['my_lines_categories'] === []
+            && $privateAnswers['my_veils_categories'] === []
+            && $privateAnswers['my_lines_text'] === null
+            && $privateAnswers['my_veils_text'] === null
+            && $privateAnswers['note_to_gm'] === null
+        ) {
+            $privateAnswers = null;
+        }
+
         try {
             $confirmation = $charter->confirmations()->create([
                 'session_zero_survey_version_id' => $version->id,
@@ -147,6 +186,14 @@ class CharterSigningService
      * silence is never consent, and the GM is never a signer (they
      * countersign; the owner is not required to be a participant).
      *
+     * An empty approved roster refuses the countersign: "every
+     * participant has signed" is vacuously true at zero participants,
+     * but silence is never consent — the mutual-agreement signal
+     * (concept §8) requires at least one signed participant to mean
+     * anything. Same rule as CharteredEvaluator's proof chain, so the
+     * badge cannot be farmed by publish → countersign → archive loops
+     * on participant-less campaigns.
+     *
      * Accepted race (documented, deliberately unlocked): pending is
      * computed from two unlocked reads, so a participant approved between
      * the roster pluck and the insert can countersign through without
@@ -160,6 +207,14 @@ class CharterSigningService
      */
     public static function countersign(User $user, SessionZeroSurvey $charter): SessionZeroConfirmation
     {
+        // Same disabled-account backstop as sign(): the owner's
+        // countersignature is the consent record of record.
+        if ($user->isDisabled()) {
+            throw ValidationException::withMessages([
+                'charter' => __('auth.error_your_account_has_been_disabled'),
+            ]);
+        }
+
         if ((string) $charter->campaign?->owner_id !== (string) $user->id) {
             throw ValidationException::withMessages([
                 'charter' => __('charter.error_not_owner'),
@@ -183,6 +238,12 @@ class CharterSigningService
             ->where('status', SessionZeroConfirmation::STATUS_SIGNED)
             ->whereIn('user_id', $approved)
             ->count();
+        if ($approved->isEmpty()) {
+            throw ValidationException::withMessages([
+                'charter' => __('charter.error_countersign_no_participants'),
+            ]);
+        }
+
         $pending = $approved->count() - $signed;
 
         if ($pending > 0) {
@@ -334,16 +395,28 @@ class CharterSigningService
      *     pendingCount: int,
      *     percentSigned: int,
      *     daysOutstanding: ?int,
-     *     fullySigned: bool,
+     *     countersigned: bool,
      * }>
      */
     public static function workspaceHealth(User $owner): array
     {
+        // "Newest activity" is the last touch on the charter OR its
+        // signatures: signatures only write session_zero_confirmations,
+        // so ordering by the survey row's updated_at alone ranks a fully
+        // signed charter below one merely re-saved last week. Greatest()
+        // of both timestamps, newest first.
         $charters = SessionZeroSurvey::query()
             ->charter()
             ->whereHas('campaign', fn ($query) => $query->whereBelongsTo($owner, 'owner'))
             ->with('campaign')
-            ->orderByDesc('updated_at')
+            // Correlated max(confirmed_at) inlined — Postgres ORDER BY
+            // cannot reference a select alias inside an expression, and
+            // the candidate set is already owner-scoped before the sort.
+            ->orderByRaw(
+                'greatest(session_zero_surveys.updated_at, coalesce('.
+                '(select max(sc.confirmed_at) from session_zero_confirmations sc where sc.session_zero_survey_id = session_zero_surveys.id), '.
+                'session_zero_surveys.updated_at)) desc'
+            )
             ->limit(10)
             ->get();
 
@@ -438,6 +511,10 @@ class CharterSigningService
 
             $rows[] = [
                 'campaign_id' => (string) $charter->campaign_id,
+                // The eager-loaded model itself — route() takes models,
+                // not ids (eloquent-practices convention), and the blade
+                // link stays tamper-proof.
+                'campaign' => $charter->campaign,
                 'campaign_name' => (string) $charter->campaign?->name,
                 'charter_uuid' => (string) $charter->uuid,
                 'status' => (string) $charter->status,
@@ -447,7 +524,11 @@ class CharterSigningService
                 'pendingCount' => $pending,
                 'percentSigned' => $percent,
                 'daysOutstanding' => $daysOutstanding,
-                'fullySigned' => $version !== null && ($countersignedVersions[(string) $version->id] ?? 0) > 0,
+                // Countersigned on the current version — deliberately
+                // NOT 'fullySigned' (all participants signed): a
+                // mid-campaign joiner after a countersign makes the two
+                // claims diverge in both directions.
+                'countersigned' => $version !== null && ($countersignedVersions[(string) $version->id] ?? 0) > 0,
             ];
         }
 
@@ -483,18 +564,25 @@ class CharterSigningService
             throw new AuthorizationException('Only the campaign owner can read private boundary answers.');
         }
 
+        // Current-version rows that actually DECLARED answers. A
+        // null-answer row (an untouched re-sign — sign() stores null
+        // for an all-empty shape) must neither render as "no answers"
+        // nor suppress the participant's prior answers: continuity
+        // means the latest actually-submitted answers stand in for it,
+        // exactly as for a participant who has not re-signed at all.
         $rows = $charter->confirmations()
             ->where('session_zero_survey_version_id', $version->id)
             ->where('role', SessionZeroConfirmation::ROLE_PARTICIPANT)
+            ->whereNotNull('private_answers')
             ->get();
 
         // Fallback candidates: every earlier-version participant row that
         // actually submitted answers, from users not covered by a row on
         // the requested version (when nobody is covered, every earlier
         // submitter is a candidate — whereNotIn with an empty list would
-        // match nothing). Newest-first per user — highest version_number
-        // wins, latest confirmed_at breaks (theoretical) ties, the same
-        // ordering amend() uses for carries.
+        // match nothing). Newest-first per user — the bulk form of the
+        // latestParticipantConfirmation() ordering contract; keep the
+        // two in step.
         $candidates = $charter->confirmations()
             ->join(
                 'session_zero_survey_versions as answer_versions',
@@ -576,6 +664,39 @@ class CharterSigningService
     {
         return ($e->errorInfo[0] ?? null) === '23505'
             && str_contains($e->getMessage(), 'session_zero_confirmations_version_user_role_unique');
+    }
+
+    /**
+     * The LATEST-ROW-ACROSS-VERSIONS contract (single user): highest
+     * version_number wins, latest confirmed_at breaks (theoretical)
+     * ties — the ordering amend() carries signatures with. This is the
+     * shared seam for every "latest prior participant row" read (the
+     * re-agreement banner, the re-sign prefill); the bulk variants
+     * (carrySignatures, roster, privateAnswersFor) implement the same
+     * ordering over many users at once and must not drift from it.
+     *
+     * @param  bool  $withAnswersOnly  skip null-answer rows (the prefill
+     *                                 view — nothing to prefill otherwise)
+     */
+    public static function latestParticipantConfirmation(
+        SessionZeroSurvey $charter,
+        User $user,
+        bool $withAnswersOnly = false,
+    ): ?SessionZeroConfirmation {
+        /** @var SessionZeroConfirmation|null $confirmation */
+        $confirmation = $charter->confirmations()
+            ->join(
+                'session_zero_survey_versions as signed_versions',
+                'signed_versions.id', '=', 'session_zero_confirmations.session_zero_survey_version_id',
+            )
+            ->where('session_zero_confirmations.user_id', $user->id)
+            ->where('session_zero_confirmations.role', SessionZeroConfirmation::ROLE_PARTICIPANT)
+            ->when($withAnswersOnly, fn ($query) => $query->whereNotNull('session_zero_confirmations.private_answers'))
+            ->orderByDesc('signed_versions.version_number')
+            ->orderByDesc('session_zero_confirmations.confirmed_at')
+            ->first(['session_zero_confirmations.*']);
+
+        return $confirmation;
     }
 
     /**

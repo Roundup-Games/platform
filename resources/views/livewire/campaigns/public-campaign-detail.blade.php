@@ -108,7 +108,7 @@
                     <div class="text-base sm:text-lg text-on-surface leading-relaxed">
                         {!! nl2br(e($campaign->recruitment_summary)) !!}
                     </div>
-                    @if($campaign->recruitment_summary_completed_sessions !== null)
+                    @if(($campaign->recruitment_summary_completed_sessions ?? 0) > 0)
                         <p class="text-xs text-on-surface-variant mt-3">
                             {{ __('campaigns.content_last_refreshed_after_session', ['count' => $campaign->recruitment_summary_completed_sessions]) }}
                         </p>

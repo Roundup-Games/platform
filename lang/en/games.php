@@ -328,6 +328,7 @@ return [
     'action_bulletin_post' => 'Post',
     'flash_bulletin_created' => 'Update posted successfully.',
     'error_bulletin_unauthorized' => 'You are not authorized to post updates.',
+    'error_bulletin_empty' => 'The update cannot be empty.',
     'hint_bulletin_admin_access' => 'Admin access',
     'label_bulletin_unknown_host' => 'Unknown Host',
     'content_bulletin_expires_at' => 'Expires :time',

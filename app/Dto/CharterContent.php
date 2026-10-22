@@ -316,7 +316,7 @@ class CharterContent
             'ai_tools.custom_clause' => ['nullable', 'string', 'max:2000'],
 
             'logistics.venue_mode' => ['required', 'in:location,rotate'],
-            'logistics.location_id' => ['nullable', 'uuid'],
+            'logistics.location_id' => ['nullable', 'uuid', 'required_if:logistics.venue_mode,location'],
             'logistics.venue_access_notes' => ['nullable', 'string', 'max:1000'],
             'logistics.food_drink' => ['required', 'in:venue_rules,snack_rotation,byo,group_orders'],
             'logistics.travel_notes' => ['nullable', 'string', 'max:1000'],
@@ -435,10 +435,19 @@ class CharterContent
                 && $aiTools['sheets'] !== ''
                 && $aiTools['photography'] !== ''
                 && $aiTools['recording'] !== '',
+            // Mirrors rules() exactly: every required logistics field
+            // (incl. the required_if location_id and the three required
+            // selects) — a green dot must mean publish() will accept the
+            // section, or the stepper lies and publish() bounces the GM
+            // back to step 6.
             'logistics' => $logistics['venue_mode'] !== ''
+                && ($logistics['venue_mode'] !== 'location' || $logistics['location_id'] !== null)
+                && $logistics['food_drink'] !== ''
                 && $logistics['cadence'] !== ''
                 && $logistics['session_length'] !== ''
                 && ($logistics['session_length'] !== 'other' || $logistics['session_length_other'] !== '')
+                && $logistics['absence_notice'] !== ''
+                && $logistics['missing_player'] !== ''
                 && $logistics['comms'] !== [],
             'character' => true, // informational — always completable
         };

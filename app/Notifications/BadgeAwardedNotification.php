@@ -5,9 +5,9 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Enums\BadgeSource;
 use App\Models\User;
+use App\Services\Badges\BadgeCopy;
 use App\Services\Badges\BadgeRegistry;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Support\Facades\Lang;
 
 /**
  * The badge award moment (M069 spec §2.2): celebratory but restrained.
@@ -126,27 +126,11 @@ class BadgeAwardedNotification extends BaseNotification
 
     private function badgeName(): string
     {
-        $nameKey = app(BadgeRegistry::class)->find($this->badgeKey)?->nameKey;
-
-        if ($nameKey !== null && Lang::has($nameKey)) {
-            return (string) __($nameKey);
-        }
-
-        // Unknown to the registry (unsynced or future key) — degrade to the
-        // humanized badge key rather than a raw lang lookup failure.
-        return str_replace('_', ' ', ucfirst($this->badgeKey));
+        return BadgeCopy::name(app(BadgeRegistry::class)->find($this->badgeKey)?->nameKey, $this->badgeKey);
     }
 
     private function tierLabel(): ?string
     {
-        if ($this->tier === null) {
-            return null;
-        }
-
-        $key = "badges.content_badge_tier_{$this->tier}";
-
-        return Lang::has($key)
-            ? (string) __($key)
-            : str_replace('_', ' ', ucfirst($this->tier));
+        return BadgeCopy::tierLabel($this->tier);
     }
 }

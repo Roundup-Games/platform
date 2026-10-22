@@ -98,8 +98,12 @@ php_count=$(echo "$staged_php" | grep -c . || true)
 
 printf "\n${CYN}🔍 Pre-commit checks on ${php_count} PHP file(s)${RST}\n\n"
 
-# Bail early if no source files are staged
-if [[ -z "$staged_php" ]]; then
+# Bail early only when NOTHING this gate can check is staged: no PHP and
+# no lang/ changes. A lang-only tree must NOT bail — the i18n step below
+# is CI's Translation Integrity job, and `--stage` exists to prove
+# "green locally == green on CI".
+staged_lang=$(git diff --cached --name-only --diff-filter=ACM -- 'lang/' || true)
+if [[ -z "$staged_php" && -z "$staged_lang" ]]; then
     echo "  No source files staged — skipping checks."
     exit 0
 fi
@@ -206,7 +210,6 @@ else
 fi
 
 # ── 5. Translation integrity — HARD FAIL (lang/ staged) ────────────────────
-staged_lang=$(git diff --cached --name-only --diff-filter=ACM -- 'lang/' || true)
 if [[ -n "$staged_lang" ]]; then
     if [[ -f .env ]]; then
         if i18n_out=$(php artisan i18n:check 2>&1); then

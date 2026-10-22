@@ -26,14 +26,25 @@ use InvalidArgumentException;
  * - **Idempotent awards** — the unique(user_id, badge_definition_id)
  *   constraint is the backstop; a concurrent duplicate insert surfaces as
  *   SQLSTATE 23505 and is treated as AlreadyHeld, never as a second row.
- * - **Tier upgrades in place** — a strictly higher tier UPDATEs the held
- *   row (threshold ordering per the definition's tiers JSON); same or
- *   lower (null = untiered = lowest) is a no-op.
- * - **Reversible revocation and lapse** — revoke stamps revoked_at/
+ * - **Tier upgrades in place** — for a HELD (never lapsed/revoked) row,
+ *   a strictly higher tier UPDATEs the held row (threshold ordering per
+ *   the definition's tiers JSON); same or lower (null = untiered =
+ *   lowest) is a no-op. A requalification/revocation-recovery re-award
+ *   lands at the re-proposed tier even when lower: evaluators recompute
+ *   the current signal (requalifying badges follow it; milestone
+ *   counters can only grow), and a manual re-award carries the tier
+ *   the admin chose — so the proposal is always the honest tier.
+ * - **Reversible lapse, sticky revocation** — revoke stamps revoked_at/
  *   revoked_reason, lapse stamps lapsed_at (spec principle 4: lapse
- *   honestly, never vanish); a re-award clears the stamps and audits
- *   Requalified (lapsed) or Awarded (revoked). Milestones are never
- *   re-taken: a re-awarded row keeps first_awarded_at.
+ *   honestly, never vanish). A re-award clears the stamps, stamps
+ *   requalified_through (lapsed only — the requalification window's
+ *   end) and audits Requalified (lapsed) or Awarded (revoked).
+ *   Revocation is sticky against automatic proposals: an admin revoke
+ *   is an explicit human override the nightly sweep must not silently
+ *   undo — only a manual re-grant reverses it (RefusedRevoked
+ *   otherwise), mirroring lapse()'s manual-source exemption.
+ *   Milestones are never re-taken: a re-awarded row keeps
+ *   first_awarded_at.
  * - **Append-only audit trail** — every state change writes exactly one
  *   badge_events row with actor, source, reason and the evidence pointer.
  * - **Domain events after commit** — BadgeAwarded/BadgeUpgraded/
@@ -69,6 +80,11 @@ class BadgeService
         ?User $actor = null,
         ?string $reason = null,
     ): BadgeAwardResult {
+        // Deliberately NOT memoized per instance: is_active/is_dormant are
+        // runtime-mutable admin state (the Filament toggle is in-band, not
+        // out-of-band), so a cached row could serve a stale decision — the
+        // key lookup is a unique-indexed point read, cheap against the
+        // cohort queries a sweep already runs.
         $definition = BadgeDefinition::query()->where('key', $key)->first();
 
         if ($definition === null) {
@@ -115,19 +131,30 @@ class BadgeService
                     return [BadgeAwardResult::Awarded, $this->awardedEvent($userId, $award, $source)];
                 }
 
-                // Revocation and lapse are both reversible: clear the
-                // stamps and treat the badge as newly (re-)awarded.
-                // Milestones are never re-taken — first_awarded_at
-                // survives below. A revoked row is simply re-awarded
-                // (Awarded audit); a lapsed one re-qualifies
-                // (Requalified) — revocation supersedes lapse either way.
+                // Lapse is reversible by the live signal: a re-award
+                // clears the stamps and re-qualifies in place. Revocation
+                // is sticky against automatic proposals — an admin revoke
+                // is an explicit human override, so the sweep must not
+                // silently resurrect (and re-notify) a badge whose
+                // evidence still qualifies; only an explicit manual
+                // re-grant below reverses it. Milestones are never
+                // re-taken — first_awarded_at survives either way.
                 $wasRevoked = $held->revoked_at !== null;
+
+                if ($wasRevoked && $source === BadgeSource::Automatic) {
+                    return [BadgeAwardResult::RefusedRevoked, null];
+                }
 
                 if ($wasRevoked || $held->lapsed_at !== null) {
                     $held->fill([
                         'revoked_at' => null,
                         'revoked_reason' => null,
                         'lapsed_at' => null,
+                        // The requalification watermark — when the
+                        // fresh qualification was confirmed (null on the
+                        // revoked-recovery branch, a fresh award carried
+                        // by the audit row instead). Not a window end.
+                        'requalified_through' => $wasRevoked ? null : $now,
                         'tier' => $award->tierKey,
                         'source' => $source,
                         'last_awarded_at' => $now,
@@ -192,9 +219,11 @@ class BadgeService
     /**
      * Revoke a held badge (admin corrective action), recording the reason.
      *
-     * Reversible: a later award() clears the stamps. The row is never
-     * deleted — "last held" display and the audit trail keep their
-     * referent (spec principle 4).
+     * Reversible only by an explicit manual re-grant (award() with
+     * BadgeSource::Manual): automatic sweep proposals are refused
+     * (RefusedRevoked) so the nightly sweep cannot silently undo an
+     * admin decision. The row is never deleted — "last held" display
+     * and the audit trail keep their referent (spec principle 4).
      *
      * @throws InvalidArgumentException Unknown badge key, or a blank reason.
      */
@@ -232,6 +261,7 @@ class BadgeService
             $held->fill([
                 'revoked_at' => now(),
                 'revoked_reason' => $reason,
+                'is_featured' => false,
             ])->save();
 
             $this->recordEvent($held, BadgeEventAction::Revoked, BadgeSource::Manual, $actor, $reason, null);
@@ -265,7 +295,12 @@ class BadgeService
      * Quiet by design (spec §4): unlike revoke(), no domain event is
      * dispatched — lapses are routine maintenance, not moments.
      * Admin revocation supersedes lapse: a revoked row is skipped
-     * (false), never lapsed.
+     * (false), never lapsed. Retirement freezes holds the same way
+     * award() refuses them: a retired definition neither awards nor
+     * lapses (spec §2.3 Arctic Code Vault semantics — the retire modal
+     * promises holds stay as they are), because a lapse would grey the
+     * badge out with "re-earn" copy while award() structurally refuses
+     * the re-earn.
      *
      * @param  string  $reason  Cause recorded on the audit row (e.g.
      *                          'membership_ended', 'streak_broken').
@@ -284,6 +319,12 @@ class BadgeService
             throw new InvalidArgumentException("Unknown badge key [{$key}] — is the registry synced? Run `php artisan badges:sync`.");
         }
 
+        // Retirement freezes holds (spec §2.3): no new awards, and no
+        // lapses — mirror of award()'s RefusedInactive refusal.
+        if (! $definition->is_active) {
+            return false;
+        }
+
         return DB::transaction(function () use ($user, $definition, $reason): bool {
             $held = BadgeUser::query()
                 ->whereBelongsTo($user)
@@ -297,7 +338,23 @@ class BadgeService
                 return false;
             }
 
-            $held->fill(['lapsed_at' => now()])->save();
+            // A manual-source hold NEVER lapses: lapse() is the system's
+            // "the live signal no longer qualifies" action, and an admin
+            // grant (BadgeSource::Manual, recorded reason) is an explicit
+            // human override of exactly that signal — the nightly sweep
+            // silently undoing it would defeat the manual-award surface.
+            // Removing a manual hold is the admin's own move: revoke()
+            // (equally reversible). The upgrade-in-place branch of
+            // award() preserves source, so the exemption survives sweeps
+            // that raise a manual grant's tier.
+            if ($held->source === BadgeSource::Manual) {
+                return false;
+            }
+
+            // A dead hold is never featured: lapsed badges grey out and
+            // drop from the GM-directory chip, so a stale featured flag
+            // would keep burning one of the three shelf slots invisibly.
+            $held->fill(['lapsed_at' => now(), 'is_featured' => false])->save();
 
             // No evidence pointer at lapse time — the award's evidence
             // stays on the row; source is always Automatic (evaluator
@@ -407,15 +464,16 @@ class BadgeService
      */
     private function recordEvent(BadgeUser $held, BadgeEventAction $action, BadgeSource $source, ?User $actor, ?string $reason, ?BadgeAward $award): void
     {
-        $held->badgeEvents()->create([
+        $event = $held->badgeEvents()->make([
             'action' => $action,
-            'actor_id' => $actor?->getKey(),
             'reason' => $reason,
             'source' => $source,
             'evidence_type' => $award?->evidenceType,
             'evidence_id' => $award?->evidenceId,
             'created_at' => now(),
         ]);
+        $event->actor()->associate($actor);
+        $event->save();
     }
 
     private function awardedEvent(string $userId, BadgeAward $award, BadgeSource $source): BadgeAwarded

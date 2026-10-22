@@ -2,6 +2,7 @@
 
 use App\Dto\CharterContent;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Charter\ViewCharter;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\SessionZeroSurvey;
@@ -10,6 +11,7 @@ use App\Models\User;
 use App\Services\Charter\CharterService;
 use App\Services\Charter\CharterSigningService;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 
 // M070/S01-T05 — public read-only charter view: active charters render the
 // immutable version snapshot for guests, drafts are owner-only (404 hides
@@ -333,6 +335,108 @@ describe('ViewCharter Amendment Banner', function () {
             ->assertDontSee(__('charter.content_amended_banner_body', [], 'en'))
             ->assertSee(__('charter.heading_signed_card', [], 'en'))
             ->assertDontSee(__('charter.heading_signature_panel', [], 'en'));
+    });
+
+    it('localizes vocab diff chips through label keys — themes and boundary categories never render raw slugs', function () {
+        [$owner, $campaign] = charter_view_owner_campaign();
+        $charter = charter_view_published($campaign, $owner);
+        [$participant] = charter_view_approved_participant($campaign);
+
+        CharterSigningService::sign($participant, $charter, ['attestations' => charter_view_all_attestations()]);
+
+        // Material amend touching BOTH vocab list fields: a theme and a
+        // §2 boundary category join the charter — the items_added rows
+        // whose chips are the re-agreement diff's consent-critical text.
+        $fresh = $charter->refresh();
+        $content = $fresh->content;
+        $content['overview']['themes'] = ['intrigue', 'heist', 'politics'];
+        $content['boundaries']['lines_categories'] = ['harm_to_children', 'sexual_content'];
+        CharterService::amend($fresh->campaign->owner, $fresh, (string) $fresh->title, $content, 'Tightened lines and themes.');
+
+        app()->setLocale('en');
+
+        $this->actingAs($participant)
+            ->get(charter_view_url($charter->refresh()))
+            ->assertOk()
+            // The chips resolve through label_theme_* / label_boundary_* —
+            // the same keys every composed section uses. (The raw slug
+            // still legitimately appears as the re-sign form checkbox
+            // value attribute; the LABEL proves the chip resolution —
+            // an unfixed diff renders the lowercase slug instead.)
+            ->assertSee(__('charter.label_theme_politics', [], 'en'))
+            ->assertSee(__('charter.label_boundary_sexual_content', [], 'en'));
+    });
+
+    it('keeps a re-signed participant\'s earlier answers visible when the re-sign form is left empty', function () {
+        [$owner, $campaign] = charter_view_owner_campaign();
+        $charter = charter_view_published($campaign, $owner);
+        [$alice] = charter_view_approved_participant($campaign);
+
+        CharterSigningService::sign($alice, $charter, [
+            'attestations' => charter_view_all_attestations(),
+            'private_answers' => [
+                'my_lines_categories' => ['phobias'],
+                'my_veils_categories' => [],
+                'my_lines_text' => '',
+                'my_veils_text' => '',
+                'note_to_gm' => 'Please keep the spider imagery off-screen.',
+            ],
+        ]);
+
+        charter_view_amend_material($charter, 'New safety signal.');
+
+        // The re-sign leaves the form empty (nothing re-declared). The
+        // row stores NULL — never an all-empty array that shadows the
+        // answers Alice already gave the GM.
+        CharterSigningService::sign($alice, $charter->refresh(), ['attestations' => charter_view_all_attestations()]);
+
+        $v2Row = $charter->refresh()->confirmations()
+            ->where('user_id', $alice->id)
+            ->where('role', 'participant')
+            ->orderByDesc('session_zero_survey_version_id')
+            ->first();
+
+        expect($v2Row->private_answers)->toBeNull();
+
+        app()->setLocale('en');
+
+        // The owner's roster keeps showing Alice's substantive v1
+        // answers through the continuity choke point.
+        $this->actingAs($owner)
+            ->get(charter_view_url($charter->refresh()))
+            ->assertOk()
+            ->assertSee('Please keep the spider imagery off-screen.')
+            ->assertSee(__('charter.label_boundary_phobias', [], 'en'));
+    });
+
+    it('prefills the re-sign form with the participant\'s previously submitted answers', function () {
+        [$owner, $campaign] = charter_view_owner_campaign();
+        $charter = charter_view_published($campaign, $owner);
+        [$alice] = charter_view_approved_participant($campaign);
+
+        CharterSigningService::sign($alice, $charter, [
+            'attestations' => charter_view_all_attestations(),
+            'private_answers' => [
+                'my_lines_categories' => ['phobias'],
+                'my_veils_categories' => ['animal_harm'],
+                'my_lines_text' => 'No claustrophobic tunnel scenes.',
+                'my_veils_text' => '',
+                'note_to_gm' => 'Please keep the spider imagery off-screen.',
+            ],
+        ]);
+
+        charter_view_amend_material($charter, 'New safety signal.');
+
+        app()->setLocale('en');
+
+        // Re-confirmation starts from what Alice already submitted —
+        // never re-entry from memory (concept §3 continuity).
+        Livewire::actingAs($alice)
+            ->test(ViewCharter::class, ['uuid' => $charter->refresh()->uuid])
+            ->assertSet('myLinesCategories', ['phobias'])
+            ->assertSet('myVeilsCategories', ['animal_harm'])
+            ->assertSet('myLinesText', 'No claustrophobic tunnel scenes.')
+            ->assertSet('noteToGm', 'Please keep the spider imagery off-screen.');
     });
 
     it('shows no banner to a participant whose signature a minor amendment carried', function () {

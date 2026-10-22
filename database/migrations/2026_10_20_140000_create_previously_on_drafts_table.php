@@ -57,6 +57,18 @@ return new class extends Migration
 
     public function down(): void
     {
+        // GM-authored draft content: one-way once live — refuse to
+        // destroy rows, drop when empty (published rows are immutable
+        // projections; drafts are the only copy).
+        $rows = DB::table('previously_on_drafts')->count();
+
+        if ($rows > 0) {
+            throw new RuntimeException(
+                "previously_on_drafts holds {$rows} GM-authored draft row(s) — refusing to drop. ".
+                'Restore from a backup or continue on a disposable environment (migrate:fresh).',
+            );
+        }
+
         Schema::dropIfExists('previously_on_drafts');
     }
 };

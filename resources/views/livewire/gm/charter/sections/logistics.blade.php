@@ -45,7 +45,9 @@
                 class="w-full rounded-lg bg-surface-container-high border border-outline/20 text-on-surface text-sm focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-colors px-4 py-2.5"
             >
                 <option value="">{{ __('charter.placeholder_choose_option') }}</option>
-                @foreach($locations as $location)
+                {{-- $this->locations (the #[Computed] accessor): the owner-scoped
+                     venue query runs only when this step actually renders. --}}
+                @foreach($this->locations as $location)
                     <option value="{{ $location->id }}" @selected(($section['location_id'] ?? null) !== null && (string) $section['location_id'] === (string) $location->id)>
                         {{ $location->name }}@if($location->city) — {{ $location->city }}@endif
                     </option>

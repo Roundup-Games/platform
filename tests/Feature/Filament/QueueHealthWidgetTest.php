@@ -110,3 +110,21 @@ it('reports the warm-up state calmly when nothing has run yet', function () {
         ->assertSee('awaiting first run since tracking started')
         ->assertDontSee('Scheduled work needs attention');
 });
+
+it('renders the schedule tile as unavailable when the schedule inventory cannot load', function () {
+    $this->mock(JobRepository::class, function ($mock) {
+        $mock->shouldReceive('countPending')->andReturn(0);
+        $mock->shouldReceive('countFailed')->andReturn(0);
+    });
+
+    $this->mock(Schedule::class)
+        ->shouldReceive('events')
+        ->andThrow(new RuntimeException('schedule definitions exploded'));
+
+    Livewire\Livewire::test(QueueHealthWidget::class)
+        ->assertOk()
+        ->assertSee('Schedule Health')
+        ->assertSeeText('unavailable')
+        ->assertSeeText('Schedule inventory failed to load — see logs')
+        ->assertDontSee('All tasks on time');
+});

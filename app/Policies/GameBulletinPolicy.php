@@ -90,16 +90,9 @@ class GameBulletinPolicy
             return false;
         }
 
-        // Game owner can always view
-        if ((string) $game->owner_id === (string) $user->id) {
-            return true;
-        }
-
-        // Approved participants can view
-        return $game->participants()
-            ->whereBelongsTo($user)
-            ->where('status', ParticipantStatus::Approved->value)
-            ->exists();
+        // Same seat rule as viewBoard/create — one helper so the two
+        // abilities can never drift apart.
+        return $this->isHostOrApprovedParticipant($user, $game);
     }
 
     /**

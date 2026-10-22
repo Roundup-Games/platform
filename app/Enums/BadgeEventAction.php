@@ -7,7 +7,6 @@ enum BadgeEventAction: string
     case Awarded = 'awarded';
     case Upgraded = 'upgraded';
     case Revoked = 'revoked';
-    case GrantedManually = 'granted_manually';
     case Lapsed = 'lapsed';
     case Requalified = 'requalified';
 

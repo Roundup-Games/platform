@@ -10,7 +10,7 @@ use App\Models\User;
  * Two flavors, one interface:
  *
  * - **Event-driven evaluators** answer "did this event cross a threshold?"
- *   BadgeListener (S02) calls evaluate() against the acting user right
+ *   BadgePipeline (S02) calls evaluate() against the acting user right
  *   after a domain event (subscription activated, charter signed,
  *   attendance verified). evaluate() must be side-effect-free beyond
  *   returning the proposed award — BadgeService::award() owns all writes,
@@ -23,10 +23,9 @@ use App\Models\User;
  *   deadlines, backfills. The nightly scheduler (wired in S02) calls
  *   sweep() across all registered evaluators; inside it, an evaluator
  *   re-evaluates its cohort through BadgeService so awards, lapses and
- *   revocations still flow through the audited pipeline.
- *
- * S01 ships only NoOpEvaluator; real evaluators land with their signals
- * (S02: subscription/membership, S05: charter/journal/attendance).
+ *   revocations still flow through the audited pipeline. Cohort-swept
+ *   badges extend CohortSweepEvaluator instead of re-implementing the
+ *   sweep skeleton and its invariants.
  */
 interface BadgeEvaluator
 {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Dto\CharterContent;
+use App\Models\Location;
 use App\Support\CharterDiff;
 use ReflectionMethod;
 
@@ -140,4 +141,75 @@ test('fields present on only one side emit added and removed rows', function () 
     expect($removed)->toBe([
         ['section' => 'overview', 'field' => 'legacy_field', 'type' => 'removed', 'old' => 'past', 'new' => null],
     ]);
+});
+
+// ── Display resolution (venue names) ─────────────────────
+
+test('resolveLocationNames swaps location uuids for venue names on both sides', function () {
+    $oldVenue = Location::factory()->create(['name' => 'The Gilded Tankard']);
+    $newVenue = Location::factory()->create(['name' => 'Alley Door Games']);
+
+    $old = CharterContent::blank()->toArray();
+    $old['logistics']['venue_mode'] = 'location';
+    $old['logistics']['location_id'] = (string) $oldVenue->id;
+
+    $new = CharterContent::blank()->toArray();
+    $new['logistics']['venue_mode'] = 'location';
+    $new['logistics']['location_id'] = (string) $newVenue->id;
+
+    $changes = CharterDiff::changes($old, $new);
+    $resolved = CharterDiff::resolveLocationNames($changes);
+
+    expect($resolved)->toBe([
+        [
+            'section' => 'logistics',
+            'field' => 'location_id',
+            'type' => 'changed',
+            'old' => 'The Gilded Tankard',
+            'new' => 'Alley Door Games',
+        ],
+    ]);
+
+    // The pure engine stays id-free: resolution never mutated changes().
+    expect($changes[0]['old'])->toBe((string) $oldVenue->id);
+});
+
+test('resolveLocationNames keeps a uuid whose venue row no longer exists', function () {
+    $vanished = Location::factory()->create(['name' => 'Vanished Venue']);
+    $survivor = Location::factory()->create(['name' => 'Alley Door Games']);
+
+    $old = CharterContent::blank()->toArray();
+    $old['logistics']['venue_mode'] = 'location';
+    $old['logistics']['location_id'] = (string) $vanished->id;
+
+    $new = CharterContent::blank()->toArray();
+    $new['logistics']['venue_mode'] = 'location';
+    $new['logistics']['location_id'] = (string) $survivor->id;
+
+    // The old venue's row is gone before the banner renders (deleted
+    // venue): the honest fallback is the uuid pointer itself, never a
+    // fabricated name — the new side still resolves.
+    $vanished->delete();
+
+    $resolved = CharterDiff::resolveLocationNames(CharterDiff::changes($old, $new));
+    expect($resolved)->toBe([
+        [
+            'section' => 'logistics',
+            'field' => 'location_id',
+            'type' => 'changed',
+            'old' => (string) $vanished->id,
+            'new' => 'Alley Door Games',
+        ],
+    ]);
+});
+
+test('resolveLocationNames is a no-op for diffs without location changes', function () {
+    $old = CharterContent::blank()->toArray();
+    $new = CharterContent::blank()->toArray();
+    $new['overview']['pitch'] = 'A new pitch.';
+
+    $changes = CharterDiff::changes($old, $new);
+
+    // Zero Location queries expected: the early return skips the lookup.
+    expect(CharterDiff::resolveLocationNames($changes))->toBe($changes);
 });

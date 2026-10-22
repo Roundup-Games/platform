@@ -18,11 +18,25 @@
         return \Illuminate\Support\Facades\Lang::has($entityKey) ? $entityKey : $key;
     };
 
-    /** Human display for one diff value: enum-ish strings localize (field-
-         * scoped label_{field}_{value} first — the lang convention — then the
-         * unscoped label_{value}), SafetyTool chips resolve via the enum,
-         * long free text is clipped. */
-    $displayValue = static function (mixed $value, ?string $field = null): string {
+    /** String-list vocab values localize through their VOCABULARY
+         * prefix (label_theme_*, label_boundary_* — the same keys
+         * every composed section uses), never through the plural
+         * field name: themes/lines_categories/veils_categories have
+         * no label_{field}_{value} keys, and without this map the
+         * re-agreement diff would render raw slugs ("violence") in
+         * the most consent-critical rows. */
+    $vocabPrefixes = [
+        'themes' => 'theme',
+        'lines_categories' => 'boundary',
+        'veils_categories' => 'boundary',
+    ];
+
+    /** Human display for one diff value: vocab-prefixed keys first for
+         * string-list fields, then the field-scoped
+         * label_{field}_{value} convention, then the unscoped
+         * label_{value}, SafetyTool chips resolve via the enum, long
+         * free text is clipped. */
+    $displayValue = static function (mixed $value, ?string $field = null) use ($vocabPrefixes): string {
         if ($value === null || $value === '') {
             return '—';
         }
@@ -33,11 +47,22 @@
             return (string) $value;
         }
         if (is_string($value)) {
-            if ($field !== null && \Illuminate\Support\Facades\Lang::has('charter.label_'.$field.'_'.$value)) {
-                return (string) __('charter.label_'.$field.'_'.$value);
+            $candidateKeys = [];
+
+            if ($field !== null && isset($vocabPrefixes[$field])) {
+                $candidateKeys[] = 'charter.label_'.$vocabPrefixes[$field].'_'.$value;
             }
-            if (\Illuminate\Support\Facades\Lang::has('charter.label_'.$value)) {
-                return (string) __('charter.label_'.$value);
+
+            if ($field !== null) {
+                $candidateKeys[] = 'charter.label_'.$field.'_'.$value;
+            }
+
+            $candidateKeys[] = 'charter.label_'.$value;
+
+            foreach ($candidateKeys as $key) {
+                if (\Illuminate\Support\Facades\Lang::has($key)) {
+                    return (string) __($key);
+                }
             }
 
             $tool = \App\Enums\SafetyTool::tryFrom($value);

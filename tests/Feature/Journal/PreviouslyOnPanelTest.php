@@ -15,6 +15,7 @@ use App\Notifications\BulletinPosted;
 use App\Notifications\Channels\PushChannel;
 use App\Policies\GameBulletinPolicy;
 use App\Services\CampaignJournalService;
+use App\Services\PreviouslyOnService;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Support\Facades\Notification;
@@ -84,6 +85,22 @@ function panelApprovedPlayer(Game $game): User
 
     return $user;
 }
+
+test('publishing a draft deleted by a concurrent projection sweep converges on the flash error, not a 500', function () {
+    [$owner, $campaign, $next] = panelCampaign();
+    $draft = panelDraft($campaign, $next);
+
+    // The D230 projection can delete the row between the panel's
+    // latestDraft() resolution and the publish lock — the GameObserver
+    // status-leave sweep when AutoCompleteGames finishes the session,
+    // or the retarget supersedes-delete. ModelNotFoundException is a
+    // RuntimeException and would escape the panel's LogicException
+    // catch; the locked re-fetch must converge on the same flash path.
+    PreviouslyOnDraft::query()->whereKey($draft->id)->delete();
+
+    expect(fn () => app(PreviouslyOnService::class)->publish($draft, $owner))
+        ->toThrow(LogicException::class, __('journal.error_previously_on_not_available', [], 'en'));
+});
 
 // ── Draft review surface (D221: never posted sight-unseen) ─────────
 
@@ -170,6 +187,32 @@ test('one publish click creates exactly one bulletin and delivers the composed c
     // research, GameBulletinPolicy untouched). The board resolves the
     // policy directly, same as GameBulletinBoard::canViewBoard.
     expect(app(GameBulletinPolicy::class)->viewBoard($defaultPrefPlayer, $next))->toBeTrue();
+});
+
+test('after the target session stops being scheduled, the panel falls back to the published confirmation', function () {
+    Notification::fake();
+    Queue::fake();
+
+    [$owner, $campaign, $next] = panelCampaign();
+    panelDraft($campaign, $next);
+    panelApprovedPlayer($next);
+
+    Livewire::actingAs($owner)
+        ->test(CampaignPreviouslyOn::class, ['campaign' => $campaign])
+        ->call('publish')
+        ->assertHasNoErrors();
+
+    // The session runs (or is canceled): nextSession() now resolves
+    // null, and latestDraft must fall back to the latest PUBLISHED
+    // draft — the confirmation line, never an unpublishable draft.
+    $next->update(['status' => 'completed']);
+
+    Livewire::actingAs($owner)
+        ->test(CampaignPreviouslyOn::class, ['campaign' => $campaign])
+        ->assertSee(__('journal.label_previously_on_published_at', [
+            'date' => format_date(PreviouslyOnDraft::query()->first()->published_at, 'datetime'),
+        ], 'en'))
+        ->assertDontSee(__('journal.action_publish_previously_on', [], 'en'));
 });
 
 test('a second publish call flashes the already-published error and creates no second bulletin', function () {

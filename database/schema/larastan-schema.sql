@@ -59,7 +59,6 @@ CREATE TABLE public.badge_events (
     source varchar(255) NOT NULL,
     evidence_type varchar(255) NULL,
     evidence_id varchar NULL,
-    metadata json NULL,
     created_at timestamp NULL
 );
 
@@ -134,7 +133,7 @@ CREATE TABLE public.campaign_goals (
     sort integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    CONSTRAINT campaign_goals_status_check CHECK (((status)::text = ANY ((ARRAY['planned'::varchar, 'active'::varchar, 'achieved'::varchar, 'failed'::varchar, 'abandoned'::varchar])::text[])))
+    CONSTRAINT campaign_goals_status_check CHECK (((status)::text = ANY (ARRAY[('planned'::varchar)::text, ('active'::varchar)::text, ('achieved'::varchar)::text, ('failed'::varchar)::text, ('abandoned'::varchar)::text])))
 );
 
 CREATE TABLE public.campaign_journal_entries (
@@ -149,8 +148,8 @@ CREATE TABLE public.campaign_journal_entries (
     in_game_date varchar(255) NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    CONSTRAINT campaign_journal_entries_kind_check CHECK (((kind)::text = ANY ((ARRAY['recap'::varchar, 'in_character'::varchar, 'prep_note'::varchar])::text[]))),
-    CONSTRAINT campaign_journal_entries_visibility_check CHECK (((visibility)::text = ANY ((ARRAY['players'::varchar, 'gms'::varchar])::text[])))
+    CONSTRAINT campaign_journal_entries_kind_check CHECK (((kind)::text = ANY (ARRAY[('recap'::varchar)::text, ('in_character'::varchar)::text, ('prep_note'::varchar)::text]))),
+    CONSTRAINT campaign_journal_entries_visibility_check CHECK (((visibility)::text = ANY (ARRAY[('players'::varchar)::text, ('gms'::varchar)::text])))
 );
 
 CREATE TABLE public.campaign_participants (
@@ -221,7 +220,7 @@ CREATE TABLE public.character_state_changes (
     delta text NOT NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    CONSTRAINT character_state_changes_change_type_check CHECK (((change_type)::text = ANY ((ARRAY['progression'::varchar, 'item'::varchar, 'condition'::varchar, 'note'::varchar])::text[])))
+    CONSTRAINT character_state_changes_change_type_check CHECK (((change_type)::text = ANY (ARRAY[('progression'::varchar)::text, ('item'::varchar)::text, ('condition'::varchar)::text, ('note'::varchar)::text])))
 );
 
 CREATE TABLE public.charter_templates (
@@ -1634,8 +1633,8 @@ CREATE TABLE public.session_zero_confirmations (
     private_answers json NULL,
     status varchar(255) NOT NULL DEFAULT 'signed'::varchar,
     role varchar(255) NOT NULL DEFAULT 'participant'::varchar,
-    CONSTRAINT session_zero_confirmations_role_check CHECK (((role)::text = ANY ((ARRAY['participant'::varchar, 'gm'::varchar])::text[]))),
-    CONSTRAINT session_zero_confirmations_status_check CHECK (((status)::text = ANY ((ARRAY['signed'::varchar, 'pending_reagreement'::varchar])::text[])))
+    CONSTRAINT session_zero_confirmations_role_check CHECK (((role)::text = ANY (ARRAY[('participant'::varchar)::text, ('gm'::varchar)::text]))),
+    CONSTRAINT session_zero_confirmations_status_check CHECK (((status)::text = ANY (ARRAY[('signed'::varchar)::text, ('pending_reagreement'::varchar)::text])))
 );
 
 CREATE TABLE public.session_zero_survey_versions (
@@ -1665,8 +1664,8 @@ CREATE TABLE public.session_zero_surveys (
     kind varchar(255) NOT NULL DEFAULT 'survey'::varchar,
     campaign_id varchar NULL,
     current_version integer NULL,
-    CONSTRAINT session_zero_surveys_kind_check CHECK (((kind)::text = ANY ((ARRAY['survey'::varchar, 'charter'::varchar])::text[]))),
-    CONSTRAINT session_zero_surveys_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::varchar, 'active'::varchar, 'archived'::varchar])::text[])))
+    CONSTRAINT session_zero_surveys_kind_check CHECK (((kind)::text = ANY (ARRAY[('survey'::varchar)::text, ('charter'::varchar)::text]))),
+    CONSTRAINT session_zero_surveys_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::varchar)::text, ('active'::varchar)::text, ('archived'::varchar)::text])))
 );
 
 CREATE TABLE public.sessions (

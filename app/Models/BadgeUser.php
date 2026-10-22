@@ -29,7 +29,11 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property BadgeSource $source
  * @property Carbon $first_awarded_at
  * @property Carbon|null $last_awarded_at
- * @property Carbon|null $requalified_through
+ * @property Carbon|null $requalified_through the requalification
+ *                                            watermark — the moment a recurring badge's fresh
+ *                                            qualification was confirmed. NOT a validity end date: no
+ *                                            evaluator defines a window end, so renderers must not
+ *                                            present it as "valid through".
  * @property Carbon|null $lapsed_at
  * @property Carbon|null $revoked_at
  * @property string|null $revoked_reason

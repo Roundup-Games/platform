@@ -67,9 +67,13 @@ class GameObserver
 
     /**
      * Keep the campaign's unpublished Previously-On draft in step with a
-     * saved session (D230). Only ever touches an EXISTING unpublished
-     * draft for THIS session — composing brand-new drafts stays owned by
-     * the two product triggers (session creation, the 24h reminder).
+     * saved session (D230). Two transitions recompose EXISTING drafts —
+     * an edit of the draft's own session (date/venue feed the CTA), and
+     * an edit that reorders WHICH session is chronologically next (the
+     * deposed session's stale draft is superseded by a fresh compose for
+     * the new head). Composing brand-new drafts on unrelated edits stays
+     * owned by the two product triggers (session creation, the 24h
+     * reminder).
      */
     private function syncPreviouslyOnDraft(Game $game): void
     {
@@ -91,15 +95,10 @@ class GameObserver
             return;
         }
 
-        if (! $game->wasChanged(['date_time', 'location_id'])) {
-            return;
-        }
-
-        if (! PreviouslyOnDraft::query()
-            ->whereBelongsTo($game)
-            ->whereNull('published_at')
-            ->exists()
-        ) {
+        // 'location' (the jsonb venue details) matters as much as the
+        // FK: a GM correcting the venue address without switching
+        // location_id still leaves a stale address in the draft's CTA.
+        if (! $game->wasChanged(['date_time', 'location_id', 'location'])) {
             return;
         }
 
@@ -112,14 +111,63 @@ class GameObserver
             return;
         }
 
+        $service = app(PreviouslyOnService::class);
+        $nextSession = $service->nextSession($campaign);
+
+        // Case 1 — the edited session holds the campaign's unpublished
+        // draft. While it stays the chronologically-next session, its
+        // draft recomposes in place; a reorder that moves it BEHIND a
+        // sibling makes that draft stale (the panel targets the new
+        // head and neither refresh() nor publish() can recover — both
+        // no-op on a null latestDraft), so recompose toward the new
+        // head, which supersedes the stale row atomically (the D230
+        // at-most-one-unpublished invariant).
+        if (PreviouslyOnDraft::query()
+            ->whereBelongsTo($game)
+            ->whereNull('published_at')
+            ->exists()
+        ) {
+            $target = ($nextSession !== null && ! $nextSession->is($game))
+                ? $nextSession
+                : $game;
+
+            $this->composeQuietly($service, $campaign, $target);
+
+            return;
+        }
+
+        // Case 2 — no draft of its own: a reorder that changed WHICH
+        // session is next strands the deposed session's draft exactly
+        // as above (the edited session may itself BE the new head —
+        // what matters is the stale draft elsewhere). Sweep toward the
+        // new head ONLY when such a stale unpublished draft exists —
+        // unrelated edits of non-next sessions still never compose
+        // brand-new drafts (the two product triggers own composition).
+        $hasStaleDraft = $nextSession !== null
+            && PreviouslyOnDraft::query()
+                ->whereBelongsTo($campaign)
+                ->whereNull('published_at')
+                ->where('game_id', '!=', $nextSession->getKey())
+                ->exists();
+
+        if ($hasStaleDraft) {
+            $this->composeQuietly($service, $campaign, $nextSession);
+        }
+    }
+
+    /**
+     * Compose (recompose) a draft without ever blocking the session
+     * save: composition failures are logged and swallowed (the
+     * AddSessionToCampaign isolation precedent).
+     */
+    private function composeQuietly(PreviouslyOnService $service, Campaign $campaign, Game $session): void
+    {
         try {
-            app(PreviouslyOnService::class)->upsertUnpublished($campaign, $game);
+            $service->upsertUnpublished($campaign, $session);
         } catch (\Throwable $e) {
-            // The AddSessionToCampaign isolation precedent: a composition
-            // failure is logged and never rolls back the session save.
             Log::warning('previously_on.recompose_failed', [
-                'game_id' => $game->id,
-                'campaign_id' => $game->campaign_id,
+                'game_id' => $session->id,
+                'campaign_id' => $campaign->id,
                 'error' => $e->getMessage(),
             ]);
         }

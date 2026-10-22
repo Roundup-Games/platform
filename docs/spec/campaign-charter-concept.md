@@ -200,11 +200,14 @@ later, chronicle/recruitment flows).
   (member) / **saved template** (member).
 - Templates are the professional-tooling angle: a GM's "standard charter" they refine once and
   reuse across campaigns.
-- Publish → signature collection begins; game participants notified; charter card appears on
-  campaign page and every session page in that campaign.
+- Publish → signature collection begins; the charter card appears on the campaign page
+  (approved participants and owner — no draft existence leak). Deferred out of M070 (D234/D238,
+  tracked gaps, not silent descopes): participant notifications on publish/amendment, and the
+  session-page charter card.
 
 ### Participant signing
-- Arrival via campaign page card, session page, or share link (existing UUID flow).
+- Arrival via campaign page card or share link (existing UUID flow); the session-page
+  card is deferred with D238.
 - Reading-optimized single scroll: clean typography, section anchors, sticky progress rail,
   no editing chrome. §2 private answers inline at the relevant section.
 - Signature panel at the end: read-attestation + four agreement checkboxes (§3 safety tools, §4 table policies, §5 AI & digital tools, §6 logistics) + sign button.

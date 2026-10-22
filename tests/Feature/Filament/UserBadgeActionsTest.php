@@ -43,6 +43,55 @@ beforeEach(function () {
     $this->artisan('badges:sync')->assertSuccessful();
 });
 
+// ── Authorization (comp idiom) ────────────────────────
+
+describe('UserResource badge admin gating', function () {
+    test('hides grant and revoke from a Service Admin — panel admission is not badge-granting power', function () {
+        $serviceAdmin = User::factory()->create();
+        $serviceAdmin->assignRole('Service Admin');
+        $serviceAdmin->unsetRelations();
+
+        actingAs($serviceAdmin);
+
+        expect($serviceAdmin->canAccessPanel(Filament::getPanel('admin')))->toBeTrue()
+            ->and($serviceAdmin->isAdmin())->toBeFalse();
+
+        app(BadgeService::class)->award($this->member, 'debut');
+
+        Livewire\Livewire::test(BadgesRelationManager::class, [
+            'ownerRecord' => $this->member,
+            'pageClass' => EditUser::class,
+        ])
+            ->assertOk()
+            ->assertActionHidden(TestAction::make('grantBadge')->table())
+            ->assertActionHidden(TestAction::make('revoke')->table(BadgeUser::query()->first()));
+    });
+
+    test('refuses a direct grant invocation from a Service Admin — the in-action gate creates nothing', function () {
+        $serviceAdmin = User::factory()->create();
+        $serviceAdmin->assignRole('Service Admin');
+        $serviceAdmin->unsetRelations();
+
+        actingAs($serviceAdmin);
+
+        // Livewire can invoke an action without re-running visible() —
+        // the in-action server-side gate is the defense (comp pattern:
+        // resolve the closure and execute it, the forged-request path).
+        $page = Livewire\Livewire::test(BadgesRelationManager::class, [
+            'ownerRecord' => $this->member,
+            'pageClass' => EditUser::class,
+        ]);
+        $closure = $page->instance()->getTable()->getAction('grantBadge')->getActionFunction();
+
+        expect($closure)->not->toBeNull();
+
+        $closure($page->instance(), ['badge' => 'debut', 'tier' => null, 'reason' => 'should never land']);
+
+        expect(BadgeUser::query()->count())->toBe(0)
+            ->and(BadgeEvent::query()->count())->toBe(0);
+    });
+});
+
 // ── Grant ─────────────────────────────────────────────
 
 describe('UserResource badge grant', function () {

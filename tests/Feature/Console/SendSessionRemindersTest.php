@@ -290,16 +290,42 @@ describe('SendSessionReminders 24-hour window', function () {
 
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful()
-            ->expectsOutputToContain('[24-hour] Found 2 game(s)')
+            ->expectsOutputToContain('[24-hour] Found 1 game(s)')
             ->expectsOutputToContain('[1-hour] Found 1 game(s)');
 
-        // 1h game: both timestamps set (within both windows)
+        // 1h game: the 1-hour pass owns it once the game is inside that
+        // horizon — exactly one reminder lands, never a wrong
+        // "starts in 24 hours" push back-to-back with the 1h one.
         expect($game1h->fresh()->reminder_sent_at)->not->toBeNull();
-        expect($game1h->fresh()->reminder_24h_sent_at)->not->toBeNull();
+        expect($game1h->fresh()->reminder_24h_sent_at)->toBeNull();
 
         // 24h-only game: reminder_24h_sent_at set, reminder_sent_at NOT set
         expect($game24h->fresh()->reminder_24h_sent_at)->not->toBeNull();
         expect($game24h->fresh()->reminder_sent_at)->toBeNull();
     });
 
+});
+
+it('never sends the 24h reminder for a game already inside the 1-hour horizon', function () {
+    // A game created/rescheduled to start within the hour (or whose
+    // T-24h tick was missed): the 1h pass owns the reminder — the same
+    // run must not fire a wrong "starts in 24 hours" push first.
+    $owner = User::factory()->create();
+    $player = User::factory()->create();
+    $game = Game::factory()->create([
+        'owner_id' => $owner->id,
+        'status' => 'scheduled',
+        'date_time' => now()->addMinutes(40),
+        'name' => ['en' => 'Imminent session'],
+    ]);
+    $game->participants()->create([
+        'user_id' => $player->id,
+        'status' => 'approved',
+    ]);
+
+    $this->artisan('pwa:send-session-reminders')->assertSuccessful();
+
+    // Exactly one reminder column is stamped — the 1h one.
+    expect($game->fresh()->reminder_sent_at)->not->toBeNull()
+        ->and($game->fresh()->reminder_24h_sent_at)->toBeNull();
 });

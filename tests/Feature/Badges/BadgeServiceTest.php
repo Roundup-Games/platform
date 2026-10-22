@@ -131,7 +131,7 @@ it('treats a same-or-lower tier re-award as already held with no new audit row',
     Event::assertNotDispatched(BadgeUpgraded::class);
 });
 
-it('revokes with a reason and re-awards reversibly while first_awarded_at survives', function () {
+it('revokes with a reason and a manual re-grant reverses it while first_awarded_at survives', function () {
     Event::fake([BadgeAwarded::class, BadgeUpgraded::class, BadgeRevoked::class]);
 
     $user = User::factory()->create();
@@ -158,8 +158,10 @@ it('revokes with a reason and re-awards reversibly while first_awarded_at surviv
         ->and($revocationAudit->reason)->toBe('Issued in error (test fixture)')
         ->and($revocationAudit->source)->toBe(BadgeSource::Manual);
 
-    // Revocation is reversible; milestones are never re-taken.
-    $reAward = $service->award($user, 'debut');
+    // Revocation is reversible by an explicit manual re-grant only
+    // (automatic proposals are refused — see the next test); milestones
+    // are never re-taken.
+    $reAward = $service->award($user, 'debut', null, null, BadgeSource::Manual, $admin, 'Re-granted after review (test fixture)');
 
     $renewedHold = BadgeUser::query()->first();
 
@@ -182,6 +184,54 @@ it('revokes with a reason and re-awards reversibly while first_awarded_at surviv
 
     Event::assertDispatchedTimes(BadgeAwarded::class, 2);
     Event::assertDispatchedTimes(BadgeRevoked::class, 1);
+});
+
+it('refuses to resurrect an admin-revoked badge from an automatic proposal: revocation is sticky against the sweep', function () {
+    Event::fake([BadgeAwarded::class, BadgeRevoked::class]);
+
+    $user = User::factory()->create();
+    $admin = User::factory()->create();
+    $service = app(BadgeService::class);
+
+    $service->award($user, 'debut');
+    $service->revoke($user, 'debut', 'Issued in error (test fixture)', $admin);
+
+    $auditRowsBefore = BadgeEvent::query()->count();
+
+    // The evaluator/sweep path (default Automatic source) must refuse:
+    // the evidence still qualifies, but the admin decision wins.
+    $result = $service->award($user, 'debut');
+
+    $hold = BadgeUser::query()->first();
+
+    expect($result)->toBe(BadgeAwardResult::RefusedRevoked)
+        ->and($hold->revoked_at)->not->toBeNull()
+        ->and($hold->revoked_reason)->toBe('Issued in error (test fixture)')
+        ->and(BadgeEvent::query()->count())->toBe($auditRowsBefore);
+
+    // Only the original award's event — the refused proposal dispatches nothing.
+    Event::assertDispatchedTimes(BadgeAwarded::class, 1);
+});
+
+it('a later automatic upgrade proposal also refuses on a revoked hold: stickiness outranks tiering', function () {
+    Event::fake([BadgeAwarded::class, BadgeUpgraded::class]);
+
+    BadgeDefinition::factory()->create([
+        'key' => 'test_tiered_badge',
+        'tiers' => ['bronze' => 1, 'silver' => 10, 'gold' => 50],
+    ]);
+
+    $user = User::factory()->create();
+    $admin = User::factory()->create();
+    $service = app(BadgeService::class);
+
+    $service->award($user, 'test_tiered_badge', 'gold');
+    $service->revoke($user, 'test_tiered_badge', 'Retracted pending review (test fixture)', $admin);
+
+    expect($service->award($user, 'test_tiered_badge', 'silver'))->toBe(BadgeAwardResult::RefusedRevoked)
+        ->and($service->award($user, 'test_tiered_badge', 'gold'))->toBe(BadgeAwardResult::RefusedRevoked);
+
+    Event::assertNotDispatched(BadgeUpgraded::class);
 });
 
 it('returns false when revoking a badge the user does not hold', function () {
@@ -241,6 +291,32 @@ it('treats a double lapse as a no-op with no second audit row', function () {
         ->and($service->lapse($user, 'debut', 'sweep_re-ran'))->toBeFalse()
         ->and(BadgeUser::query()->first()->lapsed_at)->not->toBeNull()
         ->and(BadgeEvent::query()->where('action', BadgeEventAction::Lapsed)->count())->toBe(1);
+});
+
+it('freezes lapse under retirement: no grey-out, no re-earn copy while award refuses (spec §2.3)', function () {
+    $user = User::factory()->create();
+    $service = app(BadgeService::class);
+
+    $service->award($user, 'debut');
+
+    $debut = BadgeDefinition::query()->where('key', 'debut')->firstOrFail();
+    $debut->update(['is_active' => false]);
+
+    // Retirement freezes the hold (Arctic Code Vault semantics): award
+    // refuses, and so does lapse — otherwise the hold greys out with
+    // "re-earn by" copy while re-earning is structurally impossible.
+    expect($service->lapse($user, 'debut', 'membership_ended'))->toBeFalse();
+
+    $hold = BadgeUser::query()->first();
+
+    expect($hold->lapsed_at)->toBeNull()
+        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Lapsed)->count())->toBe(0);
+
+    // Reactivation unfreezes: the recurring lifecycle resumes.
+    $debut->update(['is_active' => true]);
+
+    expect($service->lapse($user, 'debut', 'membership_ended'))->toBeTrue()
+        ->and(BadgeUser::query()->first()->lapsed_at)->not->toBeNull();
 });
 
 it('returns false when lapsing a badge the user does not hold', function () {
@@ -355,6 +431,52 @@ it('re-qualifies a lapsed tiered badge directly at the new tier', function () {
     ]);
 });
 
+it('requalification lands at the re-proposed tier even when LOWER — the proposal is the current signal, and stamps requalified_through', function () {
+    // Pins the documented downgrade semantics (BadgeService docblock): a
+    // lapsed gold holder whose rebuilt signal only reaches bronze re-
+    // qualifies at bronze — evaluators recompute current truth (streaks
+    // follow it; milestone counters can only grow), so the held tier
+    // always reflects the re-proposed signal, never a hand-clamped max.
+    BadgeDefinition::factory()->create([
+        'key' => 'test_tiered_badge',
+        'tiers' => ['bronze' => 1, 'silver' => 10, 'gold' => 50],
+    ]);
+
+    $user = User::factory()->create();
+    $service = app(BadgeService::class);
+
+    $service->award($user, 'test_tiered_badge', 'gold');
+
+    $this->travel(1)->seconds();
+    $service->lapse($user, 'test_tiered_badge', 'streak_broken');
+
+    $this->travel(1)->seconds();
+    $reAward = $service->award($user, 'test_tiered_badge', 'bronze');
+
+    $hold = BadgeUser::query()->first();
+
+    expect($reAward)->toBe(BadgeAwardResult::Awarded)
+        ->and($hold->tier)->toBe('bronze')
+        ->and($hold->lapsed_at)->toBeNull()
+        // The requalification window's end is stamped for exactly this
+        // transition (the schema's own column, previously never written).
+        ->and($hold->requalified_through)->not->toBeNull()
+        ->and($hold->requalified_through->isCurrentSecond())->toBeTrue()
+        ->and(BadgeUser::query()->count())->toBe(1);
+
+    $actions = BadgeEvent::query()
+        ->orderBy('created_at')
+        ->get()
+        ->map(fn (BadgeEvent $event) => $event->action)
+        ->all();
+
+    expect($actions)->toBe([
+        BadgeEventAction::Awarded,
+        BadgeEventAction::Lapsed,
+        BadgeEventAction::Requalified,
+    ]);
+});
+
 it('refuses new awards for inactive and dormant definitions without writing', function () {
     Event::fake([BadgeAwarded::class, BadgeUpgraded::class, BadgeRevoked::class]);
 
@@ -446,4 +568,51 @@ it('rejects unknown badge keys and invalid tiers as programming errors', functio
         ->toThrow(InvalidArgumentException::class)
         ->and(BadgeUser::query()->count())->toBe(0)
         ->and(BadgeEvent::query()->count())->toBe(0);
+});
+
+// ── Featured-flag lifecycle (review pass 4) ────────────────────
+
+it('lapse clears the featured flag: a dead hold never burns a shelf slot', function () {
+    Event::fake([BadgeAwarded::class, BadgeUpgraded::class, BadgeRevoked::class]);
+
+    $user = User::factory()->create();
+    $service = app(BadgeService::class);
+
+    $service->award($user, 'debut');
+    BadgeUser::query()->first()->update(['is_featured' => true]);
+
+    expect($service->lapse($user, 'debut', 'membership_ended'))->toBeTrue()
+        ->and(BadgeUser::query()->first()->is_featured)->toBeFalse();
+});
+
+it('revoke clears the featured flag', function () {
+    $admin = User::factory()->create();
+    $user = User::factory()->create();
+    $service = app(BadgeService::class);
+
+    $service->award($user, 'debut');
+    BadgeUser::query()->first()->update(['is_featured' => true]);
+
+    expect($service->revoke($user, 'debut', 'bad conduct', actor: $admin))->toBeTrue()
+        ->and(BadgeUser::query()->first()->is_featured)->toBeFalse();
+});
+
+it('treats a pre-existing hold row (not written through award) as already held', function () {
+    Event::fake([BadgeAwarded::class, BadgeUpgraded::class, BadgeRevoked::class]);
+
+    $user = User::factory()->create();
+    $definition = BadgeDefinition::query()->where('key', 'debut')->firstOrFail();
+    $service = app(BadgeService::class);
+
+    // A hold created outside the pipeline (backfill, manual insert):
+    // award() must converge on AlreadyHeld without a second row.
+    BadgeUser::factory()->for($user)->for($definition)->create();
+
+    $result = $service->award($user, 'debut');
+
+    expect($result)->toBe(BadgeAwardResult::AlreadyHeld)
+        ->and(BadgeUser::query()->count())->toBe(1)
+        ->and(BadgeEvent::query()->count())->toBe(0);
+
+    Event::assertNotDispatched(BadgeAwarded::class);
 });

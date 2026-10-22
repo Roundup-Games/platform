@@ -25,6 +25,9 @@ class BadgeUsersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            // Eager-load the per-row relations the user.name URL closure
+            // touches — without it every paginated row lazy-loads its user.
+            ->modifyQueryUsing(fn ($query) => $query->with(['user']))
             ->columns([
                 TextColumn::make('user.name')
                     ->label('User')
@@ -59,6 +62,15 @@ class BadgeUsersRelationManager extends RelationManager
                     ->dateTime()
                     ->sortable()
                     ->toggleable(),
+                // The requalification watermark: how far a hold's
+                // qualifying streak currently counts (BadgeService stamps
+                // it on requalification). Informational only — it is NOT
+                // a validity end date.
+                TextColumn::make('requalified_through')
+                    ->label('Requalified through')
+                    ->date()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('first_awarded_at', 'desc');
     }

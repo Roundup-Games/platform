@@ -91,31 +91,57 @@ function previouslyOnTriggerWindowSession(User $owner, Campaign $campaign): Game
 
 // ── Trigger 1: session publish (AddSessionToCampaign::save) ────────
 
-test('a member GM adding a session composes the draft for that session', function () {
+test('a member GM adding a session composes the draft for the chronologically next session', function () {
     [$owner, $campaign] = previouslyOnTriggerCampaign('the heist recap body');
 
     $session2 = previouslyOnTriggerAddSession($owner, $campaign);
 
+    // The new session IS the next one (no competition): the draft
+    // targets it, built from the journal (D221).
     $draft = PreviouslyOnDraft::query()->whereBelongsTo($session2)->first();
     expect($draft)->not->toBeNull()
         ->and($draft->campaign_id)->toBe($campaign->id)
         ->and($draft->body)->toContain('the heist recap body')
         ->and($draft->published_at)->toBeNull();
 
-    // A third session: its draft SUPERSEDES session two's unpublished
-    // one (D230 projection model) — at most one unpublished draft per
-    // campaign, always the forward-looking one for the next session.
+    // A third session FURTHER OUT (the normal recurrence flow: session 2
+    // next week, session 3 next month): the compose targets the NEXT
+    // session, so session two's draft survives untouched — the panel's
+    // draft (CampaignPreviouslyOn::latestDraft resolves the same
+    // chronologically-next session) must never be superseded away by
+    // adding a later session. (Regression: composing for the NEW session
+    // here used to delete session two's draft and blank the panel until
+    // the 24h reminder recomposed it.)
     $session3 = previouslyOnTriggerAddSession($owner, $campaign, 8);
 
-    $draft2 = PreviouslyOnDraft::query()->whereBelongsTo($session3)->first();
+    $draft2 = PreviouslyOnDraft::query()->whereBelongsTo($session2)->first();
     expect(PreviouslyOnDraft::query()->count())->toBe(1)
         ->and($draft2)->not->toBeNull()
+        ->and($draft2->id)->toBe($draft->id)
         ->and($draft2->body)->toContain('the heist recap body')
-        ->and(PreviouslyOnDraft::query()->whereBelongsTo($session2)->first())->toBeNull();
+        ->and(PreviouslyOnDraft::query()->whereBelongsTo($session3)->first())->toBeNull();
 
     // Draft-first (D221): one composed draft, zero bulletins — a board
     // row only ever appears after the GM publishes from the panel.
     expect(GameBulletin::query()->count())->toBe(0);
+});
+
+test('adding a session EARLIER than the current next retargets the draft to it', function () {
+    [$owner, $campaign] = previouslyOnTriggerCampaign('the heist recap body');
+
+    $sessionNextMonth = previouslyOnTriggerAddSession($owner, $campaign, 30);
+    expect(PreviouslyOnDraft::query()->whereBelongsTo($sessionNextMonth)->first())->not->toBeNull();
+
+    // The new session lands BEFORE the old next one: the draft follows
+    // the calendar — the replacement session owns the single unpublished
+    // draft and the old next session's draft is superseded away.
+    $sessionNextWeek = previouslyOnTriggerAddSession($owner, $campaign, 7);
+
+    $retargeted = PreviouslyOnDraft::query()->whereBelongsTo($sessionNextWeek)->first();
+    expect(PreviouslyOnDraft::query()->count())->toBe(1)
+        ->and($retargeted)->not->toBeNull()
+        ->and($retargeted->body)->toContain('the heist recap body')
+        ->and(PreviouslyOnDraft::query()->whereBelongsTo($sessionNextMonth)->first())->toBeNull();
 });
 
 test('a non-member owner adds the session with no draft, no errors, and the session still lands', function () {
@@ -411,6 +437,91 @@ test('a session date edit recomposes the unpublished draft in place', function (
         ->and($fresh->body)->toContain(format_date($newWhen, 'weekday_datetime'))
         ->and($fresh->body)->not->toContain(format_date($oldWhen, 'weekday_datetime'))
         ->and($fresh->published_at)->toBeNull();
+});
+
+test('a venue-details-only edit (the location jsonb, no FK change) recomposes the draft', function () {
+    app()->setLocale('en');
+    [$owner, $campaign, $completed] = previouslyOnTriggerCampaign();
+    $session = previouslyOnTriggerAddSession($owner, $campaign, 7);
+    $session->update(['location' => ['details' => 'Old side entrance']]);
+
+    $draft = PreviouslyOnDraft::query()->whereBelongsTo($session)->firstOrFail();
+    expect($draft->body)->toContain('Old side entrance');
+
+    // The GM corrects the address without switching location_id — the
+    // jsonb-only change still recomposes (wasChanged covers 'location').
+    $session->update(['location' => ['details' => 'New main entrance']]);
+
+    $fresh = $draft->fresh();
+
+    expect($fresh->id)->toBe($draft->id)
+        ->and($fresh->body)->toContain('New main entrance')
+        ->and($fresh->body)->not->toContain('Old side entrance');
+});
+
+test('a reorder edit retargets the draft when a sibling moves ahead of the draft holder', function () {
+    app()->setLocale('en');
+    [$owner, $campaign, $completed] = previouslyOnTriggerCampaign();
+    $a = previouslyOnTriggerAddSession($owner, $campaign, 7);  // next, holds the draft
+    $b = previouslyOnTriggerAddSession($owner, $campaign, 14); // later sibling
+
+    expect(PreviouslyOnDraft::query()->whereBelongsTo($campaign)->whereNull('published_at')->count())->toBe(1);
+
+    // The GM moves B BEFORE A: B is now the next session. B has no
+    // draft of its own, but A's stale draft must be superseded by a
+    // fresh compose for the new head — not left stranded invisible
+    // (the panel targets the new head and neither refresh nor publish
+    // can recover from a draft for a non-next session).
+    $b->update(['date_time' => now()->addDays(3)->startOfHour()]);
+
+    $unpublished = PreviouslyOnDraft::query()
+        ->whereBelongsTo($campaign)
+        ->whereNull('published_at')
+        ->get();
+
+    expect($unpublished)->toHaveCount(1)
+        ->and($unpublished->first()->game_id)->toBe($b->id)
+        ->and($unpublished->first()->body)->toContain(format_date($b->fresh()->date_time, 'weekday_datetime'));
+});
+
+test('a reorder edit supersedes the draft when its own holder moves behind a sibling', function () {
+    app()->setLocale('en');
+    [$owner, $campaign, $completed] = previouslyOnTriggerCampaign();
+    $a = previouslyOnTriggerAddSession($owner, $campaign, 7);  // next, holds the draft
+    $b = previouslyOnTriggerAddSession($owner, $campaign, 14); // later sibling
+
+    // The GM pushes A (the draft holder) AFTER B: the campaign's
+    // unpublished draft must follow the new head (B), superseding A's.
+    $a->update(['date_time' => now()->addDays(21)->startOfHour()]);
+
+    $unpublished = PreviouslyOnDraft::query()
+        ->whereBelongsTo($campaign)
+        ->whereNull('published_at')
+        ->get();
+
+    expect($unpublished)->toHaveCount(1)
+        ->and($unpublished->first()->game_id)->toBe($b->id);
+});
+
+test('an unrelated edit of a non-next session never composes or retargets the draft', function () {
+    app()->setLocale('en');
+    [$owner, $campaign, $completed] = previouslyOnTriggerCampaign();
+    $a = previouslyOnTriggerAddSession($owner, $campaign, 7);  // next, holds the draft
+    $b = previouslyOnTriggerAddSession($owner, $campaign, 14); // later sibling
+
+    $draft = PreviouslyOnDraft::query()->whereBelongsTo($campaign)->whereNull('published_at')->firstOrFail();
+
+    // B stays behind A — the edit changes nothing about which session
+    // is next, so no draft is composed for B and A's draft is left
+    // untouched (composition stays owned by the product triggers).
+    $b->update(['date_time' => now()->addDays(15)->startOfHour()]);
+
+    $fresh = $draft->fresh();
+
+    expect($fresh)->not->toBeNull()
+        ->and($fresh->id)->toBe($draft->id)
+        ->and($fresh->game_id)->toBe($a->id)
+        ->and(PreviouslyOnDraft::query()->whereBelongsTo($campaign)->whereNull('published_at')->count())->toBe(1);
 });
 
 test('a composition failure never blocks the session save (observer isolation)', function () {

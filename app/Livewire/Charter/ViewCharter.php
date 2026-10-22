@@ -95,6 +95,11 @@ class ViewCharter extends Component
 
     private bool $viewerSignatureResolved = false;
 
+    /** Memoized like viewerSignature: render data and amendedBanner() both ask. */
+    private bool $canSign = false;
+
+    private bool $canSignResolved = false;
+
     /** @var array{amendedOn: CarbonInterface, changelog: string, changes: list<array<string, mixed>>}|null */
     private ?array $amendedBanner = null;
 
@@ -113,6 +118,12 @@ class ViewCharter extends Component
         if ($charter->isDraft() && ! $this->isOwner()) {
             abort(404);
         }
+
+        // Re-agreement continuity (concept §3): a participant facing the
+        // signing form starts from the answers they previously submitted
+        // — re-confirmation after a material amendment must never
+        // degrade into re-entry from memory.
+        $this->prefillPriorAnswers();
     }
 
     public function render(): View
@@ -250,6 +261,45 @@ class ViewCharter extends Component
 
     // ── Internals ────────────────────────────────────────
 
+    /**
+     * Seed the signing form's private-answer fields from the viewer's
+     * OWN latest submission across versions (the latestParticipantConfirmation
+     * contract — same ordering as signature carries). Mount-time only:
+     * never re-run on later requests, where it would clobber the user's
+     * in-progress edits. Their own answers, never another participant's.
+     */
+    private function prefillPriorAnswers(): void
+    {
+        $charter = $this->resolveCharter();
+        $user = Auth::user();
+
+        if ($charter === null || $user === null || ! $this->canSign()) {
+            return;
+        }
+
+        $prior = CharterSigningService::latestParticipantConfirmation($charter, $user, withAnswersOnly: true);
+
+        if ($prior === null) {
+            return;
+        }
+
+        $answers = $prior->private_answers ?? [];
+
+        $lines = $answers['my_lines_categories'] ?? [];
+        $veils = $answers['my_veils_categories'] ?? [];
+
+        $this->myLinesCategories = is_array($lines) ? array_values(array_filter($lines, 'is_string')) : [];
+        $this->myVeilsCategories = is_array($veils) ? array_values(array_filter($veils, 'is_string')) : [];
+        $this->myLinesText = self::prefillText($answers['my_lines_text'] ?? null);
+        $this->myVeilsText = self::prefillText($answers['my_veils_text'] ?? null);
+        $this->noteToGm = self::prefillText($answers['note_to_gm'] ?? null);
+    }
+
+    private static function prefillText(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
+    }
+
     private function resolveCharter(): ?SessionZeroSurvey
     {
         if ($this->resolvedCharter === null) {
@@ -281,6 +331,10 @@ class ViewCharter extends Component
      */
     private function canSign(): bool
     {
+        if ($this->canSignResolved) {
+            return $this->canSign;
+        }
+
         $charter = $this->resolveCharter();
         $user = Auth::user();
 
@@ -292,11 +346,14 @@ class ViewCharter extends Component
             return false;
         }
 
-        return CampaignParticipant::query()
+        $this->canSign = CampaignParticipant::query()
             ->where('campaign_id', $charter->campaign_id)
             ->whereBelongsTo($user)
             ->where('status', ParticipantStatus::Approved->value)
             ->exists();
+        $this->canSignResolved = true;
+
+        return $this->canSign;
     }
 
     /**
@@ -353,19 +410,10 @@ class ViewCharter extends Component
         }
 
         // Their latest participant confirmation across earlier versions
-        // (highest version_number, confirmed_at tiebreak — the same ordering
-        // amend() uses for carries). No row at all means they never signed:
-        // the plain signing panel is the right surface, not the banner.
-        $confirmation = $charter->confirmations()
-            ->join(
-                'session_zero_survey_versions as signed_versions',
-                'signed_versions.id', '=', 'session_zero_confirmations.session_zero_survey_version_id',
-            )
-            ->where('session_zero_confirmations.user_id', $user->id)
-            ->where('session_zero_confirmations.role', SessionZeroConfirmation::ROLE_PARTICIPANT)
-            ->orderByDesc('signed_versions.version_number')
-            ->orderByDesc('session_zero_confirmations.confirmed_at')
-            ->first(['session_zero_confirmations.*']);
+        // (the latestParticipantConfirmation ordering contract). No row
+        // at all means they never signed: the plain signing panel is the
+        // right surface, not the banner.
+        $confirmation = CharterSigningService::latestParticipantConfirmation($charter, $user);
 
         if ($confirmation === null
             || $confirmation->status !== SessionZeroConfirmation::STATUS_PENDING_REAGREEMENT) {
@@ -384,8 +432,12 @@ class ViewCharter extends Component
         $this->amendedBanner = [
             'amendedOn' => $version->published_at,
             'changelog' => (string) ($version->changelog ?? ''),
+            // Venue uuids resolve to names — the same resolution the
+            // GM's review-step preview applies (CharterDiff::
+            // resolveLocationNames), so participants never see a raw
+            // row identifier on the public charter page.
             'changes' => $signedVersion !== null
-                ? CharterDiff::changes($signedVersion->content, $version->content)
+                ? CharterDiff::resolveLocationNames(CharterDiff::changes($signedVersion->content, $version->content))
                 : [],
         ];
 

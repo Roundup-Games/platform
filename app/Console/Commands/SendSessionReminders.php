@@ -48,10 +48,14 @@ class SendSessionReminders extends Command
         $totalErrorCount = 0;
 
         // ── 24-hour window ──
+        // Starts at the 1-hour horizon, not at now: a game inside the
+        // final hour is the 1h pass's to remind about — otherwise the
+        // same run sends a "starts in 24 hours" push for a game starting
+        // in minutes, immediately followed by the 1-hour push.
         [$notified24h, $errorCount24h] = $this->sendRemindersForWindow(
             $notificationService,
             $dryRun,
-            CarbonImmutable::now(),
+            CarbonImmutable::now()->addHour(),
             '24h',
             CarbonImmutable::now()->addHours(24),
             'reminder_24h_sent_at',
@@ -91,14 +95,14 @@ class SendSessionReminders extends Command
     private function sendRemindersForWindow(
         NotificationService $notificationService,
         bool $dryRun,
-        CarbonImmutable $now,
+        CarbonImmutable $windowStart,
         string $window,
         CarbonImmutable $windowEnd,
         string $sentAtColumn,
     ): array {
         $games = Game::query()
             ->where('status', 'scheduled')
-            ->where('date_time', '>', $now)
+            ->where('date_time', '>', $windowStart)
             ->where('date_time', '<=', $windowEnd)
             ->whereNull($sentAtColumn)
             ->with(['participants.user', 'owner', 'campaign.owner.subscriptions'])
@@ -184,7 +188,11 @@ class SendSessionReminders extends Command
                     if ($campaign !== null
                         && $campaign->owner !== null
                         && GmMembershipService::canUseMemberFeatures($campaign->owner)) {
-                        app(PreviouslyOnService::class)->upsertUnpublished($campaign, $game);
+                        // The next session's draft — when two sessions of
+                        // one campaign share the 24h window, loop order
+                        // must not decide whose draft survives (D230:
+                        // composeForNextSession resolves chronologically).
+                        app(PreviouslyOnService::class)->composeForNextSession($campaign);
                     }
                 } catch (\Throwable $e) {
                     Log::warning('previously_on.reminder_refresh_failed', [

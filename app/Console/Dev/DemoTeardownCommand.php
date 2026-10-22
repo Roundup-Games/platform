@@ -24,7 +24,7 @@ class DemoTeardownCommand extends Command
     {
         // Registration-gated to non-production (AppServiceProvider), but guard
         // here too so direct instantiation can never run against live data.
-        if (app()->environment('production')) {
+        if (app()->environment('production', 'prod', 'live', 'staging')) {
             $this->error('demo:teardown is a development tool and is disabled in production.');
 
             return self::FAILURE;

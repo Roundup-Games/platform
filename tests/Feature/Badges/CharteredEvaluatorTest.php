@@ -284,3 +284,28 @@ it('keeps the award through a material amendment — the gm row persists as pend
         ->and($hold->lapsed_at)->toBeNull()
         ->and($hold->revoked_at)->toBeNull();
 });
+
+it('never counts a gm confirmation row that no participant signed against — a participant-less charter proves nothing', function () {
+    // The pre-fix gap, as a regression pin: a gm row alone (no signed
+    // participant row on the same version) must not count, so a
+    // publish -> countersign -> archive loop on a participant-less
+    // campaign cannot farm the badge.
+    $owner = User::factory()->create();
+    $campaign = charteredCampaign($owner);
+    $charter = CharterService::start($owner, $campaign);
+    $version = CharterService::publish($owner, $charter, $campaign->getTranslation('name', 'en'), charteredContent($campaign));
+
+    // A gm confirmation row WITHOUT the gate that would have refused it
+    // (zero approved participants) — the exact row a stale or misused
+    // surface could leave behind.
+    $charter->confirmations()->create([
+        'session_zero_survey_version_id' => $version->id,
+        'user_id' => $owner->id,
+        'attestations' => [],
+        'private_answers' => null,
+        'status' => SessionZeroConfirmation::STATUS_SIGNED,
+        'role' => SessionZeroConfirmation::ROLE_GM,
+    ]);
+
+    expect(app(CharteredEvaluator::class)->evaluate($owner))->toBeNull();
+});

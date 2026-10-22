@@ -147,8 +147,10 @@
     </ul>
 
     {{-- §8 countersignature: unlocked only once every approved participant
-         has signed the current version; CharterSigningService re-enforces
-         the gate on the server for every attempt. --}}
+         has signed the current version AND at least one approved
+         participant exists (an empty/benched-out roster can never
+         countersign — silence is never consent); CharterSigningService
+         re-enforces both gates on the server for every attempt. --}}
     <div class="mt-6 pt-5 border-t border-outline/20">
         @if($gmCountersignature !== null)
             <p class="flex items-center gap-2 text-sm font-medium text-primary">
@@ -163,13 +165,18 @@
                 <button
                     type="button"
                     wire:click="countersign"
-                    @disabled($rosterSigned < $rosterTotal)
+                    @disabled($rosterTotal === 0 || $rosterSigned < $rosterTotal)
                     class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <span class="material-symbols-outlined text-base" aria-hidden="true">verified</span>
                     {{ __('charter.action_countersign_charter') }}
                 </button>
-                @if($rosterSigned < $rosterTotal)
+                @if($rosterTotal === 0)
+                    <p class="flex items-start gap-1.5 text-xs text-on-surface-variant">
+                        <span class="material-symbols-outlined text-sm mt-px shrink-0" aria-hidden="true">hourglass_top</span>
+                        {{ __('charter.description_countersign_no_participants') }}
+                    </p>
+                @elseif($rosterSigned < $rosterTotal)
                     <p class="flex items-start gap-1.5 text-xs text-on-surface-variant">
                         <span class="material-symbols-outlined text-sm mt-px shrink-0" aria-hidden="true">hourglass_top</span>
                         {{ __('charter.description_countersign_pending', ['count' => $rosterTotal - $rosterSigned]) }}

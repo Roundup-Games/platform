@@ -1,12 +1,15 @@
 <?php
 
 use App\Enums\LocalSubscriptionSource;
+use App\Events\MembershipEnded;
 use App\Models\LocalSubscription;
 use App\Models\MembershipType;
 use App\Models\User;
 use App\Services\CompMembershipService;
 use App\Services\GmRoleService;
+use Illuminate\Database\Events\TransactionBeginning;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Event;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -133,6 +136,98 @@ it('leaves future-period comps untouched', function () {
         ->and($gmRoleService->isGmActive($user))->toBeTrue();
 });
 
+it('laps benefits on the LIVE membership state when a Paddle webhook cancels between snapshot and decision', function () {
+    $gmRoleService = app(GmRoleService::class);
+    $user = User::factory()->create();
+    $admin = User::factory()->create();
+
+    // A due comp row carrying GM benefits (granted live, then aged
+    // past its period — the row state the 03:15 sweep finds).
+    $subscription = app(CompMembershipService::class)
+        ->grant($user, now()->addMonth(), $admin, 'Community recognition comp');
+    expect($gmRoleService->isGmActive($user))->toBeTrue();
+    $subscription->update(['ends_at' => now()->subDay()]);
+
+    // …plus an ACTIVE Cashier subscription when the due set loads: the
+    // eager snapshot says "still a member".
+    $user->subscriptions()->create([
+        'type' => 'default',
+        'paddle_id' => 'ctn_test_'.str()->random(10),
+        'status' => 'active',
+    ]);
+
+    // The webhook races in between the snapshot and the per-row
+    // transaction: the moment the sweep opens the row's transaction,
+    // the Cashier sub cancels — before the conditional flip (the row
+    // itself stays due, so the flip proceeds) but before the membership
+    // decision. TransactionBeginning fires once per DB::transaction,
+    // so a one-shot armed listener lands exactly in that window.
+    $raceFired = false;
+    Event::listen(TransactionBeginning::class, function () use (&$raceFired, $user): void {
+        if ($raceFired) {
+            return;
+        }
+
+        $raceFired = true;
+
+        $user->subscriptions()->update([
+            'status' => 'canceled',
+            'ends_at' => now(),
+        ]);
+    });
+
+    $this->artisan('subscriptions:expire')->assertSuccessful();
+
+    // Live state at decision time: no active membership anywhere — the
+    // stale snapshot would have kept the GM benefits stranded forever
+    // (the due query never revisits an expired row).
+    expect($subscription->fresh()->status)->toBe('expired')
+        ->and($gmRoleService->isGmActive($user))->toBeFalse()
+        ->and($user->fresh()->hasRole('Game Master'))->toBeFalse();
+});
+
+it('skips a row a comp re-grant renewed between snapshot and flip (conditional expiry)', function () {
+    $gmRoleService = app(GmRoleService::class);
+    $user = User::factory()->create();
+    $admin = User::factory()->create();
+
+    $subscription = subscriptionsExpireAgedComp($user, $admin);
+    // Aged past its period but not yet swept: the role is still held
+    // (isGmActive is false only because scopeActive hides the due row).
+    expect($user->fresh()->hasRole('Game Master'))->toBeTrue();
+
+    Event::fake([MembershipEnded::class]);
+
+    // An admin re-grant lands between the snapshot and the per-row
+    // transaction: CompMembershipService::persistGrant RENEWS the
+    // in-place row (ends_at into the future, still status=active). The
+    // sweep's flip must be conditional on live due-ness — an
+    // unconditional flip would expire the fresh grant, lapse benefits
+    // off it, and dispatch a false MembershipEnded.
+    $raceFired = false;
+    Event::listen(TransactionBeginning::class, function () use (&$raceFired, $subscription): void {
+        if ($raceFired) {
+            return;
+        }
+
+        $raceFired = true;
+
+        $subscription->update(['ends_at' => now()->addMonths(3)]);
+    });
+
+    // The command output must report what the sweep actually did: a
+    // declined flip expired nothing — zero, not one.
+    $this->artisan('subscriptions:expire')
+        ->expectsOutputToContain('0 expired, 0 GM benefit lapse(s)')
+        ->assertSuccessful();
+
+    expect($subscription->fresh()->status)->toBe('active')
+        ->and($subscription->fresh()->ends_at)->isFuture()
+        ->and($gmRoleService->isGmActive($user))->toBeTrue();
+
+    Event::assertNotDispatched(MembershipEnded::class);
+});
+
 it('keeps GM benefits when a second active membership remains', function () {
     $gmRoleService = app(GmRoleService::class);
     $user = User::factory()->create();
@@ -195,16 +290,37 @@ it('skips a row whose processing throws and still sweeps the rest (per-row failu
     $healthy = User::factory()->create();
     $healthySub = subscriptionsExpireAgedComp($healthy, $admin);
 
+    $thrownFor = [];
     $this->partialMock(GmRoleService::class)
         ->shouldReceive('handleSubscriptionLapse')
-        ->once()
-        ->withArgs(fn (User $user): bool => $user->is($failing))
-        ->andThrow(new RuntimeException('lapse exploded'));
+        ->andReturnUsing(function (User $user) use ($failing, &$thrownFor): bool {
+            // Transient failure: throws exactly once for the poisoned
+            // row (run 1), succeeds for everyone and on run 2 — the
+            // "next night picks it up" convergence below.
+            if ($user->is($failing) && ! in_array($user->id, $thrownFor, true)) {
+                $thrownFor[] = $user->id;
+
+                throw new RuntimeException('lapse exploded');
+            }
+
+            return true;
+        });
 
     // The documented always-SUCCESS contract: the throw is logged and
     // skipped, and the healthy row behind it still expires.
     $this->artisan('subscriptions:expire')->assertSuccessful();
 
-    expect($failingSub->fresh()->status)->toBe('expired')
+    // Flip and lapse are one transaction: the poisoned row rolled back
+    // whole (still active, still due tomorrow — a committed flip whose
+    // lapse threw would strand the user's GM benefits forever, because
+    // the due query can never re-find an expired row), the healthy row
+    // expired regardless.
+    expect($failingSub->fresh()->status)->toBe('active')
         ->and($healthySub->fresh()->status)->toBe('expired');
+
+    // Convergence: once the transient failure is gone, the next night's
+    // sweep finds the still-due row again and completes it.
+    $this->artisan('subscriptions:expire')->assertSuccessful();
+
+    expect($failingSub->fresh()->status)->toBe('expired');
 });

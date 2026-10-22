@@ -4,11 +4,14 @@ use App\Livewire\Billing\BillingPortal;
 use App\Livewire\Billing\MembershipPage;
 use App\Models\MembershipType;
 use App\Models\User;
+use App\Services\CompMembershipService;
+use App\Services\GmRoleService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Subscription;
+use Spatie\Permission\Models\Role;
 
 use function Pest\Laravel\actingAs;
 
@@ -58,6 +61,33 @@ function portalCreateCustomer(User $user, ?string $paddleId = null): void
     ]);
 }
 
+/**
+ * Seed the local GM plan + Game Master role (unique prefix: Pest
+ * compiles every test file into one process — a redeclared helper
+ * name is fatal).
+ */
+function billingPortalSeedGmPlanAndRole(): void
+{
+    MembershipType::updateOrCreate(
+        ['name' => 'Game Master'],
+        [
+            'description' => 'Test GM plan (billing portal fixtures)',
+            'price_cents' => 0,
+            'duration_months' => 0,
+            'status' => 'active',
+            'type' => 'local',
+            'paddle_price_id' => null,
+            'metadata' => ['gm_plan' => true],
+        ],
+    );
+
+    Role::firstOrCreate([
+        'name' => 'Game Master',
+        'guard_name' => 'web',
+        'team_id' => null,
+    ]);
+}
+
 // ═══════════════════════════════════════════════════════════
 // BILLING PORTAL — DISPLAY
 // ═══════════════════════════════════════════════════════════
@@ -104,6 +134,143 @@ describe('Billing Portal — Cancel Subscription', function () {
             ->call('cancelSubscription');
 
         expect($subscription->fresh()->ends_at)->not->toBeNull();
+    });
+
+    it('keeps GM benefits when a Paddle cancel leaves an active local GM membership', function () {
+        config(['cashier.api_key' => 'test_api_key']);
+
+        billingPortalSeedGmPlanAndRole();
+        $user = portalCreateUser();
+        portalCreateSubscription($user, ['status' => 'active']);
+        app(GmRoleService::class)->activateGmSubscription($user);
+        $user->unsetRelations();
+
+        Http::fake([
+            '*/subscriptions/*' => Http::response(['data' => [
+                'id' => 'sub_x',
+                'status' => 'active',
+                'canceled_at' => now()->addMonth()->toIso8601String(),
+                'scheduled_change' => [
+                    'action' => 'cancel',
+                    'effective_at' => now()->addMonth()->toIso8601String(),
+                ],
+            ]]),
+        ]);
+        Log::shouldReceive('info')->andReturn(null);
+
+        // Benefits follow the LAST active membership: the self-serve GM
+        // plan survives the Paddle supporter cancel, so the GM role,
+        // public-entry right, and profile must all stay intact.
+        Livewire::actingAs($user)
+            ->test(BillingPortal::class)
+            ->call('cancelSubscription');
+
+        expect($user->fresh()->isGM())->toBeTrue()
+            ->and($user->fresh()->can_create_public_entries)->toBeTrue()
+            ->and($user->fresh()->gmProfile->is_active)->toBeTrue()
+            ->and($user->fresh()->hasActiveMembership())->toBeTrue();
+    });
+
+    it('keeps GM benefits through the paid grace period of a canceled Paddle-only membership', function () {
+        config(['cashier.api_key' => 'test_api_key']);
+
+        billingPortalSeedGmPlanAndRole();
+        $user = portalCreateUser();
+        portalCreateSubscription($user, ['status' => 'active']);
+        app(GmRoleService::class)->assignGMRole($user);
+        $user->unsetRelations();
+
+        Http::fake([
+            '*/subscriptions/*' => Http::response(['data' => [
+                'id' => 'sub_x',
+                'status' => 'active',
+                'canceled_at' => now()->addMonth()->toIso8601String(),
+                'scheduled_change' => [
+                    'action' => 'cancel',
+                    'effective_at' => now()->addMonth()->toIso8601String(),
+                ],
+            ]]),
+        ]);
+        Log::shouldReceive('info')->andReturn(null);
+
+        // The paid-out grace period keeps the subscription valid
+        // (subscribed() = active OR onGracePeriod), so the portal cancel
+        // must not lapse benefits early — the subscription.canceled
+        // webhook ends the membership when the period actually does.
+        Livewire::actingAs($user)
+            ->test(BillingPortal::class)
+            ->call('cancelSubscription');
+
+        expect($user->fresh()->isGM())->toBeTrue()
+            ->and($user->fresh()->gmProfile->is_active)->toBeTrue();
+    });
+
+    it('activates exactly the GM plan the user clicked when several gm_plan rows are active', function () {
+        billingPortalSeedGmPlanAndRole();
+
+        // Two live gm_plan rows (a tier variant, say): the button the
+        // user clicked must win — the service may not re-resolve "the"
+        // GM plan by arbitrary row order.
+        $clicked = MembershipType::updateOrCreate(
+            ['name' => 'Game Master+'],
+            [
+                'description' => 'Tier variant',
+                'price_cents' => 500,
+                'duration_months' => 0,
+                'status' => 'active',
+                'type' => 'local',
+                'paddle_price_id' => null,
+                'metadata' => ['gm_plan' => true],
+            ],
+        );
+
+        $user = portalCreateUser();
+
+        Livewire::actingAs($user)
+            ->test(BillingPortal::class)
+            ->call('activateLocalPlan', $clicked->id);
+
+        $subscription = $user->localSubscriptions()->first();
+
+        expect($subscription)->not->toBeNull()
+            ->and($subscription->membership_type_id)->toBe($clicked->id);
+    });
+
+    it('blocks GM-plan self-serve activation for a comp holder (one active GM membership)', function () {
+        billingPortalSeedGmPlanAndRole();
+
+        $user = portalCreateUser();
+        $admin = portalCreateUser();
+        app(CompMembershipService::class)->grant($user, now()->addMonth(), $admin, 'Community comp');
+
+        $plan = MembershipType::where('name', 'Game Master')->first();
+
+        Livewire::actingAs($user)
+            ->test(BillingPortal::class)
+            ->call('activateLocalPlan', $plan->id);
+
+        // hasGmSubscription() is any-source: the comp-only user gets the
+        // already-have refusal, not a second (self-serve) GM row.
+        expect($user->localSubscriptions()->count())->toBe(1)
+            ->and($user->localSubscriptions()->first()->source->value)->toBe('comp');
+    });
+
+    it('shows GM tools Active while a surviving comp keeps benefits beside a canceled self-serve row', function () {
+        billingPortalSeedGmPlanAndRole();
+
+        $user = portalCreateUser();
+        app(GmRoleService::class)->activateGmSubscription($user);
+        app(GmRoleService::class)->deactivateGmSubscription($user);
+        app(CompMembershipService::class)->grant($user, now()->addMonth(), portalCreateUser(), 'Community comp');
+        $user->unsetRelations();
+
+        // The card's pill reflects live BENEFIT state (the
+        // last-active-membership invariant), not the displayed row's
+        // canceled status — benefits are alive via the comp.
+        Livewire::actingAs($user)
+            ->test(BillingPortal::class)
+            ->assertSee(__('billing.content_gm_tools_active_description'))
+            ->assertDontSee(__('billing.content_gm_tools_inactive_description'));
     });
 });
 

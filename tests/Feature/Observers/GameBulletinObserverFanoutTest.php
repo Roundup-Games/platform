@@ -38,7 +38,7 @@ class GameBulletinObserverFanoutTest extends TestCase
 
         [$host, $game] = $this->gameWithHost();
 
-        $bulletin = GameBulletin::postAsHost((string) $game->id, (string) $host->id, 'Doors open at 18:00.');
+        $bulletin = GameBulletin::postBy((string) $game->id, (string) $host->id, 'Doors open at 18:00.');
 
         Queue::assertPushed(PublishGameBulletinToDiscord::class, fn (PublishGameBulletinToDiscord $job) => $job->bulletinId === $bulletin->id);
     }
@@ -53,7 +53,7 @@ class GameBulletinObserverFanoutTest extends TestCase
         $player = $this->attachParticipant($game, ParticipantStatus::Approved);
         $waitlisted = $this->attachParticipant($game, ParticipantStatus::Waitlisted);
 
-        GameBulletin::postAsHost((string) $game->id, (string) $host->id, 'Bring a level 3 character.');
+        GameBulletin::postBy((string) $game->id, (string) $host->id, 'Bring a level 3 character.');
 
         Notification::assertSentTo($player, BulletinPosted::class);
         Notification::assertNotSentTo($host, BulletinPosted::class);
@@ -68,7 +68,7 @@ class GameBulletinObserverFanoutTest extends TestCase
 
         [$host, $game] = $this->gameWithHost();
 
-        $bulletin = GameBulletin::postAsHost((string) $game->id, (string) $host->id, 'Scratch that.');
+        $bulletin = GameBulletin::postBy((string) $game->id, (string) $host->id, 'Scratch that.');
         Queue::assertPushed(PublishGameBulletinToDiscord::class, 1);
 
         $bulletin->delete();

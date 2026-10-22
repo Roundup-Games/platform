@@ -5,6 +5,8 @@ namespace App\Services\Badges;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Founding Table (spec §3 Support & Tenure row, D187/D208): joined
@@ -48,21 +50,42 @@ class FoundingTableEvaluator implements BadgeEvaluator
     {
         $service = app(BadgeService::class);
 
-        User::query()->chunkById(200, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                $evidence = $this->proposalFor($user);
+        // Existing holders are excluded from the cohort: while the
+        // window is open this sweep runs nightly, and iterating every
+        // account just to conclude AlreadyHeld is O(users) round trips
+        // forever (award() re-locks and re-reads each hold). The
+        // exclusion is outcome-equivalent — founding holds never lapse
+        // (spec §4), tierless so nothing upgrades, and a revoked hold
+        // re-proposing would only hit RefusedRevoked anyway. Cost drops
+        // to O(new accounts).
+        User::query()
+            ->whereDoesntHave('badges', fn ($query) => $query
+                ->whereHas('badgeDefinition', fn ($definition) => $definition
+                    ->where('key', self::BADGE_KEY)))
+            ->chunkById(200, function ($users) use ($service): void {
+                /** @var iterable<User> $users */
+                foreach ($users as $user) {
+                    try {
+                        $evidence = $this->proposalFor($user);
 
-                if ($evidence === null) {
-                    // Window closed (possibly mid-sweep): nothing to
-                    // propose and, per the no-lapse rule, nothing to
-                    // strip from existing holds.
-                    continue;
+                        if ($evidence === null) {
+                            // Window closed (possibly mid-sweep): nothing to
+                            // propose and, per the no-lapse rule, nothing to
+                            // strip from existing holds.
+                            continue;
+                        }
+
+                        $service->award($user, self::BADGE_KEY, null, $evidence);
+                    } catch (Throwable $e) {
+                        // Per-user isolation — see CohortSweepEvaluator::sweep().
+                        Log::error('badges.sweep.user_failed', [
+                            'badge' => self::BADGE_KEY,
+                            'user_id' => $user->id,
+                            'exception' => $e::class.': '.$e->getMessage(),
+                        ]);
+                    }
                 }
-
-                $service->award($user, self::BADGE_KEY, null, $evidence);
-            }
-        });
+            });
     }
 
     // ── Internals ──────────────────────────────────────

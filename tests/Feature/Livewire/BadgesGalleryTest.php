@@ -5,6 +5,7 @@ use App\Enums\BadgeEligibility;
 use App\Enums\BadgeRarity;
 use App\Livewire\Badges\BadgesGallery;
 use App\Models\BadgeDefinition;
+use Illuminate\Support\Number;
 use Livewire\Livewire;
 
 /**
@@ -103,17 +104,23 @@ describe('Badge gallery composition', function () {
             ->assertSee('opacity-60');
     });
 
-    it('renders the tier ladder for tiered badges', function () {
+    it('renders the tier ladder for tiered badges in threshold order', function () {
         galleryDefinition([
             'key' => 'regulars_table',
             'tiers' => ['bronze' => 3, 'silver' => 6, 'gold' => 12],
         ]);
 
+        // ORDER is the regression pin: jsonb does not preserve key
+        // order (it canonicalizes — gold sorts before bronze/silver for
+        // this ladder), so the ladder must come through
+        // BadgeDefinition::orderedTierKeys(), threshold-ascending.
         Livewire::test(BadgesGallery::class)
             ->assertOk()
-            ->assertSee(__('badges.content_badge_tier_bronze'))
-            ->assertSee(__('badges.content_badge_tier_silver'))
-            ->assertSee(__('badges.content_badge_tier_gold'));
+            ->assertSeeInOrder([
+                __('badges.content_badge_tier_bronze'),
+                __('badges.content_badge_tier_silver'),
+                __('badges.content_badge_tier_gold'),
+            ]);
     });
 });
 
@@ -262,11 +269,25 @@ describe('Badge gallery localization', function () {
             'sort_order' => 40,
         ]);
 
+        // The eligible-share percent localizes through Number::format
+        // (comma decimal in German), never a raw float string.
+        galleryDefinition([
+            'key' => 'share_de',
+            'name_key' => 'badges.content_badge_first_seat_name',
+            'description_key' => 'badges.content_badge_first_seat_description',
+            'holders_count' => 25,
+            'eligible_count' => 200,
+            'sort_order' => 50,
+        ]);
+
         Livewire::test(BadgesGallery::class)
             ->assertOk()
             ->assertSee(__('badges.title_badge_gallery', [], 'de'))
             ->assertSee(__('badges.category_gm_craft', [], 'de'))
             ->assertSee(__('badges.content_badge_debut_name', [], 'de'))
+            ->assertSee(__('badges.content_badge_share_of_eligible', [
+                'percent' => Number::format(12.5, maxPrecision: 1),
+            ], 'de'))
             ->assertDontSee(__('badges.title_badge_gallery', [], 'en'));
     });
 });

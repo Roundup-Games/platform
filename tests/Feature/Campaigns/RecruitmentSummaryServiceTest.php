@@ -10,6 +10,8 @@ use App\Models\SessionZeroSurvey;
 use App\Models\User;
 use App\Services\Badges\CampaignCompleatEvaluator;
 use App\Services\CampaignRecruitmentSummaryService;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Traits\CreatesGameInstances;
 
 uses(CreatesGameInstances::class);
@@ -102,6 +104,20 @@ test('draft leads with the sessions-played line and includes the charter pitch',
                 .__('charter.label_theme_intrigue', [], 'en').', '
                 .__('charter.label_theme_horror', [], 'en'),
         ], 'en'));
+});
+
+test('draft resolves under the campaign language, not the acting UI locale', function () {
+    [, $campaign] = recruitmentCampaign(['language' => 'de']);
+    recruitmentCompletedSession($campaign, User::factory()->create());
+
+    // An EN-UI GM previewing a DE campaign: the seeded draft is German —
+    // the PreviouslyOn/Epilogue contract (public copy is table-language-stable).
+    app()->setLocale('en');
+
+    $draft = app(CampaignRecruitmentSummaryService::class)->draft($campaign);
+
+    expect($draft)->toContain(__('journal.content_recruitment_sessions_played', ['count' => 1], 'de'))
+        ->and(app()->getLocale())->toBe('en'); // ambient locale restored
 });
 
 test('draft is only the sessions-played line when no charter exists', function () {
@@ -205,6 +221,33 @@ test('apply rejects a non-owner with zero writes', function () {
         'recruitment_summary' => null,
         'recruitment_summary_completed_sessions' => null,
         'recruitment_summary_refreshed_at' => null,
+    ]);
+});
+
+test('a global admin passes the same policy the composer gate resolves — the service never refuses the offered affordance', function () {
+    [$owner, $campaign] = recruitmentCampaign();
+    recruitmentCompletedSession($campaign, $owner);
+
+    $admin = User::factory()->create();
+    Role::firstOrCreate(['name' => 'Platform Admin', 'guard_name' => 'web', 'team_id' => null]);
+    setPermissionsTeamId(null);
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
+    $admin->assignRole('Platform Admin');
+    $admin->unsetRelations();
+
+    // CampaignPolicy::before() lets global admins through every ability,
+    // and manageRecruitmentSummary is the ability the composer's manage
+    // affordances resolve — the service guard must resolve the SAME
+    // rule (regression: it used to hand-roll owner_id ===, refusing an
+    // actor the UI had just offered the composer to).
+    expect($admin->can('manageRecruitmentSummary', $campaign))->toBeTrue();
+
+    app(CampaignRecruitmentSummaryService::class)
+        ->apply($campaign, $admin, 'The admin approved this block.', recruitmentChecklist());
+
+    $this->assertDatabaseHas('campaigns', [
+        'id' => $campaign->id,
+        'recruitment_summary' => 'The admin approved this block.',
     ]);
 });
 

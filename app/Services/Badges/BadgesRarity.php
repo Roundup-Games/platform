@@ -127,12 +127,24 @@ class BadgesRarity
      */
     protected function computeFor(BadgeDefinition $definition): void
     {
+        // Numerator and denominator share one population rule: an
+        // anonymized account leaves both sides, and a GM-craft badge's
+        // numerator keeps the GM-role filter of its denominator
+        // (otherwise the share drifts — and can exceed 100% — as
+        // holders anonymize out of the pool or lose the role on
+        // membership lapse while their never-lapsing milestone holds
+        // stay counted).
+        $isGmCraft = $definition->eligibility === BadgeEligibility::GameMasters;
+
         $holders = BadgeUser::query()
             ->where('badge_definition_id', $definition->id)
             ->whereNull('revoked_at')
+            ->whereHas('user', fn ($query) => $query
+                ->notAnonymized()
+                ->when($isGmCraft, fn ($q) => $q->role('Game Master')))
             ->count();
 
-        $eligible = $definition->eligibility === BadgeEligibility::GameMasters
+        $eligible = $isGmCraft
             ? User::role('Game Master')->notAnonymized()->count()
             : User::query()->notAnonymized()->count();
 

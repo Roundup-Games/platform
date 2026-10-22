@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Dto\CharterContent;
 use App\Models\Campaign;
 use App\Models\User;
+use App\Support\TableLocale;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -30,7 +31,10 @@ use LogicException;
  *
  * Guard idiom follows CampaignJournalService: translated journal.error_*
  * LogicExceptions BEFORE any write; single UPDATE inside a transaction;
- * structured Log::info on every mutation.
+ * structured Log::info on every mutation. Authorization resolves through
+ * CampaignPolicy::manageRecruitmentSummary (owner; global admins pass
+ * via the policy's before()) — the SAME rule the composer's affordances
+ * use, so the service can never refuse an actor the UI offered to.
  */
 class CampaignRecruitmentSummaryService
 {
@@ -59,6 +63,18 @@ class CampaignRecruitmentSummaryService
      * are GM-marked/GM-picked in the composer (spec §4.1).
      */
     public function draft(Campaign $campaign): string
+    {
+        // Copy resolves under the campaign's language (TableLocale:
+        // PreviouslyOn/Epilogue contract) — never the acting user's UI
+        // locale, so a DE campaign with an EN-UI GM still seeds a German
+        // draft. Ambient locale restored inside.
+        return TableLocale::with($campaign->language, fn (): string => $this->composeDraftLines($campaign));
+    }
+
+    /**
+     * The draft body — always called under the resolved table locale.
+     */
+    private function composeDraftLines(Campaign $campaign): string
     {
         $lines = [
             __('journal.content_recruitment_sessions_played', [
@@ -111,7 +127,7 @@ class CampaignRecruitmentSummaryService
      */
     public function apply(Campaign $campaign, User $user, string $draft, array $checklist): void
     {
-        if ((string) $campaign->owner_id !== (string) $user->id) {
+        if (! $user->can('manageRecruitmentSummary', $campaign)) {
             throw new LogicException(__('journal.error_recruitment_unauthorized'));
         }
 
@@ -155,7 +171,7 @@ class CampaignRecruitmentSummaryService
      */
     public function remove(Campaign $campaign, User $user): void
     {
-        if ((string) $campaign->owner_id !== (string) $user->id) {
+        if (! $user->can('manageRecruitmentSummary', $campaign)) {
             throw new LogicException(__('journal.error_recruitment_unauthorized'));
         }
 

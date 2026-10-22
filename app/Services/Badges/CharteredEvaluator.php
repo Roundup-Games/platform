@@ -2,12 +2,10 @@
 
 namespace App\Services\Badges;
 
-use App\Models\BadgeUser;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
-use LogicException;
 
 /**
  * Chartered (spec §3 GM Craft row, D189; live since M070/S04): the
@@ -43,44 +41,13 @@ use LogicException;
  * BadgeService's AlreadyHeld/Upgraded decisions. A sweep failure never
  * crashes the run — the orchestrator isolates evaluators (BadgesSweep).
  */
-class CharteredEvaluator implements BadgeEvaluator
+class CharteredEvaluator extends CohortSweepEvaluator
 {
     private const BADGE_KEY = 'chartered';
 
-    public function evaluate(User $user): ?BadgeAward
+    protected function badgeKey(): string
     {
-        $proposal = $this->proposalFor($user);
-
-        if ($proposal === null) {
-            return null;
-        }
-
-        [$tierKey, $evidence] = $proposal;
-
-        return BadgeAward::for(self::BADGE_KEY, $tierKey, $evidence);
-    }
-
-    public function sweep(): void
-    {
-        $service = app(BadgeService::class);
-
-        $this->cohort()->chunkById(200, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                $proposal = $this->proposalFor($user);
-
-                if ($proposal === null) {
-                    // Milestone badges never lapse (spec §2.1): an owner
-                    // in the cohort via a held-but-pruned hold parks
-                    // nothing — the countersigned fact stands forever.
-                    continue;
-                }
-
-                [$tierKey, $evidence] = $proposal;
-
-                $service->award($user, self::BADGE_KEY, $tierKey, $evidence);
-            }
-        });
+        return self::BADGE_KEY;
     }
 
     // ── Internals ──────────────────────────────────────
@@ -92,18 +59,11 @@ class CharteredEvaluator implements BadgeEvaluator
      *
      * @return array{0: string, 1: SessionZeroConfirmation}|null
      */
-    private function proposalFor(User $user): ?array
+    protected function proposalFor(User $user): ?array
     {
         $count = $this->countersignedCharterCount($user);
 
-        $tierKey = null;
-
-        foreach ($this->tierThresholds() as $tier => $threshold) {
-            if ($count >= $threshold) {
-                // Thresholds ascend, so the last match is the highest earned.
-                $tierKey = $tier;
-            }
-        }
+        $tierKey = $this->tierFor($count);
 
         if ($tierKey === null) {
             return null;
@@ -124,89 +84,77 @@ class CharteredEvaluator implements BadgeEvaluator
 
     /**
      * Distinct charters (kind='charter') on campaigns the user owns that
-     * hold at least one role=gm confirmation row — the "fully signed at
-     * any version" count. Legacy surveys can never match: they are not
-     * charter rows, and their confirmations predate the role column.
+     * hold a role=gm confirmation row on a version that also carries at
+     * least one participant confirmation row — the "fully signed at any
+     * version" count. Status is deliberately unfiltered: participant rows
+     * only ever originate from sign()/carrySignatures() (resetAgreement
+     * merely flips a signed row to pending re-agreement — the fact
+     * stands, see the material-amendment test), so row EXISTENCE is the
+     * signature proof. A gm row alone never counts:
+     * CharterSigningService refuses the empty-roster countersign for
+     * the same reason (silence is never consent), and this chain keeps
+     * the badge honest even against a stale or hand-crafted gm row on a
+     * participant-less charter. Legacy surveys can never match: they
+     * are not charter rows, and their confirmations predate the role
+     * column.
      */
     private function countersignedCharterCount(User $user): int
     {
-        return SessionZeroSurvey::query()
-            ->charter()
-            ->whereIn('campaign_id', $user->ownedCampaigns()->select('id'))
-            ->whereHas('confirmations', fn (Builder $confirmation): Builder => $confirmation
-                ->where('role', SessionZeroConfirmation::ROLE_GM))
+        return $this->countersignedCharters($user)
             ->distinct()
             ->count('id');
     }
 
     /**
-     * Evidence pointer: the latest role=gm confirmation row across the
-     * user's charters, by signature timestamp (uuid-keyed, so the row
-     * satisfies badge_user.evidence_id's native uuid column).
+     * The user's charters carrying the full proof chain — a GM row AND
+     * at least one participant signature — as a composable query: the
+     * tier count runs a count() over it and the evidence pointer
+     * selects its ids, so both surfaces share ONE definition of what
+     * counts (the evidence row can never point at a gm confirmation
+     * whose charter the count would refuse).
+     *
+     * @return Builder<SessionZeroSurvey>
+     */
+    private function countersignedCharters(User $user): Builder
+    {
+        return SessionZeroSurvey::query()
+            ->charter()
+            ->whereIn('campaign_id', $user->ownedCampaigns()->select('id'))
+            ->whereHas('confirmations', fn (Builder $confirmation): Builder => $confirmation
+                ->where('role', SessionZeroConfirmation::ROLE_GM)
+                ->whereHas('version', fn (Builder $version): Builder => $version
+                    ->whereHas('confirmations', fn (Builder $participant): Builder => $participant
+                        ->where('role', SessionZeroConfirmation::ROLE_PARTICIPANT))));
+    }
+
+    /**
+     * Evidence pointer: the latest role=gm confirmation row on one of
+     * the user's COUNTERSIGNED charters (the counted proof — see
+     * countersignedCharters), by signature timestamp (uuid-keyed, so
+     * the row satisfies badge_user.evidence_id's native uuid column).
      */
     private function latestGmConfirmation(User $user): ?SessionZeroConfirmation
     {
+        // Scoped to the COUNTED charters (countersignedCharters): the
+        // evidence row proves an earned tier, so it must never point at
+        // a gm signature on a charter the count itself would refuse.
         return SessionZeroConfirmation::query()
             ->where('role', SessionZeroConfirmation::ROLE_GM)
-            ->whereIn(
-                'session_zero_survey_id',
-                SessionZeroSurvey::query()
-                    ->charter()
-                    ->whereIn('campaign_id', $user->ownedCampaigns()->select('id'))
-                    ->select('id'),
-            )
+            ->whereIn('session_zero_survey_id', $this->countersignedCharters($user)->select('id'))
             ->orderByDesc('confirmed_at')
             ->orderByDesc('id')
             ->first();
     }
 
     /**
-     * Tier thresholds from the registry entry — the same array
-     * badges:sync mirrors into badge_definitions, so the evaluator and
-     * the write side can never disagree about what a tier means.
-     *
-     * @return array<string, int>
+     * Owners of charters holding role=gm confirmation rows — the proof
+     * chain in countersignedCharterCount() decides what counts; the
+     * cohort stays broader (holders plus anyone with a gm row) so
+     * re-proposals always reach them.
      */
-    private function tierThresholds(): array
+    protected function qualifyingCohort(Builder $grouped): Builder
     {
-        $definition = app(BadgeRegistry::class)->find(self::BADGE_KEY);
-
-        if ($definition === null) {
-            throw new LogicException(sprintf('%s is missing from the badge registry', self::BADGE_KEY));
-        }
-
-        $tiers = $definition->tiers;
-
-        // Thresholds are declared ascending; sort defensively so the
-        // "last match wins" tier pick above can never mis-order.
-        asort($tiers);
-
-        return $tiers;
-    }
-
-    /**
-     * Users in this badge's orbit: anyone owning a campaign whose
-     * charter holds a gm confirmation row (the count crosses thresholds
-     * as tables sign) plus current holders (so a revoked hold
-     * requalifies through the audited pipeline).
-     *
-     * The whole predicate is ONE grouped where for the chunkById
-     * reason (see SupportingMemberEvaluator): the cursor's id > last
-     * is a top-level AND, and SQL AND binds tighter than OR — an
-     * ungrouped cohort predicate would re-match users in every chunk
-     * and loop forever.
-     *
-     * @return Builder<User>
-     */
-    private function cohort(): Builder
-    {
-        return User::query()
-            ->where(function (Builder $query): void {
-                $query->whereHas('ownedCampaigns.charter.confirmations', fn (Builder $confirmation): Builder => $confirmation
-                    ->where('role', SessionZeroConfirmation::ROLE_GM))
-                    ->orWhereIn('id', BadgeUser::query()
-                        ->whereHas('badgeDefinition', fn (Builder $definition) => $definition->where('key', self::BADGE_KEY))
-                        ->select('user_id'));
-            });
+        return $grouped->whereHas('ownedCampaigns.charter.confirmations', fn (Builder $confirmation): Builder => $confirmation
+            ->where('role', SessionZeroConfirmation::ROLE_GM));
     }
 }

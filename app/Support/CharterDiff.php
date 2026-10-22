@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Dto\CharterContent;
+use App\Models\Location;
 
 /**
  * Field-level diff between two charter content snapshots (M070/S03).
@@ -45,6 +46,67 @@ final class CharterDiff
                 $changes,
                 self::sectionChanges($section, self::sectionOf($old, $section), self::sectionOf($new, $section))
             );
+        }
+
+        return $changes;
+    }
+
+    /**
+     * Resolve logistics.location_id diff rows from venue UUIDs to venue
+     * names — the display-resolution half of the engine, shared by both
+     * surfaces so a participant's re-agreement banner shows exactly what
+     * the GM's review-step preview shows (§6 displays the venue, never
+     * the id column). One batched query regardless of change count; a
+     * uuid with no surviving Location row keeps the uuid (an honest
+     * pointer, same fallback the composer used).
+     *
+     * Pure companion discipline: changes() stays query-free so diff
+     * correctness stays unit-testable without the database; ONLY this
+     * method touches Location, and every rendering caller must pass its
+     * rows through it.
+     *
+     * @param  list<CharterDiffChange>  $changes
+     * @return list<CharterDiffChange>
+     */
+    public static function resolveLocationNames(array $changes): array
+    {
+        $uuids = [];
+
+        foreach ($changes as $change) {
+            if ($change['section'] === 'logistics' && $change['field'] === 'location_id') {
+                foreach (['old', 'new'] as $side) {
+                    $uuid = $change[$side];
+
+                    if (is_string($uuid) && $uuid !== '') {
+                        $uuids[$uuid] = true;
+                    }
+                }
+            }
+        }
+
+        if ($uuids === []) {
+            return $changes;
+        }
+
+        /** @var array<string, string|null> $names uuid => name */
+        $names = Location::query()
+            ->whereKey(array_keys($uuids))
+            ->pluck('name', 'id')
+            ->all();
+
+        foreach ($changes as $index => $change) {
+            if ($change['section'] !== 'logistics' || $change['field'] !== 'location_id') {
+                continue;
+            }
+
+            foreach (['old', 'new'] as $side) {
+                $uuid = $change[$side];
+                $name = is_string($uuid) && $uuid !== '' ? ($names[$uuid] ?? null) : null;
+
+                if (is_string($name) && $name !== '') {
+                    $changes[$index][$side] = $name;
+                }
+            }
         }
 
         return $changes;

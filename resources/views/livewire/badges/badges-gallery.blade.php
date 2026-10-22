@@ -71,11 +71,9 @@
                         {{-- Tier ladder for tiered badges (badge.content_badge_tier_* labels) --}}
                         @if($definition->tiers && count($definition->tiers))
                             <div class="mt-3 flex flex-wrap gap-1.5">
-                                @foreach(array_keys($definition->tiers) as $tierKey)
+                                @foreach($definition->orderedTierKeys() as $tierKey)
                                     @php
-                                        $tierLabel = \Illuminate\Support\Facades\Lang::has("badges.content_badge_tier_{$tierKey}")
-                                            ? (string) __("badges.content_badge_tier_{$tierKey}")
-                                            : str_replace('_', ' ', ucfirst($tierKey));
+                                        $tierLabel = \App\Services\Badges\BadgeCopy::tierLabel($tierKey);
                                     @endphp
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-container-highest text-on-surface-variant">
                                         {{ $tierLabel }}
@@ -93,7 +91,7 @@
                             @if($showShare)
                                 <p>{{ __($definition->eligibility === \App\Enums\BadgeEligibility::GameMasters
                                         ? 'badges.content_badge_share_of_eligible_gms'
-                                        : 'badges.content_badge_share_of_eligible', ['percent' => $sharePercent]) }}</p>
+                                        : 'badges.content_badge_share_of_eligible', ['percent' => \Illuminate\Support\Number::format($sharePercent, maxPrecision: 1)]) }}</p>
                             @endif
                         </div>
                     </article>

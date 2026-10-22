@@ -64,22 +64,37 @@ class BadgePipeline implements ShouldQueue
         $service = app(BadgeService::class);
 
         foreach ($registry->all() as $definition) {
-            /** @var BadgeEvaluator $evaluator */
-            $evaluator = app($definition->evaluator);
+            // Per-evaluator failure isolation (the BadgesSweep contract):
+            // one evaluator's runtime exception must not cost the OTHER
+            // badges their immediate awards on this event — record, log,
+            // keep going. The nightly sweep is the self-heal backstop for
+            // whatever this run skipped (stateless recompute), so the
+            // lost immediacy is the only cost of an isolated failure.
+            try {
+                /** @var BadgeEvaluator $evaluator */
+                $evaluator = app($definition->evaluator);
 
-            $award = $evaluator->evaluate($user);
+                $award = $evaluator->evaluate($user);
 
-            if ($award === null) {
-                continue;
+                if ($award === null) {
+                    continue;
+                }
+
+                $service->award(
+                    $user,
+                    $award->badgeKey,
+                    $award->tierKey,
+                    $this->resolveEvidence($award->evidenceType, $award->evidenceId),
+                    BadgeSource::Automatic,
+                );
+            } catch (\Throwable $e) {
+                Log::error('badges.pipeline.evaluator_failed', [
+                    'badge' => $definition->key,
+                    'user_id' => $user->id,
+                    'exception_class' => $e::class,
+                    'exception' => $e->getMessage(),
+                ]);
             }
-
-            $service->award(
-                $user,
-                $award->badgeKey,
-                $award->tierKey,
-                $this->resolveEvidence($award->evidenceType, $award->evidenceId),
-                BadgeSource::Automatic,
-            );
         }
     }
 

@@ -3,18 +3,25 @@
 namespace App\Services\Badges;
 
 use App\Enums\AttendanceStatus;
-use App\Models\BadgeUser;
 use App\Models\GameParticipant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use LogicException;
 
 /**
  * Regulars' Table (spec §3 Participation row): the recurring-attendance
  * streak badge — "consecutive months with ≥1 verified attendance;
- * 1 grace skip per 6 months", tiers at 3/6/12 months.
+ * 1 grace skip per 6 months", tiers at 3/6/12 months. The grace rule's
+ * precise shape (deliberately the conservative reading): a miss is
+ * forgiven only when the six calendar months IMMEDIATELY PRECEDING it
+ * hold no other miss — the window's first month is inclusive, so two
+ * walked misses exactly six months apart (a February miss then an
+ * August miss) are NOT both forgiven; the second becomes forgivable
+ * from the seventh month of spacing. Effectively at most one miss per
+ * seven consecutive walked months, never awarding a badge the looser
+ * reading would grant. (The walk starts at the first covered month —
+ * misses before attendance began are outside it entirely.)
  *
  * - A **covered month** is a calendar month — bucketed by games.date_time,
  *   the session date, never the resolution date — holding at least one
@@ -36,51 +43,30 @@ use LogicException;
  *   — award/upgrade on an earned tier, quiet lapse on a broken streak
  *   (spec §4), Requalified automatically on the next earned award.
  */
-class RegularsTableEvaluator implements BadgeEvaluator
+class RegularsTableEvaluator extends CohortSweepEvaluator
 {
     private const BADGE_KEY = 'regulars_table';
 
     private const LAPSE_REASON = 'streak_broken';
 
-    /** A miss is forgiven only when the trailing 6 months hold no other miss. */
+    /**
+     * A miss is forgiven only when the trailing 6 months hold no other
+     * miss — the six calendar months immediately preceding the miss,
+     * inclusive of their first month (see the class docblock's precise
+     * rule; pinned by the exact-six-months test in
+     * RegularsTableEvaluatorTest).
+     */
     private const GRACE_WINDOW_MONTHS = 6;
 
-    public function evaluate(User $user): ?BadgeAward
+    protected function badgeKey(): string
     {
-        $proposal = $this->proposalFor($user);
-
-        if ($proposal === null) {
-            return null;
-        }
-
-        [$tierKey, $evidence] = $proposal;
-
-        return BadgeAward::for(self::BADGE_KEY, $tierKey, $evidence);
+        return self::BADGE_KEY;
     }
 
-    public function sweep(): void
+    /** Streak broken → quiet grey-out (spec §4). Idempotent inside BadgeService: no hold, already lapsed, admin-revoked, a manual-source grant (never auto-lapsed), or a retired definition (holds freeze) is a no-op. */
+    protected function sweepOnUnqualified(User $user, BadgeService $service): void
     {
-        $service = app(BadgeService::class);
-
-        $this->cohort()->chunkById(200, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                $proposal = $this->proposalFor($user);
-
-                if ($proposal === null) {
-                    // Streak broken → quiet grey-out (spec §4). Idempotent
-                    // inside BadgeService: no hold, already lapsed, or
-                    // admin-revoked is a no-op.
-                    $service->lapse($user, self::BADGE_KEY, self::LAPSE_REASON);
-
-                    continue;
-                }
-
-                [$tierKey, $evidence] = $proposal;
-
-                $service->award($user, self::BADGE_KEY, $tierKey, $evidence);
-            }
-        });
+        $service->lapse($user, self::BADGE_KEY, self::LAPSE_REASON);
     }
 
     // ── Internals ──────────────────────────────────────
@@ -90,9 +76,9 @@ class RegularsTableEvaluator implements BadgeEvaluator
      * current streak has earned plus the evidence row, or null below
      * bronze (no streak at all, or a run under every tier threshold).
      *
-     * @return array{0: string, 1: Model|null}|null
+     * @return array{0: string|null, 1: Model|null}|null
      */
-    private function proposalFor(User $user): ?array
+    protected function proposalFor(User $user): ?array
     {
         $coveredMonths = $this->coveredMonths($user);
 
@@ -102,14 +88,7 @@ class RegularsTableEvaluator implements BadgeEvaluator
 
         $streak = $this->streakFor($coveredMonths, $this->currentMonthIndex());
 
-        $tierKey = null;
-
-        foreach ($this->tierThresholds() as $tier => $threshold) {
-            if ($streak >= $threshold) {
-                // Thresholds ascend, so the last match is the highest earned.
-                $tierKey = $tier;
-            }
-        }
+        $tierKey = $this->tierFor($streak);
 
         if ($tierKey === null) {
             return null;
@@ -142,7 +121,11 @@ class RegularsTableEvaluator implements BadgeEvaluator
 
         foreach ($dates as $date) {
             // Driver datetimes start 'YYYY-MM-…' — the first seven
-            // characters are the calendar-month bucket.
+            // characters are the calendar-month bucket. Buckets are
+            // UTC calendar months (the storage timezone): a session at
+            // 00:30 local on the 1st belongs to the previous UTC month.
+            // Deliberate — the streak is a storage-side invariant and
+            // every recompute (sweep, backfill) must bucket identically.
             [$year, $month] = explode('-', substr((string) $date, 0, 7));
 
             $buckets[(int) $year * 12 + ((int) $month - 1)] = true;
@@ -243,52 +226,15 @@ class RegularsTableEvaluator implements BadgeEvaluator
     }
 
     /**
-     * Tier thresholds from the registry entry — the same array
-     * badges:sync mirrors into badge_definitions, so the evaluator and
-     * the write side can never disagree about what a tier means.
-     *
-     * @return array<string, int>
-     */
-    private function tierThresholds(): array
-    {
-        $definition = app(BadgeRegistry::class)->find(self::BADGE_KEY);
-
-        if ($definition === null) {
-            throw new LogicException(sprintf('%s is missing from the badge registry', self::BADGE_KEY));
-        }
-
-        $tiers = $definition->tiers;
-
-        // Thresholds are declared ascending; sort defensively so the
-        // "last match wins" tier pick above can never mis-order.
-        asort($tiers);
-
-        return $tiers;
-    }
-
-    /**
      * Users in this badge's orbit: anyone with at least one Attended
-     * participant row (the streak could be backfilled at any time) plus
-     * current holders (whose rows must lapse or requalify even if
-     * their participation history was pruned).
-     *
-     * The whole predicate is ONE grouped where for the same reason as
-     * SupportingMemberEvaluator: chunkById appends its id > last cursor
-     * as a top-level AND, and SQL AND binds tighter than OR — an
-     * ungrouped cohort predicate would re-match users in every chunk
-     * and loop forever.
-     *
-     * @return Builder<User>
+     * participant row (the streak could be backfilled at any time).
+     * Current holders join through CohortSweepEvaluator::cohort()'s
+     * holders half (their rows must lapse or requalify even if their
+     * participation history was pruned).
      */
-    private function cohort(): Builder
+    protected function qualifyingCohort(Builder $grouped): Builder
     {
-        return User::query()
-            ->where(function (Builder $query): void {
-                $query->whereHas('gameParticipations', fn (Builder $participation): Builder => $participation
-                    ->where('game_participants.attendance_status', AttendanceStatus::Attended->value))
-                    ->orWhereIn('id', BadgeUser::query()
-                        ->whereHas('badgeDefinition', fn (Builder $definition) => $definition->where('key', self::BADGE_KEY))
-                        ->select('user_id'));
-            });
+        return $grouped->whereHas('gameParticipations', fn (Builder $participation): Builder => $participation
+            ->where('game_participants.attendance_status', AttendanceStatus::Attended->value));
     }
 }

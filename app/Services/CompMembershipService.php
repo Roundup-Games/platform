@@ -7,6 +7,7 @@ use App\Models\LocalSubscription;
 use App\Models\MembershipType;
 use App\Models\User;
 use Carbon\CarbonInterface;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -34,6 +35,14 @@ class CompMembershipService
      * this through activateGmSubscription(): it updateOrCreates the row
      * with ends_at null (GmRoleService), wiping fixed-period comps.
      *
+     * Two transactions by design: the comp row commits, then
+     * assignGMRole runs its own transaction. A failure between the two
+     * strands an active-but-roleless comp until the admin retries — and
+     * the retry heals (the re-grant update path converges, assignGMRole
+     * re-runs). Do NOT "fix" this into a nested transaction: the
+     * after-commit MembershipActivated dispatch must observe committed
+     * state.
+     *
      * @param  CarbonInterface|null  $endsAt  Period end, or null for a
      *                                        permanent comp.
      * @return LocalSubscription The comp row (already committed).
@@ -56,21 +65,67 @@ class CompMembershipService
 
         // One transaction for the subscription row ONLY. assignGMRole
         // runs after this commit so its after-commit MembershipActivated
-        // dispatch observes committed state.
-        $subscription = DB::transaction(function () use ($user, $gmPlan, $endsAt, $grantedBy, $reason) {
+        // dispatch observes committed state. The partial unique index
+        // (user_id, membership_type_id, source) where status=active is
+        // the structural backstop for the double-grant race — two
+        // concurrent grants converge on the winner's row below.
+        try {
+            $subscription = $this->persistGrant($user, $gmPlan, $endsAt, $grantedBy, $reason);
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent grant won the insert — converge on its row
+            // (same plan, same provenance; the re-grant semantics make
+            // the loser's values equivalent).
+            $subscription = $this->persistGrant($user, $gmPlan, $endsAt, $grantedBy, $reason);
+        }
+
+        // Re-checks hasActiveMembership() (true via the committed comp
+        // row), assigns the GM role, and dispatches MembershipActivated
+        // after commit — the badge pipeline's sole entry point.
+        $this->gmRoleService->assignGMRole($user);
+
+        return $subscription;
+    }
+
+    /**
+     * The transactional row write behind grant(): find-or-create the
+     * active comp row. Re-invoked after a unique-violation loss (the
+     * second find hits the winner's row and takes the update path).
+     */
+    private function persistGrant(User $user, MembershipType $gmPlan, ?CarbonInterface $endsAt, User $grantedBy, string $reason): LocalSubscription
+    {
+        return DB::transaction(function () use ($user, $gmPlan, $endsAt, $grantedBy, $reason) {
+            // status = 'active' regardless of ends_at: a period that
+            // has ended but not yet been swept (03:15 owns the flip) is
+            // still THE current comp row — re-granting must renew it in
+            // place, never insert beside it (the partial unique index
+            // makes the old scopeActive() find here impossible anyway).
+            //
+            // Row lock serializes against withdraw() (and the expiry
+            // sweep) on this same row: without it, a withdraw committing
+            // between the read and the save is silently undone by the
+            // unconditional fill below — re-activating a comp an admin
+            // just canceled, then re-granting the benefits they saw
+            // lapse. The partial unique index only guards inserts; this
+            // is same-row mutation.
             $existing = $user->localSubscriptions()
                 ->whereBelongsTo($gmPlan)
                 ->where('source', LocalSubscriptionSource::Comp)
-                ->active()
+                ->where('status', 'active')
+                ->lockForUpdate()
                 ->first();
 
             $subscription = $existing ?? new LocalSubscription;
+
+            // A re-grant renews, it never rewrites history: starts_at
+            // survives from the original grant (every grant event stays
+            // in the structured log; the row keeps the FIRST grant date).
+            $isNew = $existing === null;
 
             $subscription->membershipType()->associate($gmPlan);
             $subscription->grantedBy()->associate($grantedBy);
             $subscription->fill([
                 'status' => 'active',
-                'starts_at' => now(),
+                'starts_at' => $isNew ? now() : $subscription->starts_at,
                 'ends_at' => $endsAt,
                 'canceled_at' => null,
                 'source' => LocalSubscriptionSource::Comp,
@@ -88,13 +143,6 @@ class CompMembershipService
 
             return $subscription;
         });
-
-        // Re-checks hasActiveMembership() (true via the committed comp
-        // row), assigns the GM role, and dispatches MembershipActivated
-        // after commit — the badge pipeline's sole entry point.
-        $this->gmRoleService->assignGMRole($user);
-
-        return $subscription;
     }
 
     /**
@@ -110,16 +158,24 @@ class CompMembershipService
      */
     public function withdraw(User $user, User $actor, string $reason): bool
     {
-        $comp = $user->localSubscriptions()
-            ->where('source', LocalSubscriptionSource::Comp)
-            ->active()
-            ->first();
+        $canceled = DB::transaction(function () use ($user, $actor, $reason): bool {
+            // Resolve under the row lock, inside the transaction: an
+            // unlocked read outside races persistGrant() both ways — a
+            // withdraw committing between grant's read and save gets
+            // silently undone, and vice versa a grant committing after
+            // this read would be canceled by the stale-model update.
+            // The lock (persistGrant takes the same one) serializes
+            // the two writers on the shared comp row.
+            $comp = $user->localSubscriptions()
+                ->where('source', LocalSubscriptionSource::Comp)
+                ->active()
+                ->lockForUpdate()
+                ->first();
 
-        if (! $comp) {
-            return false;
-        }
+            if ($comp === null) {
+                return false;
+            }
 
-        DB::transaction(function () use ($user, $actor, $reason, $comp) {
             $comp->update([
                 'status' => 'canceled',
                 'canceled_at' => now(),
@@ -130,14 +186,18 @@ class CompMembershipService
                 'actor_id' => $actor->id,
                 'reason' => $reason,
             ]);
+
+            return true;
         });
 
-        // Benefits follow the last active membership. hasActiveMembership()
-        // is a live query, so it sees the canceled row. When another
-        // membership remains, the GM role/profile stay as they are.
-        if (! $user->hasActiveMembership()) {
-            $this->gmRoleService->handleSubscriptionLapse($user);
+        if (! $canceled) {
+            return false;
         }
+
+        // Benefits follow the last active membership — single-sourced
+        // inside handleSubscriptionLapse(): a live re-check there keeps
+        // the role/profile alive whenever another membership remains.
+        $this->gmRoleService->handleSubscriptionLapse($user);
 
         return true;
     }

@@ -83,6 +83,40 @@ class BadgeDefinition extends Model
         ];
     }
 
+    /**
+     * The tiers map in registry order: ascending threshold (key => value;
+     * e.g. bronze 1 → silver 3 → gold 5, or year_1 0 → year_2 12 …).
+     *
+     * READ ORDER MATTERS: tiers is a jsonb column, and Postgres does not
+     * preserve object key order — it canonicalizes (length first, then
+     * bytewise), so reading ->tiers yields gold before bronze/silver
+     * for most ladders. The registry's threshold order is the display
+     * truth (progression), so every surface that iterates tiers — the
+     * gallery ladder, the admin tier select, tier labels — MUST use
+     * this accessor, never array_keys($definition->tiers).
+     *
+     * @return list<string> tier keys, lowest threshold first
+     */
+    public function orderedTierKeys(): array
+    {
+        $tiers = $this->tiers;
+
+        if (! is_array($tiers) || $tiers === []) {
+            return [];
+        }
+
+        $keys = array_keys($tiers);
+
+        usort($keys, function (string $a, string $b) use ($tiers): int {
+            $aThreshold = $tiers[$a] ?? 0;
+            $bThreshold = $tiers[$b] ?? 0;
+
+            return (is_int($aThreshold) ? $aThreshold : 0) <=> (is_int($bThreshold) ? $bThreshold : 0);
+        });
+
+        return $keys;
+    }
+
     // ── Relationships ──────────────────────────────────
 
     /**

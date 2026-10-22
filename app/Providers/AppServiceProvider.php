@@ -322,25 +322,33 @@ class AppServiceProvider extends ServiceProvider
         EventFacade::listen(PermissionAttachedEvent::class, fn () => ScopedRoleService::flushMemo());
         EventFacade::listen(PermissionDetachedEvent::class, fn () => ScopedRoleService::flushMemo());
 
-        // Safety net: never deliver to synthetic/demo (RFC 2606) email domains.
-        // Fires on every send path (queue, scheduler, web) so demo data created by
-        // DemoSeedCommand cannot leak into a live mailer.
-        EventFacade::listen(MessageSending::class, DropDemoDomainMail::class);
-
-        // Suppress customer-facing "Status Updated" notifications when a ticket
-        // status change was system-initiated (no human causer) — e.g. the nightly
-        // escalated:close-resolved archival job and escalation-rule transitions.
-        // Human-initiated changes still notify normally.
-        EventFacade::listen(
-            NotificationSending::class,
-            SuppressAutomatedTicketStatusNotifications::class
-        );
-
-        // Capture the login/return-visit signal for retention analytics.
-        // Fires on every authentication (credentials, OAuth, signup-context,
-        // remember-me) — the session boundary that makes retention cohorts
-        // measurable. See RecordUserSignIn for the consent/privacy design.
-        EventFacade::listen(Login::class, RecordUserSignIn::class);
+        // ── Event listeners ─────────────────────────────────
+        // Listeners with a handle(EventType) signature are registered by
+        // Laravel's event auto-discovery (EventServiceProvider::
+        // $shouldDiscoverEvents) — NEVER re-register them explicitly here
+        // or every event runs the listener twice (the 18c0cf96 lesson;
+        // pinned by ListenerRegistrationTest). The blocks below document
+        // each discovered listener's purpose:
+        //
+        // - DropDemoDomainMail (MessageSending): safety net — never deliver
+        //   to synthetic/demo (RFC 2606) email domains; fires on every send
+        //   path (queue, scheduler, web) so DemoSeedCommand data cannot leak
+        //   into a live mailer.
+        // - SuppressAutomatedTicketStatusNotifications (NotificationSending):
+        //   suppresses customer-facing "Status Updated" notifications when a
+        //   ticket status change was system-initiated (no human causer);
+        //   human-initiated changes still notify normally.
+        // - RecordUserSignIn (Login): the login/return-visit signal for
+        //   retention analytics — every authentication path (credentials,
+        //   OAuth, signup-context, remember-me); see the listener for the
+        //   consent/privacy design.
+        // - LogNotificationDelivery (NotificationSent | NotificationFailed):
+        //   per-channel delivery observability on the queue worker — a
+        //   uniform delivery record across database/mail/push/discord.
+        // - LogMailMessageSent (MessageSent): outgoing mail handoff record;
+        //   retains the assigned Message-ID so inbound Resend
+        //   delivery/bounce/complaint webhooks join back to the exact
+        //   message (M061).
 
         // Scheduled-work outcome observability (M068): the scheduler fires
         // these framework events from schedule:work; RecordScheduledTaskRun
@@ -352,20 +360,6 @@ class AppServiceProvider extends ServiceProvider
         EventFacade::listen(ScheduledTaskFailed::class, [RecordScheduledTaskRun::class, 'failed']);
         EventFacade::listen(ScheduledTaskSkipped::class, [RecordScheduledTaskRun::class, 'skipped']);
         EventFacade::listen(ScheduledBackgroundTaskFinished::class, [RecordScheduledTaskRun::class, 'backgroundFinished']);
-
-        // Per-channel delivery observability. NotificationService logs dispatch
-        // (enqueue) intent; these fire on the queue worker after each channel's
-        // send() actually succeeds or fails, giving a uniform delivery record
-        // across database/mail/push/discord (covering the previously-unobserved
-        // mail and database channels). The listener is fully defensive and can
-        // never fail the channel job.
-        EventFacade::listen(NotificationSent::class, LogNotificationDelivery::class);
-        EventFacade::listen(NotificationFailed::class, LogNotificationDelivery::class);
-
-        // Outgoing mail handoff record. Retains the assigned Message-ID so an
-        // inbound Resend delivery/bounce/complaint webhook event can be joined
-        // back to the exact message in the logs (M061).
-        EventFacade::listen(MessageSent::class, LogMailMessageSent::class);
 
         // Escalated helpdesk authorization gates
         // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)
@@ -627,9 +621,14 @@ class AppServiceProvider extends ServiceProvider
             'game' => Game::class,
             'game_participant' => GameParticipant::class,
             'game_system' => GameSystem::class,
-            // Badge evidence aliases (M069, D170): the subscription records
-            // that justify supporting_member awards. Badge evidence is the
-            // only morph use of these classes — no stored FQCN rows exist.
+            // Badge evidence alias (M069, D170): the local subscription
+            // row that justifies a supporting_member award. Badge
+            // evidence is the only morph use — no stored FQCN rows exist.
+            // (The Cashier 'subscription' alias below is map completeness
+            // only: its bigint key cannot be a badge evidence pointer —
+            // badge_user.evidence_id is a native uuid column, and
+            // SupportingMemberEvaluator deliberately carries null evidence
+            // for Cashier-anchored tenure.)
             'local_subscription' => LocalSubscription::class,
             'location' => Location::class,
             'review' => Review::class,

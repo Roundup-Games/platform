@@ -5,6 +5,7 @@ namespace App\Services\Charter;
 use App\Dto\CharterContent;
 use App\Models\Campaign;
 use App\Models\CharterTemplate;
+use App\Models\Location;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\SessionZeroSurveyVersion;
@@ -103,6 +104,20 @@ class CharterService
             ]);
         }
 
+        // The S04 conveniences are member-only at the SERVICE layer, not
+        // just the composer's hidden start cards: CharterComposer::
+        // startCharter() forwards the mode verbatim from wire:click, so
+        // gating only the UI would leave a free owner the server-side
+        // reuse path. One choke point (canUseConveniences, the D223
+        // seam) keeps template reuse, previous-charter reuse, and the
+        // concurrency cap tighten together when pricing lands.
+        if (in_array($mode, ['template', 'previous'], true)
+            && ! CharterMemberService::canUseConveniences($user)) {
+            throw ValidationException::withMessages([
+                'charter' => __('charter.error_seeds_member_only'),
+            ]);
+        }
+
         $content = match ($mode) {
             'blank' => CharterContent::blank(),
             'template' => CharterContent::fromArray(self::resolveTemplateSeed($user, $seedId)->content ?? []),
@@ -164,10 +179,38 @@ class CharterService
             ]);
         }
 
-        $charter->update([
-            'title' => $title,
-            'content' => CharterContent::fromArray($content)->toArray(),
+        // Same boundary rule as amend(): the title column is
+        // varchar(255) — an unvalidated autosave past it would surface
+        // as a Postgres error (500), not a form error. Drafts tolerate
+        // everything else (the tolerant normalizer fills gaps); the
+        // title is the one always-written free-text field.
+        $validator = Validator::make(['title' => $title], [
+            'title' => ['required', 'string', 'max:255'],
         ]);
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
+
+        // Conditional update: the isDraft() read above races a
+        // concurrent publish() (which flips status inside its own
+        // transaction) — an unconditional update here would land draft
+        // content on the just-published charter without a version
+        // snapshot. Writing with the status guard makes the check and
+        // the write one atomic step; zero affected rows means the
+        // draft window closed mid-flight.
+        $updated = SessionZeroSurvey::query()
+            ->whereKey($charter->getKey())
+            ->where('status', 'draft')
+            ->update([
+                'title' => $title,
+                'content' => CharterContent::fromArray($content)->toArray(),
+            ]);
+
+        if ($updated === 0) {
+            throw ValidationException::withMessages([
+                'charter' => __('charter.error_only_draft_editable'),
+            ]);
+        }
     }
 
     /**
@@ -184,7 +227,7 @@ class CharterService
     {
         self::authorizeCharter($actor, $charter);
 
-        return DB::transaction(function () use ($charter, $title, $content): SessionZeroSurveyVersion {
+        $version = DB::transaction(function () use ($charter, $title, $content): SessionZeroSurveyVersion {
             if (! $charter->isDraft()) {
                 throw ValidationException::withMessages([
                     'charter' => __('charter.error_already_published'),
@@ -223,10 +266,24 @@ class CharterService
 
             $normalized = CharterContent::fromArray($content)->toArray();
 
-            $validator = Validator::make($normalized, CharterContent::rules());
+            // Title validated on EVERY persisting mutation, not just
+            // saveDraft/amend: publish() also writes the varchar(255)
+            // column, and a future direct service caller must hit the
+            // form error, never a Postgres "value too long" 500 — the
+            // same boundary rule saveDraft() documents.
+            $validator = Validator::make(
+                array_merge($normalized, ['title' => $title]),
+                array_merge(CharterContent::rules(), [
+                    'title' => ['required', 'string', 'max:255'],
+                ]),
+            );
             if ($validator->fails()) {
                 throw new ValidationException($validator);
             }
+
+            // The venue ownership gate (D079): the version this publish
+            // stamps is immutable and publicly readable from here on.
+            self::assertVenueDisclosable($normalized, $charter);
 
             $versionNumber = ($charter->current_version ?? 0) + 1;
 
@@ -259,16 +316,21 @@ class CharterService
                 'current_version' => $versionNumber,
             ]);
 
-            Log::info('Charter published', [
-                'survey_id' => $charter->id,
-                'uuid' => $charter->uuid,
-                'campaign_id' => $charter->campaign_id,
-                'gm_profile_id' => $charter->gm_profile_id,
-                'version' => $versionNumber,
-            ]);
-
             return $version;
         });
+
+        // Audit line AFTER commit: an in-transaction log would survive
+        // a trailing rollback and claim a publish that never happened —
+        // exactly the failure path where forensics need the truth.
+        Log::info('Charter published', [
+            'survey_id' => $charter->id,
+            'uuid' => $charter->uuid,
+            'campaign_id' => $charter->campaign_id,
+            'gm_profile_id' => $charter->gm_profile_id,
+            'version' => $version->version_number,
+        ]);
+
+        return $version;
     }
 
     /**
@@ -320,7 +382,22 @@ class CharterService
     {
         self::authorizeCharter($actor, $charter);
 
-        return DB::transaction(function () use ($charter, $title, $content, $changelog): SessionZeroSurveyVersion {
+        $version = DB::transaction(function () use ($charter, $title, $content, $changelog): SessionZeroSurveyVersion {
+            // Lock the charter row and re-check liveness from the
+            // locked read: archive() flips status via a plain UPDATE,
+            // which blocks on this lock and lands only AFTER the
+            // amendment commits (archived with the new version —
+            // frozen history includes it). Without the lock, the
+            // in-memory isActive() check could race a concurrent
+            // archive() committing mid-transaction and stamp an
+            // amendment (and its resetAgreement) onto a charter that is
+            // already frozen — the one interleave the version-race
+            // unique index cannot catch (archive writes no version).
+            $charter = SessionZeroSurvey::query()
+                ->whereKey($charter->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $previous = null;
             if ($charter->isCharter() && $charter->isActive()) {
                 $previous = $charter->currentVersion();
@@ -345,6 +422,10 @@ class CharterService
             if ($validator->fails()) {
                 throw new ValidationException($validator);
             }
+
+            // The venue ownership gate (D079) — same rule as publish():
+            // an amendment may also move the venue.
+            self::assertVenueDisclosable($normalized, $charter);
 
             $isMaterial = CharterContent::isMaterialChange($previous->content, $normalized);
             $versionNumber = ($charter->current_version ?? 0) + 1;
@@ -382,32 +463,40 @@ class CharterService
                 self::carrySignatures($charter, $version);
             }
 
-            Log::info('Charter amended', [
-                'survey_id' => $charter->id,
-                'uuid' => $charter->uuid,
-                'campaign_id' => $charter->campaign_id,
-                'version' => $versionNumber,
-                'is_material' => $isMaterial,
-            ]);
-
             return $version;
         });
+
+        // Audit line AFTER commit — same publish() discipline.
+        Log::info('Charter amended', [
+            'survey_id' => $charter->id,
+            'uuid' => $charter->uuid,
+            'campaign_id' => $charter->campaign_id,
+            'version' => $version->version_number,
+            'is_material' => $version->is_material,
+        ]);
+
+        return $version;
     }
 
     // ── Helpers ────────────────────────────────────────
 
     /**
      * Resolve the 'template' start seed: a saved CharterTemplate owned
-     * by the caller. An unknown or foreign id (and a missing one — the
-     * composer guard aside, start() is callable directly) is refused with
-     * the same message so ids are never enumerated through the error
-     * copy. Non-uuid ids are "not found" via UuidBuilder (INV-10), never
-     * a SQL error.
+     * by the caller. An unknown, foreign, or non-uuid id (and a missing
+     * one — the composer guard aside, start() is callable directly) is
+     * refused with the same message so ids are never enumerated through
+     * the error copy. uuid_or_null() gate on purpose: UuidBuilder only
+     * guards find() lookups, and whereKey()->first() binds the raw
+     * value — without the gate a malformed id raises 22P02 and the
+     * bootstrap backstop renders it as a 404 page instead of this
+     * inline refusal.
      */
     private static function resolveTemplateSeed(User $user, ?string $seedId): CharterTemplate
     {
-        $template = is_string($seedId) && $seedId !== ''
-            ? CharterTemplate::query()->whereKey($seedId)->first()
+        $seedUuid = uuid_or_null($seedId);
+
+        $template = $seedUuid !== null
+            ? CharterTemplate::query()->whereKey($seedUuid)->first()
             : null;
 
         if ($template === null || (string) $template->user_id !== (string) $user->id) {
@@ -422,14 +511,18 @@ class CharterService
     /**
      * Resolve the 'previous' start seed: a charter on a campaign the
      * caller owns. The start-screen select offers published charters
-     * excluding the current campaign; service-side the ownership check is
-     * the gate (the current campaign's own charter never reaches here —
-     * start() returned it as the idempotent existing row above).
+     * excluding the current campaign; service-side the ownership check
+     * is the gate (the current campaign's own charter never reaches
+     * here — start() returned it as the idempotent existing row above).
+     * Same uuid_or_null() gate as resolveTemplateSeed: malformed ids
+     * must refuse inline, not surface as a 22P02/404.
      */
     private static function resolvePreviousSeed(User $user, ?string $seedId): SessionZeroSurvey
     {
-        $previous = is_string($seedId) && $seedId !== ''
-            ? SessionZeroSurvey::query()->charter()->whereKey($seedId)->first()
+        $seedUuid = uuid_or_null($seedId);
+
+        $previous = $seedUuid !== null
+            ? SessionZeroSurvey::query()->charter()->whereKey($seedUuid)->first()
             : null;
 
         if ($previous === null || (string) $previous->campaign?->owner_id !== (string) $user->id) {
@@ -439,6 +532,55 @@ class CharterService
         }
 
         return $previous;
+    }
+
+    /**
+     * Venue ownership gate: logistics.location_id must resolve to a
+     * location the campaign owner may already disclose — the venues of
+     * their own campaigns and games, or this campaign's own. The
+     * composer offers exactly that set; publish/amend re-verify it
+     * server-side so a crafted autosave can never pin a private
+     * third-party venue uuid into a publicly readable immutable version
+     * (the D079 location-disclosure model). Drafts tolerate it — draft
+     * rows render owner-only.
+     *
+     * @param  array<string, mixed>  $normalized  CharterContent::fromArray()->toArray() output
+     */
+    private static function assertVenueDisclosable(array $normalized, SessionZeroSurvey $charter): void
+    {
+        $logistics = $normalized['logistics'] ?? [];
+        $venueMode = is_array($logistics) ? ($logistics['venue_mode'] ?? null) : null;
+        $locationId = is_array($logistics) ? ($logistics['location_id'] ?? null) : null;
+
+        if ($venueMode !== 'location' || ! is_string($locationId) || $locationId === '') {
+            return;
+        }
+
+        $campaign = $charter->campaign;
+
+        if ($campaign === null) {
+            // Orphaned charter: publish()/amend() refuse these before the
+            // gate runs, but the helper must not assume it.
+            return;
+        }
+
+        $ownerId = (string) $campaign->owner_id;
+        $campaignLocationId = $campaign->location_id;
+
+        $disclosable = Location::query()
+            ->whereKey($locationId)
+            ->where(function ($query) use ($ownerId, $campaignLocationId): void {
+                $query->whereHas('campaigns', fn ($cq) => $cq->where('owner_id', $ownerId))
+                    ->orWhereHas('games', fn ($gq) => $gq->where('owner_id', $ownerId))
+                    ->when($campaignLocationId !== null, fn ($qq) => $qq->orWhere('id', $campaignLocationId));
+            })
+            ->exists();
+
+        if (! $disclosable) {
+            throw ValidationException::withMessages([
+                'logistics.location_id' => __('charter.error_location_not_available'),
+            ]);
+        }
     }
 
     /**
@@ -476,7 +618,9 @@ class CharterService
     private static function carrySignatures(SessionZeroSurvey $charter, SessionZeroSurveyVersion $version): void
     {
         // Newest-first across earlier versions: highest version_number
-        // wins, latest confirmed_at breaks (theoretical) ties.
+        // wins, latest confirmed_at breaks (theoretical) ties — the bulk
+        // form of CharterSigningService::latestParticipantConfirmation()'s
+        // ordering contract; keep the two in step.
         $candidates = $charter->confirmations()
             ->join(
                 'session_zero_survey_versions as earlier_versions',

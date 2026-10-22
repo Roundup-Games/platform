@@ -46,7 +46,7 @@ class ViewSessionZero extends Component
             $existing = $survey->confirmations()->whereBelongsTo($user)->first();
             if ($existing) {
                 $this->confirmed = true;
-                $this->confirmedAt = $existing->confirmed_at?->format('F j, Y \a\t g:i A');
+                $this->confirmedAt = format_date($existing->confirmed_at, 'datetime');
             }
         }
     }
@@ -54,6 +54,16 @@ class ViewSessionZero extends Component
     public function confirm(): void
     {
         $user = authenticatedUser();
+
+        // Disabled-account backstop: this route is a capability link
+        // outside the not.disabled middleware, and remember-me session
+        // restoration bypasses the runtime guard (same class of gap the
+        // charter signing service closes).
+        if ($user->isDisabled()) {
+            $this->addError('sessionZero', __('auth.error_your_account_has_been_disabled'));
+
+            return;
+        }
 
         $survey = $this->resolveSurvey();
 
@@ -91,7 +101,7 @@ class ViewSessionZero extends Component
         ]);
 
         $this->confirmed = true;
-        $this->confirmedAt = $confirmation->confirmed_at?->format('F j, Y \a\t g:i A');
+        $this->confirmedAt = format_date($confirmation->confirmed_at, 'datetime');
         $this->confirming = false;
     }
 

@@ -14,6 +14,15 @@
 //   Setting the close date is a reviewed config diff on purpose
 //   (D186): badge semantics change in code review, not in an
 //   evaluator hotfix.
+//
+//   Operational note (conscious decision, not emergent behavior): the
+//   first badges:sweep after launch awards founding_table to EVERY
+//   account created while the window was open — one in-app + push
+//   notification per user, platform-wide, in a single 06:30 pass.
+//   That blast is the badge's point (a founding-class celebration),
+//   but schedule the deploy with it in mind; if a quieter backfill is
+//   ever wanted, add a notify=false flag to the founding sweep path
+//   rather than throttling the shared pipeline.
 
 return [
     'founding_table' => [

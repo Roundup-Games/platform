@@ -23,6 +23,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 /**
@@ -106,7 +107,11 @@ class BadgeDefinitionResource extends Resource
 
                                     $decoded = is_string($value) ? json_decode($value, true) : null;
 
-                                    if (! is_array($decoded)) {
+                                    // Objects only: json_decode also accepts JSON
+                                    // lists, which is_array() would let through —
+                                    // a list here dehydrates into a metadata
+                                    // object the display side cannot render.
+                                    if (! is_array($decoded) || array_is_list($decoded)) {
                                         $fail('The :attribute must be a valid JSON object.');
                                     }
                                 },
@@ -153,8 +158,19 @@ class BadgeDefinitionResource extends Resource
                     ->label('Tiers')
                     ->formatStateUsing(fn (BadgeDefinition $record): string => self::formatTiers($record))
                     ->toggleable(),
-                TextColumn::make('badgeUsers_count')
-                    ->counts('badgeUsers')
+                // Column name MUST be the snake_case withCount alias —
+                // Laravel aliases constrained counts from the relation
+                // name (badge_users_count), and a camelCase name never
+                // matches the selected attribute (strict mode hides the
+                // mismatch as an empty cell instead of failing loudly).
+                TextColumn::make('badge_users_count')
+                    // Non-revoked holds only — the same population the
+                    // public gallery and BadgesRarity count, so the admin
+                    // surface and /badges never disagree (lapsed holds
+                    // stay counted; they are still displayed shelf rows).
+                    ->counts([
+                        'badgeUsers' => fn (Builder $query) => $query->whereNull('revoked_at'),
+                    ])
                     ->label('Holders')
                     ->sortable(),
                 IconColumn::make('is_active')
@@ -196,6 +212,10 @@ class BadgeDefinitionResource extends Resource
                 // reactivation is a symmetric flip.
                 Action::make('toggleActive')
                     ->label(fn (BadgeDefinition $record): string => $record->is_active ? 'Retire' : 'Reactivate')
+                    // Retiring a definition refuses every new award of it
+                    // platform-wide — admin-only, not an incidental of
+                    // panel admission (comp idiom).
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
                     ->icon(fn (BadgeDefinition $record): BackedEnum => $record->is_active
                         ? Heroicon::OutlinedPauseCircle
                         : Heroicon::OutlinedPlayCircle)
@@ -208,6 +228,11 @@ class BadgeDefinitionResource extends Resource
                         ? 'Retirement refuses new awards but never removes existing holds or their history. Reactivating later is always possible.'
                         : 'The badge opens for new awards again.')
                     ->action(function (BadgeDefinition $record): void {
+                        // Server-side twin of the visible() gate above.
+                        if (! auth()->user()?->isAdmin()) {
+                            return;
+                        }
+
                         $record->update(['is_active' => ! $record->is_active]);
 
                         Notification::make()

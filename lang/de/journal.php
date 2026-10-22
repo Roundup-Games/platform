@@ -32,6 +32,9 @@ return [
     'type_note' => 'Notiz',
     'error_not_participant' => 'Nur Kampagnen-Teilnehmende können diesen Journal-Inhalt verfassen.',
     'error_participant_not_active' => 'Nur bestätigte Teilnehmende und Teilnehmende auf der Ersatzbank können In-Charakter-Einträge verfassen.',
+    'error_participant_not_in_campaign' => 'Diese Person nimmt nicht an dieser Kampagne teil.',
+    'error_participant_not_seated' => 'Statusänderungen können nur für bestätigte Teilnehmende und Teilnehmende auf der Ersatzbank protokolliert werden.',
+    'error_rate_limited' => 'Du schreibst zu schnell. Versuche es in :minutes Minuten wieder.',
     'error_not_campaign_owner' => 'Das kann nur der GM der Kampagne.',
     'error_body_empty' => 'Der Journal-Eintrag darf nicht leer sein.',
     'error_body_too_long' => 'Journal-Einträge dürfen 10.000 Zeichen nicht überschreiten.',
@@ -69,6 +72,7 @@ return [
     'action_log_state' => 'Zustandsänderung erfassen',
     'action_show_all' => 'Alle anzeigen',
     'action_load_earlier_changes' => 'Frühere Änderungen laden',
+    'label_history_capped' => 'Es werden die letzten :count älteren Änderungen angezeigt.',
     'empty_goals' => 'Noch keine Ziele.',
     'empty_state_changes' => 'Noch keine Zustandsänderungen.',
     'hint_prep_note' => 'Nur für GMs sichtbar — Spieler sehen diese Notizen nie.',
@@ -80,10 +84,11 @@ return [
 
     // Previously-On-Kompositionstexte (M071/S04, Spec §3.1): die
     // Nur-Text-Abschnitte des Digests und die Publish-Guards. :session ist
-    // die Anzahl abgeschlossener Runden; der Titel folgt der
-    // Plan-Vorgabe („Zuvor in :campaign – Session :session“), sonst gilt
-    // die Runde-Terminologie (K001).
-    'title_previously_on' => 'Zuvor in :campaign – Session :session',
+    // die Anzahl abgeschlossener Runden; Runde-Terminologie durchgängig
+    // (K001: „Session“ ist als Lehnwort nur bei echtem Präzisionsbedarf
+    // erlaubt — der Digest-Titel braucht ihn nicht, und veröffentlichte
+    // Digests sind unveränderlich).
+    'title_previously_on' => 'Zuvor in :campaign – Runde :session',
     'section_goals_moved' => 'Geänderte Ziele',
     'section_loose_threads' => 'Offene Fäden',
     'section_next_session' => 'Nächste Runde',
@@ -103,7 +108,6 @@ return [
     'label_previously_on_composed_at' => 'Erstellt am :date',
     'action_refresh_previously_on' => 'Entwurf aktualisieren',
     'flash_previously_on_refreshed' => 'Entwurf aus dem Journal aktualisiert.',
-    'error_previously_on_refresh_failed' => 'Der Entwurf konnte nicht aktualisiert werden — bitte erneut versuchen.',
     'content_previously_on_audience' => 'Wird an alle bestätigten Teilnehmenden dieser Runde zugestellt, auch an einmalige Gäste.',
     'title_previously_on_gate' => '„Zuvor in der Kampagne“ ist eine Mitglieder-Funktion',
     'content_previously_on_gate' => 'GM-Mitglieder erhalten vor jeder Runde automatisch einen Rückblick — Recap, Ziele und offene Fäden aus deinem Kampagnen-Journal. Sieh dir die Mitgliedschaft an, um ihn freizuschalten.',

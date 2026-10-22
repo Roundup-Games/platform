@@ -398,10 +398,13 @@ class WaitlistService
 
     /**
      * Get the 1-based position of a waitlisted participant in the queue.
-     * Uses (waitlisted_at, id) ordering to break ties when timestamps collide.
-     *
-     * Rows missing waitlisted_at (legacy or externally-seeded data) sort last
-     * instead of failing the comparison query with a null operand.
+     * Mirrors the promotion reads exactly: (waitlisted_at, id) ordering
+     * to break ties when timestamps collide, and Postgres ASC puts
+     * NULLS LAST — so rows missing waitlisted_at (legacy or externally
+     * seeded) sit after every stamped row and after null rows with a
+     * smaller id. (The pre-2026-10 shape compared waitlisted_at against
+     * null directly, which matches nothing in SQL — a null row silently
+     * reported position 1, ahead of everyone.)
      */
     public function getWaitlistPosition(Participant $participant): int
     {
@@ -418,7 +421,13 @@ class WaitlistService
             ->where('status', ParticipantStatus::Waitlisted->value);
 
         if ($waitlistedAt === null) {
-            return $queue->where('id', '!=', $participantId)->count() + 1;
+            $stampedAhead = (clone $queue)->whereNotNull('waitlisted_at')->count();
+            $nullsAhead = (clone $queue)
+                ->whereNull('waitlisted_at')
+                ->where('id', '<', $participantId)
+                ->count();
+
+            return $stampedAhead + $nullsAhead + 1;
         }
 
         return $queue

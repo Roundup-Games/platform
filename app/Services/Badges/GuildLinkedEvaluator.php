@@ -2,7 +2,6 @@
 
 namespace App\Services\Badges;
 
-use App\Models\BadgeUser;
 use App\Models\DiscordGuildOrganizer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,84 +31,50 @@ use Illuminate\Database\Eloquent\Builder;
  *   row (plus current holders) is re-proposed, so the badge appears
  *   on the nightly sweep that follows the 30th day.
  */
-class GuildLinkedEvaluator implements BadgeEvaluator
+class GuildLinkedEvaluator extends CohortSweepEvaluator
 {
     private const BADGE_KEY = 'guild_linked';
+
+    protected function badgeKey(): string
+    {
+        return self::BADGE_KEY;
+    }
 
     /** D209: the link must have aged thirty full days before it counts. */
     private const MINIMUM_LINK_AGE_DAYS = 30;
 
-    public function evaluate(User $user): ?BadgeAward
-    {
-        $evidence = $this->proposalFor($user);
-
-        if ($evidence === null) {
-            return null;
-        }
-
-        return BadgeAward::for(self::BADGE_KEY, null, $evidence);
-    }
-
-    public function sweep(): void
-    {
-        $service = app(BadgeService::class);
-
-        $this->cohort()->chunkById(200, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                $evidence = $this->proposalFor($user);
-
-                if ($evidence === null) {
-                    // OneTime, no lapse (D209): a link still under
-                    // thirty days, opted out, paused, or gone simply
-                    // is not earned — nothing to park, nothing to strip.
-                    continue;
-                }
-
-                $service->award($user, self::BADGE_KEY, null, $evidence);
-            }
-        });
-    }
-
     // ── Internals ──────────────────────────────────────
 
     /**
-     * The earliest qualifying opt-in row, or null when no guild link
-     * has aged thirty days on a live (existing, unpaused) guild.
+     * The oldest qualifying guild link (evidence pointer, morph alias
+     * 'discord_guild_organizer' per D170) — the earliest opt-in row
+     * that has aged thirty days on a live (existing, unpaused) guild,
+     * or null.
+     *
+     * @return array{0: string|null, 1: DiscordGuildOrganizer|null}|null
      */
-    private function proposalFor(User $user): ?DiscordGuildOrganizer
+    protected function proposalFor(User $user): ?array
     {
-        return DiscordGuildOrganizer::query()
+        $evidence = DiscordGuildOrganizer::query()
             ->whereBelongsTo($user)
             ->whereNotNull('opted_in_at')
             ->where('opted_in_at', '<=', now()->subDays(self::MINIMUM_LINK_AGE_DAYS))
             ->whereHas('guild', fn (Builder $guild): Builder => $guild->where('paused', false))
             ->orderBy('opted_in_at')
             ->first();
+
+        return $evidence === null ? null : [null, $evidence];
     }
 
     /**
-     * Users in this badge's orbit: anyone with a guild opt-in row
-     * (the 30th day completes at any time) plus current holders (so a
-     * revoked hold requalifies through the audited pipeline once a
-     * qualifying link exists again).
+     * Anyone with a guild-organizer link (the 30-day clock keeps
+     * aging); holders join through the skeleton's holders half. The
+     * grouped-where invariant lives in CohortSweepEvaluator::cohort().
      *
-     * The whole predicate is ONE grouped where for the chunkById
-     * reason (see SupportingMemberEvaluator): the cursor's id > last
-     * is a top-level AND, and SQL AND binds tighter than OR — an
-     * ungrouped cohort predicate would re-match users in every chunk
-     * and loop forever.
-     *
-     * @return Builder<User>
+     * @param  Builder<User>  $grouped
      */
-    private function cohort(): Builder
+    protected function qualifyingCohort(Builder $grouped): Builder
     {
-        return User::query()
-            ->where(function (Builder $query): void {
-                $query->whereHas('discordGuildOrganizers')
-                    ->orWhereIn('id', BadgeUser::query()
-                        ->whereHas('badgeDefinition', fn (Builder $definition) => $definition->where('key', self::BADGE_KEY))
-                        ->select('user_id'));
-            });
+        return $grouped->whereHas('discordGuildOrganizers');
     }
 }

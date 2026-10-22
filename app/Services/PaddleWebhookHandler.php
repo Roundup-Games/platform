@@ -791,7 +791,15 @@ class PaddleWebhookHandler
                 return;
             }
 
-            // Don't revoke if user has an active local GM subscription
+            // Don't revoke if user has an active local GM subscription.
+            // Deliberately narrower than the last-active-membership
+            // seam: the webhook retains on GM-plan local rows only
+            // (hasGmSubscription()), then lapses UNCONDITIONALLY via
+            // lapseGmBenefits() — a user whose sole survivor is a
+            // non-GM local plan loses GM benefits here, where every
+            // other path retains them. Pinned by
+            // PaddleWebhookLifecycleSmokeTest; see the predicate note
+            // on GmRoleService::handleSubscriptionLapse().
             if ($user->hasGmSubscription()) {
                 Log::info('Keeping GM role: user has active local GM subscription', [
                     'user_id' => $user->id,
@@ -800,7 +808,7 @@ class PaddleWebhookHandler
                 return;
             }
 
-            $this->gmRoleService->handleSubscriptionLapse($user);
+            $this->gmRoleService->lapseGmBenefits($user);
         } catch (\Throwable $e) {
             Log::warning('Failed to revoke GM role from Paddle subscription.canceled webhook', [
                 'error' => $e->getMessage(),

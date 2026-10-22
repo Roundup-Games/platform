@@ -335,6 +335,23 @@ it('sweeps current holders even when their organizing history is gone', function
     $this->travelTo(Carbon::parse('2026-10-15 12:00:00'));
 
     $user = User::factory()->create();
+
+    // An AUTOMATIC hold (sweep provenance): the sweep governs its own
+    // awards — the streak is dead on arrival and the hold lapses.
+    app(BadgeService::class)->award($user, 'trusted_organizer', 'bronze');
+
+    // No events at all: the cohort's holder arm is what pulls this
+    // user in.
+    app(TrustedOrganizerEvaluator::class)->sweep();
+
+    expect(trustedOrganizerHold()?->lapsed_at)->not->toBeNull()
+        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Lapsed)->count())->toBe(1);
+});
+
+it('never lapses a manual grant — an admin decision outlives the live signal', function () {
+    $this->travelTo(Carbon::parse('2026-10-15 12:00:00'));
+
+    $user = User::factory()->create();
     $admin = User::factory()->create();
 
     app(BadgeService::class)->award(
@@ -344,13 +361,15 @@ it('sweeps current holders even when their organizing history is gone', function
         null,
         BadgeSource::Manual,
         $admin,
-        'Grandfathered before the badge engine shipped',
+        'Organized the community kickoff before events tracked organizers',
     );
 
-    // No events at all: the cohort's holder arm is what pulls this
-    // user in — the streak is dead on arrival and the hold lapses.
+    // No events: the sweep pulls the holder in, sees a null proposal,
+    // and must NOT undo the admin's explicit grant.
     app(TrustedOrganizerEvaluator::class)->sweep();
 
-    expect(trustedOrganizerHold()?->lapsed_at)->not->toBeNull()
-        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Lapsed)->count())->toBe(1);
+    $hold = trustedOrganizerHold();
+    expect($hold?->lapsed_at)->toBeNull()
+        ->and($hold?->source)->toBe(BadgeSource::Manual)
+        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Lapsed)->count())->toBe(0);
 });

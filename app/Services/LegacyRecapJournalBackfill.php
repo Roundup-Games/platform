@@ -72,9 +72,10 @@ final class LegacyRecapJournalBackfill
     /**
      * Write one session's recap entry. Entry timestamps inherit the recap's
      * original write time: game.updated_at is the closest timeline-order
-     * proxy (games carry no ended_at, MEM585). If a legacy row's
-     * updated_at were somehow NULL, Eloquent's updateTimestamps falls back
-     * to now() rather than storing NULL.
+     * proxy (games carry no ended_at, MEM585). A NULL updated_at (raw
+     * legacy import) is stamped with the backfill's now() — storing the
+     * NULL would pin the entry to the TOP of the timeline forever
+     * (Postgres sorts NULLS FIRST under ORDER BY created_at DESC).
      */
     private function writeEntry(Game $game): void
     {
@@ -90,8 +91,10 @@ final class LegacyRecapJournalBackfill
             'visibility' => JournalEntryVisibility::Players,
         ]);
 
-        $entry->created_at = $game->updated_at;
-        $entry->updated_at = $game->updated_at;
+        $stamp = $game->updated_at ?? now();
+
+        $entry->created_at = $stamp;
+        $entry->updated_at = $stamp;
 
         $entry->save();
     }

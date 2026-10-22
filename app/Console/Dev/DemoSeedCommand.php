@@ -20,6 +20,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\MembershipType;
 use App\Models\User;
+use App\Services\LegacyRecapJournalBackfill;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -430,6 +431,16 @@ class DemoSeedCommand extends Command
 
     public function handle(): int
     {
+        // Registration-gated to non-production (AppServiceProvider), but
+        // guard here too so direct instantiation can never write the
+        // demo cohort (10k users, known-password accounts) against live
+        // data — the same defense-in-depth demo:teardown carries.
+        if (app()->environment('production', 'prod', 'live', 'staging')) {
+            $this->error('demo:seed is a development tool and is disabled in production.');
+
+            return self::FAILURE;
+        }
+
         $this->totalUsers = (int) $this->option('users');
         $this->totalGms = (int) $this->option('gms');
         $this->totalSubscribers = (int) $this->option('subscribers');
@@ -478,6 +489,17 @@ class DemoSeedCommand extends Command
 
         if (! $this->dryRun) {
             $this->updateGmAggregates();
+
+            // D220 parity: the seeder writes legacy column recaps; promote
+            // the campaign-session ones into journal entries so demo data
+            // exercises the same projection live data uses (journal
+            // timeline, Previously On excerpts, campaign_compleat
+            // coverage). Idempotent, exactly like the production backfill.
+            $promoted = app(LegacyRecapJournalBackfill::class)->run();
+
+            if ($promoted > 0) {
+                $this->info("Backfilled {$promoted} campaign-session recaps into the journal.");
+            }
         }
 
         $this->printSummary();

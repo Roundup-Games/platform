@@ -139,7 +139,7 @@ check_morph_map() {
         return 0
     fi
 
-    local required="campaign event event_announcement game game_participant game_system location review session_zero_confirmation team user user_relationship"
+    local required="campaign discord_guild_organizer event event_announcement game game_participant game_system local_subscription location review session_zero_confirmation subscription team user user_relationship"
     local missing=0
     for alias in ${required}; do
         if ! rg -q "'${alias}'\\s*=>" "${file}"; then

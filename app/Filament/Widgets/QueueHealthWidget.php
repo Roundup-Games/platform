@@ -34,6 +34,20 @@ class QueueHealthWidget extends StatsOverviewWidget
         }
 
         $schedule = ScheduleHealth::summary();
+
+        if ($schedule['degraded']) {
+            // Same honesty rule as the Horizon-unreachable branch above: a
+            // signal that could not be computed must never read as all
+            // clear. Zero counts here mean "unknown", not "on time".
+            return [
+                Stat::make('Schedule Health', 'unavailable')
+                    ->description('Schedule inventory failed to load — see logs')
+                    ->descriptionIcon('heroicon-o-exclamation-triangle')
+                    ->color('danger')
+                    ->url(fn (): string => ScheduledTasksPage::getUrl()),
+            ];
+        }
+
         $missed = $schedule['missed'];
         $failed = $schedule['failed_last'];
 

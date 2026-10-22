@@ -387,6 +387,69 @@ describe('GmWorkspace Share Link Analytics', function () {
     // the cache round-trip as __PHP_Incomplete_Class on the dev stack,
     // crashing the warm render with a hard 500 (the M066/S02 /de failure:
     // htmlspecialchars(): array given in gm-workspace.blade.php).
+    describe('revokeLink authorization', function () {
+        it('404s another GM\'s link id — the lookup is scoped to the caller', function () {
+            $gm = $this->createSubscribedGm();
+            $other = $this->createSubscribedGm();
+
+            $otherGame = Game::factory()->create([
+                'owner_id' => $other->id,
+                'status' => 'scheduled',
+                'date_time' => now()->addDays(3),
+                'name' => ['en' => 'Other GMs session'],
+            ]);
+
+            $link = ShortLink::create([
+                'user_id' => $other->id,
+                'code' => 'gws-cross-user',
+                'url' => 'https://example.com/other',
+                'linkable_type' => 'game',
+                'linkable_id' => $otherGame->id,
+                'label' => 'Other GM',
+                'purpose' => 'manual',
+            ]);
+
+            $component = Livewire\Livewire::actingAs($gm)->test(GmWorkspace::class);
+
+            $component->call('revokeLink', $link->id);
+
+            // whereBelongsTo scoped the lookup to the caller: the row was
+            // never found, let alone deleted.
+            expect($link->fresh())->not->toBeNull();
+        });
+
+        it('refuses a foreign linkable entity behind an own link — defense in depth', function () {
+            $gm = $this->createSubscribedGm();
+            $other = $this->createSubscribedGm();
+
+            $foreignGame = Game::factory()->create([
+                'owner_id' => $other->id,
+                'status' => 'scheduled',
+                'date_time' => now()->addDays(3),
+                'name' => ['en' => 'Not this GMs game'],
+            ]);
+
+            $link = ShortLink::create([
+                'user_id' => $gm->id,
+                'code' => 'gws-foreign-entity',
+                'url' => 'https://example.com/foreign',
+                'linkable_type' => 'game',
+                'linkable_id' => $foreignGame->id,
+                'label' => 'Foreign entity',
+                'purpose' => 'manual',
+            ]);
+
+            Livewire\Livewire::actingAs($gm)
+                ->test(GmWorkspace::class)
+                ->call('revokeLink', $link->id)
+                ->assertHasNoErrors();
+
+            // The ownership-mismatch branch refused: warning logged and
+            // the link left intact (a success path would have deleted it).
+            expect($link->fresh())->not->toBeNull();
+        });
+    });
+
     it('renders the workspace cold and warm with links and a scalar-only cache payload', function () {
         $gm = $this->createSubscribedGm();
         $game = Game::factory()->create([

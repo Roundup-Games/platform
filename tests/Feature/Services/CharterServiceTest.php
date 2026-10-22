@@ -5,6 +5,7 @@ use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\GMProfile;
+use App\Models\Location;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\SessionZeroSurveyVersion;
@@ -168,7 +169,50 @@ test('saveDraft rejects a charter that is no longer a draft', function () {
     CharterService::saveDraft($owner, $charter, 'x', CharterContent::blank()->toArray());
 })->throws(ValidationException::class);
 
+test('saveDraft refuses a save that loses the race with a concurrent publish — no draft content on the published row', function () {
+    [$owner, $campaign] = charter_campaign_owner();
+    CharterService::start($owner, $campaign);
+
+    // Two in-memory copies of the same draft: the "autosave" instance
+    // goes stale while the "composer" instance publishes.
+    $stale = SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->sole();
+    $live = SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->sole();
+
+    CharterService::publish($owner, $live, 'Published title', charter_valid_content($campaign));
+
+    try {
+        // The stale copy still says draft, so the pre-check passes — the
+        // conditional update is what must refuse, or the published
+        // charter's title/content would be rewritten without a version.
+        CharterService::saveDraft($owner, $stale, 'Stale autosave', CharterContent::blank()->toArray());
+        $this->fail('Expected ValidationException for a lost draft-save race.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('charter');
+    }
+
+    $fresh = $live->fresh();
+
+    expect($fresh->status)->toBe('active')
+        ->and($fresh->title)->toBe('Published title');
+});
+
 // ── Per-mutation actor authorization (manageCharter) ─────
+
+test('saveDraft rejects a title longer than the varchar(255) column — the autosave path cannot 500', function () {
+    [$owner, $campaign] = charter_campaign_owner();
+    $charter = CharterService::start($owner, $campaign);
+    $overlong = str_repeat('T', 256);
+
+    try {
+        CharterService::saveDraft($owner, $charter, $overlong, CharterContent::blank()->toArray());
+        $this->fail('Expected ValidationException for an overlong title.');
+    } catch (ValidationException $e) {
+        expect($e->errors()['title'])->toBeArray();
+    }
+
+    // The draft row never reached Postgres — no partial write.
+    expect($charter->fresh()->title)->not->toBe($overlong);
+});
 
 test('saveDraft rejects a non-owner actor', function () {
     [$owner, $campaign] = charter_campaign_owner();
@@ -177,6 +221,47 @@ test('saveDraft rejects a non-owner actor', function () {
 
     CharterService::saveDraft($other, $charter, 'x', CharterContent::blank()->toArray());
 })->throws(AuthorizationException::class);
+
+test('publish and amend refuse a venue the owner does not already disclose (D079)', function () {
+    [$owner, $campaign] = charter_campaign_owner();
+    $charter = CharterService::start($owner, $campaign, 'quickstart');
+
+    // A third party's private venue uuid — well-formed, so the uuid
+    // rule passes; never offered by the composer's owner-scoped set.
+    $foreign = Location::factory()->create();
+
+    $content = charter_valid_content($campaign);
+    $content['logistics']['venue_mode'] = 'location';
+    $content['logistics']['location_id'] = (string) $foreign->id;
+
+    try {
+        CharterService::publish($owner, $charter, (string) $campaign->name, $content);
+        $this->fail('Expected ValidationException for a foreign venue.');
+    } catch (ValidationException $e) {
+        expect($e->errors()['logistics.location_id'])->toContain(__('charter.error_location_not_available'));
+    }
+
+    // Publish with the owner-disclosable set (the campaign's own venue)
+    // passes the gate, and the amendment path carries the same rule.
+    $ownLocation = Location::factory()->create();
+    $campaign->update(['location_id' => $ownLocation->id]);
+    $content['logistics']['location_id'] = (string) $ownLocation->id;
+
+    CharterService::publish($owner, $charter, (string) $campaign->name, $content);
+    $published = $charter->refresh();
+
+    // The amendment path carries the same rule — a material edit that
+    // swaps in the foreign venue is refused before any version is cut.
+    $amendedContent = $content;
+    $amendedContent['logistics']['location_id'] = (string) $foreign->id;
+
+    try {
+        CharterService::amend($owner, $published, (string) $campaign->name, $amendedContent, 'Venue moved.');
+        $this->fail('Expected ValidationException for a foreign venue on amend.');
+    } catch (ValidationException $e) {
+        expect($e->errors()['logistics.location_id'])->toContain(__('charter.error_location_not_available'));
+    }
+});
 
 test('publish rejects a non-owner actor', function () {
     [$owner, $campaign] = charter_campaign_owner();
@@ -235,6 +320,44 @@ test('publish with an empty safety toolkit is rejected without writing anything'
     expect(SessionZeroSurveyVersion::where('session_zero_survey_id', $charter->id)->count())->toBe(0)
         ->and($charter->fresh()->status)->toBe('draft')
         ->and($charter->fresh()->current_version)->toBeNull();
+});
+
+test('publish rejects a title longer than the varchar(255) column — the service path cannot 500', function () {
+    [$owner, $campaign] = charter_campaign_owner();
+    $charter = CharterService::start($owner, $campaign);
+    $overlong = str_repeat('T', 256);
+
+    try {
+        CharterService::publish($owner, $charter, $overlong, charter_valid_content($campaign));
+        $this->fail('Expected ValidationException for an overlong title.');
+    } catch (ValidationException $e) {
+        expect($e->errors()['title'])->toBeArray();
+    }
+
+    // Nothing published, no version row, charter still a draft.
+    expect($charter->fresh()->status)->toBe('draft')
+        ->and($charter->fresh()->current_version)->toBeNull();
+});
+
+test('publish rejects fixed-location venue mode with no location chosen', function () {
+    [$owner, $campaign] = charter_campaign_owner();
+    $charter = CharterService::start($owner, $campaign);
+
+    // Quick-start content with venue_mode flipped to location and NO
+    // venue picked — a charter contract that reads "Play location: fixed
+    // location" with no venue line must never publish.
+    $content = charter_valid_content($campaign);
+    $content['logistics']['venue_mode'] = 'location';
+    $content['logistics']['location_id'] = null;
+
+    try {
+        CharterService::publish($owner, $charter, 'No venue', $content);
+        $this->fail('Expected ValidationException for a missing location.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('logistics.location_id');
+    }
+
+    expect($charter->fresh()->status)->toBe('draft');
 });
 
 test('publishing twice is rejected without creating a second version row', function () {
@@ -899,6 +1022,26 @@ test('template mode rejects an unknown template id', function () {
     }
 });
 
+test('seed modes reject a non-uuid seed id inline instead of a 22P02/404', function (string $mode) {
+    $member = $this->createSubscribedGm();
+    $target = charter_limit_campaign($member);
+
+    // A tampered wire:click seedId must refuse with the same message as
+    // an unknown id — whereKey()->first() is not covered by UuidBuilder
+    // (find() lookups only), so without the uuid_or_null() gate a
+    // malformed id binds raw and the bootstrap 22P02 backstop renders a
+    // 404 page instead of this inline refusal.
+    try {
+        CharterService::start($member, $target, $mode, 'not-a-uuid');
+        $this->fail('Expected ValidationException for a malformed seed id.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('charter')
+            ->and($e->errors()['charter'][0])->toBe(__("charter.error_{$mode}_not_yours"));
+    }
+
+    expect(SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->exists())->toBeFalse();
+})->with(['template', 'previous']);
+
 test('previous mode seeds a draft from the caller\'s published charter on another campaign', function () {
     $member = $this->createSubscribedGm();
     $source = charter_limit_active_charter($member);
@@ -961,4 +1104,49 @@ test('a member at the cap starts from a template freely', function () {
 
     expect($draft->status)->toBe('draft')
         ->and($draft->content)->toBe($template->content);
+});
+
+// ── start() seeded modes: the member seam is server-side (review pass 4) ──
+
+test('template mode is refused for a free owner — the UI gate is not the gate', function () {
+    // The composer hides the start cards behind memberConveniences, but
+    // startCharter() forwards the mode verbatim from wire:click: the
+    // service-layer check is the only real one (D223 single seam).
+    $freeOwner = User::factory()->create();
+    $target = charter_limit_campaign($freeOwner);
+
+    // A template that exists (saved by a member) — ownership never gets
+    // a chance to matter: the member gate fires first.
+    $member = $this->createSubscribedGm();
+    $template = CharterTemplateService::saveFromCharter(
+        $member,
+        charter_limit_active_charter($member),
+        'Member standard'
+    );
+
+    try {
+        CharterService::start($freeOwner, $target, 'template', $template->id);
+        $this->fail('Expected ValidationException: template seeding is a member convenience.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('charter')
+            ->and($e->errors()['charter'][0])->toBe(__('charter.error_seeds_member_only'));
+    }
+
+    expect(SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->exists())->toBeFalse();
+});
+
+test('previous mode is refused for a free owner even on their own published charter', function () {
+    $freeOwner = User::factory()->create();
+    $source = charter_limit_active_charter($freeOwner);
+    $target = charter_limit_campaign($freeOwner);
+
+    try {
+        CharterService::start($freeOwner, $target, 'previous', $source->id);
+        $this->fail('Expected ValidationException: charter reuse is a member convenience.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('charter')
+            ->and($e->errors()['charter'][0])->toBe(__('charter.error_seeds_member_only'));
+    }
+
+    expect(SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->exists())->toBeFalse();
 });

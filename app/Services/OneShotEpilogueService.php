@@ -5,7 +5,8 @@ namespace App\Services;
 use App\Enums\GameStatus;
 use App\Models\Game;
 use App\Models\GameBulletin;
-use Illuminate\Support\Facades\App;
+use App\Support\TableLocale;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -49,27 +50,32 @@ class OneShotEpilogueService
         // for 30 days: resolve it under the GAME's language (the language
         // the table plays in), never the completing actor's ambient locale
         // — the scheduler and an English-UI host must both produce the
-        // same prompt as a German table's own host (PreviouslyOnService
-        // composition contract; app locale restored in a finally).
-        $fallback = config('app.fallback_locale', 'en');
-        $locale = $game->language !== ''
-            ? $game->language
-            : (is_string($fallback) && $fallback !== '' ? $fallback : 'en');
+        // same prompt as a German table's own host (TableLocale:
+        // D221 composition contract; ambient locale restored inside).
+        $bulletin = TableLocale::with($game->language, function () use ($game): ?GameBulletin {
+            try {
+                return GameBulletin::postBy(
+                    gameId: (string) $game->id,
+                    userId: (string) $game->owner_id,
+                    content: __('games.content_epilogue_prompt'),
+                    expiresAt: now()->addDays(30)->toDateTimeString(),
+                    isPinned: true,
+                );
+            } catch (UniqueConstraintViolationException $e) {
+                // Lost the concurrent-completion race (host click vs
+                // AutoCompleteGames on the same game): the partial unique
+                // index game_bulletins_one_pinned_per_game_unique kept the
+                // invariant — the winner's epilogue stands, nothing to add.
+                if (! str_contains($e->getMessage(), 'game_bulletins_one_pinned_per_game_unique')) {
+                    throw $e;
+                }
 
-        $previous = App::getLocale();
+                return null;
+            }
+        });
 
-        App::setLocale($locale);
-
-        try {
-            $bulletin = GameBulletin::postBy(
-                gameId: (string) $game->id,
-                userId: (string) $game->owner_id,
-                content: __('games.content_epilogue_prompt'),
-                expiresAt: now()->addDays(30)->toDateTimeString(),
-                isPinned: true,
-            );
-        } finally {
-            App::setLocale($previous);
+        if ($bulletin === null) {
+            return null;
         }
 
         Log::info('Epilogue bulletin created', [

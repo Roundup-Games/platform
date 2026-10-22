@@ -2,13 +2,11 @@
 
 namespace App\Services\Badges;
 
-use App\Models\BadgeUser;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use LogicException;
 
 /**
  * Supporting Member (spec §2.5): active paid membership, tiered by
@@ -28,48 +26,21 @@ use LogicException;
  *
  * Tier thresholds live in the registry entry (single source of truth).
  */
-class SupportingMemberEvaluator implements BadgeEvaluator
+class SupportingMemberEvaluator extends CohortSweepEvaluator
 {
     private const BADGE_KEY = 'supporting_member';
 
     private const LAPSE_REASON = 'membership_inactive';
 
-    public function evaluate(User $user): ?BadgeAward
+    protected function badgeKey(): string
     {
-        $proposal = $this->proposalFor($user);
-
-        if ($proposal === null) {
-            return null;
-        }
-
-        [$tierKey, $evidence] = $proposal;
-
-        return BadgeAward::for(self::BADGE_KEY, $tierKey, $evidence);
+        return self::BADGE_KEY;
     }
 
-    public function sweep(): void
+    /** Quiet lapse (spec §4): membership gone → park the badge. Idempotent — no hold, already lapsed, admin-revoked, a manual-source grant (never auto-lapsed), or a retired definition (holds freeze) is a no-op inside BadgeService. */
+    protected function sweepOnUnqualified(User $user, BadgeService $service): void
     {
-        $service = app(BadgeService::class);
-
-        $this->cohort()->chunkById(200, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                $proposal = $this->proposalFor($user);
-
-                if ($proposal === null) {
-                    // Quiet lapse (spec §4): membership gone → park the
-                    // badge. Idempotent — no hold, already lapsed, or
-                    // admin-revoked is a no-op inside BadgeService.
-                    $service->lapse($user, self::BADGE_KEY, self::LAPSE_REASON);
-
-                    continue;
-                }
-
-                [$tierKey, $evidence] = $proposal;
-
-                $service->award($user, self::BADGE_KEY, $tierKey, $evidence);
-            }
-        });
+        $service->lapse($user, self::BADGE_KEY, self::LAPSE_REASON);
     }
 
     // ── Internals ──────────────────────────────────────
@@ -78,9 +49,9 @@ class SupportingMemberEvaluator implements BadgeEvaluator
      * The live computation both surfaces share: tier earned plus the
      * evidence model, or null when the user has no active membership.
      *
-     * @return array{0: string, 1: Model|null}|null
+     * @return array{0: string|null, 1: Model|null}|null
      */
-    private function proposalFor(User $user): ?array
+    protected function proposalFor(User $user): ?array
     {
         if (! $user->hasActiveMembership()) {
             return null;
@@ -95,16 +66,13 @@ class SupportingMemberEvaluator implements BadgeEvaluator
         [$startedAt, $evidence] = $earliest;
 
         // Completed months: 12 full months to the day earn year_2.
-        $completedMonths = (int) floor(abs($startedAt->diffInMonths(now())));
+        // Carbon 3's diffInMonths is signed: a future starts_at (possible
+        // only on hand-crafted/admin rows — every writer uses now())
+        // would count the months UNTIL the start as elapsed tenure.
+        // Clamp at zero instead of abs().
+        $completedMonths = (int) floor(max(0, $startedAt->diffInMonths(now())));
 
-        $tierKey = null;
-
-        foreach ($this->tierThresholds() as $tier => $threshold) {
-            if ($completedMonths >= $threshold) {
-                // Thresholds ascend, so the last match is the highest earned.
-                $tierKey = $tier;
-            }
-        }
+        $tierKey = $this->tierFor($completedMonths);
 
         // year_1 sits at threshold 0, so an active member always earns at
         // least it; null here means the registry entry lost its tiers.
@@ -174,61 +142,34 @@ class SupportingMemberEvaluator implements BadgeEvaluator
     }
 
     /**
-     * Tier thresholds from the registry entry — the same array
-     * badges:sync mirrors into badge_definitions, so the evaluator and
-     * the write side can never disagree about what a tier means.
-     *
-     * @return array<string, int>
+     * Users in this badge's orbit: anyone with subscription history
+     * (local or Cashier, any status — tenure and lapse both key off
+     * history). Current holders join through the skeleton's holders
+     * half (their rows must lapse or requalify even if subscription
+     * rows were pruned).
      */
-    private function tierThresholds(): array
+    protected function qualifyingCohort(Builder $grouped): Builder
     {
-        $definition = app(BadgeRegistry::class)->find(self::BADGE_KEY);
-
-        if ($definition === null) {
-            throw new LogicException(sprintf('%s is missing from the badge registry', self::BADGE_KEY));
-        }
-
-        $tiers = $definition->tiers;
-
-        // Thresholds are declared ascending; sort defensively so the
-        // "last match wins" tier pick below can never mis-order.
-        asort($tiers);
-
-        return $tiers;
+        return $grouped->where(function (Builder $query): void {
+            $query->whereHas('localSubscriptions')
+                ->orWhereHas('subscriptions');
+        });
     }
 
     /**
-     * Users in this badge's orbit: anyone with subscription history
-     * (local or Cashier, any status — tenure and lapse both key off
-     * history) plus current holders (whose rows must lapse or
-     * requalify even if subscription rows were pruned).
-     *
-     * The whole predicate is ONE grouped where: chunkById appends its
-     * id > last cursor as a top-level AND, and SQL AND binds tighter
-     * than OR — an ungrouped cohort predicate would re-match users in
-     * every chunk and loop forever.
+     * Cashier's subscribed() reads ->subscriptions as a model property
+     * (ManagesSubscriptions::subscription()), which is a lazy load under
+     * Model::shouldBeStrict. Strict mode only flags models hydrated from
+     * MULTI-row result sets (Builder::hydrate stamps preventsLazyLoading
+     * when count($items) > 1), so every single-member run masked the
+     * violation until a second membership user entered the cohort. The
+     * sweep is a bulk path: eager-load the relation instead of relying
+     * on the per-user lazy read — this is also the N+1 fix.
      *
      * @return Builder<User>
      */
-    private function cohort(): Builder
+    protected function baseQuery(): Builder
     {
-        // Cashier's subscribed() reads ->subscriptions as a model property
-        // (ManagesSubscriptions::subscription()), which is a lazy load under
-        // Model::shouldBeStrict. Strict mode only flags models hydrated from
-        // MULTI-row result sets (Builder::hydrate stamps preventsLazyLoading
-        // when count($items) > 1), so every single-member run masked the
-        // violation until a second membership user entered the cohort. The
-        // sweep is a bulk path: eager-load the relation instead of relying
-        // on the per-user lazy read — this is also the N+1 fix.
-        return User::query()
-            ->with('subscriptions')
-            ->where(function (Builder $query): void {
-                $query->where(function (Builder $query): void {
-                    $query->whereHas('localSubscriptions')
-                        ->orWhereHas('subscriptions');
-                })->orWhereIn('id', BadgeUser::query()
-                    ->whereHas('badgeDefinition', fn (Builder $definition) => $definition->where('key', self::BADGE_KEY))
-                    ->select('user_id'));
-            });
+        return User::query()->with('subscriptions');
     }
 }

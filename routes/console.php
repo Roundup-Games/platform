@@ -199,9 +199,11 @@ Schedule::command('badges:rarity')
 // Local-subscription expiry (fixed-period comps): 03:15 so the 06:30 badges:sweep
 // lapses the Supporting Member badge the same night the membership ended.
 // Observability is free via RecordScheduledTaskRun -> scheduled_task_runs + the
-// Filament Scheduled Tasks page. Bounded single query pass — no overlap guards
-// (model:prune style neighbors).
-Schedule::command('subscriptions:expire')->dailyAt('03:15')->onOneServer();
+// Filament Scheduled Tasks page. Bounded single query pass, but unlike
+// model:prune it dispatches MembershipEnded events — an overlapping run
+// (manual + scheduled) would re-dispatch them — so it carries the same
+// withoutOverlapping mutex as the badge jobs.
+Schedule::command('subscriptions:expire')->dailyAt('03:15')->onOneServer()->withoutOverlapping(10);
 
 // Escalated helpdesk — auto-escalation, SLA enforcement, ticket lifecycle
 Schedule::command('escalated:evaluate-escalations')->everyFiveMinutes()->onOneServer();
