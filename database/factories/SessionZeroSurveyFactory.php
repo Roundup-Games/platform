@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Campaign;
-use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\SessionZeroSurvey;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -24,10 +23,6 @@ class SessionZeroSurveyFactory extends Factory
     {
         return [
             'gm_profile_id' => GMProfile::factory(),
-            'game_id' => null,
-            // Mirrors the column default (kind='survey') so factory-created
-            // models carry it in memory, not just in the database row.
-            'kind' => 'survey',
             'title' => fake()->sentence(),
             'content' => [
                 'safety_tools' => ['lines & veils', 'x-card'],
@@ -37,18 +32,7 @@ class SessionZeroSurveyFactory extends Factory
                 'player_expectations' => fake()->optional()->paragraph(),
             ],
             'status' => 'active',
-            'confirmation_count' => 0,
         ];
-    }
-
-    /**
-     * Associate the survey with a specific game.
-     */
-    public function forGame(Game $game): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'game_id' => $game->id,
-        ]);
     }
 
     /**
@@ -63,7 +47,6 @@ class SessionZeroSurveyFactory extends Factory
     public function charter(): static
     {
         return $this->state(fn (array $attributes) => [
-            'kind' => 'charter',
             'campaign_id' => Campaign::factory(),
             'gm_profile_id' => null,
             'status' => 'draft',

@@ -116,7 +116,7 @@ class ViewCharter extends Component
 
         $charter = $this->resolveCharter();
 
-        if ($charter === null || ! $charter->isCharter()) {
+        if ($charter === null) {
             abort(404);
         }
 
@@ -356,7 +356,7 @@ class ViewCharter extends Component
         $charter = $this->resolveCharter();
         $user = Auth::user();
 
-        if ($charter === null || $user === null || ! $charter->isCharter() || ! $charter->isActive()) {
+        if ($charter === null || $user === null || ! $charter->isActive()) {
             return $this->canSign;
         }
 
@@ -387,7 +387,7 @@ class ViewCharter extends Component
             $charter = $this->resolveCharter();
             $user = Auth::user();
 
-            $this->viewerSignature = $charter !== null && $user !== null && $charter->isCharter() && $charter->isActive()
+            $this->viewerSignature = $charter !== null && $user !== null && $charter->isActive()
                 ? CharterSigningService::statusFor($charter, $user)
                 : null;
         }

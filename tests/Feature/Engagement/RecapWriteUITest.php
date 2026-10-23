@@ -64,7 +64,6 @@ describe('retired one-shot recap write path', function () {
             ->call('writeRecap')
             ->assertSee(__('journal.error_not_campaign_session', [], 'en'));
 
-        expect($game->fresh()->recap)->toBeNull()
-            ->and(CampaignJournalEntry::query()->where('game_id', $game->id)->count())->toBe(0);
+        expect(CampaignJournalEntry::query()->where('game_id', $game->id)->count())->toBe(0);
     });
 });

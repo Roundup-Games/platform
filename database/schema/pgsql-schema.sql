@@ -2,6 +2,7 @@
 -- PostgreSQL database dump
 --
 
+\restrict coUviOlpcjweKHbi3oo1Z2AUlAvYllT2zHn9whIYp3holaHPiCich8CuoQABZl2
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6
@@ -9,6 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -2864,7 +2866,6 @@ CREATE TABLE public.games (
     vibe_flags json,
     game_type character varying(255) DEFAULT 'board_game'::character varying NOT NULL,
     reminder_sent_at timestamp(0) without time zone,
-    recap text,
     min_reliability_preference numeric(5,2),
     reminder_24h_sent_at timestamp(0) without time zone,
     location_id uuid,
@@ -3498,18 +3499,14 @@ CREATE TABLE public.session_zero_survey_versions (
 CREATE TABLE public.session_zero_surveys (
     id uuid NOT NULL,
     gm_profile_id uuid,
-    game_id uuid,
     title character varying(255) NOT NULL,
     content json,
     uuid character varying(255) NOT NULL,
     status character varying(255) DEFAULT 'active'::character varying NOT NULL,
-    confirmation_count integer DEFAULT 0 NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    kind character varying(255) DEFAULT 'survey'::character varying NOT NULL,
     campaign_id uuid,
     current_version integer,
-    CONSTRAINT session_zero_surveys_kind_check CHECK (((kind)::text = ANY (ARRAY[('survey'::character varying)::text, ('charter'::character varying)::text]))),
     CONSTRAINT session_zero_surveys_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::character varying)::text, ('active'::character varying)::text, ('archived'::character varying)::text])))
 );
 
@@ -6536,13 +6533,6 @@ CREATE UNIQUE INDEX game_applications_game_id_user_id_unique ON public.game_appl
 
 
 --
--- Name: game_bulletins_one_pinned_per_game_unique; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX game_bulletins_one_pinned_per_game_unique ON public.game_bulletins USING btree (game_id) WHERE (is_pinned = true);
-
-
---
 -- Name: game_bulletins_game_id_created_at_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6554,6 +6544,13 @@ CREATE INDEX game_bulletins_game_id_created_at_index ON public.game_bulletins US
 --
 
 CREATE INDEX game_bulletins_game_id_expires_at_index ON public.game_bulletins USING btree (game_id, expires_at);
+
+
+--
+-- Name: game_bulletins_one_pinned_per_game_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX game_bulletins_one_pinned_per_game_unique ON public.game_bulletins USING btree (game_id) WHERE (is_pinned = true);
 
 
 --
@@ -7036,14 +7033,7 @@ CREATE UNIQUE INDEX session_zero_confirmations_version_user_role_unique ON publi
 -- Name: session_zero_surveys_charter_campaign_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX session_zero_surveys_charter_campaign_unique ON public.session_zero_surveys USING btree (campaign_id) WHERE ((kind)::text = 'charter'::text);
-
-
---
--- Name: session_zero_surveys_game_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX session_zero_surveys_game_id_index ON public.session_zero_surveys USING btree (game_id);
+CREATE UNIQUE INDEX session_zero_surveys_charter_campaign_unique ON public.session_zero_surveys USING btree (campaign_id);
 
 
 --
@@ -7051,13 +7041,6 @@ CREATE INDEX session_zero_surveys_game_id_index ON public.session_zero_surveys U
 --
 
 CREATE INDEX session_zero_surveys_gm_profile_id_index ON public.session_zero_surveys USING btree (gm_profile_id);
-
-
---
--- Name: session_zero_surveys_kind_status_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX session_zero_surveys_kind_status_index ON public.session_zero_surveys USING btree (kind, status);
 
 
 --
@@ -8289,14 +8272,6 @@ ALTER TABLE ONLY public.session_zero_surveys
 
 
 --
--- Name: session_zero_surveys session_zero_surveys_game_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.session_zero_surveys
-    ADD CONSTRAINT session_zero_surveys_game_id_foreign FOREIGN KEY (game_id) REFERENCES public.games(id) ON DELETE SET NULL;
-
-
---
 -- Name: session_zero_surveys session_zero_surveys_gm_profile_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -8412,11 +8387,13 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
+\unrestrict coUviOlpcjweKHbi3oo1Z2AUlAvYllT2zHn9whIYp3holaHPiCich8CuoQABZl2
 
 --
 -- PostgreSQL database dump
 --
 
+\restrict 1hJQ6VUjzawvdScCkTakgVy3MqgRxKIyfNY0GzSjSCtNUn2afbvp1t1QWak1oJm
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6
@@ -8424,6 +8401,7 @@ ALTER TABLE ONLY public.users
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -8692,6 +8670,8 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 277	2026_10_20_150000_add_recruitment_summary_columns_to_campaigns_table	11
 278	2026_10_20_160000_add_badge_query_indexes	12
 280	2026_10_21_010000_add_active_per_source_unique_to_local_subscriptions	13
+281	2026_10_23_090000_cull_legacy_session_zero_surveys	14
+282	2026_10_23_090100_drop_games_recap_projection	14
 \.
 
 
@@ -8699,11 +8679,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 280, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 282, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
+\unrestrict 1hJQ6VUjzawvdScCkTakgVy3MqgRxKIyfNY0GzSjSCtNUn2afbvp1t1QWak1oJm
 

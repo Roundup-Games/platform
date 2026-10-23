@@ -446,7 +446,6 @@ class CharterSigningService
         // signed charter below one merely re-saved last week. Greatest()
         // of both timestamps, newest first.
         $charters = SessionZeroSurvey::query()
-            ->charter()
             ->whereHas('campaign', fn ($query) => $query->whereBelongsTo($owner, 'owner'))
             ->with('campaign')
             // Correlated max(confirmed_at) inlined — Postgres ORDER BY
@@ -661,10 +660,7 @@ class CharterSigningService
      */
     private static function activeVersion(SessionZeroSurvey $charter): SessionZeroSurveyVersion
     {
-        $version = null;
-        if ($charter->isCharter() && $charter->isActive()) {
-            $version = $charter->currentVersion();
-        }
+        $version = $charter->isActive() ? $charter->currentVersion() : null;
 
         if ($version === null) {
             throw ValidationException::withMessages([

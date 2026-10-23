@@ -58,7 +58,7 @@ it('flows from campaign detail to a published charter a guest can read', functio
         ->call('startCharter', 'quickstart')
         ->assertSet('state', 'draft');
 
-    $charter = SessionZeroSurvey::charter()->where('campaign_id', $campaign->id)->first();
+    $charter = SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->first();
 
     expect($charter)->not->toBeNull()
         ->and($charter->status)->toBe('draft')

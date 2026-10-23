@@ -297,15 +297,12 @@ class Campaign extends Model implements HasMedia, TicketSubject
      *
      * hasOne + where: charters live in the shared session_zero_surveys
      * table, so the kind predicate is part of the relation itself — every
-     * read is scoped without manual where clauses, and legacy surveys on
-     * the campaign's games never leak in.
      *
      * @return HasOne<SessionZeroSurvey, $this>
      */
     public function charter(): HasOne
     {
-        return $this->hasOne(SessionZeroSurvey::class)
-            ->where('session_zero_surveys.kind', 'charter');
+        return $this->hasOne(SessionZeroSurvey::class);
     }
 
     /**

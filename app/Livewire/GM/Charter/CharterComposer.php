@@ -487,7 +487,6 @@ class CharterComposer extends Component
         // title only — the content snapshot (jsonb, tens of KB per
         // charter) must not ride along (workspaceHealth's own rule).
         return SessionZeroSurvey::query()
-            ->charter()
             ->whereNotNull('current_version')
             ->where('campaign_id', '!=', $this->campaign->id)
             ->whereHas('campaign', fn ($query) => $query->whereBelongsTo(authenticatedUser(), 'owner'))

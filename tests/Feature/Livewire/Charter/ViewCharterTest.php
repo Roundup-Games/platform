@@ -209,15 +209,6 @@ describe('ViewCharter Drafts and 404s', function () {
             ->assertNotFound();
     });
 
-    it('returns 404 for a legacy session-zero survey uuid', function () {
-        $survey = SessionZeroSurvey::factory()->create();
-
-        expect($survey->isCharter())->toBeFalse();
-
-        $this->get(charter_view_url($survey))
-            ->assertNotFound();
-    });
-
     it('returns 404 for a draft uuid for guests and non-owners', function () {
         [$owner, $campaign] = charter_view_owner_campaign();
         $charter = CharterService::start($owner, $campaign, 'quickstart');

@@ -49,7 +49,6 @@ class CharterMemberService
     public static function activeCharterCount(User $user): int
     {
         return SessionZeroSurvey::query()
-            ->charter()
             ->active()
             ->whereHas('campaign', fn ($query) => $query->whereBelongsTo($user, 'owner'))
             ->count();

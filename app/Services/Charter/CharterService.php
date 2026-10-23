@@ -127,7 +127,6 @@ class CharterService
 
         try {
             $charter = $campaign->charter()->create([
-                'kind' => 'charter',
                 'gm_profile_id' => $user->gmProfile?->id,
                 'title' => (string) $campaign->name,
                 'status' => 'draft',
@@ -421,10 +420,7 @@ class CharterService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $previous = null;
-            if ($charter->isCharter() && $charter->isActive()) {
-                $previous = $charter->currentVersion();
-            }
+            $previous = $charter->isActive() ? $charter->currentVersion() : null;
 
             if ($previous === null) {
                 throw ValidationException::withMessages([
@@ -558,7 +554,7 @@ class CharterService
         $seedUuid = uuid_or_null($seedId);
 
         $previous = $seedUuid !== null
-            ? SessionZeroSurvey::query()->charter()->whereKey($seedUuid)->first()
+            ? SessionZeroSurvey::query()->whereKey($seedUuid)->first()
             : null;
 
         if ($previous === null || (string) $previous->campaign?->owner_id !== (string) $user->id) {

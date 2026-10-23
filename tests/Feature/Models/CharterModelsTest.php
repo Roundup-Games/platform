@@ -18,20 +18,15 @@ use Illuminate\Support\Facades\DB;
 
 // ── Campaign::charter() relation ─────────────────────────
 
-test('campaign charter relation returns only the charter-kind row', function () {
+test('campaign charter relation resolves the campaign charter', function () {
     $campaign = Campaign::factory()->create();
-
-    // Same campaign_id but legacy kind='survey' — the relation's kind
-    // predicate must exclude it.
-    SessionZeroSurvey::factory()->create(['campaign_id' => $campaign->id]);
 
     $charter = SessionZeroSurvey::factory()->charter()->create(['campaign_id' => $campaign->id]);
 
     $resolved = $campaign->charter()->first();
 
     expect($resolved)->not->toBeNull()
-        ->and($resolved->is($charter))->toBeTrue()
-        ->and($resolved->isCharter())->toBeTrue();
+        ->and($resolved->is($charter))->toBeTrue();
 });
 
 test('campaign charter relation is null when the campaign has no charter', function () {
@@ -78,24 +73,19 @@ test('currentVersion is null for drafts and dangling pointers', function () {
 
 // ── Scopes ───────────────────────────────────────────────
 
-test('charter, draft, active and archived scopes filter correctly', function () {
+test('draft, active and archived scopes filter correctly', function () {
     $draftCharter = SessionZeroSurvey::factory()->charter()->create();
     $publishedCharter = SessionZeroSurvey::factory()->charter()->published()->create();
-    $legacyActive = SessionZeroSurvey::factory()->create(); // kind 'survey', status 'active'
-    $legacyArchived = SessionZeroSurvey::factory()->archived()->create();
+    $archivedCharter = SessionZeroSurvey::factory()->archived()->create();
 
-    expect(SessionZeroSurvey::query()->charter()->pluck('id')->all())
-        ->toEqualCanonicalizing([$draftCharter->id, $publishedCharter->id]);
-
-    expect(SessionZeroSurvey::query()->charter()->draft()->pluck('id')->all())
+    expect(SessionZeroSurvey::query()->draft()->pluck('id')->all())
         ->toBe([$draftCharter->id]);
 
-    // Legacy status scopes stay purely status-based across kinds.
     expect(SessionZeroSurvey::query()->active()->pluck('id')->all())
-        ->toEqualCanonicalizing([$publishedCharter->id, $legacyActive->id]);
+        ->toBe([$publishedCharter->id]);
 
     expect(SessionZeroSurvey::query()->archived()->pluck('id')->all())
-        ->toBe([$legacyArchived->id]);
+        ->toBe([$archivedCharter->id]);
 });
 
 // ── One-charter-per-campaign race backstop ───────────────
@@ -122,25 +112,14 @@ test('a second charter for the same campaign violates the partial unique index',
     expect($caught->getMessage())->toContain('session_zero_surveys_charter_campaign_unique');
 
     // Exactly one charter survives the "race".
-    expect(SessionZeroSurvey::query()->charter()
+    expect(SessionZeroSurvey::query()
         ->where('campaign_id', $campaign->id)
         ->count())->toBe(1);
 });
 
 // ── CHECK constraints ────────────────────────────────────
 
-test('kind and status check constraints reject unknown values', function () {
-    $kindViolation = null;
-    try {
-        DB::transaction(fn () => SessionZeroSurvey::factory()->create(['kind' => 'warlord']));
-        $this->fail('Expected a check violation from session_zero_surveys_kind_check.');
-    } catch (QueryException $e) {
-        $kindViolation = $e;
-    }
-
-    expect($kindViolation->errorInfo[0] ?? null)->toBe('23514');
-    expect($kindViolation->getMessage())->toContain('session_zero_surveys_kind_check');
-
+test('status check constraints reject unknown values', function () {
     $statusViolation = null;
     try {
         DB::transaction(fn () => SessionZeroSurvey::factory()->create(['status' => 'zombie']));
@@ -151,19 +130,6 @@ test('kind and status check constraints reject unknown values', function () {
 
     expect($statusViolation->errorInfo[0] ?? null)->toBe('23514');
     expect($statusViolation->getMessage())->toContain('session_zero_surveys_status_check');
-});
-
-// ── Legacy behavior ──────────────────────────────────────
-
-test('legacy surveys are unaffected: kind defaults to survey with gm profile set', function () {
-    $survey = SessionZeroSurvey::factory()->create();
-
-    expect($survey->kind)->toBe('survey')
-        ->and($survey->isCharter())->toBeFalse()
-        ->and($survey->isActive())->toBeTrue()
-        ->and($survey->current_version)->toBeNull()
-        ->and($survey->gmProfile)->not->toBeNull()
-        ->and($survey->campaign)->toBeNull();
 });
 
 // ── Cascades ─────────────────────────────────────────────

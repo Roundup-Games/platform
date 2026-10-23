@@ -150,12 +150,11 @@ describe('CharterComposer Start Screen', function () {
             ->assertSee(__('charter.section_overview_short', [], 'en'))
             ->assertSee('A noir intrigue campaign in the city of Threshold.');
 
-        $charter = SessionZeroSurvey::charter()
+        $charter = SessionZeroSurvey::query()
             ->where('campaign_id', $campaign->id)
             ->first();
 
         expect($charter)->not->toBeNull()
-            ->and($charter->kind)->toBe('charter')
             ->and($charter->status)->toBe('draft')
             ->and($charter->current_version)->toBeNull()
             ->and($charter->content['overview']['pitch'])->toBe('A noir intrigue campaign in the city of Threshold.')
@@ -178,7 +177,7 @@ describe('CharterComposer Stepping', function () {
             ->assertSet('step', 2)
             ->assertSet('draftSaved', true);
 
-        $charter = SessionZeroSurvey::charter()->where('campaign_id', $campaign->id)->first();
+        $charter = SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->first();
 
         expect($charter->content['overview']['pitch'])->toBe('An updated pitch written before stepping on.')
             ->and($charter->content['overview']['expected_shape'])->toBe('ongoing');
@@ -197,7 +196,7 @@ describe('CharterComposer Stepping', function () {
             ->assertSet('step', 1);
 
         // The invalid state never reached the draft (no autosave on failure).
-        $charter = SessionZeroSurvey::charter()->where('campaign_id', $campaign->id)->first();
+        $charter = SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->first();
         expect($charter->content['overview']['pitch'])->toBe('A noir intrigue campaign in the city of Threshold.');
     });
 
@@ -286,7 +285,7 @@ describe('CharterComposer Publish', function () {
             ->call('publish')
             ->assertSet('state', 'published');
 
-        $charter = SessionZeroSurvey::charter()->where('campaign_id', $campaign->id)->first();
+        $charter = SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->first();
 
         expect($charter->status)->toBe('active')
             ->and($charter->current_version)->toBe(1)
@@ -323,7 +322,7 @@ describe('CharterComposer Publish', function () {
             ->assertHasErrors(['content.safety.tools'])
             ->assertSet('step', 3);
 
-        $charter = SessionZeroSurvey::charter()->where('campaign_id', $campaign->id)->first();
+        $charter = SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->first();
 
         expect($charter->status)->toBe('draft')
             ->and(SessionZeroSurveyVersion::where('session_zero_survey_id', $charter->id)->count())->toBe(0);
@@ -732,7 +731,7 @@ describe('CharterComposer Free-Tier Limit', function () {
             ->assertHasErrors(['charter'])
             ->assertSet('state', 'start');
 
-        expect(SessionZeroSurvey::charter()->where('campaign_id', $third->id)->exists())->toBeFalse();
+        expect(SessionZeroSurvey::query()->where('campaign_id', $third->id)->exists())->toBeFalse();
     });
 
     it('shows the normal start screen to a member at the cap', function () {
@@ -888,7 +887,7 @@ describe('CharterComposer Member Conveniences', function () {
             ->call('startCharter', 'template', $template->id)
             ->assertSet('state', 'draft');
 
-        $draft = SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->first();
+        $draft = SessionZeroSurvey::query()->where('campaign_id', $target->id)->first();
         expect($draft)->not->toBeNull()
             ->and($draft->content)->toBe($template->content);
     });
@@ -928,7 +927,7 @@ describe('CharterComposer Member Conveniences', function () {
             ->call('startCharter', 'previous', $source->id)
             ->assertSet('state', 'draft');
 
-        $draft = SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->first();
+        $draft = SessionZeroSurvey::query()->where('campaign_id', $target->id)->first();
         expect($draft)->not->toBeNull()
             ->and($draft->campaign_id)->toBe($target->id)
             ->and($draft->content)->toBe($source->content);
@@ -965,7 +964,7 @@ describe('CharterComposer Member Conveniences', function () {
             ->assertHasErrors(['charter'])
             ->assertSet('state', 'start');
 
-        expect(SessionZeroSurvey::charter()->where('campaign_id', $target->id)->exists())->toBeFalse();
+        expect(SessionZeroSurvey::query()->where('campaign_id', $target->id)->exists())->toBeFalse();
     });
 
     it('shows save-as-template on the published panel to a member only', function () {

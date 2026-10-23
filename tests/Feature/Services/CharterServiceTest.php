@@ -71,7 +71,6 @@ test('start creates a draft charter with quick-start prefill for the owner', fun
     $charter = CharterService::start($owner, $campaign);
 
     expect($charter)->toBeInstanceOf(SessionZeroSurvey::class)
-        ->and($charter->kind)->toBe('charter')
         ->and($charter->campaign_id)->toBe($campaign->id)
         ->and($charter->status)->toBe('draft')
         ->and($charter->current_version)->toBeNull()
@@ -122,7 +121,7 @@ test('start is idempotent: the second call returns the same row without overwrit
     expect($second->is($first))->toBeTrue()
         ->and($second->title)->toBe('Hand-edited title')
         ->and($second->content['overview']['pitch'])->toBe('Hand-edited pitch')
-        ->and(SessionZeroSurvey::query()->charter()->where('campaign_id', $campaign->id)->count())->toBe(1);
+        ->and(SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->count())->toBe(1);
 });
 
 test('start anchors gm_profile_id when the owner has a GM profile', function () {
@@ -861,7 +860,7 @@ test('start refuses a third charter for a free owner at the cap', function () {
             ->and($e->errors()['charter'][0])->toBe(__('charter.error_charter_limit_reached', ['limit' => 2]));
     }
 
-    expect(SessionZeroSurvey::query()->charter()->where('campaign_id', $campaign->id)->exists())->toBeFalse();
+    expect(SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->exists())->toBeFalse();
 });
 
 test('start stays idempotent at the limit: an existing charter is returned, not gated', function () {
@@ -1055,7 +1054,7 @@ test('template mode rejects another user\'s template id', function () {
             ->and($e->errors()['charter'][0])->toBe(__('charter.error_template_not_yours'));
     }
 
-    expect(SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->exists())->toBeFalse();
+    expect(SessionZeroSurvey::query()->where('campaign_id', $target->id)->exists())->toBeFalse();
 });
 
 test('template mode rejects an unknown template id', function () {
@@ -1088,7 +1087,7 @@ test('seed modes reject a non-uuid seed id inline instead of a 22P02/404', funct
             ->and($e->errors()['charter'][0])->toBe(__("charter.error_{$mode}_not_yours"));
     }
 
-    expect(SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->exists())->toBeFalse();
+    expect(SessionZeroSurvey::query()->where('campaign_id', $target->id)->exists())->toBeFalse();
 })->with(['template', 'previous']);
 
 test('previous mode seeds a draft from the caller\'s published charter on another campaign', function () {
@@ -1181,7 +1180,7 @@ test('template mode is refused for a free owner — the UI gate is not the gate'
             ->and($e->errors()['charter'][0])->toBe(__('charter.error_seeds_member_only'));
     }
 
-    expect(SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->exists())->toBeFalse();
+    expect(SessionZeroSurvey::query()->where('campaign_id', $target->id)->exists())->toBeFalse();
 });
 
 test('previous mode is refused for a free owner even on their own published charter', function () {
@@ -1197,7 +1196,7 @@ test('previous mode is refused for a free owner even on their own published char
             ->and($e->errors()['charter'][0])->toBe(__('charter.error_seeds_member_only'));
     }
 
-    expect(SessionZeroSurvey::query()->charter()->where('campaign_id', $target->id)->exists())->toBeFalse();
+    expect(SessionZeroSurvey::query()->where('campaign_id', $target->id)->exists())->toBeFalse();
 });
 
 // ── Title whitespace + stale-model archive hardening ───

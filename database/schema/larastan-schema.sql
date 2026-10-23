@@ -1279,7 +1279,6 @@ CREATE TABLE public.games (
     vibe_flags json NULL,
     game_type varchar(255) NOT NULL DEFAULT 'board_game'::varchar,
     reminder_sent_at timestamp NULL,
-    recap text NULL,
     min_reliability_preference numeric(5,2) NULL,
     reminder_24h_sent_at timestamp NULL,
     location_id varchar NULL,
@@ -1653,18 +1652,14 @@ CREATE TABLE public.session_zero_survey_versions (
 CREATE TABLE public.session_zero_surveys (
     id varchar NOT NULL,
     gm_profile_id varchar NULL,
-    game_id varchar NULL,
     title varchar(255) NOT NULL,
     content json NULL,
     uuid varchar(255) NOT NULL,
     status varchar(255) NOT NULL DEFAULT 'active'::varchar,
-    confirmation_count integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    kind varchar(255) NOT NULL DEFAULT 'survey'::varchar,
     campaign_id varchar NULL,
     current_version integer NULL,
-    CONSTRAINT session_zero_surveys_kind_check CHECK (((kind)::text = ANY (ARRAY[('survey'::varchar)::text, ('charter'::varchar)::text]))),
     CONSTRAINT session_zero_surveys_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::varchar)::text, ('active'::varchar)::text, ('archived'::varchar)::text])))
 );
 

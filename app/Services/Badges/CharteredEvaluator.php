@@ -118,7 +118,6 @@ class CharteredEvaluator extends CohortSweepEvaluator
     private function countersignedCharters(User $user): Builder
     {
         return SessionZeroSurvey::query()
-            ->charter()
             ->whereIn('campaign_id', $user->ownedCampaigns()->select('id'))
             ->whereHas('confirmations', fn (Builder $confirmation): Builder => $confirmation
                 ->where('role', SessionZeroConfirmation::ROLE_GM)

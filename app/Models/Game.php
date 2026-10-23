@@ -152,7 +152,7 @@ class Game extends Model implements HasMedia, TicketSubject
         'description', 'host_note', 'expected_duration', 'price', 'language', 'location', 'location_id', 'location_instructions',
         'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
-        'reminder_sent_at', 'reminder_24h_sent_at', 'recap', 'min_reliability_preference',
+        'reminder_sent_at', 'reminder_24h_sent_at', 'min_reliability_preference',
         'seo_title', 'seo_description',
         'share_token', 'share_token_expires_at', 'bench_mode',
         'attendance_window_opens_at', 'attendance_window_closes_at',
@@ -401,14 +401,6 @@ class Game extends Model implements HasMedia, TicketSubject
         return $this->hasMany(GameApplication::class);
     }
 
-    /**
-     * @return HasMany<SessionZeroSurvey, $this>
-     */
-    public function sessionZeroSurveys(): HasMany
-    {
-        return $this->hasMany(SessionZeroSurvey::class);
-    }
-
     /** @return HasMany<SessionDebriefing, $this> */
     public function sessionDebriefings(): HasMany
     {
@@ -485,11 +477,6 @@ class Game extends Model implements HasMedia, TicketSubject
     public function discordCardMessages(): HasMany
     {
         return $this->hasMany(DiscordCardMessage::class);
-    }
-
-    public function activeSessionZeroSurvey(): ?SessionZeroSurvey
-    {
-        return $this->sessionZeroSurveys()->where('status', 'active')->first();
     }
 
     // ── Debriefing Helpers ─────────────────────────────

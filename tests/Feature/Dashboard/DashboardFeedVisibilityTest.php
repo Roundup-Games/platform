@@ -2,6 +2,7 @@
 
 use App\Livewire\Dashboard;
 use App\Models\Campaign;
+use App\Models\CampaignJournalEntry;
 use App\Models\Game;
 use App\Models\User;
 use App\Models\UserRelationship;
@@ -123,13 +124,15 @@ describe('Community Feed — visibility filtering', function () {
             'type' => 'follow',
         ]);
 
-        Game::factory()->create([
+        $secretGame = Game::factory()->create([
             'owner_id' => $friend->id,
             'status' => 'completed',
             'visibility' => 'private',
-            'recap' => 'Top secret recap text',
+            'campaign_id' => Campaign::factory()->create(['owner_id' => $friend->id])->id,
             'name' => ['en' => 'Finished Secret Game'],
         ]);
+        CampaignJournalEntry::factory()->forCampaignSession($secretGame)
+            ->create(['body' => 'Top secret recap text']);
 
         $feed = Livewire::test(Dashboard::class)
             ->viewData('dashboard')->established->communityFeed->friends;

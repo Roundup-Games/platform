@@ -454,6 +454,13 @@ class CampaignJournalService
             ->all();
 
         $this->cache->invalidateForUsers($userIds, ['contributions', 'recaps']);
+
+        // The recap write used to be a games-table update, so
+        // GameObserver::saved's game-event invalidation (action center
+        // included) fired with it. The journal write touches no game
+        // row — carry the same invalidation here.
+        $this->cache->invalidateForGameEvent($game, 'recap');
+        $this->cache->invalidateActionCenterForGameEvent($game->id);
     }
 
     /**

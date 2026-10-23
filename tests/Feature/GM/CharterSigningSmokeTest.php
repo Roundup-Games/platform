@@ -96,7 +96,7 @@ it('flows from published charter through private answers and signatures to the g
         ->call('publish')
         ->assertSet('state', 'published');
 
-    $charter = SessionZeroSurvey::charter()->where('campaign_id', $campaign->id)->firstOrFail();
+    $charter = SessionZeroSurvey::query()->where('campaign_id', $campaign->id)->firstOrFail();
     $version = SessionZeroSurveyVersion::where('session_zero_survey_id', $charter->id)->firstOrFail();
 
     expect($version->version_number)->toBe(1)

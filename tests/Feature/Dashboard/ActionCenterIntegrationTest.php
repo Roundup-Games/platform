@@ -3,6 +3,7 @@
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Livewire\Dashboard;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -10,6 +11,7 @@ use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Services\CampaignJournalService;
 use App\Services\DashboardCacheService;
 use Illuminate\Support\Facades\Cache;
 
@@ -190,12 +192,13 @@ describe('Game event invalidation', function () {
         expect(Cache::get($cacheKey))->toBeNull();
     });
 
-    test('game recap addition invalidates action center', function () {
+    test('a journal recap write invalidates the action center', function () {
+        $campaign = Campaign::factory()->create(['owner_id' => $this->user->id]);
         $game = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => $campaign->id,
             'status' => 'completed',
-            'recap' => null,
         ]);
 
         // Warm cache
@@ -204,8 +207,10 @@ describe('Game event invalidation', function () {
         $cacheKey = "dashboard:action_center:{$this->user->id}";
         expect(Cache::get($cacheKey))->not->toBeNull();
 
-        // Add recap — triggers GameObserver::saved()
-        $game->update(['recap' => 'Great session!']);
+        // Write the recap through the journal service — the write's
+        // post-commit tail carries the invalidation that used to ride
+        // GameObserver's wasChanged('recap') hook.
+        app(CampaignJournalService::class)->writeRecap($game, $this->user, 'Great session!');
 
         expect(Cache::get($cacheKey))->toBeNull();
     });

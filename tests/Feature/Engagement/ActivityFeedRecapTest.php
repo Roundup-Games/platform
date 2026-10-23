@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Campaign;
+use App\Models\CampaignJournalEntry;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
@@ -25,12 +27,13 @@ describe('Activity Feed Recap Integration', function () {
         ]);
 
         // Create a completed game with recap (session_recapped event)
-        Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $this->host->id,
             'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => Campaign::factory()->create(['owner_id' => $this->host->id])->id,
             'status' => 'completed',
-            'recap' => 'This session was incredible with a dramatic climax!',
         ]);
+        CampaignJournalEntry::factory()->forCampaignSession($game)->create();
 
         $feed = $this->feedService->getFeed($this->viewer);
 
@@ -41,12 +44,13 @@ describe('Activity Feed Recap Integration', function () {
     });
 
     it('returns empty feed when viewer has no social circle', function () {
-        Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $this->host->id,
             'game_system_id' => $this->gameSystem->id,
+            'campaign_id' => Campaign::factory()->create(['owner_id' => $this->host->id])->id,
             'status' => 'completed',
-            'recap' => 'This session was incredible with a dramatic climax!',
         ]);
+        CampaignJournalEntry::factory()->forCampaignSession($game)->create();
 
         $feed = $this->feedService->getFeed($this->viewer);
 

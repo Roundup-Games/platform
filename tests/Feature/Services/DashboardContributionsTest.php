@@ -7,6 +7,7 @@ use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
+use App\Models\CampaignJournalEntry;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -257,16 +258,21 @@ class DashboardContributionsTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // 2 games with recaps
-        Game::factory()->count(2)->create([
+        // 2 completed campaign sessions with journal recaps
+        $games = Game::factory()->count(2)->create([
             'owner_id' => $user->id,
-            'recap' => 'Great session!',
+            'status' => GameStatus::Completed->value,
+            'campaign_id' => Campaign::factory()->create(['owner_id' => $user->id])->id,
         ]);
+        $games->each(fn (Game $game) => CampaignJournalEntry::factory()
+            ->forCampaignSession($game)
+            ->create(['body' => 'Great session!']));
 
-        // 1 game without recap
+        // 1 completed campaign session without a recap
         Game::factory()->create([
             'owner_id' => $user->id,
-            'recap' => null,
+            'status' => GameStatus::Completed->value,
+            'campaign_id' => Campaign::factory()->create(['owner_id' => $user->id])->id,
         ]);
 
         $result = $this->computer->computeContributions($user);

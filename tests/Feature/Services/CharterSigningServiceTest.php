@@ -132,9 +132,7 @@ test('sign pins version 1 with all five attestations and normalized private answ
             'my_lines_text' => 'No graphic torture scenes.',
             'my_veils_text' => null,
             'note_to_gm' => 'Please keep spider imagery off-screen.',
-        ])
-        // The legacy survey counter is never touched by charter signing.
-        ->and($charter->fresh()->confirmation_count)->toBe(0);
+        ]);
 });
 
 test('sign accepts input without any private answers', function () {

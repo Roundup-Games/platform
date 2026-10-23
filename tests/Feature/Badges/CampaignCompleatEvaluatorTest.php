@@ -297,22 +297,6 @@ it('never counts an interlude recap — game_id null never covers a session', fu
     expect(app(CampaignCompleatEvaluator::class)->evaluate($owner))->toBeNull();
 });
 
-it('never reads the games.recap projection column (D220)', function () {
-    $owner = User::factory()->create();
-    $campaign = compleatCampaign($owner);
-
-    // Six completed sessions, each carrying legacy projection text on
-    // the games.recap column but NO journal entry: the journal is the
-    // source of truth, and coverage stays zero.
-    for ($i = 0; $i < 6; $i++) {
-        compleatSession($campaign, ['recap' => 'Legacy text recap from before the journal existed.']);
-    }
-
-    expect(Game::query()->whereNotNull('recap')->count())->toBe(6)
-        ->and(CampaignJournalEntry::query()->count())->toBe(0)
-        ->and(app(CampaignCompleatEvaluator::class)->evaluate($owner))->toBeNull();
-});
-
 it("never counts recaps authored on someone else's campaign for this owner", function () {
     $owner = User::factory()->create();
     $otherGm = User::factory()->create();

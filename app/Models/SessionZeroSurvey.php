@@ -30,22 +30,18 @@ class SessionZeroSurvey extends Model
 
     protected $fillable = [
         'gm_profile_id',
-        'game_id',
-        'kind',
         'campaign_id',
         'current_version',
         'title',
         'content',
         'uuid',
         'status',
-        'confirmation_count',
     ];
 
     protected function casts(): array
     {
         return [
             'content' => 'array',
-            'confirmation_count' => 'integer',
             'current_version' => 'integer',
         ];
     }
@@ -128,17 +124,6 @@ class SessionZeroSurvey extends Model
     }
 
     /**
-     * Campaign charters only (excludes legacy surveys).
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeCharter(Builder $query)
-    {
-        return $query->where('kind', 'charter');
-    }
-
-    /**
      * Draft lifecycle state (charter authoring; legacy surveys are never
      * drafted — they are created active).
      *
@@ -160,11 +145,6 @@ class SessionZeroSurvey extends Model
     public function isActive(): bool
     {
         return $this->status === 'active';
-    }
-
-    public function isCharter(): bool
-    {
-        return $this->kind === 'charter';
     }
 
     public function isDraft(): bool
@@ -208,11 +188,6 @@ class SessionZeroSurvey extends Model
     public function archive(): void
     {
         $this->update(['status' => 'archived']);
-    }
-
-    public function incrementConfirmationCount(): void
-    {
-        $this->increment('confirmation_count');
     }
 
     /**
