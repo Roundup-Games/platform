@@ -140,6 +140,51 @@
                 </p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                {{-- The Campaign Charter (M070) --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">history_edu</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('roadmap.heading_delivered_charter') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('roadmap.content_delivered_charter_body') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Campaign Journal & Previously On (M071) --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">book_5</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('roadmap.heading_delivered_journal') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('roadmap.content_delivered_journal_body') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Badges grounded in real history (M069) --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">military_tech</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('roadmap.heading_delivered_badges') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('roadmap.content_delivered_badges_body') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Public pricing, FAQ & code of conduct (M066) --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">

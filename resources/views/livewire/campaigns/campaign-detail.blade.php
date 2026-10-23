@@ -290,6 +290,7 @@
                             </p>
                             @if(! $charter)
                                 <p class="text-sm text-on-surface-variant">{{ __('charter.description_entry_teaser') }}</p>
+                                <p class="text-xs text-on-surface-variant/80 mt-1">{{ __('charter.description_entry_fit') }}</p>
                             @endif
                         </div>
                     </div>

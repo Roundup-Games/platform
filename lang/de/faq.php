@@ -23,13 +23,13 @@ return [
     'content_a_reliability' => 'Er misst genau eine Sache: ob du kommst, wenn du es zugesagt hast. Nach jeder Runde wird die Anwesenheit im Konsens der Anwesenden geklärt, und aus dieser Historie wird dein Wert berechnet — besuchte Runden zählen voll, Nicht-Erscheinen und kurzfristige Absagen schaden, frühzeitige Absagen gar nicht. Die genaue Formel, alle Schwellenwerte und sämtliche Schutzmechanismen sind öffentlich.',
     'action_view_algorithms' => 'Lies die komplette Algorithmen-Seite',
     'content_q_free_to_use' => 'Ist die Nutzung kostenlos?',
-    'content_a_free_to_use' => 'Ja. Einen Account anlegen, Runden mitzuspielen und eigene Runden ausrichten — all das ist kostenlos, ganz ohne Kreditkarte. Kosten können nur an zwei Stellen entstehen: Manche Events haben eine Anmeldegebühr, die der Organisator festlegt, und eine optionale Mitgliedschaft unterstützt die Plattform und schaltet den GM-Arbeitsbereich frei. Es gibt einen kostenlosen Tarif für Game Master — Ausrichten kostet also nie Geld.',
+    'content_a_free_to_use' => 'Ja. Einen Account anlegen, Runden mitzuspielen und eigene Runden ausrichten — all das ist kostenlos, ganz ohne Kreditkarte. Kosten können nur an zwei Stellen entstehen: Manche Events haben eine Anmeldegebühr, die der Organisator festlegt, und eine optionale Mitgliedschaft unterstützt die Plattform.',
     'action_view_pricing' => 'Sieh dir die Preise an',
 
     // ── Section: Selbst ausrichten ─────────────────────
     'heading_section_hosting' => 'Selbst ausrichten',
     'content_q_host_first' => 'Wie leite ich meine erste Runde?',
-    'content_a_host_first' => 'Leg einen kostenlosen Account an und erstelle deine erste Runde direkt über dein Dashboard: Spielsystem auswählen, Datum und Ort festlegen, entscheiden, ob Spieler offen mitmachen oder sich bewerben — und veröffentlichen. Wenn du magst, ergänze Safety-Tools oder ein Session Zero. Danach erscheint deine Runde unter Entdecken für Spieler in deiner Nähe.',
+    'content_a_host_first' => 'Leg einen kostenlosen Account an und erstelle deine erste Runde direkt über dein Dashboard: Spielsystem auswählen, Datum und Ort festlegen, entscheiden, ob Spieler offen mitmachen oder sich bewerben — und veröffentlichen. Wenn du magst, ergänze Safety-Tools oder eine Kampagnen-Charta. Danach erscheint deine Runde unter Entdecken für Spieler in deiner Nähe.',
     'action_view_for_organizers' => 'Schau, was Hosts bei uns erwartet',
     'content_q_create_event' => 'Wie erstelle ich ein Event?',
     'content_a_create_event' => 'Leg einen kostenlosen Account an und erstelle dein Event über dein Dashboard oder die Event-Seite. Events eignen sich für Zusammenkünfte mit mehreren Tischen — Conventions, Spieltage oder große Zusammenkünfte — und bündeln Anmeldungen, Ankündigungen und Tische an einem Ort.',

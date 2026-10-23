@@ -29,6 +29,12 @@ return [
     // ── Delivered recently (shipped receipts) ────────
     'heading_delivered_recently' => 'Delivered Recently',
     'content_delivered_intro' => 'Receipts, not promises: a few things we have actually shipped. We refresh this list as we go — the repository holds the full history.',
+    'heading_delivered_charter' => 'The Campaign Charter',
+    'content_delivered_charter_body' => 'A signable table agreement for campaigns: boundaries, safety tools, and commitments settled before session one — versioned through amendments, with each player\'s private answers staying private. The safety core is free for every table.',
+    'heading_delivered_journal' => 'Campaign Journal & Previously On',
+    'content_delivered_journal_body' => 'A living journal per campaign — recaps, goals, and character arcs — plus Previously On digests that catch the table up before the next session, and spoiler-safe recruitment summaries.',
+    'heading_delivered_badges' => 'Badges Grounded in Real History',
+    'content_delivered_badges_body' => 'Earned badges — from running your first table to a completed, fully journaled campaign — now display on profiles. No points to farm: every badge reflects something that actually happened.',
     'heading_delivered_trust_pages' => 'Public Pricing, FAQ & Code of Conduct',
     'content_delivered_trust_pages_body' => 'Real prices from real membership data, answers to common questions, and our code of conduct — public in English and German, before you ever register.',
     'heading_delivered_bilingual' => 'A Fully Bilingual Platform',

@@ -20,7 +20,7 @@ return [
     'action_manage_profile_desc' => 'View and update your public GM profile.',
     'action_start_charter' => 'Start a campaign charter',
     'action_start_charter_desc' => 'Set expectations and safety together — signable by the whole table.',
-    'heading_charterless_campaigns' => 'Campaigns without a charter',
+    'heading_charterless_campaigns' => 'Start a campaign charter',
     'heading_attention' => 'Needs your attention',
     'heading_digests_waiting' => 'Previously On digests ready to review',
     'heading_recap_due' => 'Recaps due',

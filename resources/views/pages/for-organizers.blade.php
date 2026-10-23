@@ -33,7 +33,7 @@
 
     {{-- ── Differentiator Cards (real shipped features) ───────
          M066/S09/T02: the generic benefit grid replaced with the real
-         differentiators — Discord bridge, Session Zero builder, GM
+         differentiators — Discord bridge, campaign charter, GM
          Workspace, reliability filtering, fee collection, waitlist &
          bench — all shipped, per the D179 shipped-features-only rule. --}}
     <section class="py-16 sm:py-20 bg-surface">

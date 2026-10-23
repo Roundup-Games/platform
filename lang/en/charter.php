@@ -14,6 +14,7 @@ return [
     // Campaign-detail entry card (owner-only)
     'title_entry' => 'Campaign Charter',
     'description_entry_teaser' => 'Collect expectations, boundaries, and safety tools before session one — and get everyone\'s signed agreement.',
+    'description_entry_fit' => 'Best for ongoing campaigns — and entirely optional: your campaign works fully without one.',
     'description_entry_teaser_participant' => 'This campaign runs on a charter — read it, review your boundaries, and sign.',
     'action_create_charter' => 'Create charter',
     'action_continue_charter' => 'Continue charter',

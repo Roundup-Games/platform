@@ -29,6 +29,12 @@ return [
     // ── Delivered recently (shipped receipts) ────────
     'heading_delivered_recently' => 'Kürzlich ausgeliefert',
     'content_delivered_intro' => 'Belege statt Versprechen: einige Dinge, die wir tatsächlich ausgeliefert haben. Wir aktualisieren diese Liste laufend — die vollständige Historie liegt im Repository.',
+    'heading_delivered_charter' => 'Die Kampagnen-Charta',
+    'content_delivered_charter_body' => 'Eine unterschreibbare Tischvereinbarung für Kampagnen: Grenzen, Safety-Tools und Absprachen, geklärt vor der ersten Runde — versioniert über Änderungen hinweg, und die privaten Antworten jedes Mitspielenden bleiben privat. Der Safety-Kern ist für jeden Tisch kostenlos.',
+    'heading_delivered_journal' => 'Kampagnen-Journal & Rückblicke',
+    'content_delivered_journal_body' => 'Ein lebendiges Journal pro Kampagne — Recaps, Ziele und Charakterentwicklungen — dazu „Zuvor in der Kampagne“-Digeste, die die Runde vor der nächsten Session auf den Stand bringen, und spoiler-sichere Rekrutierungs-Zusammenfassungen.',
+    'heading_delivered_badges' => 'Badges auf Basis echter Historie',
+    'content_delivered_badges_body' => 'Verdiente Badges — von der ersten eigenen Runde bis zur abgeschlossenen, vollständig dokumentierten Kampagne — erscheinen jetzt auf Profilen. Keine Punkte zum Absahnen: Jedes Badge spiegelt etwas, das wirklich passiert ist.',
     'heading_delivered_trust_pages' => 'Öffentliche Preise, FAQ & Verhaltenskodex',
     'content_delivered_trust_pages_body' => 'Echte Preise aus echten Mitgliedsdaten, Antworten auf häufige Fragen und unser Verhaltenskodex — öffentlich einsehbar, auf Deutsch und Englisch, noch bevor du dich registrierst.',
     'heading_delivered_bilingual' => 'Eine vollständig zweisprachige Plattform',

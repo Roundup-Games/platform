@@ -244,6 +244,17 @@ describe('RoadAheadPage', function () {
             ->assertSee(__('roadmap.content_road_ahead_intro_2'));
     });
 
+    it('lists recently shipped charter, journal, and badges work as delivered receipts', function () {
+        get(route('pledge.roadmap'))
+            ->assertOk()
+            ->assertSee(__('roadmap.heading_delivered_charter'))
+            ->assertSee(__('roadmap.content_delivered_charter_body'))
+            ->assertSee(__('roadmap.heading_delivered_journal'))
+            ->assertSee(__('roadmap.content_delivered_journal_body'))
+            ->assertSee(__('roadmap.heading_delivered_badges'))
+            ->assertSee(__('roadmap.content_delivered_badges_body'));
+    });
+
     it('frames future ideas as aspirational and invites feedback via contact', function () {
         get(route('pledge.roadmap'))
             ->assertOk()

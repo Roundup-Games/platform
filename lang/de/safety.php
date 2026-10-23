@@ -15,7 +15,7 @@ return [
     'content_whether_you_re_a_seasoned' => 'Egal ob du ein erfahrener Game Master bist oder an deiner ersten Runde teilnimmst — Safety-Tools schaffen eine gemeinsame Sprache für Grenzen: sie schränken nicht die Kreativität ein, sondern bauen Vertrauen auf, damit sich alle voll in die Geschichte einbringen können.',
     'content_your_safety_built_in' => 'Deine Sicherheit, eingebaut',
     'field_safety_tools_for_tabletop_gaming' => 'Safety-Tools für Tabletop-Spiele',
-    'field_start_with_charter' => 'Beginne mit einem Charter',
+    'field_start_with_charter' => 'Beginne mit einer Charta',
     // ── Safety Tool Categories ──────────────────────────────────────
     'category_before' => 'Vor dem Spiel',
     'category_during' => 'Während des Spiels',

@@ -35,6 +35,19 @@ class CampaignCharterEntryCardTest extends TestCase
     }
 
     #[Test]
+    public function the_owner_card_explains_fit_and_optionality_when_no_charter_exists(): void
+    {
+        [$owner, $campaign] = $this->campaignWithOwner();
+
+        Livewire::actingAs($owner)
+            ->test(CampaignDetail::class, ['id' => $campaign->id])
+            ->assertSee(__('charter.title_entry'))
+            ->assertSee(__('charter.description_entry_teaser'))
+            ->assertSee(__('charter.description_entry_fit'))
+            ->assertSee(__('charter.action_create_charter'));
+    }
+
+    #[Test]
     public function an_approved_participant_discovers_a_published_charter_with_a_view_link(): void
     {
         [$owner, $campaign, $charter] = $this->publishedCharter();
@@ -52,7 +65,9 @@ class CampaignCharterEntryCardTest extends TestCase
             ->assertSee(__('charter.description_entry_teaser_participant'))
             ->assertSee(route('charter.view', $charter->refresh()->uuid))
             // Participant copy never offers the composer surfaces.
-            ->assertDontSee(__('charter.action_create_charter'));
+            ->assertDontSee(__('charter.action_create_charter'))
+            // Fit guidance belongs to the owner's decision moment only.
+            ->assertDontSee(__('charter.description_entry_fit'));
     }
 
     #[Test]

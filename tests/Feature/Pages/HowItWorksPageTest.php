@@ -42,13 +42,13 @@ describe('HowItWorksPage - Organizer Story', function () {
             ->assertSee(__('pages.content_host_story_step_recap_title'));
     });
 
-    it('names the shipped surfaces in the story: Session Zero, Discord, iCal, PWA', function () {
+    it('names the shipped surfaces in the story: charter, Discord, iCal, PWA', function () {
         $content = get(route('how-it-works'))->assertOk()->content();
 
         // Shipped-feature receipts (D179): the organizer story may only
-        // mention what actually exists — Session Zero builder, Discord
+        // mention what actually exists — campaign charter, Discord
         // bridge, iCal feed, PWA.
-        expect($content)->toContain('Session Zero')
+        expect($content)->toContain('charter')
             ->toContain('Discord')
             ->toContain('iCal')
             ->toContain('PWA');

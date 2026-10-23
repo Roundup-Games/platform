@@ -20,7 +20,7 @@ return [
     'action_manage_profile_desc' => 'Zeige und aktualisiere dein öffentliches GM-Profil.',
     'action_start_charter' => 'Kampagnen-Charter starten',
     'action_start_charter_desc' => 'Erwartungen und Safety-Tools gemeinsam festhalten — von der ganzen Runde unterschreibbar.',
-    'heading_charterless_campaigns' => 'Kampagnen ohne Charter',
+    'heading_charterless_campaigns' => 'Kampagnen-Charta starten',
     'heading_attention' => 'Braucht deine Aufmerksamkeit',
     'heading_digests_waiting' => '„Zuvor in der Kampagne“-Digests bereit zur Durchsicht',
     'heading_recap_due' => 'Fällige Recaps',

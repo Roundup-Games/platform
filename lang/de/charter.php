@@ -14,6 +14,7 @@ return [
     // Einstiegskarte auf der Kampagnenseite (nur für dich sichtbar)
     'title_entry' => 'Kampagnen-Charta',
     'description_entry_teaser' => 'Erwartungen, Grenzen und Safety-Tools klären, bevor die erste Runde startet — und die Unterschrift aller einholen.',
+    'description_entry_fit' => 'Am meisten bringt eine Charta laufenden Kampagnen — und sie ist völlig optional: Deine Kampagne funktioniert auch ohne.',
     'description_entry_teaser_participant' => 'Diese Kampagne läuft mit einer Charta — lies sie, prüfe deine Grenzen und unterschreibe.',
     'action_create_charter' => 'Charta erstellen',
     'action_continue_charter' => 'Charta weiterbearbeiten',
