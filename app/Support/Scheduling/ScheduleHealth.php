@@ -51,7 +51,7 @@ final class ScheduleHealth
      * distinguishable from a healthy zero and cached for one minute only,
      * so the tile never reports "all clear" for a broken deploy for long.
      *
-     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool}
+     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool, missed_task_keys: list<string>}
      */
     public static function summary(): array
     {
@@ -62,7 +62,7 @@ final class ScheduleHealth
         $cached = Cache::get(self::CACHE_KEY);
 
         if (is_array($cached)) {
-            /** @var array{missed: int, failed_last: int, awaiting_first: int, degraded: bool} $cached */
+            /** @var array{missed: int, failed_last: int, awaiting_first: int, degraded: bool, missed_task_keys: list<string>} $cached */
             return $cached;
         }
 
@@ -71,6 +71,21 @@ final class ScheduleHealth
         Cache::put(self::CACHE_KEY, $summary, now()->addMinutes($summary['degraded'] ? 1 : 5));
 
         return $summary;
+    }
+
+    /**
+     * The task keys currently classified as missed (their most recent due
+     * time passed after the recording epoch with no covering run). Callers
+     * that need to separate GENUINE regressions from never-ran tasks (a
+     * task deployed after its daily due time reads missed until its first
+     * occurrence) pair this with a has-any-run lookup — see
+     * ScheduleHealthCheck.
+     *
+     * @return list<string>
+     */
+    public static function missedTaskKeys(): array
+    {
+        return self::summary()['missed_task_keys'];
     }
 
     /**
@@ -91,7 +106,7 @@ final class ScheduleHealth
     }
 
     /**
-     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool}
+     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool, missed_task_keys: list<string>}
      */
     private static function compute(): array
     {
@@ -102,6 +117,7 @@ final class ScheduleHealth
         $missed = 0;
         $failedLast = 0;
         $awaitingFirst = 0;
+        $missedTaskKeys = [];
 
         // The per-event resilience rule extends to the inventory load
         // itself: a schedule definition that throws while resolving must
@@ -117,7 +133,7 @@ final class ScheduleHealth
                 'error' => $e->getMessage(),
             ]);
 
-            return ['missed' => 0, 'failed_last' => 0, 'awaiting_first' => 0, 'degraded' => true];
+            return ['missed' => 0, 'failed_last' => 0, 'awaiting_first' => 0, 'degraded' => true, 'missed_task_keys' => []];
         }
 
         foreach ($events as $event) {
@@ -138,7 +154,10 @@ final class ScheduleHealth
                 );
 
                 $counts = $health->counts();
-                $missed += $counts['missed'] ? 1 : 0;
+                if ($counts['missed']) {
+                    $missed++;
+                    $missedTaskKeys[] = TaskIdentity::command($event);
+                }
                 $awaitingFirst += $counts['awaiting'] ? 1 : 0;
 
                 if ($run?->status === ScheduledTaskRunStatus::Failed) {
@@ -154,7 +173,7 @@ final class ScheduleHealth
             }
         }
 
-        return ['missed' => $missed, 'failed_last' => $failedLast, 'awaiting_first' => $awaitingFirst, 'degraded' => false];
+        return ['missed' => $missed, 'failed_last' => $failedLast, 'awaiting_first' => $awaitingFirst, 'degraded' => false, 'missed_task_keys' => $missedTaskKeys];
     }
 
     /**
