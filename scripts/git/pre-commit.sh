@@ -12,6 +12,7 @@
 #   4. Eloquent practices + invariants  → HARD FAIL   (cheap greps, CI gates)
 #   5. Translation integrity            → HARD FAIL   (when lang/ is staged)
 #   6. PHP static analysis (Larastan)   → HARD FAIL   (same rule set as CI)
+#   7. Schema dumps normalized + synced → HARD FAIL   (database/ staged)
 #
 # Goal: "green locally" == "green on CI" for every static-analysis job.
 # Pest and the JS build remain CI-side (too slow per-commit) — run
@@ -104,7 +105,8 @@ printf "\n${CYN}🔍 Pre-commit checks on ${php_count} PHP file(s)${RST}\n\n"
 # is CI's Translation Integrity job, and `--stage` exists to prove
 # "green locally == green on CI".
 staged_lang=$(git diff --cached --name-only --diff-filter=ACM -- 'lang/' || true)
-if [[ -z "$staged_php" && -z "$staged_lang" ]]; then
+staged_db=$(git diff --cached --name-only --diff-filter=ACM -- 'database/' || true)
+if [[ -z "$staged_php" && -z "$staged_lang" && -z "$staged_db" ]]; then
     echo "  No source files staged — skipping checks."
     # A clean tree under --stage checked NOTHING: that exit 0 must never
     # be cited as a green CI-parity run (K008's vacuous-green trap).
@@ -255,6 +257,27 @@ if [[ -x vendor/bin/phpstan ]]; then
     fi
 else
     skip "stan" "vendor/bin/phpstan not found — run composer install"
+fi
+
+# ── 7. Schema dump integrity — HARD FAIL (database/ staged) ────────────────
+#
+# Mirrors CI's "Verify schema dump is normalized" + "Verify Larastan schema
+# is in sync": pg_dump 17+ artifacts (\restrict tokens, SET transaction_
+# timeout) break the postgres:16 CI/deploy load target, and the Larastan
+# companion must be regenerated after any dump change (database/schema/
+# README.md runbook). Gated on database/ changes — the verify script
+# regenerates larastan-schema.sql, so a forgotten regeneration surfaces as
+# an unstaged diff and blocks here exactly like it fails CI.
+if [[ -n "$staged_db" ]]; then
+    step "schema" "schema dumps normalized + in sync (CI parity)"
+    if schema_out=$(bash scripts/verify-schema-dumps.sh 2>&1); then
+        ok "schema" "schema dumps verified"
+    else
+        fail "schema" "schema dump verification failed — commit blocked (CI fails on this)"
+        echo "$schema_out" | tail -8 | sed 's/^/         /'
+    fi
+else
+    skip "schema" "skipped (no database/ changes)"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────────
