@@ -2,7 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict coUviOlpcjweKHbi3oo1Z2AUlAvYllT2zHn9whIYp3holaHPiCich8CuoQABZl2
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6
@@ -10,7 +9,6 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -8387,13 +8385,11 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict coUviOlpcjweKHbi3oo1Z2AUlAvYllT2zHn9whIYp3holaHPiCich8CuoQABZl2
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict 1hJQ6VUjzawvdScCkTakgVy3MqgRxKIyfNY0GzSjSCtNUn2afbvp1t1QWak1oJm
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6
@@ -8401,7 +8397,6 @@ ALTER TABLE ONLY public.users
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -8686,5 +8681,4 @@ SELECT pg_catalog.setval('public.migrations_id_seq', 282, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 1hJQ6VUjzawvdScCkTakgVy3MqgRxKIyfNY0GzSjSCtNUn2afbvp1t1QWak1oJm
 
