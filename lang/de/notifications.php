@@ -20,6 +20,9 @@ return [
     'category_waitlist_placement' => 'Warteliste-Platzierung',
     'category_bench_updates' => 'Ersatzbank-Updates (Platzierung & Nachrücken)',
     'category_session_content' => 'Rundeninhalte (Host-Updates, Debriefings, Recap)',
+    // Charta-Lebenszyklus (M070/D234)
+    'category_charter_published' => 'Charta veröffentlicht (lesen & unterschreiben)',
+    'category_charter_amended' => 'Charta geändert (Neuzustimmung)',
     'category_review_reported' => 'Bewertung gemeldet',
     'category_moderation_notice' => 'Moderationshinweise (Verwarnungen & Inhaltsentfernungen)',
     // Erfolge (M069)
@@ -338,6 +341,23 @@ return [
     'body_bulletin_content' => '":content"',
     'push_title_bulletin_posted' => 'Spiel-Update',
     'push_body_bulletin_posted' => ':host hat ein Update für :game veröffentlicht',
+    // Charta-Lebenszyklus (M070/D234) — Veröffentlichung bittet um
+    // Unterschrift; materielle Änderungen um Neuzustimmung, kleine
+    // Änderungen informieren nur.
+    'subject_charter_published' => 'Die Charta für :campaign wartet auf deine Unterschrift',
+    'body_charter_published' => 'Dein Game Master hat die Kampagnen-Charta für **:campaign** veröffentlicht — lies sie, prüfe deine Grenzen und gib deine Unterschrift.',
+    'action_charter_sign' => 'Charta lesen & unterschreiben',
+    'subject_charter_amended_material' => 'Die Charta für :campaign wurde geändert',
+    'body_charter_amended_material' => 'Die Charta für **:campaign** wurde mit materiellen Änderungen versehen — deine Unterschrift braucht deine Zustimmung erneut. Sieh dir die Änderungen an und unterschreibe neu.',
+    'subject_charter_amended_minor' => 'Die Charta für :campaign wurde aktualisiert',
+    'body_charter_amended_minor' => 'Die Charta für **:campaign** wurde mit kleinen Änderungen aktualisiert. Deine Unterschrift gilt weiter — du musst nichts tun, außer du magst einen Blick werfen.',
+    'action_charter_review' => 'Änderungen ansehen',
+    'action_charter_view' => 'Charta ansehen',
+    'push_title_charter_published' => 'Kampagnen-Charta',
+    'push_body_charter_published' => 'Die Charta für :campaign wartet auf deine Unterschrift',
+    'push_title_charter_amended' => 'Charta geändert',
+    'push_body_charter_amended_material' => 'Die Charta für :campaign hat sich geändert — bitte ansehen und neu unterschreiben',
+    'push_body_charter_amended_minor' => 'Die Charta für :campaign wurde aktualisiert (deine Unterschrift gilt weiter)',
     // Discord-Kanal (D118)
     'aria_master_toggle_all_discord' => 'Alle Discord-Benachrichtigungen umschalten',
     // Abzeichen (M069) — Auszeichnungsmomente sind feierlich, aber zurückhaltend (Spec §2.2).

@@ -121,8 +121,10 @@ it('resets the whole table on a material amendment and re-signs green end to end
     $v2 = CharterService::amend($owner, $fresh, (string) $fresh->title, $content, 'We now signal with an open hand or the X-card.');
 
     // The amendment log line carries ids only — never answer content.
+    // (withArgs before the count: the count must bind to the matched
+    // line, not to every Log::info call in the test — notification
+    // fanout logging made the any-args reading false.)
     Log::shouldHaveReceived('info')
-        ->once()
         ->withArgs(fn (string $message, array $context): bool => $message === 'Charter amended'
             && $context === [
                 'survey_id' => $charter->id,
@@ -130,7 +132,8 @@ it('resets the whole table on a material amendment and re-signs green end to end
                 'campaign_id' => $campaign->id,
                 'version' => 2,
                 'is_material' => true,
-            ]);
+            ])
+        ->once();
 
     expect($v2->is_material)->toBeTrue()
         ->and($v2->version_number)->toBe(2)
@@ -196,7 +199,6 @@ it('carries every signature byte-for-byte through a minor amendment with zero ro
     $v2 = CharterService::amend($owner, $fresh, (string) $fresh->title, $content, 'Absence window doubled to 48 hours.');
 
     Log::shouldHaveReceived('info')
-        ->once()
         ->withArgs(fn (string $message, array $context): bool => $message === 'Charter amended'
             && $context === [
                 'survey_id' => $charter->id,
@@ -204,7 +206,8 @@ it('carries every signature byte-for-byte through a minor amendment with zero ro
                 'campaign_id' => $campaign->id,
                 'version' => 2,
                 'is_material' => false,
-            ]);
+            ])
+        ->once();
 
     expect($v2->is_material)->toBeFalse()
         ->and($v2->version_number)->toBe(2);

@@ -3,15 +3,21 @@
 namespace App\Services\Charter;
 
 use App\Dto\CharterContent;
+use App\Enums\NotificationCategory;
 use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\CharterTemplate;
 use App\Models\Location;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\SessionZeroSurveyVersion;
 use App\Models\User;
+use App\Notifications\CharterAmended;
+use App\Notifications\CharterPublished;
+use App\Services\NotificationService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -333,6 +339,15 @@ class CharterService
             'version' => $version->version_number,
         ]);
 
+        // D234 closure: tell approved participants it is their turn to
+        // read and sign — after commit, so a queued channel can never
+        // read a rolled-back charter.
+        self::notifyApprovedParticipants(
+            $charter,
+            fn (Campaign $campaign) => new CharterPublished($campaign, $charter),
+            NotificationCategory::CharterPublished,
+        );
+
         return $version;
     }
 
@@ -507,6 +522,15 @@ class CharterService
             'is_material' => $version->is_material,
         ]);
 
+        // D234 closure: material amendments reset every signature — the
+        // notification copy says "review and re-sign"; minor ones carry
+        // signatures and stay informational.
+        self::notifyApprovedParticipants(
+            $charter,
+            fn (Campaign $campaign) => new CharterAmended($campaign, $charter, $version, (bool) $version->is_material),
+            NotificationCategory::CharterAmended,
+        );
+
         return $version;
     }
 
@@ -611,6 +635,49 @@ class CharterService
             throw ValidationException::withMessages([
                 'logistics.location_id' => __('charter.error_location_not_available'),
             ]);
+        }
+    }
+
+    /**
+     * Fan a charter notification out to the campaign's approved
+     * participants — the same audience the sign gate admits
+     * (error_not_participant) — excluding the owner (their own action
+     * needs no notification). The factory closure receives the
+     * non-null campaign and builds a FRESH instance per recipient:
+     * NotificationService resolves and attaches the recipient's
+     * channels onto the instance, so a shared one would deliver
+     * recipient N the channels of recipient N-1
+     * (GameBulletinObserverFanoutTest lesson). NotificationService::send
+     * is error-resilient (logs, never throws), so a dispatch failure can
+     * never fail the publish/amend itself.
+     *
+     * @param  callable(Campaign): Notification  $make
+     */
+    private static function notifyApprovedParticipants(SessionZeroSurvey $charter, callable $make, NotificationCategory $category): void
+    {
+        $campaign = $charter->campaign;
+
+        if ($campaign === null) {
+            return;
+        }
+
+        $recipients = [];
+        foreach (CampaignParticipant::query()->whereBelongsTo($campaign)->where('status', 'approved')->with('user')->get() as $participant) {
+            $user = $participant->user;
+
+            if ($user instanceof User && $user->id !== $campaign->owner_id) {
+                $recipients[] = $user;
+            }
+        }
+
+        if ($recipients === []) {
+            return;
+        }
+
+        $notifications = app(NotificationService::class);
+
+        foreach ($recipients as $recipient) {
+            $notifications->send($recipient, $make($campaign), $category);
         }
     }
 

@@ -105,6 +105,9 @@ test('quick start prefills from the campaign and applies mid defaults', function
     expect($content['overview']['pitch'])->toBe('A city of shadows and debts.')
         ->and($content['overview']['system_notes'])->toBe('Dungeons & Dragons 5E')
         ->and($content['overview']['table_size'])->toBe(5)
+        // A set recurrence implies an ongoing campaign — quick start
+        // leaves no required field behind.
+        ->and($content['overview']['expected_shape'])->toBe('ongoing')
         ->and($content['safety']['tools'])->toBe(
             array_map(static fn (SafetyTool $tool): string => $tool->value, SafetyTool::recommended())
         )
@@ -148,7 +151,10 @@ test('quick start maps irregular values and empty campaign facts', function () {
         ->and($content['logistics']['venue_mode'])->toBe('rotate')
         ->and($content['logistics']['location_id'])->toBeNull()
         ->and($content['logistics']['cadence'])->toBe('irregular')
-        ->and($content['logistics']['session_length'])->toBe('other');
+        ->and($content['logistics']['session_length'])->toBe('other')
+        // A recurrence outside the known set maps onto open-ended, never
+        // onto a required-but-empty field.
+        ->and($content['overview']['expected_shape'])->toBe('open_ended');
 });
 
 test('quick start clamps table size to the charter range and clips long pitches', function () {
@@ -326,15 +332,17 @@ test('sectionComplete flips as content fills in', function () {
         Campaign::factory()->create(['session_duration' => 3.0])
     )->toArray();
 
-    // Quick start completes everything except the overview shape choice.
-    expect(CharterContent::sectionComplete('overview', $content))->toBeFalse()
+    // Quick start completes every section — the expected shape derives
+    // from the campaign recurrence, so nothing required is left blank.
+    expect(CharterContent::sectionComplete('overview', $content))->toBeTrue()
         ->and(CharterContent::sectionComplete('safety', $content))->toBeTrue()
         ->and(CharterContent::sectionComplete('policies', $content))->toBeTrue()
         ->and(CharterContent::sectionComplete('ai_tools', $content))->toBeTrue()
         ->and(CharterContent::sectionComplete('logistics', $content))->toBeTrue();
 
-    $content['overview']['expected_shape'] = 'ongoing';
-    expect(CharterContent::sectionComplete('overview', $content))->toBeTrue();
+    // Emptying the shape choice flips the overview back to incomplete.
+    $content['overview']['expected_shape'] = '';
+    expect(CharterContent::sectionComplete('overview', $content))->toBeFalse();
 
     // Boundaries complete through text alone.
     $content['boundaries']['veils_text'] = 'Romance fades to black.';

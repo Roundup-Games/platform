@@ -201,9 +201,11 @@ later, chronicle/recruitment flows).
 - Templates are the professional-tooling angle: a GM's "standard charter" they refine once and
   reuse across campaigns.
 - Publish → signature collection begins; the charter card appears on the campaign page
-  (approved participants and owner — no draft existence leak). Deferred out of M070 (D234/D238,
-  tracked gaps, not silent descopes): participant notifications on publish/amendment, and the
-  session-page charter card.
+  (approved participants and owner — no draft existence leak) and on every campaign session
+  page; approved participants are notified (in-app/push/Discord per their preferences).
+  Shipped after M070: the session-page card and participant notifications on publish and
+  material amendment closed the D234/D238 tracked gaps (the GM nudge action and charter-health
+  reminders remain future ideas).
 
 ### Participant signing
 - Arrival via campaign page card or share link (existing UUID flow); the session-page

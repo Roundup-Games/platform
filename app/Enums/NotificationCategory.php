@@ -42,6 +42,10 @@ enum NotificationCategory: string
     case CampaignUpdated = 'campaign_updated';
     case SessionContent = 'session_content';
 
+    // Campaign charter lifecycle (M070/D234)
+    case CharterPublished = 'charter_published';
+    case CharterAmended = 'charter_amended';
+
     // Events (M063 — registrant communications)
     case EventRegistration = 'event_registration';
 
@@ -100,6 +104,8 @@ enum NotificationCategory: string
             self::GameUpdated => __('notifications.category_game_updated'),
             self::CampaignUpdated => __('notifications.category_campaign_updated'),
             self::SessionContent => __('notifications.category_session_content'),
+            self::CharterPublished => __('notifications.category_charter_published'),
+            self::CharterAmended => __('notifications.category_charter_amended'),
             self::EventRegistration => __('notifications.category_event_registration'),
             self::GameSystemRequest => __('notifications.category_game_system_request'),
             self::BelowMinPlayers => __('notifications.category_below_min_players'),
@@ -118,7 +124,7 @@ enum NotificationCategory: string
             self::GameInvitation, self::CampaignInvitation, self::TeamInvitation, self::SessionAddedToCampaign => 'invitations',
             self::NewApplication, self::ApplicationApproved, self::ApplicationRejected => 'applications',
             self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::WaitlistPromoted, self::WaitlistPlacement, self::BenchUpdates, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved => 'participation',
-            self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent => 'status',
+            self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent, self::CharterPublished, self::CharterAmended => 'status',
             self::EventRegistration => 'events',
             self::GameSystemRequest => 'content',
             self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder => 'scheduling',
@@ -153,7 +159,7 @@ enum NotificationCategory: string
             ],
             'status' => [
                 'label' => __('common.content_status'),
-                'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent],
+                'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent, self::CharterPublished, self::CharterAmended],
             ],
             'events' => [
                 'label' => __('notifications.group_events'),
@@ -238,7 +244,9 @@ enum NotificationCategory: string
             self::CampaignCompleted,
             self::GameUpdated,
             self::CampaignUpdated,
-            self::SessionContent => false,
+            self::SessionContent,
+            self::CharterPublished,
+            self::CharterAmended => false,
 
             // Events — a registration confirmation is the receipt for a seat
             // the registrant just paid for or claimed; missing it costs them

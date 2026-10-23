@@ -123,6 +123,10 @@ class CharterContent
             $content['overview']['system_notes'] = $systems->pluck('name')->join(', ');
         }
         $content['overview']['table_size'] = self::clampTableSize($campaign->max_players);
+        // A set recurrence implies an ongoing campaign; anything else
+        // (irregular / unset) still runs, just without a fixed rhythm —
+        // open-ended is the honest default for it.
+        $content['overview']['expected_shape'] = self::shapeFromRecurrence($campaign->recurrence);
 
         // §3 safety — the recommended starter set.
         $content['safety']['tools'] = array_map(
@@ -723,6 +727,12 @@ class CharterContent
             'monthly' => 'monthly',
             default => 'irregular',
         };
+    }
+
+    /** Map a campaign's recurrence onto the expected-shape vocabulary. */
+    private static function shapeFromRecurrence(?string $recurrence): string
+    {
+        return in_array($recurrence, ['weekly', 'bi-weekly', 'monthly'], true) ? 'ongoing' : 'open_ended';
     }
 
     /** Map campaigns.session_duration (float hours) onto the session-length vocabulary. */

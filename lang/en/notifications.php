@@ -20,6 +20,9 @@ return [
     'category_waitlist_placement' => 'Waitlist Placement',
     'category_bench_updates' => 'Bench Updates (placement & host promotion)',
     'category_session_content' => 'Session Content (bulletins, debriefings, recaps)',
+    // Charter lifecycle (M070/D234)
+    'category_charter_published' => 'Charter Published (read & sign)',
+    'category_charter_amended' => 'Charter Amended (re-agreement)',
     // Moderation
     'category_review_reported' => 'Review Reported',
     'category_moderation_notice' => 'Moderation Notices (warnings & content removal)',
@@ -343,6 +346,22 @@ return [
     'body_bulletin_content' => '":content"',
     'push_title_bulletin_posted' => 'Game Update',
     'push_body_bulletin_posted' => ':host posted an update for :game',
+    // Charter lifecycle (M070/D234) — publish asks for a signature;
+    // material amendments ask for re-agreement, minor ones inform.
+    'subject_charter_published' => ':campaign has a charter to sign',
+    'body_charter_published' => 'Your Game Master published the campaign charter for **:campaign** — read it, review your boundaries, and add your signature.',
+    'action_charter_sign' => 'Read & sign the charter',
+    'subject_charter_amended_material' => 'The :campaign charter was amended',
+    'body_charter_amended_material' => 'The charter for **:campaign** was amended with material changes — your signature needs your agreement again. Review what changed, then re-sign.',
+    'subject_charter_amended_minor' => 'The :campaign charter was updated',
+    'body_charter_amended_minor' => 'The charter for **:campaign** was updated with minor changes. Your signature stands — nothing to do, unless you want to look.',
+    'action_charter_review' => 'Review changes',
+    'action_charter_view' => 'View charter',
+    'push_title_charter_published' => 'Campaign Charter',
+    'push_body_charter_published' => 'The charter for :campaign is ready for your signature',
+    'push_title_charter_amended' => 'Charter Amended',
+    'push_body_charter_amended_material' => 'The charter for :campaign changed — please review and re-sign',
+    'push_body_charter_amended_minor' => 'The charter for :campaign was updated (your signature stands)',
     // Badges (M069) — award moments are celebratory but restrained (spec §2.2).
     // :badge interpolates the display name incl. tier label, resolved from
     // the badge registry + lang at render time.
