@@ -16,6 +16,13 @@ use Throwable;
  * Health tile shows and the per-task states the Scheduled Tasks page
  * renders — one classification, shared.
  *
+ * Known artifact: "Missed" counts a task's latest due time regardless of
+ * WHEN the task's schedule entry was deployed to this box — a task shipped
+ * after its daily due time shows one missed occurrence until its first
+ * real run clears it (e.g. badges:sweep deployed at 09:00 reads as having
+ * missed that morning's 06:30). Erring loud beats erring quiet; the first
+ * occurrence after deploy self-heals the row.
+ *
  * Day-one semantics: a task with no recorded runs whose latest due time
  * predates the recording epoch (the oldest run row) is AwaitingFirstRun —
  * expected right after run tracking is deployed — not Missed. Only a due

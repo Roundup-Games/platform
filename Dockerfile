@@ -180,6 +180,7 @@ COPY --chown=www-data:www-data docker/s6-worker/queue/php-memory.ini /usr/local/
 # Add queue and scheduler S6 service definitions
 COPY --chmod=755 docker/s6-worker/queue/ /etc/s6-overlay/s6-rc.d/queue/
 COPY --chmod=755 docker/s6-worker/scheduler/ /etc/s6-overlay/s6-rc.d/scheduler/
+COPY --chmod=755 docker/s6-worker/watchdog/ /etc/s6-overlay/s6-rc.d/watchdog/
 
 # Register queue and scheduler in the bundle s6 starts. Its location
 # depends on the base image layout (new: user-bundles.d/user; legacy:
@@ -187,6 +188,6 @@ COPY --chmod=755 docker/s6-worker/scheduler/ /etc/s6-overlay/s6-rc.d/scheduler/
 RUN set -eux; \
     reg=/etc/s6-overlay/s6-rc.d/user/contents.d; \
     [ -d "$reg" ] || reg=/etc/s6-overlay/user-bundles.d/user/contents.d; \
-    mkdir -p "$reg"; touch "$reg/queue" "$reg/scheduler"
+    mkdir -p "$reg"; touch "$reg/queue" "$reg/scheduler" "$reg/watchdog"
 
 USER www-data

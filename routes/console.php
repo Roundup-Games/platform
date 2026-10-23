@@ -243,3 +243,13 @@ Schedule::command('locations:drift-sweep')->dailyAt('05:30')->onOneServer()->ema
 // second scheduler (mis-configured cron, replica worker) must not double-write
 // snapshots and halve the effective retention window.
 Schedule::command('horizon:snapshot')->everyFiveMinutes()->onOneServer();
+
+// Scheduled-work health gate (2026-10-23 incident follow-up): runs in the
+// FOREGROUND so its real exit code lands in scheduled_task_runs — a FAILURE
+// (missed occurrences, failing tasks, broken inventory) flips the Queue
+// Health tile's failed_last red and names this command on the Scheduled
+// Tasks page. The worker's s6 watchdog covers process health; this covers
+// work health.
+Schedule::command('schedule:health-check')
+    ->hourly()
+    ->onOneServer();

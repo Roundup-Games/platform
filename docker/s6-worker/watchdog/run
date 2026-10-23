@@ -1,0 +1,39 @@
+#!/command/with-contenv bash
+# S6 long-run worker watchdog: turn a WEDGED worker into a restartable exit.
+#
+# Docker restarts this container when it EXITS (restart: unless-stopped),
+# but never when it is merely UNHEALTHY — the 2026-10-23 overnight incident
+# (Horizon wedged, healthcheck unhealthy for hours, 02:00 tasks missed,
+# nothing self-recovered). s6 restarts services that die, not services
+# that hang; this watchdog is the liveness bridge: it runs the SAME probe
+# as the healthcheck (horizon:status) and, after three consecutive
+# failures past the init window, terminates PID 1 — Docker revives the
+# worker with clean state. Scheduler-work health (missed occurrences) is
+# the scheduled schedule:health-check command's job, alerting through the
+# observability surface instead.
+
+cd /var/www/html
+
+strikes=0
+while true; do
+    sleep 60
+
+    # Still booting (or init marker lost after a restart): not a strike.
+    [ -f /tmp/laravel-init-complete ] || { strikes=0; continue; }
+
+    if php artisan horizon:status 2>/dev/null | grep -qi running; then
+        strikes=0
+        continue
+    fi
+
+    strikes=$((strikes + 1))
+    echo "worker-watchdog: horizon not running (strike ${strikes}/3)"
+
+    if [ "$strikes" -ge 3 ]; then
+        echo "worker-watchdog: three strikes — terminating the container for a clean restart"
+        kill -TERM 1
+        # Give s6 a moment to tear down; loop guards against a missed signal.
+        sleep 30
+        kill -KILL 1
+    fi
+done
