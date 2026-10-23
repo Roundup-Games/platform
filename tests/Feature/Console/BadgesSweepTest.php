@@ -16,7 +16,6 @@ use App\Support\Scheduling\TaskIdentity;
 use Carbon\Carbon;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
-use RuntimeException;
 use Spatie\Permission\Models\Role;
 
 /**

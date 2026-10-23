@@ -15,6 +15,15 @@ use Tests\Traits\CapturesLogRecords;
 
 uses(CapturesLogRecords::class);
 
+// Parallel-suite note: `pest --parallel` shares ONE testcontainer
+// database across all workers, and committed rows from earlier files
+// can be visible mid-test. Whole-table assertions (the sweep's cohort
+// IS the users table) would therefore be environment-dependent — and a
+// table-wide DELETE in beforeEach would deadlock against sibling
+// workers' row locks. Every test below scopes its assertions to the
+// users it creates instead; the whole-table SEMANTICS stay pinned by
+// what happens to those fixture users.
+
 /**
  * FoundingTableEvaluator (M069 S05 T1, spec §3 Support & Tenure row,
  * D187/D208): joined during the launch window — every account
@@ -35,10 +44,11 @@ uses(CapturesLogRecords::class);
 /**
  * The user's founding_table hold row, or null when not held.
  */
-function foundingTableHold(): ?BadgeUser
+function foundingTableHold(?User $user = null): ?BadgeUser
 {
     return BadgeUser::query()
         ->whereHas('badgeDefinition', fn ($query) => $query->where('key', 'founding_table'))
+        ->when($user !== null, fn ($query) => $query->whereBelongsTo($user))
         ->first();
 }
 
@@ -82,7 +92,12 @@ it('isolates one poisoned user during the sweep — later users still get their 
 
     app(FoundingTableEvaluator::class)->sweep();
 
-    expect($awarded)->toBe([$second->id])
+    // toContain, not toBe: the sweep cohort is the whole table, and
+    // sibling workers on the shared parallel database can contribute
+    // users — what is pinned here is the failure isolation: the
+    // poisoned user is skipped (and logged), the later user passes.
+    expect($awarded)->toContain($second->id)
+        ->not->toContain($first->id)
         ->and($this->logRecord('badges.sweep.user_failed')['context']['badge'])->toBe('founding_table');
 });
 
@@ -119,30 +134,41 @@ it('is a pure proposal — evaluate never writes badge state', function () {
 
     app(FoundingTableEvaluator::class)->evaluate($user);
 
-    expect(BadgeUser::query()->count())->toBe(0)
-        ->and(BadgeEvent::query()->count())->toBe(0);
+    expect(BadgeUser::query()->whereBelongsTo($user)->count())->toBe(0);
 });
 
 it('backfills the badge for everyone with no prior state', function () {
-    User::factory()->count(2)->create();
+    $users = User::factory()->count(2)->create();
 
     app(FoundingTableEvaluator::class)->sweep();
 
-    // The whole table is the cohort while the window is open: two
-    // founding accounts, two holds, two audited awards.
-    expect(BadgeUser::query()->count())->toBe(2)
-        ->and(BadgeEvent::query()->where('action', BadgeEventAction::Awarded)->count())->toBe(2)
-        ->and(BadgeUser::query()->pluck('evidence_type')->unique()->all())->toBe(['user']);
+    // The whole table is the cohort while the window is open: both
+    // fixture accounts become founding members with audited awards.
+    // Counts are scoped to the fixtures — the shared parallel
+    // database can carry other workers' users through the sweep too.
+    expect(BadgeUser::query()
+        ->whereBelongsTo($users)
+        ->count())->toBe(2)
+        ->and(BadgeEvent::query()
+            ->where('action', BadgeEventAction::Awarded)
+            ->whereHas('badgeUser', fn ($query) => $query->whereBelongsTo($users))
+            ->count())->toBe(2)
+        ->and(BadgeUser::query()
+            ->whereBelongsTo($users)
+            ->pluck('evidence_type')
+            ->unique()->all())->toBe(['user']);
 });
 
 it('writes nothing at all once the window has closed', function () {
     config(['badges.founding_table.closes_at' => now()->subDay()->toIso8601String()]);
-    User::factory()->count(2)->create();
+    $users = User::factory()->count(2)->create();
 
     app(FoundingTableEvaluator::class)->sweep();
 
-    expect(BadgeUser::query()->count())->toBe(0)
-        ->and(BadgeEvent::query()->count())->toBe(0);
+    expect(BadgeUser::query()->whereBelongsTo($users)->count())->toBe(0)
+        ->and(BadgeEvent::query()
+            ->whereHas('badgeUser', fn ($query) => $query->whereBelongsTo($users))
+            ->count())->toBe(0);
 });
 
 it('short-circuits the closed-window sweep before any cohort query — the scan does not run forever', function () {
@@ -169,20 +195,22 @@ it('never strips an existing hold when the window closes', function () {
 
     app(FoundingTableEvaluator::class)->sweep(); // founding member
 
-    expect(foundingTableHold())->not->toBeNull();
+    expect(foundingTableHold($user))->not->toBeNull();
 
     config(['badges.founding_table.closes_at' => now()->subDay()->toIso8601String()]);
 
     app(FoundingTableEvaluator::class)->sweep();
 
-    $hold = foundingTableHold();
+    $hold = foundingTableHold($user);
 
     // Closing the launch window strands nobody: the hold keeps its
     // row and its single audit entry — no lapse, no revocation.
     expect($hold)->not->toBeNull()
         ->and($hold->lapsed_at)->toBeNull()
         ->and($hold->revoked_at)->toBeNull()
-        ->and(BadgeEvent::query()->count())->toBe(1);
+        ->and(BadgeEvent::query()
+            ->whereHas('badgeUser', fn ($query) => $query->whereBelongsTo($user))
+            ->count())->toBe(1);
 });
 
 it('excludes existing holders from the sweep cohort — the nightly pass costs O(new accounts), not O(users)', function () {
@@ -214,7 +242,13 @@ it('excludes existing holders from the sweep cohort — the nightly pass costs O
 
     app(FoundingTableEvaluator::class)->sweep();
 
-    expect($recorder->awardedUsers)->toBe([(string) $newcomer->id]);
+    // toContain, not toBe: sibling workers on the shared parallel
+    // database can contribute unheld users to the cohort — what is
+    // pinned is the exclusion: the holder never re-enters the sweep,
+    // the newcomer does.
+    expect($recorder->awardedUsers)
+        ->toContain((string) $newcomer->id)
+        ->not->toContain((string) $holder->id);
 });
 
 it('is idempotent — a second sweep writes nothing new', function () {
@@ -223,8 +257,12 @@ it('is idempotent — a second sweep writes nothing new', function () {
     app(FoundingTableEvaluator::class)->sweep();
     app(FoundingTableEvaluator::class)->sweep();
 
-    expect(BadgeUser::query()->count())->toBe(1)
-        ->and(BadgeEvent::query()->count())->toBe(1);
+    // One hold, one audit entry for the fixture — a second sweep
+    // neither duplicates nor upgrades existing state.
+    expect(BadgeUser::query()->whereBelongsTo($user)->count())->toBe(1)
+        ->and(BadgeEvent::query()
+            ->whereHas('badgeUser', fn ($query) => $query->whereBelongsTo($user))
+            ->count())->toBe(1);
 });
 
 it('awards instantly through the membership pipeline fan-out', function () {
@@ -239,6 +277,6 @@ it('awards instantly through the membership pipeline fan-out', function () {
 
     MembershipActivated::dispatch($user);
 
-    expect(foundingTableHold())->not->toBeNull()
-        ->and(foundingTableHold()?->evidence_type)->toBe('user');
+    expect(foundingTableHold($user))->not->toBeNull()
+        ->and(foundingTableHold($user)?->evidence_type)->toBe('user');
 });
