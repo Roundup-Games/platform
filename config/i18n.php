@@ -111,6 +111,12 @@ return [
             // "Name" in both locales
             'attributes.name',
         ],
+        'validation' => [
+            // Mirrors charter.field_overview_pitch_label (the deliberate
+            // "Pitch" loanword, exempted there): the DE validation
+            // attribute names the same on-screen label.
+            'attributes.content.overview.pitch',
+        ],
         'charter' => [
             // Deliberate loanword — the German TTRPG scene keeps "Safety"
             // (GLOSSARY D174 safety-tool canon: the named techniques and

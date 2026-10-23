@@ -113,6 +113,19 @@ return [
 
         // Venue detail (M053/S02) — also referenced statically in venue-detail.blade.php
         'history', 'trophy',
+
+        // 2026-10-23 audit: glyphs referenced in code but missing from the
+        // subset — replacement surfaces from the session-zero cull (the
+        // workspace attention panel and charter cards), charter section
+        // art, discovery filters, dashboards, and long-standing gaps.
+        'archive', 'celebration', 'confirmation_number', 'curtains',
+        'difference', 'edit_document', 'event_repeat', 'fact_check',
+        'festival', 'front_hand', 'handshake', 'history_edu',
+        'home_work', 'hourglass_top', 'ink_eraser', 'ink_pen',
+        'inventory_2', 'location_city', 'more_horiz',
+        'notification_important', 'place', 'policy', 'print',
+        'published_with_changes', 'report', 'smart_toy', 'space_dashboard',
+        'swap_vert', 'sync', 'visibility_lock',
     ],
 
     /*

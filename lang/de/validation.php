@@ -238,6 +238,81 @@ return [
         'early_bird_deadline' => 'Frühbucher-Deadline',
         'contact_email' => 'Kontakt-E-Mail',
         'contact_phone' => 'Kontakt-Telefonnummer',
+
+        'title' => 'Charter-Titel',
+        'amendmentChangelog' => __('charter.field_amendment_changelog_label'),
+
+
+        // Charter composer (M070): validation messages must name the
+        // field labels players see on screen, never the dot paths.
+        // Values mirror the charter.* labels (kept literal: the i18n
+        // checker cannot resolve __() calls inside lang files).
+        'title' => 'Charter-Titel',
+
+        'content.overview.pitch' => 'Pitch',
+        'content.overview.system_notes' => 'System, Edition & erlaubte Quellen',
+        'content.overview.tone_serious_lighthearted' => 'Ernst ↔ Unbeschwert',
+        'content.overview.tone_gritty_heroic' => 'Grimmig ↔ Heroisch',
+        'content.overview.tone_political_dungeon' => 'Politisch ↔ Dungeon-Crawl',
+        'content.overview.themes' => 'Themen',
+        'content.overview.themes.*' => 'Themen',
+        'content.overview.expected_shape' => 'Voraussichtlicher Umfang',
+        'content.overview.table_size' => 'Tischgröße',
+        'content.overview.may_add_players' => 'Wir dürfen später Spieler aufnehmen',
+
+        'content.boundaries.lines_categories' => 'Kategorien',
+        'content.boundaries.lines_categories.*' => 'Kategorien',
+        'content.boundaries.veils_categories' => 'Kategorien',
+        'content.boundaries.veils_categories.*' => 'Kategorien',
+        'content.boundaries.lines_text' => 'In unseren eigenen Worten',
+        'content.boundaries.veils_text' => 'In unseren eigenen Worten',
+        'content.boundaries.intro_note' => 'Einleitung für deine Spieler',
+
+        'content.safety.tools' => 'Genutzte Tools',
+        'content.safety.tools.*' => 'Genutzte Tools',
+        'content.safety.custom_note' => 'Eigene Tool-Notiz',
+        'content.safety.signal_how' => 'Wie man an diesem Tisch signalisiert',
+        'content.safety.revisit' => 'Auffrisch-Rhythmus',
+        'content.safety.open_door' => 'Open Door gilt',
+
+        'content.policies.pvp' => 'Spieler gegen Spieler (PvP)',
+        'content.policies.character_death' => 'Charaktertod',
+        'content.policies.advancement' => 'Entwicklung',
+        'content.policies.loot_policy' => 'Loot-&-Schatz-Regel',
+        'content.policies.homebrew' => 'Homebrew & Third-Party-Inhalte',
+        'content.policies.etiquette' => 'Tisch-Etikette',
+        'content.policies.etiquette.*' => 'Tisch-Etikette',
+        'content.policies.etiquette_text' => 'Weitere Etikette in unseren eigenen Worten',
+
+        'content.ai_tools.ai_prep' => 'KI-generierte Inhalte in der Vorbereitung',
+        'content.ai_tools.ai_transcription' => 'KI-Notizen & Transkription',
+        'content.ai_tools.dice' => 'Würfel',
+        'content.ai_tools.sheets' => 'Charakterblätter & Nachschlagewerke',
+        'content.ai_tools.photography' => 'Fotos vom Tisch & Miniaturen',
+        'content.ai_tools.recording' => 'Audio-/Videoaufnahmen',
+        'content.ai_tools.custom_clause' => 'Eigene Klausel',
+
+        'content.logistics.venue_mode' => 'Spielort',
+        'content.logistics.location_id' => 'Treffpunkt',
+        'content.logistics.venue_access_notes' => 'Barrierefreiheit & Hinweise zum Spielort',
+        'content.logistics.food_drink' => 'Essen & Trinken',
+        'content.logistics.travel_notes' => 'Anfahrt & Ankunft',
+        'content.logistics.cadence' => 'Rundenrhythmus',
+        'content.logistics.session_length' => 'Rundendauer',
+        'content.logistics.session_length_other' => 'Andere Rundendauer',
+        'content.logistics.attendance_note' => 'Anwesenheitserwartung',
+        'content.logistics.max_missed_sessions' => 'Grenze für Fehlrunden',
+        'content.logistics.absence_notice' => 'Absage-Frist',
+        'content.logistics.missing_player' => 'Wenn ein Spieler fehlt',
+        'content.logistics.comms' => 'Kommunikationskanal',
+        'content.logistics.comms.*' => 'Kommunikationskanal',
+        'content.logistics.comms_other' => 'Anderer Kanal',
+
+        'content.character.build_constraints' => 'Bau-Regeln',
+        'content.character.backstory_requested' => 'Hintergrund-Hooks erwünscht',
+        'content.character.backstory_guidance' => 'Hinweise zur Hintergrundgeschichte',
+
+        'amendmentChangelog' => 'Änderungsprotokoll',
     ],
 
 ];

@@ -1049,3 +1049,31 @@ describe('CharterComposer Audit Export Link', function () {
             ->assertDontSee(__('charter.action_amend_charter', [], 'en'));
     });
 });
+
+// ── Validation copy: labels, not dot paths ──────────────
+
+it('names the visible field label in validation messages, never the dot path', function () {
+    [$owner, $campaign] = charter_composer_owner_campaign();
+
+    $component = Livewire::actingAs($owner)
+        ->test(CharterComposer::class, ['id' => $campaign->id])
+        ->call('startCharter', 'blank');
+
+    // Section validation: advance from Overview with an empty pitch —
+    // the error bag must carry the on-screen label for the field, not the
+    // raw content.overview.pitch path (M070 usability follow-up).
+    $component
+        ->set('content.overview.pitch', '')
+        ->call('goToStep', 2)
+        ->assertHasErrors(['content.overview.pitch']);
+
+    $expectedLabel = __('charter.field_overview_pitch_label', [], 'en');
+    $expectedMessage = __('validation.required', ['attribute' => $expectedLabel], 'en');
+
+    // The rendered message carries the on-screen label (wire:error
+    // attributes legitimately contain the raw key, so assert the bag
+    // precisely and the rendered copy by its visible text).
+    expect($component->errors()->get('content.overview.pitch'))->toBe([$expectedMessage]);
+
+    $component->assertSeeText($expectedMessage);
+});

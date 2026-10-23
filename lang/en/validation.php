@@ -236,6 +236,81 @@ return [
         'early_bird_deadline' => 'Early Bird Deadline',
         'contact_email' => 'Contact email',
         'contact_phone' => 'Contact phone',
+
+        'title' => 'Charter title',
+        'amendmentChangelog' => __('charter.field_amendment_changelog_label'),
+
+
+        // Charter composer (M070): validation messages must name the
+        // field labels players see on screen, never the dot paths.
+        // Values mirror the charter.* labels (kept literal: the i18n
+        // checker cannot resolve __() calls inside lang files).
+        'title' => 'Charter title',
+
+        'content.overview.pitch' => 'Pitch',
+        'content.overview.system_notes' => 'System, edition & allowed supplements',
+        'content.overview.tone_serious_lighthearted' => 'Serious ↔ Lighthearted',
+        'content.overview.tone_gritty_heroic' => 'Gritty ↔ Heroic',
+        'content.overview.tone_political_dungeon' => 'Political ↔ Dungeon crawl',
+        'content.overview.themes' => 'Themes',
+        'content.overview.themes.*' => 'Themes',
+        'content.overview.expected_shape' => 'Expected shape',
+        'content.overview.table_size' => 'Table size',
+        'content.overview.may_add_players' => 'We may add players later',
+
+        'content.boundaries.lines_categories' => 'Categories',
+        'content.boundaries.lines_categories.*' => 'Categories',
+        'content.boundaries.veils_categories' => 'Categories',
+        'content.boundaries.veils_categories.*' => 'Categories',
+        'content.boundaries.lines_text' => 'In our own words',
+        'content.boundaries.veils_text' => 'In our own words',
+        'content.boundaries.intro_note' => 'Intro note for your players',
+
+        'content.safety.tools' => 'Tools adopted',
+        'content.safety.tools.*' => 'Tools adopted',
+        'content.safety.custom_note' => 'Custom tool note',
+        'content.safety.signal_how' => 'How to signal at this table',
+        'content.safety.revisit' => 'Revisit cadence',
+        'content.safety.open_door' => 'Open Door in effect',
+
+        'content.policies.pvp' => 'Player-versus-player',
+        'content.policies.character_death' => 'Character death',
+        'content.policies.advancement' => 'Advancement',
+        'content.policies.loot_policy' => 'Loot & treasure policy',
+        'content.policies.homebrew' => 'Homebrew & third-party content',
+        'content.policies.etiquette' => 'Table etiquette',
+        'content.policies.etiquette.*' => 'Table etiquette',
+        'content.policies.etiquette_text' => 'More etiquette in our own words',
+
+        'content.ai_tools.ai_prep' => 'AI-generated content in prep',
+        'content.ai_tools.ai_transcription' => 'AI note-taking & transcription',
+        'content.ai_tools.dice' => 'Dice',
+        'content.ai_tools.sheets' => 'Character sheets & reference tools',
+        'content.ai_tools.photography' => 'Photography of the table & miniatures',
+        'content.ai_tools.recording' => 'Audio/video recording',
+        'content.ai_tools.custom_clause' => 'Custom clause',
+
+        'content.logistics.venue_mode' => 'Venue',
+        'content.logistics.location_id' => 'Play location',
+        'content.logistics.venue_access_notes' => 'Venue accessibility notes',
+        'content.logistics.food_drink' => 'Food & drink',
+        'content.logistics.travel_notes' => 'Travel & arrival',
+        'content.logistics.cadence' => 'Session cadence',
+        'content.logistics.session_length' => 'Session length',
+        'content.logistics.session_length_other' => 'Other session length',
+        'content.logistics.attendance_note' => 'Attendance expectation',
+        'content.logistics.max_missed_sessions' => 'Missed-session limit',
+        'content.logistics.absence_notice' => 'Absence notice',
+        'content.logistics.missing_player' => 'When a player is missing',
+        'content.logistics.comms' => 'Communication channel',
+        'content.logistics.comms.*' => 'Communication channel',
+        'content.logistics.comms_other' => 'Other channel',
+
+        'content.character.build_constraints' => 'Build constraints',
+        'content.character.backstory_requested' => 'Backstory hooks requested',
+        'content.character.backstory_guidance' => 'Backstory guidance',
+
+        'amendmentChangelog' => 'Changelog',
     ],
 
 ];
