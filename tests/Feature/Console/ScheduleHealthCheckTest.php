@@ -67,7 +67,7 @@ it('exits FAILURE and logs when a task failed its last run', function () {
         ->assertFailed();
 
     $record = $this->logRecord('schedule.health.degraded');
-    expect($record['context']['failed_last'])->toBe(1);
+    expect($record['context']['failed_tasks'])->toContain('horizon:snapshot');
 });
 
 it('stays quiet on never-ran misses — deploy-timing artifacts page nobody', function () {
@@ -99,6 +99,24 @@ it('stays quiet on never-ran misses — deploy-timing artifacts page nobody', fu
     } finally {
         Carbon::setTestNow();
     }
+});
+
+it('does not self-sustain: its own previous failed row cannot keep the gate failing', function () {
+    // One failing hour makes the gate's row its task's LATEST — without
+    // self-exclusion every later hour inherits the failure and the gate
+    // can never go quiet on its own. A green world plus the gate's own
+    // stale FAILURE must read healthy.
+    ScheduledTaskRun::factory()->create([
+        'task_key' => 'schedule:health-check',
+        'status' => ScheduledTaskRunStatus::Failed,
+        'error' => 'previous hour degraded',
+        'started_at' => now()->subHour(),
+        'finished_at' => now()->subHour(),
+    ]);
+
+    $this->artisan(ScheduleHealthCheck::class)
+        ->expectsOutputToContain('Scheduled work healthy')
+        ->assertSuccessful();
 });
 
 it('exits FAILURE when the schedule inventory cannot load', function () {

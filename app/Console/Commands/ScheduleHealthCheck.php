@@ -37,10 +37,16 @@ class ScheduleHealthCheck extends Command
 {
     protected $signature = 'schedule:health-check';
 
+    /** The gate's own scheduled identity — excluded from its failure count. */
+    private const TASK_KEY = 'schedule:health-check';
+
     protected $description = 'Exit FAILURE when scheduled work missed its due time or last run failed — the red-tile alert behind the Queue Health tile';
 
     public function handle(): int
     {
+        // Fresh compute, not the 5-minute tile cache: a cached verdict can
+        // lag the very occurrences this gate is judging.
+        ScheduleHealth::flush();
         $summary = ScheduleHealth::summary();
 
         // Deploy-timing artifacts: missed tasks that have never recorded
@@ -51,10 +57,20 @@ class ScheduleHealthCheck extends Command
         /** @var list<string> $everRan */
         $everRan = ScheduledTaskRun::query()->distinct()->pluck('task_key')->all();
         $missedKeys = $summary['missed_task_keys'];
-        $regressions = array_values(array_intersect($missedKeys, $everRan));
-        $artifacts = array_values(array_diff($missedKeys, $everRan));
 
-        if ($regressions === [] && $summary['failed_last'] === 0 && $summary['degraded'] === false) {
+        // Self-exclusion, both lists: this gate must never fail over its
+        // OWN state. Its previous FAILURE is its task's latest row (one
+        // failing hour would otherwise poison failed_last forever), and
+        // its own uncovered cadence lands in missed-with-history the
+        // moment it runs hourly — neither is an independent signal. A
+        // truly dead gate shows as a missed schedule:health-check row on
+        // the Scheduled Tasks page, same as any other task.
+        $missedOthers = array_values(array_diff($missedKeys, [self::TASK_KEY]));
+        $regressions = array_values(array_intersect($missedOthers, $everRan));
+        $artifacts = array_values(array_diff($missedOthers, $everRan));
+        $failedOthers = array_values(array_diff($summary['failed_task_keys'], [self::TASK_KEY]));
+
+        if ($regressions === [] && $failedOthers === [] && $summary['degraded'] === false) {
             $this->info(sprintf(
                 'Scheduled work healthy: no regressions, no failing tasks%s.',
                 $artifacts === [] ? '' : sprintf(' (%d never-ran task(s) awaiting their first occurrence)', count($artifacts)),
@@ -66,14 +82,14 @@ class ScheduleHealthCheck extends Command
         Log::error('schedule.health.degraded', [
             'regressed_tasks' => $regressions,
             'never_ran_tasks' => $artifacts,
-            'failed_last' => $summary['failed_last'],
+            'failed_tasks' => $failedOthers,
             'degraded' => $summary['degraded'],
         ]);
 
         $this->error(sprintf(
             'Scheduled work degraded: %s, %d failed last run%s — see the Scheduled Tasks admin page.',
             $regressions === [] ? 'none' : sprintf('missed [%s]', implode(', ', $regressions)),
-            $summary['failed_last'],
+            count($failedOthers),
             $summary['degraded'] ? ', schedule inventory failed to load' : '',
         ));
 

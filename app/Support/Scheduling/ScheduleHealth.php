@@ -51,7 +51,7 @@ final class ScheduleHealth
      * distinguishable from a healthy zero and cached for one minute only,
      * so the tile never reports "all clear" for a broken deploy for long.
      *
-     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool, missed_task_keys: list<string>}
+     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool, missed_task_keys: list<string>, failed_task_keys: list<string>}
      */
     public static function summary(): array
     {
@@ -62,7 +62,7 @@ final class ScheduleHealth
         $cached = Cache::get(self::CACHE_KEY);
 
         if (is_array($cached)) {
-            /** @var array{missed: int, failed_last: int, awaiting_first: int, degraded: bool, missed_task_keys: list<string>} $cached */
+            /** @var array{missed: int, failed_last: int, awaiting_first: int, degraded: bool, missed_task_keys: list<string>, failed_task_keys: list<string>} $cached */
             return $cached;
         }
 
@@ -71,6 +71,16 @@ final class ScheduleHealth
         Cache::put(self::CACHE_KEY, $summary, now()->addMinutes($summary['degraded'] ? 1 : 5));
 
         return $summary;
+    }
+
+    /**
+     * Drop the cached summary so the next summary() computes live. The
+     * health gate calls this before deciding: a 5-minute-old cached
+     * verdict can lag the very occurrences it is judging.
+     */
+    public static function flush(): void
+    {
+        Cache::forget(self::CACHE_KEY);
     }
 
     /**
@@ -106,7 +116,7 @@ final class ScheduleHealth
     }
 
     /**
-     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool, missed_task_keys: list<string>}
+     * @return array{missed: int, failed_last: int, awaiting_first: int, degraded: bool, missed_task_keys: list<string>, failed_task_keys: list<string>}
      */
     private static function compute(): array
     {
@@ -118,6 +128,7 @@ final class ScheduleHealth
         $failedLast = 0;
         $awaitingFirst = 0;
         $missedTaskKeys = [];
+        $failedTaskKeys = [];
 
         // The per-event resilience rule extends to the inventory load
         // itself: a schedule definition that throws while resolving must
@@ -133,7 +144,7 @@ final class ScheduleHealth
                 'error' => $e->getMessage(),
             ]);
 
-            return ['missed' => 0, 'failed_last' => 0, 'awaiting_first' => 0, 'degraded' => true, 'missed_task_keys' => []];
+            return ['missed' => 0, 'failed_last' => 0, 'awaiting_first' => 0, 'degraded' => true, 'missed_task_keys' => [], 'failed_task_keys' => []];
         }
 
         foreach ($events as $event) {
@@ -162,6 +173,7 @@ final class ScheduleHealth
 
                 if ($run?->status === ScheduledTaskRunStatus::Failed) {
                     $failedLast++;
+                    $failedTaskKeys[] = TaskIdentity::command($event);
                 }
             } catch (Throwable $e) {
                 Log::error('schedule.health.task_unclassifiable', [
@@ -170,10 +182,11 @@ final class ScheduleHealth
                 ]);
 
                 $failedLast++;
+                $failedTaskKeys[] = TaskIdentity::command($event);
             }
         }
 
-        return ['missed' => $missed, 'failed_last' => $failedLast, 'awaiting_first' => $awaitingFirst, 'degraded' => false, 'missed_task_keys' => $missedTaskKeys];
+        return ['missed' => $missed, 'failed_last' => $failedLast, 'awaiting_first' => $awaitingFirst, 'degraded' => false, 'missed_task_keys' => $missedTaskKeys, 'failed_task_keys' => $failedTaskKeys];
     }
 
     /**
