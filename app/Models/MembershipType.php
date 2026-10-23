@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property string $id
- * @property array{gm_plan?: bool}|null $metadata
+ * @property array{gm_plan?: bool, legacy_free?: bool, popular?: bool, features?: string[]}|null $metadata
  */
 class MembershipType extends Model
 {

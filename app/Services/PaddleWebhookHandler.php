@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\NotificationCategory;
 use App\Models\EventRegistration;
+use App\Models\MembershipType;
 use App\Models\User;
 use App\Notifications\EventRegistrationConfirmed;
 use Escalated\Laravel\Enums\TicketChannel;
@@ -745,8 +746,18 @@ class PaddleWebhookHandler
     }
 
     /**
-     * After a Paddle subscription is created, re-activate GM role if the user
-     * previously had one (from a local GM subscription or prior Paddle subscription).
+     * After a Paddle subscription is created, grant the GM role when the
+     * purchase earns it. Two paths meet here (D241 pricing flip):
+     *
+     *  - A returning GM (gmProfile exists from a local GM subscription
+     *    or a prior Paddle subscription) is re-activated on any Paddle
+     *    purchase, as before.
+     *  - A FIRST-TIME Game Master is activated only when the purchased
+     *    price belongs to a GM plan (MembershipType with gm_plan
+     *    metadata) — buying a player membership never grants GM tools.
+     *    assignGMRole creates the profile and entry rights; its
+     *    hasActiveMembership() guard passes because Cashier synced the
+     *    subscription row before this runs.
      *
      * @param  array<string, mixed>  $payload
      */
@@ -759,7 +770,11 @@ class PaddleWebhookHandler
             }
 
             $user = User::where('paddle_id', $paddleCustomerId)->first();
-            if (! $user || ! $user->gmProfile) {
+            if (! $user) {
+                return;
+            }
+
+            if (! $user->gmProfile && ! $this->payloadBuysGmPlan($payload)) {
                 return;
             }
 
@@ -770,6 +785,36 @@ class PaddleWebhookHandler
                 'customer_id' => $paddleCustomerId ?? null,
             ]);
         }
+    }
+
+    /**
+     * Does this subscription.created payload purchase a GM-plan price?
+     * Every item's price id is matched against the paddle_price_ids of
+     * MembershipType rows carrying gm_plan metadata.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function payloadBuysGmPlan(array $payload): bool
+    {
+        $data = $this->extractData($payload);
+        $items = is_array($data['items'] ?? null) ? $data['items'] : [];
+
+        $priceIds = [];
+        foreach ($items as $item) {
+            $priceId = $this->nestedValue(is_array($item) ? $item : [], 'price.id');
+            if (is_string($priceId) && $priceId !== '') {
+                $priceIds[] = $priceId;
+            }
+        }
+
+        if ($priceIds === []) {
+            return false;
+        }
+
+        return MembershipType::query()
+            ->whereJsonContains('metadata->gm_plan', true)
+            ->whereIn('paddle_price_id', $priceIds)
+            ->exists();
     }
 
     /**

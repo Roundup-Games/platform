@@ -180,3 +180,62 @@ it('keeps the GM role on subscription.canceled when an active local GM subscript
     expect($user->fresh()->hasRole('Game Master'))->toBeTrue();
     assertDatabaseHas('subscriptions', ['paddle_id' => $subId, 'status' => 'canceled']);
 })->group('smoke');
+
+// ── subscription.created: first-time GM activation from a GM-plan price ──
+// (D241 pricing flip — the paid GM tier must onboard NEW Game Masters,
+// not only reactivate returning ones.)
+
+it('activates a first-time Game Master when the purchased price belongs to a GM plan', function () {
+    $user = PaddleWebhooks::createUser();
+    $customerId = 'ctm_first_gm_'.$user->id;
+    PaddleWebhooks::createCustomer($user, $customerId);
+    $user->forceFill(['paddle_id' => $customerId])->save();
+
+    MembershipType::updateOrCreate(
+        ['name' => 'GM Monthly'],
+        ['price_cents' => 950, 'duration_months' => 1, 'status' => 'active', 'type' => 'paddle', 'paddle_price_id' => 'pri_paid_gm_monthly', 'metadata' => ['gm_plan' => true, 'features' => []]]
+    );
+
+    $subId = 'sub_first_gm_'.uniqid();
+
+    PaddleWebhooks::postEvent('subscription.created', [
+        'id' => $subId,
+        'customer_id' => $customerId,
+        'status' => 'active',
+        'items' => [
+            ['price' => ['id' => 'pri_paid_gm_monthly', 'product_id' => 'pro_paid_gm', 'name' => 'GM Monthly'], 'status' => 'active', 'quantity' => 1],
+        ],
+    ])->assertStatus(200);
+
+    $fresh = $user->fresh();
+    expect($fresh->hasRole('Game Master'))->toBeTrue('GM role granted to a first-time GM buying the GM plan')
+        ->and($fresh->gmProfile)->not->toBeNull()
+        ->and($fresh->gmProfile->is_active)->toBeTrue();
+})->group('smoke');
+
+it('never grants the GM role when a first-time buyer purchases a player plan', function () {
+    $user = PaddleWebhooks::createUser();
+    $customerId = 'ctm_player_'.$user->id;
+    PaddleWebhooks::createCustomer($user, $customerId);
+    $user->forceFill(['paddle_id' => $customerId])->save();
+
+    MembershipType::updateOrCreate(
+        ['name' => 'Monthly Membership'],
+        ['price_cents' => 599, 'duration_months' => 1, 'status' => 'active', 'type' => 'paddle', 'paddle_price_id' => 'pri_player_monthly', 'metadata' => ['features' => []]]
+    );
+
+    $subId = 'sub_player_'.uniqid();
+
+    PaddleWebhooks::postEvent('subscription.created', [
+        'id' => $subId,
+        'customer_id' => $customerId,
+        'status' => 'active',
+        'items' => [
+            ['price' => ['id' => 'pri_player_monthly', 'product_id' => 'pro_player', 'name' => 'Monthly Membership'], 'status' => 'active', 'quantity' => 1],
+        ],
+    ])->assertStatus(200);
+
+    $fresh = $user->fresh();
+    expect($fresh->hasRole('Game Master'))->toBeFalse('player purchase must never grant GM tools')
+        ->and($fresh->gmProfile)->toBeNull();
+})->group('smoke');

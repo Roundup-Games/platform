@@ -18,11 +18,12 @@ function pricingPageTier(array $overrides = []): MembershipType
 // ═══════════════════════════════════════════════════════════
 // M066/S08/T01 — PUBLIC PRICING PAGE
 //
-// /pricing is guest-visible and reads the same
-// MembershipType::active() source as the authenticated
-// /membership page: every active tier with name, price, and
-// features; inactive tiers never leak; guests route to signup,
-// members to /membership for checkout.
+// /pricing is guest-visible and lists only purchasable (Paddle)
+// MembershipType tiers with name, price, and features; inactive
+// tiers never leak and free local tiers (the Game Master plan)
+// are not advertised here — they are activated on /membership
+// instead; guests route to signup, members to /membership for
+// checkout.
 // ═══════════════════════════════════════════════════════════
 
 describe('PublicPricing — guest access', function () {
@@ -51,13 +52,23 @@ describe('PublicPricing — guest access', function () {
 });
 
 describe('PublicPricing — tier rendering', function () {
-    it('renders every active tier with names, prices, and features', function () {
+    it('renders every active purchasable tier with names, prices, and features', function () {
         pricingPageTier([
             'name' => 'Annual Membership',
             'price_cents' => 4999,
             'duration_months' => 12,
             'metadata' => ['popular' => true, 'features' => ['Unlimited game sessions']],
         ]);
+
+        get(route('pricing'))
+            ->assertOk()
+            ->assertSee('Annual Membership')
+            ->assertSee(format_currency(4999))
+            ->assertSee('Unlimited game sessions')
+            ->assertSee(__('billing.content_best_value', [], 'en'));
+    });
+
+    it('does not advertise free local tiers such as the Game Master plan', function () {
         pricingPageTier([
             'name' => 'Game Master',
             'price_cents' => 0,
@@ -68,12 +79,35 @@ describe('PublicPricing — tier rendering', function () {
 
         get(route('pricing'))
             ->assertOk()
-            ->assertSee('Annual Membership')
-            ->assertSee(format_currency(4999))
-            ->assertSee('Unlimited game sessions')
-            ->assertSee(__('billing.content_best_value', [], 'en'))
-            ->assertSee(__('profile.gm_badge_label', [], 'en'))
-            ->assertSee('GM workspace dashboard');
+            // The tier-card heading, not the nav's "Game Masters" directory link.
+            ->assertDontSee('Game Master</h3>')
+            ->assertDontSee('GM workspace dashboard');
+    });
+
+    it('hides paddle plans without a configured price id (pre-launch tiers)', function () {
+        pricingPageTier([
+            'name' => 'GM Monthly',
+            'price_cents' => 950,
+            'duration_months' => 1,
+            'type' => 'paddle',
+            'paddle_price_id' => null,
+            'metadata' => ['gm_plan' => true, 'features' => ['Unlimited active campaign charters']],
+        ]);
+        // The blank-env variant: an empty string is as unconfigured as null.
+        pricingPageTier([
+            'name' => 'GM Annual',
+            'price_cents' => 9500,
+            'duration_months' => 12,
+            'type' => 'paddle',
+            'paddle_price_id' => '',
+            'metadata' => ['gm_plan' => true, 'features' => []],
+        ]);
+
+        get(route('pricing'))
+            ->assertOk()
+            ->assertDontSee('GM Monthly</h3>')
+            ->assertDontSee('GM Annual</h3>')
+            ->assertDontSee('Unlimited active campaign charters');
     });
 
     it('never renders inactive tiers', function () {

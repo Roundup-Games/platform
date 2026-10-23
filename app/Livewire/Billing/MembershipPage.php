@@ -54,6 +54,18 @@ class MembershipPage extends Component
 
     protected function handleLocalSubscription(User $user, MembershipType $plan): void
     {
+        // Legacy free GM tier (D241): closed to new self-serve
+        // activations — the listing already hides it; this guard makes
+        // the closure independent of the listing (direct plan-id
+        // probes cannot activate either). Comp grants and grandfathered
+        // subscriptions use their own paths and never pass through
+        // here.
+        if (($plan->metadata['legacy_free'] ?? false) === true) {
+            session()->flash('error', __('billing.error_this_plan_is_not_available_for_purchase_yet'));
+
+            return;
+        }
+
         // GM plan — activate via GmRoleService
         if (($plan->metadata['gm_plan'] ?? false) === true) {
             if ($user->hasGmSubscription()) {
@@ -88,7 +100,23 @@ class MembershipPage extends Component
     {
         $user = authenticatedUser();
         $subscription = $user->subscription();
-        $membershipTypes = MembershipType::active()->orderBy('price_cents')->get();
+        // The self-serve listing shows only purchasable tiers: paddle
+        // plans need a configured price id (pre-launch GM tiers stay
+        // hidden until PADDLE_GM_* are set), and legacy_free local plans
+        // (the retired free GM tier) are closed to new activations —
+        // comp grants and existing grandfathered subscriptions resolve
+        // those rows directly and never read this listing. Note the
+        // orWhereNull: on Postgres, whereJsonDoesntContain ALSO excludes
+        // rows whose JSON path is missing entirely — plans that simply
+        // predate the legacy_free flag must stay listed.
+        $membershipTypes = MembershipType::active()
+            ->where(fn ($query) => $query
+                ->where(fn ($q) => $q->where('type', 'paddle')->where('paddle_price_id', '!=', ''))
+                ->orWhere(fn ($q) => $q->where('type', 'local')->where(fn ($qq) => $qq
+                    ->whereJsonDoesntContain('metadata->legacy_free', true)
+                    ->orWhereNull('metadata->legacy_free'))))
+            ->orderBy('price_cents')
+            ->get();
 
         // Determine if subscription is expiring soon (within 30 days)
         $expiringSoon = false;
