@@ -33,33 +33,23 @@ class MembershipTypeSeeder extends Seeder
         $plans = [
             [
                 'name' => 'Annual Membership',
-                'description' => 'Full access to all games, campaigns, and events for a full year. Best value for dedicated players.',
+                'description' => 'Support the platform for a full year — the best value for committed supporters.',
                 'price_cents' => 4999,
                 'duration_months' => 12,
                 'status' => 'active',
                 'type' => 'paddle',
                 'paddle_price_id' => config('billing.annual_price_id'),
-                'metadata' => ['popular' => true, 'features' => [
-                    'Unlimited game sessions',
-                    'Campaign participation',
-                    'Event registration',
-                    'Community access',
-                ]],
+                'metadata' => ['popular' => true, 'features' => self::supporterFeatures()],
             ],
             [
                 'name' => 'Monthly Membership',
-                'description' => 'Flexible month-to-month access. Cancel anytime.',
+                'description' => 'Support the platform month to month. Cancel anytime.',
                 'price_cents' => 599,
                 'duration_months' => 1,
                 'status' => 'active',
                 'type' => 'paddle',
                 'paddle_price_id' => config('billing.monthly_price_id'),
-                'metadata' => ['features' => [
-                    'Unlimited game sessions',
-                    'Campaign participation',
-                    'Event registration',
-                    'Community access',
-                ]],
+                'metadata' => ['features' => self::supporterFeatures()],
             ],
             [
                 'name' => 'GM Monthly',
@@ -108,6 +98,26 @@ class MembershipTypeSeeder extends Seeder
         }
 
         $this->command->info('Seeded '.count($plans).' membership plans.');
+    }
+
+    /**
+     * What a player membership honestly is (D245): a support tier, not a
+     * feature gate — nothing functional is members-only for players. The
+     * feature list says what supporters actually get (the badge, the
+     * independence) and never re-lists free features as plan features
+     * (D179: the old "Unlimited game sessions…" copy sold things that
+     * are free for everyone).
+     *
+     * @return string[]
+     */
+    private static function supporterFeatures(): array
+    {
+        return [
+            'The Supporting Member badge on your profile',
+            'Keeps the platform independent and community-first',
+            'Every month of support counts toward your badge tiers',
+            'Cancel anytime — your support history stays',
+        ];
     }
 
     /**

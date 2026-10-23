@@ -3,7 +3,7 @@
         {{-- Page Header --}}
         <div class="text-center">
             <h1 class="text-3xl font-heading font-bold tracking-tight text-on-surface">{{ __('billing.content_membership') }}</h1>
-            <p class="mt-2 text-on-surface-variant">{{ __('events.content_join_the_community_and_get') }}</p>
+            <p class="mt-2 text-on-surface-variant">{{ __('billing.content_membership_page_intro') }}</p>
         </div>
 
         {{-- Flash Messages --}}

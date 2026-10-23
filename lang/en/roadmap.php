@@ -41,10 +41,6 @@ return [
     'content_delivered_bilingual_body' => 'The whole platform now speaks German as well as English — complete with a published terminology canon, friendly localized form validation, and a native-reviewed translation pass.',
     'heading_delivered_events' => 'Events with Tickets & Co-Organizers',
     'content_delivered_events_body' => 'Events spanning multiple games, with online ticket payment and co-organizers who can share the work of running them.',
-    'heading_delivered_city_pages' => 'City Pages',
-    'content_delivered_city_pages_body' => 'A page per city that gathers upcoming public games, venues, and communities — so locals can see what\'s happening near them at a glance.',
-    'heading_delivered_discord_threads' => 'Daily Calendar Threads on Discord',
-    'content_delivered_discord_threads_body' => 'The Discord bot posts a daily calendar thread per server, so nobody misses the games happening around them that day.',
     'heading_delivered_algorithms' => 'A Transparent Algorithms Page',
     'content_delivered_algorithms_body' => 'Every matching and scoring algorithm documented in plain language, with the actual formulas and links to the open-source code.',
 ];

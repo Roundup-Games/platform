@@ -41,10 +41,6 @@ return [
     'content_delivered_bilingual_body' => 'Die gesamte Plattform spricht jetzt Deutsch und Englisch — mit veröffentlichtem Begriffskanon, freundlicher deutscher Formularvalidierung und einem von Muttersprachlern geprüften Übersetzungsdurchlauf.',
     'heading_delivered_events' => 'Events mit Tickets & Co-Organisatoren',
     'content_delivered_events_body' => 'Events über mehrere Runden, mit Online-Ticketzahlung und Co-Organisatoren, die sich die Arbeit der Organisation teilen können.',
-    'heading_delivered_city_pages' => 'Stadtseiten',
-    'content_delivered_city_pages_body' => 'Eine Seite pro Stadt, die anstehende öffentliche Runden, Veranstaltungsorte und Communitys bündelt — damit alle auf einen Blick sehen, was in ihrer Nähe passiert.',
-    'heading_delivered_discord_threads' => 'Tägliche Kalender-Threads auf Discord',
-    'content_delivered_discord_threads_body' => 'Der Discord-Bot erstellt pro Server einen täglichen Kalender-Thread, damit niemand die Runden verpasst, die an dem Tag stattfinden.',
     'heading_delivered_algorithms' => 'Eine transparente Algorithmen-Seite',
     'content_delivered_algorithms_body' => 'Jeder Matching- und Bewertungsalgorithmus in klarer Sprache dokumentiert — mit den echten Formeln und Links zum Open-Source-Code.',
 ];
