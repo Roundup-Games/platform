@@ -20,7 +20,6 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\MembershipType;
 use App\Models\User;
-use App\Services\LegacyRecapJournalBackfill;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -82,7 +81,8 @@ class DemoSeedCommand extends Command
     private array $campaignSessionGames = [];
 
     /** @var list<array{game_id: string, owner_id: string, language: string, participant_ids: array<string>}> completed session zero game IDs for survey seeding */
-    private array $completedSessionZeros = [];
+    /** @var list<array{game_id: string, campaign_id: string, owner_id: string, body: string}> queued journal recaps */
+    private array $recapQueue = [];
 
     /** @var list<array{campaign_id: string, owner_id: string, participant_ids: array<string>, language: string}> campaigns eligible for reviews */
     private array $completedCampaignsForReview = [];
@@ -475,7 +475,6 @@ class DemoSeedCommand extends Command
         $this->createCampaignReviews();
         $this->createBadgeCohortFixtures();
         $this->createSessionDebriefings();
-        $this->createSessionZeroSurveys();
         $this->createLinkedAccounts();
         $this->seedActivityLogs();
         $this->createShortLinks();
@@ -490,16 +489,10 @@ class DemoSeedCommand extends Command
         if (! $this->dryRun) {
             $this->updateGmAggregates();
 
-            // D220 parity: the seeder writes legacy column recaps; promote
-            // the campaign-session ones into journal entries so demo data
-            // exercises the same projection live data uses (journal
-            // timeline, Previously On excerpts, campaign_compleat
-            // coverage). Idempotent, exactly like the production backfill.
-            $promoted = app(LegacyRecapJournalBackfill::class)->run();
-
-            if ($promoted > 0) {
-                $this->info("Backfilled {$promoted} campaign-session recaps into the journal.");
-            }
+            // D220: journal recaps are written directly (the games.recap
+            // projection and the backfill are gone with the legacy recap
+            // paths) — campaign sessions only, one-shots get nothing.
+            $this->createDemoJournalRecaps();
         }
 
         $this->printSummary();
@@ -1521,7 +1514,6 @@ class DemoSeedCommand extends Command
                     'vibe_flags' => json_encode($this->randomVibes('board')),
                     'safety_rules' => json_encode([]),
                     'language' => $language,
-                    'recap' => $isCancelled ? null : $recaps[array_rand($recaps)],
                     'attendance_resolved_at' => $isCancelled ? null : $dateTime->copy()->addDay(),
                     'attendance_resolution_method' => $isCancelled ? null : 'manual',
                     'created_at' => $dateTime->copy()->subDays(random_int(3, 14)),
@@ -2218,12 +2210,20 @@ class DemoSeedCommand extends Command
                         'vibe_flags' => json_encode($this->randomVibes($vibeType)),
                         'safety_rules' => json_encode(['tools' => $safetyTools]),
                         'language' => $language,
-                        'recap' => $szCompleted ? self::RECAPS[$language][array_rand(self::RECAPS[$language])] : null,
                         'attendance_resolved_at' => $szCompleted ? $szDate->copy()->addDay() : null,
                         'attendance_resolution_method' => $szCompleted ? 'manual' : null,
                         'created_at' => $szDate->copy()->subDays(7),
                         'updated_at' => $szDate,
                     ];
+
+                    if ($szCompleted) {
+                        $this->recapQueue[] = [
+                            'game_id' => $szId,
+                            'campaign_id' => $campaignId,
+                            'owner_id' => $gm['id'],
+                            'body' => self::RECAPS[$language][array_rand(self::RECAPS[$language])].' '.self::MARKER,
+                        ];
+                    }
 
                     foreach ($campaignParticipants as $pid) {
                         // Attendance randomization: 90% attended, 10% no-show for completed sessions
@@ -2289,7 +2289,6 @@ class DemoSeedCommand extends Command
                             'language' => $language,
                             'participant_ids' => $surveyParticipantIds,
                         ];
-                        $this->completedSessionZeros[] = $szEntry;
                         // Also feed into completedGames so createReviews() generates TTRPG reviews
                         $szEntry['is_session_zero'] = true;
                         $this->completedGames[] = $szEntry;
@@ -2382,12 +2381,20 @@ class DemoSeedCommand extends Command
                         'vibe_flags' => json_encode($this->randomVibes($vibeType)),
                         'safety_rules' => json_encode(['tools' => ['lines_and_veils', 'x-card']]),
                         'language' => $language,
-                        'recap' => $isPastCancelled ? null : self::RECAPS[$language][array_rand(self::RECAPS[$language])],
                         'attendance_resolved_at' => $isPastCancelled ? null : $pastDate->copy()->addDay(),
                         'attendance_resolution_method' => $isPastCancelled ? null : 'manual',
                         'created_at' => $pastDate->copy()->subDays(random_int(3, 7)),
                         'updated_at' => $pastDate,
                     ];
+
+                    if (! $isPastCancelled) {
+                        $this->recapQueue[] = [
+                            'game_id' => $pId,
+                            'campaign_id' => $campaignId,
+                            'owner_id' => $gm['id'],
+                            'body' => self::RECAPS[$language][array_rand(self::RECAPS[$language])].' '.self::MARKER,
+                        ];
+                    }
 
                     // Queue extra system pivots for multi-system gathering sessions
                     foreach (array_slice($systemIds, 1) as $extraSid) {
@@ -2542,7 +2549,6 @@ class DemoSeedCommand extends Command
                         'vibe_flags' => json_encode($this->randomVibes($vibeType)),
                         'safety_rules' => json_encode(['tools' => ['lines_and_veils', 'x-card']]),
                         'language' => $language,
-                        'recap' => null,
                         'created_at' => $campaignCreatedAt->copy()->addDays(random_int(5, 12)),
                         'updated_at' => now(),
                     ];
@@ -2957,7 +2963,6 @@ class DemoSeedCommand extends Command
             'vibe_flags' => json_encode([]),
             'safety_rules' => json_encode([]),
             'language' => 'en',
-            'recap' => 'Badge cohort fixture recap. '.self::MARKER,
             'attendance_resolved_at' => $dateTime->copy()->addDay(),
             'attendance_resolution_method' => 'manual',
             'created_at' => $dateTime->copy()->subDays(7),
@@ -3136,7 +3141,6 @@ class DemoSeedCommand extends Command
                     'vibe_flags' => json_encode($this->randomVibes('board')),
                     'safety_rules' => json_encode([]),
                     'language' => $language,
-                    'recap' => null,
                     'created_at' => now()->subDays(random_int(1, 7)),
                     'updated_at' => now(),
                 ];
@@ -3451,86 +3455,39 @@ class DemoSeedCommand extends Command
     // SESSION ZERO SURVEYS
     // =========================================================================
 
-    private function createSessionZeroSurveys(): void
+    /**
+     * Write the queued journal recaps (campaign sessions only): the
+     * kind=recap, visibility=players entries that feed the journal
+     * timeline, Previously On excerpts, and campaign_compleat coverage.
+     * insertOrIgnore keeps re-seeds convergent under the one-recap-per-
+     * session partial unique index.
+     */
+    private function createDemoJournalRecaps(): void
     {
-        if (empty($this->completedSessionZeros)) {
+        if ($this->recapQueue === []) {
             return;
         }
 
         $this->newLine();
-        $this->info('Creating session zero surveys...');
-        /** @var list<array<string, mixed>> $surveyBatch */
-        $surveyBatch = [];
-        $confirmationBatch = [];
+        $this->info('Writing journal recaps for completed campaign sessions...');
 
-        $bar = $this->output->createProgressBar(count($this->completedSessionZeros));
-        $bar->start();
-
-        foreach ($this->completedSessionZeros as $sz) {
-            $gmProfileId = $this->gmProfileIds[$sz['owner_id']] ?? null;
-            if (! $gmProfileId) {
-                $bar->advance();
-
-                continue;
-            }
-
-            $language = $sz['language'];
-            $title = $language === 'de'
-                ? 'Session Zero: Erwartungen & Sicherheit '.self::MARKER
-                : 'Session Zero: Expectations & Safety '.self::MARKER;
-
-            $surveyId = (string) Str::uuid7();
-            $participantIds = $sz['participant_ids'];
-
-            // 60-80% of participants confirm the session zero
-            $confirmRate = random_int(60, 80) / 100;
-            $confirmCount = max(1, (int) ceil(count($participantIds) * $confirmRate));
-            $confirmKeys = $this->randomKeys($participantIds, min($confirmCount, count($participantIds)));
-
-            $surveyBatch[] = [
-                'id' => $surveyId,
-                'gm_profile_id' => $gmProfileId,
-                'game_id' => $sz['game_id'],
-                'title' => $title,
-                'content' => json_encode(['tools_discussed' => ['session_zero', 'lines_and_veils', 'x-card']]),
-                'uuid' => (string) Str::uuid(),
-                'status' => 'active',
-                'confirmation_count' => count($confirmKeys),
-                'created_at' => now()->subDays(random_int(3, 14)),
+        $batch = [];
+        foreach ($this->recapQueue as $recap) {
+            $batch[] = [
+                'id' => (string) Str::uuid7(),
+                'campaign_id' => $recap['campaign_id'],
+                'game_id' => $recap['game_id'],
+                'author_user_id' => $recap['owner_id'],
+                'kind' => 'recap',
+                'visibility' => 'players',
+                'body' => $recap['body'],
+                'created_at' => now(),
                 'updated_at' => now(),
             ];
-
-            foreach ($confirmKeys as $k) {
-                $confirmationBatch[] = [
-                    'id' => (string) Str::uuid7(),
-                    'session_zero_survey_id' => $surveyId,
-                    'confirmed_at' => now()->subDays(random_int(1, 10)),
-                    'user_id' => $participantIds[(int) $k],
-                ];
-            }
-
-            if (count($confirmationBatch) >= 500 || count($surveyBatch) >= 500) {
-                $this->dryInsertMany('session_zero_surveys', $surveyBatch);
-                $surveyBatch = [];
-                if ($confirmationBatch !== []) {
-                    $this->dryInsertMany('session_zero_confirmations', $confirmationBatch);
-                    $confirmationBatch = [];
-                }
-            }
-
-            $bar->advance();
         }
 
-        if (! empty($surveyBatch)) {
-            $this->dryInsertMany('session_zero_surveys', $surveyBatch);
-        }
-        if (! empty($confirmationBatch)) {
-            $this->dryInsertMany('session_zero_confirmations', $confirmationBatch);
-        }
-
-        $bar->finish();
-        $this->newLine();
-        $this->info('Created session zero surveys with confirmations.');
+        $this->dryInsertMany('campaign_journal_entries', $batch);
+        $this->info('Wrote '.count($batch).' journal recaps.');
     }
 
     // =========================================================================
@@ -4148,7 +4105,7 @@ class DemoSeedCommand extends Command
             $rows[] = ['GM subscribers (simulated)', number_format(min($this->totalSubscribers, count($this->gmInfo)))];
             $rows[] = ['Locations (simulated)', number_format($totalLocations)];
             $rows[] = ['Completed board games (simulated)', number_format(count($this->completedGames))];
-            $rows[] = ['Completed session zeros (for surveys)', number_format(count($this->completedSessionZeros))];
+            $rows[] = ['Journal recaps queued', number_format(count($this->recapQueue))];
 
             $this->table(['Table / Metric', 'Rows'], $rows);
             $this->newLine();
@@ -4177,7 +4134,7 @@ class DemoSeedCommand extends Command
                 ['Locations (venues)', number_format($totalLocations)],
                 ['Game sessions (all)', number_format($gCount)],
                 ['  Completed board games', number_format(count($this->completedGames))],
-                ['  Completed session zeros', number_format(count($this->completedSessionZeros))],
+                ['  Journal recaps queued', number_format(count($this->recapQueue))],
                 ['Campaigns (active)', number_format($cCount)],
                 ['Reviews (published)', number_format($rCount)],
                 ['Follow relationships', number_format($fCount)],

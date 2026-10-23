@@ -69,9 +69,7 @@ test('owner writes a campaign-session recap into the journal via the composer', 
         ->and($entry->visibility)->toBe(JournalEntryVisibility::Players)
         ->and($entry->campaign_id)->toBe($game->campaign_id)
         ->and($entry->author_user_id)->toBe($this->owner->id)
-        ->and($entry->body)->toBe('The party uncovered the traitor at last.')
-        // D220 projection: games.recap synced in the same transaction.
-        ->and($game->fresh()->recap)->toBe('The party uncovered the traitor at last.');
+        ->and($entry->body)->toBe('The party uncovered the traitor at last.');
 });
 
 // ── Composer vs legacy form rendering ───────────────────
@@ -115,8 +113,7 @@ test('non-owner approved participant cannot write a journal recap', function () 
         ->call('writeRecap')
         ->assertHasNoErrors();
 
-    expect(CampaignJournalEntry::query()->where('game_id', $game->id)->count())->toBe(0)
-        ->and($game->fresh()->recap)->toBeNull();
+    expect(CampaignJournalEntry::query()->where('game_id', $game->id)->count())->toBe(0);
 });
 
 test('campaign path rejects recaps over 10000 characters', function () {
@@ -156,18 +153,14 @@ test('one-shot completed game rejects writeRecap with no column write and no jou
         ->call('writeRecap')
         ->assertSee(__('journal.error_not_campaign_session', [], 'en'));
 
-    expect($game->fresh()->recap)->toBeNull()
-        ->and(CampaignJournalEntry::query()->count())->toBe(0);
+    expect(CampaignJournalEntry::query()->count())->toBe(0);
 });
 
-// ── Backfilled recap: display block, no composer ────────
+// ── Existing recap: display block, no composer ──────────
 
-test('backfilled campaign-session recap shows the host recap display and no composer', function () {
+test('a session that already carries a journal recap shows the display block and no composer', function () {
     $game = composerCreateCompletedCampaignSession($this->owner, $this->gameSystem);
 
-    // Legacy recap backfill shape (S01-T02): non-empty games.recap plus the
-    // matching kind=recap journal entry authored by the session owner.
-    $game->update(['recap' => 'The chronicle predates the journal.']);
     CampaignJournalEntry::factory()
         ->forCampaignSession($game)
         ->create(['body' => 'The chronicle predates the journal.']);

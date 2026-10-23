@@ -33,14 +33,12 @@ trait HandlesSessionEnd
     /**
      * Write a recap for the completed game's campaign journal (host only).
      *
-     * Campaign-journal-only since M071/S03 (D219): the S01-era branch on
-     * the legacy RecapService column write is retired — one-shot games
-     * get the Epilogue bulletin instead of a recap form — so this action
-     * always delegates to CampaignJournalService::writeRecap: the
-     * kind=recap journal entry is the source of truth, games.recap is
-     * synced in the same transaction, and the ceiling is 10000
-     * characters. The recap DISPLAY block in the session-end partial
-     * stays untouched: it reads the games.recap projection (D220).
+     * Campaign-journal-only since M071/S03 (D219, cull completed):
+     * one-shot games get the Epilogue bulletin instead of a recap form,
+     * so this action always delegates to CampaignJournalService::
+     * writeRecap — the kind=recap journal entry is the one and only
+     * recap record, and the ceiling is 10000 characters. The recap
+     * display block reads the game's recapEntry relation.
      */
     public function writeRecap(): void
     {

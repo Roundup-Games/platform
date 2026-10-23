@@ -1,5 +1,6 @@
 <?php
 
+use App\ActivityLogService;
 use App\Enums\ActivityType;
 use App\Enums\JournalEntryKind;
 use App\Enums\JournalEntryVisibility;
@@ -13,7 +14,6 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use App\Notifications\RecapPosted;
 use App\Services\CampaignJournalService;
-use App\Services\RecapService;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Tests\Traits\CreatesGameInstances;
@@ -47,23 +47,18 @@ function journalRecapSession(): array
 
 // ── Happy path + atomic projection sync ─────────────────
 
-test('writeRecap creates the recap entry and syncs games.recap atomically', function () {
+test('writeRecap creates the recap entry atomically — the journal is the only recap record', function () {
     [$owner, $campaign, $session] = journalRecapSession();
 
     $entry = app(CampaignJournalService::class)
         ->writeRecap($session, $owner, 'The party uncovered the traitor at last.');
 
-    // Both sides asserted on FRESH models — the transaction must have
-    // committed entry and projection together, never one without the other.
     expect($entry->campaign_id)->toBe($campaign->id)
         ->and($entry->game_id)->toBe($session->id)
         ->and($entry->author_user_id)->toBe($owner->id)
         ->and($entry->kind)->toBe(JournalEntryKind::Recap)
         ->and($entry->visibility)->toBe(JournalEntryVisibility::Players)
         ->and($entry->body)->toBe('The party uncovered the traitor at last.');
-
-    $freshGame = Game::query()->findOrFail($session->id);
-    expect($freshGame->recap)->toBe('The party uncovered the traitor at last.');
 
     $freshEntry = CampaignJournalEntry::query()->findOrFail($entry->id);
     expect($freshEntry->game_id)->toBe($session->id)
@@ -104,7 +99,7 @@ test('writeRecap rethrows a lost one-recap-per-session race as the already-writt
     // The loser wrote nothing: the savepoint rollback removed both the
     // duplicate and the losing insert, and the projection stayed clean.
     expect(CampaignJournalEntry::query()->whereBelongsTo($session)->count())->toBe(0)
-        ->and($session->fresh()->recap)->toBeNull();
+        ->and($session->fresh()->recapEntry)->toBeNull();
 });
 
 test('writeRecap accepts a body at the 10000-character ceiling', function () {
@@ -115,28 +110,29 @@ test('writeRecap accepts a body at the 10000-character ceiling', function () {
     $entry = app(CampaignJournalService::class)->writeRecap($session, $owner, $body);
 
     expect(mb_strlen($entry->body))->toBe(10000)
-        ->and($session->fresh()->recap)->toBe($body);
+        ->and($session->fresh()->recapEntry->body)->toBe($body);
 });
 
-// ── Shared recap effects (delegated to RecapService::announceRecap) ──
+// ── Shared recap effects (the folded announce tail) ──
 
 test('writeRecap keeps the persisted recap when the announce tail throws', function () {
     [$owner, , $session] = journalRecapSession();
 
-    // The announce tail (activity log + notifications) runs AFTER the
-    // entry and projection commit — its failure must never 500 the
-    // write: the recap IS written and a retry would only hit the
-    // already-written refusal.
-    $recapService = Mockery::mock(RecapService::class);
-    $recapService->shouldReceive('announceRecap')->andThrow(new RuntimeException('activity log down'));
-    app()->instance(RecapService::class, $recapService);
+    // The post-commit tail (cache invalidation + activity log +
+    // notifications) runs AFTER the entry commits — its failure must
+    // never 500 the write: the recap IS written and a retry would only
+    // hit the already-written refusal. Break the tail at the activity
+    // log, its first step.
+    $activityLog = Mockery::mock(ActivityLogService::class);
+    $activityLog->shouldReceive('log')->andThrow(new RuntimeException('activity log down'));
+    app()->instance(ActivityLogService::class, $activityLog);
 
     $entry = app(CampaignJournalService::class)
         ->writeRecap($session, $owner, 'Written while the tail failed.');
 
     expect($entry)->toBeInstanceOf(CampaignJournalEntry::class)
         ->and($entry->body)->toBe('Written while the tail failed.')
-        ->and($session->fresh()->recap)->toBe('Written while the tail failed.')
+        ->and($session->fresh()->recapEntry->body)->toBe('Written while the tail failed.')
         ->and(CampaignJournalEntry::where('game_id', $session->id)->where('kind', 'recap')->count())->toBe(1);
 });
 
@@ -205,7 +201,7 @@ test('writeRecap rejects a game that is not completed', function () {
     }
 
     expect(CampaignJournalEntry::query()->where('game_id', $session->id)->count())->toBe(0)
-        ->and($session->fresh()->recap)->toBeNull();
+        ->and($session->fresh()->recapEntry)->toBeNull();
 });
 
 test('writeRecap rejects a one-shot game without a campaign', function () {
@@ -224,7 +220,7 @@ test('writeRecap rejects a one-shot game without a campaign', function () {
     }
 
     expect(CampaignJournalEntry::query()->where('game_id', $oneShot->id)->count())->toBe(0)
-        ->and($oneShot->fresh()->recap)->toBeNull();
+        ->and($oneShot->fresh()->recapEntry)->toBeNull();
 });
 
 test('writeRecap rejects an author who is not the host', function () {
@@ -239,7 +235,7 @@ test('writeRecap rejects an author who is not the host', function () {
     }
 
     expect(CampaignJournalEntry::query()->where('game_id', $session->id)->count())->toBe(0)
-        ->and($session->fresh()->recap)->toBeNull();
+        ->and($session->fresh()->recapEntry)->toBeNull();
 });
 
 test('writeRecap rejects an empty body', function () {
@@ -253,7 +249,7 @@ test('writeRecap rejects an empty body', function () {
     }
 
     expect(CampaignJournalEntry::query()->where('game_id', $session->id)->count())->toBe(0)
-        ->and($session->fresh()->recap)->toBeNull();
+        ->and($session->fresh()->recapEntry)->toBeNull();
 });
 
 test('writeRecap rejects a body over 10000 characters', function () {
@@ -267,7 +263,7 @@ test('writeRecap rejects a body over 10000 characters', function () {
     }
 
     expect(CampaignJournalEntry::query()->where('game_id', $session->id)->count())->toBe(0)
-        ->and($session->fresh()->recap)->toBeNull();
+        ->and($session->fresh()->recapEntry)->toBeNull();
 });
 
 test('writeRecap rejects a second recap for the same session', function () {
@@ -283,24 +279,24 @@ test('writeRecap rejects a second recap for the same session', function () {
     }
 
     expect(CampaignJournalEntry::query()->where('game_id', $session->id)->count())->toBe(1)
-        ->and($session->fresh()->recap)->toBe('First recap wins.');
+        ->and($session->fresh()->recapEntry->body)->toBe('First recap wins.');
 });
 
-test('writeRecap rejects a session whose legacy recap was backfilled into the journal', function () {
+test('writeRecap rejects a session that already carries a pre-existing journal recap', function () {
     [$owner, , $session] = journalRecapSession();
 
-    // Backfill shape (LegacyRecapJournalBackfill): a kind=recap entry already
-    // exists. games.recap stays NULL here so the entry arm of the
-    // already-written check is what rejects — not the legacy column.
+    // Pre-existing entry shape (formerly the backfill test): a kind=recap
+    // entry exists before writeRecap is ever called — the already-written
+    // check rejects without touching the row.
     CampaignJournalEntry::factory()->forCampaignSession($session)->create();
 
     try {
         app(CampaignJournalService::class)->writeRecap($session, $owner, 'Rewrite attempt.');
-        $this->fail('Expected LogicException for a backfilled recap.');
+        $this->fail('Expected LogicException for a pre-existing recap.');
     } catch (LogicException $e) {
         expect($e->getMessage())->toBe(__('games.error_recap_already_written'));
     }
 
     expect(CampaignJournalEntry::query()->where('game_id', $session->id)->count())->toBe(1)
-        ->and($session->fresh()->recap)->toBeNull();
+        ->and($session->fresh()->recapEntry)->not->toBeNull();
 });

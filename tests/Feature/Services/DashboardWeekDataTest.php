@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
+use App\Models\CampaignJournalEntry;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -360,7 +361,6 @@ class DashboardWeekDataTest extends TestCase
             'campaign_id' => $campaign->id,
             'status' => GameStatus::Completed,
             'date_time' => now()->startOfWeek()->addHours(2), // past
-            'recap' => null,
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -374,13 +374,14 @@ class DashboardWeekDataTest extends TestCase
     {
         $user = User::factory()->create();
         $campaign = Campaign::factory()->create(['owner_id' => $user->id]);
-        Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $user->id,
             'campaign_id' => $campaign->id,
             'status' => GameStatus::Completed,
             'date_time' => now()->startOfWeek()->addHours(2),
-            'recap' => 'Great session! Everyone had fun.',
         ]);
+        CampaignJournalEntry::factory()->forCampaignSession($game)
+            ->create(['body' => 'Great session! Everyone had fun.']);
 
         $result = $this->service->computeWeekData($user);
         $allGames = collect($result['days'])->flatMap->games;
@@ -399,7 +400,6 @@ class DashboardWeekDataTest extends TestCase
             'campaign_id' => null,
             'status' => GameStatus::Completed,
             'date_time' => now()->startOfWeek()->addHours(2), // past
-            'recap' => null,
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -419,7 +419,6 @@ class DashboardWeekDataTest extends TestCase
             'campaign_id' => $campaign->id,
             'status' => GameStatus::Completed,
             'date_time' => now()->startOfWeek()->addHours(2),
-            'recap' => null,
         ]);
         GameParticipant::factory()->create([
             'game_id' => $game->id,
@@ -441,7 +440,6 @@ class DashboardWeekDataTest extends TestCase
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
             'date_time' => now()->endOfWeek()->subHours(2), // future
-            'recap' => null,
         ]);
 
         $result = $this->service->computeWeekData($user);

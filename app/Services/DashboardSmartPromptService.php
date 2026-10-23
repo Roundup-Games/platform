@@ -148,7 +148,7 @@ class DashboardSmartPromptService
                         ->whereBelongsTo($user)
                         ->where('status', ParticipantStatus::Approved));
             })
-            ->whereNull('recap')
+            ->whereDoesntHave('recapEntry')
             ->orderByDesc('updated_at')
             ->first();
 

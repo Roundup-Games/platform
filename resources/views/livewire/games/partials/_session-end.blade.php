@@ -1,14 +1,14 @@
 {{-- Session end: host recap, write recap form, attendance reporting, debriefing sections --}}
 
 {{-- Host Recap (completed game with recap) --}}
-@if($game->status === \App\Enums\GameStatus::Completed && $game->recap)
+@if($game->status === \App\Enums\GameStatus::Completed && $game->recapEntry)
     <section class="bg-tertiary/5 border-l-4 border-tertiary rounded-xl shadow-ambient p-6">
         <div class="flex items-center gap-2 mb-4">
             <span class="material-symbols-outlined text-xl text-tertiary" aria-hidden="true">auto_stories</span>
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_host_recap') }}</h2>
         </div>
         <div class="prose prose-sm max-w-none text-on-surface">
-            {!! nl2br(e($game->recap)) !!}
+            {!! nl2br(e($game->recapEntry->body)) !!}
         </div>
         @if($game->owner)
             <div class="mt-4 flex items-center gap-2 text-sm text-on-surface-variant">
@@ -23,7 +23,7 @@
      One-shot games get the Epilogue bulletin instead — the write-once recap
      form is retired for them (M071/S03, D219). --}}
 @auth
-    @if($isOwner && $game->status === \App\Enums\GameStatus::Completed && empty($game->recap) && $game->campaign_id !== null)
+    @if($isOwner && $game->status === \App\Enums\GameStatus::Completed && ! $game->recapEntry && $game->campaign_id !== null)
         <section class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6">
             <div class="flex items-center gap-2 mb-2">
                 <span class="material-symbols-outlined text-xl text-tertiary" aria-hidden="true">edit_note</span>

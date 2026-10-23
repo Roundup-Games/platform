@@ -114,7 +114,7 @@ class DashboardEstablishedService
 
         // 4. Recaps written
         $recapsCount = Game::whereBelongsTo($user, 'owner')
-            ->whereNotNull('recap')
+            ->whereHas('recapEntry')
             ->count();
 
         // 5. Reviews given
@@ -347,6 +347,7 @@ class DashboardEstablishedService
             ])
             ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
             ->with(['gameSystems', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value), 'campaign'])
+            ->withExists('recapEntry as has_recap_entry')
             ->orderBy('date_time')
             ->get();
 
@@ -396,7 +397,7 @@ class DashboardEstablishedService
                 'is_past' => $isPast,
                 'is_hosting' => $isHosting,
                 'player_count' => $playerCount,
-                'needs_recap' => $isPast && $game->campaign_id !== null && empty($game->recap) && $isHosting,
+                'needs_recap' => $isPast && $game->campaign_id !== null && ! $game->has_recap_entry && $isHosting,
                 'needs_attendance' => $isPast && ! $isHosting && $userParticipant && $userParticipant->attendance_status === null,
             ];
 
@@ -493,8 +494,7 @@ class DashboardEstablishedService
             ->where('status', ParticipantStatus::Approved->value)
         )
             ->where('owner_id', '!=', $user->id)
-            ->whereNotNull('recap')
-            ->where('recap', '!=', '')
+            ->whereHas('recapEntry')
             ->where('status', GameStatus::Completed->value)
             ->where('updated_at', '>', now()->subDays(7))
             ->with('owner')

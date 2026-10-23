@@ -363,7 +363,7 @@ class ActionCenterService
             ->where('status', GameStatus::Completed)
             ->whereNotNull('campaign_id')
             ->where('updated_at', '>=', now()->subDays(7))
-            ->where(fn ($q) => $q->whereNull('recap')->orWhere('recap', ''))
+            ->whereDoesntHave('recapEntry')
             ->get();
 
         return $games->map(fn (Game $g) => new ActionItem(

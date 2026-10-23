@@ -9,6 +9,7 @@ use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\AttendanceReport;
 use App\Models\Campaign;
+use App\Models\CampaignJournalEntry;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameBulletin;
@@ -213,7 +214,6 @@ class ActionCenterServiceTest extends TestCase
             'game_system_id' => $this->gameSystem->id,
             'campaign_id' => $campaign->id,
             'status' => 'completed',
-            'recap' => null,
             'updated_at' => now()->subDay(),
         ]);
     }
@@ -534,14 +534,14 @@ class ActionCenterServiceTest extends TestCase
     public function test_missing_recap_excludes_games_with_recap(): void
     {
         $campaign = Campaign::factory()->create(['owner_id' => $this->user->id]);
-        Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
             'campaign_id' => $campaign->id,
             'status' => 'completed',
-            'recap' => 'A great session!',
             'updated_at' => now()->subDay(),
         ]);
+        CampaignJournalEntry::factory()->forCampaignSession($game)->create();
 
         $items = $this->service->getItems($this->user);
         $recapItems = array_filter($items, fn ($i) => $i->type === 'missing_recap');
@@ -557,7 +557,6 @@ class ActionCenterServiceTest extends TestCase
             'game_system_id' => $this->gameSystem->id,
             'campaign_id' => null,
             'status' => 'completed',
-            'recap' => null,
             'updated_at' => now()->subDay(),
         ]);
 
@@ -574,7 +573,6 @@ class ActionCenterServiceTest extends TestCase
             'game_system_id' => $this->gameSystem->id,
             'campaign_id' => $campaign->id,
             'status' => 'completed',
-            'recap' => null,
             'updated_at' => now()->subDays(10),
         ]);
 
@@ -726,7 +724,6 @@ class ActionCenterServiceTest extends TestCase
             'game_system_id' => $this->gameSystem->id,
             'campaign_id' => $mediumCampaign->id,
             'status' => 'completed',
-            'recap' => null,
             'updated_at' => now()->subDay(),
         ]);
 

@@ -1267,7 +1267,7 @@ class GameDetail extends Component
         // refreshed: actions that mutate them call ->load() themselves, but
         // render remains the guaranteed-fresh source for the roster UI.
         $this->game->loadMissing([
-            'owner', 'campaign', 'event',
+            'owner', 'campaign', 'recapEntry', 'event',
             'gameSystems.categories', 'gameSystems.mechanics',
             'gameSystems.publishers', 'gameSystems.baseGame', 'gameSystems.expansions',
             'linkedLocation',

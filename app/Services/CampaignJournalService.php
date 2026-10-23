@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\ActivityType;
 use App\Enums\CharacterStateChangeType;
 use App\Enums\GameStatus;
 use App\Enums\GoalStatus;
 use App\Enums\JournalEntryKind;
 use App\Enums\JournalEntryVisibility;
+use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignGoal;
@@ -15,6 +17,7 @@ use App\Models\CampaignParticipant;
 use App\Models\CharacterStateChange;
 use App\Models\Game;
 use App\Models\User;
+use App\Notifications\RecapPosted;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -22,11 +25,12 @@ use Illuminate\Support\Facades\Log;
 /**
  * Write path for the campaign journal (M071, D220).
  *
- * The journal's kind=recap entry is the source of truth for a campaign
- * session's recap; the games.recap column is a synced projection written in
- * the SAME transaction, so every recap-reading consumer (action center,
- * dashboards, activity feed, session-end partial) and GameObserver's
- * wasChanged('recap') cache invalidation keep working untouched.
+ * The journal's kind=recap entry is the ONLY recap record (the legacy
+ * games.recap projection was culled with the other legacy recap paths):
+ * every recap-reading consumer (action center, dashboards, activity
+ * feed, session-end partial) resolves through the Game::recapEntry
+ * relation, and the post-commit tail carries the dashboard-cache
+ * invalidation that used to ride GameObserver's wasChanged('recap').
  *
  * Campaign sessions only (D218, M071/S03): one-shot games get the
  * Epilogue bulletin instead of a recap writer.
@@ -40,17 +44,18 @@ class CampaignJournalService
     private const ONE_RECAP_PER_SESSION_INDEX = 'campaign_journal_entries_one_recap_per_session';
 
     public function __construct(
-        private RecapService $recapService,
+        private ActivityLogService $activityLogService,
+        private NotificationService $notificationService,
+        private DashboardCacheService $cache,
     ) {}
 
     /**
-     * Write a campaign session's recap as a journal entry and sync the
-     * games.recap projection atomically.
+     * Write a campaign session's recap as a journal entry.
      *
-     * Creates the kind=recap, visibility=players journal entry and updates
-     * games.recap inside ONE transaction, then logs the SessionRecapped
-     * activity and notifies participants via RecapService::announceRecap —
-     * the shared recap effects tail lives exactly once, injected here.
+     * Creates the kind=recap, visibility=players journal entry in ONE
+     * transaction, then runs the post-commit tail (dashboard caches,
+     * SessionRecapped activity, RecapPosted notifications) exactly once
+     * for the only recap write path.
      *
      * Validation rules keep the classic recap guards — completed game,
      * host-only, write-once, non-empty — with two journal deltas: the
@@ -86,10 +91,10 @@ class CampaignJournalService
             throw new \LogicException(__('games.error_recap_empty'));
         }
 
-        // Already-written check covers both recap shapes: the legacy
-        // column (migrated or not) and a journal entry (backfilled or a
-        // concurrent write).
-        if (! empty($game->recap) || $game->recapEntry()->exists()) {
+        // Already-written: one recap per session is also structurally
+        // enforced by the partial unique index — this check is the
+        // friendly face of the same rule.
+        if ($game->recapEntry()->exists()) {
             throw new \LogicException(__('games.error_recap_already_written'));
         }
 
@@ -104,12 +109,6 @@ class CampaignJournalService
                     'visibility' => JournalEntryVisibility::Players,
                     'body' => $body,
                 ]);
-
-                // D220 projection sync — same transaction as the entry, so
-                // consumers never see a recap column without its journal
-                // entry (or vice versa). GameObserver's wasChanged('recap')
-                // cache invalidation fires on this update.
-                $game->update(['recap' => $body]);
 
                 return $entry;
             });
@@ -133,14 +132,15 @@ class CampaignJournalService
             'content_length' => mb_strlen($body),
         ]);
 
-        // The announce tail (activity log + notifications) is isolated
-        // on purpose: it runs AFTER the entry and projection committed,
-        // so a failure there must never 500 the host's write action —
-        // the recap IS written, and a retry would only hit the
-        // already-written refusal (same isolation discipline as
-        // GameObserver::composeQuietly for side-effect tails).
+        // The post-commit tail is isolated on purpose: it runs AFTER the
+        // entry committed, so a failure there must never 500 the host's
+        // write action — the recap IS written, and a retry would only
+        // hit the already-written refusal. It carries what used to ride
+        // GameObserver's wasChanged('recap') hook: dashboard caches,
+        // activity log, notifications.
         try {
-            $this->recapService->announceRecap($game, $author);
+            $this->invalidateRecapCaches($game, $author);
+            $this->announceRecap($game, $author);
         } catch (\Throwable $e) {
             report($e);
             Log::error('journal.recap_announce_failed', [
@@ -435,5 +435,68 @@ class CampaignJournalService
         ]);
 
         return $change;
+    }
+
+    /**
+     * The recap write's dashboard-cache invalidation (the tail that used
+     * to fire from GameObserver::saved on wasChanged('recap')): the
+     * author's and every approved participant's contributions and recaps
+     * sections.
+     */
+    private function invalidateRecapCaches(Game $game, User $author): void
+    {
+        $userIds = $game->participants()
+            ->where('status', ParticipantStatus::Approved->value)
+            ->pluck('user_id')
+            ->push($game->owner_id)
+            ->unique()
+            ->map(fn (mixed $id): string => to_string_id($id))
+            ->all();
+
+        $this->cache->invalidateForUsers($userIds, ['contributions', 'recaps']);
+    }
+
+    /**
+     * The shared recap announce effects (formerly RecapService, folded
+     * here when the legacy recap paths were culled): one SessionRecapped
+     * activity entry and one RecapPosted notification per approved
+     * participant (never the author).
+     */
+    private function announceRecap(Game $game, User $author): void
+    {
+        $this->activityLogService->log(
+            ActivityType::SessionRecapped,
+            $author,
+            $game,
+            ['game_id' => $game->id, 'author_id' => $author->id],
+        );
+
+        $participants = $game->participants()
+            ->where('status', 'approved')
+            ->where('user_id', '!=', $author->id)
+            ->with('user')
+            ->get()
+            ->pluck('user')
+            ->filter();
+
+        foreach ($participants as $participant) {
+            if (! ($participant instanceof User)) {
+                continue;
+            }
+
+            try {
+                $this->notificationService->send(
+                    $participant,
+                    new RecapPosted($game, $author),
+                    NotificationCategory::SessionContent,
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send recap notification', [
+                    'game_id' => $game->id,
+                    'participant_id' => $participant->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 }

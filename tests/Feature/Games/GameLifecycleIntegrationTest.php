@@ -204,7 +204,10 @@ class GameLifecycleIntegrationTest extends TestCase
         app(CampaignJournalService::class)->writeRecap($game, $host, 'Amazing session! The party defeated the dragon and saved the village.');
 
         $game->refresh();
-        $this->assertEquals('Amazing session! The party defeated the dragon and saved the village.', $game->recap);
+        $this->assertEquals(
+            'Amazing session! The party defeated the dragon and saved the village.',
+            $game->recapEntry?->body,
+        );
 
         // ── Step 7: Verify recap appears in activity feed (S05) ──
         $feedService = app(GameActivityFeedService::class);

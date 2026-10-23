@@ -45,18 +45,6 @@ class GameObserver
         // switch so the existing sync-queue suite is unaffected.
         $this->maybeDispatchDiscordPublish($game);
 
-        if ($game->wasChanged('recap')) {
-            $participantIds = $game->participants()
-                ->where('status', ParticipantStatus::Approved->value)
-                ->pluck('user_id')
-                ->push($game->owner_id)
-                ->unique()
-                ->map(fn (mixed $id): string => to_string_id($id))
-                ->all();
-
-            $this->cache->invalidateForUsers($participantIds, ['contributions', 'recaps']);
-        }
-
         // D230 Previously-On projection: an unpublished draft is a
         // projection of its session's state — a moved date/venue
         // recomposes it in place (the CTA carries that date), and a

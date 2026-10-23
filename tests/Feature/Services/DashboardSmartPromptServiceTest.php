@@ -7,6 +7,7 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
+use App\Models\CampaignJournalEntry;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -217,15 +218,17 @@ class DashboardSmartPromptServiceTest extends TestCase
     {
         $user = User::factory()->create();
         $campaign = Campaign::factory()->create(['owner_id' => $user->id]);
-        Game::factory()->create([
+        $game = Game::factory()->create([
             'owner_id' => $user->id,
             'campaign_id' => $campaign->id,
             'name' => ['en' => 'Completed Game'],
             'status' => GameStatus::Completed,
-            'recap' => $recap,
             'updated_at' => now()->subHours($hoursAgo),
             'date_time' => now()->subDays($hoursAgo >= 48 ? 5 : 2),
         ]);
+        if ($recap !== null) {
+            CampaignJournalEntry::factory()->forCampaignSession($game)->create(['body' => $recap]);
+        }
 
         $result = $this->service->getPrompt($user);
 
@@ -248,7 +251,6 @@ class DashboardSmartPromptServiceTest extends TestCase
             'campaign_id' => $campaign->id,
             'name' => ['en' => 'Participant Recap'],
             'status' => GameStatus::Completed,
-            'recap' => null,
             'updated_at' => now()->subHours(12),
             'date_time' => now()->subDays(1),
         ]);
@@ -276,7 +278,6 @@ class DashboardSmartPromptServiceTest extends TestCase
             'name' => ['en' => 'One-Shot Game'],
             'status' => GameStatus::Completed,
             'campaign_id' => null,
-            'recap' => null,
             'updated_at' => now()->subHours(24),
             'date_time' => now()->subDays(2),
         ]);

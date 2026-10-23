@@ -116,18 +116,16 @@ class DemoTeardownCommand extends Command
         $this->info('Deleted '.$this->chunkedDelete('session_debriefings', 'game_id', $demoGameIds).' from session_debriefings.');
         $this->info('Deleted '.$this->chunkedDelete('attendance_reports', 'game_id', $demoGameIds).' from attendance_reports.');
 
-        // Session zero surveys by game_id and gm_profile_id
-        $szDeleted = $this->chunkedDelete('session_zero_surveys', 'game_id', $demoGameIds);
-        $szDeleted += $this->chunkedDelete('session_zero_surveys', 'gm_profile_id', $gmProfileIds);
-        $this->info("Deleted {$szDeleted} from session_zero_surveys.");
+        // Campaign journal entries by game_id and author (demo recaps,
+        // previously_on drafts, goals, state changes)
+        $journalDeleted = $this->chunkedDelete('campaign_journal_entries', 'game_id', $demoGameIds);
+        $journalDeleted += $this->chunkedDelete('campaign_journal_entries', 'author_user_id', $demoUserIds);
+        $journalDeleted += $this->chunkedDelete('campaign_journal_entries', 'campaign_id', $demoCampaignIds);
+        $this->info("Deleted {$journalDeleted} from campaign_journal_entries.");
 
-        // Session zero confirmations by user_id and by survey_id (via chunked lookup)
-        $szcDeleted = $this->chunkedDelete('session_zero_confirmations', 'user_id', $demoUserIds);
-        $surveyIds = $this->chunkedPluck(DB::table('session_zero_surveys'), 'id', 'game_id', $demoGameIds);
-        if ($surveyIds->isNotEmpty()) {
-            $szcDeleted += $this->chunkedDelete('session_zero_confirmations', 'session_zero_survey_id', $surveyIds);
-        }
-        $this->info("Deleted {$szcDeleted} from session_zero_confirmations.");
+        $poDrafts = $this->chunkedDelete('previously_on_drafts', 'game_id', $demoGameIds);
+        $poDrafts += $this->chunkedDelete('previously_on_drafts', 'campaign_id', $demoCampaignIds);
+        $this->info("Deleted {$poDrafts} from previously_on_drafts.");
 
         // Step 2: Reviews
         $reviewCount = $this->chunkedDeleteWith('reviews', 'reviewable_id', $demoGameIds, 'reviewable_type', (new Game)->getMorphClass());

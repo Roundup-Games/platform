@@ -137,20 +137,6 @@ test('the excerpt carries the latest recap, truncated to 200 words, with no jour
         ->and($body)->toContain(route('games.show', ['locale' => 'en', 'id' => $next]));
 });
 
-test('a divergent games.recap projection never leaks into the body (D220)', function () {
-    [, $campaign, $completed, $next] = previouslyOnCampaign();
-
-    previouslyOnRecap($completed, 'the journal source of truth');
-    // Column deliberately divergent: the composer reads journal entries,
-    // never the synced projection.
-    $completed->update(['recap' => 'SECRET PROJECTION TEXT']);
-
-    $body = app(PreviouslyOnService::class)->composeBody($campaign, $next);
-
-    expect($body)->toContain('the journal source of truth')
-        ->and($body)->not->toContain('SECRET PROJECTION TEXT');
-});
-
 test('a gms-visibility recap row never reaches the digest excerpt', function () {
     [, $campaign, $completed, $next] = previouslyOnCampaign();
 

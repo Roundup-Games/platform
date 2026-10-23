@@ -56,6 +56,7 @@ use Spatie\Translatable\HasTranslations;
  * @property Carbon|null $signup_cutoff_at
  * @property Carbon|null $reminder_sent_at
  * @property Carbon|null $reminder_24h_sent_at
+ * @property bool $has_recap_entry via withExists('recapEntry as has_recap_entry') — the cheap week-view recap check
  * @property Carbon|null $share_token_expires_at
  * @property Carbon|null $attendance_window_opens_at
  * @property Carbon|null $attendance_window_closes_at
