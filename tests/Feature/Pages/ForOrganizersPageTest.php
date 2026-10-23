@@ -11,7 +11,7 @@ describe('ForOrganizersPage - Differentiators', function () {
         get(route('for-organizers'))
             ->assertOk()
             ->assertSee(__('pages.content_org_diff_discord_title'))
-            ->assertSee(__('pages.content_org_diff_session_zero_title'))
+            ->assertSee(__('pages.content_org_diff_charter_title'))
             ->assertSee(__('pages.content_org_diff_workspace_title'))
             ->assertSee(__('pages.content_org_diff_reliability_title'))
             ->assertSee(__('pages.content_org_diff_fees_title'))

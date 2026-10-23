@@ -339,8 +339,9 @@ return [
     // ── Für Organisatoren: echte Alleinstellungsmerkmale (M066/S09/T02) ──
     'content_org_diff_discord_title' => 'Discord-Brücke',
     'content_org_diff_discord_text' => 'Veröffentliche deine Runden direkt auf deinem Discord-Server: täglicher Kalender-Thread, RSVP-Buttons und Join-Links — kein Copy-Paste, keine toten Kanäle.',
-    'content_org_diff_session_zero_title' => 'Session-Zero-Builder',
-    'content_org_diff_session_zero_text' => 'Kläre die Erwartungen, bevor die Würfel rollen. Der geführte Builder sammelt Safety-Präferenzen, Lines & Veils und Grenzen von allen am Tisch.',
+    'content_org_diff_charter_title' => 'Kampagnen-Charter',
+    'content_org_diff_charter_text' => 'Kläre die Erwartungen, bevor die Würfel rollen. Jede Kampagne erhält einen unterschreibbaren Charter — Safety-Tools, Lines & Veils und Grenzen, vereinbart von der ganzen Runde, mit versioniertem Verlauf bei Änderungen.',
+    'content_how_it_works_charter_text' => 'Jede Kampagne beginnt mit einem unterschreibbaren Charter: Safety-Tools und Grenzen, vereinbart von der ganzen Runde.',
     'content_org_diff_workspace_title' => 'GM-Arbeitsbereich',
     'content_org_diff_workspace_text' => 'Deine Schaltzentrale: Runden, GM-Rezensionen, Session-Zero-Ergebnisse und Link-Analysen an einem Ort — kostenlos mit dem GM-Tarif.',
     'content_org_diff_reliability_title' => 'Zuverlässigkeits-Filter',

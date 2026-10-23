@@ -66,7 +66,7 @@
                     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $session_zero ? 'bg-tertiary-container text-on-tertiary-container shadow-xs ring-1 ring-tertiary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
                     :aria-pressed="{{ $session_zero ? 'true' : 'false' }}">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">shield</span>
-                {{ __('session_zero.title_session_zero') }}
+                {{ __('safety.tool_session_zero_title') }}
             </button>
 
             {{-- Location line --}}
@@ -277,7 +277,7 @@
                 @if($session_zero)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container">
                         <span class="material-symbols-outlined text-xs" aria-hidden="true">shield</span>
-                        {{ __('session_zero.title_session_zero') }}
+                        {{ __('safety.tool_session_zero_title') }}
                     </span>
                 @endif
                 @if($game_system_id)

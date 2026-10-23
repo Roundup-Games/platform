@@ -364,6 +364,37 @@ class CharterSigningService
      * need to sign). Only participant rows — the countersignature is the
      * owner's, never a personal signature state.
      */
+    /**
+     * Signing progress for one charter's current version — the light,
+     * single-charter shape of workspaceHealth's counts (same
+     * predicates: approved participants as the denominator; participant-
+     * role SIGNED rows on the current version as the numerator). Used
+     * by compact surfaces (the game-detail charter card); the workspace
+     * keeps its grouped-count query.
+     *
+     * @return array{approved: int, signed: int, percent: int}
+     */
+    public static function signingProgress(SessionZeroSurvey $charter): array
+    {
+        $version = $charter->currentVersion();
+
+        $approved = (int) ($charter->campaign?->participants()
+            ->where('status', ParticipantStatus::Approved->value)
+            ->count() ?? 0);
+
+        $signed = $version === null ? 0 : (int) $charter->confirmations()
+            ->where('session_zero_survey_version_id', $version->id)
+            ->where('role', SessionZeroConfirmation::ROLE_PARTICIPANT)
+            ->where('status', SessionZeroConfirmation::STATUS_SIGNED)
+            ->count();
+
+        return [
+            'approved' => $approved,
+            'signed' => $signed,
+            'percent' => $approved > 0 ? (int) min(100, round($signed / $approved * 100)) : 0,
+        ];
+    }
+
     public static function statusFor(SessionZeroSurvey $charter, User $user): ?SessionZeroConfirmation
     {
         $version = $charter->currentVersion();

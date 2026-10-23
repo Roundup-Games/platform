@@ -73,7 +73,6 @@ use App\Livewire\GM\Charter\CharterAudit;
 use App\Livewire\GM\Charter\CharterComposer;
 use App\Livewire\GM\GmDirectory;
 use App\Livewire\GM\GmWorkspace;
-use App\Livewire\GM\SessionZero\CreateSessionZero;
 use App\Livewire\Notifications\NotificationsPage;
 use App\Livewire\Onboarding\CompleteProfile;
 use App\Livewire\People\PeoplePage;
@@ -83,7 +82,6 @@ use App\Livewire\Profile\PublicProfile;
 use App\Livewire\Profile\Show;
 use App\Livewire\Reviews\ReportReview;
 use App\Livewire\Reviews\WriteReview;
-use App\Livewire\SessionZero\ViewSessionZero;
 use App\Livewire\Support\BillingSupport;
 use App\Livewire\Support\ContactSupport;
 use App\Livewire\Teams\BrowseTeams;
@@ -228,12 +226,9 @@ Route::prefix('{locale}')
         Route::get('/', [PageController::class, 'home'])->name('home');
 
         // Session Zero public view (UUID-based, no auth required to view)
-        Route::get('/session-zero/{uuid}', ViewSessionZero::class)
-            ->name('session-zero.view')
-            ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
-        // Campaign charter public read-only view (M070) — same UUID
-        // capability-link trust model as session-zero.view above.
+        // Campaign charter public read-only view (M070) — a UUID
+        // capability link: knowing the link grants read access.
         Route::get('/charter/{uuid}', ViewCharter::class)
             ->name('charter.view')
             ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
@@ -320,8 +315,6 @@ Route::prefix('{locale}')
             Route::get('/gm-workspace', GmWorkspace::class)->name('gm.workspace');
 
             // GM Session Zero Builder
-            Route::get('/gm/session-zero/create', CreateSessionZero::class)->name('gm.session-zero.create');
-            Route::get('/gm/session-zero/create/{game_id}', CreateSessionZero::class)->name('gm.session-zero.create-for-game');
 
             // Profile page (Livewire — handles profile info and game preferences)
             Route::get('/profile', Show::class)->name('profile.show');

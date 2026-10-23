@@ -2,12 +2,14 @@
 
 namespace App\Livewire\GM;
 
+use App\Enums\CampaignStatus;
+use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
-use App\Models\SessionZeroSurvey;
+use App\Models\PreviouslyOnDraft;
 use App\Models\ShortLink;
 use App\Models\ShortLinkHit;
 use App\Models\User;
@@ -61,12 +63,14 @@ class GmWorkspace extends Component
                 'repeatPlayers' => 0,
                 'totalGames' => 0,
                 'activeCampaigns' => 0,
-                'sessionZeroSurveys' => collect(),
                 'linkAnalytics' => $this->emptyLinkAnalytics(),
                 'topLinks' => collect(),
                 'topReferrers' => collect(),
                 'allLinks' => collect(),
                 'charterHealth' => collect(),
+                'charterlessCampaigns' => collect(),
+                'pendingDigests' => collect(),
+                'recapsDue' => collect(),
             ]);
         }
 
@@ -88,13 +92,6 @@ class GmWorkspace extends Component
         // (3) Participant Stats + Quick actions — cached for 1 hour
         [$totalUniquePlayers, $repeatPlayers, $totalGames, $activeCampaigns] = $this->getCachedParticipantStats($user);
 
-        // (5) Session Zero Surveys
-        $sessionZeroSurveys = SessionZeroSurvey::where('gm_profile_id', $this->gmProfile->id)
-            ->with('game')
-            ->orderByDesc('created_at')
-            ->limit(20)
-            ->get();
-
         // (6) Share Link Analytics
         [$linkAnalytics, $topLinks, $topReferrers] = $this->getLinkAnalytics($user);
 
@@ -110,6 +107,47 @@ class GmWorkspace extends Component
         // countersign trail — grouped-count shaped, no roster N+1.
         $charterHealth = collect(CharterSigningService::workspaceHealth($user));
 
+        // (9) Charter starter (the retired session-zero create flow's
+        // replacement): owned active campaigns that have no charter
+        // yet — the workspace's entry point into CharterComposer.
+        $charterlessCampaigns = Campaign::query()
+            ->whereBelongsTo($user, 'owner')
+            ->where('status', CampaignStatus::Active->value)
+            ->whereDoesntHave('charter')
+            ->orderBy('name')
+            ->limit(5)
+            ->get();
+
+        // (10) Needs your attention (M071): unpublished Previously On
+        // drafts with an upcoming session — the 24h compose hook
+        // builds them, this surface tells the GM they are waiting.
+        // Sorted by session start in PHP (bounded, at most one
+        // unpublished draft per campaign by the D230 invariant).
+        $pendingDigests = PreviouslyOnDraft::query()
+            ->whereNull('published_at')
+            ->whereHas('campaign', fn ($query) => $query->whereBelongsTo($user, 'owner'))
+            ->whereHas('game', fn ($query) => $query
+                ->where('status', GameStatus::Scheduled->value)
+                ->where('date_time', '>', now()))
+            ->with(['campaign', 'game'])
+            ->get()
+            ->sortBy(fn (PreviouslyOnDraft $draft) => $draft->game?->date_time)
+            ->values();
+
+        // (11) Recaps due: the GM's completed campaign sessions from
+        // the last two weeks whose journal has no recap entry yet —
+        // the recap surface lives on the game page's session-end tools.
+        $recapsDue = Game::query()
+            ->whereBelongsTo($user, 'owner')
+            ->where('status', GameStatus::Completed->value)
+            ->whereNotNull('campaign_id')
+            ->where('date_time', '>=', now()->subDays(14))
+            ->whereDoesntHave('recapEntry')
+            ->with('campaign')
+            ->orderByDesc('date_time')
+            ->limit(5)
+            ->get();
+
         return view('livewire.gm.gm-workspace', [
             'upcomingSessions' => $upcomingSessions,
             'recentReviews' => $recentReviews,
@@ -117,12 +155,14 @@ class GmWorkspace extends Component
             'repeatPlayers' => $repeatPlayers,
             'totalGames' => $totalGames,
             'activeCampaigns' => $activeCampaigns,
-            'sessionZeroSurveys' => $sessionZeroSurveys,
             'linkAnalytics' => $linkAnalytics,
             'topLinks' => $topLinks,
             'topReferrers' => $topReferrers,
             'allLinks' => $allLinks,
             'charterHealth' => $charterHealth,
+            'charterlessCampaigns' => $charterlessCampaigns,
+            'pendingDigests' => $pendingDigests,
+            'recapsDue' => $recapsDue,
         ]);
     }
 

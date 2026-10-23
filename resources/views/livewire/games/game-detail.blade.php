@@ -84,33 +84,73 @@
                 <livewire:games.game-bulletin-board :game="$game" />
 
                 {{-- Session Zero --}}
-                @if($activeSessionZero && ($isParticipant || $isOwner))
-                    <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
-                        <div class="flex items-center justify-between flex-wrap gap-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                    <span class="material-symbols-outlined text-primary" aria-hidden="true">assignment</span>
+                @if($game->campaign_id && ($isParticipant || $isOwner))
+                    @php($charter = $campaignCharter)
+                    @if($charter && $charter->isActive())
+                        <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                            <div class="flex items-center justify-between flex-wrap gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                        <span class="material-symbols-outlined text-primary" aria-hidden="true">history_edu</span>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('charter.title_charter') }}</h2>
+                                        <div class="flex items-center gap-3 mt-1">
+                                            <span class="text-sm font-medium text-on-surface">{{ $campaignCharterPercent }}%</span>
+                                            <div class="w-28 h-1.5 bg-surface-container rounded-full overflow-hidden" role="progressbar"
+                                                 aria-valuenow="{{ $campaignCharterPercent }}" aria-valuemin="0" aria-valuemax="100">
+                                                <div class="h-full bg-primary rounded-full transition-all duration-500" style="width: {{ $campaignCharterPercent }}%"></div>
+                                            </div>
+                                            <span class="text-sm text-on-surface-variant">{{ __('charter.label_signed') }}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('session_zero.title_session_zero') }}</h2>
-                                    <p class="text-sm text-on-surface-variant">{{ $activeSessionZero->title }}</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                @if($isSessionZeroConfirmed)
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-secondary-container text-on-secondary-container">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
-                                        {{ __('session_zero.confirmation_confirmed') }}
-                                    </span>
-                                @endif
-                                <a href="{{ route('session-zero.view', ['locale' => app()->getLocale(), 'uuid' => $activeSessionZero->uuid]) }}" wire:navigate
+                                <a href="{{ route('charter.view', ['locale' => app()->getLocale(), 'uuid' => $charter->uuid]) }}"
                                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
-                                    {{ __('session_zero.action_view_session_zero') }}
+                                    {{ __('charter.action_view_charter') }}
                                 </a>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                    @elseif($charter && $charter->isDraft() && $isOwner)
+                        <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                            <div class="flex items-center justify-between flex-wrap gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                        <span class="material-symbols-outlined text-primary" aria-hidden="true">history_edu</span>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('charter.title_charter') }}</h2>
+                                        <p class="text-sm text-on-surface-variant">{{ __('charter.label_draft_pending') }}</p>
+                                    </div>
+                                </div>
+                                <a href="{{ route('campaigns.charter', $game->campaign) }}" wire:navigate
+                                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                                    <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
+                                    {{ __('charter.action_continue_charter') }}
+                                </a>
+                            </div>
+                        </section>
+                    @elseif($isOwner)
+                        <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                            <div class="flex items-center justify-between flex-wrap gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                        <span class="material-symbols-outlined text-primary" aria-hidden="true">history_edu</span>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('charter.title_charter') }}</h2>
+                                        <p class="text-sm text-on-surface-variant">{{ __('charter.label_not_started') }}</p>
+                                    </div>
+                                </div>
+                                <a href="{{ route('campaigns.charter', $game->campaign) }}" wire:navigate
+                                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                                    <span class="material-symbols-outlined text-base" aria-hidden="true">add_circle</span>
+                                    {{ __('charter.action_create_charter') }}
+                                </a>
+                            </div>
+                        </section>
+                    @endif
                 @endif
 
                 {{-- Discovery Meta --}}

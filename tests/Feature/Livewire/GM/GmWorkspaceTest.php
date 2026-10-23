@@ -9,6 +9,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
+use App\Models\PreviouslyOnDraft;
 use App\Models\Review;
 use App\Models\SessionZeroSurvey;
 use App\Models\ShortLink;
@@ -586,5 +587,86 @@ describe('GmWorkspace Charter Health', function () {
             // Archived row: the public view link only — no composer route.
             ->assertSee(route('charter.view', $archivedCharter->uuid))
             ->assertDontSee(route('campaigns.charter', $archivedCampaign->id));
+    });
+});
+
+describe('GmWorkspace charter starter + needs-attention', function () {
+    it('lists owned active campaigns without a charter and links each into the composer', function () {
+        $gm = $this->createSubscribedGm();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $gm->id,
+            'name' => ['en' => 'Charterless Watch'],
+            'description' => ['en' => 'A campaign awaiting its charter.'],
+            'max_players' => 5,
+            'session_duration' => 3,
+            'recurrence' => 'weekly',
+        ]);
+
+        $this->actingAs($gm)
+            ->get(route('gm.workspace', 'en'))
+            ->assertOk()
+            ->assertSeeText(__('gws.heading_charterless_campaigns', [], 'en'))
+            ->assertSee('Charterless Watch')
+            ->assertSee(route('campaigns.charter', $campaign));
+    });
+
+    it('hides the starter list when every active campaign is chartered', function () {
+        $gm = $this->createSubscribedGm();
+        workspace_chartered_campaign($gm, 'Fully Chartered');
+
+        $this->actingAs($gm)
+            ->get(route('gm.workspace', 'en'))
+            ->assertOk()
+            ->assertDontSeeText(__('gws.heading_charterless_campaigns', [], 'en'))
+            ->assertDontSeeText(__('charter.content_workspace_empty', [], 'en'));
+    });
+
+    it('surfaces an unpublished Previously On draft as needing attention', function () {
+        $gm = $this->createSubscribedGm();
+        [$campaign] = workspace_chartered_campaign($gm, 'Digest Watch');
+        $next = Game::factory()->create([
+            'owner_id' => $gm->id,
+            'campaign_id' => $campaign->id,
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(2),
+            'name' => ['en' => 'Digest Watch Session'],
+        ]);
+        PreviouslyOnDraft::factory()->forSession($campaign, $next)->create();
+
+        $this->actingAs($gm)
+            ->get(route('gm.workspace', 'en'))
+            ->assertOk()
+            ->assertSeeText(__('gws.heading_attention', [], 'en'))
+            ->assertSeeText(__('gws.heading_digests_waiting', [], 'en'))
+            ->assertSee('Digest Watch')
+            ->assertSee(__('gws.action_review_publish', [], 'en'));
+    });
+
+    it('lists a completed campaign session without a recap as recap-due', function () {
+        $gm = $this->createSubscribedGm();
+        [$campaign] = workspace_chartered_campaign($gm, 'Recap Watch');
+        Game::factory()->create([
+            'owner_id' => $gm->id,
+            'campaign_id' => $campaign->id,
+            'status' => 'completed',
+            'date_time' => now()->subDays(2),
+            'name' => ['en' => 'Recap Watch Session'],
+        ]);
+
+        $this->actingAs($gm)
+            ->get(route('gm.workspace', 'en'))
+            ->assertOk()
+            ->assertSeeText(__('gws.heading_recap_due', [], 'en'))
+            ->assertSee('Recap Watch Session')
+            ->assertSee(__('gws.action_write_recap', [], 'en'));
+    });
+
+    it('hides the attention panel when nothing needs the GM', function () {
+        $gm = $this->createSubscribedGm();
+
+        $this->actingAs($gm)
+            ->get(route('gm.workspace', 'en'))
+            ->assertOk()
+            ->assertDontSeeText(__('gws.heading_attention', [], 'en'));
     });
 });

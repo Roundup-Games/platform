@@ -469,6 +469,9 @@ return [
     // Unterschriften und die Gegengezeichnet-Spur.
     'heading_workspace_charters' => 'Charta-Status',
     'label_percent_signed' => ':percent% unterschrieben',
+    'label_signed' => 'unterschrieben',
+    'label_draft_pending' => 'Entwurf in Arbeit — noch nicht veröffentlicht',
+    'label_not_started' => 'Diese Kampagne hat noch keinen Charter',
     'label_pending_count' => ':count offen',
     'label_days_outstanding' => 'Seit :count Tag offen|Seit :count Tagen offen',
     'label_no_participants' => 'Noch keine Teilnehmer',

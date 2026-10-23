@@ -15,7 +15,7 @@ return [
     'content_whether_you_re_a_seasoned' => 'Whether you\'re a seasoned game master or joining your first session, safety tools create a shared language for boundaries. They\'re not about limiting creativity — they\'re about building trust so everyone can fully engage with the story.',
     'content_your_safety_built_in' => 'Your safety, built in',
     'field_safety_tools_for_tabletop_gaming' => 'Safety Tools for Tabletop Gaming',
-    'field_start_with_session_zero' => 'Start with Session Zero',
+    'field_start_with_charter' => 'Start with a Charter',
     // ── Safety Tool Categories ──────────────────────────────────────
     'category_before' => 'Before the Game',
     'category_during' => 'During the Game',
@@ -30,6 +30,7 @@ return [
     'tool_stars_and_wishes' => 'Stars & Wishes',
     'tool_debriefing' => 'Debriefing',
     // ── Safety Tool Short Descriptions ──────────────────────────────
+    'tool_session_zero_title' => 'Session Zero',
     'tool_session_zero_short' => 'A pre-game session to set expectations, discuss boundaries, and build trust.',
     'tool_lines_and_veils_short' => 'Define hard limits (lines) and fade-to-black topics (veils) before play.',
     'tool_open_door_short' => 'Anyone can leave the game at any time, no questions asked.',

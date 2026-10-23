@@ -112,7 +112,7 @@
                     <div class="w-16 h-16 bg-secondary-container rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-on-secondary-container text-2xl" aria-hidden="true">checklist</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('safety.field_start_with_session_zero') }}</h3>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('safety.field_start_with_charter') }}</h3>
                     <p class="text-sm text-on-surface-variant">{{ __('safety.content_the_single_most_impactful_thing') }}</p>
                 </div>
                 <div class="text-center">

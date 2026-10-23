@@ -35,8 +35,6 @@ class CachePublicPages
         'membership',
         'onboarding.*',
         'gm.workspace',
-        'gm.session-zero.create',
-        'gm.session-zero.create-for-game',
     ];
 
     public function handle(Request $request, Closure $next): Response

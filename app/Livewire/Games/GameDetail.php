@@ -13,9 +13,10 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\Review;
 use App\Models\SessionDebriefing;
-use App\Models\SessionZeroConfirmation;
+use App\Models\SessionZeroSurvey;
 use App\Services\AttendanceService;
 use App\Services\CapacityService;
+use App\Services\Charter\CharterSigningService;
 use App\Services\DebriefingService;
 use App\Services\OverflowRouter;
 use App\Services\ParticipantLifecycle;
@@ -1207,19 +1208,25 @@ class GameDetail extends Component
     }
 
     /**
-     * @return array<string, mixed>
+     * The campaign-charter card context (the session-zero card's
+     * replacement, M070/S05 cull): campaign games surface their
+     * charter — active ones with signing progress, drafts with a
+     * continue affordance for the owner — while one-shots and
+     * charter-less campaigns return a null charter (the owner CTA is
+     * rendered from it).
+     *
+     * @return array{charter: ?SessionZeroSurvey, percent: int}
      */
     #[Computed]
-    public function sessionZeroState(): array
+    public function campaignCharterState(): array
     {
-        $active = $this->game->activeSessionZeroSurvey();
-        $confirmed = false;
-        if ($active && ($id = $this->viewerId())) {
-            $confirmed = SessionZeroConfirmation::where('session_zero_survey_id', $active->id)
-                ->where('user_id', $id)->exists();
+        $charter = $this->game->campaign?->charter()->first();
+
+        if ($charter === null || ! $charter->isActive()) {
+            return ['charter' => $charter, 'percent' => 0];
         }
 
-        return ['active' => $active, 'isConfirmed' => $confirmed];
+        return ['charter' => $charter, 'percent' => CharterSigningService::signingProgress($charter)['percent']];
     }
 
     /**
@@ -1267,7 +1274,7 @@ class GameDetail extends Component
         ]);
         $this->game->load(['participants.user', 'applications.user']);
 
-        $sz = $this->sessionZeroState();
+        $cc = $this->campaignCharterState();
         $db = $this->debriefingState();
 
         return view('livewire.games.game-detail', [
@@ -1280,8 +1287,8 @@ class GameDetail extends Component
             'hasExistingApplication' => $this->hasExistingApplication(),
             'reviews' => $this->reviews(),
             'canReview' => $this->canReview(),
-            'activeSessionZero' => $sz['active'],
-            'isSessionZeroConfirmed' => $sz['isConfirmed'],
+            'campaignCharter' => $cc['charter'],
+            'campaignCharterPercent' => $cc['percent'],
             'isGameFull' => $this->isGameFull(),
             'canJoinWaitlist' => $this->canJoinWaitlist(),
             'userWaitlistParticipant' => $this->userWaitlistParticipant(),

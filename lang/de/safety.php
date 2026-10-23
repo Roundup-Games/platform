@@ -15,7 +15,7 @@ return [
     'content_whether_you_re_a_seasoned' => 'Egal ob du ein erfahrener Game Master bist oder an deiner ersten Runde teilnimmst — Safety-Tools schaffen eine gemeinsame Sprache für Grenzen: sie schränken nicht die Kreativität ein, sondern bauen Vertrauen auf, damit sich alle voll in die Geschichte einbringen können.',
     'content_your_safety_built_in' => 'Deine Sicherheit, eingebaut',
     'field_safety_tools_for_tabletop_gaming' => 'Safety-Tools für Tabletop-Spiele',
-    'field_start_with_session_zero' => 'Beginne mit Session Zero',
+    'field_start_with_charter' => 'Beginne mit einem Charter',
     // ── Safety Tool Categories ──────────────────────────────────────
     'category_before' => 'Vor dem Spiel',
     'category_during' => 'Während des Spiels',
@@ -30,6 +30,7 @@ return [
     'tool_stars_and_wishes' => 'Stars & Wishes',
     'tool_debriefing' => 'Debriefing',
     // ── Safety Tool Short Descriptions ──────────────────────────────
+    'tool_session_zero_title' => 'Session Zero',
     'tool_session_zero_short' => 'Ein Vorgespräch, um Erwartungen zu klären, Grenzen zu besprechen und Vertrauen aufzubauen.',
     'tool_lines_and_veils_short' => 'Definiere harte Grenzen (Lines) und Ausblenden-Themen (Veils) vor dem Spiel.',
     'tool_open_door_short' => 'Jeder kann das Spiel jederzeit verlassen, ohne dass Fragen gestellt werden.',

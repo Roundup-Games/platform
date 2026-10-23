@@ -338,8 +338,9 @@ return [
     // ── For Organizers: real differentiators (M066/S09/T02) ──
     'content_org_diff_discord_title' => 'Discord bridge',
     'content_org_diff_discord_text' => 'Publish your games straight to your Discord server: a daily calendar thread, RSVP buttons, and join links — no copy-pasting, no dead channels.',
-    'content_org_diff_session_zero_title' => 'Session Zero builder',
-    'content_org_diff_session_zero_text' => 'Set expectations before the dice roll. The guided builder collects safety preferences, Lines & Veils, and boundaries from everyone at the table.',
+    'content_org_diff_charter_title' => 'Campaign Charter',
+    'content_org_diff_charter_text' => 'Set expectations before the dice roll. Every campaign gets a signable charter — safety tools, Lines & Veils, and boundaries agreed by the whole table, with a versioned trail when things change.',
+    'content_how_it_works_charter_text' => 'Every campaign starts with a signable charter: safety tools and boundaries, agreed by the whole table.',
     'content_org_diff_workspace_title' => 'GM Workspace',
     'content_org_diff_workspace_text' => 'Your command center: sessions, GM reviews, Session Zero results, and share-link analytics in one place — free with the Game Master tier.',
     'content_org_diff_reliability_title' => 'Reliability filtering',

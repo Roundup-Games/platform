@@ -208,92 +208,24 @@
                     </div>
                 </a>
 
-                <a href="{{ route('gm.session-zero.create') }}" wire:navigate
-                   class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-high/50 hover:bg-surface-container-high transition-colors group">
-                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <span class="material-symbols-outlined text-primary">assignment</span>
-                    </div>
-                    <div>
-                        <span class="text-sm font-medium text-on-surface group-hover:text-primary">{{ __('gws.action_create_session_zero') }}</span>
-                        <p class="text-xs text-on-surface-variant">{{ __('gws.action_create_session_zero_desc') }}</p>
-                    </div>
-                </a>
+                @if($charterlessCampaigns->count())
+                    <a href="#charters" wire:navigate
+                       class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-high/50 hover:bg-surface-container-high transition-colors group">
+                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary">history_edu</span>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-on-surface group-hover:text-primary">{{ __('gws.action_start_charter') }}</span>
+                            <p class="text-xs text-on-surface-variant">{{ __('gws.action_start_charter_desc') }}</p>
+                        </div>
+                    </a>
+                @endif
             </div>
         </div>
-    </div>
-
-    {{-- ── Session Zero Surveys ─────────────────────────────────── --}}
-    <div class="mt-6 bg-surface-container-lowest rounded-xl shadow-ambient p-6">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">assignment</span>
-                <h3 class="font-heading font-semibold text-on-surface">{{ __('gws.heading_session_zero_surveys') }}</h3>
-            </div>
-            @if($sessionZeroSurveys->count())
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                    {{ $sessionZeroSurveys->count() }}
-                </span>
-            @endif
-        </div>
-
-        @if($sessionZeroSurveys->count())
-            <div class="space-y-3">
-                @foreach($sessionZeroSurveys as $survey)
-                    <div class="flex items-center gap-4 p-3 rounded-lg bg-surface-container-high/50 group">
-                        <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-medium text-on-surface truncate">{{ $survey->title }}</h4>
-                            <div class="flex items-center gap-3 mt-1 text-xs text-on-surface-variant">
-                                @if($survey->game)
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">casino</span>
-                                        {{ $survey->game->name }}
-                                    </span>
-                                @else
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">link_off</span>
-                                        {{ __('gws.content_no_linked_game') }}
-                                    </span>
-                                @endif
-                                <span class="flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
-                                    {{ $survey->confirmation_count }}
-                                </span>
-                                <span>{{ format_date($survey->created_at, 'date') }}</span>
-                            </div>
-                        </div>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
-                            {{ $survey->isActive() ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-highest text-on-surface-variant' }}">
-                            {{ $survey->isActive() ? __('common.status_active') : __('gws.label_archived') }}
-                        </span>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <a href="{{ route('session-zero.view', ['locale' => app()->getLocale(), 'uuid' => $survey->uuid]) }}"
-                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity"
-                               wire:navigate>
-                                <span class="material-symbols-outlined text-sm" aria-hidden="true">visibility</span>
-                                {{ __('common.action_view') }}
-                            </a>
-                            <button type="button"
-                                x-data="{ copied: false }"
-                                @click="navigator.clipboard.writeText('{{ route('session-zero.view', ['locale' => app()->getLocale(), 'uuid' => $survey->uuid]) }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
-                                <span class="material-symbols-outlined text-sm" aria-hidden="true" x-show="!copied">content_copy</span>
-                                <span class="material-symbols-outlined text-sm text-secondary" aria-hidden="true" x-show="copied">check</span>
-                                <span x-text="copied ? '{{ __('common.status_copied') }}' : '{{ __('common.action_copy_link') }}'"></span>
-                            </button>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @else
-            <div class="text-center py-8">
-                <span class="material-symbols-outlined text-3xl text-on-surface-variant/30 mb-2 block">assignment</span>
-                <p class="text-sm text-on-surface-variant">{{ __('gws.content_no_session_zero_surveys') }}</p>
-            </div>
-        @endif
     </div>
 
     {{-- ── Charter Health (M070/S04) ─────────────────────────────── --}}
-    <div class="mt-6 bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+    <div id="charters" class="mt-6 bg-surface-container-lowest rounded-xl shadow-ambient p-6 scroll-mt-24">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">history_edu</span>
@@ -305,6 +237,26 @@
                 </span>
             @endif
         </div>
+
+        {{-- Charter starter: owned active campaigns without a charter —
+             the retired session-zero create flow's replacement. --}}
+        @if($charterlessCampaigns->count())
+            <div class="mb-4 p-3 rounded-lg bg-secondary-container/30 border border-secondary/25">
+                <p class="text-xs font-semibold text-on-surface mb-2">{{ __('gws.heading_charterless_campaigns') }}</p>
+                <div class="space-y-2">
+                    @foreach($charterlessCampaigns as $campaign)
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-sm text-on-surface truncate">{{ $campaign->name }}</span>
+                            <a href="{{ route('campaigns.charter', $campaign) }}" wire:navigate
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity shrink-0">
+                                <span class="material-symbols-outlined text-sm" aria-hidden="true">add_circle</span>
+                                {{ __('charter.action_create_charter') }}
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         @if($charterHealth->count())
             <div class="space-y-3">
@@ -363,13 +315,74 @@
                     </div>
                 @endforeach
             </div>
-        @else
+        @elseif(! $charterlessCampaigns->count())
             <div class="text-center py-8">
                 <span class="material-symbols-outlined text-3xl text-on-surface-variant/30 mb-2 block">history_edu</span>
                 <p class="text-sm text-on-surface-variant">{{ __('charter.content_workspace_empty') }}</p>
             </div>
         @endif
     </div>
+
+    {{-- ── Needs your attention (M071) ─────────────────────────── --}}
+    @if($pendingDigests->count() || $recapsDue->count())
+        <div class="mt-6 bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1">notification_important</span>
+                    <h3 class="font-heading font-semibold text-on-surface">{{ __('gws.heading_attention') }}</h3>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-secondary/15 text-secondary text-xs font-semibold">
+                    {{ $pendingDigests->count() + $recapsDue->count() }}
+                </span>
+            </div>
+
+            @if($pendingDigests->count())
+                <p class="text-xs font-semibold text-on-surface mb-2">{{ __('gws.heading_digests_waiting') }}</p>
+                <div class="space-y-2 mb-4">
+                    @foreach($pendingDigests as $draft)
+                        <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-surface-container-high/50">
+                            <div class="min-w-0">
+                                <span class="text-sm text-on-surface truncate block">{{ $draft->campaign?->name }}</span>
+                                @if($draft->game?->date_time)
+                                    <span class="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">schedule</span>
+                                        {{ format_date($draft->game->date_time, 'weekday_datetime') }}
+                                    </span>
+                                @endif
+                            </div>
+                            <a href="{{ route('campaigns.show', ['locale' => app()->getLocale(), 'id' => $draft->campaign, 'tab' => 'journal']) }}" wire:navigate
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity shrink-0">
+                                <span class="material-symbols-outlined text-sm" aria-hidden="true">rate_review</span>
+                                {{ __('gws.action_review_publish') }}
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            @if($recapsDue->count())
+                <p class="text-xs font-semibold text-on-surface mb-2">{{ __('gws.heading_recap_due') }}</p>
+                <div class="space-y-2">
+                    @foreach($recapsDue as $session)
+                        <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-surface-container-high/50">
+                            <div class="min-w-0">
+                                <span class="text-sm text-on-surface truncate block">{{ $session->name }}</span>
+                                <span class="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">schedule</span>
+                                    {{ format_date($session->date_time, 'datetime') }}
+                                </span>
+                            </div>
+                            <a href="{{ route('games.show', ['locale' => app()->getLocale(), 'id' => $session]) }}" wire:navigate
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors shrink-0">
+                                <span class="material-symbols-outlined text-sm" aria-hidden="true">edit_note</span>
+                                {{ __('gws.action_write_recap') }}
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    @endif
 
     {{-- ── Share Link Analytics ─────────────────────────────────── --}}
     <div class="mt-6 bg-surface-container-lowest rounded-xl shadow-ambient p-6">

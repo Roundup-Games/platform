@@ -465,6 +465,9 @@ return [
     // countersign trail (mission control for the GM).
     'heading_workspace_charters' => 'Charter health',
     'label_percent_signed' => ':percent% signed',
+    'label_signed' => 'signed',
+    'label_draft_pending' => 'Draft in progress — not published yet',
+    'label_not_started' => 'This campaign has no charter yet',
     'label_pending_count' => ':count pending',
     'label_days_outstanding' => 'Outstanding for :count day|Outstanding for :count days',
     'label_no_participants' => 'No participants yet',

@@ -67,9 +67,9 @@
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">forum</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_org_diff_session_zero_title') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_org_diff_charter_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_org_diff_session_zero_text') }}
+                                {{ __('pages.content_org_diff_charter_text') }}
                             </p>
                         </div>
                     </div>
