@@ -5,6 +5,7 @@ namespace Tests\Feature\Notifications;
 use App\Enums\OAuthProvider;
 use App\Models\LinkedAccount;
 use App\Models\User;
+use App\Notifications\BaseNotification;
 use App\Notifications\Channels\DiscordChannel;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\Discord\DiscordWebhookPayload;
@@ -89,9 +90,48 @@ class DiscordChannelTest extends TestCase
     }
 
     /**
-     * Minimal notification with a toDatabase() array (the auto-derive source).
+     * Notification whose DM payload is explicit — used for the posting paths
+     * (the channel no longer synthesizes payloads from toDatabase(), D247).
      */
     private function databaseNotification(array $data = []): Notification
+    {
+        $data = $data !== [] ? $data : [
+            'type' => 'waitlist_promoted',
+            'entity_name' => 'Catan Night',
+            'action_url' => 'https://roundup.test/games/123',
+        ];
+
+        return new class($data) extends Notification
+        {
+            public function __construct(private array $data) {}
+
+            public function via(object $notifiable): array
+            {
+                return [];
+            }
+
+            public function toDatabase(object $notifiable): array
+            {
+                return $this->data;
+            }
+
+            public function toDiscord(object $notifiable): DiscordWebhookPayload
+            {
+                $lines = [];
+                if (($this->data['entity_name'] ?? null) !== null) {
+                    $lines[] = (string) $this->data['entity_name'];
+                }
+                $lines[] = (string) ($this->data['action_url'] ?? 'https://roundup.test');
+
+                return new DiscordWebhookPayload(content: implode("\n", $lines));
+            }
+        };
+    }
+
+    /**
+     * Notification with toDatabase() but NO toDiscord() — the D247 gap shape.
+     */
+    private function payloadlessNotification(array $data = []): Notification
     {
         $data = $data !== [] ? $data : [
             'type' => 'waitlist_promoted',
@@ -336,29 +376,29 @@ class DiscordChannelTest extends TestCase
     }
 
     #[Test]
-    public function send_auto_derives_content_from_to_database_keys(): void
+    public function send_skips_with_warning_when_to_discord_is_missing_the_d247_gap(): void
     {
-        $captured = [];
-
-        Http::fake(function (Request $request) use (&$captured) {
-            if (str_contains($request->url(), 'users/@me/channels')) {
-                return Http::response(['id' => self::DM_CHANNEL], 200);
-            }
-            $captured = $request->data();
-
-            return Http::response(['id' => self::MESSAGE_ID], 200);
-        });
+        Log::spy();
 
         $user = $this->linkedUser();
 
-        $this->channel()->send($user, $this->databaseNotification([
-            'type' => 'waitlist_promoted',
-            'entity_name' => 'Catan Night',
-            'action_url' => 'https://roundup.test/games/123',
-        ]));
+        // A toDatabase() shape alone is no longer enough (D247): the DM is
+        // never synthesized — a missing toDiscord() is a gap that skips with
+        // a warning, not a silent fallback to entity_name + action_url (or a
+        // bare URL, the 2026-10-24 badge DM incident).
+        $this->channel()->send($user, $this->payloadlessNotification());
 
-        // entity_name + action_url joined with a newline.
-        $this->assertSame("Catan Night\nhttps://roundup.test/games/123", $captured['content'] ?? null);
+        Http::assertNothingSent();
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_missing_payload'
+                && ($c['notification_type'] ?? null) !== null)
+            ->once();
+
+        Log::shouldHaveReceived('info')
+            ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
+                && ($c['reason'] ?? null) === 'no_discord_payload')
+            ->once();
     }
 
     // ── Failure paths: graceful, never throws ───────────
@@ -435,5 +475,29 @@ class DiscordChannelTest extends TestCase
             ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
                 && ($c['reason'] ?? null) === 'send_failed')
             ->once();
+    }
+
+    #[Test]
+    public function every_base_notification_defines_an_explicit_to_discord_the_d247_contract(): void
+    {
+        $violations = [];
+
+        foreach (glob(app_path('Notifications').'/*.php') as $file) {
+            $class = 'App\\Notifications\\'.basename($file, '.php');
+
+            if (! class_exists($class) || ! is_subclass_of($class, BaseNotification::class)) {
+                continue;
+            }
+
+            if (! method_exists($class, 'toDiscord')) {
+                $violations[] = $class;
+            }
+        }
+
+        $this->assertSame([], $violations, sprintf(
+            'D247: every BaseNotification subclass must define toDiscord() (a payload, or a null opt-out) - missing on: %s. '
+            .'Without it the Discord DM silently skips with a warning - make a conscious choice instead.',
+            implode(', ', $violations),
+        ));
     }
 }

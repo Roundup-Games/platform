@@ -159,7 +159,7 @@
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">book_5</span>
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">menu_book</span>
                         </div>
                         <div>
                             <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('roadmap.heading_delivered_journal') }}</h3>

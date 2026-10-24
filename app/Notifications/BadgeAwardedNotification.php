@@ -7,6 +7,7 @@ use App\Enums\BadgeSource;
 use App\Models\User;
 use App\Services\Badges\BadgeCopy;
 use App\Services\Badges\BadgeRegistry;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
@@ -81,6 +82,27 @@ class BadgeAwardedNotification extends BaseNotification
             url: $this->actionUrl($notifiable),
             tag: "badge-{$this->badgeKey}",
         );
+    }
+
+    /**
+     * Get the Discord DM representation: a celebratory embed carrying the
+     * badge name, mirroring the mail/push copy via the same lang keys.
+     *
+     * Explicit on purpose: without this, the old Discord auto-derive fallback
+     * built content from entity_name + action_url, and this notification
+     * carries neither — the DM rendered as a bare profile URL (four badge
+     * awards in one 06:30 sweep = four identical link-only DMs from the
+     * official bot). D247: every notification defines toDiscord().
+     */
+    public function toDiscord(User $notifiable): DiscordWebhookPayload
+    {
+        return DiscordWebhookPayload::embed([
+            'title' => __($this->subjectKey(), ['badge' => $this->displayBadge()]),
+            'url' => $this->actionUrl($notifiable),
+            'description' => __($this->bodyKey(), ['badge' => $this->displayBadge()]),
+            // Discord blurple — the app's Discord brand colour.
+            'color' => 0x5865F2,
+        ]);
     }
 
     /**

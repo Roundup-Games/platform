@@ -23,11 +23,14 @@ use Illuminate\Support\Facades\Log;
  *      returning the DM channel id.
  *   2. {@see DiscordWebhookClient::postMessage()} posts the derived payload.
  *
- * Payload is auto-derived from the notification's toDatabase() array — the
- * same in-app data every notification already produces — so every
- * notification type gains a Discord surface without per-class toDiscord()
- * implementations. A notification MAY override by defining toDiscord() (return
- * null to opt out, return a DiscordWebhookPayload to use it verbatim).
+ * Payload requires an explicit toDiscord() on the notification (D247):
+ * return a DiscordWebhookPayload to post it verbatim; return null for a
+ * deliberate opt-out (D130). A notification without toDiscord() at all
+ * is a GAP — the DM is skipped with a warning naming the class, and no
+ * content is ever synthesized. The auto-derive fallback this replaced
+ * built bodies from entity_name + action_url (or a bare URL when the
+ * shape carried neither name key), which read as bot spam and burned
+ * the channel's trust (2026-10-24 badge DM incident).
  *
  * Every no-op path emits a structured notification.discord_dm_skipped log with
  * a typed reason; success emits notification.discord_dm_sent. DiscordApiException
@@ -84,9 +87,28 @@ class DiscordChannel
             return;
         }
 
-        // Build the payload — honour an optional toDiscord() override (null
-        // opts out), otherwise auto-derive from toDatabase().
-        $payload = $this->resolvePayload($notification, $notifiable);
+        // Build the payload — an explicit toDiscord() is REQUIRED (D247):
+        // the returned payload posts verbatim; returning null is the
+        // deliberate opt-out (D130). A notification without toDiscord()
+        // at all is a GAP, not an opt-out: skip with a warning naming
+        // the class, and never synthesize content. The auto-derive this
+        // replaced built DM bodies from entity_name + action_url — and
+        // a bare URL when the shape carried neither — which read as bot
+        // spam and burned the channel's trust (2026-10-24 badge DM
+        // incident: four identical link-only DMs from the official bot).
+        if (! method_exists($notification, 'toDiscord')) {
+            Log::warning('notification.discord_dm_missing_payload', [
+                'user_id' => $notifiable->id,
+                'notification_type' => $notificationType,
+                'category' => $category,
+            ]);
+
+            $this->skipped($notifiable, $notificationType, $category, 'no_discord_payload');
+
+            return;
+        }
+
+        $payload = $notification->toDiscord($notifiable);
         if ($payload === null) {
             $this->skipped($notifiable, $notificationType, $category, 'dm_opt_out');
 
@@ -137,63 +159,6 @@ class DiscordChannel
             // to the specific message (lookup, uniqueness audit, support).
             'message_id' => $messageId,
         ]);
-    }
-
-    /**
-     * Resolve the DM payload. An explicit toDiscord() override wins (null =
-     * opt-out); otherwise the payload is auto-derived from toDatabase().
-     */
-    private function resolvePayload(Notification $notification, User $notifiable): ?DiscordWebhookPayload
-    {
-        if (method_exists($notification, 'toDiscord')) {
-            return $notification->toDiscord($notifiable);
-        }
-
-        if (! method_exists($notification, 'toDatabase')) {
-            return null;
-        }
-
-        $data = $notification->toDatabase($notifiable);
-        if (! is_array($data)) {
-            return null;
-        }
-
-        /** @var array<string, mixed> $data */
-        return $this->derivePayload($data);
-    }
-
-    /**
-     * Auto-derive a minimal DiscordWebhookPayload from a notification's
-     * toDatabase() array. Reads the common keys (entity_name, action_url)
-     * shared across notification types (MEM093), degrading gracefully when
-     * keys are absent so heterogeneous shapes never crash delivery.
-     *
-     * @param  array<string, mixed>  $data
-     */
-    private function derivePayload(array $data): DiscordWebhookPayload
-    {
-        $lines = [];
-        $name = $data['entity_name'] ?? null;
-        if (is_string($name) && $name !== '') {
-            $lines[] = $name;
-        }
-
-        $actionUrl = $data['action_url'] ?? null;
-        if (is_string($actionUrl) && $actionUrl !== '') {
-            $lines[] = $actionUrl;
-        }
-
-        // Guarantee non-empty content (Discord rejects empty message bodies).
-        // No lang key here (lang keys are T04's job); a generic literal keeps
-        // the auto-derive path locale-agnostic and resilient to shapes that
-        // carry neither entity_name nor action_url.
-        if ($lines === []) {
-            $lines[] = 'Notification';
-        }
-
-        return new DiscordWebhookPayload(
-            content: implode("\n", $lines),
-        );
     }
 
     /**

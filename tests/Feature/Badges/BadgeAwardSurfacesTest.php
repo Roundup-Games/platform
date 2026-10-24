@@ -184,6 +184,24 @@ it('renders the display name and tier from the registry and badges lang files', 
         ->and($upgradeData['badge_name'])->toBe("{$name} ({$silver})");
 });
 
+it('renders the Discord DM as a named celebration, never a bare profile URL', function () {
+    // Incident 2026-10-24: without an explicit toDiscord(), the channel's
+    // auto-derive fell back to action_url only (this notification carries
+    // no entity_name) — four badges in one 06:30 sweep produced four
+    // identical link-only DMs from the official bot. The embed must carry
+    // the badge name; a bare-URL DM is a regression.
+    $award = new BadgeAwardedNotification('debut', null, BadgeSource::Automatic);
+    $payload = $award->toDiscord($this->user);
+
+    $embed = $payload->embeds[0] ?? null;
+    $name = trans('badges.content_badge_debut_name');
+
+    expect($embed)->not->toBeNull()
+        ->and($embed['description'])->toContain($name)
+        ->and($embed['title'])->toBe(__('notifications.subject_badge_awarded', ['badge' => $name]))
+        ->and($embed['url'])->toBe($award->toDatabase($this->user)['action_url']);
+});
+
 it('renders the award copy in the recipient locale', function () {
     app()->setLocale('de');
 

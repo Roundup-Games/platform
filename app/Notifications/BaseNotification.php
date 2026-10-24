@@ -52,11 +52,12 @@ abstract class BaseNotification extends Notification implements ShouldQueue
      * 30+ toPush() implementations reachable without each subclass repeating
      * the channel declaration.
      *
-     * Discord (D118) is unconditionally supported: its payload is auto-derived
-     * from toDatabase() (which every notification has), so every notification
-     * type gains a Discord surface gated only by the user's preference and
-     * linked-account presence at send time (DiscordChannel is a graceful no-op
-     * when unlinked). No per-class toDiscord() opt-in is required.
+     * Discord (D118) is unconditionally supported, but its payload is
+     * NEVER synthesized: every notification defines an explicit
+     * toDiscord() (payload = DM; null = deliberate opt-out, D130). A
+     * class missing toDiscord() is skipped with a warning at send time
+     * (D247) — the platform's DM voice must always be written, not
+     * derived. DiscordChannel is a graceful no-op when unlinked.
      *
      * @return array<int, string>
      */
