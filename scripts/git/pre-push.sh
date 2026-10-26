@@ -39,12 +39,28 @@ if [[ ! -x vendor/bin/pest ]]; then
 fi
 
 start=$(date +%s)
-if APP_DEBUG=true vendor/bin/pest --ci --parallel --compact; then
+suite_log="$(mktemp "${TMPDIR:-/tmp}/prepush-suite.XXXXXX")"
+
+# Push-transport hardening (2026-10-26 incident): git connects to the
+# remote BEFORE running this hook; a long suite leaves the ssh session
+# idle and github.com closes it ("Connection closed by remote host") —
+# the subsequent pack write EPIPEs and `git push` dies with exit 141
+# AFTER a green suite, every time. The companion fix is ssh keepalives
+# for github.com (ServerAliveInterval in ~/.ssh/config). Output is also
+# captured to a file with stdin detached so orphaned --parallel workers
+# can never touch git's pipes — belt and suspenders.
+if APP_DEBUG=true vendor/bin/pest --ci --parallel --compact \
+    > "$suite_log" 2>&1 < /dev/null; then
     end=$(date +%s)
+    grep -aE "Tests:|Duration" "$suite_log" | tail -2
     printf "\n${GRN}✅ Suite green (%d min) — pushing.${RST}\n\n" $(( (end - start) / 60 ))
+    rm -f "$suite_log"
     exit 0
 fi
 
 printf "\n${RED}⛔ Test suite failed — push blocked (CI's Tests job fails on this too).${RST}\n"
 printf "${RED}   Fix locally and push again, or bypass once with: git push --no-verify${RST}\n\n"
+printf "    Last 60 lines of the suite log (%s):\n\n" "$suite_log"
+tail -n 60 "$suite_log"
+rm -f "$suite_log"
 exit 1
