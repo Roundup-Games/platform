@@ -51,9 +51,11 @@ log "db dump ok: $(du -h "$DB_OUT" | cut -f1)"
 
 # --- Storage volume: plain tar (payload is already-compressed media; gzip
 # would burn CPU for single-digit % savings). Mounted read-only at
-# /mnt/app-storage.
+# /mnt/app-storage. Excluded as regenerable: ./media-library (Spatie temp —
+# grew to 1.1GB of stale conversion scratch before 2026-10-26 prune) and
+# ./framework (compiled views/caches, rebuilt on boot by 99-laravel-init).
 ST_OUT="/backups/storage/storage-$STAMP.tar"
-tar -C /mnt/app-storage -cf "$ST_OUT" .
+tar -C /mnt/app-storage -cf "$ST_OUT" --exclude='./media-library' --exclude='./framework' .
 log "storage tar ok: $(du -h "$ST_OUT" | cut -f1)"
 
 # --- Offsite copy: second medium (share on the array pools — set the share
