@@ -1,5 +1,9 @@
 services:
   app:
+    # CI (images.yml) pushes this image; deploys pull it
+    # (scripts/deploy/homelab.sh pins DEPLOY_TAG=sha-<commit>). The build
+    # block stays as an on-host fallback for `docker compose build`.
+    image: ghcr.io/roundup-games/platform:${DEPLOY_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -25,6 +29,7 @@ services:
       - roundup
 
   worker:
+    image: ghcr.io/roundup-games/platform-worker:${DEPLOY_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile

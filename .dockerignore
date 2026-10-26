@@ -46,3 +46,6 @@ docker/entrypoint.sh
 # causes a fatal "provider not found" on boot under --no-dev.
 bootstrap/cache/services.php
 bootstrap/cache/packages.php
+
+# Server-side deploy logs — runtime state, never bake into images.
+/deploy-logs

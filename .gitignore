@@ -89,3 +89,6 @@ lpt[1-9].*
 AGENTS.md
 .claude/skills/
 .agents/skills/
+
+# Homelab deploy logs (scripts/deploy/homelab.sh) — server-local runtime state.
+deploy-logs/

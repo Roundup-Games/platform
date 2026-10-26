@@ -1,0 +1,85 @@
+# Builds the production images in CI and pushes them to GHCR. Deploys are
+# then pure pulls on the homelab (scripts/deploy/homelab.sh) — no build CPU
+# on the unRAID box, no build-time network dependency on its flaky IPv6
+# path (2026-10-26 finding: registry.packagist.org dead over v6, fine over
+# v4; a gated 41-minute on-host build traced to download retries).
+#
+# Two images, one per compose service (same Dockerfile, different targets):
+#   ghcr.io/roundup-games/platform          (target: app)
+#   ghcr.io/roundup-games/platform-worker   (target: worker)
+#
+# Tags: sha-<short>  immutable, what deploys pin (rollback = pin older sha)
+#       main         rolling, for `docker compose pull` convenience
+#
+# The repo is public, so pulls are anonymous once the packages' visibility
+# is set to public (one-time, after first push).
+#
+# No cancel-in-progress, unlike ci.yml: a cancelled run would leave a
+# pushed commit without its sha- image, breaking a deploy that pins it.
+# Builds queue per-branch instead.
+name: Images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: images-${{ github.ref }}
+
+jobs:
+  build-push:
+    name: Build & push (amd64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags
+        id: tags
+        run: echo "short=sha-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push app image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: app
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/roundup-games/platform:${{ steps.tags.outputs.short }}
+            ghcr.io/roundup-games/platform:main
+          cache-from: type=gha,scope=roundup
+          cache-to: type=gha,scope=roundup,mode=max
+
+      - name: Build & push worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: worker
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/roundup-games/platform-worker:${{ steps.tags.outputs.short }}
+            ghcr.io/roundup-games/platform-worker:main
+          # Same builder instance, same scope: the app-stage layers built in
+          # the previous step are local cache hits; only worker layers run.
+          cache-from: type=gha,scope=roundup
+          cache-to: type=gha,scope=roundup,mode=max
+
+      - name: Deploy tag hint
+        run: |
+          echo "Deploy on the homelab with:"
+          echo "  bash scripts/deploy/homelab.sh   # pins ${{ steps.tags.outputs.short }} from the pushed HEAD"
