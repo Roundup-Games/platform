@@ -75,8 +75,35 @@ services:
       retries: 3
       start_period: 60s
 
+  # Nightly data-protection sidecar: pg_dump + app_storage tar + offsite
+  # copy + retention (docker/backup/backup.sh). Uses postgres:17-alpine so
+  # pg_dump's major matches the server. Restore runbook: header comment of
+  # backup.sh (rehearsed 2026-10-26). Heartbeat: set PHARE_CRON_PING_URL in
+  # .env.production to wire a Phare cron check (success-only ping).
+  backup:
+    image: postgres:17-alpine
+    container_name: roundup-games-backup
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      BACKUP_KEEP_COUNT: "8"
+    volumes:
+      - ./docker/backup/backup.sh:/usr/local/bin/roundup-backup:ro
+      - ./docker/backup/crontab:/etc/crontabs/root:ro
+      - backup_data:/backups
+      - app_storage:/mnt/app-storage:ro
+      # Second-medium copy target. Create the share once and set it to
+      # "Use cache: no" in unRAID so copies land on the array, not the NVMe
+      # the primary backups (and the app data) live on.
+      - /mnt/user/roundup-games-backups:/mnt/offsite
+    entrypoint: ["/bin/sh", "-c", "crond -f -l 2"]
+    networks:
+      - roundup
+
 volumes:
   app_storage:
+  backup_data:
 
 networks:
   roundup:

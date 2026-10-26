@@ -1,0 +1,4 @@
+# roundup-games-backup crontab (alpine busybox crond, container-local UTC).
+# 03:30 UTC daily — after the quiet hours, before the 06:30 badges sweep.
+# Logs land in /backups/backup.log (retained with the volume).
+30 3 * * * /usr/local/bin/roundup-backup >> /backups/backup.log 2>&1
