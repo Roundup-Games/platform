@@ -15,7 +15,6 @@ use App\Services\Charter\CharterService;
 use App\Services\ParticipantLifecycle;
 use App\Services\RecurrenceService;
 use App\Services\ReviewEligibilityService;
-use App\Services\Roster;
 use App\Services\ShareLinkJoinService;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
@@ -275,9 +274,6 @@ class CampaignDetail extends Component
         }
 
         app(ParticipantLifecycle::class)->depart($participant, $user);
-
-        // Promote from waitlist + warn host if below min_players
-        app(Roster::class)->onDeparture($this->campaign);
 
         // Refresh computed properties
         unset($this->isParticipant);

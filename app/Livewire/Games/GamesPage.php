@@ -286,9 +286,6 @@ class GamesPage extends Component
 
         app(ParticipantLifecycle::class)->depart($participant, $user);
 
-        // Promote from waitlist + warn host if below min_players
-        app(Roster::class)->onDeparture($game);
-
         session()->flash('success', __('games.flash_you_left_the_game'));
     }
 

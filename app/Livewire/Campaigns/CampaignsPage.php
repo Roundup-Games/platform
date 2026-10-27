@@ -272,9 +272,6 @@ class CampaignsPage extends Component
 
         app(ParticipantLifecycle::class)->depart($participant, $user);
 
-        // Promote from waitlist + warn host if below min_players
-        app(Roster::class)->onDeparture($campaign);
-
         session()->flash('success', __('campaigns.flash_you_left_the_campaign'));
     }
 

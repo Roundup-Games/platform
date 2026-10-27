@@ -38,20 +38,31 @@ use Illuminate\Support\Facades\Log;
  * initiated state transition across the participant lifecycle.
  *
  * Scope: the state transition plus its direct side-effects (attendance_status,
- * audit stamps, application cleanup, notifications, structured log). Caller
- * orchestration that varies by context — Roster::onDeparture cascades,
- * session flashes — stays with the callers.
+ * audit stamps, application cleanup, notifications, structured log) and the
+ * seat-freeing cascade — depart() and removeParticipant() invoke
+ * Roster::onDeparture after the transition persists (waitlist promotion +
+ * below-min warning), so callers must never hand-sequence their own cascade
+ * call. Only session flashes stay with the callers.
+ *
+ * Cascade rule (test-pinned): only transitions that free an occupied seat
+ * cascade. depart() and removeParticipant() free a seat → Roster::onDeparture.
+ * Entity cancellation is caller-sequenced (GamesPage/CampaignsPage invoke
+ * Roster::onCancellation after the entity status write). Seatless transitions
+ * — rejectApplication, cancelInvite, declineInvitation — occupy no seat
+ * (pending/invited rows are not on the roster) and deliberately do NOT
+ * cascade. WaitlistService keeps its own expiry/decline promotion handling
+ * internal.
  *
  * Owns the participant lifecycle transition families:
- *  - depart(): any → Rejected (self-leave + inline host-remove)
+ *  - depart(): any → Rejected (self-leave + inline host-remove) + cascade
  *  - promoteFromBench(): Benched → Approved (host-controlled, capacity-guarded)
  *  - removeFromBench(): Benched → Rejected (delegates to depart() for audit)
  *  - approveApplication(): Pending(Applicant) → Approved
- *  - rejectApplication(): Pending(Applicant) → ∅ (hard delete)
- *  - removeParticipant(): any non-owner → Removed (host soft-remove for audit)
- *  - cancelInvite(): Pending(Invited) → ∅ (host cancels pending invite)
+ *  - rejectApplication(): Pending(Applicant) → ∅ (hard delete, seatless)
+ *  - removeParticipant(): any non-owner → Removed (host soft-remove for audit) + cascade
+ *  - cancelInvite(): Pending(Invited) → ∅ (host cancels pending invite, seatless)
  *  - acceptInvitation(): Pending(Invited) → Approved (or overflow)
- *  - declineInvitation(): Pending(Invited) → Rejected
+ *  - declineInvitation(): Pending(Invited) → Rejected (seatless)
  */
 class ParticipantLifecycle
 {
@@ -59,6 +70,7 @@ class ParticipantLifecycle
         private readonly NotificationService $notificationService,
         private readonly OverflowRouter $overflowRouter,
         private readonly PostHogAnalytics $posthogAnalytics,
+        private readonly Roster $roster,
     ) {}
 
     /**
@@ -269,7 +281,17 @@ class ParticipantLifecycle
     }
 
     /**
-     * Transition a participant to Rejected and record the departure.
+     * Transition a participant to Rejected, record the departure, and run
+     * the departure cascade.
+     *
+     * After the transition persists, Roster::onDeparture refills the freed
+     * seat from the waitlist and warns the host if the roster dropped below
+     * min_players. The cascade lives here — call sites must NOT invoke
+     * Roster::onDeparture after depart() or the below-min warning fires
+     * twice per departure.
+     *
+     * Seatless callers (declineInvitation: a Pending(Invited) row occupies
+     * no seat) use applyDeparture() directly to skip the cascade.
      *
      * @param  Participant  $participant  The departing participant. Must be a
      *                                    persisted row; the previous status is captured for logging before
@@ -280,6 +302,26 @@ class ParticipantLifecycle
      *                              audit; pass the actor even on self-leave so the trail is complete.
      */
     public function depart(Participant $participant, ?User $remover = null): void
+    {
+        $this->applyDeparture($participant, $remover);
+
+        $entity = $participant->getEntity();
+
+        if ($entity instanceof Game || $entity instanceof Campaign) {
+            $this->roster->onDeparture($entity);
+        }
+    }
+
+    /**
+     * The departure write without the cascade: status → Rejected + audit
+     * stamps + attendance scoring + structured log.
+     *
+     * Internal seam shared by {@see depart()} (which appends the cascade)
+     * and the seatless departures — {@see declineInvitation()} — whose
+     * Pending(Invited) rows occupy no seat, so nothing is freed and the
+     * waitlist cascade must not fire.
+     */
+    private function applyDeparture(Participant $participant, ?User $remover = null): void
     {
         $entity = $participant->getEntity();
         $meta = $participant->getEntityMeta();
@@ -446,10 +488,13 @@ class ParticipantLifecycle
     /**
      * Remove a benched participant (sets status to Rejected).
      *
-     * Delegates to depart() for the actual transition + audit trail. Previously
-     * removeFromBench set status=Rejected without recording removed_by/removed_at;
-     * routing through depart() closes that audit gap the same way hop 2 closed
-     * it for the self-leave paths.
+     * Delegates to depart() for the actual transition + audit trail, so the
+     * departure cascade runs too — waitlist promotion is a no-op in bench
+     * mode (no waitlisted rows exist), but the below-min warning can fire
+     * if the approved roster is under min_players. Previously removeFromBench
+     * set status=Rejected without recording removed_by/removed_at; routing
+     * through depart() closes that audit gap the same way hop 2 closed it
+     * for the self-leave paths.
      *
      * The guard + departure run inside a locked transaction to prevent a
      * concurrent promoteFromBench from flipping the participant to Approved
@@ -701,6 +746,12 @@ class ParticipantLifecycle
             ]);
         }
 
+        // Seat-freeing cascade, same as depart(): the removed participant's
+        // seat is refilled from the waitlist and the host warned if the
+        // roster dropped below min_players. Fires here exactly once — call
+        // sites must not add their own Roster::onDeparture.
+        $this->roster->onDeparture($entity);
+
         return ParticipantResult::ok('common.flash_participant_removed');
     }
 
@@ -856,11 +907,13 @@ class ParticipantLifecycle
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
         }
 
-        // Route through depart() for audit stamps (removed_by/removed_at) —
-        // same unified transition path as self-leave, bench-remove, and
-        // waitlist-remove. depart() scores attendance only for Approved rows,
-        // so this is a clean Rejected for a Pending(Invited) participant.
-        $this->depart($participant, $user);
+        // Route through the departure write for audit stamps (removed_by /
+        // removed_at) — but WITHOUT the cascade: a Pending(Invited) row
+        // occupies no seat, so declining frees nothing (the same seatless
+        // rule as rejectApplication/cancelInvite). applyDeparture() scores
+        // attendance only for Approved rows, so this is a clean Rejected for
+        // a Pending(Invited) participant.
+        $this->applyDeparture($participant, $user);
 
         return ParticipantResult::ok('common.flash_invite_declined');
     }

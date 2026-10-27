@@ -21,7 +21,6 @@ use App\Services\DebriefingService;
 use App\Services\OverflowRouter;
 use App\Services\ParticipantLifecycle;
 use App\Services\ReviewEligibilityService;
-use App\Services\Roster;
 use App\Services\ShareLinkJoinService;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
@@ -407,33 +406,6 @@ class GameDetail extends Component
         }
     }
 
-    // ── Host-initiated removal (game-specific override) ──
-
-    public function removeParticipant(string $participantId): void
-    {
-        $this->authorize('update', $this->game);
-
-        $participant = $this->findParticipantOrFail($participantId);
-        $entity = $this->game;
-
-        $result = app(ParticipantLifecycle::class)->removeParticipant(
-            $participant,
-            $entity,
-            authenticatedUser(),
-        );
-
-        if (! $result->success && $result->errorKey) {
-            session()->flash('error', __($result->errorKey, $result->errorParams));
-
-            return;
-        }
-
-        // Promote from waitlist + warn host if below min_players
-        app(Roster::class)->onDeparture($entity);
-
-        session()->flash('success', __($result->messageKey, $result->messageParams));
-    }
-
     // ── Capacity adjustment (host affordance) ──────────
 
     /**
@@ -673,9 +645,6 @@ class GameDetail extends Component
         }
 
         app(ParticipantLifecycle::class)->depart($participant, $user);
-
-        // Promote from waitlist + warn host if below min_players
-        app(Roster::class)->onDeparture($this->game);
 
         // Refresh computed properties
         unset($this->isParticipant, $this->isApprovedParticipant, $this->isGameFull);
@@ -1022,7 +991,8 @@ class GameDetail extends Component
                     // A host-removed participant (Removed) cannot self-rejoin via
                     // the share link — host removal is a moderation action and
                     // the unique constraint is what historically enforced the
-                    // block (see removeParticipant() docblock). Without this the
+                    // block (see ParticipantLifecycle::removeParticipant()
+                    // docblock). Without this the
                     // reactivation path would silently flip Removed → Approved.
                     ParticipantStatus::Removed->value,
                 ]));

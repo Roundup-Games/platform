@@ -127,11 +127,6 @@ trait HandlesWaitlist
 
         app(ParticipantLifecycle::class)->depart($participant, $viewer);
 
-        $meta = EntityMeta::fromEntity($entity);
-
-        // Promote from waitlist + warn host if below min_players
-        app(Roster::class)->onDeparture($entity);
-
         session()->flash('success', __('common.flash_participant_removed'));
     }
 
