@@ -18,6 +18,7 @@ use App\Services\NotificationService;
 use App\Services\ParticipantLifecycle;
 use App\Services\Roster;
 use App\Traits\EditsVenueLocation;
+use App\Traits\HandlesInvitations;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -29,6 +30,7 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 class CampaignsPage extends Component
 {
     use EditsVenueLocation;
+    use HandlesInvitations;
     use WithPagination;
 
     /** Grows by 15 each time the user clicks "load more" on the community feed. */
@@ -380,46 +382,11 @@ class CampaignsPage extends Component
         session()->flash('success', __('campaigns.flash_campaign_completed'));
     }
 
-    public function acceptInvitation(string $participantId): void
+    // Invitation accept/decline actions provided by HandlesInvitations
+
+    /** @return class-string<CampaignParticipant> */
+    protected function invitationParticipantClass(): string
     {
-        $participant = CampaignParticipant::findOrFail($participantId);
-        $campaign = $participant->campaign;
-
-        if ($campaign === null) {
-            return;
-        }
-
-        $result = app(ParticipantLifecycle::class)->acceptInvitation(
-            $participant,
-            $campaign,
-            authenticatedUser(),
-        );
-
-        if ($result->success) {
-            session()->flash('success', __($result->messageKey, $result->messageParams));
-        } elseif ($result->errorKey) {
-            session()->flash('error', __($result->errorKey, $result->errorParams));
-        }
-    }
-
-    public function declineInvitation(string $participantId): void
-    {
-        $participant = CampaignParticipant::findOrFail($participantId);
-        $campaign = $participant->campaign;
-
-        if ($campaign === null) {
-            return;
-        }
-
-        $result = app(ParticipantLifecycle::class)->declineInvitation(
-            $participant,
-            authenticatedUser(),
-        );
-
-        if ($result->success) {
-            session()->flash('success', __($result->messageKey, $result->messageParams));
-        } elseif ($result->errorKey) {
-            session()->flash('error', __($result->errorKey, $result->errorParams));
-        }
+        return CampaignParticipant::class;
     }
 }
