@@ -363,6 +363,42 @@ class ParticipantLifecycleCreateOrReactivateTest extends TestCase
     }
 
     #[Test]
+    public function campaign_rejoin_after_a_declined_invitation_reactivates_the_rejected_row(): void
+    {
+        // Campaigns keep Rejected rows (a declined invitation routes through
+        // depart()), so a later user-initiated join must UPDATE that row — the
+        // direct CampaignParticipant::create the share-link campaign leg used
+        // before the join-intake re-route hit the unique (campaign_id, user_id)
+        // index instead.
+        [$owner, $campaign] = $this->campaignWithOwner();
+        $joiner = User::factory()->create();
+
+        $invited = app(ParticipantLifecycle::class)->createOrReactivate(
+            JoinIntent::invite($campaign, $joiner),
+        );
+        app(ParticipantLifecycle::class)->declineInvitation($invited, $joiner);
+
+        $this->assertSame(ParticipantStatus::Rejected, $invited->fresh()->status);
+        $this->assertNotNull($invited->fresh()->removed_at);
+
+        $rejoined = app(ParticipantLifecycle::class)->createOrReactivate(
+            new JoinIntent(
+                entity: $campaign,
+                user: $joiner,
+                joinSource: JoinSource::ShareLink,
+                userInitiated: true,
+            ),
+        );
+
+        $this->assertSame($invited->id, $rejoined->id, 'must reactivate the rejected row, not insert a duplicate');
+        $this->assertSame(ParticipantStatus::Approved, $rejoined->fresh()->status);
+        $this->assertSame(ParticipantRole::Player, $rejoined->fresh()->role);
+        $this->assertNull($rejoined->fresh()->removed_at, 'the decline audit trail must not leak onto the reactivated row');
+        $this->assertSame(JoinSource::ShareLink, $rejoined->fresh()->join_source);
+        $this->assertDatabaseCount('campaign_participants', 2); // owner + the one reactivated row
+    }
+
+    #[Test]
     public function application_to_a_protected_entity_creates_a_pending_applicant(): void
     {
         [$owner, $game] = $this->gameWithOwner();

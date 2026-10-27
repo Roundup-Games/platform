@@ -2,9 +2,8 @@
 
 namespace App\Livewire\Campaigns;
 
-use App\Dto\OverflowStatus;
+use App\Dto\JoinIntent;
 use App\Enums\NotificationCategory;
-use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
@@ -13,7 +12,7 @@ use App\Notifications\SessionAddedToCampaign;
 use App\Services\GmMembershipService;
 use App\Services\NotificationService;
 use App\Services\OwnerParticipantService;
-use App\Services\ParticipantService;
+use App\Services\ParticipantLifecycle;
 use App\Services\PreviouslyOnService;
 use App\Services\RecurrenceService;
 use Illuminate\Contracts\View\View;
@@ -158,35 +157,33 @@ class AddSessionToCampaign extends Component
                 $game->gameSystems()->sync(array_values(array_map('strval', $campaignSystemIds)));
             }
 
-            // Auto-invite approved campaign participants as invited to this session
+            // Auto-invite approved campaign participants to this session. Each
+            // row is a host-initiated invite through the join intake
+            // ({@see ParticipantLifecycle::createOrReactivate()}): the intake
+            // re-checks capacity per row (a prior invite may have filled the
+            // last slot), routes overflow to bench/waitlist by the session's
+            // bench_mode (copied from the campaign above), and emits the
+            // source-attributed participant.joined log. Host-initiated rows
+            // are signup-cutoff-exempt per D124 (a host extending invitations
+            // is not a new signup).
             $autoInvitedCount = 0;
             $benchedCount = 0;
             $approvedParticipants = $campaign->participants()
                 ->where('status', 'approved')
                 ->where('user_id', '!=', $ownerId)
+                ->with('user')
                 ->get();
 
-            foreach ($approvedParticipants as $campaignParticipant) {
-                // Re-check capacity each iteration (previous invite may have filled the last slot)
-                $isFull = app(ParticipantService::class)->isAtCapacity($game);
+            $participantLifecycle = app(ParticipantLifecycle::class);
 
-                if ($isFull) {
-                    // Route to bench or waitlist via OverflowStatus, reading
-                    // bench_mode from the parent campaign (already in scope).
-                    $overflow = OverflowStatus::for($campaign->isBenchMode());
-                    $game->participants()->create([
-                        'user_id' => $campaignParticipant->user_id,
-                        'role' => ParticipantRole::Player->value,
-                        'status' => $overflow->statusValue(),
-                        $overflow->timestampColumn => now(),
-                    ]);
+            foreach ($approvedParticipants as $campaignParticipant) {
+                $participant = $participantLifecycle->createOrReactivate(
+                    JoinIntent::invite($game, $campaignParticipant->user),
+                );
+
+                if (in_array($participant->getStatus(), [ParticipantStatus::Benched, ParticipantStatus::Waitlisted], true)) {
                     $benchedCount++;
                 } else {
-                    $game->participants()->create([
-                        'user_id' => $campaignParticipant->user_id,
-                        'role' => ParticipantRole::Invited->value,
-                        'status' => ParticipantStatus::Pending->value,
-                    ]);
                     $autoInvitedCount++;
                 }
             }
