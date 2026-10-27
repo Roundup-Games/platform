@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class ApplicationApproved extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game|Campaign  $entity  The Game or Campaign entity
      * @param  string  $entityType  'game' or 'campaign'

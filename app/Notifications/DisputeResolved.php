@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class DisputeResolved extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $game  The game the dispute was about
      * @param  string  $resolution  The dispute resolution: 'resolved_favor' or 'upheld'

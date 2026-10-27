@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class RecapPosted extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $game  The game the recap was written for
      * @param  User  $author  The host who wrote the recap

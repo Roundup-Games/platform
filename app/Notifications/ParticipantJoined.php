@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class ParticipantJoined extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  User  $participant  The user who joined
      * @param  Game|Campaign  $entity  The Game or Campaign entity

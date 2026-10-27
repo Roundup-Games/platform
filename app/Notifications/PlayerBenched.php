@@ -11,8 +11,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class PlayerBenched extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game|Campaign  $entity  The Campaign or campaign-session Game
      * @param  string  $entityType  'campaign' or 'game'

@@ -31,8 +31,6 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class BadgeAwardedNotification extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public string $badgeKey,
         public ?string $tier,

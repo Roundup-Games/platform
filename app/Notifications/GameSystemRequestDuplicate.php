@@ -11,8 +11,6 @@ use Illuminate\Support\Str;
 
 class GameSystemRequestDuplicate extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Ticket  $ticket  The Escalated ticket representing the duplicate game system request
      * @param  GameSystem  $existingSystem  The existing game system that matches

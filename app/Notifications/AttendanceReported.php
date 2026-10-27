@@ -11,8 +11,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class AttendanceReported extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $game  The game the attendance report is for
      * @param  AttendanceReport  $report  The attendance report that was filed

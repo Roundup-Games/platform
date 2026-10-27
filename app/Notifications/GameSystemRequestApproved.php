@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class GameSystemRequestApproved extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Ticket  $ticket  The Escalated ticket representing the game system request
      * @param  GameSystem  $gameSystem  The newly created game system

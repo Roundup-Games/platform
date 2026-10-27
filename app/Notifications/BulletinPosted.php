@@ -12,8 +12,6 @@ use Illuminate\Support\Str;
 
 class BulletinPosted extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $game  The game the bulletin was posted to
      * @param  User  $host  The host who posted the bulletin

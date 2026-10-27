@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class DebriefingAvailable extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $game  The game that was completed with debriefing tools
      */

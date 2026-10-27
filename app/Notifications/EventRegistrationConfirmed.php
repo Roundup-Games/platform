@@ -27,8 +27,6 @@ use LogicException;
  */
 class EventRegistrationConfirmed extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public EventRegistration $registration,
     ) {}

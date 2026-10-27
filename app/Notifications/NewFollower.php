@@ -9,8 +9,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class NewFollower extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public User $follower,
     ) {}

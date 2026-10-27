@@ -19,7 +19,7 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class PromotedFromBench extends BaseNotification
 {
-    use HasUnsubscribeLink, RoutesGameOrCampaign;
+    use RoutesGameOrCampaign;
 
     public function __construct(
         public Game|Campaign $entity,

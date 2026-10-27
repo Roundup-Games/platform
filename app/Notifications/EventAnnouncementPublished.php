@@ -43,8 +43,6 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class EventAnnouncementPublished extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public EventAnnouncement $announcement,
         public Event $event,

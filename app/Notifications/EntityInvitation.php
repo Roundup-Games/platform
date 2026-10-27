@@ -11,7 +11,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class EntityInvitation extends BaseNotification
 {
-    use HasUnsubscribeLink;
     use RoutesGameOrCampaign;
 
     /**

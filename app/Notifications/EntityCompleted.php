@@ -10,7 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class EntityCompleted extends BaseNotification
 {
-    use HasUnsubscribeLink;
     use RoutesGameOrCampaign;
 
     /**

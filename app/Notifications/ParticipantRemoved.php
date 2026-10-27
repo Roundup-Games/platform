@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class ParticipantRemoved extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  User  $removedUser  The user who was removed
      * @param  Game|Campaign  $entity  The Game or Campaign entity

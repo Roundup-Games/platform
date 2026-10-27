@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class AttendanceNudge extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $game  The game the nudge is about
      * @param  string  $deadline  Human-readable deadline time (e.g. "tomorrow at 6:00 PM")

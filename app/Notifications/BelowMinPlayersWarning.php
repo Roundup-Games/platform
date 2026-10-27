@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class BelowMinPlayersWarning extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public Game $game,
         public int $currentCount,

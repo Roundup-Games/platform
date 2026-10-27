@@ -11,7 +11,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class EntityCancelled extends BaseNotification
 {
-    use HasUnsubscribeLink;
     use RoutesGameOrCampaign;
 
     /**

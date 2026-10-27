@@ -26,8 +26,6 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class EventCancelled extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public Event $event,
     ) {}

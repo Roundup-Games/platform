@@ -34,8 +34,6 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class EventCoOrganizerAdded extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public Event $event,
         public User $actor,

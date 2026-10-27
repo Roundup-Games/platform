@@ -9,8 +9,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class TeamMemberRemoved extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Team  $team  The team the user was removed from
      * @param  User  $remover  The user who performed the removal

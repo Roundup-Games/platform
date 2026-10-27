@@ -9,8 +9,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class TeamInvitation extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Team  $team  The team the user is invited to
      * @param  User  $inviter  The user who sent the invitation

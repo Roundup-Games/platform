@@ -10,8 +10,6 @@ use Illuminate\Support\Str;
 
 class GameSystemRequestRejected extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Ticket  $ticket  The Escalated ticket representing the rejected game system request
      */

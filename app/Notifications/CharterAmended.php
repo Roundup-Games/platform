@@ -20,8 +20,6 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class CharterAmended extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Campaign  $campaign  The campaign the charter belongs to
      * @param  SessionZeroSurvey  $charter  The amended charter

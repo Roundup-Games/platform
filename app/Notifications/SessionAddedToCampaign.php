@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class SessionAddedToCampaign extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $session  The session (Game model) added to the campaign
      * @param  Campaign  $campaign  The parent campaign
