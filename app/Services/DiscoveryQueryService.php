@@ -295,9 +295,10 @@ class DiscoveryQueryService
      *    teammates on active teams, and existing participants.
      *  - Private: excluded from discovery entirely.
      *
+     * @param  \Closure(Builder<Game>):void|null  $exclude  Optional additive exclusion applied to the base query (e.g. recommendations' owner/participant/application exclusion)
      * @return Builder<Game>
      */
-    public function buildGamesQuery(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date): Builder
+    public function buildGamesQuery(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, ?\Closure $exclude = null): Builder
     {
         $query = Game::query()
             ->visibleTo($user)
@@ -305,6 +306,10 @@ class DiscoveryQueryService
             ->where('date_time', '>', now())
             ->with(['owner', 'gameSystems', 'campaign', 'linkedLocation'])
             ->withCount(['participants as participants_count' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)]);
+
+        if ($exclude !== null) {
+            $exclude($query);
+        }
 
         $query = $this->withOverflowCounts($query);
 
@@ -347,9 +352,10 @@ class DiscoveryQueryService
      * Visibility logic mirrors buildGamesQuery — protected campaigns are restricted
      * to the owner's connections (friends, teammates) and existing participants.
      *
+     * @param  \Closure(Builder<Campaign>):void|null  $exclude  Optional additive exclusion applied to the base query (e.g. recommendations' owner/participant/application exclusion)
      * @return Builder<Campaign>
      */
-    public function buildCampaignsQuery(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence): Builder
+    public function buildCampaignsQuery(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence, ?\Closure $exclude = null): Builder
     {
         $query = Campaign::query()
             ->visibleTo($user)
@@ -358,6 +364,10 @@ class DiscoveryQueryService
             ->with(['sessions' => fn ($q) => $q->where('status', 'scheduled')->where('date_time', '>', now())->orderBy('date_time')->limit(1)])
             ->withCount('sessions')
             ->withCount('participants');
+
+        if ($exclude !== null) {
+            $exclude($query);
+        }
 
         $query = $this->withOverflowCounts($query);
 
@@ -1049,7 +1059,7 @@ class DiscoveryQueryService
         }
 
         // Exclude user's own games/campaigns and ones they're already in or applied to
-        $excludeUser = function ($query) use ($user) {
+        $excludeUser = function (Builder $query) use ($user): void {
             $query->where('owner_id', '!=', $user->id)
                 ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
                 ->whereDoesntHave('applications', fn ($q) => $q->whereBelongsTo($user));
@@ -1062,50 +1072,34 @@ class DiscoveryQueryService
             return $items;
         };
 
+        // All four tier queries ride the shared builders instead of
+        // re-declaring the visibleTo/status/future preamble: neutral filters
+        // (no page filter state, no proximity, no date window) carry the base
+        // shape; match-tier constraints (allowed systems, vibe boost, owner
+        // exclusion) apply additively on top.
+        $neutralFilters = new DiscoveryFilters;
+        $vibeMatch = fn (Builder $q) => $q->where(function ($q) use ($favoriteVibes) {
+            foreach ($favoriteVibes as $vibe) {
+                $q->orWhereJsonContains('vibe_flags', $vibe);
+            }
+        });
+
         // Primary query: favorite systems AND favorite vibes (boosted)
         $boostedGames = collect();
         $boostedCampaigns = collect();
         if (! empty($favoriteVibes)) {
-            $boostedGames = Game::query()
-                ->visibleTo($user)
-                ->where('status', 'scheduled')
-                ->where('date_time', '>', now())
+            $boostedGames = $this->buildGamesQuery($neutralFilters, $user, 0.0, null, null, false, null, $excludeUser)
                 ->where($this->matchAllowedSystems($allowedSystemIds))
-                ->where(function ($q) use ($favoriteVibes) {
-                    foreach ($favoriteVibes as $vibe) {
-                        $q->orWhereJsonContains('vibe_flags', $vibe);
-                    }
-                })
-                ->where('owner_id', '!=', $user->id)
-                ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
-                ->with(['owner', 'gameSystems', 'campaign'])
-                ->withCount('participants');
-
-            $boostedGames = $this->withOverflowCounts($boostedGames)
-                ->orderBy('date_time')
+                ->where($vibeMatch)
                 ->limit(intdiv(self::RECOMMENDATION_RAIL_SIZE, 2))
                 ->get();
             $tagItems($boostedGames, 'game');
 
             // Only include campaign recommendations when not scoped to a specific type
             if ($systemType === null) {
-                $boostedCampaigns = Campaign::query()
-                    ->visibleTo($user)
-                    ->where('status', 'active')
+                $boostedCampaigns = $this->buildCampaignsQuery($neutralFilters, $user, 0.0, null, null, false, null, $excludeUser)
                     ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds))
-                    ->where(function ($q) use ($favoriteVibes) {
-                        foreach ($favoriteVibes as $vibe) {
-                            $q->orWhereJsonContains('vibe_flags', $vibe);
-                        }
-                    })
-                    ->where('owner_id', '!=', $user->id)
-                    ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
-                    ->with(['owner', 'gameSystems'])
-                    ->withCount('sessions')
-                    ->withCount('participants');
-
-                $boostedCampaigns = $this->withOverflowCounts($boostedCampaigns)
-                    ->orderBy('created_at', 'desc')
+                    ->where($vibeMatch)
                     ->limit(intdiv(self::RECOMMENDATION_RAIL_SIZE, 2))
                     ->get();
                 $tagItems($boostedCampaigns, 'campaign');
@@ -1114,36 +1108,16 @@ class DiscoveryQueryService
         }
 
         // Fallback: favorite systems regardless of vibes
-        $fallbackGames = Game::query()
-            ->visibleTo($user)
-            ->where('status', 'scheduled')
-            ->where('date_time', '>', now())
+        $fallbackGames = $this->buildGamesQuery($neutralFilters, $user, 0.0, null, null, false, null, $excludeUser)
             ->where($this->matchAllowedSystems($allowedSystemIds))
-            ->where('owner_id', '!=', $user->id)
-            ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
-            ->with(['owner', 'gameSystems', 'campaign'])
-            ->withCount('participants');
-
-        $fallbackGames = $this->withOverflowCounts($fallbackGames)
-            ->orderBy('date_time')
             ->limit(self::RECOMMENDATION_RAIL_SIZE)
             ->get();
         $tagItems($fallbackGames, 'game');
 
         $fallbackCampaigns = collect();
         if ($systemType === null) {
-            $fallbackCampaigns = Campaign::query()
-                ->visibleTo($user)
-                ->where('status', 'active')
+            $fallbackCampaigns = $this->buildCampaignsQuery($neutralFilters, $user, 0.0, null, null, false, null, $excludeUser)
                 ->whereHas('gameSystems', fn ($q) => $q->whereIn('game_systems.id', $allowedSystemIds))
-                ->where('owner_id', '!=', $user->id)
-                ->whereDoesntHave('participants', fn ($q) => $q->whereBelongsTo($user))
-                ->with(['owner', 'gameSystems'])
-                ->withCount('sessions')
-                ->withCount('participants');
-
-            $fallbackCampaigns = $this->withOverflowCounts($fallbackCampaigns)
-                ->orderBy('created_at', 'desc')
                 ->limit(self::RECOMMENDATION_RAIL_SIZE)
                 ->get();
             $tagItems($fallbackCampaigns, 'campaign');
