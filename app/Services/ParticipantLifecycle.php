@@ -4,13 +4,17 @@ namespace App\Services;
 
 use App\Contracts\Participant;
 use App\Dto\EntityMeta;
+use App\Dto\JoinIntent;
 use App\Dto\ParticipantResult;
 use App\Enums\AttendanceStatus;
 use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Enums\Visibility;
+use App\Exceptions\SignupCutoffReached;
 use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\SuppressedInviteEmail;
@@ -60,15 +64,28 @@ class ParticipantLifecycle
     /**
      * Create a participant OR reactivate an existing departed row.
      *
+     * The join-intake seam (M072/S01). Two entry shapes:
+     *
+     *  - A typed {@see JoinIntent}: the full intake runs — signup cutoff guard
+     *    (every user-initiated join; host-initiated invites and owner rows are
+     *    exempt per D124), capacity check, overflow routing via
+     *    {@see OverflowRouter} (no per-site OverflowStatus::for/determineStatus
+     *    decisions), approved_at stamping where the participant model has the
+     *    column, reactivation reset base, audit-safe row write keyed on user or
+     *    invitee email, and the source-attributed participant.joined log.
+     *    Game and Campaign dispatch through EntityMeta — one seam, no
+     *    instanceof branches.
+     *
+     *  - A legacy attributes array (web share-link / Discord writers until they
+     *    re-route): unchanged reactivation-aware write for games only. The
+     *    caller keeps responsibility for guards and overflow resolution on
+     *    this shape.
+     *
      * The symmetrical counterpart to {@see depart()}: depart() sets status to
      * Rejected but keeps the row (audit/attendance); a later rejoin must UPDATE
      * that row back to active rather than INSERT a duplicate, which would
      * violate the unique (game_id, user_id) constraint. updateOrCreate makes
      * this race-safe for double-clicks.
-     *
-     * The single source of truth for every user-initiated join (web share-link,
-     * Discord button, application approval). Overflow/bench/waitlist creations
-     * are always new rows behind a capacity check, so they don't route here.
      *
      * Reactivation resets the departure / overflow / attendance fields so a
      * rejoin after a self-leave starts clean: a participant who departed near
@@ -76,21 +93,144 @@ class ParticipantLifecycle
      * and removed_at/removed_by, and those MUST NOT persist onto the
      * reactivated row (they would double-count against the reliability score
      * for a departure the user reversed, and leave a stale "removed" audit
-     * trail on an active participant). Callers' explicit attributes override
+     * trail on an active participant). Caller-supplied attributes override
      * the reset base.
      *
-     * @param  array<string, mixed>  $attributes  Full participant data:
-     *                                            game_id, user_id, role, status, join_source, approved_at, etc.
+     * @param  JoinIntent|array<string, mixed>  $intent  Typed join intent, or
+     *                                                   the legacy full participant-data array
+     *                                                   (game_id, user_id, role, status, join_source, ...).
+     * @return ($intent is JoinIntent ? Participant : GameParticipant)
+     *
+     * @throws SignupCutoffReached When a user-initiated intent targets a game whose cutoff passed
      */
-    public function createOrReactivate(array $attributes): GameParticipant
+    public function createOrReactivate(JoinIntent|array $intent): Participant
     {
+        if ($intent instanceof JoinIntent) {
+            return $this->joinViaIntent($intent);
+        }
+
         return GameParticipant::updateOrCreate(
             [
-                'game_id' => $attributes['game_id'],
-                'user_id' => $attributes['user_id'],
+                'game_id' => $intent['game_id'],
+                'user_id' => $intent['user_id'],
             ],
-            array_merge($this->reactivationResetBase(), $attributes),
+            array_merge($this->reactivationResetBase(), $intent),
         );
+    }
+
+    /**
+     * The typed join intake: guards → status resolution → row write → log.
+     *
+     * Status/role resolution per intent semantics (mirrors today's per-path
+     * behavior exactly, now in one place):
+     *  - user-initiated application to a protected entity → Pending(Applicant)
+     *    for host review (capacity is irrelevant on this path, matching
+     *    HandlesApplicationSubmission);
+     *  - entity at capacity → Player + the overflow status/timestamp from
+     *    OverflowRouter::resolve() (bench-mode → Benched, else Waitlisted),
+     *    for user joins and host fan-out invites alike;
+     *  - host-initiated invite with room → Pending(Invited) awaiting
+     *    acceptance (campaign fan-out parity);
+     *  - otherwise (user join / public apply with room) → Approved(Player)
+     *    with approved_at stamped per isFillable (GameParticipant only —
+     *    CampaignParticipant has no such column).
+     *
+     * Locking stays with the caller: race-sensitive paths hold the entity
+     * lock around this call (isAtCapacity() re-reads post-lock state inside
+     * such transactions).
+     */
+    private function joinViaIntent(JoinIntent $intent): Participant
+    {
+        $entity = $intent->entity;
+        $meta = EntityMeta::fromEntity($entity);
+
+        // Signup cutoff (D124, extended to every user-initiated join). Games
+        // only — campaigns have no cutoff column. Host-initiated invites are
+        // exempt ("gates NEW signups"), and owner rows never route here
+        // (OwnerParticipantService owns them). Waitlist auto-promotion never
+        // routes through the intake at all (a promotion is not a new signup).
+        if ($intent->userInitiated && $entity instanceof Game && $entity->signupHasClosed()) {
+            Log::info('participant.join_refused', [
+                'entity_type' => $meta->type,
+                $meta->foreignKey => $entity->id,
+                'user_id' => $intent->user?->id,
+                'reason' => 'signup_closed',
+                'join_source' => $intent->joinSource?->value,
+            ]);
+
+            throw new SignupCutoffReached($entity);
+        }
+
+        $isPublic = $entity->visibility === Visibility::Public;
+        $isFull = $entity->isAtCapacity();
+
+        if ($intent->application && $intent->userInitiated && ! $isPublic) {
+            $role = ParticipantRole::Applicant;
+            $status = ParticipantStatus::Pending;
+            $extra = [];
+        } elseif ($isFull) {
+            $overflow = $this->overflowRouter->resolve($entity);
+            $role = ParticipantRole::Player;
+            $status = $overflow->status;
+            $extra = [$overflow->timestampColumn => now()];
+        } elseif (! $intent->userInitiated) {
+            $role = ParticipantRole::Invited;
+            $status = ParticipantStatus::Pending;
+            $extra = [];
+        } else {
+            $role = ParticipantRole::Player;
+            $status = ParticipantStatus::Approved;
+            $extra = [];
+            // approved_at exists only on GameParticipant — CampaignParticipant
+            // has no such column, so stamp per the model's fillable set rather
+            // than mass-assigning blindly (strict model mode would discard it
+            // silently otherwise).
+            if ((new $meta->participantClass)->isFillable('approved_at')) {
+                $extra['approved_at'] = now();
+            }
+        }
+
+        // Null values are omitted (not written): an absent join_source/short
+        // link keeps any existing value on a reactivated row instead of
+        // nulling it.
+        $attributes = array_filter([
+            $meta->foreignKey => $entity->getKey(),
+            'user_id' => $intent->user?->id,
+            'invitee_email' => $intent->inviteeEmail,
+            'role' => $role->value,
+            'join_source' => $intent->joinSource?->value,
+            'short_link_id' => $intent->shortLinkId,
+        ], static fn ($value): bool => $value !== null);
+
+        $attributes['status'] = $status->value;
+        $attributes = array_merge($attributes, $extra);
+
+        // Email-only invitees key on invitee_email — keying on a null user_id
+        // would match every email invitee row for the entity and clobber them.
+        $matchOn = $intent->user !== null
+            ? [$meta->foreignKey => $entity->getKey(), 'user_id' => $intent->user->id]
+            : [$meta->foreignKey => $entity->getKey(), 'invitee_email' => $intent->inviteeEmail];
+
+        /** @var GameParticipant|CampaignParticipant $participant */
+        $participant = $meta->participantClass::updateOrCreate(
+            $matchOn,
+            array_merge($this->reactivationResetBase($meta->participantClass), $attributes),
+        );
+
+        Log::info('participant.joined', [
+            'entity_type' => $meta->type,
+            $meta->foreignKey => $entity->id,
+            'user_id' => $intent->user?->id,
+            'invitee_email_hash' => $intent->inviteeEmail !== null
+                ? SuppressedInviteEmail::hashEmail($intent->inviteeEmail)
+                : null,
+            'status' => $status->value,
+            'join_source' => $intent->joinSource?->value,
+            'user_initiated' => $intent->userInitiated,
+            'short_link_id' => $intent->shortLinkId,
+        ]);
+
+        return $participant;
     }
 
     /**
@@ -102,11 +242,16 @@ class ParticipantLifecycle
      * reactivated row would either mis-score reliability (attendance_status) or
      * corrupt the audit trail (removed_at/removed_by) of an active participant.
      *
+     * Filtered to the participant class's fillable set: the attendance columns
+     * exist only on GameParticipant, so strict model mode would reject the
+     * campaign reset base as silently-discarded mass assignment.
+     *
+     * @param  class-string<GameParticipant|CampaignParticipant>  $participantClass
      * @return array<string, mixed>
      */
-    private function reactivationResetBase(): array
+    private function reactivationResetBase(string $participantClass = GameParticipant::class): array
     {
-        return [
+        $base = [
             'removed_at' => null,
             'removed_by' => null,
             'attendance_status' => null,
@@ -119,6 +264,8 @@ class ParticipantLifecycle
             'confirmation_expires_at' => null,
             'confirmation_attempts' => 0,
         ];
+
+        return array_intersect_key($base, array_flip((new $participantClass)->getFillable()));
     }
 
     /**
