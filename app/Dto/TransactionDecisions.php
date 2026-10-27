@@ -2,6 +2,9 @@
 
 namespace App\Dto;
 
+use App\Enums\ParticipantStatus;
+use App\Services\ParticipantLifecycle;
+
 /**
  * Mutable carrier for decisions made inside a DB::transaction() closure.
  *
@@ -16,12 +19,14 @@ class TransactionDecisions
     public bool $isFull = false;
 
     /**
-     * The resolved overflow disposition (bench vs waitlist) for a full entity.
-     * Null when the entity is not at capacity or the applicant is non-public
-     * (no overflow routing needed). Set inside the transaction so post-tx
-     * notification/analytics code reads the authoritative decision.
+     * The participant status the join intake resolved for this application:
+     * Pending (Applicant) on protected entities, Approved when a public
+     * entity has room, Benched/Waitlisted overflow when it is full.
      *
-     * @see OverflowStatus::for()
+     * Set inside the transaction from the participant row
+     * {@see ParticipantLifecycle::createOrReactivate()} wrote,
+     * so post-transaction flash, notification, and analytics code reads the
+     * authoritative outcome instead of re-deriving the overflow decision.
      */
-    public ?OverflowStatus $overflow = null;
+    public ?ParticipantStatus $participantStatus = null;
 }

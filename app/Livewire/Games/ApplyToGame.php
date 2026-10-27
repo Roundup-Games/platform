@@ -4,8 +4,6 @@ namespace App\Livewire\Games;
 
 use App\Enums\Visibility;
 use App\Models\Game;
-use App\Models\GameApplication;
-use App\Models\GameParticipant;
 use App\Traits\HandlesApplicationSubmission;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -64,10 +62,6 @@ class ApplyToGame extends Component
     protected function getApplicationConfig(): array
     {
         return [
-            'foreign_key' => 'game_id',
-            'application_class' => GameApplication::class,
-            'participant_class' => GameParticipant::class,
-            'entity_class' => Game::class,
             'show_route' => 'games.show',
             'entity_type' => 'game',
             'log_key' => 'game_id',

@@ -2,12 +2,12 @@
 
 namespace App\Traits;
 
-use App\Dto\OverflowStatus;
+use App\Dto\JoinIntent;
 use App\Dto\TransactionDecisions;
-use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
-use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
+use App\Exceptions\SignupCutoffReached;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
@@ -15,7 +15,7 @@ use App\Notifications\NewApplication;
 use App\Notifications\PlayerBenched;
 use App\Notifications\WaitlistPlaced;
 use App\Services\NotificationService;
-use App\Services\ParticipantService;
+use App\Services\ParticipantLifecycle;
 use App\Services\PostHogAnalytics;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
@@ -28,6 +28,14 @@ use Illuminate\Support\Facades\Log;
  * Each component keeps its own mount(), render(), and entity property ($game / $campaign).
  * The trait provides submitApplication() with all transaction handling, notification
  * dispatch, and flash messaging. Entity-specific details come from two abstract methods.
+ *
+ * The participant write routes through the join-intake seam —
+ * {@see ParticipantLifecycle::createOrReactivate()} with a
+ * {@see JoinIntent::application()} intent. Overflow routing (bench vs waitlist),
+ * approved_at stamping, the Player/Applicant role decision, and the Application
+ * join-source attribution all resolve behind that single interface; this trait
+ * reads the outcome back from the resolved participant status instead of
+ * duplicating those decisions inline.
  */
 trait HandlesApplicationSubmission
 {
@@ -40,10 +48,6 @@ trait HandlesApplicationSubmission
      * Entity-specific configuration and translation keys.
      *
      * @return array{
-     *   foreign_key: string,
-     *   application_class: class-string,
-     *   participant_class: class-string,
-     *   entity_class: class-string,
      *   show_route: string,
      *   entity_type: string,
      *   log_key: string,
@@ -77,12 +81,12 @@ trait HandlesApplicationSubmission
         }
 
         // Signup cutoff (Game only — decision D124). A past organizer-set cutoff
-        // blocks NEW signups at all three participant-write entry points. Checked
-        // here on the web-apply path before the heavy transaction, mirroring the
-        // status guard above. Campaigns have no cutoff column, so the instanceof
-        // Game guard skips them. Waitlist auto-promotion is intentionally NOT
-        // gated — a promotion is not a new signup (it flows through
-        // CapacityService::increase, not this path).
+        // blocks NEW signups. Checked here on the web-apply path before the heavy
+        // transaction, mirroring the status guard above; the join intake
+        // re-enforces the same gate as a race backstop. Campaigns have no cutoff
+        // column, so the instanceof Game guard skips them. Waitlist
+        // auto-promotion is intentionally NOT gated — a promotion is not a new
+        // signup (it flows through CapacityService::increase, not this path).
         if ($entity instanceof Game && $entity->signupHasClosed()) {
             session()->flash('error', __('games.error_signup_closed'));
             $this->redirect(route($config['show_route'], $entity), navigate: true);
@@ -97,12 +101,8 @@ trait HandlesApplicationSubmission
             return;
         }
 
-        $entityId = $entity->id;
         $userId = Auth::id();
         $message = $this->message;
-        $foreignKey = $config['foreign_key'];
-        $applicationClass = $config['application_class'];
-        $participantClass = $config['participant_class'];
 
         $this->validate();
 
@@ -110,99 +110,84 @@ trait HandlesApplicationSubmission
         $txDecisions = new TransactionDecisions;
 
         try {
-            DB::transaction(function () use ($entityId, $userId, $message, $foreignKey, $applicationClass, $participantClass, $config, $txDecisions) {
+            DB::transaction(function () use ($entity, $userId, $message, $config, $txDecisions) {
                 // Pessimistic lock on existing participant/application rows for this entity+user
-                $participantClass::lockForUpdate()
-                    ->where($foreignKey, $entityId)
-                    ->where('user_id', $userId)
-                    ->exists();
+                $entity->participants()->lockForUpdate()->where('user_id', $userId)->exists();
 
-                $applicationClass::lockForUpdate()
-                    ->where($foreignKey, $entityId)
-                    ->where('user_id', $userId)
-                    ->exists();
+                $entity->applications()->lockForUpdate()->where('user_id', $userId)->exists();
 
                 // Double-check no existing participant record
-                if ($participantClass::where($foreignKey, $entityId)->where('user_id', $userId)->exists()) {
+                if ($entity->participants()->where('user_id', $userId)->exists()) {
                     throw new \RuntimeException(__($config['translations']['already_participant']));
                 }
 
                 // Double-check no active application (pending or approved).
                 // Rejected applications from old removal flow are cleaned up,
                 // but guard against stale data just in case.
-                if ($applicationClass::where($foreignKey, $entityId)
-                    ->where('user_id', $userId)
+                if ($entity->applications()->where('user_id', $userId)
                     ->whereIn('status', ['pending', 'approved'])
                     ->exists()
                 ) {
                     throw new \RuntimeException(__($config['translations']['already_applied']));
                 }
 
+                // Fresh re-read inside the transaction: the visibility and
+                // capacity decisions use post-lock state, not the mount()-time
+                // snapshot (the entity may have been deleted concurrently —
+                // surfaced here instead of failing later on a null relation).
+                $freshEntity = $entity->fresh();
+                if ($freshEntity === null) {
+                    throw new \RuntimeException(__('common.error_entity_no_longer_available'));
+                }
+
                 // For public entities, auto-approve; for protected, require approval
-                $entityClass = $config['entity_class'];
-                $freshEntity = $entityClass::find($entityId);
                 $isPublic = $freshEntity->visibility === Visibility::Public;
 
-                // Check if entity is full (includes owner in count via ParticipantService)
-                $isFull = app(ParticipantService::class)->isAtCapacity($freshEntity);
+                // Check if entity is full — the same canonical HasCapacity check
+                // the join intake runs; captured here for post-transaction
+                // logging and analytics only.
+                $isFull = $freshEntity->isAtCapacity();
 
                 // Store for post-transaction flash message and logging
                 $txDecisions->isPublic = $isPublic;
                 $txDecisions->isFull = $isFull;
-                // Route the overflow decision (bench vs waitlist) through the
-                // single source of truth — OverflowStatus::for() — rather than
-                // reimplementing the bench-mode branch inline. Null when the
-                // entity is not full (no overflow needed).
-                if ($isPublic && $isFull) {
-                    $txDecisions->overflow = OverflowStatus::for($freshEntity->isBenchMode());
-                }
-
-                // Determine participant status
-                $participantStatus = 'pending';
-                $participantRole = ParticipantRole::Applicant->value;
-                $benchedAt = null;
-                $waitlistedAt = null;
-
-                if ($isPublic) {
-                    if ($txDecisions->overflow !== null) {
-                        $participantStatus = $txDecisions->overflow->statusValue();
-                        $participantRole = ParticipantRole::Player->value;
-                        $benchedAt = $txDecisions->overflow->isBench() ? now() : null;
-                        $waitlistedAt = $txDecisions->overflow->isWaitlist() ? now() : null;
-                    } else {
-                        $participantStatus = 'approved';
-                        $participantRole = ParticipantRole::Player->value;
-                    }
-                }
 
                 // Create application record
                 // Game: always 'pending'. Campaign: 'approved' for public, 'pending' for protected.
-                $applicationClass::create([
-                    $foreignKey => $entityId,
+                $freshEntity->applications()->create([
                     'user_id' => $userId,
                     'status' => $isPublic ? $config['application_status_public'] : 'pending',
                     'message' => $message ?: null,
                 ]);
 
-                // Create participant record
-                $participantClass::create([
-                    $foreignKey => $entityId,
-                    'user_id' => $userId,
-                    'role' => $participantRole,
-                    'status' => $participantStatus,
-                    'benched_at' => $benchedAt,
-                    'waitlisted_at' => $waitlistedAt,
-                    'join_source' => JoinSource::Application,
-                ]);
+                // Create/reactivate the participant through the join intake.
+                // The intent carries the apply semantics; ParticipantLifecycle
+                // resolves the role (Player/Applicant), status (Approved,
+                // Pending, Benched/Waitlisted overflow), the overflow
+                // timestamps, approved_at stamping, and Application source
+                // attribution. The resolved status is the authoritative
+                // outcome for the post-transaction UX below.
+                $participant = app(ParticipantLifecycle::class)->createOrReactivate(
+                    JoinIntent::application($freshEntity, authenticatedUser()),
+                );
+                $txDecisions->participantStatus = $participant->getStatus();
             });
         } catch (QueryException $e) {
             // Unique constraint violation — concurrent duplicate
             Log::warning(ucfirst($config['entity_type']).' application race caught by unique constraint', [
-                $config['log_key'] => $entityId,
+                $config['log_key'] => $entity->id,
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
             ]);
             session()->flash('info', __($config['translations']['race_applied']));
+            $this->redirect(route($config['show_route'], $entity), navigate: true);
+
+            return;
+        } catch (SignupCutoffReached) {
+            // The join intake's backstop for the razor-thin race where the
+            // organizer cutoff lands between the pre-transaction guard above
+            // and the participant write. Same UX as the pre-guard.
+            session()->flash('error', __('games.error_signup_closed'));
             $this->redirect(route($config['show_route'], $entity), navigate: true);
 
             return;
@@ -215,24 +200,29 @@ trait HandlesApplicationSubmission
         // Post-transaction: use the authoritative values from inside the transaction
         $isPublic = $txDecisions->isPublic;
         $isFull = $txDecisions->isFull;
+        $participantStatus = $txDecisions->participantStatus;
+        assert($participantStatus instanceof ParticipantStatus, 'The join intake must resolve a participant status.');
+
+        $benched = $participantStatus === ParticipantStatus::Benched;
+        $waitlisted = $participantStatus === ParticipantStatus::Waitlisted;
 
         Log::info(ucfirst($config['entity_type']).' application submitted', [
             $config['log_key'] => $entity->id,
             'user_id' => Auth::id(),
             'auto_approved' => $isPublic && ! $isFull,
-            'benched' => $txDecisions->overflow?->isBench() ?? false,
-            'waitlisted' => $txDecisions->overflow?->isWaitlist() ?? false,
+            'benched' => $benched,
+            'waitlisted' => $waitlisted,
         ]);
 
         // Matching-quality funnel: capture the application outcome. This is the
         // top of the funnel — intent — which the approve/reject events below
         // close out. Knowing the split between auto-approved (public) and
         // host-gated (protected) is essential for acceptance-rate analysis.
-        $outcome = match (true) {
-            ! $isPublic => 'pending',
-            ! $isFull => 'approved',
-            $txDecisions->overflow?->isBench() => 'benched',
-            default => 'waitlisted',
+        $outcome = match ($participantStatus) {
+            ParticipantStatus::Pending => 'pending',
+            ParticipantStatus::Benched => 'benched',
+            ParticipantStatus::Waitlisted => 'waitlisted',
+            default => 'approved',
         };
         app(PostHogAnalytics::class)->capture(
             authenticatedUser(),
@@ -266,7 +256,7 @@ trait HandlesApplicationSubmission
             }
         }
 
-        if ($txDecisions->overflow?->isBench()) {
+        if ($benched) {
             session()->flash('success', __($config['translations']['bench_success']));
 
             // Notify the applicant they were placed on the bench (host-curated
@@ -288,7 +278,7 @@ trait HandlesApplicationSubmission
                     'error' => $e->getMessage(),
                 ]);
             }
-        } elseif ($txDecisions->overflow?->isWaitlist()) {
+        } elseif ($waitlisted) {
             session()->flash('success', __($config['translations']['waitlist_success']));
 
             // Notify the applicant they were placed on the waitlist (FIFO
@@ -305,7 +295,7 @@ trait HandlesApplicationSubmission
                     );
                 }
             } catch (\Throwable $e) {
-                Log::error('notification.waitlist_placed_dispatch_failed', [
+                Log::error('notification.waitlist_placement_dispatch_failed', [
                     $config['log_key'] => $entity->id,
                     'applicant_id' => Auth::id(),
                     'error' => $e->getMessage(),
