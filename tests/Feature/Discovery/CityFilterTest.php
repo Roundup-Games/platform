@@ -4,6 +4,7 @@ namespace Tests\Feature\Discovery;
 
 use App\Livewire\Discovery\AdventuresDiscovery;
 use App\Livewire\Discovery\BoardGamesDiscovery;
+use App\Livewire\Discovery\DiscoveryPage;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -249,6 +250,22 @@ describe('CityFilter Livewire lifecycle', function () {
         $component = Livewire::test(AdventuresDiscovery::class);
         expect($component->instance()->hasActiveFilters())->toBeFalse();
 
+        $component->set('city', 'koeln');
+        expect($component->instance()->hasActiveFilters())->toBeTrue();
+
+        $component->instance()->clearFilters();
+        expect($component->instance()->city)->toBeNull()
+            ->and($component->instance()->hasActiveFilters())->toBeFalse();
+    });
+
+    it('marks the discovery page filter active and clears city (M072 drift fix)', function () {
+        cityFilterQualifyingKoeln();
+
+        $component = Livewire::test(DiscoveryPage::class);
+        expect($component->instance()->hasActiveFilters())->toBeFalse();
+
+        // City-only filter: previously invisible to hasActiveFilters() and
+        // clearFilters() on this page (the shipped drift this fixes).
         $component->set('city', 'koeln');
         expect($component->instance()->hasActiveFilters())->toBeTrue();
 

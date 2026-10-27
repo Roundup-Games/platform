@@ -7,6 +7,7 @@ use App\Dto\DiscoveryFilters;
 use App\Dto\ProximityResult;
 use App\Enums\GameType;
 use App\Enums\ParticipantStatus;
+use App\Enums\PlayStyle;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -25,6 +26,12 @@ use Illuminate\Support\Facades\Log;
  * Service encapsulating all discovery query logic previously spread across
  * the DiscoveryUtilities trait and duplicated on DiscoveryPage.
  *
+ * The page-facing surface (M072 S03) is per-mode entry points: results()
+ * executes a mode's feed (merge, gathering cap, distance enrichment,
+ * paginator construction all owned here) and curated() folds the curated
+ * filter lists; the builders remain public for recommendation/landing
+ * consumers. Everything else is private.
+ *
  * All methods accept explicit parameters instead of reading from $this-> properties,
  * making the service fully testable and container-injectable.
  */
@@ -35,6 +42,17 @@ class DiscoveryQueryService
 
     /** Available radius options in km */
     public const RADIUS_OPTIONS = [10, 25, 50];
+
+    /** Feed modes accepted by {@see results()} and {@see curated()}. */
+    public const MODE_ALL = 'all';
+
+    public const MODE_GAMES = 'games';
+
+    public const MODE_CAMPAIGNS = 'campaigns';
+
+    public const MODE_ADVENTURES = 'adventures';
+
+    public const MODE_BOARD_GAMES = 'boardgames';
 
     /** Fallback radius when primary radius returns empty */
     public const FALLBACK_RADIUS = 100;
@@ -87,7 +105,7 @@ class DiscoveryQueryService
      * @param  string  $priceColumn  Column name for price filtering ('price' for games, 'price_per_session' for campaigns)
      * @param  DiscoveryFilters  $filters  Typed filter DTO — all entity IDs are UUID strings
      */
-    public function applySharedFilters(Builder $query, string $priceColumn, DiscoveryFilters $filters): void
+    private function applySharedFilters(Builder $query, string $priceColumn, DiscoveryFilters $filters): void
     {
         $search = $filters->search;
         $gameSystemId = $filters->gameSystemId;
@@ -156,7 +174,7 @@ class DiscoveryQueryService
      * @param  Builder<Game>  $query
      * @param  string  $type  GameSystem type ('boardgame' or 'ttrpg')
      */
-    public function applySystemTypeScope(Builder $query, string $type): void
+    private function applySystemTypeScope(Builder $query, string $type): void
     {
         $query->whereHas('gameSystems', fn (Builder $q) => $q->where('type', $type));
     }
@@ -170,7 +188,7 @@ class DiscoveryQueryService
      * 1) per BASE_PAGE_SIZE items, so loading more (e.g. 24 items) permits
      * proportionally more Gatherings while keeping density bounded.
      */
-    public function gatheringCapForWindow(int $perPage): int
+    private function gatheringCapForWindow(int $perPage): int
     {
         $configured = config('discovery.gathering_cap_per_page', 1);
         $baseCap = is_numeric($configured) ? (int) $configured : 1;
@@ -258,10 +276,10 @@ class DiscoveryQueryService
      * Returns 1 for a Gathering, 0 for everything else. Used as a stable
      * secondary `sortBy` key so a focused single-system game ranks above an
      * otherwise-equal Gathering (same date_time or distance) without ever
-     * reordering items with distinct primary keys. Exposed publicly so both the
-     * service sort sites and Livewire components can share one definition.
+     * reordering items with distinct primary keys. The pages no longer sort
+     * by hand — this feeds the service's merge tail only.
      */
-    public function gatheringRankKey(mixed $item): int
+    private function gatheringRankKey(mixed $item): int
     {
         return $this->isGathering($item) ? 1 : 0;
     }
@@ -407,7 +425,7 @@ class DiscoveryQueryService
      *
      * @param  Builder<TModel>  $query
      */
-    public function applyProximitySubquery(Builder $query, string $table, float $lat, float $lng, float $radius): void
+    private function applyProximitySubquery(Builder $query, string $table, float $lat, float $lng, float $radius): void
     {
         $bounds = $this->proximity->boundingBox($lat, $lng, $radius);
 
@@ -427,7 +445,7 @@ class DiscoveryQueryService
      *
      * @param  Builder<TModel>  $query
      */
-    public function applyCampaignProximitySubquery(Builder $query, float $lat, float $lng, float $radius): void
+    private function applyCampaignProximitySubquery(Builder $query, float $lat, float $lng, float $radius): void
     {
         $nearbyResults = $this->proximity->nearby(
             $lat,
@@ -456,7 +474,7 @@ class DiscoveryQueryService
      *
      * @return array<string, mixed>
      */
-    public function getProximityDistances(string $entityType, float $lat, float $lng, float $radiusKm): array
+    private function getProximityDistances(string $entityType, float $lat, float $lng, float $radiusKm): array
     {
         $results = $this->proximity->nearby(
             $lat,
@@ -505,40 +523,137 @@ class DiscoveryQueryService
             ->toArray();
     }
 
-    // ── Paginated results ──────────────────────────────
+    // ── Page-facing entry point ────────────────────────
 
     /**
-     * Get paginated games results with optional distance enrichment.
+     * Build the sectioned results feed for a discovery page — the single
+     * page-facing entry point for feed execution (M072 S03).
      *
-     * @return LengthAwarePaginator<int, Game>
+     * Owns everything the pages previously hand-assembled around the builders:
+     * mode scoping (ttrpg / boardgame), the Adventures session constraints,
+     * merge ordering, the R048 gathering cap, distance enrichment and paginator
+     * construction. Every returned item carries ->discoverable_type ('game' or
+     * 'campaign'); the merged modes also set ->discoverable_sort_key.
+     *
+     * Modes:
+     *  - MODE_GAMES / MODE_CAMPAIGNS: single-source DB-paginated feeds (the
+     *    DiscoveryPage entity tabs; date / recurrence flow via the DTO).
+     *  - MODE_ALL: merged games + campaigns ordered by next occurrence desc.
+     *  - MODE_ADVENTURES: ttrpg-scoped merged feed with the fork's session
+     *    constraints and campaigns pinned above games.
+     *  - MODE_BOARD_GAMES: boardgame-scoped games feed with the cap-aware
+     *    candidate fetch (R048 backfill) replacing true DB pagination.
+     *
+     * @param  int  $perPage  Feed window size (the pages' displayCount)
+     * @return array{results: LengthAwarePaginator<int, Game|Campaign>, usingFallback: bool}
+     *                                                                                       usingFallback reports whether the proximity branch widened to
+     *                                                                                       FALLBACK_RADIUS (drives the pages' widened-radius notice).
      */
-    public function getGamesResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, int $perPage = 12): LengthAwarePaginator
+    public function results(string $mode, DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, int $perPage = self::BASE_PAGE_SIZE): array
     {
-        $query = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $date);
+        $feed = match ($mode) {
+            self::MODE_GAMES => $this->gamesResults($filters, $user, $radius, $lat, $lng, $hasLocation, $perPage),
+            self::MODE_CAMPAIGNS => $this->campaignsResults($filters, $user, $radius, $lat, $lng, $hasLocation, $perPage),
+            self::MODE_ADVENTURES => $this->adventuresResults($filters, $user, $radius, $lat, $lng, $hasLocation, $perPage),
+            self::MODE_BOARD_GAMES => $this->boardGamesResults($filters, $user, $radius, $lat, $lng, $hasLocation, $perPage),
+            default => $this->mergedResults($filters, $user, $radius, $lat, $lng, $hasLocation, $perPage),
+        };
+
+        // Widen the games-only / campaigns-only arms to the unified
+        // sectioned-feed shape: the paginator's TValue template is invariant,
+        // so the narrow per-mode paginators cannot flow up to the declared
+        // union on their own (the merged modes already produce the union).
+        /** @var array{results: LengthAwarePaginator<int, Game|Campaign>, usingFallback: bool} $sectioned */
+        $sectioned = $feed;
+
+        return $sectioned;
+    }
+
+    /**
+     * Games-tab feed: true DB pagination over the games builder with
+     * distance enrichment (formerly getGamesResults).
+     *
+     * @return array{results: LengthAwarePaginator<int, Game>, usingFallback: bool}
+     */
+    private function gamesResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, int $perPage): array
+    {
+        $query = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $filters->date);
         $paginator = $query->paginate($perPage)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
 
         if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
             $this->enrichWithDistance($paginator->getCollection(), 'game', $lat, $lng, $radius, false);
         }
 
-        return $paginator;
+        return ['results' => $paginator, 'usingFallback' => false];
     }
 
     /**
-     * Get paginated campaigns results with optional distance enrichment.
+     * Campaigns-tab feed: true DB pagination over the campaigns builder with
+     * distance enrichment (formerly getCampaignsResults).
      *
-     * @return LengthAwarePaginator<int, Campaign>
+     * @return array{results: LengthAwarePaginator<int, Campaign>, usingFallback: bool}
      */
-    public function getCampaignsResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence, int $perPage = 12): LengthAwarePaginator
+    private function campaignsResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, int $perPage): array
     {
-        $query = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $recurrence);
+        $query = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $filters->recurrence);
         $paginator = $query->paginate($perPage)->through(fn ($campaign) => tap($campaign, fn ($c) => $c->discoverable_type = 'campaign'));
 
         if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
             $this->enrichWithDistance($paginator->getCollection(), 'campaign', $lat, $lng, $radius, false);
         }
 
-        return $paginator;
+        return ['results' => $paginator, 'usingFallback' => false];
+    }
+
+    /**
+     * Board-games feed: boardgame-scoped games with the cap-aware candidate
+     * fetch (formerly BoardGamesDiscovery::getBoardGameResults).
+     *
+     * R048: Gatherings are capped per feed page, so the true DB paginate is
+     * replaced by a candidate fetch wide enough to backfill trimmed Gatherings
+     * before building the paginator over the capped slice.
+     *
+     * @return array{results: LengthAwarePaginator<int, Game>, usingFallback: bool}
+     */
+    private function boardGamesResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, int $perPage): array
+    {
+        $query = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $filters->date);
+        $this->applySystemTypeScope($query, 'boardgame');
+
+        // Candidate fetch: the window plus a small surplus of focused games so
+        // trimmed Gathering slots can be backfilled. count() runs before take()
+        // so the LIMIT never contaminates the aggregate.
+        $maxPerSlice = $this->gatheringCapForWindow($perPage);
+        $total = $query->count();
+        $candidates = $query->take($perPage + $maxPerSlice * 2)->get()
+            ->each(fn (Game $game) => $game->discoverable_type = 'game');
+
+        // Eager-load every offered GameSystem for the page's multi-system
+        // Gatherings in ONE query so cards render the Gathering badge + all
+        // offered system chips without per-card N+1 (R048). belongsToMany
+        // eager-loading replaces the former manual batch resolver.
+        $candidates->loadMissing('gameSystems');
+
+        $items = $this->applyGatheringCap($candidates->toBase(), $perPage, $maxPerSlice)['items'];
+
+        if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
+            // No fallback-widening on this path: the feed enriches at the
+            // selected radius (the former component flag was always false here).
+            $this->enrichWithDistance($items, 'game', $lat, $lng, $radius, false);
+        }
+
+        $paginator = new Paginator(
+            $items,
+            $total,
+            $perPage,
+            Paginator::resolveCurrentPage(),
+            [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ],
+        );
+
+        return ['results' => $paginator, 'usingFallback' => false];
     }
 
     /**
@@ -548,7 +663,7 @@ class DiscoveryQueryService
      *
      * @param  Collection<int, TItem>  $items
      */
-    public function enrichWithDistance(Collection $items, string $type, float $lat, float $lng, float $radius, bool $usingFallbackRadius): void
+    private function enrichWithDistance(Collection $items, string $type, float $lat, float $lng, float $radius, bool $usingFallbackRadius): void
     {
         $effectiveRadius = $usingFallbackRadius
             ? self::FALLBACK_RADIUS
@@ -569,51 +684,140 @@ class DiscoveryQueryService
         }
     }
 
-    // ── Merged results (games + campaigns) ─────────────
+    // ── Merged feeds (games + campaigns) ──────────────
 
     /**
-     * Merge games and campaigns into a unified, paginated collection.
-     * Each item gets a ->discoverable_type attribute ('game' or 'campaign')
-     * and a ->discoverable_sort_key for consistent ordering.
+     * "All" tab: merged games + campaigns ordered by next occurrence desc
+     * (formerly getMergedResults).
      *
-     * When radius > 0 and guest location is available, results are filtered
-     * by proximity and sorted by distance instead of timestamp.
+     * Cap per-source hydration. Both queries eager-load 6 relations + 3
+     * withCount subqueries, so an unbounded get() made the default "All"
+     * tab O(public catalog) per render to display $perPage items. The cap
+     * keeps the newest $cap games (SQL-ordered by the same key the merge
+     * sorts by) and all matching campaigns; beyond the cap the total count
+     * reported by the paginator becomes the capped count — acceptable for
+     * discovery UX and strictly better than hydrating everything.
      *
      * @return array{results: LengthAwarePaginator<int, Game|Campaign>, usingFallback: bool}
      */
-    public function getMergedResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, ?string $recurrence, int $perPage = 12): array
+    private function mergedResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, int $perPage): array
     {
-        $usingFallback = false;
-
-        $gamesQuery = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $date);
-        $campaignsQuery = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $recurrence);
-
-        // Cap per-source hydration. Both queries eager-load 6 relations + 3
-        // withCount subqueries, so an unbounded get() made the default "All"
-        // tab O(public catalog) per render to display $perPage items. The cap
-        // keeps the newest $cap games (SQL-ordered by the same key the merge
-        // sorts by) and all matching campaigns; beyond the cap the total count
-        // reported by the paginator becomes the capped count — acceptable for
-        // discovery UX and strictly better than hydrating everything.
-        $cap = self::MERGE_HYDRATION_CAP;
-
-        $games = $gamesQuery
+        $games = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $filters->date)
             ->reorder('date_time', 'desc')
-            ->limit($cap)
-            ->get()->each(function ($item) {
-                $item->discoverable_type = 'game';
-                $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0);
-            });
+            ->limit(self::MERGE_HYDRATION_CAP)
+            ->get()
+            ->each(fn (Game $game) => $this->decorateFeedItem($game, 'game', (int) ($game->date_time->timestamp ?? 0)));
 
-        $campaigns = $campaignsQuery
-            ->limit($cap)
-            ->get()->each(function ($item) {
-                $item->discoverable_type = 'campaign';
-                $item->discoverable_sort_key = (int) ($item->sessions->first()->date_time->timestamp ?? $item->created_at->timestamp ?? 0);
-            });
+        $campaigns = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $filters->recurrence)
+            ->limit(self::MERGE_HYDRATION_CAP)
+            ->get()
+            ->each(fn (Campaign $campaign) => $this->decorateFeedItem(
+                $campaign,
+                'campaign',
+                (int) ($campaign->sessions->first()->date_time->timestamp ?? $campaign->created_at->timestamp ?? 0),
+            ));
 
         /** @var Collection<int, Game|Campaign> $merged */
         $merged = collect([...$games, ...$campaigns]);
+
+        return $this->mergeAndPaginate($merged, $radius, $lat, $lng, $hasLocation, $perPage);
+    }
+
+    /**
+     * Adventures feed: ttrpg-scoped merged feed with the fork's session
+     * constraints (session type, session zero, play styles) and its
+     * campaigns-pinned-first ordering.
+     *
+     * Formerly ~40 LOC hand-assembled in AdventuresDiscovery::render(),
+     * duplicating the merged pipeline. Ordering differs from MODE_ALL only in
+     * the campaigns' merge key: PHP_INT_MAX-bucketed so campaigns always sort
+     * above games (themselves newest-first), instead of interleaving by next
+     * session date.
+     *
+     * @return array{results: LengthAwarePaginator<int, Game|Campaign>, usingFallback: bool}
+     */
+    private function adventuresResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, int $perPage): array
+    {
+        $gamesQuery = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, null);
+        $this->applySystemTypeScope($gamesQuery, 'ttrpg');
+
+        $campaignsQuery = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, null)
+            ->whereHas('gameSystems', fn (Builder $q) => $q->where('type', 'ttrpg'));
+
+        // Session-type tabs constrain the games side and drop campaign
+        // entities — both tabs are game-session views.
+        if ($filters->sessionType === 'campaign') {
+            // Campaign Sessions tab: show only games that belong to a campaign
+            $gamesQuery->whereNotNull('campaign_id');
+            $campaignsQuery->whereRaw('1 = 0');
+        } elseif ($filters->sessionType === 'oneshot') {
+            // One-shots tab: show only standalone games
+            $gamesQuery->whereNull('campaign_id');
+            $campaignsQuery->whereRaw('1 = 0');
+        }
+
+        // Session zero: games that ARE a session zero (safety tool flag OR
+        // name indicates it) — again games only, not campaign entities.
+        if ($filters->sessionZero) {
+            $nameIsSessionZero = "(name->>'en' ~* '^(session\s*zero|session\s*0)' OR name->>'de' ~* '^(session\s*zero|session\s*0)')";
+
+            $gamesQuery->where(function ($q) use ($nameIsSessionZero) {
+                $q->whereJsonContains('safety_rules->tools', 'session-zero')
+                    ->orWhereRaw($nameIsSessionZero);
+            });
+
+            $campaignsQuery->whereRaw('1 = 0');
+        }
+
+        // Play styles: match games/campaigns whose game system has categories
+        // matching the selected PlayStyle editorial slug mappings.
+        if (! empty($filters->playStyles)) {
+            $slugs = collect($filters->playStyles)
+                ->map(fn (string $value) => PlayStyle::tryFrom($value))
+                ->filter()
+                ->flatMap(fn (PlayStyle $style) => $style->categorySlugs())
+                ->unique()
+                ->values()
+                ->all();
+
+            if (! empty($slugs)) {
+                $gamesQuery->whereHas('gameSystems.categories', fn ($q) => $q->whereIn('slug', $slugs));
+                $campaignsQuery->whereHas('gameSystems.categories', fn ($q) => $q->whereIn('slug', $slugs));
+            }
+        }
+
+        $games = $gamesQuery
+            ->reorder('date_time', 'desc')
+            ->limit(self::MERGE_HYDRATION_CAP)
+            ->get()
+            ->each(fn (Game $game) => $this->decorateFeedItem($game, 'game', (int) ($game->date_time->timestamp ?? 0)));
+
+        $campaigns = $campaignsQuery
+            ->limit(self::MERGE_HYDRATION_CAP)
+            ->get()
+            ->each(fn (Campaign $campaign) => $this->decorateFeedItem(
+                $campaign,
+                'campaign',
+                PHP_INT_MAX - (int) ($campaign->created_at->timestamp ?? 0),
+            ));
+
+        /** @var Collection<int, Game|Campaign> $merged */
+        $merged = collect([...$campaigns, ...$games]);
+
+        return $this->mergeAndPaginate($merged, $radius, $lat, $lng, $hasLocation, $perPage);
+    }
+
+    /**
+     * Shared merge tail for the merged modes: proximity filtering (with the
+     * widened-radius fallback) or the stable R048 ordering, the gathering
+     * cap, and page-1 paginator construction.
+     *
+     * @param  Collection<int, Game|Campaign>  $merged
+     * @return array{results: LengthAwarePaginator<int, Game|Campaign>, usingFallback: bool}
+     */
+    private function mergeAndPaginate(Collection $merged, float $radius, ?float $lat, ?float $lng, bool $hasLocation, int $perPage): array
+    {
+        $usingFallback = false;
 
         if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
             $proxResult = $this->applyProximityFilter($merged, $lat, $lng, $radius);
@@ -622,19 +826,19 @@ class DiscoveryQueryService
         } else {
             // R048 gathering_relevance_penalty tiebreak (stable sequential sort):
             // sort by the least-significant key first (Gathering demotion asc),
-            // then the most-significant (date desc). Stability preserves the
-            // Gathering ordering within an identical date bucket, so a focused
-            // game beats an equal-date Gathering without reordering distinct
-            // date_times.
+            // then the most-significant (merge key desc). Stability preserves
+            // ordering within an identical key bucket, so a focused game beats
+            // an equal-key Gathering without reordering distinct keys. The
+            // former Adventures multi-key sortBy is equivalent: PHP sorts are
+            // stable, so sequential single-key sorts compose the same order.
             $merged = $merged
-                ->sortBy(fn (Campaign|Game $g) => $this->gatheringRankKey($g))
+                ->sortBy(fn (Campaign|Game $item) => $this->gatheringRankKey($item))
                 ->sortByDesc('discoverable_sort_key')
                 ->values();
         }
 
         $total = $merged->count();
-        $capped = $this->applyGatheringCap($merged, $perPage);
-        $items = $capped['items'];
+        $items = $this->applyGatheringCap($merged, $perPage)['items'];
 
         $paginator = new Paginator($items, $total, $perPage, 1, [
             'path' => request()->url(),
@@ -645,6 +849,15 @@ class DiscoveryQueryService
             'results' => $paginator,
             'usingFallback' => $usingFallback,
         ];
+    }
+
+    /**
+     * Tag a hydrated feed item with its section and merge sort key.
+     */
+    private function decorateFeedItem(Game|Campaign $item, string $type, int $sortKey): void
+    {
+        $item->discoverable_type = $type;
+        $item->discoverable_sort_key = $sortKey;
     }
 
     /**
@@ -659,7 +872,7 @@ class DiscoveryQueryService
      * @param  Collection<int, Game|Campaign>  $merged
      * @return array{collection: Collection<int, Game|Campaign>, usingFallback: bool}
      */
-    public function applyProximityFilter(Collection $merged, float $lat, float $lng, float $radius): array
+    private function applyProximityFilter(Collection $merged, float $lat, float $lng, float $radius): array
     {
         [$filtered, $usingFallback] = $this->filterByProximity($merged, $lat, $lng, $radius);
 
@@ -980,19 +1193,41 @@ class DiscoveryQueryService
     // ── Curated filter lists ───────────────────────────
 
     /**
+     * Deterministically fold the curated filter lists for a page mode.
+     *
+     * MODE_ADVENTURES returns the TTRPG variant (genre categories, empty
+     * mechanics list — the TTRPG fork exposes no mechanic filter); every
+     * other mode returns the default boardgame-anchored set. Replaces the
+     * three former public curated getters so a page cannot mix variants.
+     *
+     * @return array{categories: Collection<int, GameSystemCategory>, mechanics: Collection<int, GameSystemMechanic>}
+     */
+    public function curated(string $mode): array
+    {
+        if ($mode === self::MODE_ADVENTURES) {
+            /** @var Collection<int, GameSystemMechanic> $noMechanics */
+            $noMechanics = new Collection;
+
+            return [
+                'categories' => $this->getCuratedTtrpgCategories(),
+                'mechanics' => $noMechanics,
+            ];
+        }
+
+        return [
+            'categories' => $this->getCuratedCategories(),
+            'mechanics' => $this->getCuratedMechanics(),
+        ];
+    }
+
+    /**
      * Top 15 categories by base-game system count, excluding expansion-related noise.
      * Excludes: 'Expansion for Base-game', 'Fan Expansion', 'Print & Play'.
      *
-     * @param  string|null  $type  Scope to a game system type (e.g., 'boardgame', 'ttrpg'). Null = boardgame (default behavior).
      * @return Collection<int, GameSystemCategory>
      */
-    public function getCuratedCategories(?string $type = null): Collection
+    private function getCuratedCategories(): Collection
     {
-        // TTRPG scoping: simpler query without expansion exclusions
-        if ($type === 'ttrpg') {
-            return $this->getCuratedTtrpgCategories();
-        }
-
         $excludedSlugs = [
             'expansion-for-base-game',
             'fan-expansion',
@@ -1013,7 +1248,7 @@ class DiscoveryQueryService
      *
      * @return Collection<int, GameSystemCategory>
      */
-    public function getCuratedTtrpgCategories(): Collection
+    private function getCuratedTtrpgCategories(): Collection
     {
         return GameSystemCategory::query()
             ->whereHas('gameSystems', fn ($q) => $q->where('type', 'ttrpg'))
@@ -1028,7 +1263,7 @@ class DiscoveryQueryService
      *
      * @return Collection<int, GameSystemMechanic>
      */
-    public function getCuratedMechanics(): Collection
+    private function getCuratedMechanics(): Collection
     {
         return GameSystemMechanic::query()
             ->whereHas('gameSystems', fn ($q) => $q->where(fn ($q) => $q->whereNull('base_game_id')->orWhere('bgg_type', 'boardgame')))

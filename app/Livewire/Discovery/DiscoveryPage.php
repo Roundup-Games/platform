@@ -7,8 +7,6 @@ use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\Recurrence;
 use App\Enums\SafetyTool;
-use App\Enums\VibeFlag;
-use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Services\PostHogAnalytics;
 use App\Traits\HasGuestLocation;
@@ -93,70 +91,32 @@ class DiscoveryPage extends Component
 
     public function toggleSafetyTool(string $tool): void
     {
-        $this->safety_tools = $this->toggleArrayValue($this->safety_tools, $tool);
+        $this->safety_tools = DiscoveryFilters::toggleArrayValue($this->safety_tools, $tool);
         $this->displayCount = 12;
     }
 
     public function toggleCategory(string $categoryId): void
     {
-        $this->category_ids = $this->toggleArrayValue($this->category_ids, $categoryId);
+        $this->category_ids = DiscoveryFilters::toggleArrayValue($this->category_ids, $categoryId);
         $this->displayCount = 12;
     }
 
     public function toggleMechanic(string $mechanicId): void
     {
-        $this->mechanic_ids = $this->toggleArrayValue($this->mechanic_ids, $mechanicId);
+        $this->mechanic_ids = DiscoveryFilters::toggleArrayValue($this->mechanic_ids, $mechanicId);
         $this->displayCount = 12;
     }
 
     /**
-     * @param  array<int, int|string>  $array
-     * @return array<int, int|string>
+     * Page-specific filter surface: shared base + date/recurrence/category/
+     * mechanic extras + city (city inclusion is the M072 drift fix — the
+     * page previously missed ?city= in both clearFilters and hasActiveFilters).
+     *
+     * @return array<int, string>
      */
-    private function toggleArrayValue(array $array, string $value): array
+    protected function discoveryFilterSurface(): array
     {
-        $index = array_search($value, $array, true);
-        if ($index !== false) {
-            unset($array[$index]);
-
-            return array_values($array);
-        }
-        $array[] = $value;
-
-        return $array;
-    }
-
-    public function clearFilters(): void
-    {
-        $this->reset([
-            'search', 'game_system_id', 'experience_level', 'vibe_flags',
-            'safety_tools', 'language', 'price', 'complexity_min', 'complexity_max',
-            'date', 'recurrence', 'category_ids', 'mechanic_ids', 'radius',
-        ]);
-        $this->usingFallbackRadius = false;
-        $this->displayCount = 12;
-        // Reset vibe preferences to neutral
-        foreach (VibeFlag::cases() as $flag) {
-            $this->vibePreferences[$flag->value] = null;
-        }
-    }
-
-    public function hasActiveFilters(): bool
-    {
-        return $this->search
-            || $this->game_system_id
-            || $this->experience_level
-            || ! empty($this->vibe_flags)
-            || ! empty($this->safety_tools)
-            || ($this->language && $this->language !== app()->getLocale())
-            || $this->price
-            || $this->complexity_min
-            || $this->complexity_max
-            || $this->date
-            || $this->recurrence
-            || ! empty($this->category_ids)
-            || ! empty($this->mechanic_ids)
-            || $this->radius > 0;
+        return DiscoveryFilters::SURFACE_DISCOVERY_PAGE;
     }
 
     // Render
@@ -177,28 +137,16 @@ class DiscoveryPage extends Component
         $service = app(DiscoveryQueryService::class);
         $user = Auth::user();
         $filters = DiscoveryFilters::fromLivewire($this);
-        $hasLocation = $this->hasGuestLocation();
-        $lat = $this->guestLat ?? null;
-        $lng = $this->guestLng ?? null;
 
-        // Fallback to the logged-in user's saved location when browser geolocation is unavailable
-        if (! $hasLocation && $user?->location_id) {
-            $userLocation = Location::find($user->location_id);
-            if ($userLocation) {
-                $lat = (float) $userLocation->latitude;
-                $lng = (float) $userLocation->longitude;
-                $hasLocation = true;
-            }
-        }
+        // Browser guest location, else the user's saved location (shared resolver)
+        [$lat, $lng, $hasLocation] = $this->resolveSearchOrigin();
 
-        $results = match ($this->mode) {
-            'games' => $service->getGamesResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date, $this->displayCount),
-            'campaigns' => $service->getCampaignsResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->recurrence, $this->displayCount),
-            default => tap(
-                $service->getMergedResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date, $this->recurrence, $this->displayCount),
-                fn (array $r) => $this->usingFallbackRadius = $r['usingFallback'],
-            )['results'],
-        };
+        // The service owns feed execution end to end (mode scoping, merge,
+        // gathering cap, distance enrichment, pagination — M072 S03); the
+        // component keeps props + loadMore.
+        $feed = $service->results($this->mode, $filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->displayCount);
+        $results = $feed['results'];
+        $this->usingFallbackRadius = $feed['usingFallback'];
 
         // Discovery intent analytics. Fired only on the first page of a filtered
         // search (displayCount === 12 dedupes loadMore expansions) with an active
@@ -225,6 +173,8 @@ class DiscoveryPage extends Component
             );
         }
 
+        $curated = $service->curated($this->mode);
+
         return view('livewire.discovery.discovery-page', [
             'results' => $results,
             'recommendations' => $service->getRecommendations($user),
@@ -232,8 +182,8 @@ class DiscoveryPage extends Component
             'safetyToolGroups' => SafetyTool::grouped(),
             'languages' => ContentLanguage::cases(),
             'recurrenceOptions' => Recurrence::values(),
-            'curatedCategories' => $service->getCuratedCategories(),
-            'curatedMechanics' => $service->getCuratedMechanics(),
+            'curatedCategories' => $curated['categories'],
+            'curatedMechanics' => $curated['mechanics'],
             'radiusOptions' => DiscoveryQueryService::RADIUS_OPTIONS,
             'hasLocation' => $hasLocation,
             'activeFilters' => $this->hasActiveFilters(),
