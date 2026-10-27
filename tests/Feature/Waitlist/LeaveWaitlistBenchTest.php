@@ -323,6 +323,56 @@ describe('waitlist promotion on leave', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
+// DEPARTURE AUDIT STAMPS — leaveWaitlist routes through the
+// lifecycle departure (M072/S02): removed_by/removed_at must
+// be stamped on the waitlist leave, and the lock-guard must
+// keep a repeated leave from re-stamping the audit trail.
+// ═══════════════════════════════════════════════════════════
+
+describe('waitlist departure audit stamps', function () {
+    test('leaving the waitlist stamps removed_by and removed_at', function () {
+        $game = createFullGameForLeave($this->owner, $this->gameSystem, maxPlayers: 2);
+        $user = User::factory()->create();
+        $participant = $this->waitlistService->addToWaitlist($game, $user);
+
+        $this->travelTo(now()->addMinute());
+
+        Livewire::actingAs($user)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('leaveWaitlist', $participant->id)
+            ->assertHasNoErrors();
+
+        $fresh = $participant->fresh();
+        expect($fresh->status)->toBe(ParticipantStatus::Rejected);
+        expect($fresh->removed_by)->toBe($user->id);
+        expect($fresh->removed_at)->not->toBeNull();
+        // A Waitlisted row was never Approved — no reliability scoring.
+        expect($fresh->attendance_status)->toBeNull();
+    });
+
+    test('a repeated leave attempt does not re-stamp the audit trail', function () {
+        $game = createFullGameForLeave($this->owner, $this->gameSystem, maxPlayers: 2);
+        $user = User::factory()->create();
+        $participant = $this->waitlistService->addToWaitlist($game, $user);
+
+        Livewire::actingAs($user)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('leaveWaitlist', $participant->id);
+
+        $stampedAt = $participant->fresh()->removed_at;
+
+        // Second call hits the status guard inside the lock (Rejected is no
+        // longer Waitlisted) — the stamps from the first departure survive.
+        $this->travelTo(now()->addMinutes(5));
+        Livewire::actingAs($user)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('leaveWaitlist', $participant->id);
+
+        expect($participant->fresh()->removed_at->equalTo($stampedAt))->toBeTrue();
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
 // UI BANNER VISIBILITY — waitlist vs bench surface on detail pages
 // ═══════════════════════════════════════════════════════════
 

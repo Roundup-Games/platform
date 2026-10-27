@@ -8,7 +8,6 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Services\ParticipantLifecycle;
-use App\Services\Roster;
 use App\Services\WaitlistService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -133,8 +132,12 @@ trait HandlesWaitlist
     /**
      * Leave the waitlist as a waitlisted participant.
      *
-     * After leaving, triggers promotion of the next waitlisted player
-     * if there are open approved slots (typically a no-op when still at capacity).
+     * Routes through ParticipantLifecycle::depart() inside the row lock so
+     * the departure records its audit stamps (removed_by / removed_at) and
+     * the departure cascade runs exactly once — promotion of the next
+     * waitlisted player when an approved slot is open (typically a no-op
+     * while still at capacity) plus the below-min warning. depart() owns
+     * Roster::onDeparture; this call site must never hand-sequence it.
      */
     public function leaveWaitlist(string $participantId): void
     {
@@ -151,7 +154,7 @@ trait HandlesWaitlist
         $meta = EntityMeta::fromEntity($entity);
 
         $didLeave = false;
-        DB::transaction(function () use ($participant, &$didLeave) {
+        DB::transaction(function () use ($participant, $viewer, &$didLeave) {
             // Lock the participant row to prevent concurrent status changes
             // (e.g., user confirming via web while this leave action runs)
             $locked = $participant->newQuery()
@@ -163,7 +166,10 @@ trait HandlesWaitlist
                 return;
             }
 
-            $locked->update(['status' => ParticipantStatus::Rejected]);
+            // Single lifecycle call: departure write (status → Rejected with
+            // removed_by/removed_at audit stamps; no attendance scoring — a
+            // Waitlisted row was never Approved) plus the departure cascade.
+            app(ParticipantLifecycle::class)->depart($locked, $viewer);
             $didLeave = true;
         });
 
@@ -174,10 +180,6 @@ trait HandlesWaitlist
                 'user_id' => $viewer->id,
                 'participant_id' => $participant->id,
             ]);
-
-            // Promote from waitlist + warn host if below min_players.
-            // No-op when the entity is still at capacity (most common case).
-            app(Roster::class)->onDeparture($entity);
 
             session()->flash('success', __('games.flash_left_waitlist'));
         }
