@@ -6,9 +6,9 @@ use App\Enums\ContentLanguage;
 use App\Models\User;
 use App\Notifications\BaseNotification;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Support\HtmlString;
 use Tests\Feature\Notifications\Fixtures\EnvelopeProbeNotification;
+use Tests\TestCase;
 
 /**
  * Envelope contract for BaseNotification's shared helpers (M072/S04).

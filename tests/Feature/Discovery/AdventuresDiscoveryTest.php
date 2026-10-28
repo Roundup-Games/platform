@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ContentLanguage;
 use App\Livewire\Discovery\AdventuresDiscovery;
 use App\Models\Campaign;
 use App\Models\Game;
@@ -414,6 +415,25 @@ describe('AdventuresDiscovery', function () {
         expect($component->instance()->hasActiveFilters())->toBeFalse();
 
         $component->set('session_type', 'campaign');
+        expect($component->instance()->hasActiveFilters())->toBeTrue();
+    });
+
+    it('does not count the preferred-language mount default as an active filter', function () {
+        // The language filter seeds from the viewer's preferred language at
+        // mount; hasActiveFilters() must treat that default as neutral —
+        // comparing against the request locale alone marked the untouched
+        // component as filtered for any user whose preference differs
+        // (active-filter chip + discovery.search event on a fresh page view).
+        $user = User::factory()->create(['preferred_language' => ContentLanguage::De]);
+        app()->setLocale('en');
+
+        $component = Livewire\Livewire::actingAs($user)->test(AdventuresDiscovery::class);
+
+        expect($component->instance()->language)->toBe('de')
+            ->and($component->instance()->hasActiveFilters())->toBeFalse();
+
+        // Explicitly selecting a language other than the default is a real filter.
+        $component->set('language', 'en');
         expect($component->instance()->hasActiveFilters())->toBeTrue();
     });
 

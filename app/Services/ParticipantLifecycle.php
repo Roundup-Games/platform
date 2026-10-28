@@ -498,7 +498,10 @@ class ParticipantLifecycle
      *
      * The guard + departure run inside a locked transaction to prevent a
      * concurrent promoteFromBench from flipping the participant to Approved
-     * between the status check and the depart() write.
+     * between the status check and the depart() write. Lock ordering is
+     * entity-first, then the participant row — the canonical order of every
+     * entity-row locker, so depart()'s cascade (which re-locks the entity
+     * through promoteNext) can never invert against a concurrent promotion.
      *
      * @throws \LogicException if participant is not benched
      */
@@ -507,6 +510,9 @@ class ParticipantLifecycle
         $meta = $participant->getEntityMeta();
 
         DB::transaction(function () use ($participant, $remover, $meta) {
+            $entityId = $participant->getAttribute($meta->foreignKey);
+            $meta->entityClass::lockForUpdate()->findOrFail($entityId);
+
             $locked = $meta->participantClass::lockForUpdate()
                 ->whereKey($participant->getId())
                 ->firstOrFail();

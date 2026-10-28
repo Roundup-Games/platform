@@ -131,11 +131,20 @@ trait HandlesApplicationSubmission
                     throw new \RuntimeException(__($config['translations']['already_applied']));
                 }
 
-                // Fresh re-read inside the transaction: the visibility and
+                // Locked fresh re-read inside the transaction: the visibility and
                 // capacity decisions use post-lock state, not the mount()-time
                 // snapshot (the entity may have been deleted concurrently —
                 // surfaced here instead of failing later on a null relation).
-                $freshEntity = $entity->fresh();
+                // The FOR UPDATE row lock serializes concurrent applications
+                // against every other entity-row locker (the share-link join,
+                // waitlist promotion, invite acceptance): two users racing for
+                // the last seat both re-read capacity under the lock, so the
+                // second sees the first's committed approval and routes to
+                // overflow instead of both landing Approved over capacity.
+                $freshEntity = $entity->newQuery()
+                    ->lockForUpdate()
+                    ->whereKey($entity)
+                    ->first();
                 if ($freshEntity === null) {
                     throw new \RuntimeException(__('common.error_entity_no_longer_available'));
                 }

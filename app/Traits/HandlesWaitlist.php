@@ -154,7 +154,18 @@ trait HandlesWaitlist
         $meta = EntityMeta::fromEntity($entity);
 
         $didLeave = false;
-        DB::transaction(function () use ($participant, $viewer, &$didLeave) {
+        DB::transaction(function () use ($participant, $viewer, $entity, $meta, &$didLeave) {
+            // Lock ordering: entity row FIRST, then the participant row —
+            // the canonical order every entity-row locker uses (promoteNext,
+            // acceptInvitation, ProcessDiscordLeave). Locking the participant
+            // first inverted the order against depart()'s cascade: the
+            // cascade's promoteNext() takes the entity lock and then the
+            // first waitlisted participant row — which can be this very
+            // leaver's row — so a concurrent promotion holding the entity
+            // lock formed an AB-BA deadlock (PG kills one of the two
+            // transactions; the victim's whole leave rolled back).
+            $meta->entityClass::lockForUpdate()->findOrFail($entity->getKey());
+
             // Lock the participant row to prevent concurrent status changes
             // (e.g., user confirming via web while this leave action runs)
             $locked = $participant->newQuery()

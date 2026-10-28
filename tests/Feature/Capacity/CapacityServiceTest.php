@@ -732,6 +732,8 @@ describe('update', function () {
         $second = $this->service->update($game, 2, $this->owner, reason: 'Owner-heavy table', confirmed: true);
         expect($second->outcome)->toBe(CapacityUpdateResult::DEMOTED)
             ->and($second->demotedCount)->toBe(0)
+            ->and($second->flashKey)->toBe('games.flash_capacity_decreased')
+            ->and($second->flashParams)->toBe(['max' => 2])
             ->and($game->fresh()->max_players)->toBe(2)
             ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(4);
     });
@@ -752,6 +754,84 @@ describe('update', function () {
 
         expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
             ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('maps a completion race on the increase path (DomainException from increase) to REFUSED', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        // Partial mock: the game passes update()'s unlocked terminal guard
+        // but flips to Completed inside increase()'s locked transaction.
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('increase')
+            ->once()
+            ->andThrow(new DomainException('Cannot adjust capacity on a completed game or after attendance has been resolved.'));
+
+        $result = $service->update($game, 4, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
+            ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('re-arms confirmation when approvals grow between the preview and the locked decrease', function () {
+        // max=3, approved=2 (owner + 1): preview(2) sees zero displacement, so
+        // update() routes to the silent-decrease branch — but the locked
+        // re-read inside decrease() sees a third approval (invite accepted /
+        // promotion landed in the race window) and throws
+        // DemotionRequiresConfirmation. That must surface as the confirm
+        // flow, not escape as an uncaught exception.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        GameParticipant::where('game_id', $game->id)
+            ->where('status', ParticipantStatus::Approved->value)
+            ->where('user_id', '!=', $game->owner_id)
+            ->first()
+            ->update(['status' => ParticipantStatus::Rejected->value]);
+
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('decrease')
+            ->once()
+            ->andThrow(new DemotionRequiresConfirmation(3, 2));
+
+        $result = $service->update($game, 2, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::NEEDS_CONFIRMATION)
+            ->and($result->newMax)->toBe(2)
+            ->and($result->preview)->toBeInstanceOf(DemotionPreview::class)
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('maps a completion race on the silent-decrease path (DomainException from decrease) to REFUSED', function () {
+        // Same silent-decrease shape as above; the locked re-read finds the
+        // game completed between update()'s unlocked guard and the lock.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        GameParticipant::where('game_id', $game->id)
+            ->where('status', ParticipantStatus::Approved->value)
+            ->where('user_id', '!=', $game->owner_id)
+            ->first()
+            ->update(['status' => ParticipantStatus::Rejected->value]);
+
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('decrease')
+            ->once()
+            ->andThrow(new DomainException('Cannot adjust capacity on a completed game or after attendance has been resolved.'));
+
+        $result = $service->update($game, 2, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
+            ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('refuses decrease() directly on a completed game (locked terminal-state guard)', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        $game->update(['status' => GameStatus::Completed->value]);
+
+        expect(fn () => $this->service->decrease($game, 2))
+            ->toThrow(DomainException::class)
             ->and($game->fresh()->max_players)->toBe(3);
     });
 });

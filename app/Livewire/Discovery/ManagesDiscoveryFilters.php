@@ -88,12 +88,11 @@ trait ManagesDiscoveryFilters
 
     public function mountManagesDiscoveryFilters(): void
     {
-        $user = Auth::user();
         if (! $this->language) {
-            $this->language = ($user?->preferred_language)
-                ? $user->preferred_language->value
-                : app()->getLocale();
+            $this->language = $this->defaultFilterLanguage();
         }
+
+        $user = Auth::user();
 
         // Build vibePreferences from URL vibe_flags (all treated as favorites)
         foreach (VibeFlag::cases() as $flag) {
@@ -201,8 +200,26 @@ trait ManagesDiscoveryFilters
         return DiscoveryFilters::hasActiveFilters(
             $this,
             $this->discoveryFilterSurface(),
-            app()->getLocale(),
+            $this->defaultFilterLanguage(),
         );
+    }
+
+    /**
+     * The language filter's neutral default: the authenticated user's
+     * preferred language when set, else the app locale.
+     *
+     * Single source for BOTH the mount-time seeding and the active-filter
+     * comparison — mount seeds from the user's preference, so the neutrality
+     * check must compare against that same default. Comparing against
+     * app()->getLocale() alone marked a preferred-language user's untouched
+     * component as filtered (active-filter chip + discovery.search analytics
+     * event without any user-selected filter).
+     */
+    protected function defaultFilterLanguage(): string
+    {
+        $preferred = Auth::user()?->preferred_language;
+
+        return $preferred ? $preferred->value : app()->getLocale();
     }
 
     // ── Search origin ─────────────────────────────────

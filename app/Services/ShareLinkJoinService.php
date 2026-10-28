@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Dto\EntityMeta;
 use App\Dto\JoinIntent;
 use App\Dto\ParticipantResult;
 use App\Enums\JoinSource;
@@ -64,8 +65,10 @@ class ShareLinkJoinService
      * @return ParticipantResult|null Overflow outcome when the entity was full
      *                                (caller renders its flash message); null on direct join
      *
-     * @throws \RuntimeException When the entity vanished mid-transaction, or the
-     *                           short link was revoked with no valid token fallback
+     * @throws \RuntimeException When the entity vanished mid-transaction, the
+     *                           short link was revoked with no valid token fallback, or the viewer
+     *                           already holds a join-blocking participant row under the lock
+     *                           (active row or host-removed Removed row)
      * @throws SignupCutoffReached When the game's signup cutoff
      *                             passed between the component pre-guard and this locked write
      *                             (D124 race edge; logged by the intake, no row written)
@@ -98,6 +101,37 @@ class ShareLinkJoinService
                         throw new \RuntimeException('Short link revoked or expired during join.');
                     }
                 }
+            }
+
+            // Re-check for a join-blocking participant row UNDER the lock. The
+            // component pre-guards (canJoinViaShareLink / GameJoinGate) make
+            // the same decision on an unlocked snapshot; between that check
+            // and this lock a host removal or invite acceptance can land.
+            // The blocking set matches GameJoinGate::viewerMeetsJoinEligibility():
+            // an active row (Approved / Pending / Waitlisted / Benched) must
+            // not be re-written by a direct join — a Pending row belongs to
+            // the invitation flow, not a screening bypass — and a Removed row
+            // is a moderation block that the removed user must not be able to
+            // reverse themselves (removeParticipant() contract; without this
+            // the reactivation path silently flipped Removed → Approved and
+            // cleared the removal audit stamps). Rejected rows stay
+            // reactivatable: depart() keeps them precisely so a self-leave
+            // can rejoin through this pipeline.
+            $meta = EntityMeta::fromEntity($locked);
+            $blocking = $meta->participantClass::query()
+                ->where($meta->foreignKey, $locked->getKey())
+                ->whereBelongsTo($viewer)
+                ->whereIn('status', [
+                    ParticipantStatus::Approved->value,
+                    ParticipantStatus::Pending->value,
+                    ParticipantStatus::Waitlisted->value,
+                    ParticipantStatus::Benched->value,
+                    ParticipantStatus::Removed->value,
+                ])
+                ->exists();
+
+            if ($blocking) {
+                throw new \RuntimeException('Viewer already holds a join-blocking participant row for this entity.');
             }
 
             $participant = $this->participantLifecycle->createOrReactivate(

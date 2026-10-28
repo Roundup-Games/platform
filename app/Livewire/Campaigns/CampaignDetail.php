@@ -230,7 +230,11 @@ class CampaignDetail extends Component
             return false;
         }
 
-        // Cannot already be a participant
+        // Cannot already be a participant. Removed is in the blocking set —
+        // parity with GameJoinGate::viewerMeetsJoinEligibility(): a host
+        // removal is a moderation action and must not be reversible by the
+        // removed user through a share-link rejoin (ShareLinkJoinService
+        // re-enforces the same set under the entity lock).
         $existingParticipant = $this->campaign->participants
             ->first(fn ($p) => $p->user_id === $viewer->id
                 && in_array($p->status?->value, [
@@ -238,6 +242,7 @@ class CampaignDetail extends Component
                     ParticipantStatus::Pending->value,
                     ParticipantStatus::Waitlisted->value,
                     ParticipantStatus::Benched->value,
+                    ParticipantStatus::Removed->value,
                 ]));
 
         if ($existingParticipant) {
