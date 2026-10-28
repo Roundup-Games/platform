@@ -658,53 +658,121 @@ class GameDetail extends Component
         session()->flash('success', __('common.flash_share_link_generated'));
     }
 
-    // ── Join via Share Link ────────────────────────────
+    // ── Direct join (share link / Discord) ────────────
 
+    /**
+     * Join via a still-valid share token or short link. The pipeline —
+     * guards, lock-guarded join write, flash/computed surface effects — is
+     * shared with the Discord affordance in {@see attemptDirectJoin()}; this
+     * surface only contributes the arrival credential, the source
+     * attribution, and the success hook that clears the intent cookies.
+     */
     public function joinViaShareLink(): void
     {
+        $this->attemptDirectJoin(
+            source: $this->validatedShortLinkId !== null ? JoinSource::ShortLink : JoinSource::ShareLink,
+            eligible: $this->canJoinViaShareLink(),
+            errorBag: 'share_link',
+            shortLinkId: $this->validatedShortLinkId,
+            shareToken: $this->validatedShareToken,
+            onJoined: fn () => $this->clearJoinIntentCookies(),
+        );
+    }
+
+    /**
+     * Join from a Discord "My seat" intent (M059/S02). Same shared pipeline
+     * ({@see ShareLinkJoinService} — same lock, capacity re-check, overflow
+     * routing and approved_at stamping) minus the share-token / short-link
+     * requirement (the member arrived via the Discord on-ramp), attributed
+     * JoinSource::Discord so the acquisition funnel is measured. Driven
+     * either by the auto-trigger on mount (?discord_join=1 +
+     * canJoinViaDiscord) or by an explicit Join button.
+     */
+    public function joinViaDiscord(): void
+    {
+        $this->attemptDirectJoin(
+            source: JoinSource::Discord,
+            eligible: $this->canJoinViaDiscord(),
+            errorBag: 'discord_join',
+            onJoined: fn () => app(DiscordJoinIntent::class)->consume(request()),
+        );
+    }
+
+    /**
+     * The single direct-join pipeline behind both join buttons. Guard order
+     * is signup cutoff (D124, surfaced with its specific message) → surface
+     * eligibility ({@see GameJoinGate}, injected as $eligible by the caller)
+     * → rate limit ({@see GameJoinGate}, the only rate-limit site) → the
+     * lock-guarded write in {@see ShareLinkJoinService}, which owns the
+     * capacity re-check and overflow routing (waitlist/bench). Only Livewire
+     * surface effects live here: flash, the per-surface success hook, and
+     * computed unsets.
+     *
+     * @param  bool  $eligible  surface eligibility, gate-derived by the caller
+     * @param  (callable(): mixed)|null  $onJoined  per-surface success hook (return ignored)
+     */
+    private function attemptDirectJoin(
+        JoinSource $source,
+        bool $eligible,
+        string $errorBag,
+        ?callable $onJoined = null,
+        ?int $shortLinkId = null,
+        ?string $shareToken = null,
+    ): void {
         $viewer = authenticatedUser();
 
         // Signup cutoff (decision D124). Surface the specific message rather
         // than the generic not-authorized flash so a member hitting a closed
-        // signup knows why. Mirrors the web-apply gate; re-checked implicitly
-        // via canJoinViaShareLink (which also returns false once the cutoff
-        // passes) so the Join button is hidden as well.
+        // signup knows why. The gate would refuse too, so the Join button is
+        // hidden as well once computeds refresh.
         if ($this->game->signupHasClosed()) {
             session()->flash('error', __('games.error_signup_closed'));
 
             return;
         }
 
-        if (! $this->canJoinViaShareLink()) {
+        if (! $eligible) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
         }
 
-        if (! app(GameJoinGate::class)->allowsShareJoinAttempt($this->game, $viewer)) {
+        $gate = app(GameJoinGate::class);
+
+        $allowed = $source === JoinSource::Discord
+            ? $gate->allowsDiscordJoinAttempt($this->game, $viewer)
+            : $gate->allowsShareJoinAttempt($this->game, $viewer);
+
+        if (! $allowed) {
             session()->flash('error', __('common.error_rate_limit'));
 
             return;
         }
 
-        $shortLinkId = $this->validatedShortLinkId;
-
         try {
             $overflowFlash = $this->shareLinkJoinService()->join(
                 $this->game,
                 $viewer,
-                $shortLinkId !== null ? JoinSource::ShortLink : JoinSource::ShareLink,
+                $source,
                 $shortLinkId,
-                $this->validatedShareToken,
+                $shareToken,
             );
 
-            // Clear the intent cookies since the user has now joined
-            Cookie::queue(Cookie::forget('share_intent'));
-            Cookie::queue(Cookie::forget('short_link_intent'));
+            // Joined — run the per-surface hook so the arrival intent
+            // (cookies / Discord intent) cannot replay on a later visit.
+            if ($onJoined !== null) {
+                $onJoined();
+            }
 
-            // Reload game to reflect new participant
+            // Reload roster to reflect the new participant.
             $this->game->load('participants.user');
-            unset($this->isParticipant, $this->isGameFull, $this->canApply, $this->canJoinWaitlist);
+            unset(
+                $this->isParticipant,
+                $this->isGameFull,
+                $this->canApply,
+                $this->canJoinWaitlist,
+                $this->canJoinViaDiscord,
+            );
 
             session()->flash(
                 'success',
@@ -713,79 +781,28 @@ class GameDetail extends Component
                     : __('games.flash_joined_game_via_share_link')
             );
         } catch (\Throwable $e) {
-            Log::error('Failed to join via share link', [
+            Log::error('Direct join failed', [
                 'game_id' => $this->game->id,
                 'user_id' => $viewer->id,
+                'source' => $source->value,
                 'error' => $e->getMessage(),
             ]);
+
             throw ValidationException::withMessages([
-                'share_link' => [__('games.error_join_game_via_share_link_failed')],
+                $errorBag => [__('games.error_join_game_via_share_link_failed')],
             ]);
         }
     }
 
     /**
-     * Join the game from a Discord "My seat" intent (M059/S02).
-     *
-     * Same pipeline as joinViaShareLink() (ShareLinkJoinService) — same lock,
-     * capacity re-check, overflow routing and approved_at stamping — minus the
-     * share-token / short-link requirement (the member arrived via the Discord
-     * on-ramp, not a share link) and attributed JoinSource::Discord so the
-     * acquisition funnel is measured. Driven either by the auto-trigger on
-     * mount (?discord_join=1 + canJoinViaDiscord) or by an explicit Join button.
+     * Clear the arrival-intent cookies after a successful share-link /
+     * short-link join — the member has joined, so the intent must not
+     * replay on a later visit.
      */
-    public function joinViaDiscord(): void
+    private function clearJoinIntentCookies(): void
     {
-        $viewer = authenticatedUser();
-
-        if ($this->game->signupHasClosed()) {
-            session()->flash('error', __('games.error_signup_closed'));
-
-            return;
-        }
-
-        if (! $this->canJoinViaDiscord()) {
-            session()->flash('error', __('common.error_not_authorized'));
-
-            return;
-        }
-
-        if (! app(GameJoinGate::class)->allowsDiscordJoinAttempt($this->game, $viewer)) {
-            session()->flash('error', __('common.error_rate_limit'));
-
-            return;
-        }
-
-        try {
-            $overflowFlash = $this->shareLinkJoinService()->join(
-                $this->game,
-                $viewer,
-                JoinSource::Discord,
-            );
-
-            // The intent has been fulfilled — clear it so a later visit to this
-            // or another game does not replay the join.
-            app(DiscordJoinIntent::class)->consume(request());
-
-            $this->game->load('participants.user');
-            unset($this->isParticipant, $this->isGameFull, $this->canApply, $this->canJoinWaitlist, $this->canJoinViaDiscord);
-
-            session()->flash(
-                'success',
-                $overflowFlash !== null
-                    ? __($overflowFlash->messageKey, $overflowFlash->messageParams)
-                    : __('games.flash_joined_game_via_share_link')
-            );
-        } catch (\Throwable $e) {
-            Log::error('Failed to join via Discord intent', [
-                'game_id' => $this->game->id,
-                'user_id' => $viewer->id,
-                'error' => $e->getMessage(),
-            ]);
-            throw ValidationException::withMessages([
-                'discord_join' => [__('games.error_join_game_via_share_link_failed')],
-            ]);
-        }
+        Cookie::queue(Cookie::forget('share_intent'));
+        Cookie::queue(Cookie::forget('short_link_intent'));
     }
 
     protected function shareLinkJoinService(): ShareLinkJoinService
