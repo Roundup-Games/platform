@@ -26,7 +26,7 @@ class EntityUpdated extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $type = $this->getEntityType();
         $fields = implode(', ', $this->changedFields);
 
@@ -34,7 +34,7 @@ class EntityUpdated extends BaseNotification
             ->subject(__("notifications.subject_{$type}_updated", [
                 $type => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__("notifications.body_{$type}_updated", [
                 $type => $this->entity->name,
                 'fields' => $fields,
@@ -50,7 +50,7 @@ class EntityUpdated extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $type = $this->getEntityType();
 
         return [

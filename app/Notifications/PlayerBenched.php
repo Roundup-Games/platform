@@ -25,7 +25,7 @@ class PlayerBenched extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $actionUrl = $this->resolveEntityUrl($locale);
         $entityTypeLabel = $this->entityTypeLabel();
 
@@ -33,7 +33,7 @@ class PlayerBenched extends BaseNotification
             ->subject(__('notifications.subject_player_benched', [
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_player_benched', [
                 'entity' => $this->entity->name,
             ]))
@@ -48,7 +48,7 @@ class PlayerBenched extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'player_benched',
@@ -73,16 +73,13 @@ class PlayerBenched extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('common.content_you_are_on_the_bench'),
-            body: __('notifications.subject_player_benched', [
+        return $this->pushPayload(
+            __('common.content_you_are_on_the_bench'),
+            __('notifications.subject_player_benched', [
                 'entity' => $this->entity->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: $this->resolveEntityUrl($locale),
-            tag: "player-benched-{$this->entityType}-{$this->entity->id}",
+            $this->resolveEntityUrl($this->resolveLocale($notifiable)),
+            "player-benched-{$this->entityType}-{$this->entity->id}",
         );
     }
 
@@ -91,16 +88,13 @@ class PlayerBenched extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('common.content_you_are_on_the_bench'),
-            'url' => $this->resolveEntityUrl($locale),
-            'description' => __('notifications.subject_player_benched', [
+        return $this->discordEmbed(
+            __('common.content_you_are_on_the_bench'),
+            $this->resolveEntityUrl($this->resolveLocale($notifiable)),
+            __('notifications.subject_player_benched', [
                 'entity' => $this->entity->name,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 
     /**

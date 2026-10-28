@@ -20,13 +20,13 @@ class WaitlistExpiredRejected extends BaseNotification
 
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_waitlist_expired_rejected', [
                 'game' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_waitlist_expired_rejected', [
                 'game' => $this->entity->name,
                 'attempts' => $this->confirmationAttempts,
@@ -40,7 +40,7 @@ class WaitlistExpiredRejected extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'waitlist_expired_rejected',
@@ -54,16 +54,13 @@ class WaitlistExpiredRejected extends BaseNotification
 
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.push_title_waitlist_expired_rejected'),
-            body: __('notifications.push_body_waitlist_expired_rejected', [
+        return $this->pushPayload(
+            __('notifications.push_title_waitlist_expired_rejected'),
+            __('notifications.push_body_waitlist_expired_rejected', [
                 'game' => $this->entity->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('games.index', ['locale' => $locale]),
-            tag: "waitlist-rejected-{$this->getEntityType()}-{$this->entity->id}",
+            route('games.index', ['locale' => $this->resolveLocale($notifiable)]),
+            "waitlist-rejected-{$this->getEntityType()}-{$this->entity->id}",
         );
     }
 
@@ -72,15 +69,12 @@ class WaitlistExpiredRejected extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_waitlist_expired_rejected'),
-            'url' => route('games.index', ['locale' => $locale]),
-            'description' => __('notifications.push_body_waitlist_expired_rejected', [
+        return $this->discordEmbed(
+            __('notifications.push_title_waitlist_expired_rejected'),
+            route('games.index', ['locale' => $this->resolveLocale($notifiable)]),
+            __('notifications.push_body_waitlist_expired_rejected', [
                 'game' => $this->entity->name,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

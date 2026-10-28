@@ -24,14 +24,14 @@ class AttendanceNudge extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $date = $this->game->date_time?->format('M j, Y') ?? '';
 
         return (new MailMessage)
             ->subject(__('notifications.subject_attendance_nudge', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_attendance_nudge', [
                 'game' => $this->game->name,
                 'date' => $date,
@@ -51,7 +51,7 @@ class AttendanceNudge extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'attendance_nudge',
@@ -81,20 +81,17 @@ class AttendanceNudge extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.category_attendance_nudge'),
-            body: __('notifications.push_body_attendance_nudge', [
+        return $this->pushPayload(
+            __('notifications.category_attendance_nudge'),
+            __('notifications.push_body_attendance_nudge', [
                 'game' => $this->game->name,
                 'deadline' => $this->deadline,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('games.show', [
-                'locale' => $locale,
+            route('games.show', [
+                'locale' => $this->resolveLocale($notifiable),
                 'id' => $this->game->id,
             ]),
-            tag: "attendance-nudge-{$this->game->id}",
+            "attendance-nudge-{$this->game->id}",
         );
     }
 
@@ -103,19 +100,16 @@ class AttendanceNudge extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.category_attendance_nudge'),
-            'url' => route('games.show', [
-                'locale' => $locale,
+        return $this->discordEmbed(
+            __('notifications.category_attendance_nudge'),
+            route('games.show', [
+                'locale' => $this->resolveLocale($notifiable),
                 'id' => $this->game->id,
             ]),
-            'description' => __('notifications.push_body_attendance_nudge', [
+            __('notifications.push_body_attendance_nudge', [
                 'game' => $this->game->name,
                 'deadline' => $this->deadline,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

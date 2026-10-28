@@ -24,14 +24,14 @@ class SessionAddedToCampaign extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $actionUrl = route('games.show', ['locale' => $locale, 'id' => $this->session]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_session_added_to_campaign', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_session_added_to_campaign', [
                 'campaign' => $this->campaign->name,
             ]))
@@ -46,7 +46,7 @@ class SessionAddedToCampaign extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'session_added_to_campaign',

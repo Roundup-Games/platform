@@ -25,14 +25,14 @@ class EntityCancelled extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $type = $this->getEntityType();
 
         $mail = (new MailMessage)
             ->subject(__("notifications.subject_{$type}_cancelled", [
                 $type => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]));
+            ->greeting($this->greetingLine($notifiable));
 
         // GameCancelled includes date in body; CampaignCancelled does not
         if ($type === 'game') {
@@ -64,7 +64,7 @@ class EntityCancelled extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $type = $this->getEntityType();
 
         $data = [
@@ -97,17 +97,15 @@ class EntityCancelled extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $type = $this->getEntityType();
 
-        return new PushPayload(
-            title: __("common.activity_type_{$type}_canceled"),
-            body: __("notifications.subject_{$type}_cancelled", [
+        return $this->pushPayload(
+            __("common.activity_type_{$type}_canceled"),
+            __("notifications.subject_{$type}_cancelled", [
                 $type => $this->entity->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
-            tag: "{$type}-cancelled-{$this->entity->id}",
+            route("{$type}s.show", ['locale' => $this->resolveLocale($notifiable), 'id' => $this->entity]),
+            "{$type}-cancelled-{$this->entity->id}",
         );
     }
 
@@ -116,16 +114,14 @@ class EntityCancelled extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $type = $this->getEntityType();
 
-        return DiscordWebhookPayload::embed([
-            'title' => __("common.activity_type_{$type}_canceled"),
-            'url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
-            'description' => __("notifications.subject_{$type}_cancelled", [
+        return $this->discordEmbed(
+            __("common.activity_type_{$type}_canceled"),
+            route("{$type}s.show", ['locale' => $this->resolveLocale($notifiable), 'id' => $this->entity]),
+            __("notifications.subject_{$type}_cancelled", [
                 $type => $this->entity->name,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

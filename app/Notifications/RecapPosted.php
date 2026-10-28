@@ -24,14 +24,14 @@ class RecapPosted extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_recap_posted', [
                 'host' => $this->author->name,
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_recap_posted', [
                 'host' => $this->author->name,
                 'game' => $this->game->name,
@@ -47,7 +47,7 @@ class RecapPosted extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'recap_posted',
@@ -72,17 +72,14 @@ class RecapPosted extends BaseNotification
      */
     public function toPush(User $notifiable): ?PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.push_title_recap_posted'),
-            body: __('notifications.subject_recap_posted', [
+        return $this->pushPayload(
+            __('notifications.push_title_recap_posted'),
+            __('notifications.subject_recap_posted', [
                 'host' => $this->author->name,
                 'game' => $this->game->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('games.show', ['locale' => $locale, 'id' => $this->game]),
-            tag: "recap-{$this->game->id}",
+            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            "recap-{$this->game->id}",
         );
     }
 
@@ -91,16 +88,13 @@ class RecapPosted extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_recap_posted'),
-            'url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
-            'description' => __('notifications.subject_recap_posted', [
+        return $this->discordEmbed(
+            __('notifications.push_title_recap_posted'),
+            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            __('notifications.subject_recap_posted', [
                 'host' => $this->author->name,
                 'game' => $this->game->name,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

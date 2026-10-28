@@ -27,7 +27,7 @@ class EntityInvitation extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $type = $this->getEntityType();
         $actionUrl = route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]);
 
@@ -35,7 +35,7 @@ class EntityInvitation extends BaseNotification
             ->subject(__("notifications.subject_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__("notifications.body_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
                 $type => $this->entity->name,
@@ -54,7 +54,7 @@ class EntityInvitation extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $type = $this->getEntityType();
 
         return [
@@ -80,18 +80,16 @@ class EntityInvitation extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $type = $this->getEntityType();
 
-        return new PushPayload(
-            title: __("notifications.category_{$type}_invitation"),
-            body: __("notifications.push_body_{$type}_invitation", [
+        return $this->pushPayload(
+            __("notifications.category_{$type}_invitation"),
+            __("notifications.push_body_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
                 $type => $this->entity->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
-            tag: "{$type}-invitation-{$this->entity->id}",
+            route("{$type}s.show", ['locale' => $this->resolveLocale($notifiable), 'id' => $this->entity]),
+            "{$type}-invitation-{$this->entity->id}",
         );
     }
 
@@ -100,17 +98,15 @@ class EntityInvitation extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $type = $this->getEntityType();
 
-        return DiscordWebhookPayload::embed([
-            'title' => __("notifications.category_{$type}_invitation"),
-            'url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
-            'description' => __("notifications.push_body_{$type}_invitation", [
+        return $this->discordEmbed(
+            __("notifications.category_{$type}_invitation"),
+            route("{$type}s.show", ['locale' => $this->resolveLocale($notifiable), 'id' => $this->entity]),
+            __("notifications.push_body_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
                 $type => $this->entity->name,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }
