@@ -5,15 +5,10 @@ namespace App\Livewire\Discovery;
 use App\Dto\DiscoveryFilters;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
-use App\Enums\VibeFlag;
 use App\Models\Campaign;
-use App\Models\Game;
-use App\Models\Location;
-use App\Models\User;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\View\View;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -80,58 +75,26 @@ class BoardGamesDiscovery extends Component
 
     public function toggleCategory(string $categoryId): void
     {
-        $index = array_search($categoryId, $this->category_ids, true);
-        if ($index !== false) {
-            unset($this->category_ids[$index]);
-            $this->category_ids = array_values($this->category_ids);
-        } else {
-            $this->category_ids[] = $categoryId;
-        }
+        $this->category_ids = DiscoveryFilters::toggleArrayValue($this->category_ids, $categoryId);
         $this->displayCount = 12;
     }
 
     public function toggleMechanic(string $mechanicId): void
     {
-        $index = array_search($mechanicId, $this->mechanic_ids, true);
-        if ($index !== false) {
-            unset($this->mechanic_ids[$index]);
-            $this->mechanic_ids = array_values($this->mechanic_ids);
-        } else {
-            $this->mechanic_ids[] = $mechanicId;
-        }
+        $this->mechanic_ids = DiscoveryFilters::toggleArrayValue($this->mechanic_ids, $mechanicId);
         $this->displayCount = 12;
     }
 
-    public function clearFilters(): void
+    /**
+     * Page-specific filter surface: shared base + board-game extras (date,
+     * category, mechanic) + city. safety_tools is deliberately absent — the
+     * board-game fork does not expose that filter.
+     *
+     * @return array<int, string>
+     */
+    protected function discoveryFilterSurface(): array
     {
-        $this->reset([
-            'search', 'game_system_id', 'experience_level', 'vibe_flags',
-            'language', 'price', 'complexity_min', 'complexity_max',
-            'date', 'category_ids', 'mechanic_ids', 'radius', 'city',
-        ]);
-        $this->usingFallbackRadius = false;
-        $this->displayCount = 12;
-        // Reset vibe preferences to neutral
-        foreach (VibeFlag::cases() as $flag) {
-            $this->vibePreferences[$flag->value] = null;
-        }
-    }
-
-    public function hasActiveFilters(): bool
-    {
-        return $this->search
-            || $this->game_system_id
-            || $this->experience_level
-            || ! empty($this->vibe_flags)
-            || ($this->language && $this->language !== app()->getLocale())
-            || $this->price
-            || $this->complexity_min
-            || $this->complexity_max
-            || $this->date
-            || ! empty($this->category_ids)
-            || ! empty($this->mechanic_ids)
-            || $this->radius > 0
-            || $this->city;
+        return DiscoveryFilters::SURFACE_BOARD_GAMES;
     }
 
     // ── Render ─────────────────────────────────────────
@@ -152,21 +115,17 @@ class BoardGamesDiscovery extends Component
         $service = app(DiscoveryQueryService::class);
         $user = Auth::user();
         $filters = DiscoveryFilters::fromLivewire($this);
-        $hasLocation = $this->hasGuestLocation();
-        $lat = $this->guestLat ?? null;
-        $lng = $this->guestLng ?? null;
 
-        // Fallback to the logged-in user's saved location when browser geolocation is unavailable
-        if (! $hasLocation && $user?->location_id) {
-            $userLocation = Location::find($user->location_id);
-            if ($userLocation) {
-                $lat = (float) $userLocation->latitude;
-                $lng = (float) $userLocation->longitude;
-                $hasLocation = true;
-            }
-        }
+        // Browser guest location, else the user's saved location (shared resolver)
+        [$lat, $lng, $hasLocation] = $this->resolveSearchOrigin();
 
-        $results = $this->getBoardGameResults($service, $filters, $user, $lat, $lng, $hasLocation);
+        // The service owns the boardgame pipeline end to end — boardgame
+        // scoping, the cap-aware candidate fetch with Gathering backfill,
+        // distance enrichment and pagination (M072 S03). The component keeps
+        // props, actions and loadMore only.
+        $feed = $service->results(DiscoveryQueryService::MODE_BOARD_GAMES, $filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->displayCount);
+        $results = $feed['results'];
+        $this->usingFallbackRadius = $feed['usingFallback'];
 
         // Cross-track hint: count active public TTRPG campaigns
         $adventureCount = Campaign::where('status', 'active')
@@ -174,74 +133,18 @@ class BoardGamesDiscovery extends Component
             ->whereHas('gameSystems', fn ($q) => $q->where('type', 'ttrpg'))
             ->count();
 
+        $curated = $service->curated(DiscoveryQueryService::MODE_BOARD_GAMES);
+
         return view('livewire.discovery.board-games-discovery', [
             'results' => $results,
             'recommendations' => $service->getRecommendations($user, 'boardgame'),
             'experienceLevels' => ExperienceLevel::cases(),
             'languages' => ContentLanguage::cases(),
-            'curatedCategories' => $service->getCuratedCategories(),
-            'curatedMechanics' => $service->getCuratedMechanics(),
+            'curatedCategories' => $curated['categories'],
+            'curatedMechanics' => $curated['mechanics'],
             'radiusOptions' => DiscoveryQueryService::RADIUS_OPTIONS,
             'hasLocation' => $hasLocation,
             'adventureCount' => $adventureCount,
         ]);
-    }
-
-    /**
-     * Build and paginate board-game-scoped results.
-     *
-     * Adds type=boardgame constraint so only board games appear
-     * on the board games discovery page (no TTRPG bleed-through).
-     *
-     * R048: Gatherings are capped per feed page, so the true DB paginate is
-     * replaced by a candidate fetch wide enough to backfill trimmed Gatherings
-     * before building the paginator over the capped slice.
-     *
-     * @return LengthAwarePaginator<int, Game>
-     */
-    protected function getBoardGameResults(DiscoveryQueryService $service, DiscoveryFilters $filters, ?User $user, ?float $lat, ?float $lng, bool $hasLocation): LengthAwarePaginator
-    {
-        $query = $service->buildGamesQuery(
-            $filters,
-            $user,
-            $this->radius,
-            $lat,
-            $lng,
-            $hasLocation,
-            $this->date,
-        );
-        $service->applySystemTypeScope($query, 'boardgame');
-
-        // Candidate fetch: the window plus a small surplus of focused games so
-        // trimmed Gathering slots can be backfilled. count() runs before take()
-        // so the LIMIT never contaminates the aggregate.
-        $maxPerSlice = $service->gatheringCapForWindow($this->displayCount);
-        $total = $query->count();
-        $candidates = $query->take($this->displayCount + $maxPerSlice * 2)->get()
-            ->each(fn ($game) => $game->discoverable_type = 'game');
-
-        // Eager-load every offered GameSystem for the page's multi-system
-        // Gatherings in ONE query so cards render the Gathering badge + all
-        // offered system chips without per-card N+1 (R048). belongsToMany
-        // eager-loading replaces the former manual batch resolver.
-        $candidates->loadMissing('gameSystems');
-
-        $capped = $service->applyGatheringCap($candidates->toBase(), $this->displayCount, $maxPerSlice);
-        $items = $capped['items'];
-
-        if ($this->radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
-            $service->enrichWithDistance($items, 'game', $lat, $lng, $this->radius, $this->usingFallbackRadius);
-        }
-
-        return new LengthAwarePaginator(
-            $items,
-            $total,
-            $this->displayCount,
-            LengthAwarePaginator::resolveCurrentPage(),
-            [
-                'path' => request()->url(),
-                'query' => request()->query(),
-            ],
-        );
     }
 }

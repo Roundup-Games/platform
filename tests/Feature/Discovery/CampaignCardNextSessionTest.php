@@ -140,13 +140,13 @@ describe('Campaign sort key with next session', function () {
             'date_time' => $sessionDateTime,
         ]);
 
-        // Drive the REAL sort-key computation via getMergedResults() — the
-        // method that decorates campaigns with discoverable_sort_key in
+        // Drive the REAL sort-key computation via results(MODE_ALL) — the
+        // entry point that decorates campaigns with discoverable_sort_key in
         // production. The previous version called buildCampaignsQuery() (which
         // returns raw campaigns without the sort key) and then manually
         // replicated the service's sort-key expression via ->each(), asserting
         // the value it had just computed (a tautology).
-        $result = $service->getMergedResults(new DiscoveryFilters, $this->owner, 0, null, null, false, null, null);
+        $result = $service->results(DiscoveryQueryService::MODE_ALL, new DiscoveryFilters, $this->owner, 0, null, null, false);
         $found = $result['results']->first(fn ($c) => $c->id === $campaign->id);
 
         expect($found)->not->toBeNull();
@@ -160,7 +160,7 @@ describe('Campaign sort key with next session', function () {
         $campaign = createPublicCampaign($this->owner, $this->gameSystem);
         // No sessions
 
-        $result = $service->getMergedResults(new DiscoveryFilters, $this->owner, 0, null, null, false, null, null);
+        $result = $service->results(DiscoveryQueryService::MODE_ALL, new DiscoveryFilters, $this->owner, 0, null, null, false);
         $found = $result['results']->first(fn ($c) => $c->id === $campaign->id);
 
         expect($found)->not->toBeNull();

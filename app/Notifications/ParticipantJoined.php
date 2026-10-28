@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class ParticipantJoined extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  User  $participant  The user who joined
      * @param  Game|Campaign  $entity  The Game or Campaign entity
@@ -28,7 +26,7 @@ class ParticipantJoined extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $actionUrl = $this->resolveEntityUrl($locale);
         $entityTypeLabel = $this->entityTypeLabel();
 
@@ -37,7 +35,7 @@ class ParticipantJoined extends BaseNotification
                 'participant' => $this->participant->name,
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_participant_joined', [
                 'participant' => $this->participant->name,
                 'entity_type' => $entityTypeLabel,
@@ -54,7 +52,7 @@ class ParticipantJoined extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'participant_joined',

@@ -1,14 +1,17 @@
 <?php
 
 use App\Enums\AttendanceStatus;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\CampaignParticipant;
+use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\ParticipantLifecycle;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 use Tests\Helpers\TestablePostHogClient;
 use Tests\Traits\CreatesGameInstances;
 
@@ -124,4 +127,132 @@ it('does not score attendance for campaign departures (campaign_participants has
     expect($row->removed_by)->toBe($player->id)
         ->and($row->removed_at)->not->toBeNull()
         ->and($row->status)->toBe(ParticipantStatus::Rejected);
+});
+
+// ── Departure cascade ownership (M072/S02) ────────────
+//
+// The cascade (waitlist promotion + below-min warning) is absorbed into
+// ParticipantLifecycle: depart() and removeParticipant() invoke
+// Roster::onDeparture themselves; seatless transitions never do.
+
+it('cascades on depart: promotes the next waitlisted player and warns below-min exactly once', function () {
+    $this->game->update(['min_players' => 3]);
+    $waitlistedUser = User::factory()->create(['profile_complete' => true]);
+    $waitlisted = GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $waitlistedUser->id,
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Waitlisted->value,
+        'waitlisted_at' => now(),
+    ]);
+
+    Log::spy();
+
+    app(ParticipantLifecycle::class)->depart($this->participant->fresh(), $this->player);
+
+    // The freed seat is offered to the next waitlisted player.
+    expect($waitlisted->fresh()->status)->toBe(ParticipantStatus::Pending);
+
+    // The cascade — including its below-min warnings — fired exactly once.
+    // A call site hand-sequencing Roster::onDeparture() after depart() would
+    // double-fire these (the double-cascade guard).
+    Log::shouldHaveReceived('warning')
+        ->with('game.below_min_players', Mockery::on(
+            fn (array $context): bool => $context['game_id'] === $this->game->id,
+        ))
+        ->once();
+    Log::shouldHaveReceived('warning')
+        ->with('waitlist.below_min_players', Mockery::on(
+            fn (array $context): bool => $context['game_id'] === $this->game->id,
+        ))
+        ->once();
+});
+
+it('cascades on removeParticipant: the next waitlisted player is promoted', function () {
+    $waitlistedUser = User::factory()->create(['profile_complete' => true]);
+    $waitlisted = GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $waitlistedUser->id,
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Waitlisted->value,
+        'waitlisted_at' => now(),
+    ]);
+
+    $result = app(ParticipantLifecycle::class)->removeParticipant(
+        $this->participant->fresh(),
+        $this->game,
+        $this->owner,
+    );
+
+    expect($result->success)->toBeTrue()
+        ->and($this->participant->fresh()->status)->toBe(ParticipantStatus::Removed)
+        ->and($waitlisted->fresh()->status)->toBe(ParticipantStatus::Pending);
+});
+
+it('does not cascade on application rejection — the waitlist is untouched', function () {
+    // Approved (owner + player) sits below the factory max, so an open slot
+    // exists: a wrongly fired departure cascade WOULD promote the waitlisted
+    // player. A Pending(Applicant) row occupies no seat — rejecting it frees
+    // nothing, so the cascade must not fire.
+    $applicant = User::factory()->create(['profile_complete' => true]);
+    $applicantRow = GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $applicant->id,
+        'role' => ParticipantRole::Applicant->value,
+        'status' => ParticipantStatus::Pending->value,
+    ]);
+    GameApplication::create([
+        'game_id' => $this->game->id,
+        'user_id' => $applicant->id,
+        'status' => ParticipantStatus::Pending->value,
+        'message' => null,
+    ]);
+    $waitlistedUser = User::factory()->create(['profile_complete' => true]);
+    $waitlisted = GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $waitlistedUser->id,
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Waitlisted->value,
+        'waitlisted_at' => now(),
+    ]);
+
+    $result = app(ParticipantLifecycle::class)->rejectApplication(
+        $applicantRow,
+        $this->game,
+        $this->owner,
+    );
+
+    expect($result->success)->toBeTrue()
+        ->and($applicantRow->fresh())->toBeNull()
+        ->and($waitlisted->fresh()->status)->toBe(ParticipantStatus::Waitlisted)
+        ->and($waitlisted->fresh()->removed_at)->toBeNull();
+});
+
+it('does not cascade on invitation decline — the waitlist is untouched', function () {
+    // Same seatless rule as rejectApplication: a Pending(Invited) row
+    // occupies no seat, so declining frees nothing despite the open slot.
+    $invitee = User::factory()->create(['profile_complete' => true]);
+    $invited = GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $invitee->id,
+        'role' => ParticipantRole::Invited->value,
+        'status' => ParticipantStatus::Pending->value,
+    ]);
+    $waitlistedUser = User::factory()->create(['profile_complete' => true]);
+    $waitlisted = GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $waitlistedUser->id,
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Waitlisted->value,
+        'waitlisted_at' => now(),
+    ]);
+
+    $result = app(ParticipantLifecycle::class)->declineInvitation($invited, $invitee);
+
+    // The decline is still audited (removed_by/removed_at via the internal
+    // departure write) — it just never triggers the cascade.
+    expect($result->success)->toBeTrue()
+        ->and($invited->fresh()->status)->toBe(ParticipantStatus::Rejected)
+        ->and($invited->fresh()->removed_by)->toBe($invitee->id)
+        ->and($waitlisted->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
 });

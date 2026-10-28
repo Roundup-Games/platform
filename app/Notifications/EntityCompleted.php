@@ -10,7 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class EntityCompleted extends BaseNotification
 {
-    use HasUnsubscribeLink;
     use RoutesGameOrCampaign;
 
     /**
@@ -25,14 +24,14 @@ class EntityCompleted extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $type = $this->getEntityType();
 
         return (new MailMessage)
             ->subject(__("notifications.subject_{$type}_completed", [
                 $type => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__("notifications.body_{$type}_completed", [
                 $type => $this->entity->name,
             ]))
@@ -47,7 +46,7 @@ class EntityCompleted extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $type = $this->getEntityType();
 
         return [

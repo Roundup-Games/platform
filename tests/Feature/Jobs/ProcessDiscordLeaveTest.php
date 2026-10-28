@@ -25,9 +25,10 @@ use Tests\TestCase;
  * card refresh → @original PATCH path is live, not mocked.
  *
  * The departure mirrors the web's GameDetail::leaveGame() exactly (one source
- * of truth): ParticipantLifecycle::depart() + Roster::onDeparture(). The
- * reliability/attendance implications of a Discord drop are identical to a
- * web drop — never a second path.
+ * of truth): ParticipantLifecycle::depart() — which also owns the departure
+ * cascade (waitlist promotion + below-min warning). The reliability and
+ * roster implications of a Discord drop are identical to a web drop — never
+ * a second path.
  */
 class ProcessDiscordLeaveTest extends TestCase
 {
@@ -80,6 +81,28 @@ class ProcessDiscordLeaveTest extends TestCase
         $this->assertSame(ParticipantStatus::Rejected, $participant->status);
         $this->assertSame($leaver->id, $participant->removed_by);
         $this->assertNotNull($participant->removed_at);
+    }
+
+    #[Test]
+    public function departure_runs_the_lifecycle_cascade_waitlist_promotion(): void
+    {
+        [$owner, $game, $leaver, $participant] = $this->gameWithApprovedParticipant();
+        $nextUser = User::factory()->create();
+        $waitlisted = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $nextUser->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Waitlisted->value,
+            'waitlisted_at' => now(),
+        ]);
+        Http::fake(fn (Request $r) => Http::response(['id' => 'orig'], 200));
+
+        $this->runJob($game->id, $leaver->id);
+
+        // depart() owns the departure cascade — the freed seat is offered to
+        // the next waitlisted player without the job hand-sequencing
+        // Roster::onDeparture() (which would fire the below-min warning twice).
+        $this->assertSame(ParticipantStatus::Pending, $waitlisted->fresh()->status);
     }
 
     #[Test]

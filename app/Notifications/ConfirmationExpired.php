@@ -11,7 +11,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class ConfirmationExpired extends BaseNotification
 {
-    use HasUnsubscribeLink, RoutesGameOrCampaign;
+    use RoutesGameOrCampaign;
 
     public function __construct(
         public Game|Campaign $entity,
@@ -19,13 +19,13 @@ class ConfirmationExpired extends BaseNotification
 
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_confirmation_expired', [
                 'game' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_confirmation_expired', [
                 'game' => $this->entity->name,
             ]))
@@ -38,7 +38,7 @@ class ConfirmationExpired extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'confirmation_expired',
@@ -51,16 +51,13 @@ class ConfirmationExpired extends BaseNotification
 
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.category_confirmation_expired'),
-            body: __('notifications.push_body_confirmation_expired', [
+        return $this->pushPayload(
+            __('notifications.category_confirmation_expired'),
+            __('notifications.push_body_confirmation_expired', [
                 'game' => $this->entity->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: $this->getEntityRoute($locale),
-            tag: "confirmation-expired-{$this->getEntityType()}-{$this->entity->id}",
+            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            "confirmation-expired-{$this->getEntityType()}-{$this->entity->id}",
         );
     }
 
@@ -69,15 +66,12 @@ class ConfirmationExpired extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.category_confirmation_expired'),
-            'url' => $this->getEntityRoute($locale),
-            'description' => __('notifications.push_body_confirmation_expired', [
+        return $this->discordEmbed(
+            __('notifications.category_confirmation_expired'),
+            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            __('notifications.push_body_confirmation_expired', [
                 'game' => $this->entity->name,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

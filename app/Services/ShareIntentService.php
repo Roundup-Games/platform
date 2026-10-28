@@ -2,17 +2,15 @@
 
 namespace App\Services;
 
-use App\Dto\OverflowStatus;
+use App\Dto\EntityMeta;
+use App\Dto\JoinIntent;
 use App\Dto\ShareIntentResult;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
+use App\Exceptions\SignupCutoffReached;
 use App\Models\Campaign;
-use App\Models\CampaignParticipant;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -23,13 +21,19 @@ use Illuminate\Support\Facades\Log;
 /**
  * Domain service for share-intent participant creation.
  *
- * Handles validating share tokens, resolving entity capacity, creating
- * participants with the correct status (approved/waitlisted/benched),
- * and determining the redirect target. Extracted from ProcessShareIntent
- * middleware so the logic is testable without HTTP.
+ * Handles validating share tokens, re-checking entity state under lock, and
+ * routing the participant write through the join intake
+ * ({@see ParticipantLifecycle::createOrReactivate()}) so overflow routing,
+ * approved_at stamping, the signup cutoff (D124), and the source-attributed
+ * join log are enforced uniformly across every join path. Extracted from
+ * ProcessShareIntent middleware so the logic is testable without HTTP.
  */
 class ShareIntentService
 {
+    public function __construct(
+        private readonly ParticipantLifecycle $participantLifecycle,
+    ) {}
+
     /**
      * Process a share-token intent for a game or campaign.
      *
@@ -95,7 +99,7 @@ class ShareIntentService
         }
 
         return $this->createParticipantForEntity(
-            $game, $user, 'game', JoinSource::ShareLink, null
+            $game, $user, JoinSource::ShareLink, null
         );
     }
 
@@ -120,7 +124,7 @@ class ShareIntentService
         }
 
         return $this->createParticipantForEntity(
-            $campaign, $user, 'campaign', JoinSource::ShareLink, null
+            $campaign, $user, JoinSource::ShareLink, null
         );
     }
 
@@ -158,7 +162,7 @@ class ShareIntentService
         }
 
         return $this->createParticipantForEntity(
-            $entity, $user, $entityType, JoinSource::ShortLink, $shortLink->id, true
+            $entity, $user, JoinSource::ShortLink, $shortLink->id, true
         );
     }
 
@@ -167,50 +171,61 @@ class ShareIntentService
     /**
      * Create a participant for the given entity with proper locking.
      *
-     * Handles: existing-participant detection, capacity-based status,
-     * concurrent-request protection via lockForUpdate, and unique constraint
-     * fallback for races lost before the lock.
+     * Handles: existing-participant detection, entity-active re-check under
+     * lock, concurrent-request protection via lockForUpdate, and unique
+     * constraint fallback for races lost before the lock. The row write
+     * itself routes through the join intake
+     * ({@see ParticipantLifecycle::createOrReactivate()}): the intake owns
+     * overflow routing ({@see OverflowRouter}), approved_at stamping, the
+     * reactivation reset base, and the source-attributed participant.joined
+     * log. Entity-type dispatch (participant class / foreign key / route)
+     * derives from {@see EntityMeta::fromEntity()} — no string switches.
      *
-     * @param  string  $entityType  'game' or 'campaign'
+     * The join is user-initiated, so the signup cutoff (D124) now applies on
+     * this path: a refused join resolves to a graceful no-op that still lands
+     * the user on the entity page (owner-visit parity), with no row written.
+     *
      * @param  int|null  $shortLinkId  Set when arriving via short link
      * @param  bool  $clearCookieOnInactive  Whether to clear cookie when entity is inactive
      */
     private function createParticipantForEntity(
         Game|Campaign $entity,
         User $user,
-        string $entityType,
         JoinSource $joinSource,
         ?int $shortLinkId,
         bool $clearCookieOnInactive = false,
     ): ShareIntentResult {
-        $route = $entityType === 'game' ? 'games.show' : 'campaigns.show';
-        $fkColumn = $entityType === 'game' ? 'game_id' : 'campaign_id';
-        $modelClass = $entityType === 'game' ? GameParticipant::class : CampaignParticipant::class;
+        $meta = EntityMeta::fromEntity($entity);
+        $route = $meta->isCampaign() ? 'campaigns.show' : 'games.show';
+        $key = $entity->getKey();
+        $entityId = is_string($key) || is_int($key) ? (string) $key : null;
 
-        // Pre-lock check: already a participant?
-        $existing = $modelClass::where($fkColumn, $entity->getKey())
+        // Pre-lock check: already a participant? Any existing row for the
+        // user short-circuits — the intake is only reached for new joins.
+        $existing = $meta->participantClass::where($meta->foreignKey, $key)
             ->whereBelongsTo($user)
             ->first();
 
         if ($existing) {
             Log::info('share_intent.already_participant', [
-                'user_id' => $user->id, 'entity_type' => $entityType,
-                'entity_id' => $entity->getKey(), 'existing_status' => $existing->status->value ?? '',
+                'user_id' => $user->id, 'entity_type' => $meta->type,
+                'entity_id' => $key, 'existing_status' => $existing->status->value ?? '',
             ]);
 
-            return new ShareIntentResult(true, $route, entityId: is_string($k = $entity->getKey()) || is_int($k) ? (string) $k : null);
+            return new ShareIntentResult(true, $route, entityId: $entityId);
         }
 
-        // Wrap participant creation in a transaction with lockForUpdate
-        $status = null;
+        // Wrap participant creation in a transaction with lockForUpdate —
+        // the intake reads capacity post-lock inside this transaction.
+        $created = false;
 
         try {
-            DB::transaction(function () use ($entity, $user, $entityType, $joinSource, $shortLinkId, $fkColumn, $modelClass, &$status) {
+            DB::transaction(function () use ($entity, $user, $joinSource, $shortLinkId, $meta, &$created) {
                 /** @var Game|Campaign $lockedEntity */
                 $lockedEntity = $entity->lockForUpdate()->findOrFail($entity->getKey());
 
                 // Check entity is still active
-                $terminalStatuses = $entityType === 'game'
+                $terminalStatuses = $lockedEntity instanceof Game
                     ? [GameStatus::Completed, GameStatus::Canceled]
                     : [CampaignStatus::Cancelled, CampaignStatus::Completed];
 
@@ -218,82 +233,51 @@ class ShareIntentService
 
                 if (in_array($currentStatus, $terminalStatuses, true)) {
                     Log::warning('share_intent.entity_inactive', [
-                        'user_id' => $user->id, 'entity_type' => $entityType,
+                        'user_id' => $user->id, 'entity_type' => $meta->type,
                         'entity_id' => $lockedEntity->getKey(), 'status' => $currentStatus->value,
                     ]);
 
                     return;
                 }
 
-                // Re-check under lock
-                $alreadyExists = $modelClass::where($fkColumn, $lockedEntity->getKey())
+                // Re-check under lock: a concurrent request may have created
+                // the row between the pre-lock check and lock acquisition.
+                $alreadyExists = $meta->participantClass::where($meta->foreignKey, $lockedEntity->getKey())
                     ->whereBelongsTo($user)
                     ->exists();
 
                 if ($alreadyExists) {
-                    $status = ParticipantStatus::Approved;
+                    $created = true;
 
                     return;
                 }
 
-                $resolved = $this->determineStatus($lockedEntity);
+                $this->participantLifecycle->createOrReactivate(
+                    JoinIntent::join($lockedEntity, $user, $joinSource, $shortLinkId)
+                );
 
-                // determineStatus returns OverflowStatus (bench/waitlist) when the
-                // entity is full, or Approved when not. Both carry the status +
-                // timestamp needed for the participant-data builder.
-                $isOverflow = $resolved instanceof OverflowStatus;
-                $status = $isOverflow ? $resolved->status : $resolved;
-
-                $participantData = [
-                    $fkColumn => $lockedEntity->getKey(),
-                    'user_id' => $user->id,
-                    'role' => ParticipantRole::Player->value,
-                    'status' => $status,
-                    'join_source' => $joinSource,
-                ];
-
-                if ($shortLinkId !== null) {
-                    $participantData['short_link_id'] = $shortLinkId;
-                }
-
-                if ($isOverflow) {
-                    $participantData[$resolved->timestampColumn] = now();
-                } elseif ($status === ParticipantStatus::Approved) {
-                    // Stamp approved_at on game participants so LIFO
-                    // capacity-demotion ordering is correct for direct share
-                    // joins — without this, the demote query's
-                    // `approved_at IS NULL ASC` ordering would shield these
-                    // players from demotion (MEM: stamp every Approved
-                    // transition). Campaign participants have no approved_at
-                    // column (capacity demotion is Game-scoped), so guard on
-                    // the model class rather than mass-assigning blindly.
-                    if ($modelClass === GameParticipant::class) {
-                        $participantData['approved_at'] = now();
-                    }
-                }
-
-                $modelClass::create($participantData);
-
-                Log::info('share_intent.participant_created', [
-                    'user_id' => $user->id, 'entity_type' => $entityType,
-                    'entity_id' => $lockedEntity->getKey(), 'status' => $status->value,
-                    'join_source' => $joinSource->value, 'short_link_id' => $shortLinkId,
-                ]);
+                $created = true;
             });
+        } catch (SignupCutoffReached) {
+            // D124 cutoff refused the join (logged by the intake as
+            // participant.join_refused) — no row was written. Graceful no-op:
+            // land the user on the entity page like an owner visit so the
+            // cookie is consumed rather than retried on every request.
+            return new ShareIntentResult(true, $route, entityId: $entityId);
         } catch (QueryException $e) {
             Log::warning('share_intent.duplicate_participant', [
-                'user_id' => $user->id, 'entity_type' => $entityType,
-                'entity_id' => $entity->getKey(), 'error' => $e->getMessage(),
+                'user_id' => $user->id, 'entity_type' => $meta->type,
+                'entity_id' => $key, 'error' => $e->getMessage(),
             ]);
 
-            return new ShareIntentResult(true, $route, entityId: is_string($k = $entity->getKey()) || is_int($k) ? (string) $k : null);
+            return new ShareIntentResult(true, $route, entityId: $entityId);
         }
 
-        if ($status === null) {
+        if (! $created) {
             return new ShareIntentResult(false, null, shouldClearCookie: $clearCookieOnInactive);
         }
 
-        return new ShareIntentResult(true, $route, entityId: is_string($k = $entity->getKey()) || is_int($k) ? (string) $k : null);
+        return new ShareIntentResult(true, $route, entityId: $entityId);
     }
 
     // ── Helpers ─────────────────────────────────────────────
@@ -322,24 +306,6 @@ class ShareIntentService
         }
 
         return true;
-    }
-
-    /**
-     * Resolve participant status based on entity capacity.
-     *
-     * Routed through OverflowStatus::for($entity->isBenchMode()) — the single
-     * source of truth: bench when bench_mode=true, waitlist otherwise. Returns
-     * Approved when the entity is not full.
-     */
-    private function determineStatus(Game|Campaign $entity): OverflowStatus|ParticipantStatus
-    {
-        $approvedCount = app(ParticipantService::class)->getApprovedParticipantCount($entity);
-
-        if ($entity->max_players && $approvedCount >= $entity->max_players) {
-            return OverflowStatus::for($entity->isBenchMode());
-        }
-
-        return ParticipantStatus::Approved;
     }
 
     /**

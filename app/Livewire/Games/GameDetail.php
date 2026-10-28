@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Games;
 
+use App\Dto\CapacityUpdateResult;
 use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
@@ -18,10 +19,9 @@ use App\Services\AttendanceService;
 use App\Services\CapacityService;
 use App\Services\Charter\CharterSigningService;
 use App\Services\DebriefingService;
-use App\Services\OverflowRouter;
+use App\Services\GameJoinGate;
 use App\Services\ParticipantLifecycle;
 use App\Services\ReviewEligibilityService;
-use App\Services\Roster;
 use App\Services\ShareLinkJoinService;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
@@ -37,8 +37,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -407,189 +405,94 @@ class GameDetail extends Component
         }
     }
 
-    // ── Host-initiated removal (game-specific override) ──
-
-    public function removeParticipant(string $participantId): void
-    {
-        $this->authorize('update', $this->game);
-
-        $participant = $this->findParticipantOrFail($participantId);
-        $entity = $this->game;
-
-        $result = app(ParticipantLifecycle::class)->removeParticipant(
-            $participant,
-            $entity,
-            authenticatedUser(),
-        );
-
-        if (! $result->success && $result->errorKey) {
-            session()->flash('error', __($result->errorKey, $result->errorParams));
-
-            return;
-        }
-
-        // Promote from waitlist + warn host if below min_players
-        app(Roster::class)->onDeparture($entity);
-
-        session()->flash('success', __($result->messageKey, $result->messageParams));
-    }
-
     // ── Capacity adjustment (host affordance) ──────────
 
     /**
-     * Host-driven max_players change.
+     * Host-driven max_players change — pure orchestration over
+     * {@see CapacityService::update()}, which owns the validation rules,
+     * the terminal-state guard, and the three-way branch (increase /
+     * silent decrease / two-phase-confirm demotion).
      *
-     * Mirrors removeParticipant(): authorize('update'), then route to the
-     * CapacityService branch matching the request shape:
-     *  - increase → auto-promote waitlisted players to Pending;
-     *  - silent decrease (newMax >= approved count) → pure limit tightening;
-     *  - decrease below approved count → two-phase confirm. The first call
-     *    (no reason / flag unset) computes a preview and arms the confirm
-     *    modal; the confirming call (reason + flag set) runs the LIFO demote.
-     *
-     * The server NEVER authorises off the client-side preview snapshot —
-     * {@see CapacityService::demote()} recomputes the displaced set under a
-     * lockForUpdate transaction (defense against modal bypass / stale preview).
+     * This method keeps ONLY the Livewire surface effects: authorize,
+     * deciding whether this is the confirming call of an armed modal, and
+     * mapping the {@see CapacityUpdateResult} to field errors / flash /
+     * confirm-modal state. The server NEVER authorises off the client-side
+     * preview snapshot — {@see CapacityService::demote()} recomputes the
+     * displaced set under a lockForUpdate transaction (defense against modal
+     * bypass / stale preview).
      */
     public function updateCapacity(int $newMax, ?string $reason = null): void
     {
         $this->authorize('update', $this->game);
 
-        // GUARD — no capacity edits after completion or attendance resolution.
-        if ($this->game->status === GameStatus::Completed
-            || $this->game->attendance_resolved_at !== null) {
-            session()->flash('error', __('games.error_capacity_game_completed'));
+        // A confirming call requires BOTH a non-empty (trimmed) reason and
+        // the armed confirm flag — everything else (re-)arms the modal.
+        $confirmed = trim((string) $reason) !== ''
+            && $this->confirmingCapacityDecrease === 'capacity-decrease';
+
+        $result = app(CapacityService::class)
+            ->update($this->game, $newMax, authenticatedUser(), $reason, $confirmed);
+
+        match ($result->outcome) {
+            // First call of a below-approved decrease — arm the confirm modal.
+            CapacityUpdateResult::NEEDS_CONFIRMATION => $this->armCapacityDecrease($newMax),
+
+            // newMax equals the current max — nothing changed, just disarm.
+            CapacityUpdateResult::UNCHANGED => $this->clearCapacityConfirmState(),
+
+            // Validation failures. A bad reason keeps the modal armed (the
+            // host edits the textarea in place); a bad max disarms it.
+            CapacityUpdateResult::INVALID_MAX => $this->applyCapacityError($result, clearConfirm: true),
+            CapacityUpdateResult::INVALID_REASON => $this->applyCapacityError($result, clearConfirm: false),
+
+            // Terminal-state refusal (completed / attendance resolved).
+            CapacityUpdateResult::REFUSED => $this->refuseCapacityChange($result),
+
+            // Applied changes (increased / decreased / demoted) — refresh
+            // computed props and flash the service-chosen message.
+            default => $this->applyCapacityChange($result),
+        };
+    }
+
+    /**
+     * Arm the two-phase capacity-decrease confirm modal for $newMax.
+     */
+    private function armCapacityDecrease(int $newMax): void
+    {
+        $this->pendingNewMax = $newMax;
+        $this->confirmingCapacityDecrease = 'capacity-decrease';
+        $this->confirmingAction = 'capacity-decrease';
+    }
+
+    /**
+     * Surface a field-level validation failure from the service result.
+     */
+    private function applyCapacityError(CapacityUpdateResult $result, bool $clearConfirm): void
+    {
+        $this->addError($result->errorField(), __($result->errorKey));
+
+        if ($clearConfirm) {
             $this->clearCapacityConfirmState();
-
-            return;
         }
+    }
 
-        // Validate newMax — integer, within CreateGame parity range.
-        // Explicitly reject 0: HasCapacity treats 0 as unlimited, so a host
-        // sending 0 would silently flip a bounded game to unlimited.
-        if ($newMax === 0) {
-            $this->addError('capacityNewMax', __('games.error_capacity_zero_invalid'));
-            $this->clearCapacityConfirmState();
+    /**
+     * Surface a terminal-state refusal (error flash, confirm state cleared).
+     */
+    private function refuseCapacityChange(CapacityUpdateResult $result): void
+    {
+        session()->flash('error', __($result->errorKey));
+        $this->clearCapacityConfirmState();
+    }
 
-            return;
-        }
-
-        $validator = Validator::make(
-            ['capacityNewMax' => $newMax],
-            ['capacityNewMax' => ['required', 'integer', 'min:2', 'max:30']],
-            [
-                'capacityNewMax.required' => __('games.error_capacity_range'),
-                'capacityNewMax.integer' => __('games.error_capacity_range'),
-                'capacityNewMax.min' => __('games.error_capacity_range'),
-                'capacityNewMax.max' => __('games.error_capacity_range'),
-            ],
-        );
-
-        if ($validator->fails()) {
-            foreach ($validator->errors()->get('capacityNewMax') as $message) {
-                $this->addError('capacityNewMax', $message);
-            }
-            $this->clearCapacityConfirmState();
-
-            return;
-        }
-
-        // Reject newMax below the game's min_players — reuses the existing key
-        // so the message is consistent with the create/edit flows.
-        if ($newMax < (int) $this->game->min_players) {
-            $this->addError('capacityNewMax', __('games.error_min_players_cannot_exceed_max_players'));
-            $this->clearCapacityConfirmState();
-
-            return;
-        }
-
-        $service = app(CapacityService::class);
-        $reason = trim((string) $reason);
-
-        // INCREASE path.
-        if ($newMax > (int) $this->game->max_players) {
-            $result = $service->increase($this->game, $newMax);
-
-            $this->refreshAfterCapacityChange();
-            session()->flash('success', $this->increaseFlash($result->newMax ?? $newMax, $result->promotedCount));
-            $this->clearCapacityConfirmState();
-
-            return;
-        }
-
-        // No change.
-        if ($newMax === (int) $this->game->max_players) {
-            $this->clearCapacityConfirmState();
-
-            return;
-        }
-
-        // DECREASE path. previewDemotion() is a pure read — use it to decide
-        // silent vs. demote without a second locked transaction.
-        $preview = $service->previewDemotion($this->game, $newMax);
-
-        // Silent decrease (above/equal approved count) — no roster change.
-        // Guard with requestedDisplaced === 0 (not just actualDemotionCount === 0)
-        // because the all-exempt overflow case (requested > 0, demotable = 0)
-        // would call decrease() with newMax < approvedCount and hit
-        // DemotionRequiresConfirmation uncaught. In that case, fall through to
-        // the confirm flow so the host sees the preview and demote() runs.
-        if ($preview->actualDemotionCount === 0 && $preview->requestedDisplaced === 0) {
-            $service->decrease($this->game, $newMax);
-            $this->refreshAfterCapacityChange();
-            session()->flash('success', __('games.flash_capacity_decreased', ['max' => $newMax]));
-            $this->clearCapacityConfirmState();
-
-            return;
-        }
-
-        // Below-approved decrease — requires explicit confirmation.
-        // First call (no reason / flag unset): arm the modal with the preview.
-        if ($reason === '' || $this->confirmingCapacityDecrease !== 'capacity-decrease') {
-            $this->pendingNewMax = $newMax;
-            $this->confirmingCapacityDecrease = 'capacity-decrease';
-            $this->confirmingAction = 'capacity-decrease';
-
-            return;
-        }
-
-        // Confirming call (reason provided + flag set): run the demote. demote()
-        // recomputes the displaced set under lock — it never trusts the
-        // preview snapshot, so a stale/bypassed modal cannot corrupt state.
-        //
-        // Validate the reason before dispatching: it is persisted into the
-        // notifications.data JSON, rendered in email, and sent as a push body,
-        // so cap it (parity with attendanceReports.*.reason -> max:500) to keep
-        // notification row/payload sizes bounded.
-        $reasonValidator = Validator::make(
-            ['capacityReason' => $reason],
-            ['capacityReason' => ['required', 'string', 'max:500']],
-            [
-                'capacityReason.required' => __('games.error_capacity_reason_required'),
-                'capacityReason.max' => __('games.error_capacity_reason_too_long'),
-            ],
-        );
-
-        if ($reasonValidator->fails()) {
-            foreach ($reasonValidator->errors()->get('capacityReason') as $message) {
-                $this->addError('capacityReason', $message);
-            }
-
-            return;
-        }
-
-        try {
-            $result = $service->demote($this->game, $newMax, $reason, authenticatedUser());
-        } catch (\DomainException $e) {
-            // Game became completed/resolved between preview and confirm.
-            session()->flash('error', __('games.error_capacity_game_completed'));
-            $this->clearCapacityConfirmState();
-
-            return;
-        }
-
+    /**
+     * Surface an applied capacity change (refresh computed props, success
+     * flash from the service-chosen key, confirm state cleared).
+     */
+    private function applyCapacityChange(CapacityUpdateResult $result): void
+    {
         $this->refreshAfterCapacityChange();
-        session()->flash('success', $this->demoteFlash($newMax, $result->demotedCount));
+        session()->flash('success', __($result->flashKey, $result->flashParams));
         $this->clearCapacityConfirmState();
     }
 
@@ -625,27 +528,6 @@ class GameDetail extends Component
         );
     }
 
-    private function increaseFlash(int $newMax, int $promotedCount): string
-    {
-        if ($promotedCount > 1) {
-            return __('games.flash_capacity_increased_many', ['max' => $newMax, 'count' => $promotedCount]);
-        }
-        if ($promotedCount === 1) {
-            return __('games.flash_capacity_increased_one', ['max' => $newMax]);
-        }
-
-        return __('games.flash_capacity_increased_none', ['max' => $newMax]);
-    }
-
-    private function demoteFlash(int $newMax, int $demotedCount): string
-    {
-        if ($demotedCount > 1) {
-            return __('games.flash_capacity_demoted_many', ['max' => $newMax, 'count' => $demotedCount]);
-        }
-
-        return __('games.flash_capacity_demoted_one', ['max' => $newMax]);
-    }
-
     // ── Self-service leave ─────────────────────────────
 
     public function leaveGame(): void
@@ -673,9 +555,6 @@ class GameDetail extends Component
         }
 
         app(ParticipantLifecycle::class)->depart($participant, $user);
-
-        // Promote from waitlist + warn host if below min_players
-        app(Roster::class)->onDeparture($this->game);
 
         // Refresh computed properties
         unset($this->isParticipant, $this->isApprovedParticipant, $this->isGameFull);
@@ -779,55 +658,121 @@ class GameDetail extends Component
         session()->flash('success', __('common.flash_share_link_generated'));
     }
 
-    // ── Join via Share Link ────────────────────────────
+    // ── Direct join (share link / Discord) ────────────
 
+    /**
+     * Join via a still-valid share token or short link. The pipeline —
+     * guards, lock-guarded join write, flash/computed surface effects — is
+     * shared with the Discord affordance in {@see attemptDirectJoin()}; this
+     * surface only contributes the arrival credential, the source
+     * attribution, and the success hook that clears the intent cookies.
+     */
     public function joinViaShareLink(): void
     {
+        $this->attemptDirectJoin(
+            source: $this->validatedShortLinkId !== null ? JoinSource::ShortLink : JoinSource::ShareLink,
+            eligible: $this->canJoinViaShareLink(),
+            errorBag: 'share_link',
+            shortLinkId: $this->validatedShortLinkId,
+            shareToken: $this->validatedShareToken,
+            onJoined: fn () => $this->clearJoinIntentCookies(),
+        );
+    }
+
+    /**
+     * Join from a Discord "My seat" intent (M059/S02). Same shared pipeline
+     * ({@see ShareLinkJoinService} — same lock, capacity re-check, overflow
+     * routing and approved_at stamping) minus the share-token / short-link
+     * requirement (the member arrived via the Discord on-ramp), attributed
+     * JoinSource::Discord so the acquisition funnel is measured. Driven
+     * either by the auto-trigger on mount (?discord_join=1 +
+     * canJoinViaDiscord) or by an explicit Join button.
+     */
+    public function joinViaDiscord(): void
+    {
+        $this->attemptDirectJoin(
+            source: JoinSource::Discord,
+            eligible: $this->canJoinViaDiscord(),
+            errorBag: 'discord_join',
+            onJoined: fn () => app(DiscordJoinIntent::class)->consume(request()),
+        );
+    }
+
+    /**
+     * The single direct-join pipeline behind both join buttons. Guard order
+     * is signup cutoff (D124, surfaced with its specific message) → surface
+     * eligibility ({@see GameJoinGate}, injected as $eligible by the caller)
+     * → rate limit ({@see GameJoinGate}, the only rate-limit site) → the
+     * lock-guarded write in {@see ShareLinkJoinService}, which owns the
+     * capacity re-check and overflow routing (waitlist/bench). Only Livewire
+     * surface effects live here: flash, the per-surface success hook, and
+     * computed unsets.
+     *
+     * @param  bool  $eligible  surface eligibility, gate-derived by the caller
+     * @param  (callable(): mixed)|null  $onJoined  per-surface success hook (return ignored)
+     */
+    private function attemptDirectJoin(
+        JoinSource $source,
+        bool $eligible,
+        string $errorBag,
+        ?callable $onJoined = null,
+        ?int $shortLinkId = null,
+        ?string $shareToken = null,
+    ): void {
         $viewer = authenticatedUser();
 
         // Signup cutoff (decision D124). Surface the specific message rather
         // than the generic not-authorized flash so a member hitting a closed
-        // signup knows why. Mirrors the web-apply gate; re-checked implicitly
-        // via canJoinViaShareLink (which also returns false once the cutoff
-        // passes) so the Join button is hidden as well.
+        // signup knows why. The gate would refuse too, so the Join button is
+        // hidden as well once computeds refresh.
         if ($this->game->signupHasClosed()) {
             session()->flash('error', __('games.error_signup_closed'));
 
             return;
         }
 
-        if (! $this->canJoinViaShareLink()) {
+        if (! $eligible) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
         }
 
-        $rateLimitKey = 'share-join:'.$viewer->id.':'.$this->game->id;
-        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+        $gate = app(GameJoinGate::class);
+
+        $allowed = $source === JoinSource::Discord
+            ? $gate->allowsDiscordJoinAttempt($this->game, $viewer)
+            : $gate->allowsShareJoinAttempt($this->game, $viewer);
+
+        if (! $allowed) {
             session()->flash('error', __('common.error_rate_limit'));
 
             return;
         }
-        RateLimiter::hit($rateLimitKey, 60);
-
-        $shortLinkId = $this->validatedShortLinkId;
 
         try {
             $overflowFlash = $this->shareLinkJoinService()->join(
                 $this->game,
                 $viewer,
-                $shortLinkId !== null ? JoinSource::ShortLink : JoinSource::ShareLink,
+                $source,
                 $shortLinkId,
-                $this->validatedShareToken,
+                $shareToken,
             );
 
-            // Clear the intent cookies since the user has now joined
-            Cookie::queue(Cookie::forget('share_intent'));
-            Cookie::queue(Cookie::forget('short_link_intent'));
+            // Joined — run the per-surface hook so the arrival intent
+            // (cookies / Discord intent) cannot replay on a later visit.
+            if ($onJoined !== null) {
+                $onJoined();
+            }
 
-            // Reload game to reflect new participant
+            // Reload roster to reflect the new participant.
             $this->game->load('participants.user');
-            unset($this->isParticipant, $this->isGameFull, $this->canApply, $this->canJoinWaitlist);
+            unset(
+                $this->isParticipant,
+                $this->isGameFull,
+                $this->canApply,
+                $this->canJoinWaitlist,
+                $this->canJoinViaDiscord,
+            );
 
             session()->flash(
                 'success',
@@ -836,214 +781,64 @@ class GameDetail extends Component
                     : __('games.flash_joined_game_via_share_link')
             );
         } catch (\Throwable $e) {
-            Log::error('Failed to join via share link', [
+            Log::error('Direct join failed', [
                 'game_id' => $this->game->id,
                 'user_id' => $viewer->id,
+                'source' => $source->value,
                 'error' => $e->getMessage(),
             ]);
+
             throw ValidationException::withMessages([
-                'share_link' => [__('games.error_join_game_via_share_link_failed')],
+                $errorBag => [__('games.error_join_game_via_share_link_failed')],
             ]);
         }
     }
 
     /**
-     * Join the game from a Discord "My seat" intent (M059/S02).
-     *
-     * Same pipeline as joinViaShareLink() (ShareLinkJoinService) — same lock,
-     * capacity re-check, overflow routing and approved_at stamping — minus the
-     * share-token / short-link requirement (the member arrived via the Discord
-     * on-ramp, not a share link) and attributed JoinSource::Discord so the
-     * acquisition funnel is measured. Driven either by the auto-trigger on
-     * mount (?discord_join=1 + canJoinViaDiscord) or by an explicit Join button.
+     * Clear the arrival-intent cookies after a successful share-link /
+     * short-link join — the member has joined, so the intent must not
+     * replay on a later visit.
      */
-    public function joinViaDiscord(): void
+    private function clearJoinIntentCookies(): void
     {
-        $viewer = authenticatedUser();
-
-        if ($this->game->signupHasClosed()) {
-            session()->flash('error', __('games.error_signup_closed'));
-
-            return;
-        }
-
-        if (! $this->canJoinViaDiscord()) {
-            session()->flash('error', __('common.error_not_authorized'));
-
-            return;
-        }
-
-        $rateLimitKey = 'discord-join:'.$viewer->id.':'.$this->game->id;
-        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
-            session()->flash('error', __('common.error_rate_limit'));
-
-            return;
-        }
-        RateLimiter::hit($rateLimitKey, 60);
-
-        try {
-            $overflowFlash = $this->shareLinkJoinService()->join(
-                $this->game,
-                $viewer,
-                JoinSource::Discord,
-            );
-
-            // The intent has been fulfilled — clear it so a later visit to this
-            // or another game does not replay the join.
-            app(DiscordJoinIntent::class)->consume(request());
-
-            $this->game->load('participants.user');
-            unset($this->isParticipant, $this->isGameFull, $this->canApply, $this->canJoinWaitlist, $this->canJoinViaDiscord);
-
-            session()->flash(
-                'success',
-                $overflowFlash !== null
-                    ? __($overflowFlash->messageKey, $overflowFlash->messageParams)
-                    : __('games.flash_joined_game_via_share_link')
-            );
-        } catch (\Throwable $e) {
-            Log::error('Failed to join via Discord intent', [
-                'game_id' => $this->game->id,
-                'user_id' => $viewer->id,
-                'error' => $e->getMessage(),
-            ]);
-            throw ValidationException::withMessages([
-                'discord_join' => [__('games.error_join_game_via_share_link_failed')],
-            ]);
-        }
+        Cookie::queue(Cookie::forget('share_intent'));
+        Cookie::queue(Cookie::forget('short_link_intent'));
     }
 
-    /**
-     * Whether the viewer can join this game directly from a Discord "My seat"
-     * intent (M059/S02).
-     *
-     * Mirrors the linked-member Discord button ({@see ProcessDiscordRsvp}):
-     * instant join for public games, which auto-approve on the web Apply path
-     * Public games auto-approve on the web Apply path too
-     * ({@see HandlesApplicationSubmission} sets participant + application to
-     * 'approved' only when visibility is public), so there is no screening
-     * bypass for PUBLIC games — the Discord path simply attributes
-     * JoinSource::Discord and skips the ceremonial GameApplication row.
-     *
-     * PROTECTED games are screened on the web path (participant 'pending',
-     * application 'pending', owner approval required). Because ?discord_join=1
-     * is a FORGEABLE query param, a visibility gate here is load-bearing: it
-     * mirrors {@see DiscordJoinController} (Game::public()) and the card
-     * publisher (public only) and prevents a viewer who can load a protected
-     * game (friend / teammate / short-link holder) from bypassing the owner's
-     * screening gate by appending the flag. Same remaining guards as
-     * {@see canJoinViaShareLink()} MINUS the share-token / short-link
-     * requirement. Full games route to the OverflowRouter (waitlist/bench)
-     * inside joinViaDiscord().
-     */
     protected function shareLinkJoinService(): ShareLinkJoinService
     {
         return app(ShareLinkJoinService::class);
     }
 
+    /**
+     * Whether the viewer can join this game directly from a Discord "My seat"
+     * intent (M059/S02). The public-visibility gate and the shared eligibility
+     * predicate live in {@see GameJoinGate::canJoinViaDiscord()} — see its
+     * docblock for the screening-bypass rationale (?discord_join=1 is
+     * forgeable, protected games are screened on the web Apply path).
+     */
     #[Computed]
     public function canJoinViaDiscord(): bool
     {
-        $viewer = Auth::user();
-
-        if ($viewer === null) {
-            return false;
-        }
-
-        // Only PUBLIC games — see the docblock for the screening-bypass rationale.
-        if ($this->game->visibility !== Visibility::Public) {
-            return false;
-        }
-
-        // Cannot be the owner.
-        if ((string) $this->game->owner_id === (string) $viewer->id) {
-            return false;
-        }
-
-        // Cannot already be an active (or removed) participant.
-        $existingParticipant = $this->game->participants
-            ->first(fn ($p) => $p->user_id === $viewer->id
-                && in_array($p->status?->value, [
-                    ParticipantStatus::Approved->value,
-                    ParticipantStatus::Pending->value,
-                    ParticipantStatus::Waitlisted->value,
-                    ParticipantStatus::Benched->value,
-                    ParticipantStatus::Removed->value,
-                ]));
-
-        if ($existingParticipant) {
-            return false;
-        }
-
-        // Game must not be completed or canceled.
-        if (in_array($this->game->status?->value, [GameStatus::Completed->value, GameStatus::Canceled->value])) {
-            return false;
-        }
-
-        // Signup cutoff (D124).
-        if ($this->game->signupHasClosed()) {
-            return false;
-        }
-
-        return true;
+        return app(GameJoinGate::class)->canJoinViaDiscord($this->game, Auth::user());
     }
 
+    /**
+     * Whether the viewer may join via a still-valid share token or short
+     * link. Credential validation (mount-time query-param capture /
+     * ph_link_id cookie) stays in the component; the eligibility predicate —
+     * ownership, participant status, game status, signup cutoff (D124) —
+     * lives in {@see GameJoinGate::canJoinViaShareLink()}.
+     */
     #[Computed]
     public function canJoinViaShareLink(): bool
     {
-        $viewer = Auth::user();
-
-        if ($viewer === null) {
-            return false;
-        }
-
-        // Must have either a valid share token or a valid short link
-        $hasShareToken = $this->isShareTokenStillValid();
-
-        $hasShortLink = $this->isShortLinkStillValid();
-
-        if (! $hasShareToken && ! $hasShortLink) {
-            return false;
-        }
-
-        // Cannot be the owner
-        if ((string) $this->game->owner_id === (string) $viewer->id) {
-            return false;
-        }
-
-        // Cannot already be a participant
-        $existingParticipant = $this->game->participants
-            ->first(fn ($p) => $p->user_id === $viewer->id
-                && in_array($p->status?->value, [
-                    ParticipantStatus::Approved->value,
-                    ParticipantStatus::Pending->value,
-                    ParticipantStatus::Waitlisted->value,
-                    ParticipantStatus::Benched->value,
-                    // A host-removed participant (Removed) cannot self-rejoin via
-                    // the share link — host removal is a moderation action and
-                    // the unique constraint is what historically enforced the
-                    // block (see removeParticipant() docblock). Without this the
-                    // reactivation path would silently flip Removed → Approved.
-                    ParticipantStatus::Removed->value,
-                ]));
-
-        if ($existingParticipant) {
-            return false;
-        }
-
-        // Game must not be completed or canceled
-        if (in_array($this->game->status?->value, [GameStatus::Completed->value, GameStatus::Canceled->value])) {
-            return false;
-        }
-
-        // Signup cutoff (decision D124) — hide the Join button once an
-        // organizer-set cutoff has passed. The action method re-checks with a
-        // specific message; this keeps the affordance consistent.
-        if ($this->game->signupHasClosed()) {
-            return false;
-        }
-
-        return true;
+        return app(GameJoinGate::class)->canJoinViaShareLink(
+            $this->game,
+            Auth::user(),
+            $this->isShareTokenStillValid(),
+            $this->isShortLinkStillValid(),
+        );
     }
 
     // ── Computed viewer state (cached per request-cycle) ──

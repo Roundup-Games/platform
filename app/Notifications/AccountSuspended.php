@@ -20,7 +20,7 @@ class AccountSuspended extends BaseNotification
     {
         return (new MailMessage)
             ->subject(__('notifications.subject_account_suspended'))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_account_suspended'))
             ->line(__('notifications.body_reason', [
                 'reason' => $this->reason,

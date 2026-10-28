@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class ApplicationApproved extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game|Campaign  $entity  The Game or Campaign entity
      * @param  string  $entityType  'game' or 'campaign'
@@ -28,7 +26,7 @@ class ApplicationApproved extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $actionUrl = $this->resolveEntityUrl($locale);
         $entityTypeLabel = $this->entityTypeLabel();
 
@@ -36,7 +34,7 @@ class ApplicationApproved extends BaseNotification
             ->subject(__('notifications.subject_application_approved', [
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_application_approved', [
                 'entity' => $this->entity->name,
             ]))
@@ -51,7 +49,7 @@ class ApplicationApproved extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'application_approved',

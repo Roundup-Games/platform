@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class NewApplication extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  User  $applicant  The user who applied
      * @param  Game|Campaign  $entity  The Game or Campaign entity
@@ -28,7 +26,7 @@ class NewApplication extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $actionUrl = $this->resolveManageParticipantsUrl($locale);
         $entityTypeLabel = $this->entityTypeLabel();
 
@@ -37,7 +35,7 @@ class NewApplication extends BaseNotification
                 'applicant' => $this->applicant->name,
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_new_application', [
                 'applicant' => $this->applicant->name,
                 'entity_type' => $entityTypeLabel,
@@ -54,7 +52,7 @@ class NewApplication extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'new_application',

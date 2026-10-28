@@ -1,6 +1,7 @@
 <?php
 
 use App\Dto\CapacityChangeResult;
+use App\Dto\CapacityUpdateResult;
 use App\Dto\DemotionPreview;
 use App\Dto\DemotionResult;
 use App\Enums\GameStatus;
@@ -530,5 +531,307 @@ describe('zero-reliability-penalty proof', function () {
         // Post-resolution guard: demoting an already-resolved game throws.
         expect(fn () => $this->service->demote($game->fresh(), newMax: 1, reason: 'x', actor: $this->owner))
             ->toThrow(DomainException::class);
+    });
+});
+
+// ═══════════════════════════════════════════════════════
+// update() — the routed host entry point (M072/S05/T02)
+// ═══════════════════════════════════════════════════════
+
+describe('update', function () {
+    it('refuses every change on a completed game with the terminal-state key', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3, overrides: [
+            'status' => GameStatus::Completed->value,
+        ]);
+
+        $result = $this->service->update($game, 4, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
+            ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
+            ->and($result->errorField())->toBeNull()
+            ->and($result->isFieldError())->toBeFalse()
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('refuses every change once attendance is already resolved', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3, overrides: [
+            'attendance_resolved_at' => now(),
+        ]);
+
+        $result = $this->service->update($game, 4, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
+            ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('rejects newMax = 0 with the 0=unlimited footgun key', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        $result = $this->service->update($game, 0, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::INVALID_MAX)
+            ->and($result->errorKey)->toBe('games.error_capacity_zero_invalid')
+            ->and($result->errorField())->toBe('capacityNewMax')
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('rejects newMax outside the 2..30 CreateGame parity range', function (int $outOfRange) {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        $result = $this->service->update($game, $outOfRange, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::INVALID_MAX)
+            ->and($result->errorKey)->toBe('games.error_capacity_range')
+            ->and($result->errorField())->toBe('capacityNewMax')
+            ->and($game->fresh()->max_players)->toBe(3);
+    })->with([[1], [31]]);
+
+    it('rejects newMax below the game min_players', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 4, overrides: [
+            'min_players' => 3,
+        ]);
+
+        $result = $this->service->update($game, 2, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::INVALID_MAX)
+            ->and($result->errorKey)->toBe('games.error_min_players_cannot_exceed_max_players')
+            ->and($game->fresh()->max_players)->toBe(4);
+    });
+
+    it('routes an increase through increase() and selects the many flash', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        addWaitlistedPlayer($game);
+        addWaitlistedPlayer($game);
+
+        $result = $this->service->update($game, 5, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::INCREASED)
+            ->and($result->promotedCount)->toBe(2)
+            ->and($result->flashKey)->toBe('games.flash_capacity_increased_many')
+            ->and($result->flashParams)->toBe(['max' => 5, 'count' => 2])
+            ->and(countStatus($game->fresh(), ParticipantStatus::Pending))->toBe(2)
+            ->and($game->fresh()->max_players)->toBe(5);
+    });
+
+    it('routes an increase with no waitlist to the none flash', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3, overrides: [
+            'max_players' => 0, // unlimited — never fills, so no waitlist exists
+        ]);
+
+        $result = $this->service->update($game, 4, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::INCREASED)
+            ->and($result->promotedCount)->toBe(0)
+            ->and($result->flashKey)->toBe('games.flash_capacity_increased_none')
+            ->and($result->flashParams)->toBe(['max' => 4])
+            ->and($game->fresh()->max_players)->toBe(4);
+    });
+
+    it('returns UNCHANGED for newMax equal to the current max without writes', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        $result = $this->service->update($game, 3, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::UNCHANGED)
+            ->and($result->newMax)->toBe(3)
+            ->and($game->fresh()->max_players)->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3);
+    });
+
+    it('routes a silent decrease through decrease() with the decreased flash', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
+            'max_players' => 4,
+        ]);
+
+        $result = $this->service->update($game, 3, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::DECREASED)
+            ->and($result->flashKey)->toBe('games.flash_capacity_decreased')
+            ->and($result->flashParams)->toBe(['max' => 3])
+            ->and($game->fresh()->max_players)->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2);
+    });
+
+    it('returns NEEDS_CONFIRMATION with a preview for a below-approved first call', function () {
+        // max=3: owner + 2 approved. Decreasing to 2 displaces 1.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        $result = $this->service->update($game, 2, $this->owner, reason: null, confirmed: false);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::NEEDS_CONFIRMATION)
+            ->and($result->newMax)->toBe(2)
+            ->and($result->preview)->toBeInstanceOf(DemotionPreview::class)
+            ->and($result->preview->actualDemotionCount)->toBe(1)
+            // Nothing mutated — the modal only arms.
+            ->and($game->fresh()->max_players)->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3);
+    });
+
+    it('rejects a confirming call whose reason exceeds 500 characters (no demotion)', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        $result = $this->service->update($game, 2, $this->owner, reason: str_repeat('x', 501), confirmed: true);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::INVALID_REASON)
+            ->and($result->errorKey)->toBe('games.error_capacity_reason_too_long')
+            ->and($result->errorField())->toBe('capacityReason')
+            ->and($result->isFieldError())->toBeTrue()
+            ->and($game->fresh()->max_players)->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
+    });
+
+    it('rejects a confirming call with an empty reason (service-level defense)', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        $result = $this->service->update($game, 2, $this->owner, reason: '', confirmed: true);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::INVALID_REASON)
+            ->and($result->errorKey)->toBe('games.error_capacity_reason_required')
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('runs the confirmed LIFO demote and reports counts plus flash', function () {
+        // max=4: owner + 3 approved. Decreasing to 2 demotes 2.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 4);
+
+        $result = $this->service->update($game, 2, $this->owner, reason: 'Need a smaller group', confirmed: true);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::DEMOTED)
+            ->and($result->demotedCount)->toBe(2)
+            ->and($result->flashKey)->toBe('games.flash_capacity_demoted_many')
+            ->and($result->flashParams)->toBe(['max' => 2, 'count' => 2])
+            ->and($game->fresh()->max_players)->toBe(2)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(2)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2);
+    });
+
+    it('routes the all-exempt overflow case to the confirm flow, not silent decrease', function () {
+        // owner + 3 manually-promoted (all exempt): approved=4, demotable=0.
+        // Decreasing to 2 requests 2 displacements but cannot demote anyone —
+        // the guard must NOT call decrease() (which would throw
+        // DemotionRequiresConfirmation uncaught) but arm the confirm flow.
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'scheduled',
+            'max_players' => 3,
+            'min_players' => 2,
+        ]);
+        app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
+        addApprovedPlayer($game, '2026-01-01 10:00:00', promotedManually: true);
+        addApprovedPlayer($game, '2026-02-01 10:00:00', promotedManually: true);
+        addApprovedPlayer($game, '2026-03-01 10:00:00', promotedManually: true);
+
+        $first = $this->service->update($game, 2, $this->owner);
+        expect($first->outcome)->toBe(CapacityUpdateResult::NEEDS_CONFIRMATION)
+            ->and($first->preview->requestedDisplaced)->toBe(2)
+            ->and($first->preview->actualDemotionCount)->toBe(0);
+
+        // Confirmed: demote() runs harmlessly (CAP rule), the max still drops.
+        $second = $this->service->update($game, 2, $this->owner, reason: 'Owner-heavy table', confirmed: true);
+        expect($second->outcome)->toBe(CapacityUpdateResult::DEMOTED)
+            ->and($second->demotedCount)->toBe(0)
+            ->and($second->flashKey)->toBe('games.flash_capacity_decreased')
+            ->and($second->flashParams)->toBe(['max' => 2])
+            ->and($game->fresh()->max_players)->toBe(2)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(4);
+    });
+
+    it('maps a post-preview completion race (DomainException from demote) to REFUSED', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        // Partial mock: the game passes update()'s terminal guard but flips
+        // to Completed inside demote()'s locked transaction (the preview/confirm
+        // race the component previously caught inline).
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('demote')
+            ->once()
+            ->andThrow(new DomainException('Cannot adjust capacity on a completed game.'));
+
+        $result = $service->update($game, 2, $this->owner, reason: 'Shrinking', confirmed: true);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
+            ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('maps a completion race on the increase path (DomainException from increase) to REFUSED', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        // Partial mock: the game passes update()'s unlocked terminal guard
+        // but flips to Completed inside increase()'s locked transaction.
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('increase')
+            ->once()
+            ->andThrow(new DomainException('Cannot adjust capacity on a completed game or after attendance has been resolved.'));
+
+        $result = $service->update($game, 4, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
+            ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('re-arms confirmation when approvals grow between the preview and the locked decrease', function () {
+        // max=3, approved=2 (owner + 1): preview(2) sees zero displacement, so
+        // update() routes to the silent-decrease branch — but the locked
+        // re-read inside decrease() sees a third approval (invite accepted /
+        // promotion landed in the race window) and throws
+        // DemotionRequiresConfirmation. That must surface as the confirm
+        // flow, not escape as an uncaught exception.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        GameParticipant::where('game_id', $game->id)
+            ->where('status', ParticipantStatus::Approved->value)
+            ->where('user_id', '!=', $game->owner_id)
+            ->first()
+            ->update(['status' => ParticipantStatus::Rejected->value]);
+
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('decrease')
+            ->once()
+            ->andThrow(new DemotionRequiresConfirmation(3, 2));
+
+        $result = $service->update($game, 2, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::NEEDS_CONFIRMATION)
+            ->and($result->newMax)->toBe(2)
+            ->and($result->preview)->toBeInstanceOf(DemotionPreview::class)
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('maps a completion race on the silent-decrease path (DomainException from decrease) to REFUSED', function () {
+        // Same silent-decrease shape as above; the locked re-read finds the
+        // game completed between update()'s unlocked guard and the lock.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        GameParticipant::where('game_id', $game->id)
+            ->where('status', ParticipantStatus::Approved->value)
+            ->where('user_id', '!=', $game->owner_id)
+            ->first()
+            ->update(['status' => ParticipantStatus::Rejected->value]);
+
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('decrease')
+            ->once()
+            ->andThrow(new DomainException('Cannot adjust capacity on a completed game or after attendance has been resolved.'));
+
+        $result = $service->update($game, 2, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
+            ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
+            ->and($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('refuses decrease() directly on a completed game (locked terminal-state guard)', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        $game->update(['status' => GameStatus::Completed->value]);
+
+        expect(fn () => $this->service->decrease($game, 2))
+            ->toThrow(DomainException::class)
+            ->and($game->fresh()->max_players)->toBe(3);
     });
 });

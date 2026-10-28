@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Discovery;
 
+use App\Dto\DiscoveryFilters;
 use App\Enums\VibeFlag;
+use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Traits\FoldsCanonicalToCityHub;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +19,8 @@ use Livewire\Attributes\Url;
  * used by all three discovery pages.
  *
  * Consuming components must define: public int $displayCount = 12;
+ * and implement discoveryFilterSurface() declaring their page-specific
+ * filter extras (one of the DiscoveryFilters::SURFACE_* sets).
  *
  * Usage:
  *   class MyDiscoveryPage extends Component {
@@ -84,12 +88,11 @@ trait ManagesDiscoveryFilters
 
     public function mountManagesDiscoveryFilters(): void
     {
-        $user = Auth::user();
         if (! $this->language) {
-            $this->language = ($user?->preferred_language)
-                ? $user->preferred_language->value
-                : app()->getLocale();
+            $this->language = $this->defaultFilterLanguage();
         }
+
+        $user = Auth::user();
 
         // Build vibePreferences from URL vibe_flags (all treated as favorites)
         foreach (VibeFlag::cases() as $flag) {
@@ -156,6 +159,126 @@ trait ManagesDiscoveryFilters
     //
     // citySeo() moved to App\Traits\FoldsCanonicalToCityHub (composed
     // above) when the events listing adopted the same canonical folding.
+
+    // ── Filter surface + lifecycle semantics ──────────
+
+    /**
+     * Page-specific filter property names beyond the shared base — one of
+     * the DiscoveryFilters::SURFACE_* sets. The shared clearFilters() and
+     * hasActiveFilters() below both derive from this single declaration, so
+     * the reset list and the active check can never drift apart.
+     *
+     * @return array<int, string>
+     */
+    abstract protected function discoveryFilterSurface(): array;
+
+    /**
+     * Reset every filter on this page's surface to its neutral default.
+     * The property list comes from DiscoveryFilters::resettableProperties()
+     * so it is identical to the active-check surface by construction.
+     */
+    public function clearFilters(): void
+    {
+        $this->reset(DiscoveryFilters::resettableProperties(
+            $this->discoveryFilterSurface(),
+        ));
+        $this->usingFallbackRadius = false;
+        $this->displayCount = 12;
+
+        // Reset vibe preferences to neutral
+        foreach (VibeFlag::cases() as $flag) {
+            $this->vibePreferences[$flag->value] = null;
+        }
+    }
+
+    /**
+     * Whether any filter on this page's surface is APPLIED — drives the UI:
+     * the active-filter chip, the Clear All affordance, and the filtered
+     * empty-state copy.
+     *
+     * The language comparison uses the app locale: a viewer whose preferred
+     * language differs from the request locale has their feed narrowed by
+     * that preference, and the UI must say so (chip + "adjust your filters"
+     * empty state) — hiding it left a narrowed feed with no visible cause
+     * and no way to discover the empty state is filter-driven.
+     */
+    public function hasActiveFilters(): bool
+    {
+        return DiscoveryFilters::hasActiveFilters(
+            $this,
+            $this->discoveryFilterSurface(),
+            app()->getLocale(),
+        );
+    }
+
+    /**
+     * Whether the viewer has SELECTED a filter — the analytics-gating
+     * counterpart to {@see hasActiveFilters()}.
+     *
+     * Language counts as selected only when it differs from the mount-time
+     * default (preferred language, else app locale): an untouched page for
+     * a preferred-language viewer must not fire discovery.search, even
+     * though its feed is narrowed and hasActiveFilters() is true.
+     */
+    public function hasUserSelectedFilters(): bool
+    {
+        return DiscoveryFilters::hasActiveFilters(
+            $this,
+            $this->discoveryFilterSurface(),
+            $this->defaultFilterLanguage(),
+        );
+    }
+
+    /**
+     * The language filter's neutral default: the authenticated user's
+     * preferred language when set, else the app locale.
+     *
+     * Single source for BOTH the mount-time seeding and the selection-aware
+     * analytics comparison ({@see hasUserSelectedFilters()}) — mount seeds
+     * from the user's preference, so "did the user select anything?" must
+     * compare against that same default. The UI check
+     * ({@see hasActiveFilters()}) deliberately uses the app locale instead:
+     * an applied-but-not-selected preference still narrows the feed and
+     * must stay visible to the viewer.
+     */
+    protected function defaultFilterLanguage(): string
+    {
+        $preferred = Auth::user()?->preferred_language;
+
+        return $preferred ? $preferred->value : app()->getLocale();
+    }
+
+    // ── Search origin ─────────────────────────────────
+
+    /**
+     * Resolve the proximity-search origin: the browser guest location when
+     * present, else the logged-in user's saved location. One implementation
+     * shared by all three discovery pages (was a 9-line copy-paste per
+     * render(); GuestLocationTest covers the DiscoveryPage path).
+     *
+     * Requires HasGuestLocation on the consuming component.
+     *
+     * @return array{0: ?float, 1: ?float, 2: bool} [lat, lng, hasLocation]
+     */
+    protected function resolveSearchOrigin(): array
+    {
+        $hasLocation = $this->hasGuestLocation();
+        $lat = $this->guestLat;
+        $lng = $this->guestLng;
+
+        // Fallback to the logged-in user's saved location when browser geolocation is unavailable
+        $locationId = Auth::user()?->location_id;
+        if (! $hasLocation && $locationId) {
+            $userLocation = Location::find($locationId);
+            if ($userLocation) {
+                $lat = (float) $userLocation->latitude;
+                $lng = (float) $userLocation->longitude;
+                $hasLocation = true;
+            }
+        }
+
+        return [$lat, $lng, $hasLocation];
+    }
 
     // ── Shared actions ─────────────────────────────────
 

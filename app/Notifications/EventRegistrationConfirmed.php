@@ -27,8 +27,6 @@ use LogicException;
  */
 class EventRegistrationConfirmed extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public EventRegistration $registration,
     ) {}
@@ -49,14 +47,14 @@ class EventRegistrationConfirmed extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $event = $this->event();
 
         $mail = (new MailMessage)
             ->subject(__('emails.field_event_registration_confirmed_name', [
                 'name' => $event->name ?? __('events.content_event'),
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('events.content_you_re_all_set_for_event', [
                 'event' => $event->name ?? __('events.content_event'),
             ]))
@@ -99,7 +97,7 @@ class EventRegistrationConfirmed extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $event = $this->event();
 
         return [
@@ -120,17 +118,15 @@ class EventRegistrationConfirmed extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $event = $this->event();
 
-        return new PushPayload(
-            title: __('emails.content_event_registration_confirmed'),
-            body: __('emails.field_event_registration_confirmed_name', [
+        return $this->pushPayload(
+            __('emails.content_event_registration_confirmed'),
+            __('emails.field_event_registration_confirmed_name', [
                 'name' => $event->name ?? __('events.content_event'),
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('events.detail', ['locale' => $locale, 'slug' => $event->slug]),
-            tag: "event-registration-{$event->id}",
+            route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $event->slug]),
+            "event-registration-{$event->id}",
         );
     }
 
@@ -139,16 +135,14 @@ class EventRegistrationConfirmed extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $event = $this->event();
 
-        return DiscordWebhookPayload::embed([
-            'title' => __('emails.content_event_registration_confirmed'),
-            'url' => route('events.detail', ['locale' => $locale, 'slug' => $event->slug]),
-            'description' => __('events.content_you_re_all_set_for_event', [
+        return $this->discordEmbed(
+            __('emails.content_event_registration_confirmed'),
+            route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $event->slug]),
+            __('events.content_you_re_all_set_for_event', [
                 'event' => $event->name ?? __('events.content_event'),
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

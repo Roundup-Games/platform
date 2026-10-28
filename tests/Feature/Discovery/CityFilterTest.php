@@ -4,21 +4,26 @@ namespace Tests\Feature\Discovery;
 
 use App\Livewire\Discovery\AdventuresDiscovery;
 use App\Livewire\Discovery\BoardGamesDiscovery;
-use App\Models\Campaign;
+use App\Livewire\Discovery\DiscoveryPage;
 use App\Models\Game;
-use App\Models\GameSystem;
 use App\Models\Location;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
 
 use function Pest\Laravel\get;
 
-// The ?city= URL filter on both discovery forks (M062 62-03). A qualifying
+// The ?city= URL filter on the discovery forks (M062 62-03). A qualifying
 // ?city= filters results to the city cluster via CityDirectoryService (single
 // authority) and folds the page canonical to that city's hub — all other
 // params dropped (MEM997) — with hreflang alternates pointing at the hub URLs.
 // Unknown / ambiguous / non-qualifying slugs are inert: 200, unfiltered
 // results, and the transformer's path-derived canonical/alternates.
+//
+// The query-side city constraint (games via location, campaigns through
+// session locations, inert slugs) is pinned service-direct in
+// DiscoveryQueryServiceTest's 'results() city filter' describe; this suite
+// keeps ONE page-level fork proof (board games) plus the canonical/hreflang,
+// filter-lifecycle and hub-integration behaviors that only exist at the page.
 //
 // geohash_4 is recomputed from lat/lng on save, so tests control coordinates
 // and never set geohash_4 directly (same convention as CityHubPageTest /
@@ -85,39 +90,6 @@ describe('CityFilter board-games results', function () {
             ->assertSee('Koeln Qualifier 01')
             ->assertSee('Koeln Qualifier 03')
             ->assertDontSee('Berlin Away Game');
-    });
-});
-
-describe('CityFilter adventures results', function () {
-    it('filters campaigns to those with a session inside the city cluster', function () {
-        $ttrpg = GameSystem::factory()->create(['type' => 'ttrpg']);
-        $koeln = cityFilterQualifyingKoeln();
-        $berlin = cityFilterLocation('Berlin', 52.5200, 13.4050);
-
-        // Cologne campaign: a scheduled session at a cluster location.
-        $cologneCampaign = Campaign::factory()->create([
-            'name' => ['en' => 'Koeln Campaign', 'de' => 'Koeln Campaign'],
-            'visibility' => 'public',
-            'status' => 'active',
-            'game_system_id' => $ttrpg->id,
-            'language' => 'de',
-        ]);
-        cityFilterUpcomingGame($koeln, ['campaign_id' => $cologneCampaign->id]);
-
-        // Berlin campaign: all sessions at a Berlin location.
-        $berlinCampaign = Campaign::factory()->create([
-            'name' => ['en' => 'Berlin Campaign', 'de' => 'Berlin Campaign'],
-            'visibility' => 'public',
-            'status' => 'active',
-            'game_system_id' => $ttrpg->id,
-            'language' => 'de',
-        ]);
-        cityFilterUpcomingGame($berlin, ['campaign_id' => $berlinCampaign->id]);
-
-        get(route('discover.adventures', 'de').'?city=koeln')
-            ->assertOk()
-            ->assertSee('Koeln Campaign')
-            ->assertDontSee('Berlin Campaign');
     });
 });
 
@@ -249,6 +221,22 @@ describe('CityFilter Livewire lifecycle', function () {
         $component = Livewire::test(AdventuresDiscovery::class);
         expect($component->instance()->hasActiveFilters())->toBeFalse();
 
+        $component->set('city', 'koeln');
+        expect($component->instance()->hasActiveFilters())->toBeTrue();
+
+        $component->instance()->clearFilters();
+        expect($component->instance()->city)->toBeNull()
+            ->and($component->instance()->hasActiveFilters())->toBeFalse();
+    });
+
+    it('marks the discovery page filter active and clears city (M072 drift fix)', function () {
+        cityFilterQualifyingKoeln();
+
+        $component = Livewire::test(DiscoveryPage::class);
+        expect($component->instance()->hasActiveFilters())->toBeFalse();
+
+        // City-only filter: previously invisible to hasActiveFilters() and
+        // clearFilters() on this page (the shipped drift this fixes).
         $component->set('city', 'koeln');
         expect($component->instance()->hasActiveFilters())->toBeTrue();
 

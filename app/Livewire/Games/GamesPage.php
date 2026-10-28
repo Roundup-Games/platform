@@ -20,6 +20,7 @@ use App\Services\NotificationService;
 use App\Services\ParticipantLifecycle;
 use App\Services\Roster;
 use App\Traits\EditsVenueLocation;
+use App\Traits\HandlesInvitations;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,6 +33,7 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 class GamesPage extends Component
 {
     use EditsVenueLocation;
+    use HandlesInvitations;
     use WithPagination;
 
     /** Grows by 15 each time the user clicks "load more" on the community feed. */
@@ -286,9 +288,6 @@ class GamesPage extends Component
 
         app(ParticipantLifecycle::class)->depart($participant, $user);
 
-        // Promote from waitlist + warn host if below min_players
-        app(Roster::class)->onDeparture($game);
-
         session()->flash('success', __('games.flash_you_left_the_game'));
     }
 
@@ -422,46 +421,11 @@ class GamesPage extends Component
         session()->flash('success', __('games.flash_game_completed'));
     }
 
-    public function acceptInvitation(string $participantId): void
+    // Invitation accept/decline actions provided by HandlesInvitations
+
+    /** @return class-string<GameParticipant> */
+    protected function invitationParticipantClass(): string
     {
-        $participant = GameParticipant::findOrFail($participantId);
-        $game = $participant->game;
-
-        if ($game === null) {
-            return;
-        }
-
-        $result = app(ParticipantLifecycle::class)->acceptInvitation(
-            $participant,
-            $game,
-            authenticatedUser(),
-        );
-
-        if ($result->success) {
-            session()->flash('success', __($result->messageKey, $result->messageParams));
-        } elseif ($result->errorKey) {
-            session()->flash('error', __($result->errorKey, $result->errorParams));
-        }
-    }
-
-    public function declineInvitation(string $participantId): void
-    {
-        $participant = GameParticipant::findOrFail($participantId);
-        $game = $participant->game;
-
-        if ($game === null) {
-            return;
-        }
-
-        $result = app(ParticipantLifecycle::class)->declineInvitation(
-            $participant,
-            authenticatedUser(),
-        );
-
-        if ($result->success) {
-            session()->flash('success', __($result->messageKey, $result->messageParams));
-        } elseif ($result->errorKey) {
-            session()->flash('error', __($result->errorKey, $result->errorParams));
-        }
+        return GameParticipant::class;
     }
 }

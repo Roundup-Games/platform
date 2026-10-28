@@ -12,7 +12,6 @@ use App\Services\Discord\DiscordPublisher;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\Discord\DiscordWebhookPayload;
 use App\Services\ParticipantLifecycle;
-use App\Services\Roster;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -31,9 +30,10 @@ use Illuminate\Support\Facades\Log;
  *
  * The leave path mirrors {@see GameDetail::leaveGame()}
  * exactly: ParticipantLifecycle::depart() (scores attendance for Approved
- * departures — LateCancel / CancelledEarly) + Roster::onDeparture() (promotes
- * from waitlist, warns host if below min_players). A Discord drop has the same
- * reliability and roster implications as a web drop — never a second path.
+ * departures — LateCancel / CancelledEarly — and runs the departure cascade:
+ * promotes from waitlist, warns host if below min_players). A Discord drop has
+ * the same reliability and roster implications as a web drop — never a second
+ * path.
  *
  * Best-effort Discord I/O (card refresh + confirmation) is wrapped so a
  * Discord failure NEVER rolls back the committed departure.
@@ -110,8 +110,8 @@ class ProcessDiscordLeave implements ShouldQueue
      * drop, returning the terminal outcome.
      *
      * Mirrors {@see GameDetail::leaveGame()}: owner guard
-     * → find the active participant → ParticipantLifecycle::depart() →
-     * Roster::onDeparture(). Under a Game row lock so a double-click
+     * → find the active participant → ParticipantLifecycle::depart(). Under
+     * a Game row lock so a double-click
      * re-dispatch is race-safe (the second job finds no active row →
      * NotAParticipant).
      */
@@ -148,11 +148,9 @@ class ProcessDiscordLeave implements ShouldQueue
 
             // The SAME departure pipeline as a web drop — one source of truth.
             // depart() scores attendance for Approved departures (LateCancel /
-            // CancelledEarly) and sets status=Rejected + removed_by/at.
+            // CancelledEarly), sets status=Rejected + removed_by/at, and runs
+            // the departure cascade (waitlist promotion + below-min warning).
             app(ParticipantLifecycle::class)->depart($participant, $user);
-
-            // Promote from waitlist + warn host if below min_players.
-            app(Roster::class)->onDeparture($locked);
 
             return DiscordLeaveOutcome::Left;
         });

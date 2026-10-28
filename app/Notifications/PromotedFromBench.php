@@ -19,7 +19,7 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class PromotedFromBench extends BaseNotification
 {
-    use HasUnsubscribeLink, RoutesGameOrCampaign;
+    use RoutesGameOrCampaign;
 
     public function __construct(
         public Game|Campaign $entity,
@@ -27,13 +27,13 @@ class PromotedFromBench extends BaseNotification
 
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_promoted_from_bench', [
                 'game' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_promoted_from_bench', [
                 'game' => $this->entity->name,
             ]))
@@ -46,7 +46,7 @@ class PromotedFromBench extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'promoted_from_bench',
@@ -59,16 +59,13 @@ class PromotedFromBench extends BaseNotification
 
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.push_title_promoted_from_bench'),
-            body: __('notifications.push_body_promoted_from_bench', [
+        return $this->pushPayload(
+            __('notifications.push_title_promoted_from_bench'),
+            __('notifications.push_body_promoted_from_bench', [
                 'game' => $this->entity->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: $this->getEntityRoute($locale),
-            tag: "promoted-from-bench-{$this->getEntityType()}-{$this->entity->id}",
+            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            "promoted-from-bench-{$this->getEntityType()}-{$this->entity->id}",
         );
     }
 
@@ -77,15 +74,12 @@ class PromotedFromBench extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_promoted_from_bench'),
-            'url' => $this->getEntityRoute($locale),
-            'description' => __('notifications.push_body_promoted_from_bench', [
+        return $this->discordEmbed(
+            __('notifications.push_title_promoted_from_bench'),
+            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            __('notifications.push_body_promoted_from_bench', [
                 'game' => $this->entity->name,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

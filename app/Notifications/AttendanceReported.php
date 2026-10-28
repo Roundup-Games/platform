@@ -11,8 +11,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class AttendanceReported extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $game  The game the attendance report is for
      * @param  AttendanceReport  $report  The attendance report that was filed
@@ -27,7 +25,7 @@ class AttendanceReported extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $date = $this->game->date_time?->format('M j, Y') ?? '';
         $status = $this->report->status->label();
 
@@ -35,7 +33,7 @@ class AttendanceReported extends BaseNotification
             ->subject(__('notifications.subject_attendance_reported', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_attendance_reported', [
                 'game' => $this->game->name,
                 'date' => $date,
@@ -55,7 +53,7 @@ class AttendanceReported extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'attendance_reported',
@@ -86,21 +84,19 @@ class AttendanceReported extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $status = $this->report->status->label();
 
-        return new PushPayload(
-            title: __('notifications.push_title_attendance_reported'),
-            body: __('notifications.push_body_attendance_reported', [
+        return $this->pushPayload(
+            __('notifications.push_title_attendance_reported'),
+            __('notifications.push_body_attendance_reported', [
                 'status' => $status,
                 'game' => $this->game->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('games.show', [
-                'locale' => $locale,
+            route('games.show', [
+                'locale' => $this->resolveLocale($notifiable),
                 'id' => $this->game->id,
             ]),
-            tag: "attendance-reported-{$this->report->id}",
+            "attendance-reported-{$this->report->id}",
         );
     }
 
@@ -109,20 +105,18 @@ class AttendanceReported extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $status = $this->report->status->label();
 
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_attendance_reported'),
-            'url' => route('games.show', [
-                'locale' => $locale,
+        return $this->discordEmbed(
+            __('notifications.push_title_attendance_reported'),
+            route('games.show', [
+                'locale' => $this->resolveLocale($notifiable),
                 'id' => $this->game->id,
             ]),
-            'description' => __('notifications.push_body_attendance_reported', [
+            __('notifications.push_body_attendance_reported', [
                 'status' => $status,
                 'game' => $this->game->name,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

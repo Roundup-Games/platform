@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class DisputeResolved extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $game  The game the dispute was about
      * @param  string  $resolution  The dispute resolution: 'resolved_favor' or 'upheld'
@@ -26,7 +24,7 @@ class DisputeResolved extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $date = $this->game->date_time?->format('M j, Y') ?? '';
         $resolved = $this->resolution === 'resolved_favor';
 
@@ -40,7 +38,7 @@ class DisputeResolved extends BaseNotification
 
         return (new MailMessage)
             ->subject($subject)
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line($body)
             ->action(__('notifications.action_view_game'), route('games.show', [
                 'locale' => $locale,
@@ -56,7 +54,7 @@ class DisputeResolved extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'dispute_resolved',
@@ -86,26 +84,16 @@ class DisputeResolved extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $resolved = $this->resolution === 'resolved_favor';
+        $copy = $this->resolutionCopy();
 
-        $title = $resolved
-            ? __('notifications.category_dispute_resolved')
-            : __('notifications.push_title_dispute_upheld');
-
-        $body = $resolved
-            ? __('notifications.push_body_dispute_resolved_favor', ['game' => $this->game->name])
-            : __('notifications.push_body_dispute_upheld', ['game' => $this->game->name]);
-
-        return new PushPayload(
-            title: $title,
-            body: $body,
-            icon: '/icons/pwa-192x192.png',
-            url: route('games.show', [
-                'locale' => $locale,
+        return $this->pushPayload(
+            $copy['title'],
+            $copy['body'],
+            route('games.show', [
+                'locale' => $this->resolveLocale($notifiable),
                 'id' => $this->game->id,
             ]),
-            tag: "dispute-resolved-{$this->game->id}",
+            "dispute-resolved-{$this->game->id}",
         );
     }
 
@@ -114,25 +102,36 @@ class DisputeResolved extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $resolved = $this->resolution === 'resolved_favor';
+        $copy = $this->resolutionCopy();
 
-        $title = $resolved
-            ? __('notifications.category_dispute_resolved')
-            : __('notifications.push_title_dispute_upheld');
-
-        $body = $resolved
-            ? __('notifications.push_body_dispute_resolved_favor', ['game' => $this->game->name])
-            : __('notifications.push_body_dispute_upheld', ['game' => $this->game->name]);
-
-        return DiscordWebhookPayload::embed([
-            'title' => $title,
-            'url' => route('games.show', [
-                'locale' => $locale,
+        return $this->discordEmbed(
+            $copy['title'],
+            route('games.show', [
+                'locale' => $this->resolveLocale($notifiable),
                 'id' => $this->game->id,
             ]),
-            'description' => $body,
-            'color' => 0x5865F2,
-        ]);
+            $copy['body'],
+        );
+    }
+
+    /**
+     * Title/body pair for the resolution branch, shared by toPush() and
+     * toDiscord() so both channels speak the identical copy (mail keeps
+     * its own subject/body keys).
+     *
+     * @return array{title: string, body: string}
+     */
+    private function resolutionCopy(): array
+    {
+        $resolved = $this->resolution === 'resolved_favor';
+
+        return [
+            'title' => $resolved
+                ? __('notifications.category_dispute_resolved')
+                : __('notifications.push_title_dispute_upheld'),
+            'body' => $resolved
+                ? __('notifications.push_body_dispute_resolved_favor', ['game' => $this->game->name])
+                : __('notifications.push_body_dispute_upheld', ['game' => $this->game->name]),
+        ];
     }
 }

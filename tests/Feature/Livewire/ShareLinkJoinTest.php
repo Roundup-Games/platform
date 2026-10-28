@@ -14,6 +14,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\ShareLinkJoinService;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -321,6 +322,92 @@ describe('joinViaShareLink — shared (game + campaign)', function () {
         };
         expect($count)->toBe(0);
     })->with(['game', 'campaign']);
+
+    it('blocks a host-removed participant from rejoining via share link', function (string $entityType) {
+        $token = (string) Str::uuid();
+
+        [$entity, $componentClass, $model, $foreignKey] = match ($entityType) {
+            'game' => [
+                Game::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'game_system_id' => $this->gameSystem->id,
+                    'share_token' => $token,
+                    'visibility' => 'public',
+                ]),
+                GameDetail::class,
+                GameParticipant::class,
+                'game_id',
+            ],
+            'campaign' => [
+                Campaign::factory()->create([
+                    'owner_id' => $this->owner->id,
+                    'share_token' => $token,
+                    'visibility' => 'public',
+                ]),
+                CampaignDetail::class,
+                CampaignParticipant::class,
+                'campaign_id',
+            ],
+        };
+
+        // Host-removed row: removal is a moderation action with an audit
+        // trail (removed_by/removed_at) that the user must not undo alone.
+        $removed = $model::create([
+            $foreignKey => $entity->id,
+            'user_id' => $this->player->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Removed->value,
+            'removed_by' => $this->owner->id,
+            'removed_at' => now(),
+        ]);
+        $removedAt = $removed->removed_at;
+
+        // The pre-guard hides the Join button (parity with GameJoinGate),
+        // and the locked write in ShareLinkJoinService re-enforces it.
+        Livewire::actingAs($this->player)
+            ->withQueryParams(['share' => $token])
+            ->test($componentClass, ['id' => $entity->id])
+            ->call('joinViaShareLink');
+
+        $row = $model::where($foreignKey, $entity->id)
+            ->where('user_id', $this->player->id)
+            ->first();
+
+        expect($row->status)->toBe(ParticipantStatus::Removed)
+            ->and($row->removed_by)->toBe($this->owner->id)
+            ->and($row->removed_at->equalTo($removedAt))->toBeTrue();
+    })->with(['game', 'campaign']);
+
+    it('throws under the lock when a Removed row exists (race past the pre-guard)', function () {
+        $token = (string) Str::uuid();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'share_token' => $token,
+            'visibility' => 'public',
+        ]);
+
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $this->player->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Removed->value,
+            'removed_by' => $this->owner->id,
+            'removed_at' => now(),
+        ]);
+
+        // Direct service call: the component pre-guard saw a stale snapshot
+        // (pre-removal), so join() itself must refuse under the entity lock.
+        expect(fn () => app(ShareLinkJoinService::class)
+            ->join($campaign, $this->player, JoinSource::ShareLink, null, $token))
+            ->toThrow(RuntimeException::class);
+
+        $row = CampaignParticipant::where('campaign_id', $campaign->id)
+            ->where('user_id', $this->player->id)
+            ->first();
+
+        expect($row->status)->toBe(ParticipantStatus::Removed)
+            ->and($row->removed_by)->toBe($this->owner->id);
+    });
 });
 
 // ── joinViaShareLink for Games ─────────────────────────────

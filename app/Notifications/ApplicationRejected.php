@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class ApplicationRejected extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game|Campaign  $entity  The Game or Campaign entity
      * @param  string  $entityType  'game' or 'campaign'
@@ -28,13 +26,13 @@ class ApplicationRejected extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_application_rejected', [
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_application_rejected', [
                 'entity' => $this->entity->name,
             ]))
@@ -49,7 +47,7 @@ class ApplicationRejected extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'application_rejected',

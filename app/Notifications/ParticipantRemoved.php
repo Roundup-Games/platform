@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class ParticipantRemoved extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  User  $removedUser  The user who was removed
      * @param  Game|Campaign  $entity  The Game or Campaign entity
@@ -28,14 +26,14 @@ class ParticipantRemoved extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $entityTypeLabel = $this->entityTypeLabel();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_participant_removed', [
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_participant_removed', [
                 'entity' => $this->entity->name,
             ]))
@@ -50,7 +48,7 @@ class ParticipantRemoved extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'participant_removed',

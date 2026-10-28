@@ -386,3 +386,64 @@ describe('Authorization checks for waitlist/bench actions', function () {
         ]);
     });
 });
+
+// ═══════════════════════════════════════════════════════
+// GAME MANAGE PARTICIPANTS — DEPARTURE CASCADE
+// ═══════════════════════════════════════════════════════
+
+describe('Game ManageParticipants departure cascade', function () {
+    test('removing an approved participant promotes the next waitlisted player exactly once', function () {
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner([
+            'max_players' => 3,
+            'min_players' => 2,
+        ]);
+
+        $player1 = User::factory()->create(['profile_complete' => true]);
+        $player2 = User::factory()->create(['profile_complete' => true]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $player1->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        $removedRow = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $player2->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        $waitUser1 = User::factory()->create(['profile_complete' => true]);
+        $waitUser2 = User::factory()->create(['profile_complete' => true]);
+        $waitRow1 = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $waitUser1->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Waitlisted->value,
+            'waitlisted_at' => now(),
+        ]);
+        $this->travelTo(now()->addSecond());
+        $waitRow2 = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $waitUser2->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Waitlisted->value,
+            'waitlisted_at' => now(),
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(GameManageParticipants::class, ['id' => $game->id])
+            ->call('removeParticipant', $removedRow->id)
+            ->assertHasNoErrors();
+
+        // Deliberate behavior change, pinned: the trait's removeParticipant
+        // (the ManageParticipants page surface) now cascades like the deleted
+        // GameDetail override did — the freed seat is offered to the FIRST
+        // waitlisted player. Exactly one promotion: the cascade fires once
+        // per departure, so the second queued player stays put (a second
+        // cascade would have promoted them too).
+        expect($removedRow->fresh()->status)->toBe(ParticipantStatus::Removed)
+            ->and($waitRow1->fresh()->status)->toBe(ParticipantStatus::Pending)
+            ->and($waitRow2->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
+    });
+});

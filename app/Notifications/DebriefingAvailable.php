@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class DebriefingAvailable extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     /**
      * @param  Game  $game  The game that was completed with debriefing tools
      */
@@ -24,13 +22,13 @@ class DebriefingAvailable extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_debriefing_available', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_debriefing_available', [
                 'game' => $this->game->name,
             ]))
@@ -45,7 +43,7 @@ class DebriefingAvailable extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'debriefing_available',
@@ -70,16 +68,13 @@ class DebriefingAvailable extends BaseNotification
      */
     public function toPush(User $notifiable): ?PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.push_title_debriefing_available'),
-            body: __('notifications.subject_debriefing_available', [
+        return $this->pushPayload(
+            __('notifications.push_title_debriefing_available'),
+            __('notifications.subject_debriefing_available', [
                 'game' => $this->game->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('games.show', ['locale' => $locale, 'id' => $this->game]),
-            tag: "debriefing-{$this->game->id}",
+            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            "debriefing-{$this->game->id}",
         );
     }
 
@@ -88,15 +83,12 @@ class DebriefingAvailable extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_debriefing_available'),
-            'url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
-            'description' => __('notifications.subject_debriefing_available', [
+        return $this->discordEmbed(
+            __('notifications.push_title_debriefing_available'),
+            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            __('notifications.subject_debriefing_available', [
                 'game' => $this->game->name,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

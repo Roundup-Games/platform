@@ -31,8 +31,6 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class BadgeAwardedNotification extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public string $badgeKey,
         public ?string $tier,
@@ -47,7 +45,7 @@ class BadgeAwardedNotification extends BaseNotification
     {
         return (new MailMessage)
             ->subject(__($this->subjectKey(), ['badge' => $this->displayBadge()]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__($this->bodyKey(), ['badge' => $this->displayBadge()]))
             ->action(__('notifications.action_badge_awarded'), $this->actionUrl($notifiable))
             ->line($this->unsubscribeLine($notifiable, 'badge_awarded'));
@@ -75,12 +73,11 @@ class BadgeAwardedNotification extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        return new PushPayload(
-            title: __('notifications.category_badge_awarded'),
-            body: __($this->subjectKey(), ['badge' => $this->displayBadge()]),
-            icon: '/icons/pwa-192x192.png',
-            url: $this->actionUrl($notifiable),
-            tag: "badge-{$this->badgeKey}",
+        return $this->pushPayload(
+            __('notifications.category_badge_awarded'),
+            __($this->subjectKey(), ['badge' => $this->displayBadge()]),
+            $this->actionUrl($notifiable),
+            "badge-{$this->badgeKey}",
         );
     }
 
@@ -96,13 +93,11 @@ class BadgeAwardedNotification extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        return DiscordWebhookPayload::embed([
-            'title' => __($this->subjectKey(), ['badge' => $this->displayBadge()]),
-            'url' => $this->actionUrl($notifiable),
-            'description' => __($this->bodyKey(), ['badge' => $this->displayBadge()]),
-            // Discord blurple — the app's Discord brand colour.
-            'color' => 0x5865F2,
-        ]);
+        return $this->discordEmbed(
+            __($this->subjectKey(), ['badge' => $this->displayBadge()]),
+            $this->actionUrl($notifiable),
+            __($this->bodyKey(), ['badge' => $this->displayBadge()]),
+        );
     }
 
     /**
@@ -130,9 +125,7 @@ class BadgeAwardedNotification extends BaseNotification
 
     private function actionUrl(User $notifiable): string
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return route('profile.show-authenticated', ['locale' => $locale, 'user' => $notifiable]);
+        return route('profile.show-authenticated', ['locale' => $this->resolveLocale($notifiable), 'user' => $notifiable]);
     }
 
     /**

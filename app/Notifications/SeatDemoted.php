@@ -27,7 +27,7 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class SeatDemoted extends BaseNotification
 {
-    use HasUnsubscribeLink, RoutesGameOrCampaign;
+    use RoutesGameOrCampaign;
 
     public function __construct(
         public Game|Campaign $entity,
@@ -36,13 +36,13 @@ class SeatDemoted extends BaseNotification
 
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_seat_demoted', [
                 'entity' => $this->entity->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_seat_demoted', [
                 'entity' => $this->entity->name,
                 'reason' => $this->reason,
@@ -56,7 +56,7 @@ class SeatDemoted extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'seat_demoted',
@@ -70,17 +70,14 @@ class SeatDemoted extends BaseNotification
 
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.push_title_seat_demoted'),
-            body: __('notifications.push_body_seat_demoted', [
+        return $this->pushPayload(
+            __('notifications.push_title_seat_demoted'),
+            __('notifications.push_body_seat_demoted', [
                 'game' => $this->entity->name,
                 'reason' => $this->reason,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: $this->getEntityRoute($locale),
-            tag: "seat-demoted-{$this->getEntityType()}-{$this->entity->id}",
+            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            "seat-demoted-{$this->getEntityType()}-{$this->entity->id}",
         );
     }
 
@@ -89,17 +86,14 @@ class SeatDemoted extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_seat_demoted'),
-            'url' => $this->getEntityRoute($locale),
-            'description' => __('notifications.push_body_seat_demoted', [
+        return $this->discordEmbed(
+            __('notifications.push_title_seat_demoted'),
+            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            __('notifications.push_body_seat_demoted', [
                 'game' => $this->entity->name,
                 'reason' => $this->reason,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 
     /**

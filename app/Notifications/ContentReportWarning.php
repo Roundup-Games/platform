@@ -22,7 +22,7 @@ class ContentReportWarning extends BaseNotification
     {
         return (new MailMessage)
             ->subject(__('notifications.subject_content_warning'))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_content_warning', [
                 'entityType' => $this->entityType,
                 'entityName' => $this->entityName,

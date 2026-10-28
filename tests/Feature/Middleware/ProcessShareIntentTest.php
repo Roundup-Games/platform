@@ -90,6 +90,34 @@ describe('ProcessShareIntent — game share link', function () {
         expect($participant->status)->toBe(ParticipantStatus::Waitlisted);
         expect($participant->join_source)->toBe(JoinSource::ShareLink);
     });
+
+    it('does not create a participant when the signup cutoff has passed', function () {
+        $shareToken = Str::uuid()->toString();
+        $game = Game::factory()->create([
+            'share_token' => $shareToken,
+            'share_token_expires_at' => now()->addDays(7),
+            'max_players' => 10,
+            'signup_cutoff_at' => now()->subHour(),
+        ]);
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->withUnencryptedCookie('share_intent', json_encode(shareIntentPayload('game', $game->id, $shareToken)))
+            ->get('/en/dashboard');
+
+        // D124 cutoff now gates the share-intent path (user-initiated join via
+        // the ParticipantLifecycle intake): no participant row is written,
+        // but the join resolves to a graceful no-op that still lands the user
+        // on the game page (owner-visit parity) instead of an error.
+        $response->assertRedirect(route('games.show', ['id' => $game->id]));
+
+        expect(GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $user->id)
+            ->exists())->toBeFalse();
+    });
 });
 
 describe('ProcessShareIntent — campaign share link', function () {

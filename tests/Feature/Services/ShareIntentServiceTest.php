@@ -22,7 +22,7 @@ uses(DatabaseTransactions::class);
 
 describe('ShareIntentService', function () {
     beforeEach(function () {
-        $this->service = new ShareIntentService;
+        $this->service = app(ShareIntentService::class);
         $this->owner = User::factory()->create();
         $this->user = User::factory()->create();
         $this->system = GameSystem::factory()->create();

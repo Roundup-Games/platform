@@ -2,9 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\GameStatus;
-use App\Enums\ParticipantStatus;
-use App\Enums\Visibility;
+use App\Dto\DiscoveryFilters;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -24,6 +22,8 @@ use Illuminate\Support\Facades\Cache;
 class GameSystemLandingService
 {
     private const CACHE_PREFIX = 'gamesystem:upcoming-tables:';
+
+    public function __construct(private readonly DiscoveryQueryService $discoveryQueries) {}
 
     /**
      * Drop one system's landing cache (invalidation entry point): the
@@ -83,19 +83,22 @@ class GameSystemLandingService
     }
 
     /**
+     * Upcoming PUBLIC tables for one system's landing surface.
+     *
+     * Rides DiscoveryQueryService::buildGamesQuery with a guest (null) user:
+     * the builder's guest arm is public-only visibility, which is exactly
+     * D141's SEO requirement. The system pivot and rail limit are
+     * landing-specific and applied additively. This retires D140's
+     * hand-rolled mirror of the discovery preamble — the landing listing
+     * now shares one structural definition with the discovery feed.
+     *
      * @return Collection<int, Game>
      */
     private function queryUpcomingTables(GameSystem $system): Collection
     {
-        return Game::query()
-            ->where('visibility', Visibility::Public->value)
-            ->where('status', GameStatus::Scheduled->value)
-            ->where('date_time', '>', now())
+        return $this->discoveryQueries
+            ->buildGamesQuery(new DiscoveryFilters, null, 0.0, null, null, false, null)
             ->whereHas('gameSystems', fn ($query) => $query->whereKey($system->getKey()))
-            ->with(['owner', 'gameSystems', 'campaign', 'linkedLocation'])
-            ->withCount(['participants as participants_count' => fn ($query) => $query
-                ->where('status', ParticipantStatus::Approved->value)])
-            ->orderBy('date_time')
             ->limit($this->configInt('game-systems.upcoming_tables_limit', 12))
             ->get();
     }

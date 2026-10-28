@@ -32,8 +32,12 @@ use Illuminate\Support\Facades\Log;
  *  game where a player left via the wrong entry point silently received no
  *  warning.
  *
- * Roster::onCancellation and Roster::onDeparture are the seams. The cancel
- * and leave/remove flows call them; promotion, rejection, notification, and
+ * Roster::onCancellation and Roster::onDeparture are the seams. onCancellation
+ * is caller-sequenced: the entity-cancel flows (GamesPage/CampaignsPage)
+ * invoke it after the entity status write. onDeparture is invoked by
+ * ParticipantLifecycle::depart()/removeParticipant() after the departure
+ * persists — no call site may hand-sequence it or the below-min warning
+ * fires twice per departure. Promotion, rejection, notification, and
  * their ordering live behind the interface. Bench rejection (rejectBenched)
  * is an inline private — it was the only remaining concern in BenchService,
  * which has been fully retired.
@@ -74,12 +78,13 @@ class Roster
      * Promote the next waitlisted player into an opened slot and warn the
      * host if the roster drops below min_players.
      *
-     * Called after a participant departs (self-leave, host-removes, or
-     * waitlist-leave). The departure (status → Rejected/Removed) must be
-     * persisted before this call. Promotion is a no-op in bench mode (no
-     * waitlisted participants exist) so the isBenchMode guard that was
-     * inconsistently applied at five of seven call sites is unnecessary
-     * here — calling unconditionally is safe and simpler.
+     * Invoked by ParticipantLifecycle::depart() and removeParticipant() once
+     * the departure (status → Rejected/Removed) has persisted — call sites
+     * never hand-sequence it (the cascade, including the below-min warning,
+     * must fire exactly once per departure). Promotion is a no-op in bench
+     * mode (no waitlisted participants exist) so the isBenchMode guard that
+     * was inconsistently applied at five of seven former call sites is
+     * unnecessary here — calling unconditionally is safe and simpler.
      */
     public function onDeparture(Game|Campaign $entity): void
     {

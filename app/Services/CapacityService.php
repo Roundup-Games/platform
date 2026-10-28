@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Dto\CapacityChangeResult;
+use App\Dto\CapacityUpdateResult;
 use App\Dto\DemotionPreview;
 use App\Dto\DemotionResult;
 use App\Enums\GameStatus;
@@ -17,6 +18,7 @@ use App\Notifications\SeatDemoted;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Single entry point for host-initiated max_players changes on a Game.
@@ -46,6 +48,226 @@ class CapacityService
     ) {}
 
     /**
+     * Host-driven capacity change — the single routing decision point.
+     *
+     * Owns the state machine previously inlined (~146 LOC) in
+     * GameDetail::updateCapacity(): the validation rules and messages
+     * (zero, 2..30 range, min_players floor, demotion reason cap), the
+     * terminal-state guard, and the three-way branch:
+     *  - increase (newMax > current) → {@see increase()};
+     *  - silent decrease (newMax <= current but still at/above the approved
+     *    count) → {@see decrease()};
+     *  - decrease below the approved count → two-phase confirm: the first
+     *    call returns NEEDS_CONFIRMATION carrying a {@see DemotionPreview};
+     *    the confirming call ($confirmed + non-empty reason) validates the
+     *    reason and runs the LIFO {@see demote()}.
+     *
+     * The calling component keeps ONLY the surface mapping — authorize,
+     * addError, session flash (via the returned flash key), confirm-modal
+     * arming — and computes $confirmed from its own armed-modal state. The
+     * server never trusts the client-side preview: demote() recomputes the
+     * displaced set under a lockForUpdate transaction.
+     *
+     * @param  User  $actor  The host performing the change (demote-path audit logging).
+     * @param  string|null  $reason  Host-supplied demotion reason (confirming calls only).
+     * @param  bool  $confirmed  Whether this is the confirming call of a two-phase decrease.
+     */
+    public function update(Game $game, int $newMax, User $actor, ?string $reason = null, bool $confirmed = false): CapacityUpdateResult
+    {
+        $reason = trim((string) $reason);
+
+        // GUARD — no capacity edits after completion or attendance resolution.
+        if ($game->status === GameStatus::Completed || $game->attendance_resolved_at !== null) {
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::REFUSED,
+                errorKey: 'games.error_capacity_game_completed',
+            );
+        }
+
+        // Explicitly reject 0 before range validation: HasCapacity treats 0
+        // as "unlimited", so a host sending 0 would silently flip a bounded
+        // game to unlimited — a distinct error key from the generic range message.
+        if ($newMax === 0) {
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::INVALID_MAX,
+                newMax: $newMax,
+                errorKey: 'games.error_capacity_zero_invalid',
+            );
+        }
+
+        // Range validation — integer within CreateGame parity range (2..30).
+        $validator = Validator::make(
+            ['capacityNewMax' => $newMax],
+            ['capacityNewMax' => ['required', 'integer', 'min:2', 'max:30']],
+            [
+                'capacityNewMax.required' => 'games.error_capacity_range',
+                'capacityNewMax.integer' => 'games.error_capacity_range',
+                'capacityNewMax.min' => 'games.error_capacity_range',
+                'capacityNewMax.max' => 'games.error_capacity_range',
+            ],
+        );
+
+        if ($validator->fails()) {
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::INVALID_MAX,
+                newMax: $newMax,
+                errorKey: $validator->errors()->first('capacityNewMax'),
+            );
+        }
+
+        // Reject newMax below the game's min_players — reuses the existing
+        // key so the message stays consistent with the create/edit flows.
+        if ($newMax < (int) $game->min_players) {
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::INVALID_MAX,
+                newMax: $newMax,
+                errorKey: 'games.error_min_players_cannot_exceed_max_players',
+            );
+        }
+
+        $currentMax = (int) $game->max_players;
+
+        // INCREASE path — raise + auto-promote from the waitlist. The
+        // locked terminal-state guard inside increase() can still trip when
+        // the game completes between update()'s unlocked guard and the
+        // locked re-read — surface it as REFUSED, never as a 500.
+        if ($newMax > $currentMax) {
+            try {
+                $change = $this->increase($game, $newMax);
+            } catch (\DomainException) {
+                return new CapacityUpdateResult(
+                    outcome: CapacityUpdateResult::REFUSED,
+                    errorKey: 'games.error_capacity_game_completed',
+                );
+            }
+            $max = $change->newMax ?? $newMax;
+
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::INCREASED,
+                newMax: $max,
+                promotedCount: $change->promotedCount,
+                flashKey: match ($change->promotedCount) {
+                    0 => 'games.flash_capacity_increased_none',
+                    1 => 'games.flash_capacity_increased_one',
+                    default => 'games.flash_capacity_increased_many',
+                },
+                flashParams: $change->promotedCount > 1
+                    ? ['max' => $max, 'count' => $change->promotedCount]
+                    : ['max' => $max],
+            );
+        }
+
+        // No change.
+        if ($newMax === $currentMax) {
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::UNCHANGED,
+                newMax: $newMax,
+            );
+        }
+
+        // DECREASE path. previewDemotion() is a pure read — use it to decide
+        // silent vs. demote without a second locked transaction.
+        $preview = $this->previewDemotion($game, $newMax);
+
+        // Silent decrease (above/equal approved count) — no roster change.
+        // Guard with requestedDisplaced === 0 (not just actualDemotionCount
+        // === 0) because the all-exempt overflow case (requested > 0,
+        // demotable = 0) would call decrease() with newMax < approvedCount
+        // and hit DemotionRequiresConfirmation uncaught. In that case, fall
+        // through to the confirm flow so the host sees the preview and
+        // demote() runs.
+        if ($preview->actualDemotionCount === 0 && $preview->requestedDisplaced === 0) {
+            // previewDemotion() read without a lock: between that snapshot and
+            // decrease()'s locked re-read, approvals can grow (invite accept,
+            // waitlist promotion) past $newMax — decrease() then throws
+            // DemotionRequiresConfirmation, which must surface as the confirm
+            // flow, not escape as an exception. Same for the terminal-state
+            // race (completed / attendance resolved under the lock).
+            try {
+                $this->decrease($game, $newMax);
+            } catch (DemotionRequiresConfirmation) {
+                return new CapacityUpdateResult(
+                    outcome: CapacityUpdateResult::NEEDS_CONFIRMATION,
+                    newMax: $newMax,
+                    preview: $this->previewDemotion($game, $newMax),
+                );
+            } catch (\DomainException) {
+                return new CapacityUpdateResult(
+                    outcome: CapacityUpdateResult::REFUSED,
+                    errorKey: 'games.error_capacity_game_completed',
+                );
+            }
+
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::DECREASED,
+                newMax: $newMax,
+                flashKey: 'games.flash_capacity_decreased',
+                flashParams: ['max' => $newMax],
+            );
+        }
+
+        // Below-approved decrease — requires explicit confirmation. First
+        // call (no reason / modal not armed): return the preview for arming.
+        if (! $confirmed) {
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::NEEDS_CONFIRMATION,
+                newMax: $newMax,
+                preview: $preview,
+            );
+        }
+
+        // Confirming call: validate the reason before dispatching. It is
+        // persisted into the notifications.data JSON, rendered in email, and
+        // sent as a push body, so cap it (parity with
+        // attendanceReports.*.reason -> max:500) to keep notification
+        // row/payload sizes bounded.
+        $reasonValidator = Validator::make(
+            ['capacityReason' => $reason],
+            ['capacityReason' => ['required', 'string', 'max:500']],
+            [
+                'capacityReason.required' => 'games.error_capacity_reason_required',
+                'capacityReason.max' => 'games.error_capacity_reason_too_long',
+            ],
+        );
+
+        if ($reasonValidator->fails()) {
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::INVALID_REASON,
+                newMax: $newMax,
+                errorKey: $reasonValidator->errors()->first('capacityReason'),
+            );
+        }
+
+        try {
+            $demotion = $this->demote($game, $newMax, $reason, $actor);
+        } catch (\DomainException) {
+            // Game became completed/resolved between preview and confirm.
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::REFUSED,
+                errorKey: 'games.error_capacity_game_completed',
+            );
+        }
+
+        return new CapacityUpdateResult(
+            outcome: CapacityUpdateResult::DEMOTED,
+            newMax: $newMax,
+            demotedCount: $demotion->demotedCount,
+            // Zero displacements is reachable: the all-exempt confirm flow
+            // (owner + manually promoted only) demotes nobody under the CAP
+            // rule — the flash must state the new maximum only, not claim a
+            // player moved to the waitlist.
+            flashKey: match ($demotion->demotedCount) {
+                0 => 'games.flash_capacity_decreased',
+                1 => 'games.flash_capacity_demoted_one',
+                default => 'games.flash_capacity_demoted_many',
+            },
+            flashParams: $demotion->demotedCount > 1
+                ? ['max' => $newMax, 'count' => $demotion->demotedCount]
+                : ['max' => $newMax],
+        );
+    }
+
+    /**
      * Raise max_players and auto-promote waitlisted players to fill the new slots.
      *
      * Promotees land in Pending (pending confirmation) via the existing
@@ -57,6 +279,8 @@ class CapacityService
      *                       a valid result of an increase).
      *
      * @throws \InvalidArgumentException if $newMax is less than 1.
+     * @throws \DomainException if the game is Completed or attendance-resolved
+     *                          (locked guard; update() maps this to REFUSED).
      */
     public function increase(Game $game, int $newMax): CapacityChangeResult
     {
@@ -123,6 +347,8 @@ class CapacityService
      * decrease() for silent-down, previewDemotion()+demote() for below-approved.
      *
      * @throws DemotionRequiresConfirmation if $newMax < approved participant count.
+     * @throws \DomainException if the game is Completed or attendance-resolved
+     *                          (locked guard, parity with increase()/demote()).
      */
     public function decrease(Game $game, int $newMax): CapacityChangeResult
     {
@@ -135,6 +361,16 @@ class CapacityService
         return DB::transaction(function () use ($game, $newMax) {
             /** @var Game $locked */
             $locked = Game::where('id', $game->id)->lockForUpdate()->firstOrFail();
+
+            // Terminal-state guard — parity with increase()/demote(). A
+            // completed or attendance-resolved game must reject every
+            // max_players change, including a silent decrease (the unlocked
+            // guard in update() alone leaves the post-lock race open).
+            if ($locked->status === GameStatus::Completed || $locked->attendance_resolved_at !== null) {
+                throw new \DomainException(
+                    'Cannot adjust capacity on a completed game or after attendance has been resolved.'
+                );
+            }
 
             $oldMax = $locked->max_players;
             $approvedCount = $locked->approvedParticipantCount();

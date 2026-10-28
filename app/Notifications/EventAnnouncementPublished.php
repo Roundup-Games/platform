@@ -43,8 +43,6 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class EventAnnouncementPublished extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public EventAnnouncement $announcement,
         public Event $event,
@@ -55,14 +53,14 @@ class EventAnnouncementPublished extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $title = $this->resolveTitle($locale);
 
         return (new MailMessage)
             ->subject(__('events.field_new_announcement_name', [
                 'name' => $this->event->name ?? __('events.content_event'),
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('events.content_new_announcement_for_attendees', [
                 'event' => $this->event->name ?? __('events.content_event'),
             ]))
@@ -86,7 +84,7 @@ class EventAnnouncementPublished extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'event_registration',
@@ -115,16 +113,13 @@ class EventAnnouncementPublished extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('events.content_new_announcement'),
-            body: __('events.field_new_announcement_name', [
+        return $this->pushPayload(
+            __('events.content_new_announcement'),
+            __('events.field_new_announcement_name', [
                 'name' => $this->event->name ?? __('events.content_event'),
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('events.detail', ['locale' => $locale, 'slug' => $this->event->slug]),
-            tag: "event-announcement-{$this->announcement->id}",
+            route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $this->event->slug]),
+            "event-announcement-{$this->announcement->id}",
         );
     }
 
@@ -133,17 +128,17 @@ class EventAnnouncementPublished extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $title = $this->resolveTitle($locale);
+        $title = $this->resolveTitle($this->resolveLocale($notifiable));
 
-        return DiscordWebhookPayload::embed([
-            'title' => __('events.content_new_announcement'),
-            'url' => route('events.detail', ['locale' => $locale, 'slug' => $this->event->slug]),
-            'description' => __('events.content_new_announcement_for_attendees', [
+        return $this->discordEmbed(
+            __('events.content_new_announcement'),
+            route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $this->event->slug]),
+            __('events.content_new_announcement_for_attendees', [
                 'event' => $this->event->name ?? __('events.content_event'),
             ])."\n\n**{$title}**",
-            'color' => 0x57F287,
-        ]);
+            // Discord green — a positive lifecycle outcome, overriding the blurple default.
+            0x57F287,
+        );
     }
 
     /**

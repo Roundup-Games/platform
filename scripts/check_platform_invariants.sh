@@ -45,6 +45,15 @@
 #   INV-14 country intake         -> country fields use CountrySelect /
 #                                 App\Support\Country (ISO 3166-1
 #                                 alpha-3), never free-text inputs
+#   INV-15 participant writes     -> game_participants/campaign_participants
+#                                 creation + status writes live only in
+#                                 sanctioned modules (D161 rule-of-one):
+#                                 ParticipantLifecycle (the join intake),
+#                                 WaitlistService, Roster,
+#                                 OwnerParticipantService, CapacityService,
+#                                 ParticipantService (host invites),
+#                                 OverflowRouter, HandlesWaitlist,
+#                                 HasParticipantDefaults boot defaults
 #
 # Scope: app/, resources/, routes/, tests/ as noted per check. Patterns use
 # fixed strings where possible (grep -F) to stay bash-safe.
@@ -225,6 +234,52 @@ if [ -z "$hits" ]; then
     pass "INV-11 no raw FQCN morph-type comparisons (getMorphClass/whereMorphedTo only)"
 else
     fail "INV-11 raw morph-type comparison found (use getMorphClass()/whereMorphedTo): $(echo "$hits" | tr '\n' ' ')"
+fi
+
+# --- INV-15: participant writes live only in sanctioned modules -------------
+# M072: every join path (apply, share-intent, share-link game+campaign legs,
+# Discord RSVP, campaign fan-out) routes through ParticipantLifecycle::
+# createOrReactivate() — the join intake owns the signup cutoff, overflow
+# routing, approved_at stamping, and audit columns. A participant create or
+# status write anywhere else reintroduces per-path drift. Sanctioned writers:
+#   app/Services/ParticipantLifecycle.php    the join intake: create/reactivate,
+#                                            promote, depart/kick, ban
+#   app/Services/WaitlistService.php         waitlist/bench placement + promotion
+#   app/Services/Roster.php                  host departures (status -> Rejected)
+#   app/Services/OwnerParticipantService.php owner rows (updateOrCreate upgrade)
+#   app/Services/CapacityService.php         LIFO capacity demotion (D108 — a
+#                                            demotion is not a departure)
+#   app/Services/ParticipantService.php      host-initiated invites (Pending
+#                                            rows; cutoff-exempt per D124)
+#   app/Services/OverflowRouter.php          overflow placement for invitees
+#   app/Traits/HandlesWaitlist.php           user waitlist-leave (Rejected)
+#   app/Models/Concerns/HasParticipantDefaults.php  boot defaults (created_at)
+# Model observers stamp approved_at reactively on save (not writers). The
+# dev seeder (app/Console/Dev) mass-inserts synthetic rows with raw batches
+# and is scope-excluded; TeamMember rows share the ParticipantStatus enum but
+# are a different table — the status check only fires on files that also carry
+# game/campaign participant vocabulary.
+participant_sanctioned='^app/(Services/(ParticipantLifecycle|WaitlistService|Roster|OwnerParticipantService|CapacityService|ParticipantService|OverflowRouter)|Traits/HandlesWaitlist|Models/Concerns/HasParticipantDefaults)\.php:'
+creation_hits=$(grep -rnE "(GameParticipant|CampaignParticipant)::(create|forceCreate|updateOrCreate|firstOrCreate|firstOrNew|insert|upsert)|->participants\(\)->(create|attach|save|createMany|firstOrCreate|firstOrNew|updateOrCreate)|participantClass::(create|forceCreate|updateOrCreate|firstOrCreate|firstOrNew)|new (GameParticipant|CampaignParticipant)\(" app/ --include='*.php' 2>/dev/null | grep -v '^app/Console/Dev/' | grep -vE ':[0-9]+:\s*(\*|//)' | grep -vE "$participant_sanctioned" | sort)
+if [ -z "$creation_hits" ]; then
+    pass "INV-15 participant rows created only in sanctioned modules (join intake)"
+else
+    fail "INV-15 participant row created outside sanctioned modules: $(echo "$creation_hits" | tr '\n' ' '). Joins must route through ParticipantLifecycle::createOrReactivate(); invites/overflow/waitlist writes belong in the sanctioned services listed in the header."
+fi
+status_violators=''
+for file in $(grep -rlE "['\"]status['\"] => (ParticipantStatus::|\\\$overflow)|->status = ParticipantStatus" app/ --include='*.php' 2>/dev/null | grep -v '^app/Console/Dev/' | sort); do
+    # $casts lines ('status' => ParticipantStatus::class) are not writes;
+    # TeamMember-only files share the enum but never touch participant rows.
+    if grep -nE "['\"]status['\"] => (ParticipantStatus::|\\\$overflow)|->status = ParticipantStatus" "$file" | grep -v 'ParticipantStatus::class' | grep -qvE '^[0-9]+:\s*(\*|//)' \
+        && grep -qE '(GameParticipant|CampaignParticipant|->participants\(\)|participantClass)' "$file" \
+        && ! echo "${file}:" | grep -qE "$participant_sanctioned"; then
+        status_violators="$status_violators $file"
+    fi
+done
+if [ -z "$status_violators" ]; then
+    pass "INV-15 participant status written only in sanctioned modules"
+else
+    fail "INV-15 participant status written outside sanctioned modules:$status_violators. Status transitions (approved/waitlisted/benched/rejected/removed) belong in the sanctioned lifecycle services listed in the header."
 fi
 
 # --- Summary ----------------------------------------------------------------

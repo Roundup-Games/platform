@@ -10,8 +10,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class BelowMinPlayersWarning extends BaseNotification
 {
-    use HasUnsubscribeLink;
-
     public function __construct(
         public Game $game,
         public int $currentCount,
@@ -20,13 +18,13 @@ class BelowMinPlayersWarning extends BaseNotification
 
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_below_min_players', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_below_min_players', [
                 'game' => $this->game->name,
                 'current' => $this->currentCount,
@@ -41,7 +39,7 @@ class BelowMinPlayersWarning extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'below_min_players',
@@ -61,18 +59,15 @@ class BelowMinPlayersWarning extends BaseNotification
 
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.push_title_below_min_players'),
-            body: __('notifications.push_body_below_min_players', [
+        return $this->pushPayload(
+            __('notifications.push_title_below_min_players'),
+            __('notifications.push_body_below_min_players', [
                 'game' => $this->game->name,
                 'current' => $this->currentCount,
                 'min' => $this->minPlayers,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('games.show', ['locale' => $locale, 'id' => $this->game]),
-            tag: "below-min-players-{$this->game->id}",
+            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            "below-min-players-{$this->game->id}",
         );
     }
 
@@ -81,17 +76,14 @@ class BelowMinPlayersWarning extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.push_title_below_min_players'),
-            'url' => route('games.show', ['locale' => $locale, 'id' => $this->game]),
-            'description' => __('notifications.push_body_below_min_players', [
+        return $this->discordEmbed(
+            __('notifications.push_title_below_min_players'),
+            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            __('notifications.push_body_below_min_players', [
                 'game' => $this->game->name,
                 'current' => $this->currentCount,
                 'min' => $this->minPlayers,
             ]),
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

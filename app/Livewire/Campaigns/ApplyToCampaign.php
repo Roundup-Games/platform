@@ -4,8 +4,6 @@ namespace App\Livewire\Campaigns;
 
 use App\Enums\Visibility;
 use App\Models\Campaign;
-use App\Models\CampaignApplication;
-use App\Models\CampaignParticipant;
 use App\Traits\HandlesApplicationSubmission;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -61,10 +59,6 @@ class ApplyToCampaign extends Component
     protected function getApplicationConfig(): array
     {
         return [
-            'foreign_key' => 'campaign_id',
-            'application_class' => CampaignApplication::class,
-            'participant_class' => CampaignParticipant::class,
-            'entity_class' => Campaign::class,
             'show_route' => 'campaigns.show',
             'entity_type' => 'campaign',
             'log_key' => 'campaign_id',

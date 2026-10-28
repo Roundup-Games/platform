@@ -2,37 +2,39 @@
 
 namespace App\Services;
 
+use App\Dto\EntityMeta;
+use App\Dto\JoinIntent;
 use App\Dto\ParticipantResult;
 use App\Enums\JoinSource;
-use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Exceptions\SignupCutoffReached;
 use App\Models\Campaign;
-use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * The single, lock-guarded share-link join pipeline for Game and Campaign.
  *
  * This is the app's most race-sensitive mutation: the entity row is locked
  * FOR UPDATE, the short link is revalidated under the lock (catching
- * mid-session revocation, falling back to a still-valid share token),
- * capacity is re-checked under the lock, and full entities route to the
- * overflow primitive (waitlist/bench) — all inside one transaction. This
- * service replaced three near-verbatim copies (GameDetail::joinViaShareLink,
+ * mid-session revocation, falling back to a still-valid share token), and
+ * the participant write itself routes through the join intake
+ * ({@see ParticipantLifecycle::createOrReactivate()}) — capacity re-check,
+ * overflow routing ({@see OverflowRouter}), approved_at stamping, the
+ * reactivation reset base, the signup cutoff (D124), and the source-attributed
+ * participant.joined log are all enforced by the lifecycle, uniformly for
+ * games and campaigns via {@see EntityMeta::fromEntity()}. This service
+ * replaced three near-verbatim copies (GameDetail::joinViaShareLink,
  * GameDetail::joinViaDiscord, CampaignDetail::joinViaShareLink) whose silent
  * divergence was the highest-blast-radius debt in the codebase: a race fix
  * applied to one copy used to miss the others.
  *
- * Deliberate per-entity differences (schema, not drift):
- * - Games create through {@see ParticipantLifecycle::createOrReactivate()} so
- *   a departed row reactivates with its audit fields reset; campaigns have no
- *   departure lifecycle and create the row directly.
- * - Games stamp approved_at on direct joins so the LIFO capacity-demotion
- *   ordering is correct; CampaignParticipant has no approved_at column.
+ * Routing the campaign leg through the intake also fixes a latent constraint
+ * violation: campaigns keep Rejected rows (declined invitations), so a
+ * rejoin-after-decline previously hit the unique (campaign_id, user_id)
+ * index on the direct create — it now reactivates the row like the game leg.
  *
  * Components keep the pre-guards (canJoinViaShareLink / signup cutoff / rate
  * limiting), the post-transaction surface effects (cookie clears, Discord
@@ -41,7 +43,6 @@ use Illuminate\Support\Facades\Log;
 class ShareLinkJoinService
 {
     public function __construct(
-        private readonly ParticipantService $participantService,
         private readonly OverflowRouter $overflowRouter,
         private readonly ParticipantLifecycle $participantLifecycle,
     ) {}
@@ -50,6 +51,13 @@ class ShareLinkJoinService
      * Join the viewer onto the entity via a share link / short link / Discord
      * intent, under the row lock.
      *
+     * The participant write is a user-initiated join intent on the lifecycle
+     * intake: entity-type dispatch, capacity re-check under the lock, overflow
+     * routing, approved_at stamping, reactivation-aware row write, and the
+     * source-attributed participant.joined log all live behind that seam —
+     * this method keeps only what is share-link-specific (the entity row lock
+     * and the short-link revalidation under it).
+     *
      * @param  JoinSource  $joinSource  ShortLink, ShareLink, or Discord
      * @param  int|null  $shortLinkId  Validated short link id (null → token join)
      * @param  string|null  $shareToken  Captured share-token query param, used
@@ -57,8 +65,13 @@ class ShareLinkJoinService
      * @return ParticipantResult|null Overflow outcome when the entity was full
      *                                (caller renders its flash message); null on direct join
      *
-     * @throws \RuntimeException When the entity vanished mid-transaction, or the
-     *                           short link was revoked with no valid token fallback
+     * @throws \RuntimeException When the entity vanished mid-transaction, the
+     *                           short link was revoked with no valid token fallback, or the viewer
+     *                           already holds a join-blocking participant row under the lock
+     *                           (active row or host-removed Removed row)
+     * @throws SignupCutoffReached When the game's signup cutoff
+     *                             passed between the component pre-guard and this locked write
+     *                             (D124 race edge; logged by the intake, no row written)
      */
     public function join(Game|Campaign $entity, User $viewer, JoinSource $joinSource, ?int $shortLinkId = null, ?string $shareToken = null): ?ParticipantResult
     {
@@ -90,77 +103,49 @@ class ShareLinkJoinService
                 }
             }
 
-            $isFull = $this->participantService->isAtCapacity($locked);
+            // Re-check for a join-blocking participant row UNDER the lock. The
+            // component pre-guards (canJoinViaShareLink / GameJoinGate) make
+            // the same decision on an unlocked snapshot; between that check
+            // and this lock a host removal or invite acceptance can land.
+            // The blocking set matches GameJoinGate::viewerMeetsJoinEligibility():
+            // an active row (Approved / Pending / Waitlisted / Benched) must
+            // not be re-written by a direct join — a Pending row belongs to
+            // the invitation flow, not a screening bypass — and a Removed row
+            // is a moderation block that the removed user must not be able to
+            // reverse themselves (removeParticipant() contract; without this
+            // the reactivation path silently flipped Removed → Approved and
+            // cleared the removal audit stamps). Rejected rows stay
+            // reactivatable: depart() keeps them precisely so a self-leave
+            // can rejoin through this pipeline.
+            $meta = EntityMeta::fromEntity($locked);
+            $blocking = $meta->participantClass::query()
+                ->where($meta->foreignKey, $locked->getKey())
+                ->whereBelongsTo($viewer)
+                ->whereIn('status', [
+                    ParticipantStatus::Approved->value,
+                    ParticipantStatus::Pending->value,
+                    ParticipantStatus::Waitlisted->value,
+                    ParticipantStatus::Benched->value,
+                    ParticipantStatus::Removed->value,
+                ])
+                ->exists();
 
-            $baseData = array_filter([
-                $locked->getForeignKey() => $locked->getKey(),
-                'user_id' => $viewer->id,
-                'role' => ParticipantRole::Player->value,
-                'join_source' => $joinSource->value,
-                'short_link_id' => $shortLinkId,
-            ], fn ($value): bool => $value !== null);
+            if ($blocking) {
+                throw new \RuntimeException('Viewer already holds a join-blocking participant row for this entity.');
+            }
 
-            $via = $joinSource === JoinSource::Discord ? 'Discord intent' : 'share link';
-            $label = $locked instanceof Game ? 'game' : 'campaign';
+            $participant = $this->participantLifecycle->createOrReactivate(
+                JoinIntent::join($locked, $viewer, $joinSource, $shortLinkId),
+            );
 
-            if ($isFull) {
-                $overflow = $this->overflowRouter->resolve($locked);
-                $baseData['status'] = $overflow->statusValue();
-                $baseData[$overflow->timestampColumn] = now();
-
-                $this->createParticipant($locked, $baseData);
-
+            // A full entity routed the joiner to the waitlist/bench — surface
+            // the matching flash so the caller can tell the user where they
+            // landed. The decision itself was made inside the intake.
+            if (in_array($participant->getStatus(), [ParticipantStatus::Benched, ParticipantStatus::Waitlisted], true)) {
                 $overflowFlash = $this->overflowRouter->flashResult($locked);
-
-                Log::info('Player '.$overflow->statusValue().' via '.$via.' ('.$label.' full)', [
-                    $label.'_id' => $locked->getKey(),
-                    'user_id' => $viewer->id,
-                    'join_source' => $joinSource->value,
-                    'short_link_id' => $shortLinkId,
-                ]);
-            } else {
-                $baseData['status'] = ParticipantStatus::Approved->value;
-
-                // Stamp approved_at so LIFO capacity-demotion ordering is
-                // correct for direct joins — without this, the demote query's
-                // `approved_at IS NULL ASC` ordering would shield these players
-                // from demotion (MEM: stamp every Approved transition). Mirrors
-                // WaitlistService::confirmPromotion. Games only: the column
-                // exists on GameParticipant, not CampaignParticipant.
-                if ($locked instanceof Game) {
-                    $baseData['approved_at'] = now();
-                }
-
-                $this->createParticipant($locked, $baseData);
-
-                Log::info('Player joined '.($locked instanceof Campaign ? 'campaign ' : '').'via '.$via, [
-                    $label.'_id' => $locked->getKey(),
-                    'user_id' => $viewer->id,
-                    'join_source' => $joinSource->value,
-                    'short_link_id' => $shortLinkId,
-                ]);
             }
         });
 
         return $overflowFlash;
-    }
-
-    /**
-     * Create the participant row through the entity's creation primitive.
-     *
-     * Games go through the lifecycle's reactivation-aware create (a departed
-     * row rejoins with its audit fields reset); campaigns create directly.
-     *
-     * @param  array<string, mixed>  $baseData
-     */
-    private function createParticipant(Game|Campaign $locked, array $baseData): void
-    {
-        if ($locked instanceof Game) {
-            $this->participantLifecycle->createOrReactivate($baseData);
-
-            return;
-        }
-
-        CampaignParticipant::create($baseData);
     }
 }
