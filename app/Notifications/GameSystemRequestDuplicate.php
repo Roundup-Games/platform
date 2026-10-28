@@ -39,13 +39,13 @@ class GameSystemRequestDuplicate extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $existingUrl = route('game-systems.show', ['locale' => $locale, 'slug' => $this->existingSystem->slug]);
         $name = $this->getGameSystemName();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_duplicate'))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_game_system_request_duplicate', [
                 'name' => $name,
                 'existing' => $this->existingSystem->name,

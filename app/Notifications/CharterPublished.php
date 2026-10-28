@@ -18,6 +18,8 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class CharterPublished extends BaseNotification
 {
+    use RoutesCharter;
+
     /**
      * @param  Campaign  $campaign  The campaign the charter belongs to
      * @param  SessionZeroSurvey  $charter  The published charter
@@ -32,17 +34,15 @@ class CharterPublished extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
         return (new MailMessage)
             ->subject(__('notifications.subject_charter_published', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_charter_published', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->action(__('notifications.action_charter_sign'), $this->actionUrl($locale))
+            ->action(__('notifications.action_charter_sign'), $this->charterUrl($this->resolveLocale($notifiable)))
             ->line($this->unsubscribeLine($notifiable, 'charter_published'));
     }
 
@@ -53,7 +53,7 @@ class CharterPublished extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'charter_published',
@@ -62,7 +62,7 @@ class CharterPublished extends BaseNotification
             'entity_name' => $this->campaign->name,
             'actor_id' => $this->campaign->owner_id,
             'charter_uuid' => $this->charter->uuid,
-            'action_url' => $this->actionUrl($locale),
+            'action_url' => $this->charterUrl($locale),
         ];
     }
 
@@ -79,16 +79,13 @@ class CharterPublished extends BaseNotification
      */
     public function toPush(User $notifiable): ?PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.push_title_charter_published'),
-            body: __('notifications.push_body_charter_published', [
+        return $this->pushPayload(
+            __('notifications.push_title_charter_published'),
+            __('notifications.push_body_charter_published', [
                 'campaign' => $this->campaign->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: $this->actionUrl($locale),
-            tag: "charter-published-{$this->charter->uuid}",
+            $this->charterUrl($this->resolveLocale($notifiable)),
+            "charter-published-{$this->charter->uuid}",
         );
     }
 
@@ -98,23 +95,14 @@ class CharterPublished extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.subject_charter_published', [
+        return $this->discordEmbed(
+            __('notifications.subject_charter_published', [
                 'campaign' => $this->campaign->name,
             ]),
-            'url' => $this->actionUrl($locale),
-            'description' => __('notifications.body_charter_published', [
+            $this->charterUrl($this->resolveLocale($notifiable)),
+            __('notifications.body_charter_published', [
                 'campaign' => $this->campaign->name,
             ]),
-            // Discord blurple — the app's Discord brand colour.
-            'color' => 0x5865F2,
-        ]);
-    }
-
-    private function actionUrl(string $locale): string
-    {
-        return route('charter.view', ['locale' => $locale, 'uuid' => $this->charter->uuid]);
+        );
     }
 }

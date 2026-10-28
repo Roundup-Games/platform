@@ -24,15 +24,14 @@ class GameSystemRequestApproved extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $gameSystemUrl = route('game-systems.show', ['locale' => $locale, 'slug' => $this->gameSystem->slug]);
+        $locale = $this->resolveLocale($notifiable);
         $createGameUrl = route('games.create', ['locale' => $locale]).'?game_system_id='.$this->gameSystem->id;
 
         return (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_approved', [
                 'name' => $this->gameSystem->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_game_system_request_approved', [
                 'name' => $this->gameSystem->name,
             ]))

@@ -3,12 +3,10 @@
 namespace App\Notifications;
 
 use App\Models\User;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\URL;
 
@@ -22,12 +20,13 @@ use Illuminate\Support\Facades\URL;
  * Deliberately bypasses the NotificationService category system — the digest is
  * not a per-category event, has no actor, and respects only the user's
  * weekly_digest_enabled flag (checked by the sender command before dispatch).
- * Sent via direct $user->notify() from SendWeeklyDigest, queued via ShouldQueue.
+ * Sent via direct $user->notify() from SendWeeklyDigest, queued via ShouldQueue
+ * (inherited from BaseNotification, which also supplies the shared envelope:
+ * resolveLocale/greetingLine). Its opt-out URL is a distinct digest route with
+ * no category, so it does NOT reuse the base's unsubscribeUrl/unsubscribeLine.
  */
-class WeeklyDigest extends Notification implements ShouldQueue
+class WeeklyDigest extends BaseNotification
 {
-    use Queueable;
-
     /**
      * @param  Collection<int, DatabaseNotification>  $notifications  Unread in-app notifications from the past week.
      */
@@ -38,21 +37,23 @@ class WeeklyDigest extends Notification implements ShouldQueue
     /**
      * Mail-only — the digest exists because these notifications were already
      * delivered in-app; the email is the supplementary summary channel.
+     * Overrides the base's default support set (database + mail + discord):
+     * the digest deliberately has no in-app bell row and no DM surface.
      *
      * @return array<int, string>
      */
-    public function via(User $notifiable): array
+    protected function supportedChannels(): array
     {
         return [MailChannel::class];
     }
 
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         $message = (new MailMessage)
             ->subject(__('notifications.subject_weekly_digest'))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(trans_choice('notifications.body_weekly_digest_intro', $this->notifications->count(), ['count' => $this->notifications->count()]));
 
         // Group by notification type for a scannable summary. Cap at a reasonable
@@ -76,17 +77,28 @@ class WeeklyDigest extends Notification implements ShouldQueue
         return $message
             ->action(__('notifications.action_weekly_digest'), route('notifications.index', ['locale' => $locale]))
             ->line(__('notifications.body_weekly_digest_unsubscribe'))
-            ->action(__('notifications.action_unsubscribe_digest'), $this->unsubscribeUrl($notifiable, $locale))
+            ->action(__('notifications.action_unsubscribe_digest'), $this->digestUnsubscribeUrl($notifiable))
             ->line(__('notifications.body_weekly_digest_settings'));
     }
 
     /**
-     * Signed one-click opt-out URL for the weekly digest.
+     * Discord opted out (D130): mail-only by design — the digest summarizes
+     * in-app notifications, so a DM would duplicate the channel it exists
+     * to supplement.
      */
-    protected function unsubscribeUrl(User $notifiable, string $locale): string
+    public function toDiscord(User $notifiable): ?DiscordWebhookPayload
+    {
+        return null;
+    }
+
+    /**
+     * Signed one-click opt-out URL for the weekly digest (a distinct route
+     * from the base's per-category unsubscribe — the digest has no category).
+     */
+    private function digestUnsubscribeUrl(User $notifiable): string
     {
         return URL::signedRoute('notifications.unsubscribe-digest', [
-            'locale' => $locale,
+            'locale' => $this->resolveLocale($notifiable),
             'user' => $notifiable->id,
         ]);
     }

@@ -169,15 +169,17 @@ abstract class BaseNotification extends Notification implements ShouldQueue
 
     /**
      * Discord DM wrapped in the shared envelope: one blurple embed with the
-     * caller's title/url/description (D130: Discord mirrors push).
+     * caller's title/url/description (D130: Discord mirrors push). Classes
+     * with a semantic accent (event lifecycle green/red) pass an explicit
+     * $color; everything else inherits the blurple default.
      */
-    protected function discordEmbed(string $title, string $url, string $description): DiscordWebhookPayload
+    protected function discordEmbed(string $title, string $url, string $description, ?int $color = null): DiscordWebhookPayload
     {
         return DiscordWebhookPayload::embed([
             'title' => $title,
             'url' => $url,
             'description' => $description,
-            'color' => self::DISCORD_EMBED_COLOR,
+            'color' => $color ?? self::DISCORD_EMBED_COLOR,
         ]);
     }
 

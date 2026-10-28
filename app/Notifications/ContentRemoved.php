@@ -32,7 +32,7 @@ class ContentRemoved extends BaseNotification
         if ($this->scope === 'cover_image') {
             return (new MailMessage)
                 ->subject(__('notifications.subject_cover_removed'))
-                ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+                ->greeting($this->greetingLine($notifiable))
                 ->line(__('notifications.body_cover_removed', [
                     'entityType' => $this->entityType,
                     'entityName' => $this->entityName,
@@ -45,7 +45,7 @@ class ContentRemoved extends BaseNotification
 
         return (new MailMessage)
             ->subject(__('notifications.subject_content_removed'))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_content_removed', [
                 'entityType' => $this->entityType,
                 'entityName' => $this->entityName,

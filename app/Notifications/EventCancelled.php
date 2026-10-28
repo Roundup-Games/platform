@@ -35,14 +35,14 @@ class EventCancelled extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $event = $this->event;
 
         $mail = (new MailMessage)
             ->subject(__('events.field_event_cancelled_name', [
                 'name' => $event->name ?? __('events.content_event'),
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('events.content_event_cancelled_notice', [
                 'event' => $event->name ?? __('events.content_event'),
             ]))
@@ -80,7 +80,7 @@ class EventCancelled extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
         $event = $this->event;
 
         return [
@@ -109,17 +109,15 @@ class EventCancelled extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $event = $this->event;
 
-        return new PushPayload(
-            title: __('events.content_event_cancelled'),
-            body: __('events.field_event_cancelled_name', [
+        return $this->pushPayload(
+            __('events.content_event_cancelled'),
+            __('events.field_event_cancelled_name', [
                 'name' => $event->name ?? __('events.content_event'),
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('events.detail', ['locale' => $locale, 'slug' => $event->slug]),
-            tag: "event-cancelled-{$event->id}",
+            route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $event->slug]),
+            "event-cancelled-{$event->id}",
         );
     }
 
@@ -128,16 +126,16 @@ class EventCancelled extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $event = $this->event;
 
-        return DiscordWebhookPayload::embed([
-            'title' => __('events.content_event_cancelled'),
-            'url' => route('events.detail', ['locale' => $locale, 'slug' => $event->slug]),
-            'description' => __('events.content_event_cancelled_notice', [
+        return $this->discordEmbed(
+            __('events.content_event_cancelled'),
+            route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $event->slug]),
+            __('events.content_event_cancelled_notice', [
                 'event' => $event->name ?? __('events.content_event'),
             ]),
-            'color' => 0xED4245,
-        ]);
+            // Discord red — a negative lifecycle outcome, overriding the blurple default.
+            0xED4245,
+        );
     }
 }

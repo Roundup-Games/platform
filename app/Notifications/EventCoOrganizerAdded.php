@@ -44,13 +44,13 @@ class EventCoOrganizerAdded extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('events.content_you_ve_been_added_as_co_organizer_of_event', [
                 'event' => $this->eventName(),
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('events.content_you_ve_been_added_as_co_organizer_of_event', [
                 'event' => '**'.$this->eventName().'**',
             ]))
@@ -65,7 +65,7 @@ class EventCoOrganizerAdded extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'event_registration',
@@ -90,16 +90,13 @@ class EventCoOrganizerAdded extends BaseNotification
      */
     public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('events.content_co_organizer_added'),
-            body: __('events.content_you_ve_been_added_as_co_organizer_of_event', [
+        return $this->pushPayload(
+            __('events.content_co_organizer_added'),
+            __('events.content_you_ve_been_added_as_co_organizer_of_event', [
                 'event' => $this->eventName(),
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: $this->manageUrl($locale),
-            tag: "event-co-organizer-{$this->event->id}",
+            $this->manageUrl($this->resolveLocale($notifiable)),
+            "event-co-organizer-{$this->event->id}",
         );
     }
 
@@ -108,16 +105,15 @@ class EventCoOrganizerAdded extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return DiscordWebhookPayload::embed([
-            'title' => __('events.content_co_organizer_added'),
-            'url' => $this->manageUrl($locale),
-            'description' => __('events.content_you_ve_been_added_as_co_organizer_of_event', [
+        return $this->discordEmbed(
+            __('events.content_co_organizer_added'),
+            $this->manageUrl($this->resolveLocale($notifiable)),
+            __('events.content_you_ve_been_added_as_co_organizer_of_event', [
                 'event' => $this->eventName(),
             ]),
-            'color' => 0x57F287,
-        ]);
+            // Discord green — a positive lifecycle outcome, overriding the blurple default.
+            0x57F287,
+        );
     }
 
     private function manageUrl(string $locale): string

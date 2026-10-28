@@ -28,13 +28,13 @@ class BulletinPosted extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_bulletin_posted', [
                 'game' => $this->game->name,
             ]))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_bulletin_posted', [
                 'host' => $this->host->name,
                 'game' => $this->game->name,
@@ -53,7 +53,7 @@ class BulletinPosted extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
+        $locale = $this->resolveLocale($notifiable);
 
         return [
             'type' => 'bulletin_posted',
@@ -79,17 +79,14 @@ class BulletinPosted extends BaseNotification
      */
     public function toPush(User $notifiable): ?PushPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-
-        return new PushPayload(
-            title: __('notifications.push_title_bulletin_posted'),
-            body: __('notifications.push_body_bulletin_posted', [
+        return $this->pushPayload(
+            __('notifications.push_title_bulletin_posted'),
+            __('notifications.push_body_bulletin_posted', [
                 'host' => $this->host->name,
                 'game' => $this->game->name,
             ]),
-            icon: '/icons/pwa-192x192.png',
-            url: route('games.show', ['locale' => $locale, 'id' => $this->game]),
-            tag: "bulletin-{$this->bulletin->id}",
+            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            "bulletin-{$this->bulletin->id}",
         );
     }
 
@@ -104,15 +101,14 @@ class BulletinPosted extends BaseNotification
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
-        $url = route('games.show', ['locale' => $locale, 'id' => $this->game]);
+        $url = route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]);
 
-        return DiscordWebhookPayload::embed([
-            'title' => __('notifications.subject_bulletin_posted', [
+        return $this->discordEmbed(
+            __('notifications.subject_bulletin_posted', [
                 'game' => $this->game->name,
             ]),
-            'url' => $url,
-            'description' => __('notifications.body_bulletin_posted', [
+            $url,
+            __('notifications.body_bulletin_posted', [
                 'host' => $this->host->name,
                 'game' => $this->game->name,
             ])
@@ -120,8 +116,6 @@ class BulletinPosted extends BaseNotification
                 .__('notifications.body_bulletin_content', [
                     'content' => Str::limit($this->bulletin->content, 280),
                 ]),
-            // Discord blurple — the app's Discord brand colour.
-            'color' => 0x5865F2,
-        ]);
+        );
     }
 }

@@ -128,6 +128,16 @@ class NotificationEnvelopeTest extends TestCase
         $this->assertNull($payload->components);
     }
 
+    public function test_discord_embed_accepts_a_semantic_accent_color_override(): void
+    {
+        // Event lifecycle embeds (green = positive, red = cancellation) keep
+        // their semantic accent while the wrap itself stays in the base.
+        $payload = (new EnvelopeProbeNotification)
+            ->probeDiscordEmbed('Title', 'https://roundup.test/game/1', 'Body copy', 0xED4245);
+
+        $this->assertSame(0xED4245, $payload->embeds[0]['color']);
+    }
+
     // ── channel methods stay per-class (D247) ─────────────────────────
 
     public function test_base_notification_does_not_define_to_discord_or_to_push(): void
@@ -154,5 +164,46 @@ class NotificationEnvelopeTest extends TestCase
         $this->assertInstanceOf(HtmlString::class, $line);
         $this->assertStringContainsString('/de/notifications/unsubscribe/'.$notifiable->id.'/', (string) $line);
         $this->assertStringContainsString(__('notifications.email_unsubscribe'), (string) $line);
+    }
+
+    // ── fleet completeness (the T03 sweep, made permanent) ────────────
+
+    /**
+     * The envelope lives in the base — no class under app/Notifications may
+     * restate its literal lines. The preferred_language locale-resolve line
+     * is the canary named by the slice plan; the greeting key, the push icon
+     * path, and raw PushPayload/DiscordWebhookPayload construction round out
+     * the set. BaseNotification itself is the only legitimate holder.
+     */
+    public function test_no_class_outside_the_base_restates_the_literal_envelope(): void
+    {
+        $envelopeLines = [
+            'preferred_language->value' => 'resolveLocale()',
+            'common.field_hey_name' => 'greetingLine()',
+            'pwa-192x192.png' => 'pushPayload()',
+            'new PushPayload(' => 'pushPayload()',
+            'DiscordWebhookPayload::embed(' => 'discordEmbed()',
+        ];
+
+        $violations = [];
+
+        foreach (glob(app_path('Notifications').'/*.php') as $file) {
+            if (basename($file, '.php') === 'BaseNotification') {
+                continue;
+            }
+
+            $source = (string) file_get_contents($file);
+
+            foreach ($envelopeLines as $needle => $helper) {
+                if (str_contains($source, $needle)) {
+                    $violations[] = basename($file).' restates '.substr($needle, 0, 40).' — use '.$helper.' from BaseNotification';
+                }
+            }
+        }
+
+        $this->assertSame([], $violations, sprintf(
+            "M072/S04: the notification envelope is concentrated in BaseNotification — these files restate it literally:\n%s",
+            implode("\n", $violations),
+        ));
     }
 }

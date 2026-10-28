@@ -51,7 +51,7 @@ class GameSystemRequestRejected extends BaseNotification
 
         $mail = (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_rejected'))
-            ->greeting(__('common.field_hey_name', ['name' => $notifiable->name ?? $notifiable->email]))
+            ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_game_system_request_rejected', [
                 'name' => $name,
             ]));

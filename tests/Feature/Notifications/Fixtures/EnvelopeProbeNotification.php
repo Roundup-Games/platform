@@ -32,9 +32,9 @@ class EnvelopeProbeNotification extends BaseNotification
         return $this->pushPayload($title, $body, $url, $tag);
     }
 
-    public function probeDiscordEmbed(string $title, string $url, string $description): DiscordWebhookPayload
+    public function probeDiscordEmbed(string $title, string $url, string $description, ?int $color = null): DiscordWebhookPayload
     {
-        return $this->discordEmbed($title, $url, $description);
+        return $this->discordEmbed($title, $url, $description, $color);
     }
 
     public function probeUnsubscribeLine(User $notifiable, string $category): HtmlString
