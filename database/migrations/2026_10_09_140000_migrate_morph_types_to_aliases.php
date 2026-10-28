@@ -33,14 +33,17 @@ return new class extends Migration
     private const ALIASES = [
         'campaign' => 'App\\Models\\Campaign',
         // The M069 badge-evidence aliases (discord_guild_organizer,
-        // local_subscription, subscription) and the M070/S04 chartered
-        // evidence alias (session_zero_confirmation) joined the enforced
-        // map after this migration first ran and are appended here in
-        // lockstep (UuidPolicyTest pins frozen ~= live). None of these
-        // classes ever stored FQCN rows -- their writes went through
-        // getMorphClass() from day one -- so up()/down() convert nothing
-        // for them on fresh or re-runs; the frozen behavior is unchanged.
+        // local_subscription, subscription), the M070/S04 chartered
+        // evidence alias (session_zero_confirmation), and the escalated
+        // ticket-account alias (escalated_contact, 2026-10-28 deps
+        // refresh) joined the enforced map after this migration first
+        // ran and are appended here in lockstep (UuidPolicyTest pins
+        // frozen ~= live). None of these classes ever stored FQCN rows --
+        // their writes went through getMorphClass() from day one -- so
+        // up()/down() convert nothing for them on fresh or re-runs; the
+        // frozen behavior is unchanged.
         'discord_guild_organizer' => 'App\\Models\\DiscordGuildOrganizer',
+        'escalated_contact' => 'Escalated\\Laravel\\Models\\Contact',
         'event' => 'App\\Models\\Event',
         'event_announcement' => 'App\\Models\\EventAnnouncement',
         'game' => 'App\\Models\\Game',

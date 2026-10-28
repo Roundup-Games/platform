@@ -71,6 +71,7 @@ use Escalated\Laravel\Models\AuditLog;
 use Escalated\Laravel\Models\Automation;
 use Escalated\Laravel\Models\BusinessSchedule;
 use Escalated\Laravel\Models\CannedResponse;
+use Escalated\Laravel\Models\Contact;
 use Escalated\Laravel\Models\CustomField;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\EscalationRule;
@@ -612,6 +613,12 @@ class AppServiceProvider extends ServiceProvider
         // getMorphClass()/whereMorphedTo (INV-11 pins the writers).
         Relation::enforceMorphMap([
             'campaign' => Campaign::class,
+            // Escalated support-desk contact (1.9.1 ticket accounts): the
+            // venue-claim flow links tickets to an escalated Contact account,
+            // which writes account_type through getMorphClass() — strict
+            // morph-map enforcement needs an alias or it throws. No stored
+            // rows predate the alias (the account columns are new).
+            'escalated_contact' => Contact::class,
             // Badge evidence alias (M069 S05, D170/D209): the guild_linked
             // pointer at a DiscordGuildOrganizer opt-in row. Badge evidence
             // is the only morph use — no stored FQCN rows exist.

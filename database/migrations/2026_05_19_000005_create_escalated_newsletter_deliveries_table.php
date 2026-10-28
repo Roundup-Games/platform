@@ -1,0 +1,44 @@
+<?php
+
+use Escalated\Laravel\Database\Migration;
+use Escalated\Laravel\Escalated;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create(Escalated::table('newsletter_deliveries'), function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('newsletter_id');
+            $table->unsignedBigInteger('contact_id');
+            $table->string('email_at_send', 320);
+            $table->enum('status', ['pending', 'queued', 'sent', 'bounced', 'complained', 'suppressed', 'failed'])->default('pending');
+            $table->string('tracking_token', 40)->unique();
+            $table->timestamp('sent_at')->nullable();
+            $table->timestamp('opened_at')->nullable();
+            $table->timestamp('last_clicked_at')->nullable();
+            $table->unsignedInteger('clicks_count')->default(0);
+            $table->text('bounce_reason')->nullable();
+            $table->text('failure_reason')->nullable();
+            $table->unsignedSmallInteger('attempt_count')->default(0);
+            $table->timestamp('claimed_at')->nullable();
+            $table->timestamp('next_attempt_at')->nullable()->comment('Earliest time a retry may be dispatched (exponential backoff)');
+            $table->boolean('is_test')->default(false);
+            $table->timestamp('created_at')->useCurrent();
+
+            $table->index(['newsletter_id', 'status']);
+            $table->index('contact_id');
+            $table->index(['status', 'claimed_at']);
+
+            $table->foreign('newsletter_id')->references('id')->on(Escalated::table('newsletters'))->cascadeOnDelete();
+            $table->foreign('contact_id')->references('id')->on(Escalated::table('contacts'))->cascadeOnDelete();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists(Escalated::table('newsletter_deliveries'));
+    }
+};

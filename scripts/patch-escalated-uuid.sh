@@ -2,6 +2,9 @@
 # Patch escalated-laravel to work with the platform's UUID user primary keys.
 # Re-applies after every composer install/update via composer.json post-autoload-dump.
 #
+# Verified still required against escalated-laravel 1.9.10 (2026-10-28): both
+# remaining patches below have live anchors in the pristine 1.9.10 dist.
+#
 # Background: the platform converts escalated's user-ref and morph columns to
 # PostgreSQL `uuid` (see 2026_05_14_233000_convert_escalated_user_refs_to_uuid.php)
 # because the host User model uses UUID keys. escalated's own ticket/reply models
