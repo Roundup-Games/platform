@@ -3,6 +3,12 @@
     "guidelines": true,
     "mcp": true,
     "nightwatch": false,
+    "packages": [
+        "filament/filament",
+        "spatie/laravel-permission",
+        "spatie/laravel-medialibrary",
+        "spatie/laravel-translatable"
+    ],
     "sail": false,
     "skills": [
         "infer-conventions",
@@ -13,6 +19,10 @@
         "configuring-horizon",
         "socialite-development",
         "livewire-development",
-        "tailwindcss-development"
+        "tailwindcss-development",
+        "filament-development",
+        "medialibrary-development",
+        "laravel-permission-development",
+        "translatable-development"
     ]
 }
