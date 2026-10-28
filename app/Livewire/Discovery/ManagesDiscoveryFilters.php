@@ -192,10 +192,35 @@ trait ManagesDiscoveryFilters
     }
 
     /**
-     * Whether any filter on this page's surface is active (drives the
-     * active-filter chip and analytics gating).
+     * Whether any filter on this page's surface is APPLIED — drives the UI:
+     * the active-filter chip, the Clear All affordance, and the filtered
+     * empty-state copy.
+     *
+     * The language comparison uses the app locale: a viewer whose preferred
+     * language differs from the request locale has their feed narrowed by
+     * that preference, and the UI must say so (chip + "adjust your filters"
+     * empty state) — hiding it left a narrowed feed with no visible cause
+     * and no way to discover the empty state is filter-driven.
      */
     public function hasActiveFilters(): bool
+    {
+        return DiscoveryFilters::hasActiveFilters(
+            $this,
+            $this->discoveryFilterSurface(),
+            app()->getLocale(),
+        );
+    }
+
+    /**
+     * Whether the viewer has SELECTED a filter — the analytics-gating
+     * counterpart to {@see hasActiveFilters()}.
+     *
+     * Language counts as selected only when it differs from the mount-time
+     * default (preferred language, else app locale): an untouched page for
+     * a preferred-language viewer must not fire discovery.search, even
+     * though its feed is narrowed and hasActiveFilters() is true.
+     */
+    public function hasUserSelectedFilters(): bool
     {
         return DiscoveryFilters::hasActiveFilters(
             $this,
@@ -208,12 +233,13 @@ trait ManagesDiscoveryFilters
      * The language filter's neutral default: the authenticated user's
      * preferred language when set, else the app locale.
      *
-     * Single source for BOTH the mount-time seeding and the active-filter
-     * comparison — mount seeds from the user's preference, so the neutrality
-     * check must compare against that same default. Comparing against
-     * app()->getLocale() alone marked a preferred-language user's untouched
-     * component as filtered (active-filter chip + discovery.search analytics
-     * event without any user-selected filter).
+     * Single source for BOTH the mount-time seeding and the selection-aware
+     * analytics comparison ({@see hasUserSelectedFilters()}) — mount seeds
+     * from the user's preference, so "did the user select anything?" must
+     * compare against that same default. The UI check
+     * ({@see hasActiveFilters()}) deliberately uses the app locale instead:
+     * an applied-but-not-selected preference still narrows the feed and
+     * must stay visible to the viewer.
      */
     protected function defaultFilterLanguage(): string
     {

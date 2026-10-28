@@ -189,9 +189,12 @@ class DiscoveryFilters
 
     /**
      * Per-property active check. `language` counts as active only when it
-     * differs from the active locale (mount defaults it to the locale, so an
-     * untouched component must read as unfiltered); `radius` uses its 0 =
-     * no-proximity-filter sentinel. Everything else is neutral-value based.
+     * differs from the caller-supplied reference locale — callers choose the
+     * semantics: the app locale for applied/UI state (a preferred-language
+     * viewer's feed IS narrowed), or the mount default (preferred language,
+     * else app locale) for user-selected/analytics state (an untouched page
+     * was not filtered by choice). `radius` uses its 0 = no-proximity-filter
+     * sentinel. Everything else is neutral-value based.
      */
     private static function propertyIsActive(object $component, string $property, ?string $locale): bool
     {

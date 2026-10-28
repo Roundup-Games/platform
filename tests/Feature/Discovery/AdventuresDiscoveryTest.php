@@ -418,23 +418,37 @@ describe('AdventuresDiscovery', function () {
         expect($component->instance()->hasActiveFilters())->toBeTrue();
     });
 
-    it('does not count the preferred-language mount default as an active filter', function () {
+    it('splits applied-filter UI state from user-selected analytics state for the preferred-language default', function () {
         // The language filter seeds from the viewer's preferred language at
-        // mount; hasActiveFilters() must treat that default as neutral —
-        // comparing against the request locale alone marked the untouched
-        // component as filtered for any user whose preference differs
-        // (active-filter chip + discovery.search event on a fresh page view).
+        // mount. The two checks answer different questions and must not be
+        // collapsed:
+        //  - hasActiveFilters() (UI: chip, Clear All, filtered empty state)
+        //    compares against the APP LOCALE — a preferred-language viewer's
+        //    feed IS narrowed, so the UI must show it as an applied filter.
+        //  - hasUserSelectedFilters() (discovery.search analytics gate)
+        //    compares against the mount DEFAULT — an untouched page fires no
+        //    event for a user who never chose a filter.
         $user = User::factory()->create(['preferred_language' => ContentLanguage::De]);
         app()->setLocale('en');
 
         $component = Livewire\Livewire::actingAs($user)->test(AdventuresDiscovery::class);
 
         expect($component->instance()->language)->toBe('de')
-            ->and($component->instance()->hasActiveFilters())->toBeFalse();
+            ->and($component->instance()->hasActiveFilters())->toBeTrue()
+            ->and($component->instance()->hasUserSelectedFilters())->toBeFalse();
 
-        // Explicitly selecting a language other than the default is a real filter.
-        $component->set('language', 'en');
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
+        // Clearing filters must actually broaden the feed for that viewer:
+        // the applied-language restriction disappears along with the chip.
+        $component->instance()->clearFilters();
+        expect($component->instance()->language)->toBe('')
+            ->and($component->instance()->hasActiveFilters())->toBeFalse()
+            ->and($component->instance()->hasUserSelectedFilters())->toBeFalse();
+
+        // Explicitly selecting a language is a real selection under both
+        // semantics once it differs from the reference value.
+        $component->set('language', 'fr');
+        expect($component->instance()->hasActiveFilters())->toBeTrue()
+            ->and($component->instance()->hasUserSelectedFilters())->toBeTrue();
     });
 
     // ── Campaign session display ──────────────────────

@@ -413,15 +413,19 @@ class ParticipantLifecycle
         $promoterId = $promoter !== null ? $promoter->id : 'system';
 
         [$entity, $userId] = DB::transaction(function () use ($participant, $meta, $promoterId) {
+            // Lock ordering: entity row FIRST, then the participant row —
+            // the same canonical order as removeFromBench() and every other
+            // entity-row locker. Both bench actions are host-triggered on the
+            // same benched row (promote + remove from two tabs), so opposite
+            // orderings form an AB-BA deadlock between the pair.
+            $foreignId = $participant->getAttribute($meta->foreignKey);
+            $lockedEntity = $meta->entityClass::lockForUpdate()->whereKey($foreignId)->firstOrFail();
+
             $locked = $meta->participantClass::lockForUpdate()->whereKey($participant->getId())->firstOrFail();
 
             if ($locked->status !== ParticipantStatus::Benched) {
                 throw new \LogicException('Participant is not on the bench.');
             }
-
-            /** @var string $foreignId */
-            $foreignId = $locked->getAttribute($meta->foreignKey);
-            $lockedEntity = $meta->entityClass::lockForUpdate()->findOrFail($foreignId);
 
             if ($lockedEntity->isAtCapacity()) {
                 throw new \LogicException('Cannot promote: entity is full.');
