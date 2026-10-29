@@ -39,13 +39,9 @@ class ParticipantLifecycleCreateOrReactivateTest extends TestCase
         [$owner, $game] = $this->gameWithOwner();
         $joiner = User::factory()->create();
 
-        $participant = app(ParticipantLifecycle::class)->createOrReactivate([
-            'game_id' => $game->id,
-            'user_id' => $joiner->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-            'approved_at' => now(),
-        ]);
+        $participant = app(ParticipantLifecycle::class)->createOrReactivate(
+            JoinIntent::join($game, $joiner, JoinSource::ShareLink),
+        );
 
         $this->assertSame(ParticipantStatus::Approved, $participant->status);
         $this->assertDatabaseCount('game_participants', 2); // owner + joiner
@@ -58,26 +54,18 @@ class ParticipantLifecycleCreateOrReactivateTest extends TestCase
         $joiner = User::factory()->create();
 
         // Join → leave → rejoin cycle.
-        $participant = app(ParticipantLifecycle::class)->createOrReactivate([
-            'game_id' => $game->id,
-            'user_id' => $joiner->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-            'approved_at' => now(),
-        ]);
+        $participant = app(ParticipantLifecycle::class)->createOrReactivate(
+            JoinIntent::join($game, $joiner, JoinSource::ShareLink),
+        );
 
         app(ParticipantLifecycle::class)->depart($participant, $joiner);
         $this->assertSame(ParticipantStatus::Rejected, $participant->fresh()->status);
         $this->assertDatabaseCount('game_participants', 2);
 
         // Rejoin — must reactivate the departed row, not throw a unique violation.
-        $reactivated = app(ParticipantLifecycle::class)->createOrReactivate([
-            'game_id' => $game->id,
-            'user_id' => $joiner->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-            'approved_at' => now(),
-        ]);
+        $reactivated = app(ParticipantLifecycle::class)->createOrReactivate(
+            JoinIntent::join($game, $joiner, JoinSource::ShareLink),
+        );
 
         $this->assertSame(ParticipantStatus::Approved, $reactivated->status);
         $this->assertSame($participant->id, $reactivated->id, 'must be the same row, not a new one');
@@ -91,13 +79,9 @@ class ParticipantLifecycleCreateOrReactivateTest extends TestCase
         $joiner = User::factory()->create();
 
         foreach (range(1, 3) as $i) {
-            $p = app(ParticipantLifecycle::class)->createOrReactivate([
-                'game_id' => $game->id,
-                'user_id' => $joiner->id,
-                'role' => ParticipantRole::Player->value,
-                'status' => ParticipantStatus::Approved->value,
-                'approved_at' => now(),
-            ]);
+            $p = app(ParticipantLifecycle::class)->createOrReactivate(
+                JoinIntent::join($game, $joiner, JoinSource::ShareLink),
+            );
             app(ParticipantLifecycle::class)->depart($p, $joiner);
         }
 
@@ -106,31 +90,27 @@ class ParticipantLifecycleCreateOrReactivateTest extends TestCase
     }
 
     #[Test]
-    public function reactivate_overwrites_all_supplied_attributes(): void
+    public function a_rejoin_onto_a_now_full_entity_lands_waitlisted_with_a_fresh_timestamp(): void
     {
         [$owner, $game] = $this->gameWithOwner();
         $joiner = User::factory()->create();
 
-        $participant = app(ParticipantLifecycle::class)->createOrReactivate([
-            'game_id' => $game->id,
-            'user_id' => $joiner->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-            'approved_at' => now(),
-        ]);
+        $participant = app(ParticipantLifecycle::class)->createOrReactivate(
+            JoinIntent::join($game, $joiner, JoinSource::ShareLink),
+        );
         app(ParticipantLifecycle::class)->depart($participant, $joiner);
 
-        // Rejoin as waitlisted — the reactivated row must reflect the new status.
-        $reactivated = app(ParticipantLifecycle::class)->createOrReactivate([
-            'game_id' => $game->id,
-            'user_id' => $joiner->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Waitlisted->value,
-            'waitlisted_at' => now(),
-        ]);
+        // The entity fills while the joiner is departed — the rejoin must
+        // resolve through the intake's overflow routing, not a stale status.
+        $game->update(['max_players' => 1]); // the owner alone now fills it
+
+        $reactivated = app(ParticipantLifecycle::class)->createOrReactivate(
+            JoinIntent::join($game->fresh(), $joiner, JoinSource::ShareLink),
+        );
 
         $this->assertSame(ParticipantStatus::Waitlisted, $reactivated->fresh()->status);
         $this->assertNotNull($reactivated->fresh()->waitlisted_at);
+        $this->assertSame($participant->id, $reactivated->id, 'must reactivate the same row');
     }
 
     #[Test]
@@ -139,13 +119,9 @@ class ParticipantLifecycleCreateOrReactivateTest extends TestCase
         [$owner, $game] = $this->gameWithOwner();
         $joiner = User::factory()->create();
 
-        $participant = app(ParticipantLifecycle::class)->createOrReactivate([
-            'game_id' => $game->id,
-            'user_id' => $joiner->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-            'approved_at' => now(),
-        ]);
+        $participant = app(ParticipantLifecycle::class)->createOrReactivate(
+            JoinIntent::join($game, $joiner, JoinSource::ShareLink),
+        );
 
         // Departure near game time stamps attendance_status (reliability weight).
         app(ParticipantLifecycle::class)->depart($participant, $joiner);
@@ -158,13 +134,9 @@ class ParticipantLifecycleCreateOrReactivateTest extends TestCase
         $this->assertNotNull($departed->attendance_status, 'precondition: departure stamped attendance_status');
 
         // Rejoin must reactivate the row AND clear the departure/audit/scoring fields.
-        $reactivated = app(ParticipantLifecycle::class)->createOrReactivate([
-            'game_id' => $game->id,
-            'user_id' => $joiner->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-            'approved_at' => now(),
-        ]);
+        $reactivated = app(ParticipantLifecycle::class)->createOrReactivate(
+            JoinIntent::join($game, $joiner, JoinSource::ShareLink),
+        );
 
         $this->assertSame($participant->id, $reactivated->id);
         $this->assertSame(ParticipantStatus::Approved, $reactivated->fresh()->status);

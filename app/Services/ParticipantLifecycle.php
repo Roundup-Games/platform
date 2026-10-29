@@ -76,22 +76,16 @@ class ParticipantLifecycle
     /**
      * Create a participant OR reactivate an existing departed row.
      *
-     * The join-intake seam (M072/S01). Two entry shapes:
-     *
-     *  - A typed {@see JoinIntent}: the full intake runs — signup cutoff guard
-     *    (every user-initiated join; host-initiated invites and owner rows are
-     *    exempt per D124), capacity check, overflow routing via
-     *    {@see OverflowRouter} (no per-site OverflowStatus::for/determineStatus
-     *    decisions), approved_at stamping where the participant model has the
-     *    column, reactivation reset base, audit-safe row write keyed on user or
-     *    invitee email, and the source-attributed participant.joined log.
-     *    Game and Campaign dispatch through EntityMeta — one seam, no
-     *    instanceof branches.
-     *
-     *  - A legacy attributes array (web share-link / Discord writers until they
-     *    re-route): unchanged reactivation-aware write for games only. The
-     *    caller keeps responsibility for guards and overflow resolution on
-     *    this shape.
+     * The join-intake seam (M072/S01): the single participant-creation
+     * surface every join path routes through. The typed {@see JoinIntent}
+     * runs the full intake — signup cutoff guard (every user-initiated join;
+     * host-initiated invites and owner rows are exempt per D124), capacity
+     * check, overflow routing via {@see OverflowRouter} (no per-site
+     * OverflowStatus::for/determineStatus decisions), approved_at stamping
+     * where the participant model has the column, reactivation reset base,
+     * audit-safe row write keyed on user or invitee email, and the
+     * source-attributed participant.joined log. Game and Campaign dispatch
+     * through EntityMeta — one seam, no instanceof branches.
      *
      * The symmetrical counterpart to {@see depart()}: depart() sets status to
      * Rejected but keeps the row (audit/attendance); a later rejoin must UPDATE
@@ -108,26 +102,11 @@ class ParticipantLifecycle
      * trail on an active participant). Caller-supplied attributes override
      * the reset base.
      *
-     * @param  JoinIntent|array<string, mixed>  $intent  Typed join intent, or
-     *                                                   the legacy full participant-data array
-     *                                                   (game_id, user_id, role, status, join_source, ...).
-     * @return ($intent is JoinIntent ? Participant : GameParticipant)
-     *
      * @throws SignupCutoffReached When a user-initiated intent targets a game whose cutoff passed
      */
-    public function createOrReactivate(JoinIntent|array $intent): Participant
+    public function createOrReactivate(JoinIntent $intent): Participant
     {
-        if ($intent instanceof JoinIntent) {
-            return $this->joinViaIntent($intent);
-        }
-
-        return GameParticipant::updateOrCreate(
-            [
-                'game_id' => $intent['game_id'],
-                'user_id' => $intent['user_id'],
-            ],
-            array_merge($this->reactivationResetBase(), $intent),
-        );
+        return $this->joinViaIntent($intent);
     }
 
     /**
@@ -261,7 +240,7 @@ class ParticipantLifecycle
      * @param  class-string<GameParticipant|CampaignParticipant>  $participantClass
      * @return array<string, mixed>
      */
-    private function reactivationResetBase(string $participantClass = GameParticipant::class): array
+    private function reactivationResetBase(string $participantClass): array
     {
         $base = [
             'removed_at' => null,

@@ -2,20 +2,19 @@
 
 namespace App\Jobs;
 
+use App\Dto\JoinIntent;
 use App\Enums\DiscordRsvpOutcome;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
-use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Exceptions\SignupCutoffReached;
 use App\Http\Controllers\DiscordInteractionController;
-use App\Livewire\Games\GameDetail;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\Discord\DiscordPublisher;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\Discord\DiscordWebhookPayload;
-use App\Services\OverflowRouter;
 use App\Services\ParticipantLifecycle;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -34,10 +33,11 @@ use Illuminate\Support\Facades\Log;
  * DEFERRED immediately, then queues THIS job to do the slow work Discord's
  * deadline forbids inline:
  *
- *   1. Write the GameParticipant through the SAME participant pipeline as a
- *      web RSVP (the share-link self-join path): Game::lockForUpdate(),
- *      capacity check, owner/already-participant/game-status guards,
- *      OverflowRouter::resolve(), approved_at stamping, JoinSource::Discord.
+ *   1. Write the GameParticipant through the SAME join-intake seam as every
+ *      other participant creation ({@see ParticipantLifecycle::createOrReactivate()}
+ *      with a {@see JoinIntent::join()} intent): cutoff backstop, capacity
+ *      re-check under the entity lock, OverflowRouter routing, approved_at
+ *      stamping, reactivation reset base, JoinSource::Discord attribution.
  *      One source of truth — a Discord RSVP is provably identical to a web one.
  *   2. Best-effort card roster refresh via the DiscordPublisher chokepoint
  *      publish() (edit-in-place on discord_card_messages.message_id). A
@@ -167,24 +167,41 @@ class ProcessDiscordRsvp implements ShouldQueue
         ]);
     }
 
-    // ── (1) Participant pipeline (mirrors joinViaShareLink) ──────────────
+    // ── (1) Participant pipeline (the join-intake seam) ──────────────────
 
     /**
-     * Write the GameParticipant through the SAME participant pipeline as a web
+     * Write the GameParticipant through the SAME join-intake seam as a web
      * (share-link) RSVP, returning the terminal outcome.
      *
-     * Mirrors {@see GameDetail::joinViaShareLink()} exactly:
-     * Game::lockForUpdate() pessimistic lock → capacity check → owner /
-     * already-participant / game-status guards → OverflowRouter::resolve() →
-     * GameParticipant::create() with approved_at stamping and
-     * JoinSource::Discord. The guards run under the lock so a double-click
-     * re-dispatch is race-safe (the second job sees the row the first wrote).
+     * Surface guards (owner, game status, signup cutoff, already-on-roster,
+     * host-removed block) run under the Game row lock so a double-click
+     * re-dispatch is race-safe (the second job sees the row the first wrote);
+     * the write itself is {@see JoinIntent::join()} on
+     * {@see ParticipantLifecycle::createOrReactivate()} — the single intake
+     * that owns the capacity decision, overflow routing, approved_at
+     * stamping, reactivation reset, and source attribution. This job mirrors
+     * no join decision logic inline; it only maps the resolved participant
+     * status onto the Discord outcome vocabulary.
      *
      * Already-on-roster and refused states are outcomes, not exceptions — they
      * resolve to a matching confirmation so the deferred interaction always
      * ends cleanly.
      */
     private function writeParticipant(Game $game, User $user): DiscordRsvpOutcome
+    {
+        try {
+            return $this->writeParticipantUnderLock($game, $user);
+        } catch (SignupCutoffReached) {
+            // The intake's cutoff backstop (D124). The under-lock pre-guard
+            // below normally refuses first on the same locked row, so this is
+            // unreachable today — but if the pre-guard is ever removed, the
+            // clicker must still resolve cleanly instead of retrying into a
+            // failed job. No row was written (the intake refuses pre-write).
+            return DiscordRsvpOutcome::Refused;
+        }
+    }
+
+    private function writeParticipantUnderLock(Game $game, User $user): DiscordRsvpOutcome
     {
         return DB::transaction(function () use ($game, $user): DiscordRsvpOutcome {
             $locked = Game::lockForUpdate()->find($game->id);
@@ -193,7 +210,7 @@ class ProcessDiscordRsvp implements ShouldQueue
                 return DiscordRsvpOutcome::Refused;
             }
 
-            // ── Guards (mirror canJoinViaShareLink) ────────────────────────
+            // ── Guards (the same decisions the web gate makes pre-lock) ────
             // Owner cannot RSVP to their own game.
             if ((string) $locked->owner_id === (string) $user->id) {
                 Log::info('discord_rsvp.refused', [
@@ -255,63 +272,44 @@ class ProcessDiscordRsvp implements ShouldQueue
                 return DiscordRsvpOutcome::AlreadyOnRoster;
             }
 
-            // ── The write (mirror joinViaShareLink's transaction body) ─────
-            $isFull = $locked->isAtCapacity();
+            // A host-removed participant (Removed) is a moderation block —
+            // the same join-blocking set the web gate
+            // (GameJoinGate::viewerMeetsJoinEligibility) and the locked
+            // write (ShareLinkJoinService) enforce. Without this check the
+            // reactivation path would flip Removed → Approved and clear the
+            // removed_at/removed_by audit stamps, letting the removed user
+            // reverse a host removal themselves through the Discord card.
+            // Rejected rows stay reactivatable (self-leave rejoin by design).
+            $hostRemoved = GameParticipant::whereBelongsTo($locked)
+                ->whereBelongsTo($user)
+                ->where('status', ParticipantStatus::Removed->value)
+                ->exists();
 
-            $baseData = [
-                'game_id' => $locked->id,
-                'user_id' => $user->id,
-                'role' => ParticipantRole::Player->value,
-                'join_source' => JoinSource::Discord->value,
-            ];
-
-            if ($isFull) {
-                $overflow = app(OverflowRouter::class)->resolve($locked);
-                $baseData['status'] = $overflow->statusValue();
-                $baseData[$overflow->timestampColumn] = now();
-
-                $this->createOrReactivate($baseData);
-
-                Log::info('Player '.$overflow->statusValue().' via Discord button (game full)', [
+            if ($hostRemoved) {
+                Log::info('discord_rsvp.refused', [
                     'game_id' => $locked->id,
                     'user_id' => $user->id,
-                    'join_source' => JoinSource::Discord->value,
+                    'reason' => 'removed',
                 ]);
 
-                return $overflow->isWaitlist()
-                    ? DiscordRsvpOutcome::Waitlisted
-                    : DiscordRsvpOutcome::Benched;
+                return DiscordRsvpOutcome::Refused;
             }
 
-            $baseData['status'] = ParticipantStatus::Approved->value;
-            // Stamp approved_at so LIFO capacity-demotion ordering is correct
-            // for Discord joins — without this the demote query's
-            // `approved_at IS NULL ASC` ordering shields these players from
-            // demotion. Mirrors joinViaShareLink + WaitlistService::confirmPromotion.
-            $baseData['approved_at'] = now();
+            // ── The write: the join-intake seam, one source of truth with ──
+            // the web join path. The intent runs the full intake — cutoff
+            // backstop, capacity re-check post-lock, OverflowRouter routing,
+            // approved_at stamping, the reactivation reset base, and the
+            // source-attributed participant.joined log.
+            $participant = app(ParticipantLifecycle::class)->createOrReactivate(
+                JoinIntent::join($locked, $user, JoinSource::Discord),
+            );
 
-            $this->createOrReactivate($baseData);
-
-            Log::info('Player joined via Discord button', [
-                'game_id' => $locked->id,
-                'user_id' => $user->id,
-                'join_source' => JoinSource::Discord->value,
-            ]);
-
-            return DiscordRsvpOutcome::Approved;
+            return match ($participant->getStatus()) {
+                ParticipantStatus::Waitlisted => DiscordRsvpOutcome::Waitlisted,
+                ParticipantStatus::Benched => DiscordRsvpOutcome::Benched,
+                default => DiscordRsvpOutcome::Approved,
+            };
         });
-    }
-
-    /**
-     * Create a new participant OR reactivate an existing departed row via the
-     * shared {@see ParticipantLifecycle::createOrReactivate()} — one source of
-     * truth shared with the web join path.
-     *
-     * @param  array<string, mixed>  $attributes
-     */
-    private function createOrReactivate(array $attributes): GameParticipant
-    {
-        return app(ParticipantLifecycle::class)->createOrReactivate($attributes);
     }
 
     // ── (2) Best-effort card roster refresh ──────────────────────────────

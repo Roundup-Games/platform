@@ -16,6 +16,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\Discord\DiscordPublisher;
 use App\Services\Discord\DiscordWebhookClient;
+use App\Services\ParticipantLifecycle;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -181,6 +182,37 @@ class ProcessDiscordRsvpTest extends TestCase
 
         $log->shouldHaveReceived('info')
             ->withArgs(fn (string $m, array $c) => $m === 'discord_rsvp.completed' && ($c['status'] ?? null) === DiscordRsvpOutcome::AlreadyOnRoster->logValue())
+            ->atLeast()
+            ->once();
+    }
+
+    #[Test]
+    public function host_removed_participant_is_refused_and_the_removal_audit_stays_intact(): void
+    {
+        [$owner, $game, $clicker] = $this->joinableGame();
+
+        $removed = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $clicker->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        app(ParticipantLifecycle::class)->removeParticipant($removed, $game, $owner);
+        $this->assertSame(ParticipantStatus::Removed, $removed->fresh()->status, 'precondition: host removed the clicker');
+
+        Http::fake($this->okOriginalOnly());
+        $log = Log::spy();
+
+        $this->runJob($game->id, $clicker->id);
+
+        $row = GameParticipant::where('game_id', $game->id)->where('user_id', $clicker->id)->first();
+        $this->assertSame(ParticipantStatus::Removed, $row->status, 'a host-removed participant must not reactivate via the Discord button');
+        $this->assertNotNull($row->removed_at, 'the removal audit stamps must stay intact');
+        $this->assertSame($owner->id, $row->removed_by);
+
+        $log->shouldHaveReceived('info')
+            ->withArgs(fn (string $m, array $c) => $m === 'discord_rsvp.completed' && ($c['status'] ?? null) === DiscordRsvpOutcome::Refused->logValue())
             ->atLeast()
             ->once();
     }
