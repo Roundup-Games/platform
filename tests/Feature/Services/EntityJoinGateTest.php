@@ -2,14 +2,17 @@
 
 namespace Tests\Feature\Services;
 
+use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
+use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
-use App\Services\GameJoinGate;
+use App\Services\EntityJoinGate;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -32,44 +35,58 @@ function gateJoinableGame(array $attributes = []): Game
     ], $attributes));
 }
 
-function gameJoinGate(): GameJoinGate
+function entityJoinGate(): EntityJoinGate
 {
-    return app(GameJoinGate::class);
+    return app(EntityJoinGate::class);
+}
+
+/**
+ * Eligible active campaign owned by someone else — the happy-path baseline
+ * for the campaign share-link surface (CampaignDetail).
+ */
+function gateJoinableCampaign(array $attributes = []): Campaign
+{
+    $owner = User::factory()->create();
+
+    return Campaign::factory()->create(array_merge([
+        'owner_id' => $owner->id,
+        'status' => CampaignStatus::Active->value,
+    ], $attributes));
 }
 
 // ── canJoinViaShareLink — eligibility matrix ────────
 
 describe('canJoinViaShareLink', function () {
     it('returns false for a guest (null viewer)', function () {
-        expect(gameJoinGate()->canJoinViaShareLink(gateJoinableGame(), null, true, false))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaShareLink(gateJoinableGame(), null, true, false))->toBeFalse();
     });
 
     it('returns true for an eligible viewer with a valid share token', function () {
         $game = gateJoinableGame(['visibility' => Visibility::Protected->value]);
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaShareLink($game, $viewer, true, false))->toBeTrue();
+        expect(entityJoinGate()->canJoinViaShareLink($game, $viewer, true, false))->toBeTrue();
     });
 
     it('returns true with a valid short link even without a share token', function () {
         $game = gateJoinableGame();
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaShareLink($game, $viewer, false, true))->toBeTrue();
+        expect(entityJoinGate()->canJoinViaShareLink($game, $viewer, false, true))->toBeTrue();
     });
 
     it('returns false without a valid share token or short link', function () {
         $game = gateJoinableGame();
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaShareLink($game, $viewer, false, false))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaShareLink($game, $viewer, false, false))->toBeFalse();
     });
 
     it('returns false for the owner', function () {
         $owner = User::factory()->create();
         $game = gateJoinableGame(['owner_id' => $owner->id]);
 
-        expect(gameJoinGate()->canJoinViaShareLink($game, $owner, true, false))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaShareLink($game, $owner, true, false))->toBeFalse();
     });
 
     it('returns false for each join-blocking participant status', function (ParticipantStatus $status) {
@@ -83,7 +100,7 @@ describe('canJoinViaShareLink', function () {
             'status' => $status->value,
         ]);
 
-        expect(gameJoinGate()->canJoinViaShareLink($game, $viewer->fresh(), true, false))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaShareLink($game, $viewer->fresh(), true, false))->toBeFalse();
     })->with([
         ParticipantStatus::Approved,
         ParticipantStatus::Pending,
@@ -105,21 +122,21 @@ describe('canJoinViaShareLink', function () {
             'status' => ParticipantStatus::Rejected->value,
         ]);
 
-        expect(gameJoinGate()->canJoinViaShareLink($game, $viewer->fresh(), true, false))->toBeTrue();
+        expect(entityJoinGate()->canJoinViaShareLink($game, $viewer->fresh(), true, false))->toBeTrue();
     });
 
     it('returns false for a completed game', function () {
         $game = gateJoinableGame(['status' => GameStatus::Completed->value]);
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaShareLink($game, $viewer, true, false))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaShareLink($game, $viewer, true, false))->toBeFalse();
     });
 
     it('returns false for a canceled game', function () {
         $game = gateJoinableGame(['status' => GameStatus::Canceled->value]);
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaShareLink($game, $viewer, true, false))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaShareLink($game, $viewer, true, false))->toBeFalse();
     });
 
     it('returns true for a full game (capacity is handled by overflow routing, not eligibility)', function () {
@@ -136,7 +153,7 @@ describe('canJoinViaShareLink', function () {
 
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaShareLink($game, $viewer, true, false))->toBeTrue();
+        expect(entityJoinGate()->canJoinViaShareLink($game, $viewer, true, false))->toBeTrue();
     });
 });
 
@@ -144,28 +161,28 @@ describe('canJoinViaShareLink', function () {
 
 describe('canJoinViaDiscord', function () {
     it('returns false for a guest (null viewer)', function () {
-        expect(gameJoinGate()->canJoinViaDiscord(gateJoinableGame(), null))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaDiscord(gateJoinableGame(), null))->toBeFalse();
     });
 
     it('returns true for an eligible viewer on a public game', function () {
         $game = gateJoinableGame();
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaDiscord($game, $viewer))->toBeTrue();
+        expect(entityJoinGate()->canJoinViaDiscord($game, $viewer))->toBeTrue();
     });
 
     it('returns false for non-public games (?discord_join=1 is forgeable; screening bypass lock)', function (Visibility $visibility) {
         $game = gateJoinableGame(['visibility' => $visibility->value]);
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaDiscord($game, $viewer))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaDiscord($game, $viewer))->toBeFalse();
     })->with([Visibility::Protected, Visibility::Private]);
 
     it('returns false for the owner', function () {
         $owner = User::factory()->create();
         $game = gateJoinableGame(['owner_id' => $owner->id]);
 
-        expect(gameJoinGate()->canJoinViaDiscord($game, $owner))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaDiscord($game, $owner))->toBeFalse();
     });
 
     it('returns false for each join-blocking participant status', function (ParticipantStatus $status) {
@@ -179,7 +196,7 @@ describe('canJoinViaDiscord', function () {
             'status' => $status->value,
         ]);
 
-        expect(gameJoinGate()->canJoinViaDiscord($game, $viewer->fresh()))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaDiscord($game, $viewer->fresh()))->toBeFalse();
     })->with([
         ParticipantStatus::Approved,
         ParticipantStatus::Pending,
@@ -192,14 +209,14 @@ describe('canJoinViaDiscord', function () {
         $game = gateJoinableGame(['status' => GameStatus::Completed->value]);
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaDiscord($game, $viewer))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaDiscord($game, $viewer))->toBeFalse();
     });
 
     it('returns false for a canceled game', function () {
         $game = gateJoinableGame(['status' => GameStatus::Canceled->value]);
         $viewer = User::factory()->create();
 
-        expect(gameJoinGate()->canJoinViaDiscord($game, $viewer))->toBeFalse();
+        expect(entityJoinGate()->canJoinViaDiscord($game, $viewer))->toBeFalse();
     });
 });
 
@@ -210,7 +227,7 @@ describe('signup cutoff', function () {
         $game = gateJoinableGame(['signup_cutoff_at' => now()->subHour()]);
         $viewer = User::factory()->create();
 
-        $gate = gameJoinGate();
+        $gate = entityJoinGate();
 
         expect($gate->canJoinViaShareLink($game, $viewer, true, false))->toBeFalse()
             ->and($gate->canJoinViaDiscord($game, $viewer))->toBeFalse();
@@ -220,7 +237,7 @@ describe('signup cutoff', function () {
         $game = gateJoinableGame(['signup_cutoff_at' => now()->addDays(5)]);
         $viewer = User::factory()->create();
 
-        $gate = gameJoinGate();
+        $gate = entityJoinGate();
 
         expect($gate->canJoinViaShareLink($game, $viewer, true, false))->toBeTrue()
             ->and($gate->canJoinViaDiscord($game, $viewer))->toBeTrue();
@@ -230,7 +247,7 @@ describe('signup cutoff', function () {
         $game = gateJoinableGame(['signup_cutoff_at' => null]);
         $viewer = User::factory()->create();
 
-        $gate = gameJoinGate();
+        $gate = entityJoinGate();
 
         expect($gate->canJoinViaShareLink($game, $viewer, true, false))->toBeTrue()
             ->and($gate->canJoinViaDiscord($game, $viewer))->toBeTrue();
@@ -243,9 +260,9 @@ describe('join rate limit', function () {
     it('allows the configured attempts per viewer per game, then blocks', function () {
         $game = gateJoinableGame();
         $viewer = User::factory()->create();
-        $gate = gameJoinGate();
+        $gate = entityJoinGate();
 
-        for ($attempt = 0; $attempt < GameJoinGate::JOIN_ATTEMPT_LIMIT; $attempt++) {
+        for ($attempt = 0; $attempt < EntityJoinGate::JOIN_ATTEMPT_LIMIT; $attempt++) {
             expect($gate->allowsShareJoinAttempt($game, $viewer))->toBeTrue();
         }
 
@@ -256,7 +273,7 @@ describe('join rate limit', function () {
         $game = gateJoinableGame();
         $viewer = User::factory()->create();
 
-        gameJoinGate()->allowsShareJoinAttempt($game, $viewer);
+        entityJoinGate()->allowsShareJoinAttempt($game, $viewer);
 
         expect(RateLimiter::attempts('share-join:'.$viewer->id.':'.$game->id))->toBe(1);
     });
@@ -264,10 +281,10 @@ describe('join rate limit', function () {
     it('records discord attempts under a separate discord-join bucket', function () {
         $game = gateJoinableGame();
         $viewer = User::factory()->create();
-        $gate = gameJoinGate();
+        $gate = entityJoinGate();
 
         // Exhaust the share bucket entirely.
-        for ($attempt = 0; $attempt < GameJoinGate::JOIN_ATTEMPT_LIMIT; $attempt++) {
+        for ($attempt = 0; $attempt < EntityJoinGate::JOIN_ATTEMPT_LIMIT; $attempt++) {
             $gate->allowsShareJoinAttempt($game, $viewer);
         }
         expect($gate->allowsShareJoinAttempt($game, $viewer))->toBeFalse();
@@ -282,9 +299,9 @@ describe('join rate limit', function () {
         $otherGame = gateJoinableGame();
         $viewer = User::factory()->create();
         $otherViewer = User::factory()->create();
-        $gate = gameJoinGate();
+        $gate = entityJoinGate();
 
-        for ($attempt = 0; $attempt < GameJoinGate::JOIN_ATTEMPT_LIMIT; $attempt++) {
+        for ($attempt = 0; $attempt < EntityJoinGate::JOIN_ATTEMPT_LIMIT; $attempt++) {
             $gate->allowsShareJoinAttempt($game, $viewer);
         }
         expect($gate->allowsShareJoinAttempt($game, $viewer))->toBeFalse();
@@ -298,15 +315,80 @@ describe('join rate limit', function () {
     it('releases attempts after the decay window', function () {
         $game = gateJoinableGame();
         $viewer = User::factory()->create();
-        $gate = gameJoinGate();
+        $gate = entityJoinGate();
 
-        for ($attempt = 0; $attempt < GameJoinGate::JOIN_ATTEMPT_LIMIT; $attempt++) {
+        for ($attempt = 0; $attempt < EntityJoinGate::JOIN_ATTEMPT_LIMIT; $attempt++) {
             $gate->allowsShareJoinAttempt($game, $viewer);
         }
         expect($gate->allowsShareJoinAttempt($game, $viewer))->toBeFalse();
 
-        $this->travel(GameJoinGate::JOIN_ATTEMPT_DECAY_SECONDS + 1)->seconds();
+        $this->travel(EntityJoinGate::JOIN_ATTEMPT_DECAY_SECONDS + 1)->seconds();
 
         expect($gate->allowsShareJoinAttempt($game, $viewer))->toBeTrue();
+    });
+});
+
+// ── campaigns — the same gate serves CampaignDetail's share-link surface ──
+
+describe('campaigns', function () {
+    it('allows an eligible viewer with a valid share token', function () {
+        $campaign = gateJoinableCampaign();
+        $viewer = User::factory()->create();
+
+        expect(entityJoinGate()->canJoinViaShareLink($campaign, $viewer, true, false))->toBeTrue();
+    });
+
+    it('returns false for a guest and for the owner', function () {
+        $owner = User::factory()->create();
+        $campaign = gateJoinableCampaign(['owner_id' => $owner->id]);
+        $viewer = User::factory()->create();
+        $gate = entityJoinGate();
+
+        expect($gate->canJoinViaShareLink($campaign, null, true, false))->toBeFalse()
+            ->and($gate->canJoinViaShareLink($campaign, $owner, true, false))->toBeFalse();
+    });
+
+    it('blocks host-removed participants from self-rejoining (moderation lock)', function () {
+        $campaign = gateJoinableCampaign();
+        $viewer = User::factory()->create();
+
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $viewer->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Removed->value,
+        ]);
+
+        expect(entityJoinGate()->canJoinViaShareLink($campaign, $viewer->fresh(), true, false))->toBeFalse();
+    });
+
+    it('returns true for a rejected row (declined invitations stay rejoined)', function () {
+        $campaign = gateJoinableCampaign();
+        $viewer = User::factory()->create();
+
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $viewer->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Rejected->value,
+        ]);
+
+        expect(entityJoinGate()->canJoinViaShareLink($campaign, $viewer->fresh(), true, false))->toBeTrue();
+    });
+
+    it('returns false for cancelled and completed campaigns', function (CampaignStatus $status) {
+        $campaign = gateJoinableCampaign(['status' => $status->value]);
+        $viewer = User::factory()->create();
+
+        expect(entityJoinGate()->canJoinViaShareLink($campaign, $viewer, true, false))->toBeFalse();
+    })->with([CampaignStatus::Cancelled, CampaignStatus::Completed]);
+
+    it('rate-limits share attempts under the same share-join bucket format', function () {
+        $campaign = gateJoinableCampaign();
+        $viewer = User::factory()->create();
+
+        entityJoinGate()->allowsShareJoinAttempt($campaign, $viewer);
+
+        expect(RateLimiter::attempts('share-join:'.$viewer->id.':'.$campaign->id))->toBe(1);
     });
 });

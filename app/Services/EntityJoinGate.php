@@ -2,27 +2,35 @@
 
 namespace App\Services;
 
+use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
 
 /**
- * Join-eligibility gate for GameDetail's two direct-join surfaces.
+ * Join-eligibility gate for the detail pages' direct-join surfaces
+ * (GameDetail and CampaignDetail).
  *
- * Owns the participant-status / game-status / ownership / signup-cutoff
+ * Owns the participant-status / entity-status / ownership / signup-cutoff
  * predicate that was previously inlined (and mirrored, comment-for-comment)
- * in GameDetail::canJoinViaShareLink() and GameDetail::canJoinViaDiscord(),
- * plus the RateLimiter block both join handlers carried verbatim. The
- * lock-guarded join write itself stays in {@see ShareLinkJoinService} — this
- * gate answers "may this viewer attempt a direct join from this surface?",
- * the components keep the flash / cookie / computed-unset surface effects.
+ * in GameDetail::canJoinViaShareLink(), GameDetail::canJoinViaDiscord() and
+ * CampaignDetail::canJoinViaShareLink(), plus the RateLimiter block both join
+ * handlers carried verbatim. The lock-guarded join write itself stays in
+ * {@see ShareLinkJoinService} — this gate answers "may this viewer attempt a
+ * direct join from this surface?", the components keep the flash / cookie /
+ * computed-unset surface effects.
+ *
+ * Entity-type differences live here and only here: games additionally enforce
+ * the signup cutoff (D124 — campaigns have no cutoff column) and compare the
+ * American "canceled" spelling, campaigns the British "cancelled".
  */
-class GameJoinGate
+class EntityJoinGate
 {
-    /** Join attempts allowed per viewer per game before the limiter trips. */
+    /** Join attempts allowed per viewer per entity before the limiter trips. */
     public const int JOIN_ATTEMPT_LIMIT = 5;
 
     /** Seconds a recorded join attempt counts against the limit. */
@@ -36,7 +44,7 @@ class GameJoinGate
      * (query-param capture on mount / ph_link_id cookie) and passes the
      * booleans in; the shared eligibility predicate below decides the rest.
      */
-    public function canJoinViaShareLink(Game $game, ?User $viewer, bool $hasValidShareToken, bool $hasValidShortLink): bool
+    public function canJoinViaShareLink(Game|Campaign $entity, ?User $viewer, bool $hasValidShareToken, bool $hasValidShortLink): bool
     {
         if ($viewer === null) {
             return false;
@@ -46,11 +54,14 @@ class GameJoinGate
             return false;
         }
 
-        return $this->viewerMeetsJoinEligibility($game, $viewer);
+        return $this->viewerMeetsJoinEligibility($entity, $viewer);
     }
 
     /**
      * Whether the viewer may join from a Discord "My seat" intent (M059/S02).
+     *
+     * Games only — Discord cards are published for game sessions, never for
+     * campaign entities.
      *
      * Mirrors the linked-member Discord button ({@see ProcessDiscordRsvp}):
      * instant join for public games, which auto-approve on the web Apply path
@@ -84,17 +95,17 @@ class GameJoinGate
     /**
      * Record a share-link join attempt and report whether it is allowed.
      *
-     * @see GameJoinGate::attemptUnderJoinRateLimit()
+     * @see EntityJoinGate::attemptUnderJoinRateLimit()
      */
-    public function allowsShareJoinAttempt(Game $game, User $viewer): bool
+    public function allowsShareJoinAttempt(Game|Campaign $entity, User $viewer): bool
     {
-        return $this->attemptUnderJoinRateLimit('share-join', $game, $viewer);
+        return $this->attemptUnderJoinRateLimit('share-join', $entity, $viewer);
     }
 
     /**
      * Record a Discord-intent join attempt and report whether it is allowed.
      *
-     * @see GameJoinGate::attemptUnderJoinRateLimit()
+     * @see EntityJoinGate::attemptUnderJoinRateLimit()
      */
     public function allowsDiscordJoinAttempt(Game $game, User $viewer): bool
     {
@@ -104,15 +115,16 @@ class GameJoinGate
     /**
      * The shared direct-join predicate, identical for both surfaces: the
      * viewer must not be the owner, must not already hold a join-blocking
-     * participant row, the game must not be completed or canceled, and the
-     * signup cutoff (decision D124) must not have passed. Full games pass
-     * this gate — overflow routing (waitlist/bench) happens inside the join
-     * write ({@see ShareLinkJoinService} / {@see OverflowRouter}).
+     * participant row, the entity must not be completed or canceled, and —
+     * for games — the signup cutoff (decision D124) must not have passed.
+     * Full entities pass this gate — overflow routing (waitlist/bench)
+     * happens inside the join write ({@see ShareLinkJoinService} /
+     * {@see OverflowRouter}).
      */
-    private function viewerMeetsJoinEligibility(Game $game, User $viewer): bool
+    private function viewerMeetsJoinEligibility(Game|Campaign $entity, User $viewer): bool
     {
         // Cannot be the owner.
-        if ((string) $game->owner_id === (string) $viewer->id) {
+        if ((string) $entity->owner_id === (string) $viewer->id) {
             return false;
         }
 
@@ -122,7 +134,7 @@ class GameJoinGate
         // historically enforced the block (see
         // ParticipantLifecycle::removeParticipant() docblock). Without this
         // the reactivation path would silently flip Removed → Approved.
-        $existingParticipant = $game->participants
+        $existingParticipant = $entity->participants
             ->first(fn ($p) => $p->user_id === $viewer->id
                 && in_array($p->status?->value, [
                     ParticipantStatus::Approved->value,
@@ -136,13 +148,18 @@ class GameJoinGate
             return false;
         }
 
-        // Game must not be completed or canceled.
-        if (in_array($game->status?->value, [GameStatus::Completed->value, GameStatus::Canceled->value])) {
-            return false;
-        }
+        // Terminal entity statuses refuse every join surface.
+        if ($entity instanceof Game) {
+            if (in_array($entity->status?->value, [GameStatus::Completed->value, GameStatus::Canceled->value], true)) {
+                return false;
+            }
 
-        // Signup cutoff (decision D124).
-        if ($game->signupHasClosed()) {
+            // Signup cutoff (decision D124). Games only — campaigns have no
+            // cutoff column.
+            if ($entity->signupHasClosed()) {
+                return false;
+            }
+        } elseif (in_array($entity->status?->value, [CampaignStatus::Cancelled->value, CampaignStatus::Completed->value], true)) {
             return false;
         }
 
@@ -150,15 +167,15 @@ class GameJoinGate
     }
 
     /**
-     * The single rate-limit site for both join handlers (previously
-     * duplicated verbatim, key "<prefix>:<user id>:<game id>"). Returns false
-     * without recording when the viewer is over the limit, otherwise records
-     * one hit and returns true — the caller flashes the generic rate-limit
-     * error on false.
+     * The single rate-limit site for the detail pages' join handlers
+     * (previously duplicated verbatim, key "<prefix>:<user id>:<entity id>").
+     * Returns false without recording when the viewer is over the limit,
+     * otherwise records one hit and returns true — the caller flashes the
+     * generic rate-limit error on false.
      */
-    private function attemptUnderJoinRateLimit(string $prefix, Game $game, User $viewer): bool
+    private function attemptUnderJoinRateLimit(string $prefix, Game|Campaign $entity, User $viewer): bool
     {
-        $key = $prefix.':'.$viewer->id.':'.$game->id;
+        $key = $prefix.':'.$viewer->id.':'.$entity->id;
 
         if (RateLimiter::tooManyAttempts($key, self::JOIN_ATTEMPT_LIMIT)) {
             return false;

@@ -12,6 +12,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Review;
 use App\Models\SessionZeroSurvey;
 use App\Services\Charter\CharterService;
+use App\Services\EntityJoinGate;
 use App\Services\ParticipantLifecycle;
 use App\Services\RecurrenceService;
 use App\Services\ReviewEligibilityService;
@@ -28,7 +29,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -155,13 +155,11 @@ class CampaignDetail extends Component
             return;
         }
 
-        $rateLimitKey = 'share-join:'.$viewer->id.':'.$this->campaign->id;
-        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+        if (! app(EntityJoinGate::class)->allowsShareJoinAttempt($this->campaign, $viewer)) {
             session()->flash('error', __('common.error_rate_limit'));
 
             return;
         }
-        RateLimiter::hit($rateLimitKey, 60);
 
         $shortLinkId = $this->validatedShortLinkId;
 
@@ -205,51 +203,12 @@ class CampaignDetail extends Component
     #[Computed]
     public function canJoinViaShareLink(): bool
     {
-        $viewer = Auth::user();
-
-        if ($viewer === null) {
-            return false;
-        }
-
-        // Must have either a valid share token or a valid short link
-        $hasShareToken = $this->isShareTokenStillValid();
-        $hasShortLink = $this->isShortLinkStillValid();
-
-        if (! $hasShareToken && ! $hasShortLink) {
-            return false;
-        }
-
-        // Cannot be the owner
-        if ((string) $this->campaign->owner_id === (string) $viewer->id) {
-            return false;
-        }
-
-        // Campaign must not be completed or cancelled
-        if ($this->campaign->status?->value === CampaignStatus::Cancelled->value
-            || $this->campaign->status?->value === CampaignStatus::Completed->value) {
-            return false;
-        }
-
-        // Cannot already be a participant. Removed is in the blocking set —
-        // parity with GameJoinGate::viewerMeetsJoinEligibility(): a host
-        // removal is a moderation action and must not be reversible by the
-        // removed user through a share-link rejoin (ShareLinkJoinService
-        // re-enforces the same set under the entity lock).
-        $existingParticipant = $this->campaign->participants
-            ->first(fn ($p) => $p->user_id === $viewer->id
-                && in_array($p->status?->value, [
-                    ParticipantStatus::Approved->value,
-                    ParticipantStatus::Pending->value,
-                    ParticipantStatus::Waitlisted->value,
-                    ParticipantStatus::Benched->value,
-                    ParticipantStatus::Removed->value,
-                ]));
-
-        if ($existingParticipant) {
-            return false;
-        }
-
-        return true;
+        return app(EntityJoinGate::class)->canJoinViaShareLink(
+            $this->campaign,
+            Auth::user(),
+            $this->isShareTokenStillValid(),
+            $this->isShortLinkStillValid(),
+        );
     }
 
     // ── Self-service leave ─────────────────────────────

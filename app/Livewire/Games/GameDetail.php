@@ -19,7 +19,7 @@ use App\Services\AttendanceService;
 use App\Services\CapacityService;
 use App\Services\Charter\CharterSigningService;
 use App\Services\DebriefingService;
-use App\Services\GameJoinGate;
+use App\Services\EntityJoinGate;
 use App\Services\ParticipantLifecycle;
 use App\Services\ReviewEligibilityService;
 use App\Services\ShareLinkJoinService;
@@ -701,8 +701,8 @@ class GameDetail extends Component
     /**
      * The single direct-join pipeline behind both join buttons. Guard order
      * is signup cutoff (D124, surfaced with its specific message) → surface
-     * eligibility ({@see GameJoinGate}, injected as $eligible by the caller)
-     * → rate limit ({@see GameJoinGate}, the only rate-limit site) → the
+     * eligibility ({@see EntityJoinGate}, injected as $eligible by the caller)
+     * → rate limit ({@see EntityJoinGate}, the only rate-limit site) → the
      * lock-guarded write in {@see ShareLinkJoinService}, which owns the
      * capacity re-check and overflow routing (waitlist/bench). Only Livewire
      * surface effects live here: flash, the per-surface success hook, and
@@ -737,7 +737,7 @@ class GameDetail extends Component
             return;
         }
 
-        $gate = app(GameJoinGate::class);
+        $gate = app(EntityJoinGate::class);
 
         $allowed = $source === JoinSource::Discord
             ? $gate->allowsDiscordJoinAttempt($this->game, $viewer)
@@ -813,14 +813,14 @@ class GameDetail extends Component
     /**
      * Whether the viewer can join this game directly from a Discord "My seat"
      * intent (M059/S02). The public-visibility gate and the shared eligibility
-     * predicate live in {@see GameJoinGate::canJoinViaDiscord()} — see its
+     * predicate live in {@see EntityJoinGate::canJoinViaDiscord()} — see its
      * docblock for the screening-bypass rationale (?discord_join=1 is
      * forgeable, protected games are screened on the web Apply path).
      */
     #[Computed]
     public function canJoinViaDiscord(): bool
     {
-        return app(GameJoinGate::class)->canJoinViaDiscord($this->game, Auth::user());
+        return app(EntityJoinGate::class)->canJoinViaDiscord($this->game, Auth::user());
     }
 
     /**
@@ -828,12 +828,12 @@ class GameDetail extends Component
      * link. Credential validation (mount-time query-param capture /
      * ph_link_id cookie) stays in the component; the eligibility predicate —
      * ownership, participant status, game status, signup cutoff (D124) —
-     * lives in {@see GameJoinGate::canJoinViaShareLink()}.
+     * lives in {@see EntityJoinGate::canJoinViaShareLink()}.
      */
     #[Computed]
     public function canJoinViaShareLink(): bool
     {
-        return app(GameJoinGate::class)->canJoinViaShareLink(
+        return app(EntityJoinGate::class)->canJoinViaShareLink(
             $this->game,
             Auth::user(),
             $this->isShareTokenStillValid(),

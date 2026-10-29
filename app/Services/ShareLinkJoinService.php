@@ -104,10 +104,10 @@ class ShareLinkJoinService
             }
 
             // Re-check for a join-blocking participant row UNDER the lock. The
-            // component pre-guards (canJoinViaShareLink / GameJoinGate) make
+            // component pre-guards (canJoinViaShareLink / EntityJoinGate) make
             // the same decision on an unlocked snapshot; between that check
             // and this lock a host removal or invite acceptance can land.
-            // The blocking set matches GameJoinGate::viewerMeetsJoinEligibility():
+            // The blocking set matches EntityJoinGate::viewerMeetsJoinEligibility():
             // an active row (Approved / Pending / Waitlisted / Benched) must
             // not be re-written by a direct join — a Pending row belongs to
             // the invitation flow, not a screening bypass — and a Removed row

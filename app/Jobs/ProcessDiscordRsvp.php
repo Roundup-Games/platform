@@ -274,7 +274,7 @@ class ProcessDiscordRsvp implements ShouldQueue
 
             // A host-removed participant (Removed) is a moderation block —
             // the same join-blocking set the web gate
-            // (GameJoinGate::viewerMeetsJoinEligibility) and the locked
+            // (EntityJoinGate::viewerMeetsJoinEligibility) and the locked
             // write (ShareLinkJoinService) enforce. Without this check the
             // reactivation path would flip Removed → Approved and clear the
             // removed_at/removed_by audit stamps, letting the removed user

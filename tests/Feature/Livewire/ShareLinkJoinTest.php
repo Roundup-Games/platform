@@ -362,7 +362,7 @@ describe('joinViaShareLink — shared (game + campaign)', function () {
         ]);
         $removedAt = $removed->removed_at;
 
-        // The pre-guard hides the Join button (parity with GameJoinGate),
+        // The pre-guard hides the Join button (parity with EntityJoinGate),
         // and the locked write in ShareLinkJoinService re-enforces it.
         Livewire::actingAs($this->player)
             ->withQueryParams(['share' => $token])
