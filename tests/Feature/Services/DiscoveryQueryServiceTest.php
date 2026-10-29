@@ -591,3 +591,50 @@ describe('DiscoveryQueryService curated() fold', function () {
             ->not->toContain($noise->id);
     });
 });
+
+describe('merged-feed hydration cap order', function () {
+    it('orders campaign hydration by the merge key (next session), not created_at', function () {
+        // created_at deliberately inverted against next-session order: the
+        // OLDEST campaign carries the LATEST session and must hydrate first
+        // once the MERGE_HYDRATION_CAP bites — the builder's default
+        // created_at-desc order would truncate it out instead.
+        $oldestWithLatestSession = Campaign::factory()->create([
+            'visibility' => 'public', 'status' => 'active',
+        ]);
+        $oldestWithLatestSession->created_at = now()->subDays(30);
+        $oldestWithLatestSession->save();
+        Game::factory()->create([
+            'campaign_id' => $oldestWithLatestSession->id,
+            'date_time' => now()->addDays(9),
+            'status' => 'scheduled',
+        ]);
+
+        $newestWithEarlierSession = Campaign::factory()->create([
+            'visibility' => 'public', 'status' => 'active',
+        ]);
+        $newestWithEarlierSession->created_at = now()->subDay();
+        $newestWithEarlierSession->save();
+        Game::factory()->create([
+            'campaign_id' => $newestWithEarlierSession->id,
+            'date_time' => now()->addDays(2),
+            'status' => 'scheduled',
+        ]);
+
+        // No future session → created_at fallback key (oldest sorts last).
+        $sessionless = Campaign::factory()->create([
+            'visibility' => 'public', 'status' => 'active',
+        ]);
+        $sessionless->created_at = now()->subDays(10);
+        $sessionless->save();
+
+        $service = app(DiscoveryQueryService::class);
+        $ordered = $service->orderCampaignsByMergeKey(
+            $service->buildCampaignsQuery(new DiscoveryFilters, null, 0, null, null, false, null),
+        )->pluck('id');
+
+        expect($ordered)->toHaveCount(3)
+            ->and($ordered->get(0))->toBe($oldestWithLatestSession->id)
+            ->and($ordered->get(1))->toBe($newestWithEarlierSession->id)
+            ->and($ordered->get(2))->toBe($sessionless->id);
+    });
+});

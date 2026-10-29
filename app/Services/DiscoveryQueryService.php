@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Dto\CitySummary;
 use App\Dto\DiscoveryFilters;
 use App\Dto\ProximityResult;
+use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\ParticipantStatus;
 use App\Enums\PlayStyle;
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -697,6 +699,35 @@ class DiscoveryQueryService
     // ── Merged feeds (games + campaigns) ──────────────
 
     /**
+     * Reorder a campaigns builder by the merged-feed merge key: next future
+     * scheduled session (created_at fallback) — the same key
+     * decorateFeedItem() stamps onto hydrated campaigns in mergedResults().
+     *
+     * MERGE_HYDRATION_CAP truncation must keep exactly the rows the merge
+     * would surface first; the builder's default created_at-desc order only
+     * matches the fallback key, so a long-running campaign with an upcoming
+     * session could be truncated out by newer-but-sessionless rows once more
+     * than the cap matches. Ordering by the key itself makes the cap honest.
+     *
+     * Public (the S03 public-for-test seam convention) so the cap-order
+     * contract is testable without a >500-row fixture.
+     *
+     * @param  Builder<Campaign>  $query
+     * @return Builder<Campaign>
+     */
+    public function orderCampaignsByMergeKey(Builder $query): Builder
+    {
+        return $query->reorder(DB::raw(
+            'COALESCE(('
+            .'SELECT MIN(next_session.date_time) FROM games next_session '
+            .'WHERE next_session.campaign_id = campaigns.id '
+            ."AND next_session.status = '".GameStatus::Scheduled->value."' "
+            .'AND next_session.date_time > NOW()'
+            .'), campaigns.created_at)'
+        ), 'desc');
+    }
+
+    /**
      * "All" tab: merged games + campaigns ordered by next occurrence desc
      * (formerly getMergedResults).
      *
@@ -718,7 +749,11 @@ class DiscoveryQueryService
             ->get()
             ->each(fn (Game $game) => $this->decorateFeedItem($game, 'game', (int) ($game->date_time->timestamp ?? 0)));
 
-        $campaigns = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $filters->recurrence)
+        // Hydrate campaigns in merge-key order (see orderCampaignsByMergeKey)
+        // so the hydration cap keeps the rows the merge surfaces first.
+        $campaigns = $this->orderCampaignsByMergeKey(
+            $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $filters->recurrence),
+        )
             ->limit(self::MERGE_HYDRATION_CAP)
             ->get()
             ->each(fn (Campaign $campaign) => $this->decorateFeedItem(
@@ -802,6 +837,9 @@ class DiscoveryQueryService
             ->get()
             ->each(fn (Game $game) => $this->decorateFeedItem($game, 'game', (int) ($game->date_time->timestamp ?? 0)));
 
+        // No reorder needed here: the builder's created_at-desc order already
+        // matches this mode's merge key (PHP_INT_MAX - created_at, newest
+        // first), so the cap keeps the newest campaigns.
         $campaigns = $campaignsQuery
             ->limit(self::MERGE_HYDRATION_CAP)
             ->get()
