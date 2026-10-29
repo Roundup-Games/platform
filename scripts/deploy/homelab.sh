@@ -97,7 +97,12 @@ esac
 
 cname() { echo "roundup-games-$1"; }
 
-live_slot() {  # ground truth = the upstream in the live caddy config
+live_slot() {  # ground truth = the upstream in the LIVE edge container's config.
+    # Only meaningful when the edge is actually running — an aborted
+    # bootstrap can leave a stale Caddyfile behind, and treating that as
+    # "a live slot" once skipped bootstrap and stopped the legacy app
+    # with nothing to replace it (2026-10-29 misfire, ~40s outage).
+    docker inspect "$EDGE" >/dev/null 2>&1 || return 1
     grep -oE 'roundup-games-(blue|green)' "$EDGE_CONF" 2>/dev/null | head -1 | sed 's/roundup-games-//' || true
 }
 other_slot() { [[ "$1" == blue ]] && echo green || echo blue; }
@@ -247,12 +252,12 @@ bootstrap() {
 
 deploy() {
     local live cand
-    live=$(live_slot)
+    live=$(live_slot) || true
     if [[ -z "$live" ]]; then
         bootstrap
-        live=green
+        live=$(live_slot) || true
     fi
-    [[ -n "$live" ]] || die "no live slot after bootstrap"
+    [[ -n "$live" ]] || die "no live slot after bootstrap — edge container missing? Inspect $EDGE."
 
     cand=$(other_slot "$live")
     log "live slot: $live — candidate: $cand"
@@ -293,7 +298,7 @@ deploy() {
 
 rollback() {
     local live cand tag="${ROLLBACK_TAG:-$(read_state_field prev_tag || true)}"
-    live=$(live_slot)
+    live=$(live_slot) || true
     [[ -n "$live" ]] || die "no live slot — nothing to roll back from."
     [[ -n "$tag" && "$tag" != unknown ]] || die "no rollback tag (pass one: --rollback sha-<short>, from deploy-logs history)."
     cand=$(other_slot "$live")
