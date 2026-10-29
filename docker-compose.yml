@@ -1,6 +1,29 @@
+# ── Deployment topology (zero-downtime blue/green) ─────────────────────
+#
+#   Cloudflare Tunnel (remotely managed, immutable from here)
+#     └─> host :8199 — the tunnel's ONE stable origin, forever
+#           └─> edge (caddy, never restarts during deploys; config swap +
+#                `caddy reload` = lossless traffic flip)
+#                 ├─> roundup-games-blue:8080  (service `app`)
+#                 └─> roundup-games-green:8080 (service `app-green`,
+#                      profile "bluegreen" — exists only during deploys)
+#
+# Deploys (scripts/deploy/homelab.sh): start the idle slot with the new
+# image, health-gate it, flip the edge upstream, retire the old slot, then
+# roll the worker off the critical path. Rollback = flip back (or
+# `--rollback` to re-run a previous image). The app slots publish NO host
+# ports — only the edge does — so the tunnel config never changes.
+#
+# Worker note: `depends_on` is deliberately ABSENT from the worker. With
+# blue/green slots there is no static "the app" service to depend on, and a
+# depends_on would resurrect a retired blue slot during a green deploy.
+# Start ordering is owned by the deploy script (worker rolls after the
+# candidate is healthy, i.e. after migrations); Horizon additionally
+# self-heals transient boot races by retrying.
+
 services:
   app:
-    # CI (images.yml) pushes this image; deploys pull it
+    # BLUE slot. CI (images.yml) pushes this image; deploys pull it
     # (scripts/deploy/homelab.sh pins DEPLOY_TAG=sha-<commit>). The build
     # block stays as an on-host fallback for `docker compose build`.
     image: ghcr.io/roundup-games/platform:${DEPLOY_TAG:-latest}
@@ -8,23 +31,77 @@ services:
       context: .
       dockerfile: Dockerfile
       target: app
-    container_name: roundup-games
+    container_name: roundup-games-blue
     restart: unless-stopped
     env_file:
       - .env.production
     volumes:
       - app_storage:/var/www/html/storage
-    ports:
-      - "8199:8080"
     # Dependency-aware health (MEM1147): /up checks DB + Redis + cache.
     # curl -f: exit 22 on HTTP >= 400, so the 503-with-check-names
-    # response fails the probe (the image ships curl).
+    # response fails the probe (the image ships curl). start_interval
+    # probes every 3s during start_period so "healthy" flips within ~3s
+    # of readiness (deploy gate latency), interval 10s keeps steady-state
+    # flap detection quick.
     healthcheck:
       test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/up"]
-      interval: 30s
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 60s
+      start_interval: 3s
+    # Graceful retire: nginx drains in-flight requests instead of being
+    # SIGKILLed at the default 10s.
+    stop_grace_period: 30s
+    networks:
+      - roundup
+
+  app-green:
+    # GREEN slot — identical to `app` except the name. Enabled only via
+    # `--profile bluegreen` (the deploy script does this); steady-state
+    # commands never see it. restart: unless-stopped keeps it alive across
+    # host reboots when it is the live slot.
+    image: ghcr.io/roundup-games/platform:${DEPLOY_TAG:-latest}
+    container_name: roundup-games-green
+    profiles: ["bluegreen"]
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      - app_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+      start_interval: 3s
+    stop_grace_period: 30s
+    networks:
+      - roundup
+
+  edge:
+    # The one stable origin the Cloudflare Tunnel points at (:8199).
+    # caddy:2-alpine. Config lives in ./edge/Caddyfile (runtime state,
+    # gitignored — written/reloaded by the deploy script; `caddy reload`
+    # swaps the upstream with zero dropped connections). This container
+    # never restarts during a deploy, so :8199 never goes dark.
+    image: caddy:2-alpine
+    container_name: roundup-games-edge
+    restart: unless-stopped
+    ports:
+      - "8199:8199"
+    volumes:
+      - ./edge/Caddyfile:/etc/caddy/Caddyfile:ro
+    # Site-level liveness: /up through the current upstream. Unhealthy =
+    # the live app is down (or booting), which is exactly what operators
+    # and the dashboard should see. wget = busybox, present in alpine.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8199/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - roundup
 
@@ -51,12 +128,6 @@ services:
       - app_storage:/var/www/html/storage
     networks:
       - roundup
-    depends_on:
-      # Wait for the app to be healthy (migrations done) — the list form only
-      # orders container START, not readiness, which still raced boot-time
-      # queries against a mid-migration schema.
-      app:
-        condition: service_healthy
     # Worker has no nginx/fpm (stripped in the Dockerfile worker stage), so the
     # image's default HTTP healthcheck always fails with 'unhealthy'. Probe what
     # the worker actually does: Horizon is processing the queue.

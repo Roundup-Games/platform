@@ -93,3 +93,6 @@ AGENTS.md
 
 # Homelab deploy logs (scripts/deploy/homelab.sh) — server-local runtime state.
 deploy-logs/
+
+# Zero-downtime deploy runtime state (edge router config, managed by scripts/deploy/homelab.sh)
+/edge/

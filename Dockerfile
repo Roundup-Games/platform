@@ -149,6 +149,15 @@ RUN php artisan event:cache
 # Must come after source is copied so artisan is available at runtime
 USER root
 COPY --chmod=755 docker/s6/99-laravel-init /etc/cont-init.d/99-laravel-init
+# Bound the s6-rc boot readiness wait. The serversideup base ships 0
+# (= infinite, s6-overlay >=3.2.0.0 default): any service declaring
+# notification-fd without ever signaling readiness wedges the boot
+# `s6-rc change top` transition forever — it holds the s6-rc database
+# lock, shutdown stage 3 (`s6-rc -bda change`) then blocks on that lock,
+# PID 1 never exits, and Docker SIGKILLs at stop_grace_period (the
+# 5-minute deploy-window outage; s6-overlay issue #637). A positive bound
+# makes a wedged readiness wait release the lock instead.
+ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=30000
 USER www-data
 
 # Stage 4: Worker image — queue worker + scheduler (no nginx/fpm)
