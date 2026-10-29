@@ -115,8 +115,9 @@ flip_to() {  # $1 = blue|green — rewrite + lossless reload
 
 slot_service() { [[ "$1" == green ]] && echo app-green || echo app; }
 
-compose_for() {  # $1 = blue|green — green needs its profile
-    if [[ "$1" == green ]]; then
+compose_for() {  # $1 = blue|green (consumed); remaining args go to docker compose
+    local slot="$1"; shift
+    if [[ "$slot" == green ]]; then
         docker compose --profile bluegreen "$@"
     else
         docker compose "$@"
@@ -124,10 +125,16 @@ compose_for() {  # $1 = blue|green — green needs its profile
 }
 
 wait_healthy() {  # $1 = container, $2 = timeout seconds
-    local deadline=$(( $(date +%s) + $2 )) h
+    local deadline=$(( $(date +%s) + $2 )) h missing_for=0
     while :; do
         h=$(docker inspect "$1" --format '{{.State.Health.Status}}' 2>/dev/null || echo missing)
         [[ "$h" == healthy ]] && return 0
+        # A container that never appeared (compose failure) fails fast
+        # instead of burning the whole gate timeout.
+        if [[ "$h" == missing ]] && (( ++missing_for > 15 )); then
+            log "health gate FAILED: $1 never appeared (start command failed?)"
+            return 1
+        fi
         if (( $(date +%s) >= deadline )); then
             log "health gate FAILED: $1 status=$h after ${2}s"
             docker logs "$1" --tail 20 2>&1 | sed 's/^/    /'
