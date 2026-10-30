@@ -46,7 +46,7 @@ class WriteReview extends Component
 
         $reviewable = $this->resolveReviewable();
 
-        if (! $reviewable) {
+        if ($reviewable === null) {
             $this->errorMessage = __('reviews.error_not_found');
 
             return;
@@ -73,14 +73,14 @@ class WriteReview extends Component
 
     public function submit(): void
     {
-        if ($this->errorMessage) {
+        if ($this->errorMessage !== null && $this->errorMessage !== '') {
             return;
         }
 
         $this->validate();
 
         $reviewable = $this->resolveReviewable();
-        if (! $reviewable) {
+        if ($reviewable === null) {
             return;
         }
 
@@ -107,8 +107,8 @@ class WriteReview extends Component
             'reviewer_id' => Auth::id(),
             'gm_profile_id' => $gmProfile?->id,
             'rating' => $this->rating,
-            'body' => $this->body ?: null,
-            'proficiency_tags' => ! empty($this->proficiency_tags) ? $this->proficiency_tags : null,
+            'body' => $this->body !== '' ? $this->body : null,
+            'proficiency_tags' => $this->proficiency_tags !== [] ? $this->proficiency_tags : null,
             'status' => 'published',
         ]);
 
@@ -183,7 +183,7 @@ class WriteReview extends Component
             default => null,
         };
 
-        if (! $class) {
+        if ($class === null) {
             return null;
         }
 

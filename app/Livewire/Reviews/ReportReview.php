@@ -58,7 +58,7 @@ class ReportReview extends Component
 
         $review = Review::find($this->reviewId);
 
-        if (! $review) {
+        if ($review === null) {
             $this->addError('reason', __('reviews.error_review_not_found'));
 
             return;
@@ -70,7 +70,7 @@ class ReportReview extends Component
 
         // Rate limit: 5 review reports per user per hour
         $rateLimitKey = "review-reports:{$reporter->id}";
-        if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600)) {
+        if (RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600) !== true) {
             $this->addError('reason', __('common.error_rate_limit'));
 
             return;
@@ -83,7 +83,7 @@ class ReportReview extends Component
             // Re-check inside transaction with exclusive lock
             $lockedReview = Review::where('id', $review->id)->lockForUpdate()->first();
 
-            if ($lockedReview && $lockedReview->isReported()) {
+            if ($lockedReview !== null && $lockedReview->isReported()) {
                 $duplicateDetected = true;
 
                 return;
@@ -175,13 +175,13 @@ class ReportReview extends Component
         // queryable FK link; the author links to their profile. Metadata still
         // carries reason/details/reporter for backward-compat rendering.
         $ticket->attachSubject($review, 'reported');
-        if ($reviewAuthor) {
+        if ($reviewAuthor !== null) {
             $ticket->attachSubject($reviewAuthor, 'author');
         }
 
         // Apply review-report tag
         $tag = Tag::where('name', 'review-report')->first();
-        if ($tag) {
+        if ($tag !== null) {
             $ticket->tags()->syncWithoutDetaching($tag);
         }
 

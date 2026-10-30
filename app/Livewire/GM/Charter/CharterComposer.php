@@ -275,7 +275,7 @@ class CharterComposer extends Component
      */
     public function goToStep(int $n): void
     {
-        if (! ($this->charter?->isDraft() || $this->amending)) {
+        if (! (($this->charter?->isDraft() ?? false) || $this->amending)) {
             return;
         }
 
@@ -296,7 +296,7 @@ class CharterComposer extends Component
     /** Explicit Save Draft button (no-op persistence while amending). */
     public function saveDraft(): void
     {
-        if (! ($this->charter?->isDraft() || $this->amending)) {
+        if (! (($this->charter?->isDraft() ?? false) || $this->amending)) {
             return;
         }
 

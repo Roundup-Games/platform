@@ -28,11 +28,11 @@ class Checkout extends Component
 
     public function mount(?string $planId = null, ?string $priceId = null, ?string $eventId = null): void
     {
-        if ($planId) {
+        if ($planId !== null && $planId !== '') {
             $this->membershipTypeId = $planId;
             $this->membershipType = MembershipType::active()->findOrFail($planId);
             $this->mode = 'subscription';
-        } elseif ($priceId) {
+        } elseif ($priceId !== null && $priceId !== '') {
             $this->eventPriceId = $priceId;
             $this->eventId = $eventId;
             $this->mode = 'one-time';
@@ -59,7 +59,7 @@ class Checkout extends Component
         // Refresh from DB in case it was set via mount
         $plan = $this->membershipType ?? MembershipType::active()->find($this->membershipTypeId);
 
-        if (! $plan?->paddle_price_id) {
+        if ($plan === null || $plan->paddle_price_id === null || $plan->paddle_price_id === '') {
             session()->flash('error', __('billing.error_this_membership_plan_is_not'));
 
             return;
@@ -87,7 +87,7 @@ class Checkout extends Component
     private function initOneTimeCheckout(User $user): void
     {
         // One-time payments must be tied to an event — reject if no eventId
-        if (! $this->eventId) {
+        if ($this->eventId === null || $this->eventId === '') {
             Log::warning('Paddle one-time checkout rejected: no event_id provided', [
                 'user_id' => $user->id,
                 'provided_price_id' => $this->eventPriceId,
@@ -102,7 +102,7 @@ class Checkout extends Component
         $event = Event::findOrFail($this->eventId);
         $expectedPriceId = $event->metadata['paddle_price_id'] ?? null;
 
-        if (! $expectedPriceId) {
+        if (! is_string($expectedPriceId) || $expectedPriceId === '') {
             Log::warning('Paddle one-time checkout rejected: event has no paddle_price_id configured', [
                 'user_id' => $user->id,
                 'event_id' => $this->eventId,

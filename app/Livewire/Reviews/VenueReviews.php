@@ -72,7 +72,7 @@ class VenueReviews extends Component
 
     public function submit(): void
     {
-        if ($this->errorMessage) {
+        if ($this->errorMessage !== null && $this->errorMessage !== '') {
             return;
         }
 
@@ -93,7 +93,7 @@ class VenueReviews extends Component
             'gm_profile_id' => null,
             'proficiency_tags' => null,
             'rating' => $this->rating,
-            'body' => $this->body ?: null,
+            'body' => $this->body !== '' ? $this->body : null,
             'status' => 'published',
         ]);
 

@@ -115,7 +115,7 @@ class FriendSearch extends Component
     #[Computed]
     public function selectedFriends()
     {
-        if (empty($this->selectedIds)) {
+        if ($this->selectedIds === []) {
             return collect();
         }
 

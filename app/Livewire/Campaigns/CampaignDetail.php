@@ -231,7 +231,7 @@ class CampaignDetail extends Component
                     ParticipantStatus::Pending->value,
                 ], true));
 
-        if (! $participant || ! $user->can('leave', $this->campaign)) {
+        if ($participant === null || ! $user->can('leave', $this->campaign)) {
             session()->flash('error', __('campaigns.error_not_a_participant'));
 
             return;
@@ -265,7 +265,7 @@ class CampaignDetail extends Component
     {
         $id = $this->viewerId();
 
-        return $id
+        return $id !== null
             ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id)
             : null;
     }
@@ -289,7 +289,7 @@ class CampaignDetail extends Component
     {
         $vp = $this->viewerParticipant();
 
-        return $vp && in_array($vp->status?->value, [
+        return $vp !== null && in_array($vp->status?->value, [
             ParticipantStatus::Approved->value,
             ParticipantStatus::Pending->value,
             ParticipantStatus::Waitlisted->value,
@@ -302,7 +302,7 @@ class CampaignDetail extends Component
     {
         $vp = $this->viewerParticipant();
 
-        return $vp && $vp->role === ParticipantRole::Invited && $vp->status === ParticipantStatus::Pending
+        return $vp !== null && $vp->role === ParticipantRole::Invited && $vp->status === ParticipantStatus::Pending
             ? $vp
             : null;
     }
@@ -310,7 +310,7 @@ class CampaignDetail extends Component
     #[Computed]
     public function hasExistingApplication(): bool
     {
-        return ($id = $this->viewerId()) && $this->campaign->applications()
+        return ($id = $this->viewerId()) !== null && $this->campaign->applications()
             ->where('user_id', $id)
             ->where('status', 'pending')
             ->exists();
@@ -325,7 +325,7 @@ class CampaignDetail extends Component
     #[Computed]
     public function canApplyDirectly(): bool
     {
-        return ($id = $this->viewerId())
+        return ($id = $this->viewerId()) !== null
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && $this->campaign->visibility !== Visibility::Private
             && (! $this->isCampaignFull() || $this->campaign->isBenchMode())
@@ -335,7 +335,7 @@ class CampaignDetail extends Component
     #[Computed]
     public function canJoinWaitlist(): bool
     {
-        return ($id = $this->viewerId())
+        return ($id = $this->viewerId()) !== null
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && ! $this->campaign->isBenchMode()
             && $this->isCampaignFull()
@@ -348,7 +348,7 @@ class CampaignDetail extends Component
     {
         $vp = $this->viewerParticipant();
 
-        return $vp && $vp->status === ParticipantStatus::Waitlisted ? $vp : null;
+        return $vp !== null && $vp->status === ParticipantStatus::Waitlisted ? $vp : null;
     }
 
     #[Computed]
@@ -356,7 +356,7 @@ class CampaignDetail extends Component
     {
         $wl = $this->userWaitlistParticipant();
 
-        return $wl ? app(WaitlistService::class)->getWaitlistPosition($wl) : null;
+        return $wl !== null ? app(WaitlistService::class)->getWaitlistPosition($wl) : null;
     }
 
     #[Computed]
@@ -364,7 +364,7 @@ class CampaignDetail extends Component
     {
         $vp = $this->viewerParticipant();
 
-        return $vp && $vp->status === ParticipantStatus::Pending && $vp->confirmation_expires_at !== null
+        return $vp !== null && $vp->status === ParticipantStatus::Pending && $vp->confirmation_expires_at !== null
             ? $vp
             : null;
     }
@@ -374,7 +374,7 @@ class CampaignDetail extends Component
     {
         $vp = $this->viewerParticipant();
 
-        return $vp && $vp->status === ParticipantStatus::Benched ? $vp : null;
+        return $vp !== null && $vp->status === ParticipantStatus::Benched ? $vp : null;
     }
 
     /**
@@ -496,7 +496,7 @@ class CampaignDetail extends Component
 
         $viewer = Auth::user();
 
-        $canReview = $viewer
+        $canReview = $viewer !== null
             ? app(ReviewEligibilityService::class)->canReviewCampaign($viewer, $this->campaign)
             : false;
 
@@ -532,7 +532,7 @@ class CampaignDetail extends Component
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),
             'shortLinks' => $this->getShortLinks(),
-            'canCreateMoreShortLinks' => Auth::user()
+            'canCreateMoreShortLinks' => Auth::user() !== null
                 ? app(ShortLinkService::class)->canCreateMore($this->campaign, Auth::user())
                 : false,
         ])->layout('layouts.app');

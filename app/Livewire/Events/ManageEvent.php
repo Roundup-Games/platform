@@ -163,9 +163,9 @@ class ManageEvent extends Component
         $this->max_participants = $e->max_participants;
         $this->individual_registration_fee = self::centsToEur($e->individual_registration_fee);
         $this->early_bird_discount = self::centsToEur($e->early_bird_discount);
-        $this->early_bird_deadline = $e->early_bird_deadline ? $e->early_bird_deadline->format('Y-m-d\TH:i') : '';
-        $this->registration_opens_at = $e->registration_opens_at ? $e->registration_opens_at->format('Y-m-d\TH:i') : '';
-        $this->registration_closes_at = $e->registration_closes_at ? $e->registration_closes_at->format('Y-m-d\TH:i') : '';
+        $this->early_bird_deadline = $e->early_bird_deadline !== null ? $e->early_bird_deadline->format('Y-m-d\TH:i') : '';
+        $this->registration_opens_at = $e->registration_opens_at !== null ? $e->registration_opens_at->format('Y-m-d\TH:i') : '';
+        $this->registration_closes_at = $e->registration_closes_at !== null ? $e->registration_closes_at->format('Y-m-d\TH:i') : '';
         /** @var array<int, string>|null $rules */
         $rules = $e->rules;
         $this->rules = is_array($rules) ? implode("\n", $rules) : '';
@@ -410,8 +410,8 @@ class ManageEvent extends Component
             }
         }
 
-        $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules)), fn (string $line): bool => $line !== '') : null;
-        $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule)), fn (string $line): bool => $line !== '') : null;
+        $parsedRules = $this->rules !== '' ? array_filter(array_map('trim', explode("\n", $this->rules)), fn (string $line): bool => $line !== '') : null;
+        $parsedSchedule = $this->schedule !== '' ? array_filter(array_map('trim', explode("\n", $this->schedule)), fn (string $line): bool => $line !== '') : null;
 
         $translatable = $this->buildTranslatableValues(
             ['name', 'description', 'short_description'],
@@ -428,21 +428,21 @@ class ManageEvent extends Component
             'language' => $this->language,
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
-            'venue_name' => $this->venue_name ?: null,
-            'venue_address' => $this->venue_address ?: null,
-            'city' => $this->city ?: null,
-            'country' => $this->country ?: null,
-            'postal_code' => $this->postal_code ?: null,
+            'venue_name' => $this->venue_name !== '' ? $this->venue_name : null,
+            'venue_address' => $this->venue_address !== '' ? $this->venue_address : null,
+            'city' => $this->city !== '' ? $this->city : null,
+            'country' => $this->country !== '' ? $this->country : null,
+            'postal_code' => $this->postal_code !== '' ? $this->postal_code : null,
             'max_participants' => $this->max_participants,
             'individual_registration_fee' => $this->eurToCents($this->individual_registration_fee) ?? 0,
             'early_bird_discount' => $this->eurToCents($this->early_bird_discount),
-            'early_bird_deadline' => $this->early_bird_deadline ?: null,
-            'registration_opens_at' => $this->registration_opens_at ?: null,
-            'registration_closes_at' => $this->registration_closes_at ?: null,
+            'early_bird_deadline' => $this->early_bird_deadline !== '' ? $this->early_bird_deadline : null,
+            'registration_opens_at' => $this->registration_opens_at !== '' ? $this->registration_opens_at : null,
+            'registration_closes_at' => $this->registration_closes_at !== '' ? $this->registration_closes_at : null,
             'rules' => $parsedRules,
             'schedule' => $parsedSchedule,
-            'contact_email' => $this->contact_email ?: null,
-            'contact_phone' => $this->contact_phone ?: null,
+            'contact_email' => $this->contact_email !== '' ? $this->contact_email : null,
+            'contact_phone' => $this->contact_phone !== '' ? $this->contact_phone : null,
             'is_public' => $this->is_public,
             'is_featured' => $isFeatured,
         ], fn ($value) => $value !== null);

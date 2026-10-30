@@ -110,7 +110,7 @@ class ClaimVenue extends Component
         // Rate limit: 3 claims/day per user (mirrors the propose-venue limiter).
         $rateLimitKey = 'venue-claim:'.$user->id;
 
-        if (! RateLimiter::attempt($rateLimitKey, 3, fn () => true, decaySeconds: 86400)) {
+        if (RateLimiter::attempt($rateLimitKey, 3, fn () => true, decaySeconds: 86400) !== true) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
             $hours = ceil($seconds / 3600);
             $this->addError('justification', __('venues.error_claim_rate_limit', ['hours' => $hours]));
@@ -120,8 +120,8 @@ class ClaimVenue extends Component
 
         $data = [
             'claimant_notes' => trim($this->justification),
-            'website_url' => $this->website_url ? trim($this->website_url) : null,
-            'contact_email' => $this->contact_email ? trim($this->contact_email) : null,
+            'website_url' => $this->website_url !== null && $this->website_url !== '' ? trim($this->website_url) : null,
+            'contact_email' => $this->contact_email !== null && $this->contact_email !== '' ? trim($this->contact_email) : null,
         ];
 
         try {

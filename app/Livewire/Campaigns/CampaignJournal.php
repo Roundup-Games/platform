@@ -339,8 +339,8 @@ class CampaignJournal extends Component
     {
         if (
             ! $this->canViewJournal()
-            || ! empty($this->olderStateChangesExhausted[$participantId])
-            || ! empty($this->olderStateChangesCapped[$participantId])
+            || ($this->olderStateChangesExhausted[$participantId] ?? null) === true
+            || ($this->olderStateChangesCapped[$participantId] ?? null) === true
         ) {
             return;
         }
@@ -573,7 +573,7 @@ class CampaignJournal extends Component
         // support, system requests) throttles the same way.
         $rateLimitKey = 'journal:'.$this->campaign->id.':'.$participant->user_id;
 
-        if (! RateLimiter::attempt($rateLimitKey, 10, fn () => true, decaySeconds: 3600)) {
+        if (RateLimiter::attempt($rateLimitKey, 10, fn () => true, decaySeconds: 3600) !== true) {
             $minutes = max(1, (int) ceil(RateLimiter::availableIn($rateLimitKey) / 60));
             session()->flash('error', __('journal.error_rate_limited', ['minutes' => $minutes]));
 

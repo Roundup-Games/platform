@@ -133,7 +133,7 @@ class GameSystemPreferencePicker extends Component
     #[Computed]
     public function selectedSystems(): Collection
     {
-        if (empty($this->selectedIds)) {
+        if ($this->selectedIds === []) {
             return collect();
         }
 
@@ -150,12 +150,12 @@ class GameSystemPreferencePicker extends Component
     #[Computed]
     public function expansionOptions(): Collection
     {
-        if (! $this->selectedBaseId) {
+        if ($this->selectedBaseId === null || $this->selectedBaseId === '') {
             return collect();
         }
 
         $base = GameSystem::find($this->selectedBaseId);
-        if (! $base) {
+        if ($base === null) {
             return collect();
         }
 
@@ -197,7 +197,7 @@ class GameSystemPreferencePicker extends Component
     public function pickFromSearch(string $id): void
     {
         $system = GameSystem::withCount('expansions')->find($id);
-        if (! $system) {
+        if ($system === null) {
             return;
         }
 
@@ -248,7 +248,7 @@ class GameSystemPreferencePicker extends Component
             // Block: favoriting an expansion when its base is avoided
             if ($this->preferenceType === 'favorite') {
                 $system = GameSystem::findOrFail($id);
-                if ($system->base_game_id && in_array($system->base_game_id, $this->conflictIds, true)) {
+                if ($system->base_game_id !== null && in_array($system->base_game_id, $this->conflictIds, true)) {
                     $rawBaseName = GameSystem::where('id', $system->base_game_id)->value('name');
                     $baseName = is_string($rawBaseName) ? $rawBaseName : 'its base game';
                     $this->conflictMessage = __('games.error_name_s_base_game_base_name_is_in_your_avoid_list', [
@@ -309,7 +309,7 @@ class GameSystemPreferencePicker extends Component
             }
 
             // Check if the system's base game is in conflictIds
-            if ($system && $system->base_game_id && in_array($system->base_game_id, $this->conflictIds, true)) {
+            if ($system !== null && $system->base_game_id !== null && in_array($system->base_game_id, $this->conflictIds, true)) {
                 $rawBaseName2 = GameSystem::where('id', $system->base_game_id)->value('name');
                 $baseName = is_string($rawBaseName2) ? $rawBaseName2 : 'its base game';
                 $this->conflictMessage = __('games.error_name_s_base_game_base_name_is_in_your_favorites', [

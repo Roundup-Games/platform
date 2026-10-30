@@ -16,7 +16,7 @@ class PolicyUpdateNotice extends Component
         $user = authenticatedUser();
 
         $dismissalKey = $this->dismissalKey($user);
-        if (session($dismissalKey)) {
+        if (session($dismissalKey) === true) {
             $this->showNotice = false;
 
             return;
@@ -52,7 +52,7 @@ class PolicyUpdateNotice extends Component
             $updates['terms_accepted_at'] = now();
         }
 
-        if (! empty($updates)) {
+        if ($updates !== []) {
             $user->update($updates);
         }
 
@@ -69,7 +69,7 @@ class PolicyUpdateNotice extends Component
     public function render(): View
     {
         $user = authenticatedUser();
-        if (session($this->dismissalKey($user))) {
+        if (session($this->dismissalKey($user)) === true) {
             $this->showNotice = false;
         }
 

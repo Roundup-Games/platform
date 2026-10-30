@@ -83,7 +83,7 @@ class CampaignsPage extends Component
         $this->editingCampaignId = $campaign->id;
         $this->edit_name = $campaign->name;
         $this->edit_description = $campaign->description ?? '';
-        $this->edit_session_duration = $campaign->session_duration ? (string) $campaign->session_duration : '';
+        $this->edit_session_duration = $campaign->session_duration > 0 ? (string) $campaign->session_duration : '';
         $this->edit_visibility = $campaign->visibility->value ?? 'private';
         $this->edit_location_id = $campaign->location_id;
         $this->edit_location_instructions = $campaign->location_instructions ?? '';
@@ -91,7 +91,7 @@ class CampaignsPage extends Component
         $this->edit_location_city = $campaign->linkedLocation->city ?? '';
         $this->edit_location_address = $campaign->linkedLocation->address ?? '';
 
-        if ($campaign->location_id && $campaign->linkedLocation) {
+        if ($campaign->location_id !== null && $campaign->linkedLocation !== null) {
             $this->edit_address_city = $campaign->linkedLocation->city ?? '';
             $this->edit_address_street = $campaign->linkedLocation->address ?? '';
         }
@@ -139,7 +139,7 @@ class CampaignsPage extends Component
             $changedLabels[] = __('campaigns.field_campaign_name');
         }
         if (($campaign->description ?? '') !== $this->edit_description) {
-            $changes['description'] = $this->edit_description ?: null;
+            $changes['description'] = $this->edit_description !== '' ? $this->edit_description : null;
             $changedLabels[] = __('common.field_description');
         }
         $newDuration = $this->edit_session_duration !== '' ? (float) $this->edit_session_duration : null;
@@ -152,14 +152,14 @@ class CampaignsPage extends Component
             $changedLabels[] = __('common.content_visibility');
         }
         if ($campaign->location_id !== $this->edit_location_id) {
-            $changes['location_id'] = $this->edit_location_id ?: null;
+            $changes['location_id'] = $this->edit_location_id !== '' ? $this->edit_location_id : null;
             $changedLabels[] = __('common.field_location');
         }
         if (($campaign->location_instructions ?? '') !== $this->edit_location_instructions) {
-            $changes['location_instructions'] = $this->edit_location_instructions ?: null;
+            $changes['location_instructions'] = $this->edit_location_instructions !== '' ? $this->edit_location_instructions : null;
         }
 
-        if (empty($changes)) {
+        if ($changes === []) {
             $this->cancelEdit();
 
             return;
@@ -182,7 +182,7 @@ class CampaignsPage extends Component
         ]);
 
         // Notify participants (excluding owner)
-        if (! empty($changedLabels)) {
+        if ($changedLabels !== []) {
             try {
                 $participants = $campaign->participants()
                     ->where('status', 'approved')
@@ -266,7 +266,7 @@ class CampaignsPage extends Component
             ])
             ->first();
 
-        if (! $participant || ! $user->can('leave', $campaign)) {
+        if ($participant === null || ! $user->can('leave', $campaign)) {
             session()->flash('error', __('campaigns.error_not_a_participant'));
 
             return;

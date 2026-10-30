@@ -46,7 +46,7 @@ class RegisterForEvent extends Component
     {
         $base = $this->event->individual_registration_fee ?? 0;
 
-        if ($this->event->early_bird_discount && $this->event->early_bird_deadline && ($deadline = $this->earlyBirdDeadline()) !== null && now()->lt($deadline)) {
+        if ($this->event->early_bird_discount !== null && $this->event->early_bird_deadline !== null && ($deadline = $this->earlyBirdDeadline()) !== null && now()->lt($deadline)) {
             return max(0, $base - $this->event->early_bird_discount);
         }
 
@@ -56,8 +56,8 @@ class RegisterForEvent extends Component
     #[Computed]
     public function isEarlyBird(): bool
     {
-        return $this->event->early_bird_discount
-            && $this->event->early_bird_deadline
+        return $this->event->early_bird_discount !== null
+            && $this->event->early_bird_deadline !== null
             && ($deadline = $this->earlyBirdDeadline()) !== null
             && now()->lt($deadline);
     }
@@ -119,7 +119,7 @@ class RegisterForEvent extends Component
                     'user_id' => $userId,
                     'status' => $status,
                     'payment_status' => $paymentStatus,
-                    'notes' => $notes ?: null,
+                    'notes' => $notes !== '' ? $notes : null,
                     'confirmed_at' => $fee === 0 ? now() : null,
                 ]);
             });
@@ -224,7 +224,7 @@ class RegisterForEvent extends Component
         // Check if event has a Paddle price ID in metadata
         $priceId = $this->event->metadata['paddle_price_id'] ?? null;
 
-        if ($priceId) {
+        if (is_string($priceId) && $priceId !== '') {
             Log::info('Initiating Paddle checkout for event registration', [
                 'registration_id' => $registration->id,
                 'price_id' => $priceId,

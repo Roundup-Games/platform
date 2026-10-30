@@ -302,7 +302,7 @@ trait BuildsSessionForm
         // Gatherings require at least one game system (the host picks what to
         // play). Enforced here rather than via a rule because it is conditional
         // on game_type. game_system_id is intentionally NOT set for gatherings.
-        if ($this->game_type === 'gathering' && empty($validated['game_systems'])) {
+        if ($this->game_type === 'gathering' && $validated['game_systems'] === []) {
             $this->addError('game_systems', __('games.error_gathering_requires_system'));
 
             return true;
@@ -314,7 +314,7 @@ trait BuildsSessionForm
         // persisted — which breaks discovery ranking, the activity feed,
         // profile listings, and cover-image resolution, all of which assume at
         // least one offered system.
-        if ($this->game_type !== 'gathering' && empty($validated['game_system_id'])) {
+        if ($this->game_type !== 'gathering' && ($validated['game_system_id'] === null || $validated['game_system_id'] === '')) {
             $this->addError('game_system_id', __('games.error_system_required'));
 
             return true;
@@ -366,24 +366,24 @@ trait BuildsSessionForm
         };
 
         $duration = $this->sessionDuration();
-        if ($system->average_play_time && ($duration === '' || $duration === $typeDefault)) {
+        if ($system->average_play_time !== null && $system->average_play_time > 0 && ($duration === '' || $duration === $typeDefault)) {
             $hours = $system->average_play_time / 60;
             $rounded = round($hours * 2) / 2;
             $this->setSessionDuration((string) max($rounded, 0.5));
         }
 
-        if ($system->min_players && $this->min_players === null) {
+        if ($system->min_players !== null && $system->min_players > 0 && $this->min_players === null) {
             $this->min_players = $system->min_players;
         }
-        if ($system->max_players && $this->max_players === null) {
+        if ($system->max_players !== null && $system->max_players > 0 && $this->max_players === null) {
             $this->max_players = $system->max_players;
         }
 
-        if ($system->bgg_average_weight && $this->complexity === null) {
+        if ($system->bgg_average_weight !== null && $system->bgg_average_weight > 0 && $this->complexity === null) {
             $this->complexity = (string) round((float) $system->bgg_average_weight, 2);
         }
 
-        if ($this->experience_level === null && $system->bgg_average_weight) {
+        if ($this->experience_level === null && $system->bgg_average_weight !== null && $system->bgg_average_weight > 0) {
             $weight = (float) $system->bgg_average_weight;
             if ($weight <= 2.0) {
                 $this->experience_level = 'beginner';

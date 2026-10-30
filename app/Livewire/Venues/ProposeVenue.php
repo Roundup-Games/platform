@@ -154,7 +154,7 @@ class ProposeVenue extends Component
         // Rate limit: 5 proposals per day per user
         $rateLimitKey = 'venue-proposal:'.$user->id;
 
-        if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 86400)) {
+        if (RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 86400) !== true) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
             $hours = ceil($seconds / 3600);
             $this->addError('name', __('location.error_proposal_rate_limit', ['hours' => $hours]));
@@ -164,10 +164,10 @@ class ProposeVenue extends Component
 
         // Geocode the full address (graceful failure)
         $fullAddress = trim($this->address).', '.trim($this->city);
-        if ($this->postal_code) {
+        if ($this->postal_code !== null && $this->postal_code !== '') {
             $fullAddress .= ', '.trim($this->postal_code);
         }
-        if ($this->country) {
+        if ($this->country !== '') {
             $fullAddress .= ', '.trim($this->country);
         }
 
@@ -186,12 +186,12 @@ class ProposeVenue extends Component
             'name' => $normalizedName,
             'address' => trim($this->address),
             'city' => trim($this->city),
-            'postal_code' => $this->postal_code ? trim($this->postal_code) : null,
+            'postal_code' => $this->postal_code !== null && $this->postal_code !== '' ? trim($this->postal_code) : null,
             'country' => trim($this->country),
             'venue_type' => $this->venue_type,
-            'website_url' => $this->website_url ? trim($this->website_url) : null,
-            'proposer_notes' => $this->proposer_notes ? trim($this->proposer_notes) : null,
-            'admin_notes' => $this->notes ? trim($this->notes) : null,
+            'website_url' => $this->website_url !== null && $this->website_url !== '' ? trim($this->website_url) : null,
+            'proposer_notes' => $this->proposer_notes !== null && $this->proposer_notes !== '' ? trim($this->proposer_notes) : null,
+            'admin_notes' => $this->notes !== null && $this->notes !== '' ? trim($this->notes) : null,
             'latitude' => $geocodeResult['lat'] ?? null,
             'longitude' => $geocodeResult['lng'] ?? null,
             'geocoded_display_name' => $geocodeResult['display_name'] ?? null,

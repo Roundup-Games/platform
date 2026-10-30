@@ -131,7 +131,7 @@ class Show extends Component
             $discordAccount = $user->linkedAccounts()
                 ->where('provider', OAuthProvider::Discord)
                 ->first();
-            if ($discordAccount) {
+            if ($discordAccount !== null) {
                 $this->discordLinkedUserId = (string) $discordAccount->provider_user_id;
 
                 // M056/S03/T11: auto-fill the Discord handle on mount when the GM
@@ -242,7 +242,7 @@ class Show extends Component
             'gender_consent' => $validated['gender_consent'],
             'pronouns' => $validated['pronouns'],
             'phone' => $validated['phone'],
-            'preferred_language' => $validated['preferredLanguage'] ?: null,
+            'preferred_language' => $validated['preferredLanguage'] !== '' ? $validated['preferredLanguage'] : null,
             'bio' => $validated['bio'] ? trim(strip_tags($validated['bio'])) : null,
             'location_id' => $this->locationId,
             'profile_version' => ($user->profile_version ?? 0) + 1,
@@ -257,10 +257,10 @@ class Show extends Component
             ]);
         }
 
-        if ($this->avatar) {
+        if ($this->avatar !== null) {
             $user->clearMediaCollection('avatar');
-            $filename = $this->avatar->getClientOriginalName()
-                ?: ('avatar.'.($this->avatar->extension() ?: 'jpg'));
+            $originalName = $this->avatar->getClientOriginalName();
+            $filename = $originalName !== '' ? $originalName : ('avatar.'.($this->avatar->extension() ?? 'jpg'));
             $user->addMedia($this->avatar->getRealPath())
                 ->usingName($user->name.' avatar')
                 ->usingFileName($filename)
@@ -284,13 +284,13 @@ class Show extends Component
             $dashboardCache->invalidateForUser((string) $user->id, ['opportunities']);
 
             // Invalidate trending for old and new geohash tiles
-            if ($oldLocationId) {
+            if ($oldLocationId !== null && $oldLocationId !== '') {
                 $oldLocation = Location::find($oldLocationId);
-                if ($oldLocation && $oldLocation->geohash_4) {
+                if ($oldLocation !== null && $oldLocation->geohash_4 !== null) {
                     $dashboardCache->invalidateTrendingForGeohash($oldLocation->geohash_4);
                 }
             }
-            if ($user->linkedLocation && $user->linkedLocation->geohash_4) {
+            if ($user->linkedLocation !== null && $user->linkedLocation->geohash_4 !== null) {
                 $dashboardCache->invalidateTrendingForGeohash($user->linkedLocation->geohash_4);
             }
         }
@@ -350,7 +350,7 @@ class Show extends Component
                     ];
                 }
             }
-            if (! empty($inserts)) {
+            if ($inserts !== []) {
                 $user->vibePreferences()->createMany($inserts);
             }
         });
@@ -435,7 +435,7 @@ class Show extends Component
     {
         $user = authenticatedUser();
 
-        if (! $user->isGM() || ! $this->discordLinkedUserId) {
+        if (! $user->isGM() || $this->discordLinkedUserId === null || $this->discordLinkedUserId === '') {
             return;
         }
 
@@ -456,7 +456,7 @@ class Show extends Component
         $rules = ['socialLinks' => ['required', 'array']];
         foreach ($this->platforms as $key => $platform) {
             $rules["socialLinks.{$key}.handle"] = ['nullable', 'string', 'max:255'];
-            if (is_array($platform) && ($platform['instance_required'] ?? false)) {
+            if (is_array($platform) && ($platform['instance_required'] ?? false) === true) {
                 $rules["socialLinks.{$key}.instance"] = ['nullable', 'string', 'max:255'];
             }
         }
@@ -479,7 +479,7 @@ class Show extends Component
 
             Log::info('GM social links updated', [
                 'user_id' => $user->id,
-                'platforms_count' => count(array_filter($validated['socialLinks'], fn ($l) => ! empty($l['handle']))),
+                'platforms_count' => count(array_filter($validated['socialLinks'], fn ($l) => ($l['handle'] ?? '') !== '')),
             ]);
 
             $this->socialLinksSaved = true;
@@ -498,7 +498,7 @@ class Show extends Component
     public function render(): View
     {
         $user = authenticatedUser();
-        $locationRecord = $this->locationId ? Location::find($this->locationId) : null;
+        $locationRecord = $this->locationId !== null && $this->locationId !== '' ? Location::find($this->locationId) : null;
 
         return view('livewire.profile.show', [
             'currentLocation' => $locationRecord,

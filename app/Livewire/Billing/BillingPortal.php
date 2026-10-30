@@ -22,7 +22,7 @@ class BillingPortal extends Component
         $user = authenticatedUser();
 
         // Build the Paddle customer portal URL if the user has a Paddle ID
-        if ($user->paddle_id) {
+        if ($user->paddle_id !== null) {
             $this->portalUrl = "https://{$this->paddleVendorDomain()}/customer/login?customer_id={$user->paddle_id}";
         }
     }
@@ -32,7 +32,7 @@ class BillingPortal extends Component
         $user = authenticatedUser();
         $subscription = $user->subscription();
 
-        if (! $subscription || ! $subscription->active()) {
+        if ($subscription === null || ! $subscription->active()) {
             session()->flash('error', __('billing.error_no_active_subscription_to_cancel'));
 
             return;
@@ -77,7 +77,7 @@ class BillingPortal extends Component
         $user = authenticatedUser();
         $subscription = $user->subscription();
 
-        if (! $subscription || ! $subscription->onGracePeriod()) {
+        if ($subscription === null || ! $subscription->onGracePeriod()) {
             session()->flash('error', __('billing.content_no_subscription_available_to_resume'));
 
             return;
@@ -92,7 +92,7 @@ class BillingPortal extends Component
         $subscription->resume();
 
         // Re-assign GM role if subscription resumed
-        if (! $user->isGM() && $user->gmProfile) {
+        if (! $user->isGM() && $user->gmProfile !== null) {
             app(GmRoleService::class)->assignGMRole($user);
         }
 
@@ -137,7 +137,7 @@ class BillingPortal extends Component
             ->where('status', 'canceled')
             ->first();
 
-        if (! $canceledGmSub) {
+        if ($canceledGmSub === null) {
             session()->flash('error', __('billing.error_no_gm_subscription_to_reactivate'));
 
             return;

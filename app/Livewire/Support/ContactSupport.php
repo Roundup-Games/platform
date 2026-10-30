@@ -53,7 +53,7 @@ class ContactSupport extends Component
         // Rate limit: 5 support tickets per user per hour
         $rateLimitKey = "account-support:{$user->id}";
 
-        if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600)) {
+        if (RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600) !== true) {
             $this->addError('subject', __('common.error_rate_limit'));
 
             return;
@@ -122,7 +122,7 @@ class ContactSupport extends Component
     private function createAccountSupportTicket(User $user): void
     {
         $department = Department::where('name', 'Account Support')->first();
-        if (! $department) {
+        if ($department === null) {
             Log::error('support.account_department_missing');
             throw new \RuntimeException('Account Support department is not configured.');
         }
@@ -150,7 +150,7 @@ class ContactSupport extends Component
         // Apply appropriate tag based on ticket type
         $tagName = $ticketType === 'data_export_request' ? 'data-export' : 'account-recovery';
         $tag = Tag::where('name', $tagName)->first();
-        if ($tag) {
+        if ($tag !== null) {
             $ticket->tags()->syncWithoutDetaching($tag);
         }
 

@@ -113,10 +113,10 @@ class GmDirectory extends Component
 
     public function hasActiveFilters(): bool
     {
-        return $this->search
-            || $this->specialization
-            || $this->game_system_id
-            || $this->min_rating;
+        return $this->search !== ''
+            || $this->specialization !== null
+            || $this->game_system_id !== null
+            || $this->min_rating !== null;
     }
 
     // ── Render ──────────────────────────────────────────
@@ -136,7 +136,7 @@ class GmDirectory extends Component
             ->withCount('reviews');
 
         // Search by GM name (via user relationship)
-        if ($this->search) {
+        if ($this->search !== '') {
             $escaped = $this->escapeLikeWildcards($this->search);
             $query->whereHas('user', function ($q) use ($escaped) {
                 $q->where('name', $this->likeOperator(), "%{$escaped}%");
@@ -144,7 +144,7 @@ class GmDirectory extends Component
         }
 
         // Filter by specialization
-        if ($this->specialization) {
+        if ($this->specialization !== null && $this->specialization !== '') {
             $query->whereJsonContains('specializations', $this->specialization);
         }
 
@@ -159,7 +159,7 @@ class GmDirectory extends Component
         }
 
         // Filter by minimum rating
-        if ($this->min_rating) {
+        if ($this->min_rating !== null) {
             $query->where('average_rating', '>=', $this->min_rating);
         }
 

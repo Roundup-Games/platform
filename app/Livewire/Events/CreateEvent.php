@@ -78,7 +78,7 @@ class CreateEvent extends Component
         $this->end_date = now()->addDays(16)->format('Y-m-d');
 
         // Initialize active locale to baseline
-        if (empty($this->activeLocale)) {
+        if ($this->activeLocale === '') {
             $this->activeLocale = $this->language;
         }
     }
@@ -123,8 +123,8 @@ class CreateEvent extends Component
         $this->validateStep($this->step);
         $this->authorize('create', Event::class);
 
-        $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules)), fn (string $line): bool => $line !== '') : null;
-        $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule)), fn (string $line): bool => $line !== '') : null;
+        $parsedRules = $this->rules !== '' ? array_filter(array_map('trim', explode("\n", $this->rules)), fn (string $line): bool => $line !== '') : null;
+        $parsedSchedule = $this->schedule !== '' ? array_filter(array_map('trim', explode("\n", $this->schedule)), fn (string $line): bool => $line !== '') : null;
 
         $translatable = $this->buildTranslatableValues(
             ['name', 'description', 'short_description'],
@@ -141,21 +141,21 @@ class CreateEvent extends Component
             'language' => $this->language,
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
-            'venue_name' => $this->venue_name ?: null,
-            'venue_address' => $this->venue_address ?: null,
-            'city' => $this->city ?: null,
-            'country' => $this->country ?: null,
-            'postal_code' => $this->postal_code ?: null,
+            'venue_name' => $this->venue_name !== '' ? $this->venue_name : null,
+            'venue_address' => $this->venue_address !== '' ? $this->venue_address : null,
+            'city' => $this->city !== '' ? $this->city : null,
+            'country' => $this->country !== '' ? $this->country : null,
+            'postal_code' => $this->postal_code !== '' ? $this->postal_code : null,
             'max_participants' => $this->max_participants,
             'individual_registration_fee' => $this->eurToCents($this->individual_registration_fee) ?? 0,
             'early_bird_discount' => $this->eurToCents($this->early_bird_discount),
-            'early_bird_deadline' => $this->early_bird_deadline ?: null,
-            'registration_opens_at' => $this->registration_opens_at ?: null,
-            'registration_closes_at' => $this->registration_closes_at ?: null,
+            'early_bird_deadline' => $this->early_bird_deadline !== '' ? $this->early_bird_deadline : null,
+            'registration_opens_at' => $this->registration_opens_at !== '' ? $this->registration_opens_at : null,
+            'registration_closes_at' => $this->registration_closes_at !== '' ? $this->registration_closes_at : null,
             'rules' => $parsedRules,
             'schedule' => $parsedSchedule,
-            'contact_email' => $this->contact_email ?: null,
-            'contact_phone' => $this->contact_phone ?: null,
+            'contact_email' => $this->contact_email !== '' ? $this->contact_email : null,
+            'contact_phone' => $this->contact_phone !== '' ? $this->contact_phone : null,
             'organizer_id' => Auth::id(),
             'is_public' => $this->is_public,
         ], fn ($value) => $value !== null));

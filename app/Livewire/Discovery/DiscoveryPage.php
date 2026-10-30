@@ -152,7 +152,7 @@ class DiscoveryPage extends Component
         // search (displayCount === 12 dedupes loadMore expansions) with an active
         // filter set, for authenticated users. Zero-result searches are the
         // highest-value signal: pure unmet demand. Consent-gated via PostHogAnalytics.
-        if ($user && $this->displayCount === self::INITIAL_DISPLAY_COUNT && $this->hasUserSelectedFilters()) {
+        if ($user !== null && $this->displayCount === self::INITIAL_DISPLAY_COUNT && $this->hasUserSelectedFilters()) {
             $resultCount = is_countable($results) ? count($results) : 0;
 
             app(PostHogAnalytics::class)->capture(

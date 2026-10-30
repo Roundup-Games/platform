@@ -66,7 +66,7 @@ class SafetyToolPicker extends Component
     public function toggleTool(string $tool): void
     {
         $safetyTool = SafetyTool::tryFrom($tool);
-        if (! $safetyTool) {
+        if ($safetyTool === null) {
             return;
         }
 

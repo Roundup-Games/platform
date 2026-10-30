@@ -152,16 +152,16 @@ class GameSystemsPage extends Component
 
     public function hasActiveFilters(): bool
     {
-        return $this->search
-            || $this->min_players
-            || $this->max_players
-            || $this->complexity_min
-            || $this->complexity_max
-            || ! empty($this->category_ids)
-            || ! empty($this->mechanic_ids)
+        return $this->search !== ''
+            || $this->min_players !== null
+            || $this->max_players !== null
+            || $this->complexity_min !== null
+            || $this->complexity_max !== null
+            || $this->category_ids !== []
+            || $this->mechanic_ids !== []
             || $this->showExpansions
             || $this->type !== 'all'
-            || ! empty($this->play_styles);
+            || $this->play_styles !== [];
     }
 
     // ── Query ──────────────────────────────────────────
@@ -212,7 +212,7 @@ class GameSystemsPage extends Component
         $query->when($mechanicIds, fn ($q) => $q->whereHas('mechanics', fn ($q2) => $q2->whereIn('game_system_mechanics.id', $mechanicIds)));
 
         // Play style filter: map selected PlayStyle enum values to category slugs
-        if (! empty($this->play_styles)) {
+        if ($this->play_styles !== []) {
             $slugs = collect($this->play_styles)
                 ->map(fn (string $value) => PlayStyle::tryFrom($value))
                 ->filter()
@@ -221,7 +221,7 @@ class GameSystemsPage extends Component
                 ->values()
                 ->all();
 
-            if (! empty($slugs)) {
+            if ($slugs !== []) {
                 $query->whereHas('categories', fn ($q) => $q->whereIn('slug', $slugs));
             }
         }

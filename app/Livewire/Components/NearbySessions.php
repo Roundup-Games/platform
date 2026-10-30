@@ -120,7 +120,7 @@ class NearbySessions extends Component
             $geocodingService = app(GeocodingService::class);
             $results = $geocodingService->geocode((string) $this->cityQuery);
 
-            if (! empty($results)) {
+            if ($results !== null) {
                 $first = $results;
                 $this->guestLat = (float) $first['lat'];
                 $this->guestLng = (float) $first['lng'];

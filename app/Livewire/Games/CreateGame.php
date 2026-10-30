@@ -200,14 +200,14 @@ class CreateGame extends Component
         $this->host_note = $source->host_note;
 
         // Load vibe_flags into vibePreferences array (flat DB array → favorite map)
-        if (! empty($source->vibe_flags)) {
+        if ($source->vibe_flags !== null && $source->vibe_flags !== []) {
             foreach ((array) $source->vibe_flags as $flag) {
                 $this->vibePreferences[$flag] = 'favorite';
             }
         }
 
         // Load safety_rules based on game type
-        if (! empty($source->safety_rules)) {
+        if ($source->safety_rules !== null && $source->safety_rules !== []) {
             if (($source->game_type->value ?? 'board_game') === 'board_game') {
                 // Board games store comfort_notes in safety_rules JSON
                 $rawNotes = $source->safety_rules['comfort_notes'] ?? '';
@@ -361,7 +361,7 @@ class CreateGame extends Component
         // Handle safety data based on game type
         $safetyRules = $validated['safety_rules'] ?? null;
         if ($this->game_type === 'board_game') {
-            $safetyRules = ! empty($this->comfort_notes) ? ['comfort_notes' => $this->comfort_notes] : null;
+            $safetyRules = $this->comfort_notes !== '' ? ['comfort_notes' => $this->comfort_notes] : null;
         }
 
         $game = app(SessionCreationService::class)->create(
@@ -377,8 +377,8 @@ class CreateGame extends Component
                 'safety_rules' => $safetyRules,
                 'vibe_flags' => $this->selectedVibeFlags(),
                 'bench_mode' => $this->bench_mode,
-                'complexity' => $this->complexity ?: null,
-                'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
+                'complexity' => $this->complexity !== null && $this->complexity !== '' && $this->complexity !== '0' ? $this->complexity : null,
+                'min_reliability_preference' => $validated['min_reliability_preference'] !== null && $validated['min_reliability_preference'] !== '' && $validated['min_reliability_preference'] !== '0' ? $validated['min_reliability_preference'] : null,
                 'cover_image' => $this->cover_image,
             ],
             makeModel: function (array $context) use ($hostingEvent): Game {
@@ -388,23 +388,23 @@ class CreateGame extends Component
                     'name' => $context['translatable']['name'],
                     'game_type' => $context['validated']['game_type'],
                     'date_time' => $context['validated']['date_time'],
-                    'signup_cutoff_at' => $context['validated']['signup_cutoff_at'] ?: null,
+                    'signup_cutoff_at' => $context['validated']['signup_cutoff_at'] !== null && $context['validated']['signup_cutoff_at'] !== '' ? $context['validated']['signup_cutoff_at'] : null,
                     'description' => $context['translatable']['description'],
-                    'expected_duration' => $context['validated']['expected_duration'] ?: 2,
-                    'price' => $context['validated']['price'] ?: 0,
+                    'expected_duration' => $context['validated']['expected_duration'] !== null && $context['validated']['expected_duration'] !== '' ? $context['validated']['expected_duration'] : 2,
+                    'price' => $context['validated']['price'] !== null && $context['validated']['price'] !== '' ? $context['validated']['price'] : 0,
                     'language' => $context['validated']['language'],
                     'location_id' => $this->location_id,
                     'location' => ['details' => ''],
                     'location_instructions' => $context['validated']['location_instructions'] ?? null,
                     'status' => GameStatus::Scheduled,
                     'visibility' => $context['validated']['visibility'],
-                    'minimum_requirements' => $context['validated']['minimum_requirements'] ?: null,
+                    'minimum_requirements' => $context['validated']['minimum_requirements'] !== null && $context['validated']['minimum_requirements'] !== [] ? $context['validated']['minimum_requirements'] : null,
                     'safety_rules' => $context['safety_rules'],
                     'min_players' => $context['validated']['min_players'] ?? 2,
                     'max_players' => $context['validated']['max_players'] ?? 6,
                     'experience_level' => $context['validated']['experience_level'],
                     'complexity' => $context['complexity'],
-                    'vibe_flags' => ! empty($context['vibe_flags']) ? $context['vibe_flags'] : null,
+                    'vibe_flags' => $context['vibe_flags'] !== [] ? $context['vibe_flags'] : null,
                     'min_reliability_preference' => $context['min_reliability_preference'],
                     'bench_mode' => $context['bench_mode'],
                 ]);
@@ -519,7 +519,7 @@ class CreateGame extends Component
 
         // Offered-system set: gatherings get the multi-select set carried
         // forward; focused types get the single system.
-        if ($type === 'gathering' && ! empty($defaults->gameSystems)) {
+        if ($type === 'gathering' && $defaults->gameSystems !== []) {
             $this->game_systems = $defaults->gameSystems;
         } elseif ($defaults->gameSystemId !== null) {
             $this->game_system_id = $defaults->gameSystemId;

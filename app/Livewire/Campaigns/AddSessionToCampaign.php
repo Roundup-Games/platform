@@ -48,7 +48,7 @@ class AddSessionToCampaign extends Component
         // below is the sole (defensive) gate.
         if (request()->boolean('prefill')) {
             $suggested = app(RecurrenceService::class)->nextSuggestedDateTime($this->campaign);
-            if ($suggested) {
+            if ($suggested !== null) {
                 $this->date_time = $suggested->format('Y-m-d\TH:i'); // datetime-local input format
             }
         }
@@ -85,7 +85,7 @@ class AddSessionToCampaign extends Component
         // Defensive check: warn only when a TTRPG-typed campaign carries a
         // non-TTRPG game system. (Gathering campaigns legitimately host any
         // system, so the warning is gated on the ttrpg type.)
-        if ($campaignGameType === 'ttrpg' && $campaign->gameSystem && $campaign->gameSystem->type !== 'ttrpg') {
+        if ($campaignGameType === 'ttrpg' && $campaign->gameSystem !== null && $campaign->gameSystem->type !== 'ttrpg') {
             Log::warning('add_session_to_campaign.non_ttrpg_system', [
                 'campaign_id' => $campaign->id,
                 'game_system_id' => $campaign->game_system_id,
@@ -110,7 +110,7 @@ class AddSessionToCampaign extends Component
         // game_system_id column. An empty set here means the campaign was
         // created without any systems — log it so the edge case is visible
         // (the session will still be created, just without an offered set).
-        if (empty($campaignSystemIds)) {
+        if ($campaignSystemIds === []) {
             Log::warning('add_session_to_campaign.empty_system_set', [
                 'campaign_id' => $campaign->id,
             ]);
@@ -153,7 +153,7 @@ class AddSessionToCampaign extends Component
             // own game_game_system rows (the canonical write since S06/T06
             // dropped the legacy anchor columns). Empty set is guarded so
             // sync() never detaches.
-            if (! empty($campaignSystemIds)) {
+            if ($campaignSystemIds !== []) {
                 $game->gameSystems()->sync(array_values(array_map('strval', $campaignSystemIds)));
             }
 
@@ -211,7 +211,7 @@ class AddSessionToCampaign extends Component
 
             foreach ($notifiedUserIds as $userId) {
                 $participant = User::find(is_string($userId) ? $userId : null);
-                if ($participant) {
+                if ($participant !== null) {
                     $notificationService->send(
                         $participant,
                         new SessionAddedToCampaign($game, $campaign),

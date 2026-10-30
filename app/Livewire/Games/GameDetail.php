@@ -176,12 +176,12 @@ class GameDetail extends Component
         }
 
         // Window hasn't opened yet
-        if ($game->attendance_window_opens_at && now()->lt($game->attendance_window_opens_at)) {
+        if ($game->attendance_window_opens_at !== null && now()->lt($game->attendance_window_opens_at)) {
             return false;
         }
 
         // Window has closed
-        if ($game->attendance_window_closes_at && now()->gt($game->attendance_window_closes_at)) {
+        if ($game->attendance_window_closes_at !== null && now()->gt($game->attendance_window_closes_at)) {
             return false;
         }
 
@@ -196,7 +196,7 @@ class GameDetail extends Component
     {
         $viewerId = $this->viewerId();
 
-        if (! $viewerId) {
+        if ($viewerId === null) {
             return false;
         }
 
@@ -230,7 +230,7 @@ class GameDetail extends Component
     {
         $viewerId = $this->viewerId();
 
-        if (! $viewerId) {
+        if ($viewerId === null) {
             return null;
         }
 
@@ -255,7 +255,7 @@ class GameDetail extends Component
 
         $closesAt = $this->game->attendance_window_closes_at;
 
-        if (! $closesAt) {
+        if ($closesAt === null) {
             return null;
         }
 
@@ -290,7 +290,7 @@ class GameDetail extends Component
         if (is_string($participantIdOrReports) && $status !== null) {
             $participant = $game->participants->first(fn ($p) => $p->id === $participantIdOrReports);
 
-            if (! $participant || ! $participant->user) {
+            if ($participant === null || $participant->user === null) {
                 session()->flash('error', __('games.error_attendance_participant_not_found'));
 
                 return;
@@ -315,12 +315,12 @@ class GameDetail extends Component
                 }
                 $participant = $game->participants->first(fn ($p) => $p->id === $participantId);
 
-                if (! $participant || ! $participant->user) {
+                if ($participant === null || $participant->user === null) {
                     continue;
                 }
 
                 // Excused requires a reason
-                if (($data['status'] === AttendanceStatus::Excused->value) && empty($data['reason'])) {
+                if (($data['status'] === AttendanceStatus::Excused->value) && (($data['reason'] ?? null) === null || $data['reason'] === '')) {
                     session()->flash('error', __('games.error_attendance_excused_reason_required'));
 
                     return;
@@ -335,7 +335,7 @@ class GameDetail extends Component
                 ];
             }
 
-            if (empty($reports)) {
+            if ($reports === []) {
                 session()->flash('error', __('games.error_attendance_no_reports'));
 
                 return;
@@ -379,7 +379,7 @@ class GameDetail extends Component
         $participant = $this->game->participants
             ->first(fn ($p) => $p->id === $participantId);
 
-        if (! $participant) {
+        if ($participant === null) {
             session()->flash('error', __('games.error_attendance_participant_not_found'));
 
             return;
@@ -548,7 +548,7 @@ class GameDetail extends Component
                     ParticipantStatus::Pending->value,
                 ], true));
 
-        if (! $participant || ! $user->can('leave', $this->game)) {
+        if ($participant === null || ! $user->can('leave', $this->game)) {
             session()->flash('error', __('games.error_not_a_game_participant'));
 
             return;
@@ -851,7 +851,7 @@ class GameDetail extends Component
     #[Computed]
     public function isOwner(): bool
     {
-        return ($id = $this->viewerId()) && (string) $this->game->owner_id === (string) $id;
+        return ($id = $this->viewerId()) !== null && (string) $this->game->owner_id === (string) $id;
     }
 
     #[Computed]
@@ -859,7 +859,7 @@ class GameDetail extends Component
     {
         $id = $this->viewerId();
 
-        return $id && $this->game->participants
+        return $id !== null && $this->game->participants
             ->contains(fn ($p) => $p->user_id === $id && in_array($p->status?->value, [
                 ParticipantStatus::Approved->value,
                 ParticipantStatus::Pending->value,
@@ -873,8 +873,8 @@ class GameDetail extends Component
     {
         $id = $this->viewerId();
 
-        return ($id && $this->isOwner())
-            || $id && $this->game->participants
+        return ($id !== null && $this->isOwner())
+            || $id !== null && $this->game->participants
                 ->contains(fn ($p) => $p->user_id === $id && $p->status === ParticipantStatus::Approved);
     }
 
@@ -883,14 +883,14 @@ class GameDetail extends Component
     {
         $id = $this->viewerId();
 
-        return $id ? $this->game->participants->first(fn ($p) => $p->user_id === $id
+        return $id !== null ? $this->game->participants->first(fn ($p) => $p->user_id === $id
             && $p->role === ParticipantRole::Invited && $p->status === ParticipantStatus::Pending) : null;
     }
 
     #[Computed]
     public function hasExistingApplication(): bool
     {
-        return ($id = $this->viewerId()) && $this->game->applications()
+        return ($id = $this->viewerId()) !== null && $this->game->applications()
             ->where('user_id', $id)
             ->where('status', 'pending')
             ->exists();
@@ -901,7 +901,7 @@ class GameDetail extends Component
     {
         $id = $this->viewerId();
 
-        return $id ? $this->game->participants->first(fn ($p) => $p->user_id === $id
+        return $id !== null ? $this->game->participants->first(fn ($p) => $p->user_id === $id
             && $p->status === ParticipantStatus::Waitlisted) : null;
     }
 
@@ -910,7 +910,7 @@ class GameDetail extends Component
     {
         $wl = $this->userWaitlistParticipant();
 
-        return $wl ? app(WaitlistService::class)->getWaitlistPosition($wl) : null;
+        return $wl !== null ? app(WaitlistService::class)->getWaitlistPosition($wl) : null;
     }
 
     #[Computed]
@@ -918,7 +918,7 @@ class GameDetail extends Component
     {
         $id = $this->viewerId();
 
-        return $id ? $this->game->participants->first(fn ($p) => $p->user_id === $id
+        return $id !== null ? $this->game->participants->first(fn ($p) => $p->user_id === $id
             && $p->status === ParticipantStatus::Pending && $p->confirmation_expires_at !== null) : null;
     }
 
@@ -927,7 +927,7 @@ class GameDetail extends Component
     {
         $id = $this->viewerId();
 
-        return $id ? $this->game->participants->first(fn ($p) => $p->user_id === $id
+        return $id !== null ? $this->game->participants->first(fn ($p) => $p->user_id === $id
             && $p->status === ParticipantStatus::Benched) : null;
     }
 
@@ -940,7 +940,7 @@ class GameDetail extends Component
     #[Computed]
     public function canApply(): bool
     {
-        return ($id = $this->viewerId())
+        return ($id = $this->viewerId()) !== null
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && $this->game->visibility !== Visibility::Private
             && (! $this->isGameFull() || $this->game->isBenchMode())
@@ -950,7 +950,7 @@ class GameDetail extends Component
     #[Computed]
     public function canJoinWaitlist(): bool
     {
-        return ($id = $this->viewerId())
+        return ($id = $this->viewerId()) !== null
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && ! $this->game->isBenchMode() && $this->isGameFull()
             && $this->game->visibility !== Visibility::Private
@@ -1034,7 +1034,7 @@ class GameDetail extends Component
         $st = ['hasTools' => $has, 'prompts' => $has ? $this->game->getDebriefingPrompts() : [],
             'userDebriefing' => null, 'hostDebriefings' => collect(), 'summary' => null];
 
-        if (! $has || $this->game->status !== GameStatus::Completed || ! $this->viewerId()) {
+        if (! $has || $this->game->status !== GameStatus::Completed || $this->viewerId() === null) {
             return $st;
         }
 
@@ -1043,7 +1043,7 @@ class GameDetail extends Component
 
         if ($this->isOwner()) {
             $st['hostDebriefings'] = app(DebriefingService::class)->getHostDebriefings($this->game);
-        } elseif ($this->isParticipant() && $st['userDebriefing']) {
+        } elseif ($this->isParticipant() && $st['userDebriefing'] !== null) {
             $st['summary'] = app(DebriefingService::class)->getAnonymizedSummary($this->game);
         }
 
@@ -1106,7 +1106,7 @@ class GameDetail extends Component
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),
             'canJoinViaDiscord' => $this->canJoinViaDiscord(),
             'shortLinks' => $this->getShortLinks(),
-            'canCreateMoreShortLinks' => Auth::user()
+            'canCreateMoreShortLinks' => Auth::user() !== null
                 ? app(ShortLinkService::class)->canCreateMore($this->game, Auth::user())
                 : false,
             'isAttendanceWindowOpen' => $this->isAttendanceWindowOpen(),

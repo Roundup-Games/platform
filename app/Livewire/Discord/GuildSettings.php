@@ -91,7 +91,7 @@ class GuildSettings extends Component
         $this->guildSnowflake = $guild;
 
         $guildModel = DiscordGuild::where('guild_id', $this->guildSnowflake)->first();
-        if (! $guildModel) {
+        if ($guildModel === null) {
             abort(404);
         }
 
@@ -131,8 +131,8 @@ class GuildSettings extends Component
         ]);
 
         $guildModel->update([
-            'calendar_channel_id' => $validated['calendar_channel_id'] ?: null,
-            'games_channel_id' => $validated['games_channel_id'] ?: null,
+            'calendar_channel_id' => $validated['calendar_channel_id'] !== '' ? $validated['calendar_channel_id'] : null,
+            'games_channel_id' => $validated['games_channel_id'] !== '' ? $validated['games_channel_id'] : null,
         ]);
 
         Log::info('discord_guild.channels_configured', [
@@ -164,7 +164,7 @@ class GuildSettings extends Component
         ]);
 
         $guildModel->update([
-            'locale' => $validated['locale'] ?: null,
+            'locale' => $validated['locale'] !== '' ? $validated['locale'] : null,
         ]);
 
         Log::info('discord_guild.locale_configured', [
@@ -243,7 +243,7 @@ class GuildSettings extends Component
     private function resolveGuild(): DiscordGuild
     {
         $guildModel = DiscordGuild::where('guild_id', $this->guildSnowflake)->first();
-        if (! $guildModel) {
+        if ($guildModel === null) {
             abort(404);
         }
 
@@ -259,7 +259,7 @@ class GuildSettings extends Component
     private function authorizeOwner(DiscordGuild $guildModel): void
     {
         $user = Auth::user();
-        if (! $user || (string) $user->id !== (string) $guildModel->owner_user_id) {
+        if ($user === null || (string) $user->id !== (string) $guildModel->owner_user_id) {
             abort(403, 'Only the server owner who installed roundup can configure this guild.');
         }
     }

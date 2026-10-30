@@ -160,7 +160,7 @@ class AuthenticatedProfile extends Component
             $eagerLoads[] = 'favoriteVibes';
         }
 
-        if (! empty($eagerLoads)) {
+        if ($eagerLoads !== []) {
             $this->profileUser->load($eagerLoads);
         }
 
@@ -191,7 +191,7 @@ class AuthenticatedProfile extends Component
         // Resolve GM reviews with pagination if GM profile exists
         $gmReviews = null;
         $gmSocialLinks = collect();
-        if ($this->profileUser->gmProfile) {
+        if ($this->profileUser->gmProfile !== null) {
             $gmReviews = app(ReviewAggregateService::class)
                 ->recentReviews($this->profileUser->gmProfile, 5, $this->reviewsPage);
             $gmSocialLinks = $this->profileUser->gmSocialLinks()->get()
@@ -270,7 +270,7 @@ class AuthenticatedProfile extends Component
     private function resolveVisibleGames()
     {
         $scope = $this->visibilityScope();
-        if (empty($scope)) {
+        if ($scope === []) {
             return new Collection;
         }
 
@@ -323,7 +323,7 @@ class AuthenticatedProfile extends Component
     private function resolveVisibleCampaigns()
     {
         $scope = $this->visibilityScope();
-        if (empty($scope)) {
+        if ($scope === []) {
             return new Collection;
         }
 

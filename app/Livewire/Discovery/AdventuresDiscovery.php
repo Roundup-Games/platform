@@ -198,7 +198,7 @@ class AdventuresDiscovery extends Component
      */
     protected function logFilterUsage(): void
     {
-        if (! empty($this->play_styles) || ! empty($this->session_type) || $this->session_zero) {
+        if ($this->play_styles !== [] || $this->session_type !== '' || $this->session_zero) {
             Log::info('TTRPG discovery filters used', [
                 'page' => 'adventures',
                 'play_styles' => $this->play_styles,

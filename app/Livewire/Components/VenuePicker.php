@@ -86,9 +86,9 @@ class VenuePicker extends Component
         $this->showInstructions = $showInstructions;
         $this->locationInstructions = $locationInstructions;
 
-        if ($locationId) {
+        if ($locationId !== null && $locationId !== '') {
             $location = Location::find($locationId);
-            if ($location) {
+            if ($location !== null) {
                 $this->city = $location->city ?? '';
                 $this->address = $location->address ?? '';
                 $this->lat = (float) $location->latitude;
@@ -123,10 +123,11 @@ class VenuePicker extends Component
         $this->venueSearchPerformed = true;
         $service = app(VenueSearchService::class);
 
+        $trimmedQuery = trim($this->venueQuery);
         $results = $service->search(
             lat: $this->guestLat,
             lng: $this->guestLng,
-            query: trim($this->venueQuery) ?: null,
+            query: $trimmedQuery !== '' ? $trimmedQuery : null,
             radiusKm: 50,
             limit: 20,
         );
@@ -144,7 +145,7 @@ class VenuePicker extends Component
     public function selectVenue(string $venueId): void
     {
         $venue = app(VenueSearchService::class)->findVenue($venueId);
-        if (! $venue) {
+        if ($venue === null) {
             $this->addError('venueQuery', __('venues.error_venue_not_found'));
 
             return;
@@ -180,13 +181,13 @@ class VenuePicker extends Component
     {
         $this->validateOnly('city');
 
-        $query = trim($this->city.($this->address ? ', '.$this->address : ''));
+        $query = trim($this->city.($this->address !== '' ? ', '.$this->address : ''));
 
         try {
             $geocodingService = app(GeocodingService::class);
             $result = $geocodingService->geocode($query);
 
-            if ($result) {
+            if ($result !== null) {
                 $this->lat = $result['lat'];
                 $this->lng = $result['lng'];
                 $this->resolveAddressAndEmit($result);
@@ -237,7 +238,7 @@ class VenuePicker extends Component
     public function cancelEditing(): void
     {
         $this->editing = false;
-        if ($this->locationId) {
+        if ($this->locationId !== null && $this->locationId !== '') {
             $this->locationConfirmed = true;
         }
     }
@@ -290,7 +291,7 @@ class VenuePicker extends Component
     #[Computed]
     public function selectedVenue(): ?Location
     {
-        if (! $this->locationId || ! $this->locationConfirmed) {
+        if (($this->locationId === null || $this->locationId === '') || ! $this->locationConfirmed) {
             return null;
         }
 
@@ -329,7 +330,7 @@ class VenuePicker extends Component
     #[Computed]
     public function selectedIsVenue(): bool
     {
-        if (! $this->locationId || ! $this->locationConfirmed) {
+        if (($this->locationId === null || $this->locationId === '') || ! $this->locationConfirmed) {
             return false;
         }
 
@@ -349,11 +350,11 @@ class VenuePicker extends Component
     {
         // Check for an existing Location with this city/address combo
         $existing = Location::where('city', $this->city)
-            ->where('address', $this->address ?: null)
+            ->where('address', $this->address !== '' ? $this->address : null)
             ->whereNull('latitude')
             ->first();
 
-        if ($existing) {
+        if ($existing !== null) {
             $this->locationId = $existing->id;
             $this->locationConfirmed = true;
             $this->editing = false;
@@ -361,7 +362,7 @@ class VenuePicker extends Component
                 'location-selected',
                 locationId: $existing->id,
                 city: $this->city,
-                address: $this->address ?: null,
+                address: $this->address !== '' ? $this->address : null,
                 isVenue: false,
             );
 
@@ -369,8 +370,8 @@ class VenuePicker extends Component
         }
 
         $location = Location::create([
-            'name' => trim($this->address ? $this->address.', '.$this->city : $this->city),
-            'address' => $this->address ?: null,
+            'name' => trim($this->address !== '' ? $this->address.', '.$this->city : $this->city),
+            'address' => $this->address !== '' ? $this->address : null,
             'city' => $this->city,
             'source' => 'manual',
         ]);
@@ -382,7 +383,7 @@ class VenuePicker extends Component
             'location-selected',
             locationId: $location->id,
             city: $this->city,
-            address: $this->address ?: null,
+            address: $this->address !== '' ? $this->address : null,
             isVenue: false,
         );
     }
@@ -397,9 +398,9 @@ class VenuePicker extends Component
         }
 
         $geocodeResult = $cachedGeocode;
-        if (! $geocodeResult) {
+        if ($geocodeResult === null) {
             $geocodingService = app(GeocodingService::class);
-            $query = trim($this->city.($this->address ? ', '.$this->address : ''));
+            $query = trim($this->city.($this->address !== '' ? ', '.$this->address : ''));
             $geocodeResult = $geocodingService->geocode($query);
         }
 
@@ -407,29 +408,30 @@ class VenuePicker extends Component
         $country = null;
         $postalCode = null;
         $resolvedCity = $this->city;
-        $resolvedAddress = $this->address ?: null;
+        $resolvedAddress = $this->address !== '' ? $this->address : null;
 
-        if ($geocodeResult) {
+        if ($geocodeResult !== null) {
             $placeId = $geocodeResult['place_id'] ?? null;
             /** @var array<string, mixed> $raw */
             $raw = $geocodeResult['raw'];
             $rawAddr = $raw['address'] ?? null;
             $addr = is_array($rawAddr) ? $rawAddr : [];
-            $country = strtoupper(is_string($addr['country_code'] ?? null) ? $addr['country_code'] : '') ?: null;
+            $countryCode = strtoupper(is_string($addr['country_code'] ?? null) ? $addr['country_code'] : '');
+            $country = $countryCode !== '' ? $countryCode : null;
             $postalCode = is_string($addr['postcode'] ?? null) ? $addr['postcode'] : null;
             $resolvedCity = is_string($addr['city'] ?? null) ? $addr['city']
                 : (is_string($addr['town'] ?? null) ? $addr['town']
                 : (is_string($addr['village'] ?? null) ? $addr['village']
                 : (is_string($addr['municipality'] ?? null) ? $addr['municipality'] : $this->city)));
-            if (! $resolvedAddress) {
+            if ($resolvedAddress === null) {
                 $resolvedAddress = is_string($addr['road'] ?? null) ? $addr['road'] : null;
             }
         }
 
         // Try existing location by place_id
-        if ($placeId) {
+        if ($placeId !== null) {
             $existing = Location::where('place_id', $placeId)->first();
-            if ($existing) {
+            if ($existing !== null) {
                 $this->locationId = $existing->id;
                 $this->city = $existing->city ?? $this->city;
                 $this->locationConfirmed = true;

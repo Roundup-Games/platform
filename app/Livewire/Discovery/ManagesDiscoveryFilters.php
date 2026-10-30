@@ -88,7 +88,7 @@ trait ManagesDiscoveryFilters
 
     public function mountManagesDiscoveryFilters(): void
     {
-        if (! $this->language) {
+        if ($this->language === '') {
             $this->language = $this->defaultFilterLanguage();
         }
 
@@ -104,11 +104,11 @@ trait ManagesDiscoveryFilters
         }
 
         // Pre-select vibe flags from user preferences (only if no URL values already set)
-        if (empty($this->vibe_flags) && $user) {
+        if ($this->vibe_flags === [] && $user !== null) {
             $resolvedVibes = $user->resolvedVibePreferences();
             $rawFavorites = is_array($resolvedVibes['favorites'] ?? null) ? $resolvedVibes['favorites'] : [];
             $favorites = array_values(array_filter($rawFavorites, fn (mixed $v) => is_string($v) || is_int($v)));
-            if (! empty($favorites)) {
+            if ($favorites !== []) {
                 foreach ($favorites as $flagValue) {
                     $flagKey = (string) $flagValue;
                     $this->vibePreferences[$flagKey] = 'favorite';
@@ -245,7 +245,7 @@ trait ManagesDiscoveryFilters
     {
         $preferred = Auth::user()?->preferred_language;
 
-        return $preferred ? $preferred->value : app()->getLocale();
+        return $preferred !== null ? $preferred->value : app()->getLocale();
     }
 
     // ── Search origin ─────────────────────────────────
@@ -268,9 +268,9 @@ trait ManagesDiscoveryFilters
 
         // Fallback to the logged-in user's saved location when browser geolocation is unavailable
         $locationId = Auth::user()?->location_id;
-        if (! $hasLocation && $locationId) {
+        if (! $hasLocation && $locationId !== null && $locationId !== '') {
             $userLocation = Location::find($locationId);
-            if ($userLocation) {
+            if ($userLocation !== null) {
                 $lat = (float) $userLocation->latitude;
                 $lng = (float) $userLocation->longitude;
                 $hasLocation = true;

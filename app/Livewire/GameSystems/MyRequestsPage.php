@@ -100,11 +100,11 @@ class MyRequestsPage extends Component
     {
         $gameSystemId = $ticket->metadata['game_system_id'] ?? null;
 
-        if (! $gameSystemId) {
+        if (! is_string($gameSystemId) || $gameSystemId === '') {
             return null;
         }
 
-        return GameSystem::find(is_string($gameSystemId) ? $gameSystemId : null);
+        return GameSystem::find($gameSystemId);
     }
 
     public function getRejectionReason(Ticket $ticket): ?string

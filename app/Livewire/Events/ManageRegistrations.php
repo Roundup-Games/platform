@@ -51,7 +51,7 @@ class ManageRegistrations extends Component
         $query = EventRegistration::where('event_id', $this->event->id)
             ->with(['user']);
 
-        if ($this->search) {
+        if ($this->search !== '') {
             $escaped = $this->escapeLikeWildcards($this->search);
             $query->where(function ($q) use ($escaped) {
                 $q->whereHas('user', function ($uq) use ($escaped) {
@@ -61,11 +61,11 @@ class ManageRegistrations extends Component
             });
         }
 
-        if ($this->filterStatus) {
+        if ($this->filterStatus !== '') {
             $query->where('status', $this->filterStatus);
         }
 
-        if ($this->filterPaymentStatus) {
+        if ($this->filterPaymentStatus !== '') {
             $query->where('payment_status', $this->filterPaymentStatus);
         }
 
@@ -218,7 +218,7 @@ class ManageRegistrations extends Component
         $this->validate();
 
         $registration = $this->findRegistration($registrationId);
-        $registration->update(['internal_notes' => $this->internalNotes ?: null]);
+        $registration->update(['internal_notes' => $this->internalNotes !== '' ? $this->internalNotes : null]);
 
         $this->editingRegistrationId = null;
         $this->internalNotes = '';

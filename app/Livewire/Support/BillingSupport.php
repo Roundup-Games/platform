@@ -53,7 +53,7 @@ class BillingSupport extends Component
         // Rate limit: 5 billing support tickets per user per hour
         $rateLimitKey = "billing-support:{$user->id}";
 
-        if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600)) {
+        if (RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600) !== true) {
             $this->addError('subject', __('common.error_rate_limit'));
 
             return;
@@ -127,13 +127,13 @@ class BillingSupport extends Component
         $subscription = $user->subscription();
 
         $subscriptionContext = null;
-        if ($subscription) {
+        if ($subscription !== null) {
             $subscriptionContext = [
                 'has_subscription' => true,
                 'subscription_status' => ucfirst($subscription->status),
                 'paddle_subscription_id' => $subscription->paddle_id,
             ];
-            if ($subscription->type) {
+            if ($subscription->type !== '') {
                 $subscriptionContext['plan'] = ucfirst($subscription->type);
             }
         }
@@ -166,7 +166,7 @@ class BillingSupport extends Component
 
         // Apply billing-support tag
         $tag = Tag::where('name', 'billing-support')->first();
-        if ($tag) {
+        if ($tag !== null) {
             $ticket->tags()->syncWithoutDetaching($tag);
         }
 
@@ -191,14 +191,14 @@ class BillingSupport extends Component
             "**Issue type:** {$issueLabel}",
         ];
 
-        if ($subscription) {
+        if ($subscription !== null) {
             $lines[] = '';
             $lines[] = '**Subscription details:**';
             $lines[] = '- Status: '.ucfirst($subscription->status);
-            if ($subscription->paddle_id) {
+            if ($subscription->paddle_id !== '') {
                 $lines[] = "- Paddle Subscription ID: {$subscription->paddle_id}";
             }
-            if ($subscription->type) {
+            if ($subscription->type !== '') {
                 $lines[] = '- Plan: '.ucfirst($subscription->type);
             }
         }

@@ -67,7 +67,7 @@ class GameSystemPicker extends Component
         ?string $gameType = null,
     ): void {
         $this->fieldId = $fieldId;
-        $this->label = $label ?: __('games.content_game_system');
+        $this->label = $label !== '' ? $label : __('games.content_game_system');
         $this->value = $value;
         $this->error = $error;
         $this->gameType = $gameType ?? 'boardgame';
@@ -79,9 +79,9 @@ class GameSystemPicker extends Component
         };
 
         // Pre-populate search text if editing an existing selection
-        if ($value) {
+        if ($value !== null && $value !== '') {
             $system = GameSystem::find($value);
-            if ($system) {
+            if ($system !== null) {
                 $this->search = $system->name;
             }
         }
@@ -175,12 +175,12 @@ class GameSystemPicker extends Component
     #[Computed]
     public function expansionOptions(): Collection
     {
-        if (! $this->selectedBaseId) {
+        if ($this->selectedBaseId === null || $this->selectedBaseId === '') {
             return collect();
         }
 
         $base = GameSystem::find($this->selectedBaseId);
-        if (! $base) {
+        if ($base === null) {
             return collect();
         }
 
@@ -246,7 +246,7 @@ class GameSystemPicker extends Component
         }
 
         $system = GameSystem::find($id);
-        if (! $system) {
+        if ($system === null) {
             return;
         }
 
@@ -263,14 +263,14 @@ class GameSystemPicker extends Component
     public function pickFromSearch(string $id): void
     {
         $system = GameSystem::find($id);
-        if (! $system) {
+        if ($system === null) {
             return;
         }
 
         // Skip expansion picker for non-boardgame types
         if ($this->gameType === 'boardgame') {
             $system = GameSystem::withCount('expansions')->find($id);
-            if (! $system) {
+            if ($system === null) {
                 return;
             }
 
@@ -316,9 +316,9 @@ class GameSystemPicker extends Component
         $this->isOpen = false;
 
         // If search text doesn't match the selected system, clear it
-        if ($this->value) {
+        if ($this->value !== null && $this->value !== '') {
             $system = GameSystem::find($this->value);
-            if ($system && $this->search !== $system->name) {
+            if ($system !== null && $this->search !== $system->name) {
                 // User edited the search away from the selection — treat as clear
                 $this->selectSystem(null);
             }

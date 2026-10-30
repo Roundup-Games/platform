@@ -101,7 +101,7 @@ class CompleteProfile extends Component
         // session flag so a page reload or re-entry within the same session
         // does not inflate the funnel-entry metric (mirrors the
         // posthog_server_identified session-flag pattern).
-        if (! session('onboarding_started_captured')) {
+        if (session('onboarding_started_captured') !== true) {
             session(['onboarding_started_captured' => true]);
             app(PostHogAnalytics::class)->capture($user, 'onboarding.started');
         }
@@ -114,7 +114,7 @@ class CompleteProfile extends Component
         $this->slug = $user->slug ?? User::generateSlug($user->name);
 
         // Pre-fill location from existing user location
-        if ($user->location_id && $user->linkedLocation) {
+        if ($user->location_id !== null && $user->linkedLocation !== null) {
             $loc = $user->linkedLocation;
             $this->city = $loc->city ?? '';
             $this->address = $loc->address ?? '';
@@ -145,7 +145,7 @@ class CompleteProfile extends Component
                 $geocodingService = app(GeocodingService::class);
                 $result = $geocodingService->reverseGeocode($lat, $lng);
 
-                if ($result && isset($result['address']) && is_array($result['address'])) {
+                if ($result !== null && isset($result['address']) && is_array($result['address'])) {
                     $address = $result['address'];
                     $this->city = is_string($address['city'] ?? null) ? $address['city']
                         : (is_string($address['town'] ?? null) ? $address['town']
@@ -189,7 +189,7 @@ class CompleteProfile extends Component
      */
     public function findMyLocation(): void
     {
-        $query = trim($this->city.($this->address ? ', '.$this->address : ''));
+        $query = trim($this->city.($this->address !== '' ? ', '.$this->address : ''));
 
         if ($query === '') {
             // No text entered — trigger browser geolocation.
@@ -225,7 +225,7 @@ class CompleteProfile extends Component
             $geocodingService = app(GeocodingService::class);
             $result = $geocodingService->reverseGeocode($lat, $lng);
 
-            if ($result && isset($result['address']) && is_array($result['address'])) {
+            if ($result !== null && isset($result['address']) && is_array($result['address'])) {
                 $address = $result['address'];
                 $this->city = is_string($address['city'] ?? null) ? $address['city']
                     : (is_string($address['town'] ?? null) ? $address['town']
@@ -264,7 +264,7 @@ class CompleteProfile extends Component
             $geocodingService = app(GeocodingService::class);
             $result = $geocodingService->geocode($query);
 
-            if ($result) {
+            if ($result !== null) {
                 $this->lat = $result['lat'];
                 $this->lng = $result['lng'];
                 $this->locationConfirmed = true;
@@ -335,7 +335,7 @@ class CompleteProfile extends Component
             'gender' => $this->gender_consent ? $this->gender : null,
             'gender_consent' => $this->gender_consent,
             'pronouns' => $this->pronouns,
-            'phone' => $this->phone ?: null,
+            'phone' => $this->phone !== '' ? $this->phone : null,
             'preferred_language' => $preferredLanguage,
             'location_id' => $locationId,
             'privacy_settings' => collect(ProfileVisibilityResolver::FIELDS)
@@ -374,7 +374,7 @@ class CompleteProfile extends Component
 
         // Dispatch discovery cache population for new users with a valid location
         $freshUser = $user->fresh();
-        if ($freshUser && $freshUser->linkedLocation?->latitude && $freshUser->linkedLocation->longitude) {
+        if ($freshUser !== null && $freshUser->linkedLocation?->latitude !== null && $freshUser->linkedLocation->longitude !== null) {
             UpdateUserDiscoveryCache::dispatch((string) $freshUser->id, 'location_change');
         }
 
@@ -430,26 +430,27 @@ class CompleteProfile extends Component
         $geocodingService = app(GeocodingService::class);
 
         // Try to get full geocoding data for the location
-        $query = trim($this->city.($this->address ? ', '.$this->address : ''));
+        $query = trim($this->city.($this->address !== '' ? ', '.$this->address : ''));
         $geocodeResult = $geocodingService->geocode($query);
 
         $placeId = null;
         $country = null;
         $postalCode = null;
 
-        if ($geocodeResult) {
+        if ($geocodeResult !== null) {
             $placeId = $geocodeResult['place_id'];
             $raw = $geocodeResult['raw'];
             $address = is_array($raw['address'] ?? null) ? $raw['address'] : [];
-            $country = strtoupper(is_string($address['country_code'] ?? null) ? $address['country_code'] : '') ?: null;
+            $countryCode = strtoupper(is_string($address['country_code'] ?? null) ? $address['country_code'] : '');
+            $country = $countryCode !== '' ? $countryCode : null;
             $postalCode = is_string($address['postcode'] ?? null) ? $address['postcode'] : null;
             $postalCode = $address['postcode'] ?? null;
         }
 
         // If we have a place_id, try to find existing location
-        if ($placeId) {
+        if ($placeId !== null) {
             $existing = Location::where('place_id', $placeId)->first();
-            if ($existing) {
+            if ($existing !== null) {
                 return $existing->id;
             }
         }
@@ -457,7 +458,7 @@ class CompleteProfile extends Component
         // Create new location
         $location = Location::create([
             'name' => $this->city,
-            'address' => $this->address ?: null,
+            'address' => $this->address !== '' ? $this->address : null,
             'city' => $this->city,
             'country' => $country,
             'postal_code' => $postalCode,

@@ -67,7 +67,7 @@ class PublicProfile extends Component
         $viewer = Auth::user();
         $this->isOwnProfile = $viewer?->is($user) ?? false;
 
-        if ($viewer && ! $this->isOwnProfile) {
+        if ($viewer !== null && ! $this->isOwnProfile) {
             $this->isFollowing = $viewer->isFollowing($user);
             $this->isFollowedBy = $viewer->isFollowedBy($user);
             $this->isFriend = $viewer->isFriend($user);
@@ -165,7 +165,7 @@ class PublicProfile extends Component
             $eagerLoads[] = 'favoriteVibes';
         }
 
-        if (! empty($eagerLoads)) {
+        if ($eagerLoads !== []) {
             $this->profileUser->load($eagerLoads);
         }
 
@@ -196,7 +196,7 @@ class PublicProfile extends Component
         // Resolve GM reviews with pagination if GM profile exists
         $gmReviews = null;
         $gmSocialLinks = collect();
-        if ($this->profileUser->gmProfile) {
+        if ($this->profileUser->gmProfile !== null) {
             $gmReviews = app(ReviewAggregateService::class)
                 ->recentReviews($this->profileUser->gmProfile, 5, $this->reviewsPage);
             $gmSocialLinks = $this->profileUser->gmSocialLinks()->get()
@@ -278,7 +278,7 @@ class PublicProfile extends Component
     private function resolveVisibleGames()
     {
         $scope = $this->visibilityScope();
-        if (empty($scope)) {
+        if ($scope === []) {
             return new Collection;
         }
 
@@ -331,7 +331,7 @@ class PublicProfile extends Component
     private function resolveVisibleCampaigns()
     {
         $scope = $this->visibilityScope();
-        if (empty($scope)) {
+        if ($scope === []) {
             return new Collection;
         }
 

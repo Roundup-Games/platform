@@ -71,6 +71,7 @@ use Spatie\Translatable\HasTranslations;
  * @property string|null $pivot_status
  * @property array<string, mixed>|null $location
  * @property array<string, mixed>|null $safety_rules
+ * @property list<string>|null $vibe_flags
  * @property string|null $discoverable_type
  * @property int|null $discoverable_sort_key
  * @property int|null $discoverable_gathering_rank

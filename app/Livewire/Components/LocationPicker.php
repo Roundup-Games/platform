@@ -70,9 +70,9 @@ class LocationPicker extends Component
         $this->locationId = $locationId;
         $this->mode = in_array($mode, ['profile', 'session'], true) ? $mode : 'profile';
 
-        if ($locationId) {
+        if ($locationId !== null && $locationId !== '') {
             $location = Location::find($locationId);
-            if ($location) {
+            if ($location !== null) {
                 $this->city = $location->city ?? '';
                 $this->address = $location->address ?? '';
                 $this->lat = (float) $location->latitude;
@@ -99,7 +99,7 @@ class LocationPicker extends Component
                 $geocodingService = app(GeocodingService::class);
                 $result = $geocodingService->reverseGeocode($lat, $lng);
 
-                if ($result && isset($result['address']) && is_array($result['address'])) {
+                if ($result !== null && isset($result['address']) && is_array($result['address'])) {
                     $addr = $result['address'];
                     $this->city = is_string($addr['city'] ?? null) ? $addr['city']
                         : (is_string($addr['town'] ?? null) ? $addr['town']
@@ -138,7 +138,7 @@ class LocationPicker extends Component
      */
     public function findMyLocation(): void
     {
-        $query = trim($this->city.($this->address ? ', '.$this->address : ''));
+        $query = trim($this->city.($this->address !== '' ? ', '.$this->address : ''));
 
         if ($query === '') {
             $this->js(<<<'JS'
@@ -171,7 +171,7 @@ class LocationPicker extends Component
             $geocodingService = app(GeocodingService::class);
             $result = $geocodingService->reverseGeocode($lat, $lng);
 
-            if ($result && isset($result['address']) && is_array($result['address'])) {
+            if ($result !== null && isset($result['address']) && is_array($result['address'])) {
                 $addr = $result['address'];
                 $this->city = is_string($addr['city'] ?? null) ? $addr['city']
                     : (is_string($addr['town'] ?? null) ? $addr['town']
@@ -213,7 +213,7 @@ class LocationPicker extends Component
     public function cancelEditing(): void
     {
         $this->editing = false;
-        if ($this->locationId) {
+        if ($this->locationId !== null && $this->locationId !== '') {
             $this->locationConfirmed = true;
         }
     }
@@ -238,13 +238,13 @@ class LocationPicker extends Component
 
     private function geocodeAndConfirm(): void
     {
-        $query = trim($this->city.($this->address ? ', '.$this->address : ''));
+        $query = trim($this->city.($this->address !== '' ? ', '.$this->address : ''));
 
         try {
             $geocodingService = app(GeocodingService::class);
             $result = $geocodingService->geocode($query);
 
-            if ($result) {
+            if ($result !== null) {
                 $this->lat = $result['lat'];
                 $this->lng = $result['lng'];
                 $this->locationConfirmed = true;
@@ -272,34 +272,35 @@ class LocationPicker extends Component
         }
 
         $geocodingService = app(GeocodingService::class);
-        $query = trim($this->city.($this->address ? ', '.$this->address : ''));
+        $query = trim($this->city.($this->address !== '' ? ', '.$this->address : ''));
         $geocodeResult = $geocodingService->geocode($query);
 
         $placeId = null;
         $country = null;
         $postalCode = null;
         $resolvedCity = $this->city;
-        $resolvedAddress = $this->address ?: null;
+        $resolvedAddress = $this->address !== '' ? $this->address : null;
 
-        if ($geocodeResult) {
+        if ($geocodeResult !== null) {
             $placeId = $geocodeResult['place_id'];
             $raw = $geocodeResult['raw'];
             $addr = is_array($raw['address'] ?? null) ? $raw['address'] : [];
-            $country = strtoupper(is_string($addr['country_code'] ?? null) ? $addr['country_code'] : '') ?: null;
+            $countryCode = strtoupper(is_string($addr['country_code'] ?? null) ? $addr['country_code'] : '');
+            $country = $countryCode !== '' ? $countryCode : null;
             $postalCode = is_string($addr['postcode'] ?? null) ? $addr['postcode'] : null;
             $resolvedCity = is_string($addr['city'] ?? null) ? $addr['city']
                 : (is_string($addr['town'] ?? null) ? $addr['town']
                 : (is_string($addr['village'] ?? null) ? $addr['village']
                 : (is_string($addr['municipality'] ?? null) ? $addr['municipality'] : $this->city)));
-            if (! $resolvedAddress) {
+            if ($resolvedAddress === null) {
                 $resolvedAddress = is_string($addr['road'] ?? null) ? $addr['road'] : null;
             }
         }
 
         // Try existing location by place_id
-        if ($placeId) {
+        if ($placeId !== null) {
             $existing = Location::where('place_id', $placeId)->first();
-            if ($existing) {
+            if ($existing !== null) {
                 $this->locationId = $existing->id;
                 $this->city = $existing->city ?? $this->city;
                 $this->dispatch('location-selected', locationId: $existing->id, city: $this->city, address: $resolvedAddress);
@@ -338,11 +339,11 @@ class LocationPicker extends Component
      */
     private function fillSessionAddressFromGeocode(array $addr): void
     {
-        if ($this->mode === 'session' && empty($this->address)) {
+        if ($this->mode === 'session' && $this->address === '') {
             $road = is_string($addr['road'] ?? null) ? $addr['road'] : null;
             $houseNumber = is_string($addr['house_number'] ?? null) ? $addr['house_number'] : null;
-            if ($road) {
-                $this->address = trim(($houseNumber ? $houseNumber.' ' : '').$road);
+            if ($road !== null) {
+                $this->address = trim(($houseNumber !== null ? $houseNumber.' ' : '').$road);
             }
         }
     }

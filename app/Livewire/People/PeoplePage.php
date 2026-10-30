@@ -81,9 +81,9 @@ class PeoplePage extends Component
         }
 
         $location = $this->authUser->linkedLocation;
-        $lat = $location && $location->latitude && $location->longitude
+        $lat = $location !== null && $location->latitude !== null && $location->longitude !== null
             ? (float) $location->latitude : $this->guestLat;
-        $lng = $location && $location->latitude && $location->longitude
+        $lng = $location !== null && $location->latitude !== null && $location->longitude !== null
             ? (float) $location->longitude : $this->guestLng;
 
         if ($lat === null || $lng === null) {
@@ -162,7 +162,7 @@ class PeoplePage extends Component
     {
         // Resolve viewer location: prefer linked location, fall back to guest location
         $location = $this->authUser->linkedLocation;
-        if ($location && $location->latitude && $location->longitude) {
+        if ($location !== null && $location->latitude !== null && $location->longitude !== null) {
             $lat = (float) $location->latitude;
             $lng = (float) $location->longitude;
         } else {
@@ -338,7 +338,7 @@ class PeoplePage extends Component
     public function unfollow(string $userId): void
     {
         $target = User::find($userId);
-        if (! $target || $target->is($this->authUser) || $target->isAnonymized()) {
+        if ($target === null || $target->is($this->authUser) || $target->isAnonymized()) {
             return;
         }
 
@@ -351,7 +351,7 @@ class PeoplePage extends Component
     public function followBack(string $userId): void
     {
         $target = User::find($userId);
-        if (! $target || $target->is($this->authUser) || $target->isAnonymized()) {
+        if ($target === null || $target->is($this->authUser) || $target->isAnonymized()) {
             return;
         }
 
@@ -364,7 +364,7 @@ class PeoplePage extends Component
     public function removeFollower(string $userId): void
     {
         $target = User::find($userId);
-        if (! $target) {
+        if ($target === null) {
             return;
         }
 
@@ -381,7 +381,7 @@ class PeoplePage extends Component
     public function unblock(string $userId): void
     {
         $target = User::find($userId);
-        if (! $target) {
+        if ($target === null) {
             return;
         }
 
@@ -394,7 +394,7 @@ class PeoplePage extends Component
     public function followFromNearby(string $userId): void
     {
         $target = User::find($userId);
-        if (! $target || $target->is($this->authUser) || $target->isAnonymized()) {
+        if ($target === null || $target->is($this->authUser) || $target->isAnonymized()) {
             return;
         }
 

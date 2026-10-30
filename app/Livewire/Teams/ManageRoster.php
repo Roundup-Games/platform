@@ -62,7 +62,7 @@ class ManageRoster extends Component
             ->whereNull('anonymized_at')
             ->first();
 
-        if (! $targetUser) {
+        if ($targetUser === null) {
             $this->addError('inviteEmail', __('emails.error_no_user_found_with_that_email_address'));
 
             return;
@@ -107,7 +107,7 @@ class ManageRoster extends Component
                     ->where('user_id', $targetUserId)
                     ->first();
 
-                if ($existingMembership) {
+                if ($existingMembership !== null) {
                     $existingMembership->update([
                         'role' => $inviteRole,
                         'status' => ParticipantStatus::Pending->value,
@@ -278,23 +278,23 @@ class ManageRoster extends Component
         $this->validateOnly('editJerseyNumber');
         $this->validateOnly('editPosition');
 
-        if (! $this->editingMemberId) {
+        if ($this->editingMemberId === null || $this->editingMemberId === '') {
             return;
         }
 
         $member = $this->findActiveMember($this->editingMemberId);
 
         $member->update([
-            'jersey_number' => $this->editJerseyNumber ?: null,
-            'position' => $this->editPosition ?: null,
+            'jersey_number' => $this->editJerseyNumber !== '' ? $this->editJerseyNumber : null,
+            'position' => $this->editPosition !== '' ? $this->editPosition : null,
         ]);
 
         Log::info('Team member details updated', [
             'team_id' => $this->team->id,
             'member_id' => $member->id,
             'user_id' => $member->user_id,
-            'jersey_number' => $this->editJerseyNumber ?: null,
-            'position' => $this->editPosition ?: null,
+            'jersey_number' => $this->editJerseyNumber !== '' ? $this->editJerseyNumber : null,
+            'position' => $this->editPosition !== '' ? $this->editPosition : null,
             'action_by' => Auth::id(),
         ]);
 
@@ -343,7 +343,7 @@ class ManageRoster extends Component
         // Notify the removed user
         try {
             $removedUser = User::find($member->user_id);
-            if ($removedUser) {
+            if ($removedUser !== null) {
                 app(NotificationService::class)->send(
                     $removedUser,
                     new TeamMemberRemoved($this->team, authenticatedUser()),

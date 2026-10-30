@@ -85,7 +85,7 @@ class RequestGameSystemPage extends Component
         // Rate limit: 3 requests per day per user
         $rateLimitKey = 'game-system-request:'.$user->id;
 
-        if (! RateLimiter::attempt($rateLimitKey, 3, fn () => true, decaySeconds: 86400)) {
+        if (RateLimiter::attempt($rateLimitKey, 3, fn () => true, decaySeconds: 86400) !== true) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
             $hours = ceil($seconds / 3600);
             $this->addError('name', __('games.request_error_rate_limit', ['hours' => $hours]));

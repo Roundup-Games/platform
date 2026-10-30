@@ -26,7 +26,7 @@ class GameSystemDetail extends Component
 
     protected function resolveSystem(): GameSystem
     {
-        if ($this->system) {
+        if ($this->system !== null) {
             return $this->system;
         }
 

@@ -203,7 +203,7 @@ class VenueDirectory extends Component
         try {
             $result = app(GeocodingService::class)->geocode((string) $this->cityQuery);
 
-            if (! empty($result)) {
+            if ($result !== null) {
                 $this->guestLat = (float) $result['lat'];
                 $this->guestLng = (float) $result['lng'];
                 $this->guestLocationSource = 'manual';

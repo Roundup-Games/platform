@@ -149,7 +149,7 @@ class EventAnnouncements extends Component
             ['title' => $this->title, 'content' => $this->content],
         );
 
-        if ($this->editingId) {
+        if ($this->editingId !== null && $this->editingId !== '') {
             $announcement = $this->findAnnouncement($this->editingId);
             $announcement->update([
                 'title' => $translatable['title'],
@@ -183,7 +183,7 @@ class EventAnnouncements extends Component
         $this->resetForm();
         unset($this->announcements, $this->counts);
 
-        session()->flash('success', $this->editingId ? __('events.flash_announcement_updated') : __('events.flash_announcement_created'));
+        session()->flash('success', $this->editingId !== null && $this->editingId !== '' ? __('events.flash_announcement_updated') : __('events.flash_announcement_created'));
     }
 
     // ── Quick Actions ─────────────────────────────────

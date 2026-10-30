@@ -88,7 +88,7 @@ class GamesPage extends Component
         $this->editingGameId = $game->id;
         $this->edit_name = $game->name;
         $this->edit_description = $game->description ?? '';
-        $this->edit_expected_duration = $game->expected_duration ? (string) $game->expected_duration : '';
+        $this->edit_expected_duration = $game->expected_duration > 0 ? (string) $game->expected_duration : '';
         $this->edit_visibility = $game->visibility->value ?? 'private';
         $this->edit_location_details = is_string($game->location['details'] ?? null) ? $game->location['details'] : '';
         $this->edit_location_id = $game->location_id;
@@ -97,7 +97,7 @@ class GamesPage extends Component
         $this->edit_location_city = $game->linkedLocation->city ?? '';
         $this->edit_location_address = $game->linkedLocation->address ?? '';
 
-        if ($game->location_id && $game->linkedLocation) {
+        if ($game->location_id !== null && $game->linkedLocation !== null) {
             $this->edit_address_city = $game->linkedLocation->city ?? '';
             $this->edit_address_street = $game->linkedLocation->address ?? '';
         }
@@ -146,7 +146,7 @@ class GamesPage extends Component
             $changedLabels[] = __('common.field_name');
         }
         if (($game->description ?? '') !== $this->edit_description) {
-            $changes['description'] = $this->edit_description ?: null;
+            $changes['description'] = $this->edit_description !== '' ? $this->edit_description : null;
             $changedLabels[] = __('common.field_description');
         }
         $newDuration = $this->edit_expected_duration !== '' ? (float) $this->edit_expected_duration : null;
@@ -163,17 +163,17 @@ class GamesPage extends Component
             $changes['location'] = ['details' => $this->edit_location_details];
         }
         if ($game->location_id !== $this->edit_location_id) {
-            $changes['location_id'] = $this->edit_location_id ?: null;
+            $changes['location_id'] = $this->edit_location_id !== '' ? $this->edit_location_id : null;
             $changedLabels[] = __('common.field_location');
         } elseif ($oldLocation !== $this->edit_location_details) {
             // Location details changed but location_id stayed the same
             $changedLabels[] = __('common.field_location');
         }
         if (($game->location_instructions ?? '') !== $this->edit_location_instructions) {
-            $changes['location_instructions'] = $this->edit_location_instructions ?: null;
+            $changes['location_instructions'] = $this->edit_location_instructions !== '' ? $this->edit_location_instructions : null;
         }
 
-        if (empty($changes)) {
+        if ($changes === []) {
             $this->cancelEdit();
 
             return;
@@ -196,7 +196,7 @@ class GamesPage extends Component
         ]);
 
         // Notify participants (excluding owner)
-        if (! empty($changedLabels)) {
+        if ($changedLabels !== []) {
             try {
                 $participants = $game->participants()
                     ->where('status', 'approved')
@@ -280,7 +280,7 @@ class GamesPage extends Component
             ])
             ->first();
 
-        if (! $participant || ! $user->can('leave', $game)) {
+        if ($participant === null || ! $user->can('leave', $game)) {
             session()->flash('error', __('games.error_not_a_game_participant'));
 
             return;

@@ -142,7 +142,7 @@ class Show extends Component
         $user = authenticatedUser();
         $service = app(ShortLinkService::class);
 
-        if ($existing = $this->activeCalendarToken($user)) {
+        if (($existing = $this->activeCalendarToken($user)) !== null) {
             $service->revokeLink($existing);
         }
 
@@ -175,7 +175,7 @@ class Show extends Component
     {
         $user = authenticatedUser();
 
-        if (! $existing = $this->activeCalendarToken($user)) {
+        if (($existing = $this->activeCalendarToken($user)) === null) {
             return;
         }
 
@@ -245,7 +245,7 @@ class Show extends Component
         // if most are on, turn all off; if most are off, turn all on.
         $onCount = 0;
         foreach ($allValues as $key) {
-            if (! empty($this->notificationSettings[$key][$channel])) {
+            if (($this->notificationSettings[$key][$channel] ?? null) === true) {
                 $onCount++;
             }
         }
@@ -276,7 +276,7 @@ class Show extends Component
         $totalChannels = count($categoryValues) * 4;
         foreach ($categoryValues as $key) {
             foreach (['database', 'mail', 'push', 'discord'] as $channel) {
-                if (! empty($this->notificationSettings[$key][$channel])) {
+                if (($this->notificationSettings[$key][$channel] ?? null) === true) {
                     $onCount++;
                 }
             }
@@ -436,7 +436,7 @@ class Show extends Component
         $user = authenticatedUser();
 
         $department = Department::where('name', 'Account Support')->first();
-        if (! $department) {
+        if ($department === null) {
             Log::error('Data export request failed: Account Support department is missing', [
                 'user_id' => $user->id,
             ]);
@@ -453,7 +453,7 @@ class Show extends Component
                     ->lockForUpdate()
                     ->first();
 
-                if ($existing) {
+                if ($existing !== null) {
                     return null;
                 }
 

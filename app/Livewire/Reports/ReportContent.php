@@ -89,7 +89,7 @@ class ReportContent extends Component
         // Rate limit: 5 reports per user per hour
         $rateLimitKey = "content-reports:{$reporter->id}";
 
-        if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600)) {
+        if (RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600) !== true) {
             $this->addError('reason', __('common.error_rate_limit'));
 
             return;
@@ -98,7 +98,7 @@ class ReportContent extends Component
         $modelClass = self::ENTITY_MODELS[$this->entityType];
         $entity = $modelClass::find($this->entityId);
 
-        if (! $entity) {
+        if ($entity === null) {
             $this->addError('reason', __('reports.error_entity_not_found'));
 
             return;
@@ -271,13 +271,13 @@ class ReportContent extends Component
         // Apply entity-type tag
         $tagName = $this->entityType.'-report';
         $tag = Tag::where('name', $tagName)->first();
-        if ($tag) {
+        if ($tag !== null) {
             $ticket->tags()->syncWithoutDetaching($tag);
         }
 
         // Also apply reason tag if it exists
         $reasonTag = Tag::where('name', $this->reason)->first();
-        if ($reasonTag) {
+        if ($reasonTag !== null) {
             $ticket->tags()->syncWithoutDetaching($reasonTag);
         }
 
@@ -323,11 +323,11 @@ class ReportContent extends Component
             "- ID: {$this->entityId}",
         ];
 
-        if ($entityOwner) {
+        if ($entityOwner !== null) {
             $lines[] = "- Owner: {$entityOwner}";
         }
 
-        if ($this->description) {
+        if ($this->description !== '') {
             $lines[] = '';
             $lines[] = '**Additional details:**';
             $lines[] = $this->description;

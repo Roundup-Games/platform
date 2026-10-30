@@ -30,7 +30,7 @@ class MembershipPage extends Component
             return;
         }
 
-        if (! $plan->paddle_price_id) {
+        if ($plan->paddle_price_id === null || $plan->paddle_price_id === '') {
             session()->flash('error', __('billing.error_this_plan_is_not_available_for_purchase_yet'));
 
             return;
@@ -122,10 +122,10 @@ class MembershipPage extends Component
         $expiringSoon = false;
         $daysUntilExpiry = null;
 
-        if ($subscription && $subscription->active()) {
+        if ($subscription !== null && $subscription->active()) {
             $endsAt = $subscription->ends_at;
 
-            if ($endsAt) {
+            if ($endsAt !== null) {
                 $daysUntilExpiry = (int) round(now()->diffInDays($endsAt, false));
                 $expiringSoon = $daysUntilExpiry >= 0 && $daysUntilExpiry <= 30;
             }
