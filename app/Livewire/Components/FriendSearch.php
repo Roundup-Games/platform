@@ -26,6 +26,12 @@ use Livewire\Component;
  *
  * Dispatches:
  *   friends-selected — { ids: int[] }
+ *
+ * Livewire v3 busts per-request #[Computed] caches with unset($this->name);
+ * these @property tags document that magic so static analysis sees the unset targets.
+ *
+ * @property Collection<int, User> $searchResults
+ * @property Collection<int, User> $selectedFriends
  */
 class FriendSearch extends Component
 {

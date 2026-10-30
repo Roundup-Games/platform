@@ -738,7 +738,7 @@ class DashboardCacheService
                     'expected_duration' => $game->expected_duration,
                     'game_type' => $game->game_type?->value,
                     'max_players' => $game->max_players,
-                    'participant_count' => (int) ($game->participant_count ?? 0),
+                    'participant_count' => is_numeric($pc = $game->getAttributes()['participant_count'] ?? null) ? (int) $pc : 0,
                     'game_system_id' => $game->gameSystems->first()?->id,
                     'location_city' => $location?->city,
                     'owner_id' => $game->owner_id,

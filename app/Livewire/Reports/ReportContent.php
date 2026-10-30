@@ -220,16 +220,19 @@ class ReportContent extends Component
         }
 
         // Games and campaigns: check ownership via owner_id
-        if (isset($entity->owner_id) && (string) $entity->owner_id === (string) $reporter->id) {
+        $ownerId = $entity->getAttributes()['owner_id'] ?? null;
+        if (is_string($ownerId) && $ownerId === $reporter->id) {
             return true;
         }
 
         // Defensive: check gm_id / user_id if present (for future entity types)
-        if (isset($entity->gm_id) && (string) $entity->gm_id === (string) $reporter->id) {
+        $gmId = $entity->getAttributes()['gm_id'] ?? null;
+        if (is_string($gmId) && $gmId === $reporter->id) {
             return true;
         }
 
-        if (isset($entity->user_id) && (string) $entity->user_id === (string) $reporter->id) {
+        $userId = $entity->getAttributes()['user_id'] ?? null;
+        if (is_string($userId) && $userId === $reporter->id) {
             return true;
         }
 
@@ -295,7 +298,19 @@ class ReportContent extends Component
      */
     private function resolveEntityName(Model $entity): string
     {
-        return $entity->name ?? ($entity->title ?? ($entity->username ?? 'Unknown'));
+        $rawAttrs = $entity->getAttributes();
+        $name = null;
+        foreach (['name', 'title', 'username'] as $nameAttribute) {
+            if (array_key_exists($nameAttribute, $rawAttrs)) {
+                // getAttribute() applies the translatable cast; the raw array
+                // only gates presence so absent columns never throw.
+                $name = $entity->getAttribute($nameAttribute);
+
+                break;
+            }
+        }
+
+        return is_string($name) ? $name : 'Unknown';
     }
 
     /**
@@ -358,14 +373,16 @@ class ReportContent extends Component
         }
 
         // Fallback: check for user_id / gm_id relationships
-        if (isset($entity->gm_id)) {
-            $gm = User::find($entity->gm_id);
+        $reportedGmId = $entity->getAttributes()['gm_id'] ?? null;
+        if ($reportedGmId !== null) {
+            $gm = User::find($reportedGmId);
 
             return $gm instanceof User ? $gm->name : null;
         }
 
-        if (isset($entity->owner_id)) {
-            $owner = User::find($entity->owner_id);
+        $reportedOwnerId = $entity->getAttributes()['owner_id'] ?? null;
+        if ($reportedOwnerId !== null) {
+            $owner = User::find($reportedOwnerId);
 
             return $owner instanceof User ? $owner->name : null;
         }

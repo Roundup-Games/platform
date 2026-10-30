@@ -32,9 +32,9 @@ trait ValidatesShortLinkCookie
             return false;
         }
 
-        $status = $entity->status ?? null;
+        $status = $entity->getAttributes()['status'] ?? null;
         if ($status !== null) {
-            $statusValue = $status instanceof \BackedEnum ? $status->value : (string) $status;
+            $statusValue = $status instanceof \BackedEnum ? $status->value : (is_scalar($status) ? (string) $status : null);
             if (in_array($statusValue, ['completed', 'cancelled', 'canceled'], true)) {
                 return false;
             }

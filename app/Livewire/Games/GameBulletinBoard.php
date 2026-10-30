@@ -16,6 +16,12 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+/**
+ * Livewire v3 busts per-request #[Computed] caches with unset($this->name);
+ * these @property tags document that magic so static analysis sees the unset targets.
+ *
+ * @property Collection<int, GameBulletin> $bulletins
+ */
 class GameBulletinBoard extends Component
 {
     #[Locked]

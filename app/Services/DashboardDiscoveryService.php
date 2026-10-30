@@ -170,7 +170,8 @@ class DashboardDiscoveryService
         $userLanguage = $user->preferred_language?->value;
         $scoredGames = $games->map(function ($game) use ($preferredSystemSet, $friendGameIdSet, $userLat, $userLng, $now, $userLanguage) {
             $tags = [];
-            $participantCount = (int) ($game->participant_count ?? 0);
+            $rawParticipantCount = $game->getAttributes()['participant_count'] ?? null;
+            $participantCount = is_numeric($rawParticipantCount) ? (int) $rawParticipantCount : 0;
 
             // matches_your_taste — check ALL offered systems (via the pivot
             // collection) so a multi-system Gathering offering a preferred

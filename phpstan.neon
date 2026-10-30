@@ -28,9 +28,11 @@ parameters:
         disallowedEmpty: true
         disallowedShortTernary: true
         booleansInConditions: true
-    # Bundled core-param flips that carry open debt stay at framework defaults:
-    # checkDynamicProperties (114 findings) is deferred to the Eloquent-typing slice.
-    checkDynamicProperties: false
+    # Bundled core-param flips that carry open debt stay at framework defaults.
+    # Stage 3 (2026-10-30): checkDynamicProperties armed after the 114-finding
+    # triage sweep (computed-cache @property docs, getAttribute for
+    # query-decorated attributes, phantom User::$timezone removed).
+    checkDynamicProperties: true
     paths:
         - app
     level: 9

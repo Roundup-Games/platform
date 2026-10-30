@@ -17,6 +17,11 @@ use Livewire\Component;
  * Displays unread count badge, dropdown with recent grouped notifications,
  * and actions to mark individual or all notifications as read.
  * Polls every 30 seconds to refresh unread state.
+ *
+ * Livewire v3 busts per-request #[Computed] caches with unset($this->name);
+ * these @property tags document that magic so static analysis sees the unset targets.
+ *
+ * @property Collection<int, NotificationGroup> $recentNotifications
  */
 class NotificationBell extends Component
 {

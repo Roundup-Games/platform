@@ -11,6 +11,7 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Review;
 use App\Models\SessionZeroSurvey;
+use App\Models\ShortLink;
 use App\Services\Charter\CharterService;
 use App\Services\EntityJoinGate;
 use App\Services\ParticipantLifecycle;
@@ -36,6 +37,15 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
+/**
+ * Livewire v3 busts per-request #[Computed] caches with unset($this->name);
+ * these @property tags document that magic so static analysis sees the unset targets.
+ *
+ * @property bool $isParticipant
+ * @property Collection<int, ShortLink> $getShortLinks
+ * @property bool $hasShareLink
+ * @property string|null $shareLinkUrl
+ */
 #[Layout('layouts.app')]
 class CampaignDetail extends Component
 {

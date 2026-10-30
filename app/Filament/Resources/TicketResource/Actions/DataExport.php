@@ -44,7 +44,8 @@ final class DataExport extends TicketAction
                 ->requiresConfirmation()
                 ->modalHeading('Generate Data Export')
                 ->modalDescription(function () use ($ticket) {
-                    $requesterName = $ticket->requester->name ?? $ticket->guest_name ?? 'Unknown User';
+                    $requesterName = $ticket->requester?->getAttributes()['name'] ?? $ticket->guest_name;
+                    $requesterName = is_string($requesterName) ? $requesterName : 'Unknown User';
 
                     return "This will generate a full data export for {$requesterName}. The export will be attached as a reply with a download link, and the ticket will be resolved.";
                 })

@@ -243,7 +243,8 @@ trait BuildsTranslatableFormFields
     protected function loadTranslatableValues(Model $model, array $fields, ?string $overrideLocale = null): void
     {
         assert(method_exists($model, 'getTranslation'));
-        $primaryLocale = $overrideLocale ?? $model->language ?? app()->getLocale();
+        $language = $model->getAttributes()['language'] ?? null;
+        $primaryLocale = $overrideLocale ?? (is_string($language) ? $language : app()->getLocale());
 
         // Initialize activeLocale
         if ($this->activeLocale === '') {

@@ -15,6 +15,7 @@ use App\Models\GameParticipant;
 use App\Models\Review;
 use App\Models\SessionDebriefing;
 use App\Models\SessionZeroSurvey;
+use App\Models\ShortLink;
 use App\Services\AttendanceService;
 use App\Services\CapacityService;
 use App\Services\Charter\CharterSigningService;
@@ -44,6 +45,24 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+/**
+ * Livewire v3 busts per-request #[Computed] caches with unset($this->name);
+ * these @property tags document that magic so static analysis sees the unset targets.
+ *
+ * @property bool $hasSubmittedAttendance
+ * @property array<string, mixed> $attendanceTallies
+ * @property AttendanceStatus|null $currentUserAttendanceStatus
+ * @property bool $isGameFull
+ * @property bool $isParticipant
+ * @property bool $isApprovedParticipant
+ * @property bool $canApply
+ * @property bool $canJoinWaitlist
+ * @property bool $canJoinViaDiscord
+ * @property Collection<int, GameParticipant> $waitlistedPlayers
+ * @property Collection<int, ShortLink> $getShortLinks
+ * @property bool $hasShareLink
+ * @property string|null $shareLinkUrl
+ */
 #[Layout('layouts.app')]
 class GameDetail extends Component
 {

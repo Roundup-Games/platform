@@ -200,7 +200,9 @@ class DashboardEstablishedService
         $userLng = $userLocation?->longitude !== null ? (float) $userLocation->longitude : null;
 
         $scoredGames = $games->map(function ($game) use ($userLat, $userLng) {
-            $spotsAvailable = (int) ($game->max_players ?? 0) - (int) ($game->participant_count ?? 0);
+            $rawParticipantCount = $game->getAttributes()['participant_count'] ?? null;
+            $participantCount = is_numeric($rawParticipantCount) ? (int) $rawParticipantCount : 0;
+            $spotsAvailable = (int) ($game->max_players ?? 0) - $participantCount;
 
             // Proximity score (0-40): closer is better
             $proximityScore = 0;

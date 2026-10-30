@@ -28,7 +28,8 @@ class EditLocation extends EditRecord
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $metadata = $this->getRecord()->venue_metadata ?? [];
+        $metadata = $this->getRecord()->getAttribute('venue_metadata');
+        $metadata = is_array($metadata) ? $metadata : [];
 
         $data['overlap_guidance'] = $metadata['overlap_guidance'] ?? null;
         $data['fee_display'] = $metadata['fee_display'] ?? null;
@@ -51,7 +52,7 @@ class EditLocation extends EditRecord
         // Read the existing venue_metadata envelope, falling back to [] when
         // null. The ?? operator also suppresses PHPStan's magic-property
         // access warning on Model::__get (matches the pre-refactor pattern).
-        $existing = $this->getRecord()->venue_metadata ?? [];
+        $existing = $this->getRecord()->getAttribute('venue_metadata') ?? [];
 
         return LocationResource::packOperationalParameters(
             $data,

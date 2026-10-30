@@ -103,7 +103,8 @@ class SessionReminder extends BaseNotification
      */
     private function reminderCopy(User $notifiable): array
     {
-        $timezone = $notifiable->timezone ?? 'Europe/Berlin';
+        // User timezone is not a persisted column yet — the DACH default is always used.
+        $timezone = 'Europe/Berlin';
 
         $time = $this->game->date_time !== null
             ? $this->game->date_time->setTimezone($timezone)->format('g:i A T')

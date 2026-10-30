@@ -121,8 +121,9 @@ class DashboardNewcomerService
         $userLng = $userLocation?->longitude !== null ? (float) $userLocation->longitude : null;
 
         $scoredGames = $games->map(function ($game) use ($preferredSystemSet, $userLat, $userLng) {
-            $spotsAvailable = (int) ($game->max_players ?? 0) - (int) ($game->participant_count ?? 0);
-            $participantCount = (int) ($game->participant_count ?? 0);
+            $rawParticipantCount = $game->getAttributes()['participant_count'] ?? null;
+            $participantCount = is_numeric($rawParticipantCount) ? (int) $rawParticipantCount : 0;
+            $spotsAvailable = (int) ($game->max_players ?? 0) - $participantCount;
 
             // Preference match score: +50 if ANY offered system is preferred.
             // Uses the full eager-loaded gameSystems pivot collection (not the
@@ -206,7 +207,7 @@ class DashboardNewcomerService
                 // trans_choice('games.content_n_games_on_offer', N) for Gatherings.
                 'systems_count' => $game->gameSystems->count(),
                 'max_players' => $game->max_players,
-                'participant_count' => (int) ($game->participant_count ?? 0),
+                'participant_count' => is_numeric($pc = $game->getAttributes()['participant_count'] ?? null) ? (int) $pc : 0,
                 'spots_available' => $item['spots_available'],
                 'distance_km' => $item['distance_km'],
                 'owner_name' => $game->owner?->name,

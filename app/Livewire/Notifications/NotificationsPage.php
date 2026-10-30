@@ -23,6 +23,13 @@ use Livewire\WithPagination;
  * Displays all notifications for the authenticated user, grouped by
  * type + calendar day with pagination. Supports mark-as-read actions
  * for individual notifications and bulk mark-all-read.
+ *
+ * Livewire v3 busts per-request #[Computed] caches with unset($this->name);
+ * these @property tags document that magic so static analysis sees the unset targets.
+ *
+ * @property LengthAwarePaginator<int, NotificationGroup> $notifications
+ * @property int $unreadCount
+ * @property array<string, Collection<int, DatabaseNotification>> $expandedGroupIndividuals
  */
 #[Layout('layouts.app')]
 class NotificationsPage extends Component

@@ -19,15 +19,20 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * @property-read array<string, mixed> $nearbyUsers
+ * @property array<string, mixed> $nearbyUsers
+ * @property int $nearbyCount
  *
  * The following computed properties are declared for phpstan (Livewire's
  * #[Computed] magic property access); see the matching methods below.
- * @property-read LengthAwarePaginator<int, UserRelationship> $followingUsers
- * @property-read LengthAwarePaginator<int, UserRelationship> $followerUsers
- * @property-read Collection<int, User> $nearbyUserMap
- * @property-read array<string, true> $mutualFollowerIds
- * @property-read array<string, true> $followingBackIds
+ * @property LengthAwarePaginator<int, UserRelationship> $followingUsers
+ * @property LengthAwarePaginator<int, UserRelationship> $blockedUsers
+ * @property LengthAwarePaginator<int, UserRelationship> $followerUsers
+ * @property Collection<int, User> $nearbyUserMap
+ * @property array<string, true> $mutualFollowerIds
+ * @property array<string, true> $followingBackIds
+ * @property int $followingCount
+ * @property int $followersCount
+ * @property int $blockedCount
  */
 #[Layout('layouts.app')]
 class PeoplePage extends Component

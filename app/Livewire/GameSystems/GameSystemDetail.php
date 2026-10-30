@@ -163,8 +163,8 @@ class GameSystemDetail extends Component
         $system = $this->resolveSystem();
 
         return [
-            'active_sessions' => $system->active_sessions_count ?? 0,
-            'active_campaigns' => $system->active_campaigns_count ?? 0,
+            'active_sessions' => $system->getAttributes()['active_sessions_count'] ?? 0,
+            'active_campaigns' => $system->getAttributes()['active_campaigns_count'] ?? 0,
         ];
     }
 

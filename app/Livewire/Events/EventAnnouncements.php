@@ -16,6 +16,13 @@ use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+/**
+ * Livewire v3 busts per-request #[Computed] caches with unset($this->name);
+ * these @property tags document that magic so static analysis sees the unset targets.
+ *
+ * @property LengthAwarePaginator<int, EventAnnouncement> $announcements
+ * @property array<string, int> $counts
+ */
 #[Layout('layouts.app')]
 class EventAnnouncements extends Component
 {
