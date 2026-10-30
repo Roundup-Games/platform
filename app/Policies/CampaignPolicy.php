@@ -64,14 +64,14 @@ class CampaignPolicy
 
         if ($campaign->visibility === Visibility::Protected) {
             return $user !== null
-                && ((string) $campaign->owner_id === (string) $user->id
+                && ($campaign->owner_id === $user->id
                     || ($campaign->owner !== null && $user->isFriendOrTeammate($campaign->owner))
                     || $campaign->participants()->whereBelongsTo($user)->exists());
         }
 
         // Private campaigns require auth and ownership (or participation)
         return $user !== null
-            && ((string) $campaign->owner_id === (string) $user->id
+            && ($campaign->owner_id === $user->id
                 || $campaign->participants()->whereBelongsTo($user)->exists());
     }
 
@@ -88,7 +88,7 @@ class CampaignPolicy
      */
     public function viewJournal(User $user, Campaign $campaign): bool
     {
-        if ((string) $campaign->owner_id === (string) $user->id) {
+        if ($campaign->owner_id === $user->id) {
             return true;
         }
 
@@ -111,7 +111,7 @@ class CampaignPolicy
      */
     public function managePreviouslyOn(User $user, Campaign $campaign): bool
     {
-        return (string) $campaign->owner_id === (string) $user->id
+        return $campaign->owner_id === $user->id
             && GmMembershipService::canUseMemberFeatures($user);
     }
 
@@ -128,7 +128,7 @@ class CampaignPolicy
      */
     public function manageRecruitmentSummary(User $user, Campaign $campaign): bool
     {
-        return (string) $campaign->owner_id === (string) $user->id;
+        return $campaign->owner_id === $user->id;
     }
 
     /**
@@ -145,7 +145,7 @@ class CampaignPolicy
      */
     public function manageCharter(User $user, Campaign $campaign): bool
     {
-        return (string) $campaign->owner_id === (string) $user->id;
+        return $campaign->owner_id === $user->id;
     }
 
     /**
@@ -154,7 +154,7 @@ class CampaignPolicy
      */
     public function create(User $user): bool
     {
-        return (bool) $user->profile_complete;
+        return $user->profile_complete;
     }
 
     /**
@@ -162,7 +162,7 @@ class CampaignPolicy
      */
     public function update(User $user, Campaign $campaign): bool
     {
-        if ((string) $campaign->owner_id === (string) $user->id) {
+        if ($campaign->owner_id === $user->id) {
             return true;
         }
 
@@ -174,7 +174,7 @@ class CampaignPolicy
      */
     public function delete(User $user, Campaign $campaign): bool
     {
-        if ((string) $campaign->owner_id === (string) $user->id) {
+        if ($campaign->owner_id === $user->id) {
             return true;
         }
 
@@ -190,7 +190,7 @@ class CampaignPolicy
      */
     public function manageShareToken(User $user, Campaign $campaign): bool
     {
-        return (string) $campaign->owner_id === (string) $user->id;
+        return $campaign->owner_id === $user->id;
     }
 
     /**
@@ -201,7 +201,7 @@ class CampaignPolicy
      */
     public function leave(User $user, Campaign $campaign): bool
     {
-        if ((string) $campaign->owner_id === (string) $user->id) {
+        if ($campaign->owner_id === $user->id) {
             return false;
         }
 

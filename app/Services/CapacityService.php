@@ -117,7 +117,7 @@ class CapacityService
 
         // Reject newMax below the game's min_players — reuses the existing
         // key so the message stays consistent with the create/edit flows.
-        if ($newMax < (int) $game->min_players) {
+        if ($newMax < $game->min_players) {
             return new CapacityUpdateResult(
                 outcome: CapacityUpdateResult::INVALID_MAX,
                 newMax: $newMax,
@@ -575,7 +575,7 @@ class CapacityService
 
         return new DemotionResult(
             demotedCount: $displaced->count(),
-            demoted: $displaced->map(fn (GameParticipant $p) => (string) $p->id)->all(),
+            demoted: $displaced->map(fn (GameParticipant $p) => $p->id)->all(),
             exemptCount: $exemptCount,
         );
     }

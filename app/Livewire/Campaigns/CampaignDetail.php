@@ -291,7 +291,7 @@ class CampaignDetail extends Component
         // so PHPStan sees a genuine bool return path and cannot over-infer
         // the result as constant. Mirrors the truthiness callers rely on.
         return $id !== null
-            && (string) $this->campaign->owner_id === (string) $id;
+            && $this->campaign->owner_id === $id;
     }
 
     #[Computed]

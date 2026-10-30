@@ -35,7 +35,7 @@ class SendWeeklyDigest extends Command
 
     public function handle(): int
     {
-        $dryRun = (bool) $this->option('dry-run');
+        $dryRun = $this->option('dry-run');
         $limit = $this->option('limit') !== null ? (int) $this->option('limit') : null;
         $since = CarbonImmutable::now()->subDays(7);
 

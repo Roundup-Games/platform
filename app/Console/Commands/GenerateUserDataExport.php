@@ -75,7 +75,7 @@ class GenerateUserDataExport extends Command
 
         $this->info("Generating data export for user [{$user->name}] ({$user->id})");
 
-        $tempDir = $this->createTempDirectory((string) $user->id);
+        $tempDir = $this->createTempDirectory($user->id);
 
         try {
             $fileChecksums = [];

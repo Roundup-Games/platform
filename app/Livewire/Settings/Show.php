@@ -114,7 +114,7 @@ class Show extends Component
         $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
 
         // Load weekly digest preference (defaults to true)
-        $this->weeklyDigestEnabled = (bool) ($user->weekly_digest_enabled ?? true);
+        $this->weeklyDigestEnabled = $user->weekly_digest_enabled ?? true;
 
         // Check if user has a pending data export request ticket
         $this->hasPendingExportRequest = Ticket::whereMorphedTo('requester', $user)
@@ -322,7 +322,7 @@ class Show extends Component
 
         $user->update([
             'notification_settings' => $settings,
-            'weekly_digest_enabled' => (bool) $this->weeklyDigestEnabled,
+            'weekly_digest_enabled' => $this->weeklyDigestEnabled,
         ]);
 
         // Refresh push subscription count

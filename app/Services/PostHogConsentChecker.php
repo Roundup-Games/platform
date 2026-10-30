@@ -58,7 +58,7 @@ class PostHogConsentChecker
         if (is_string($cookieValue)) {
             $consent = json_decode($cookieValue, true);
         } else {
-            $consent = (array) $cookieValue;
+            $consent = $cookieValue;
         }
 
         if (! is_array($consent)) {
@@ -88,7 +88,7 @@ class PostHogConsentChecker
         if (is_string($cookieValue)) {
             $consent = json_decode($cookieValue, true);
         } else {
-            $consent = (array) $cookieValue;
+            $consent = $cookieValue;
         }
 
         if (! is_array($consent)) {

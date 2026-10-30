@@ -120,7 +120,7 @@ final class GscClient
         if ($response->failed()) {
             Log::warning('gsc.error', [
                 'status' => $response->status(),
-                'body' => mb_substr((string) $response->body(), 0, 200),
+                'body' => mb_substr($response->body(), 0, 200),
             ]);
 
             return null;
@@ -186,7 +186,7 @@ final class GscClient
             $token = $response->json('access_token');
 
             if (! is_string($token) || $token === '') {
-                Log::warning('gsc.token_denied', ['status' => $response->status(), 'body' => mb_substr((string) $response->body(), 0, 200)]);
+                Log::warning('gsc.token_denied', ['status' => $response->status(), 'body' => mb_substr($response->body(), 0, 200)]);
 
                 return null;
             }

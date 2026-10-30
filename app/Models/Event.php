@@ -270,7 +270,7 @@ class Event extends Model implements HasMedia
     {
         $count = $this->attributes['tables_count'] ?? null;
 
-        return is_numeric($count) ? (int) $count : (int) $this->tables()->count();
+        return is_numeric($count) ? (int) $count : $this->tables()->count();
     }
 
     // ── Derived Offering (M063/S06/T02) ────────────────
@@ -515,7 +515,7 @@ class Event extends Model implements HasMedia
 
             $event = (new SchemaEvent)
                 ->name($this->name)
-                ->description(filled($this->description) ? Str::limit(strip_tags((string) $this->description), 500) : '')
+                ->description(filled($this->description) ? Str::limit(strip_tags($this->description), 500) : '')
                 ->eventStatus(EventStatusType::EventScheduled)
                 ->eventAttendanceMode('OfflineEventAttendanceMode');
 

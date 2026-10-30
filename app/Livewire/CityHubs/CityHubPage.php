@@ -196,7 +196,7 @@ class CityHubPage extends Component
             // digest (the link: fingerprint pattern from RecordShortLinkHit)
             // — stable per visitor without storing PII.
             'distinctId' => $user !== null
-                ? (string) $user->id
+                ? $user->id
                 : 'cityhub:'.hash('xxh128', (string) request()->ip().(string) request()->userAgent()),
             'event' => 'cityhub.viewed',
             'properties' => [

@@ -61,7 +61,7 @@ class ParticipantService
         $skippedCount = 0;
 
         foreach ($friendUserIds as $userId) {
-            $userId = (string) $userId;
+            $userId = $userId;
             $targetUser = User::find($userId);
 
             if ($targetUser === null) {

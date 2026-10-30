@@ -204,8 +204,8 @@ class VenueDirectory extends Component
             $result = app(GeocodingService::class)->geocode((string) $this->cityQuery);
 
             if ($result !== null) {
-                $this->guestLat = (float) $result['lat'];
-                $this->guestLng = (float) $result['lng'];
+                $this->guestLat = $result['lat'];
+                $this->guestLng = $result['lng'];
                 $this->guestLocationSource = 'manual';
                 $this->cityQuery = null;
                 $this->displayCount = 12;

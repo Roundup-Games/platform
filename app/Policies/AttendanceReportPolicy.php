@@ -50,7 +50,7 @@ class AttendanceReportPolicy
      */
     public function disputeAttendanceStatus(User $user, GameParticipant $participant): bool
     {
-        return (string) $user->id === (string) $participant->user_id;
+        return $user->id === (string) $participant->user_id;
     }
 
     /**
@@ -58,6 +58,6 @@ class AttendanceReportPolicy
      */
     public function dispute(User $user, AttendanceReport $report): bool
     {
-        return (string) $user->id === (string) $report->reported_id;
+        return $user->id === $report->reported_id;
     }
 }

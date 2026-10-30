@@ -122,8 +122,8 @@ class DiscoveryQueryService
         $mechanicIds = $filters->mechanicIds;
 
         $query->when($search !== '', fn ($q) => $q->where(function ($q) use ($search) {
-            $this->whereTranslatableLike($q, 'name', (string) $search);
-            $this->orWhereTranslatableLike($q, 'description', (string) $search);
+            $this->whereTranslatableLike($q, 'name', $search);
+            $this->orWhereTranslatableLike($q, 'description', $search);
         }));
 
         $query->when($gameSystemId !== null && $gameSystemId !== '', function (Builder $q) use ($gameSystemId) {
@@ -999,7 +999,7 @@ class DiscoveryQueryService
             }
             $distance = ProximityQuery::haversineDistance($lat, $lng, (float) $location->latitude, (float) $location->longitude);
             if ($distance <= $radius) {
-                $distances[(string) $item->id] = $distance;
+                $distances[$item->id] = $distance;
             }
         }
 
@@ -1018,15 +1018,15 @@ class DiscoveryQueryService
     {
         return $merged->filter(function ($item) use ($gameDistances, $campaignDistances) {
             if ($item->discoverable_type === 'game') {
-                return isset($gameDistances[(string) $item->id]);
+                return isset($gameDistances[$item->id]);
             }
 
-            return isset($campaignDistances[(string) $item->id]);
+            return isset($campaignDistances[$item->id]);
         })->map(function ($item) use ($gameDistances, $campaignDistances) {
             if ($item->discoverable_type === 'game') {
-                $val = $gameDistances[(string) $item->id] ?? null;
+                $val = $gameDistances[$item->id] ?? null;
             } else {
-                $val = $campaignDistances[(string) $item->id] ?? null;
+                $val = $campaignDistances[$item->id] ?? null;
             }
             $item->distance_km = is_numeric($val) ? (float) $val : null;
 

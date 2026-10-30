@@ -164,7 +164,7 @@ class FriendSearch extends Component
     public function removeFriend(string $userId): void
     {
         $this->selectedIds = array_values(
-            array_filter($this->selectedIds, fn ($id) => (string) $id !== $userId)
+            array_filter($this->selectedIds, fn ($id) => $id !== $userId)
         );
 
         unset($this->searchResults, $this->selectedFriends);

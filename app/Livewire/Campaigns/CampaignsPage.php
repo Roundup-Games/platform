@@ -250,7 +250,7 @@ class CampaignsPage extends Component
         $campaign = Campaign::findOrFail($campaignId);
 
         // Owner cannot leave their own campaign
-        if ((string) $campaign->owner_id === (string) $user->id) {
+        if ($campaign->owner_id === $user->id) {
             session()->flash('error', __('campaigns.error_cannot_leave_own_campaign'));
 
             return;

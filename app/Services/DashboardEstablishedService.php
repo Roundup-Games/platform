@@ -202,7 +202,7 @@ class DashboardEstablishedService
         $scoredGames = $games->map(function ($game) use ($userLat, $userLng) {
             $rawParticipantCount = $game->getAttributes()['participant_count'] ?? null;
             $participantCount = is_numeric($rawParticipantCount) ? (int) $rawParticipantCount : 0;
-            $spotsAvailable = (int) ($game->max_players ?? 0) - $participantCount;
+            $spotsAvailable = ($game->max_players ?? 0) - $participantCount;
 
             // Proximity score (0-40): closer is better
             $proximityScore = 0;
@@ -380,7 +380,7 @@ class DashboardEstablishedService
             }
 
             $isPast = $game->date_time->isBefore(now());
-            $isHosting = (string) $game->owner_id === (string) $user->id;
+            $isHosting = $game->owner_id === $user->id;
             $playerCount = $game->participants->count();
 
             $userParticipant = $game->participants->firstWhere('user_id', $user->id);

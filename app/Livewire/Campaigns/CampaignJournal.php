@@ -174,7 +174,7 @@ class CampaignJournal extends Component
     #[Computed]
     public function isGm(): bool
     {
-        return (string) $this->campaign->owner_id === (string) Auth::id();
+        return $this->campaign->owner_id === (string) Auth::id();
     }
 
     /**
@@ -363,8 +363,8 @@ class CampaignJournal extends Component
         // The docblock shape is the writer's contract, not the client's:
         // a tampered payload may miss keys or carry non-strings, so every
         // component is read through the null-coalescing cast first.
-        $cursorAt = (string) ($cursor['at'] ?? '');
-        $cursorId = (string) ($cursor['id'] ?? '');
+        $cursorAt = $cursor['at'] ?? '';
+        $cursorId = $cursor['id'] ?? '';
         $cursorWellFormed = $cursor !== null
             && $cursorAt !== ''
             && Str::isUuid($cursorId)
@@ -404,7 +404,7 @@ class CampaignJournal extends Component
             }
 
             $cursorAt = (string) $oldest->created_at;
-            $cursorId = (string) $oldest->id;
+            $cursorId = $oldest->id;
         }
 
         // CHUNK + 1 fetched so "more exists" is detected from the rows
@@ -425,7 +425,7 @@ class CampaignJournal extends Component
         $more = $older->count() > self::OLDER_STATE_CHANGES_CHUNK;
         $chunk = $older->take(self::OLDER_STATE_CHANGES_CHUNK);
 
-        $loadedIds = array_merge($loadedIds, $chunk->map(fn (CharacterStateChange $change): string => (string) $change->id)->all());
+        $loadedIds = array_merge($loadedIds, $chunk->map(fn (CharacterStateChange $change): string => $change->id)->all());
         $this->olderStateChangeIds[$participantId] = $loadedIds;
 
         if (! $more) {
@@ -448,7 +448,7 @@ class CampaignJournal extends Component
         if ($oldestLoaded !== null) {
             $this->olderStateChangeCursor[$participantId] = [
                 'at' => (string) $oldestLoaded->created_at,
-                'id' => (string) $oldestLoaded->id,
+                'id' => $oldestLoaded->id,
             ];
         }
     }
@@ -497,7 +497,7 @@ class CampaignJournal extends Component
             ->orderByDesc('id')
             ->get() as $change) {
             $tuples[] = [
-                'id' => (string) $change->id,
+                'id' => $change->id,
                 'label' => $change->change_type->label(),
                 'delta' => $change->delta,
                 'when' => format_date($change->created_at, 'datetime'),

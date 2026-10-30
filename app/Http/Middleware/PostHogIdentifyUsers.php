@@ -157,7 +157,7 @@ class PostHogIdentifyUsers
                 '$set' => [
                     'locale' => $this->coarseLocale($user),
                     'account_age_days' => $user->created_at?->diffInDays(now()) ?? 0,
-                    'has_completed_onboarding' => (bool) $user->profile_complete,
+                    'has_completed_onboarding' => $user->profile_complete,
                     // Coarse country only (never raw geohash or coordinates).
                     'country' => $this->coarseCountry($user),
                 ],
@@ -183,7 +183,7 @@ class PostHogIdentifyUsers
     {
         $preferred = $user->preferred_language;
 
-        return $preferred instanceof \BackedEnum ? (string) $preferred->value : app()->getLocale();
+        return $preferred instanceof \BackedEnum ? $preferred->value : app()->getLocale();
     }
 
     /**

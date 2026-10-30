@@ -153,7 +153,7 @@ class SyncCloudflareCacheRules extends Command
                 continue;
             }
 
-            $uri = (string) $route->uri();
+            $uri = $route->uri();
             if (! str_starts_with($uri, '{locale}')) {
                 continue;
             }

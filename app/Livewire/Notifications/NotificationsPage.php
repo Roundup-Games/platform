@@ -206,8 +206,8 @@ class NotificationsPage extends Component
         // Parse every expanded group key into its (fullType, date) filter.
         $filters = [];
         foreach (array_keys($this->expandedGroups) as $groupKey) {
-            $parts = explode('_', (string) $groupKey);
-            $dateString = (string) array_pop($parts);
+            $parts = explode('_', $groupKey);
+            $dateString = array_pop($parts);
             $shortType = implode('_', $parts);
             $fullType = $this->resolveFullType($shortType);
             if ($fullType !== null && $dateString !== '') {

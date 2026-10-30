@@ -131,6 +131,6 @@ class AdminUserDisableCommand extends Command
             ->whereNull('model_has_roles.team_id')
             ->pluck('roles.name')
             ->filter(fn (mixed $name) => is_string($name))
-            ->map(fn (mixed $name): string => (string) $name);
+            ->map(fn (mixed $name): string => $name);
     }
 }

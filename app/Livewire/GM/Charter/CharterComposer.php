@@ -103,7 +103,7 @@ class CharterComposer extends Component
         // the security boundary itself.
         abort_unless($user->can('manageCharter', $this->campaign), 403);
 
-        $this->campaignId = (string) $this->campaign->id;
+        $this->campaignId = $this->campaign->id;
 
         $this->charter = CharterService::charterFor($this->campaign);
 
@@ -609,7 +609,7 @@ class CharterComposer extends Component
     #[Computed]
     public function locations(): Collection
     {
-        $userId = (string) authenticatedUser()->id;
+        $userId = authenticatedUser()->id;
 
         return Location::query()
             ->disclosableTo($userId, $this->campaign->location_id)
@@ -634,7 +634,7 @@ class CharterComposer extends Component
 
     private function hydrateFromCharter(SessionZeroSurvey $charter): void
     {
-        $this->title = (string) $charter->title;
+        $this->title = $charter->title;
         $this->content = CharterContent::fromArray($charter->content ?? [])->toArray();
         $this->step = 1;
         $this->draftSaved = false;
@@ -655,7 +655,7 @@ class CharterComposer extends Component
             return;
         }
 
-        $title = trim($this->title) !== '' ? $this->title : (string) $this->campaign->name;
+        $title = trim($this->title) !== '' ? $this->title : $this->campaign->name;
 
         CharterService::saveDraft(authenticatedUser(), $charter, $title, $this->content);
 
@@ -741,7 +741,7 @@ class CharterComposer extends Component
     {
         foreach (CharterContent::SECTIONS as $index => $section) {
             foreach ($keys as $key) {
-                if (str_starts_with((string) $key, $section.'.')) {
+                if (str_starts_with($key, $section.'.')) {
                     return $index + 1;
                 }
             }

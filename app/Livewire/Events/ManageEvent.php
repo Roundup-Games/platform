@@ -273,7 +273,7 @@ class ManageEvent extends Component
             return;
         }
 
-        if ((string) $target->id === (string) $this->event->organizer_id) {
+        if ($target->id === $this->event->organizer_id) {
             $this->addError('coOrganizerInvite', __('events.error_the_organizer_already_manages_this_event'));
 
             return;
@@ -314,7 +314,7 @@ class ManageEvent extends Component
 
         $target = User::find($userId);
 
-        if ($target === null || (string) $target->id === (string) $this->event->organizer_id) {
+        if ($target === null || $target->id === $this->event->organizer_id) {
             return;
         }
 

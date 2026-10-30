@@ -55,7 +55,7 @@ final class PsiClient
                 'url' => $url,
                 'strategy' => $strategy,
                 'status' => $response->status(),
-                'body' => mb_substr((string) $response->body(), 0, 200),
+                'body' => mb_substr($response->body(), 0, 200),
             ]);
 
             return null;

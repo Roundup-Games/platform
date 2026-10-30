@@ -347,7 +347,7 @@ class UserResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Re-enable User Account')
                     ->modalDescription('This user will be able to log in again.')
-                    ->visible(fn (User $record): bool => (bool) $record->is_disabled)
+                    ->visible(fn (User $record): bool => $record->is_disabled)
                     ->action(function (User $record): bool {
                         $record->update([
                             'is_disabled' => false,

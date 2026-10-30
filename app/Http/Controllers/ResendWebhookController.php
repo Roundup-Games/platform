@@ -52,7 +52,7 @@ class ResendWebhookController extends Controller
         }
 
         // Use the RAW body — re-serializing parsed JSON breaks the signature.
-        $payload = (string) $request->getContent();
+        $payload = $request->getContent();
 
         try {
             WebhookSignature::verify($payload, [
@@ -75,7 +75,7 @@ class ResendWebhookController extends Controller
 
         // Compute the event type up front — it drives both the processing
         // dispatch (handle()) and the retry decision below.
-        $type = is_string($event['type'] ?? null) ? (string) $event['type'] : '';
+        $type = is_string($event['type'] ?? null) ? $event['type'] : '';
 
         // Processing failures: default to best-effort 200 so a telemetry event
         // (delivered/failed/delayed) that hit a transient error is not retried
@@ -109,7 +109,7 @@ class ResendWebhookController extends Controller
      */
     private function handle(array $event): void
     {
-        $type = is_string($event['type'] ?? null) ? (string) $event['type'] : '';
+        $type = is_string($event['type'] ?? null) ? $event['type'] : '';
         $data = is_array($event['data'] ?? null) ? $event['data'] : [];
 
         $emailId = self::string($data['email_id'] ?? null);

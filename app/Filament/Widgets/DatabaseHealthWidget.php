@@ -58,7 +58,7 @@ class DatabaseHealthWidget extends StatsOverviewWidget
             'hit' => $hit,
             'read' => $read,
             'connections' => is_numeric($connections) ? (int) $connections : 0,
-            'migrations' => (int) DB::table('migrations')->count(),
+            'migrations' => DB::table('migrations')->count(),
             'bloat' => array_map(
                 static fn (stdClass $row): string => $row->table.' ('.number_format((float) $row->dead).' dead)',
                 $bloatRows,

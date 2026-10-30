@@ -74,7 +74,7 @@ class RecordUserSignIn
             'user.signed_in',
             [
                 'is_first_session' => $isFirstSession,
-                'remember' => (bool) $event->remember,
+                'remember' => $event->remember,
                 'guard' => $event->guard,
             ],
         );

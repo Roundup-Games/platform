@@ -122,8 +122,8 @@ class NearbySessions extends Component
 
             if ($results !== null) {
                 $first = $results;
-                $this->guestLat = (float) $first['lat'];
-                $this->guestLng = (float) $first['lng'];
+                $this->guestLat = $first['lat'];
+                $this->guestLng = $first['lng'];
                 $this->guestLocationSource = 'manual';
 
                 $this->triedFallback = false;

@@ -54,7 +54,7 @@ class UserAnonymizationService
      */
     public function anonymize(User $user): void
     {
-        $userId = (string) $user->id;
+        $userId = $user->id;
 
         Log::info('User anonymization started', [
             'user_id' => $userId,
@@ -63,7 +63,7 @@ class UserAnonymizationService
         // Check analytics consent from the persisted user record.
         // This avoids depending on request/cookie context, which is
         // unavailable in artisan/queue contexts.
-        $hadAnalyticsConsent = (bool) $user->analytics_consent;
+        $hadAnalyticsConsent = $user->analytics_consent;
 
         DB::transaction(function () use ($user, $userId, $hadAnalyticsConsent): void {
             // 1. Audit log entry BEFORE anonymization — non-PII identifiers only.
@@ -141,14 +141,14 @@ class UserAnonymizationService
 
         // 6. Queue PostHog data deletion (outside transaction — API call)
         if ($hadAnalyticsConsent) {
-            DeletePostHogUserData::dispatch((string) $userId);
+            DeletePostHogUserData::dispatch($userId);
         }
 
         // 7. Invalidate discovery caches so the anonymized user doesn't
         //    appear in search, directories, or "people near you" with
         //    stale pre-anonymization data.
         try {
-            app(DashboardCacheService::class)->invalidateForUser((string) $userId);
+            app(DashboardCacheService::class)->invalidateForUser($userId);
         } catch (\Throwable $e) {
             Log::warning('User anonymization: discovery cache invalidation failed', [
                 'user_id' => $userId,

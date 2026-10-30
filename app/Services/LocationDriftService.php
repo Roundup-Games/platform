@@ -218,13 +218,13 @@ class LocationDriftService
                     $other = $currentGroup[$m];
                     $distKm = $candidate->distanceTo((float) $other->latitude, (float) $other->longitude);
                     if ($distKm < self::DUPLICATE_DISTANCE_KM) {
-                        $this->flag((string) $candidate->id, 'duplicate', [
-                            'candidate_target_id' => (string) $other->id,
+                        $this->flag($candidate->id, 'duplicate', [
+                            'candidate_target_id' => $other->id,
                             'matched_on' => 'name+distance',
                             'distance_m' => (int) round($distKm * 1000),
                         ], $dryRun, 'name+distance');
-                        $flagged[(string) $candidate->id] = true;
-                        $flaggedIds[] = (string) $candidate->id;
+                        $flagged[$candidate->id] = true;
+                        $flaggedIds[] = $candidate->id;
                         break;
                     }
                 }
@@ -394,7 +394,7 @@ class LocationDriftService
                         return false;
                     }
 
-                    $id = (string) $location->id;
+                    $id = $location->id;
                     if (isset($flagged[$id])) {
                         continue;
                     }

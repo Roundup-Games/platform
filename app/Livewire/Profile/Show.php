@@ -95,7 +95,7 @@ class Show extends Component
         $this->email = $user->email;
         $this->slug = $user->slug ?? '';
         $this->gender = $user->gender ?? '';
-        $this->gender_consent = (bool) $user->gender_consent;
+        $this->gender_consent = $user->gender_consent;
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
         $this->preferredLanguage = $user->preferred_language->value ?? '';
@@ -132,7 +132,7 @@ class Show extends Component
                 ->where('provider', OAuthProvider::Discord)
                 ->first();
             if ($discordAccount !== null) {
-                $this->discordLinkedUserId = (string) $discordAccount->provider_user_id;
+                $this->discordLinkedUserId = $discordAccount->provider_user_id;
 
                 // M056/S03/T11: auto-fill the Discord handle on mount when the GM
                 // has a linked Discord account and no existing GmSocialLink handle.
@@ -225,7 +225,7 @@ class Show extends Component
         $genderValue = $validated['gender_consent'] ? $validated['gender'] : null;
 
         // Audit trail for consent changes (GDPR Art. 7 compliance)
-        $previousConsent = (bool) $user->gender_consent;
+        $previousConsent = $user->gender_consent;
         $newConsent = $validated['gender_consent'];
         if ($previousConsent !== $newConsent) {
             Log::info('Gender consent status changed', [
@@ -277,11 +277,11 @@ class Show extends Component
 
         // Dispatch discovery cache refresh if location changed
         if ($user->location_id !== ($oldLocationId ?? null)) {
-            UpdateUserDiscoveryCache::dispatch((string) $user->id, 'location_change');
+            UpdateUserDiscoveryCache::dispatch($user->id, 'location_change');
 
             // Invalidate dashboard caches affected by location change
             $dashboardCache = app(DashboardCacheService::class);
-            $dashboardCache->invalidateForUser((string) $user->id, ['opportunities']);
+            $dashboardCache->invalidateForUser($user->id, ['opportunities']);
 
             // Invalidate trending for old and new geohash tiles
             if ($oldLocationId !== null && $oldLocationId !== '') {
@@ -380,16 +380,16 @@ class Show extends Component
         ]);
 
         if ($vibesChanged) {
-            UpdateUserDiscoveryCache::dispatch((string) $user->id, 'vibe_change');
+            UpdateUserDiscoveryCache::dispatch($user->id, 'vibe_change');
         }
         if ($gameSystemsChanged) {
-            UpdateUserDiscoveryCache::dispatch((string) $user->id, 'game_system_change');
+            UpdateUserDiscoveryCache::dispatch($user->id, 'game_system_change');
         }
 
         // Invalidate dashboard opportunities cache when preferences change
         if ($vibesChanged || $gameSystemsChanged) {
             app(DashboardCacheService::class)->invalidateForUser(
-                (string) $user->id, ['opportunities'],
+                $user->id, ['opportunities'],
             );
         }
 
@@ -472,7 +472,7 @@ class Show extends Component
             $links = collect($socialLinksData)->map(fn (array $data, string $platform): array => [
                 'platform' => $platform,
                 'handle' => $data['handle'],
-                'instance' => (string) ($data['instance'] ?? ''),
+                'instance' => $data['instance'] ?? '',
             ])->values()->toArray();
             /** @var array<int, array{platform: string, handle: string, instance?: string}> $links */
             $service->syncLinksForUser($user, $links);

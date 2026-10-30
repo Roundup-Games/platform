@@ -56,7 +56,7 @@ class PostHogAnalytics
 
         try {
             $this->posthog->capture([
-                'distinctId' => (string) $user->id,
+                'distinctId' => $user->id,
                 'event' => $event,
                 'properties' => $properties,
             ]);
@@ -115,7 +115,7 @@ class PostHogAnalytics
             $scheduledAt = $game?->date_time;
 
             $this->posthog->capture([
-                'distinctId' => (string) $userId,
+                'distinctId' => $userId,
                 'event' => 'attendance.recorded',
                 'properties' => [
                     'attendance_status' => $status->value,
@@ -180,7 +180,7 @@ class PostHogAnalytics
 
         try {
             $this->posthog->identify([
-                'distinctId' => (string) $user->id,
+                'distinctId' => $user->id,
                 'properties' => [
                     '$set_once' => array_filter([
                         'first_touch_referer_domain' => $refererDomain,
@@ -242,7 +242,7 @@ class PostHogAnalytics
 
         try {
             $this->posthog->identify([
-                'distinctId' => (string) $user->id,
+                'distinctId' => $user->id,
                 'properties' => $properties,
             ]);
         } catch (\Throwable $e) {
@@ -279,7 +279,7 @@ class PostHogAnalytics
         }
 
         // No cookie at all → persisted column is the authoritative fallback.
-        return (bool) $user->analytics_consent;
+        return $user->analytics_consent;
     }
 
     /**
@@ -329,7 +329,7 @@ class PostHogAnalytics
             $representative = $entity?->gameSystems?->first();
 
             $this->posthog->capture([
-                'distinctId' => (string) $userId,
+                'distinctId' => $userId,
                 'event' => $event,
                 'properties' => array_merge([
                     'entity_type' => $entity instanceof Campaign ? 'campaign' : ($entity instanceof Game ? 'game' : null),

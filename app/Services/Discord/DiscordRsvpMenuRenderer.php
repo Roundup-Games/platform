@@ -42,7 +42,7 @@ class DiscordRsvpMenuRenderer
      */
     public function render(Game $game, DiscordRsvpMenuContext $context): DiscordRsvpMenu
     {
-        $gameId = (string) $game->id;
+        $gameId = $game->id;
         $max = $context->maxPlayers;
 
         // Terminal/non-joinable game state wins over everything: a canceled or

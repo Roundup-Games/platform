@@ -127,7 +127,7 @@ class AttendanceService
         }
 
         // Determine if reporter is the host
-        $isHost = (string) $game->owner_id === (string) $reporter->id;
+        $isHost = $game->owner_id === $reporter->id;
 
         // Apply grief resistance once for the reporter
         $griefCheck = $this->checkGriefResistance($reporter, $game);
@@ -327,7 +327,7 @@ class AttendanceService
         /** @var array{score?: float, game_count?: int, tier?: string, weights_applied?: array<string, mixed>}|null $reliabilityData */
         $reliabilityData = $reporter->reliability_score;
         $reporterScore = is_array($reliabilityData) && isset($reliabilityData['score'])
-            ? (float) $reliabilityData['score']
+            ? $reliabilityData['score']
             : 100.0;
 
         if ($reporterScore < self::lowReliabilityThreshold()) {

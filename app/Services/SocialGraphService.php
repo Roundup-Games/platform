@@ -140,7 +140,7 @@ class SocialGraphService
      */
     public function getAllowedOwnerIdsForProtectedContent(User $user): array
     {
-        $ids = [(string) $user->id];
+        $ids = [$user->id];
 
         $friendIds = to_string_id_array($this->getMutualFollows($user)->pluck('id'));
         /** @var array<int, string> $friendIds */

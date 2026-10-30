@@ -245,7 +245,7 @@ class GameObserver
         }
 
         try {
-            PublishGameToDiscord::dispatch((string) $game->id);
+            PublishGameToDiscord::dispatch($game->id);
         } catch (\Throwable $e) {
             // Never block the save on dispatch infrastructure.
             Log::warning('discord_publisher.dispatch_failed', [

@@ -27,7 +27,7 @@ class SweepActiveDiscoveryCaches extends Command
     public function handle(): int
     {
         $window = (int) $this->option('window');
-        $dryRun = (bool) $this->option('dry-run');
+        $dryRun = $this->option('dry-run');
         $startedAt = now();
 
         $this->info("Starting discovery sweep (window: {$window}m".($dryRun ? ', dry-run' : '').')');
@@ -102,7 +102,7 @@ class SweepActiveDiscoveryCaches extends Command
                     }
 
                     try {
-                        UpdateUserDiscoveryCache::dispatch((string) $user->id, 'sweep');
+                        UpdateUserDiscoveryCache::dispatch($user->id, 'sweep');
                         $dispatchCount++;
                     } catch (\Throwable $e) {
                         $failCount++;

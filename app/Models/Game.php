@@ -323,7 +323,7 @@ class Game extends Model implements HasMedia, TicketSubject
     {
         $first = $this->gameSystems->first();
 
-        return $first !== null ? (string) $first->id : null;
+        return $first !== null ? $first->id : null;
     }
 
     /**
@@ -672,7 +672,7 @@ class Game extends Model implements HasMedia, TicketSubject
         }
 
         // Standalone games: read from own column
-        return (bool) $this->bench_mode;
+        return $this->bench_mode;
     }
 
     // ── Signup Cutoff ─────────────────────────────────
@@ -724,7 +724,7 @@ class Game extends Model implements HasMedia, TicketSubject
 
             $event = (new SchemaEvent)
                 ->name($this->name)
-                ->description(Str::limit(strip_tags((string) $this->description), 500))
+                ->description(Str::limit(strip_tags($this->description), 500))
                 ->startDate((string) $this->date_time->toISOString())
                 ->eventStatus(EventStatusType::EventScheduled)
                 ->eventAttendanceMode('OfflineEventAttendanceMode');
@@ -736,7 +736,7 @@ class Game extends Model implements HasMedia, TicketSubject
 
             // End date from expected_duration
             if ($this->expected_duration > 0) {
-                $event->endDate((string) $this->date_time->copy()->addHours((float) $this->expected_duration)->toISOString());
+                $event->endDate((string) $this->date_time->copy()->addHours($this->expected_duration)->toISOString());
             }
 
             // Location

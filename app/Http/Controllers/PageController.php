@@ -95,7 +95,7 @@ class PageController extends Controller
     public function forOrganizers(): View
     {
         // Cached EXISTS-subquery user count — same rationale as home():stats.
-        $organizerCount = (int) Cache::remember(
+        $organizerCount = Cache::remember(
             'pages:organizer-count:v1',
             now()->addMinutes(30),
             fn () => User::has('ownedGames')->count(),

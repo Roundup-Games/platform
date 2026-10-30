@@ -69,7 +69,7 @@ class ImageUpload extends Component
     private function resolveModel(): HasMedia
     {
         $class = Relation::getMorphedModel($this->model_type) ?? $this->model_type;
-        $model = app($class)::findOrFail((string) $this->model_id);
+        $model = app($class)::findOrFail($this->model_id);
 
         return $model;
     }

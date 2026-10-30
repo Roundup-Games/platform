@@ -49,7 +49,7 @@ class SeoDedupeGameSystemsCommand extends Command
             return self::SUCCESS;
         }
 
-        $execute = (bool) $this->option('execute');
+        $execute = $this->option('execute');
         $mode = $execute ? 'EXECUTE' : 'DRY-RUN (pass --execute to write)';
         $changed = 0;
 

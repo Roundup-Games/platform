@@ -212,7 +212,7 @@ class ProcessDiscordRsvp implements ShouldQueue
 
             // ── Guards (the same decisions the web gate makes pre-lock) ────
             // Owner cannot RSVP to their own game.
-            if ((string) $locked->owner_id === (string) $user->id) {
+            if ($locked->owner_id === $user->id) {
                 Log::info('discord_rsvp.refused', [
                     'game_id' => $locked->id,
                     'user_id' => $user->id,

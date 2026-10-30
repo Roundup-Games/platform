@@ -101,7 +101,7 @@ class GuildSettings extends Component
         $this->guildName = $guildModel->name;
         $this->calendar_channel_id = $guildModel->calendar_channel_id;
         $this->games_channel_id = $guildModel->games_channel_id;
-        $this->paused = (bool) $guildModel->paused;
+        $this->paused = $guildModel->paused;
         $this->locale = $guildModel->locale;
 
         $this->loadChannels();
@@ -187,7 +187,7 @@ class GuildSettings extends Component
         $this->authorizeOwner($guildModel);
 
         $guildModel->update(['paused' => ! $guildModel->paused]);
-        $this->paused = (bool) $guildModel->paused;
+        $this->paused = $guildModel->paused;
 
         Log::info('discord_guild.pause_toggled', [
             'guild_id' => $guildModel->guild_id,
@@ -259,7 +259,7 @@ class GuildSettings extends Component
     private function authorizeOwner(DiscordGuild $guildModel): void
     {
         $user = Auth::user();
-        if ($user === null || (string) $user->id !== (string) $guildModel->owner_user_id) {
+        if ($user === null || $user->id !== $guildModel->owner_user_id) {
             abort(403, 'Only the server owner who installed roundup can configure this guild.');
         }
     }

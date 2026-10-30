@@ -161,7 +161,7 @@ class EventListing extends Component
         }
 
         $directory = app(CityDirectoryService::class);
-        $summary = $directory->resolveCity((string) $this->city);
+        $summary = $directory->resolveCity($this->city);
 
         return ($summary !== null && $directory->isQualifying($summary)) ? $summary : null;
     }

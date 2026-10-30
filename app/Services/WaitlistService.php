@@ -86,7 +86,7 @@ class WaitlistService
         }
 
         // Owner cannot join their own entity's waitlist
-        if ((string) $entity->owner_id === (string) $user->id) {
+        if ($entity->owner_id === $user->id) {
             throw new \LogicException('Cannot add to waitlist: you are the host.');
         }
 

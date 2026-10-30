@@ -167,7 +167,7 @@ class ReliabilityScoreService
         $baseWeight = self::WEIGHTS[$key];
 
         // Host-specific penalty weights — use the raw constant, not grief multiplier
-        if ($participant->game !== null && (string) $participant->game->owner_id === (string) $participant->user_id) {
+        if ($participant->game !== null && $participant->game->owner_id === (string) $participant->user_id) {
             if ($status === AttendanceStatus::NoShow) {
                 return self::HOST_WEIGHTS['host_no_show'];
             }
@@ -181,7 +181,7 @@ class ReliabilityScoreService
         // System records have attendance_reported_by === null OR
         // reporter === reported (self-report/auto-attend).
         $isSystemGenerated = $participant->attendance_reported_by === null
-            || (string) $participant->attendance_reported_by === (string) $participant->user_id;
+            || $participant->attendance_reported_by === (string) $participant->user_id;
 
         if ($isSystemGenerated) {
             return $baseWeight;

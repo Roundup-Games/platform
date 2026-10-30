@@ -444,7 +444,7 @@ class DemoSeedCommand extends Command
         $this->totalUsers = (int) $this->option('users');
         $this->totalGms = (int) $this->option('gms');
         $this->totalSubscribers = (int) $this->option('subscribers');
-        $this->dryRun = (bool) $this->option('dry-run');
+        $this->dryRun = $this->option('dry-run');
 
         if (! $this->validate()) {
             return self::FAILURE;

@@ -57,7 +57,7 @@ class PublicGameDetail extends Component
             $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
             if ($link !== null
                 && $link->linkable_type === Game::class
-                && $link->linkable_id === (is_string($k = $game->getKey()) ? (string) $k : '')) {
+                && $link->linkable_id === (is_string($k = $game->getKey()) ? $k : '')) {
                 $this->validatedShortLinkId = $link->id;
                 $this->validatedShortLinkCode = $link->code;
             }
@@ -84,7 +84,7 @@ class PublicGameDetail extends Component
     #[Computed]
     public function isOwner(): bool
     {
-        return ($id = Auth::id()) !== null && (string) $this->game->owner_id === (string) $id;
+        return ($id = Auth::id()) !== null && $this->game->owner_id === (string) $id;
     }
 
     #[Computed]

@@ -72,8 +72,8 @@ class UserRelationship extends Model
      */
     public static function follow(User $initiator, User $target, bool $notify = true): self
     {
-        $initiatorId = (string) $initiator->id;
-        $targetId = (string) $target->id;
+        $initiatorId = $initiator->id;
+        $targetId = $target->id;
 
         Log::info('user.relationship.follow', [
             'user_id' => $initiatorId,
@@ -123,8 +123,8 @@ class UserRelationship extends Model
      */
     public static function unfollow(User $initiator, User $target): bool
     {
-        $initiatorId = (string) $initiator->id;
-        $targetId = (string) $target->id;
+        $initiatorId = $initiator->id;
+        $targetId = $target->id;
 
         Log::info('user.relationship.unfollow', [
             'user_id' => $initiatorId,
@@ -157,8 +157,8 @@ class UserRelationship extends Model
      */
     public static function block(User $initiator, User $target): self
     {
-        $initiatorId = (string) $initiator->id;
-        $targetId = (string) $target->id;
+        $initiatorId = $initiator->id;
+        $targetId = $target->id;
 
         // Remove follows in both directions as a side effect of blocking
         static::where('user_id', $initiatorId)
@@ -200,8 +200,8 @@ class UserRelationship extends Model
      */
     public static function unblock(User $initiator, User $target): bool
     {
-        $initiatorId = (string) $initiator->id;
-        $targetId = (string) $target->id;
+        $initiatorId = $initiator->id;
+        $targetId = $target->id;
 
         Log::info('user.relationship.unblock', [
             'user_id' => $initiatorId,

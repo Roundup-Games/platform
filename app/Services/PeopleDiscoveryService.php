@@ -158,7 +158,7 @@ class PeopleDiscoveryService
         $cacheKey = "people:nearby:{$viewer->id}:{$viewerGeohash}";
         $ttl = now()->addMinutes(30); // backstop — UpdateUserDiscoveryCache refreshes on follow/unfollow
 
-        self::invalidateCacheFor((string) $viewer->id);
+        self::invalidateCacheFor($viewer->id);
 
         $queryCount = 0;
         DB::listen(function () use (&$queryCount) {
@@ -170,7 +170,7 @@ class PeopleDiscoveryService
 
         if ($candidateMeta === []) {
             Cache::put($cacheKey, [], $ttl);
-            $this->trackCacheKey((string) $viewer->id, $cacheKey, $ttl);
+            $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
 
             Log::debug('discovery.stats', [
                 'viewer_id' => $viewer->id,
@@ -257,7 +257,7 @@ class PeopleDiscoveryService
         ], $results);
 
         Cache::put($cacheKey, $cacheable, $ttl);
-        $this->trackCacheKey((string) $viewer->id, $cacheKey, $ttl);
+        $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
 
         $total = count($results);
 
@@ -389,7 +389,7 @@ class PeopleDiscoveryService
         }
 
         $existingIds = array_keys($existing);
-        $viewerId = (string) $viewer->id;
+        $viewerId = $viewer->id;
 
         $existingSql = '';
         $existingParams = [];
@@ -475,7 +475,7 @@ class PeopleDiscoveryService
             return [];
         }
 
-        $viewerId = (string) $viewer->id;
+        $viewerId = $viewer->id;
 
         // Pre-load viewer preferences (3 tiny queries)
         $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->filter(fn (mixed $id) => is_string($id))->values()->all();

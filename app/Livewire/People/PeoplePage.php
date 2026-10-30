@@ -98,7 +98,7 @@ class PeoplePage extends Component
         $service = app(PeopleDiscoveryService::class);
 
         if ($service->shouldWarmCache($this->authUser, $lat, $lng)) {
-            UpdateUserDiscoveryCache::dispatch((string) $this->authUser->id, 'page_visit_warmup');
+            UpdateUserDiscoveryCache::dispatch($this->authUser->id, 'page_visit_warmup');
             $this->nearbyWarming = true;
         }
     }

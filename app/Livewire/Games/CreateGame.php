@@ -201,7 +201,7 @@ class CreateGame extends Component
 
         // Load vibe_flags into vibePreferences array (flat DB array → favorite map)
         if ($source->vibe_flags !== null && $source->vibe_flags !== []) {
-            foreach ((array) $source->vibe_flags as $flag) {
+            foreach ($source->vibe_flags as $flag) {
                 $this->vibePreferences[$flag] = 'favorite';
             }
         }

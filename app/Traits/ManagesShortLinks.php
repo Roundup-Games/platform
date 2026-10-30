@@ -49,7 +49,7 @@ trait ManagesShortLinks
         assert(is_int($entityKey) || is_string($entityKey));
 
         if ($link->linkable_type === get_class($entity)
-            && (string) $link->linkable_id === (string) $entityKey) {
+            && $link->linkable_id === $entityKey) {
             $this->validatedShortLinkId = $link->id;
         }
     }
@@ -100,7 +100,7 @@ trait ManagesShortLinks
         $viewer = authenticatedUser();
         $entity = $this->getEntity();
 
-        if ((string) $entity->owner_id !== (string) $viewer->id) {
+        if ($entity->owner_id !== $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -136,7 +136,7 @@ trait ManagesShortLinks
         $viewer = authenticatedUser();
         $entity = $this->getEntity();
 
-        if ((string) $entity->owner_id !== (string) $viewer->id) {
+        if ($entity->owner_id !== $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;

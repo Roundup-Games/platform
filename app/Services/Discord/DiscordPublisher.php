@@ -329,7 +329,7 @@ class DiscordPublisher
         }
 
         // Open a per-session thread on the card (once, idempotent, best-effort).
-        $this->ensureThread($cardRow ?? null, $channelId, (string) $messageId, $game, $guild->locale);
+        $this->ensureThread($cardRow ?? null, $channelId, $messageId, $game, $guild->locale);
 
         Log::info('discord_publisher.card_posted', [
             'game_id' => $game->id,
@@ -508,7 +508,7 @@ class DiscordPublisher
 
             $members[] = new DiscordRosterMember(
                 status: $status,
-                snowflake: (string) $linked->provider_user_id,
+                snowflake: $linked->provider_user_id,
                 label: $nickname,
             );
         }
@@ -607,7 +607,7 @@ class DiscordPublisher
      */
     private function threadName(Game $game): string
     {
-        $name = trim((string) $game->name);
+        $name = trim($game->name);
 
         if ($game->date_time !== null) {
             $name .= ' · '.$game->date_time->format('j M Y');
@@ -681,7 +681,7 @@ class DiscordPublisher
         $resolvedLocale = $locale !== null && $locale !== '' ? $locale : config('app.fallback_locale', 'en');
         $resolvedLocale = is_string($resolvedLocale) ? $resolvedLocale : 'en';
 
-        $name = trim((string) $game->name);
+        $name = trim($game->name);
         $when = $game->date_time?->format('j M Y · H:i');
 
         $lines = [];

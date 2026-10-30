@@ -134,7 +134,7 @@ class CharterService
         try {
             $charter = $campaign->charter()->create([
                 'gm_profile_id' => $user->gmProfile?->id,
-                'title' => (string) $campaign->name,
+                'title' => $campaign->name,
                 'status' => 'draft',
                 'content' => $content->toArray(),
             ]);
@@ -527,7 +527,7 @@ class CharterService
         // signatures and stay informational.
         self::notifyApprovedParticipants(
             $charter,
-            fn (Campaign $campaign) => new CharterAmended($campaign, $charter, $version, (bool) $version->is_material),
+            fn (Campaign $campaign) => new CharterAmended($campaign, $charter, $version, $version->is_material),
             NotificationCategory::CharterAmended,
         );
 
@@ -555,7 +555,7 @@ class CharterService
             ? CharterTemplate::query()->whereKey($seedUuid)->first()
             : null;
 
-        if ($template === null || (string) $template->user_id !== (string) $user->id) {
+        if ($template === null || $template->user_id !== $user->id) {
             throw ValidationException::withMessages([
                 'charter' => __('charter.error_template_not_yours'),
             ]);
@@ -581,7 +581,7 @@ class CharterService
             ? SessionZeroSurvey::query()->whereKey($seedUuid)->first()
             : null;
 
-        if ($previous === null || (string) $previous->campaign?->owner_id !== (string) $user->id) {
+        if ($previous === null || $previous->campaign?->owner_id !== $user->id) {
             throw ValidationException::withMessages([
                 'charter' => __('charter.error_previous_not_yours'),
             ]);
@@ -620,7 +620,7 @@ class CharterService
             return;
         }
 
-        $ownerId = (string) $campaign->owner_id;
+        $ownerId = $campaign->owner_id;
         $campaignLocationId = $campaign->location_id;
 
         // The same shape the composer's picker offers (single-sourced

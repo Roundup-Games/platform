@@ -380,11 +380,11 @@ trait BuildsSessionForm
         }
 
         if ($system->bgg_average_weight !== null && $system->bgg_average_weight > 0 && $this->complexity === null) {
-            $this->complexity = (string) round((float) $system->bgg_average_weight, 2);
+            $this->complexity = (string) round($system->bgg_average_weight, 2);
         }
 
         if ($this->experience_level === null && $system->bgg_average_weight !== null && $system->bgg_average_weight > 0) {
-            $weight = (float) $system->bgg_average_weight;
+            $weight = $system->bgg_average_weight;
             if ($weight <= 2.0) {
                 $this->experience_level = 'beginner';
             } elseif ($weight <= 3.5) {
@@ -420,7 +420,7 @@ trait BuildsSessionForm
             ->filter(fn ($value) => $value === 'favorite')
             ->keys()
             ->filter(fn ($key) => in_array($key, $validValues, true))
-            ->map(fn (mixed $k): string => (string) $k)
+            ->map(fn (mixed $k): string => $k)
             ->all());
     }
 

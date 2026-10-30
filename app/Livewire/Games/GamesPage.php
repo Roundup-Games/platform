@@ -264,7 +264,7 @@ class GamesPage extends Component
         $game = Game::findOrFail($gameId);
 
         // Owner cannot leave their own game
-        if ((string) $game->owner_id === (string) $user->id) {
+        if ($game->owner_id === $user->id) {
             session()->flash('error', __('games.error_cannot_leave_own_game'));
 
             return;

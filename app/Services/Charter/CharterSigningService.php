@@ -223,7 +223,7 @@ class CharterSigningService
             ]);
         }
 
-        if ((string) $charter->campaign?->owner_id !== (string) $user->id) {
+        if ($charter->campaign?->owner_id !== $user->id) {
             throw ValidationException::withMessages([
                 'charter' => __('charter.error_not_owner'),
             ]);
@@ -237,9 +237,9 @@ class CharterSigningService
             ]);
         }
 
-        $approved = $charter->campaign?->participants()
+        $approved = $charter->campaign->participants()
             ->where('status', ParticipantStatus::Approved->value)
-            ->pluck('user_id') ?? collect();
+            ->pluck('user_id');
         $signed = $charter->confirmations()
             ->where('session_zero_survey_version_id', $version->id)
             ->where('role', SessionZeroConfirmation::ROLE_PARTICIPANT)
@@ -378,11 +378,11 @@ class CharterSigningService
     {
         $version = $charter->currentVersion();
 
-        $approved = (int) ($charter->campaign?->participants()
+        $approved = $charter->campaign?->participants()
             ->where('status', ParticipantStatus::Approved->value)
-            ->count() ?? 0);
+            ->count() ?? 0;
 
-        $signed = $version === null ? 0 : (int) $charter->confirmations()
+        $signed = $version === null ? 0 : $charter->confirmations()
             ->where('session_zero_survey_version_id', $version->id)
             ->where('role', SessionZeroConfirmation::ROLE_PARTICIPANT)
             ->where('status', SessionZeroConfirmation::STATUS_SIGNED)
@@ -534,7 +534,7 @@ class CharterSigningService
             // A signer who was benched afterwards keeps their signature,
             // so signed can exceed approved — the clamps below keep the
             // row honest (percent caps at 100, pending floors at 0).
-            $signed = $version !== null ? ($signedByVersion[(string) $version->id] ?? 0) : 0;
+            $signed = $version !== null ? ($signedByVersion[$version->id] ?? 0) : 0;
             $pending = max(0, $approved - $signed);
             $percent = $approved > 0
                 ? (int) min(100, round($signed / $approved * 100))
@@ -555,8 +555,8 @@ class CharterSigningService
                 // link stays tamper-proof.
                 'campaign' => $charter->campaign,
                 'campaign_name' => (string) $charter->campaign?->name,
-                'charter_uuid' => (string) $charter->uuid,
-                'status' => (string) $charter->status,
+                'charter_uuid' => $charter->uuid,
+                'status' => $charter->status,
                 'current_version' => $charter->current_version,
                 'approvedCount' => $approved,
                 'signedCount' => $signed,
@@ -567,7 +567,7 @@ class CharterSigningService
                 // NOT 'fullySigned' (all participants signed): a
                 // mid-campaign joiner after a countersign makes the two
                 // claims diverge in both directions.
-                'countersigned' => $version !== null && ($countersignedVersions[(string) $version->id] ?? 0) > 0,
+                'countersigned' => $version !== null && ($countersignedVersions[$version->id] ?? 0) > 0,
             ];
         }
 
@@ -599,7 +599,7 @@ class CharterSigningService
         SessionZeroSurveyVersion $version,
         User $viewer,
     ): Collection {
-        if ((string) $charter->campaign?->owner_id !== (string) $viewer->id) {
+        if ($charter->campaign?->owner_id !== $viewer->id) {
             throw new AuthorizationException('Only the campaign owner can read private boundary answers.');
         }
 
@@ -640,7 +640,7 @@ class CharterSigningService
 
         $latestByUser = [];
         foreach ($candidates->get(['session_zero_confirmations.*']) as $candidate) {
-            $userId = (string) $candidate->user_id;
+            $userId = $candidate->user_id;
             if (! isset($latestByUser[$userId])) {
                 $latestByUser[$userId] = $candidate;
             }

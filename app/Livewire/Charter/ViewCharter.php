@@ -332,7 +332,7 @@ class ViewCharter extends Component
 
         return $user !== null
             && $this->ownerId !== null
-            && (string) $this->ownerId === (string) $user->id;
+            && $this->ownerId === $user->id;
     }
 
     /**
@@ -448,7 +448,7 @@ class ViewCharter extends Component
 
         $this->amendedBanner = [
             'amendedOn' => $version->published_at,
-            'changelog' => (string) ($version->changelog ?? ''),
+            'changelog' => $version->changelog ?? '',
             // Venue uuids resolve to names — the same resolution the
             // GM's review-step preview applies (CharterDiff::
             // resolveLocationNames), so participants never see a raw

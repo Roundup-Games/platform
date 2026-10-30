@@ -174,7 +174,7 @@ class PaddleWebhookHandler
                 return null;
             }
 
-            if ($customEventId === 'unknown' || (string) $registration->event_id !== $customEventId) {
+            if ($customEventId === 'unknown' || $registration->event_id !== $customEventId) {
                 Log::warning('Paddle webhook: event payment custom_data event_id mismatch', $context + [
                     'registration_event_id' => $registration->event_id,
                 ]);
@@ -182,7 +182,7 @@ class PaddleWebhookHandler
                 return null;
             }
 
-            if ($user === null || (string) $user->id !== (string) $registration->user_id) {
+            if ($user === null || $user->id !== $registration->user_id) {
                 Log::warning('Paddle webhook: event payment customer does not own registration', $context + [
                     'paddle_customer_id' => $paddleCustomerId,
                     'registration_user_id' => $registration->user_id,
@@ -313,7 +313,7 @@ class PaddleWebhookHandler
             $paddleCustomerId = $data['customer_id'] ?? null;
             if (is_string($paddleCustomerId) && $paddleCustomerId !== '') {
                 $user = User::where('paddle_id', $paddleCustomerId)->first();
-                if ($user !== null && (string) $user->id !== (string) $registration->user_id) {
+                if ($user !== null && $user->id !== $registration->user_id) {
                     Log::warning('Paddle webhook: refund customer does not own registration', $context + [
                         'paddle_customer_id' => $paddleCustomerId,
                         'registration_user_id' => $registration->user_id,
@@ -441,7 +441,7 @@ class PaddleWebhookHandler
      */
     public function appendOrganizerFlag(EventRegistration $registration, string $marker, string $message): bool
     {
-        return (bool) DB::transaction(function () use ($registration, $marker, $message): bool {
+        return DB::transaction(function () use ($registration, $marker, $message): bool {
             $fresh = EventRegistration::whereKey($registration->getKey())
                 ->lockForUpdate()
                 ->first();
@@ -450,7 +450,7 @@ class PaddleWebhookHandler
                 return false;
             }
 
-            $existing = (string) ($fresh->internal_notes ?? '');
+            $existing = $fresh->internal_notes ?? '';
 
             if ($marker !== '' && str_contains($existing, '['.$marker.']')) {
                 return false;
@@ -524,7 +524,7 @@ class PaddleWebhookHandler
                 return;
             }
 
-            if ($customEventId === 'unknown' || (string) $registration->event_id !== $customEventId) {
+            if ($customEventId === 'unknown' || $registration->event_id !== $customEventId) {
                 Log::warning('Paddle webhook: event payment failure custom_data event_id mismatch', $context + [
                     'registration_event_id' => $registration->event_id,
                 ]);
@@ -537,7 +537,7 @@ class PaddleWebhookHandler
                 ? User::where('paddle_id', $paddleCustomerId)->first()
                 : null;
 
-            if ($user === null || (string) $user->id !== (string) $registration->user_id) {
+            if ($user === null || $user->id !== $registration->user_id) {
                 Log::warning('Paddle webhook: event payment failure customer does not own registration', $context + [
                     'paddle_customer_id' => $paddleCustomerId,
                     'registration_user_id' => $registration->user_id,

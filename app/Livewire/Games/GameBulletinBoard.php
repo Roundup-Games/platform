@@ -72,7 +72,7 @@ class GameBulletinBoard extends Component
         }
 
         // If the user is the game host, this is normal access — not elevated
-        if ((string) $this->game->owner_id === (string) $user->id) {
+        if ($this->game->owner_id === $user->id) {
             return false;
         }
 

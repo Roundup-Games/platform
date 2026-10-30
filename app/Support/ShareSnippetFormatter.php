@@ -42,7 +42,7 @@ class ShareSnippetFormatter
     public static function format(Game|Campaign $entity, string $shareUrl): string
     {
         $lines = [];
-        $lines[] = '🎲 '.self::truncate((string) $entity->name, 80);
+        $lines[] = '🎲 '.self::truncate($entity->name, 80);
 
         $lines[] = self::formatDateTime($entity);
 
@@ -52,7 +52,7 @@ class ShareSnippetFormatter
 
         $owner = $entity->owner;
         if ($owner !== null) {
-            $lines[] = 'Hosted by '.self::truncate((string) $owner->name, 40);
+            $lines[] = 'Hosted by '.self::truncate($owner->name, 40);
         }
 
         $lines[] = $shareUrl;
@@ -141,7 +141,7 @@ class ShareSnippetFormatter
             return null;
         }
 
-        $names = $systems->take(2)->map(fn ($s) => (string) $s->name)->implode(', ');
+        $names = $systems->take(2)->map(fn ($s) => $s->name)->implode(', ');
 
         if ($systems->count() > 2) {
             $names .= ' et al.';
@@ -160,7 +160,7 @@ class ShareSnippetFormatter
         $location = $entity->linkedLocation;
 
         if ($location !== null && $location->city !== null && $location->city !== '') {
-            return self::truncate((string) $location->city, 30);
+            return self::truncate($location->city, 30);
         }
 
         return 'Location TBD';

@@ -67,7 +67,7 @@ class EventDelegationService
     {
         $this->authorizeDelegation($event, $actor);
 
-        if ((string) $target->id === (string) $event->organizer_id) {
+        if ($target->id === $event->organizer_id) {
             throw new InvalidArgumentException('The organizer cannot be granted a co-organizer role.');
         }
 
@@ -120,7 +120,7 @@ class EventDelegationService
     {
         $this->authorizeDelegation($event, $actor);
 
-        if ((string) $target->id === (string) $event->organizer_id) {
+        if ($target->id === $event->organizer_id) {
             throw new InvalidArgumentException('The organizer cannot be revoked as co-organizer.');
         }
 
@@ -215,7 +215,7 @@ class EventDelegationService
             throw new AuthorizationException('You are not allowed to manage this event.');
         }
 
-        $isOrganizer = (string) $actor->id === (string) $event->organizer_id;
+        $isOrganizer = $actor->id === $event->organizer_id;
 
         if (! $isOrganizer && ! $this->scopedRoles->isGlobalAdmin($actor)) {
             throw new AuthorizationException('Only the organizer or a global admin can manage co-organizers.');

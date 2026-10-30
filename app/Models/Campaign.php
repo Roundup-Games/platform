@@ -237,7 +237,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
     {
         $first = $this->gameSystems->first();
 
-        return $first !== null ? (string) $first->id : null;
+        return $first !== null ? $first->id : null;
     }
 
     /**
@@ -372,7 +372,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
      */
     public function completedSessionsCount(): int
     {
-        return (int) $this->sessions()
+        return $this->sessions()
             ->where('games.status', GameStatus::Completed->value)
             ->count();
     }
@@ -388,7 +388,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
      */
     public function recapCoveredSessionsCount(): int
     {
-        return (int) $this->journalEntries()
+        return $this->journalEntries()
             ->where('campaign_journal_entries.kind', JournalEntryKind::Recap->value)
             ->whereNotNull('campaign_journal_entries.game_id')
             ->whereHas('game', fn (Builder $game): Builder => $game
@@ -410,7 +410,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
         }
 
         $stamped = is_numeric($this->recruitment_summary_completed_sessions)
-            ? (int) $this->recruitment_summary_completed_sessions
+            ? $this->recruitment_summary_completed_sessions
             : 0;
 
         return max(0, $this->completedSessionsCount() - $stamped);
@@ -424,7 +424,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
      */
     public function isBenchMode(): bool
     {
-        return (bool) $this->bench_mode;
+        return $this->bench_mode;
     }
 
     // ── SEO ────────────────────────────────────────────
@@ -454,7 +454,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
 
             $event = (new SchemaEvent)
                 ->name($this->name)
-                ->description(Str::limit(strip_tags((string) $this->description), 500))
+                ->description(Str::limit(strip_tags($this->description), 500))
                 ->eventStatus(EventStatusType::EventScheduled)
                 ->eventAttendanceMode('OfflineEventAttendanceMode');
 
@@ -463,7 +463,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
             if ($firstSession !== null && $firstSession->date_time !== null) {
                 $event->startDate((string) $firstSession->date_time->toISOString());
                 if ($firstSession->expected_duration > 0) {
-                    $event->endDate((string) $firstSession->date_time->copy()->addHours((float) $firstSession->expected_duration)->toISOString());
+                    $event->endDate((string) $firstSession->date_time->copy()->addHours($firstSession->expected_duration)->toISOString());
                 }
             }
 

@@ -37,7 +37,7 @@ final class TaskIdentity
 
         if ($command === '') {
             return $event->description !== null && $event->description !== ''
-                ? (string) $event->description
+                ? $event->description
                 : 'Closure';
         }
 

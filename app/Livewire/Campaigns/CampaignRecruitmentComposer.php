@@ -215,7 +215,7 @@ class CampaignRecruitmentComposer extends Component
         $line = '- '.$goal->title;
         $lines = explode("\n", $this->draft);
 
-        if ((bool) ($this->goalChecked[$goalId] ?? false)) {
+        if ($this->goalChecked[$goalId] ?? false) {
             if (! in_array($line, $lines, true)) {
                 $this->draft = trim($this->draft) === '' ? $line : $this->draft."\n".$line;
             }
@@ -353,7 +353,7 @@ class CampaignRecruitmentComposer extends Component
     private function refreshedAfterCount(): ?int
     {
         $count = max(
-            (int) ($this->campaign->recruitment_summary_completed_sessions
+            ($this->campaign->recruitment_summary_completed_sessions
                 ?? $this->campaign->completedSessionsCount()),
             0,
         );

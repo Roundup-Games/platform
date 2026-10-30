@@ -228,7 +228,7 @@ class AttendanceResolutionService
                     $resolvedStatus = AttendanceStatus::NoShow;
 
                     // If this participant is the game owner (host), apply host_no_show weight
-                    if ((string) $participant->user_id === (string) $game->owner_id) {
+                    if ($participant->user_id === $game->owner_id) {
                         $hw = config('attendance.host_no_show_weight', -1.5);
                         $hostWeight = is_numeric($hw) ? (float) $hw : -1.5;
                         $participant->forceFill([
@@ -409,7 +409,7 @@ class AttendanceResolutionService
 
         $corroboratedCount = 0;
         foreach ($groups as $group) {
-            $corroboratedCount += (int) AttendanceReport::where('game_id', $gameId)
+            $corroboratedCount += AttendanceReport::where('game_id', $gameId)
                 ->where('reported_id', $group->reported_id)
                 ->where('status', $group->status)
                 ->where('reporter_id', '!=', $group->reported_id)

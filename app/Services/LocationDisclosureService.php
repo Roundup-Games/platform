@@ -218,7 +218,7 @@ class LocationDisclosureService
             return false;
         }
 
-        $isVerified = (bool) $location->is_verified;
+        $isVerified = $location->is_verified;
         $venueType = $location->venue_type;
 
         // Fail closed first on any missing venue type — a null type can never

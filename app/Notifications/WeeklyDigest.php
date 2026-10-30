@@ -114,11 +114,11 @@ class WeeklyDigest extends BaseNotification
      */
     private function shortType(DatabaseNotification $notification, string $locale): string
     {
-        $classBase = class_basename((string) $notification->type);
+        $classBase = class_basename($notification->type);
 
         $data = is_array($notification->data ?? null) ? $notification->data : [];
         $key = is_string($data['type'] ?? null) && $data['type'] !== ''
-            ? (string) $data['type']
+            ? $data['type']
             : strtolower((string) preg_replace('/([a-z])([A-Z])/', '$1_$2', $classBase));
 
         // Flat lang-file convention: label_digest_{type} (i18n:check enforces

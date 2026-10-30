@@ -50,7 +50,7 @@ class BadgesDisplayService
         // user is that user's top badge.
         $top = [];
         foreach ($holds as $hold) {
-            $top[(string) $hold->user_id] ??= $hold;
+            $top[$hold->user_id] ??= $hold;
         }
 
         return $top;

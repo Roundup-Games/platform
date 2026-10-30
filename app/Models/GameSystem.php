@@ -409,8 +409,8 @@ class GameSystem extends Model implements HasMedia, TicketSubject
             $product->image($imageUrl);
         }
 
-        if ((string) $this->id !== '') {
-            $product->sku((string) $this->id);
+        if ($this->id !== '') {
+            $product->sku($this->id);
         }
 
         if ($this->creator !== null) {
@@ -425,10 +425,10 @@ class GameSystem extends Model implements HasMedia, TicketSubject
             $bestRating = $this->sp_rating !== null && $this->sp_rating > 0 ? 5 : 10; // Platform scale is 5, BGG scale is 10
             $product->aggregateRating(
                 (new AggregateRating)
-                    ->ratingValue((float) $ratingValue)
+                    ->ratingValue($ratingValue)
                     ->bestRating($bestRating)
                     ->worstRating(1)
-                    ->reviewCount(max(1, (int) ($reviewCount ?? 1)))
+                    ->reviewCount(max(1, $reviewCount ?? 1))
             );
         }
 

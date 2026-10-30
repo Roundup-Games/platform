@@ -88,10 +88,10 @@ class CityHubSettings
 
         return [
             self::KEY_MIN_UPCOMING_SESSIONS => array_key_exists(self::KEY_MIN_UPCOMING_SESSIONS, $rows)
-                ? (int) $rows[self::KEY_MIN_UPCOMING_SESSIONS]
+                ? $rows[self::KEY_MIN_UPCOMING_SESSIONS]
                 : $this->configInt('cityhubs.min_upcoming_sessions', 3),
             self::KEY_MIN_VERIFIED_VENUES => array_key_exists(self::KEY_MIN_VERIFIED_VENUES, $rows)
-                ? (int) $rows[self::KEY_MIN_VERIFIED_VENUES]
+                ? $rows[self::KEY_MIN_VERIFIED_VENUES]
                 : $this->configInt('cityhubs.min_verified_venues', 2),
         ];
     }

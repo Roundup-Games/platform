@@ -89,7 +89,7 @@ class LinkedAccount extends Model
 
         foreach ($this->discordGuilds() as $guild) {
             if (isset($guild['id'])) {
-                $ids[] = (string) $guild['id'];
+                $ids[] = $guild['id'];
             }
         }
 

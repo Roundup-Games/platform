@@ -46,7 +46,7 @@ trait FoldsCanonicalToCityHub
         }
 
         $directory = app(CityDirectoryService::class);
-        $summary = $directory->resolveCity((string) $this->city);
+        $summary = $directory->resolveCity($this->city);
 
         if ($summary === null || ! $directory->isQualifying($summary)) {
             return [null, null];

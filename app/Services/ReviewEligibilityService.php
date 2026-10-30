@@ -102,7 +102,7 @@ class ReviewEligibilityService
     private function isApprovedGameParticipant(User $user, Game $game): bool
     {
         // The owner/host should not review their own session
-        if ((string) $game->owner_id === (string) $user->id) {
+        if ($game->owner_id === $user->id) {
             return false;
         }
 
@@ -115,7 +115,7 @@ class ReviewEligibilityService
     private function isApprovedCampaignParticipant(User $user, Campaign $campaign): bool
     {
         // The owner/organizer should not review their own campaign
-        if ((string) $campaign->owner_id === (string) $user->id) {
+        if ($campaign->owner_id === $user->id) {
             return false;
         }
 

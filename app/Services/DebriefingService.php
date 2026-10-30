@@ -47,7 +47,7 @@ class DebriefingService
             throw new \LogicException(__('games.error_debriefing_not_participant'));
         }
 
-        if ((string) $game->owner_id === (string) $user->id) {
+        if ($game->owner_id === $user->id) {
             throw new \LogicException(__('games.error_debriefing_host_cannot_submit'));
         }
 

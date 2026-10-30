@@ -52,8 +52,8 @@ class CreateDefaultsService
             minPlayers: $lastGame->min_players,
             gameSystemId: $firstSystem !== null ? $firstSystem->id : $favSystem,
             // For gatherings: carry forward the full offered-system set.
-            gameSystems: $lastGame->gameSystems->map(fn ($s) => (string) $s->id)->values()->all(),
-            vibeFlags: $lastGame->vibe_flags !== null && $lastGame->vibe_flags !== [] ? (array) $lastGame->vibe_flags : null,
+            gameSystems: $lastGame->gameSystems->map(fn ($s) => $s->id)->values()->all(),
+            vibeFlags: $lastGame->vibe_flags !== null && $lastGame->vibe_flags !== [] ? $lastGame->vibe_flags : null,
         );
     }
 

@@ -302,7 +302,7 @@ class DiscordDigestRenderer
     {
         $first = $venueGames[0] ?? null;
         $location = $first !== null ? $this->loadedLocation($first) : null;
-        $name = $location !== null ? trim((string) $location->name) : '';
+        $name = $location !== null ? trim($location->name) : '';
 
         return $name !== '' ? $name : $this->trans('discord.content_digest_no_venue', [], $locale);
     }
@@ -359,7 +359,7 @@ class DiscordDigestRenderer
 
     private function gameName(Game $game): string
     {
-        return Str::limit(trim((string) $game->name), 80);
+        return Str::limit(trim($game->name), 80);
     }
 
     /**
@@ -375,7 +375,7 @@ class DiscordDigestRenderer
         }
 
         $labels = $systems
-            ->map(fn (GameSystem $system): string => trim((string) $system->name))
+            ->map(fn (GameSystem $system): string => trim($system->name))
             ->filter()
             ->values();
 
@@ -390,7 +390,7 @@ class DiscordDigestRenderer
     private function rosterLabel(Game $game, DiscordDigestContext $context): string
     {
         $locale = $this->resolveLocale($context->locale);
-        $approved = $context->approvedCountFor((string) $game->id) ?? 0;
+        $approved = $context->approvedCountFor($game->id) ?? 0;
         $max = $this->intOrNull($game->max_players);
 
         if ($max !== null && $max > 0) {
@@ -407,7 +407,7 @@ class DiscordDigestRenderer
 
     private function deepLink(Game $game, DiscordDigestContext $context): ?string
     {
-        $id = (string) $game->id;
+        $id = $game->id;
         if ($id === '') {
             return null;
         }
@@ -546,8 +546,8 @@ class DiscordDigestRenderer
     private function venueKey(Game $game): string
     {
         $locationId = $game->location_id;
-        if ($locationId !== null && (string) $locationId !== '') {
-            return 'loc:'.(string) $locationId;
+        if ($locationId !== null && $locationId !== '') {
+            return 'loc:'.$locationId;
         }
 
         return '__no_venue__';

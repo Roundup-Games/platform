@@ -268,7 +268,7 @@ class PublishGameBulletinToDiscord implements ShouldQueue
             ], $locale)."\n\n";
         }
         $description .= __('notifications.body_bulletin_content', [
-            'content' => $this->teaserSnippet((string) $bulletin->content),
+            'content' => $this->teaserSnippet($bulletin->content),
         ], $locale);
         $description .= "\n\n".'🔗 '.__('discord.content_bulletin_read_more', [], $locale);
 

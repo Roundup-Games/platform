@@ -124,7 +124,7 @@ class EntityJoinGate
     private function viewerMeetsJoinEligibility(Game|Campaign $entity, User $viewer): bool
     {
         // Cannot be the owner.
-        if ((string) $entity->owner_id === (string) $viewer->id) {
+        if ($entity->owner_id === $viewer->id) {
             return false;
         }
 

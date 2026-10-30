@@ -108,7 +108,7 @@ class CompleteProfile extends Component
 
         // Pre-fill from any existing user data (e.g. from OAuth)
         $this->gender = $user->gender;
-        $this->gender_consent = (bool) $user->gender_consent;
+        $this->gender_consent = $user->gender_consent;
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
         $this->slug = $user->slug ?? User::generateSlug($user->name);
@@ -375,7 +375,7 @@ class CompleteProfile extends Component
         // Dispatch discovery cache population for new users with a valid location
         $freshUser = $user->fresh();
         if ($freshUser !== null && $freshUser->linkedLocation?->latitude !== null && $freshUser->linkedLocation->longitude !== null) {
-            UpdateUserDiscoveryCache::dispatch((string) $freshUser->id, 'location_change');
+            UpdateUserDiscoveryCache::dispatch($freshUser->id, 'location_change');
         }
 
         // Onboarding funnel: mark completion with the profile attributes that

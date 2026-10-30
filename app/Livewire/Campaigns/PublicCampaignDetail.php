@@ -57,7 +57,7 @@ class PublicCampaignDetail extends Component
             $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
             if ($link !== null
                 && $link->linkable_type === Campaign::class
-                && $link->linkable_id === (is_string($k = $campaign->getKey()) ? (string) $k : '')) {
+                && $link->linkable_id === (is_string($k = $campaign->getKey()) ? $k : '')) {
                 $this->validatedShortLinkId = $link->id;
                 $this->validatedShortLinkCode = $link->code;
             }
@@ -84,7 +84,7 @@ class PublicCampaignDetail extends Component
     #[Computed]
     public function isOwner(): bool
     {
-        return ($id = Auth::id()) !== null && (string) $this->campaign->owner_id === (string) $id;
+        return ($id = Auth::id()) !== null && $this->campaign->owner_id === (string) $id;
     }
 
     #[Computed]

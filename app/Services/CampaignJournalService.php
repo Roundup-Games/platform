@@ -79,7 +79,7 @@ class CampaignJournalService
             throw new \LogicException(__('journal.error_not_campaign_session'));
         }
 
-        if ((string) $game->owner_id !== (string) $author->id) {
+        if ($game->owner_id !== $author->id) {
             throw new \LogicException(__('games.error_recap_not_host'));
         }
 
@@ -144,7 +144,7 @@ class CampaignJournalService
         } catch (\Throwable $e) {
             report($e);
             Log::error('journal.recap_announce_failed', [
-                'game_id' => (string) $game->id,
+                'game_id' => $game->id,
                 'campaign_id' => (string) $game->campaign_id,
                 'exception' => $e::class,
                 'error' => $e->getMessage(),
@@ -224,7 +224,7 @@ class CampaignJournalService
      */
     public function writePrepNote(Campaign $campaign, User $author, string $body, ?string $inGameDate = null): CampaignJournalEntry
     {
-        if ((string) $campaign->owner_id !== (string) $author->id) {
+        if ($campaign->owner_id !== $author->id) {
             throw new \LogicException(__('journal.error_not_campaign_owner'));
         }
 
@@ -272,7 +272,7 @@ class CampaignJournalService
      */
     public function createGoal(Campaign $campaign, User $author, string $title, ?string $description = null, GoalStatus $status = GoalStatus::Planned): CampaignGoal
     {
-        if ((string) $campaign->owner_id !== (string) $author->id) {
+        if ($campaign->owner_id !== $author->id) {
             throw new \LogicException(__('journal.error_not_campaign_owner'));
         }
 
@@ -330,7 +330,7 @@ class CampaignJournalService
 
         // value() returns mixed; is_string narrows before the strict
         // compare (a null/odd driver value simply fails the check).
-        if (! is_string($ownerId) || $ownerId !== (string) $author->id) {
+        if (! is_string($ownerId) || $ownerId !== $author->id) {
             throw new \LogicException(__('journal.error_not_campaign_owner'));
         }
 
@@ -389,7 +389,7 @@ class CampaignJournalService
      */
     public function logStateChange(Campaign $campaign, User $author, CampaignParticipant $participant, CharacterStateChangeType $type, string $delta, ?Game $game = null): CharacterStateChange
     {
-        if ((string) $campaign->owner_id !== (string) $author->id) {
+        if ($campaign->owner_id !== $author->id) {
             throw new \LogicException(__('journal.error_not_campaign_owner'));
         }
 

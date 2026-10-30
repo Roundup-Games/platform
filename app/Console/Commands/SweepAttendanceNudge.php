@@ -23,7 +23,7 @@ class SweepAttendanceNudge extends Command
 
     public function handle(): int
     {
-        $dryRun = (bool) $this->option('dry-run');
+        $dryRun = $this->option('dry-run');
         $startedAt = now();
 
         $this->info('Starting attendance nudge sweep...');

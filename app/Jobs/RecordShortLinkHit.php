@@ -112,7 +112,7 @@ class RecordShortLinkHit implements ShouldQueue
         // other PII in query strings. Hostname retains analytics value (traffic
         // source) without the privacy exposure.
         $this->referer = $this->referer !== null
-            ? (($refererHost = parse_url($this->referer, PHP_URL_HOST)) !== false && $refererHost !== null ? (string) $refererHost : $this->referer)
+            ? (($refererHost = parse_url($this->referer, PHP_URL_HOST)) !== false && $refererHost !== null ? $refererHost : $this->referer)
             : null;
 
         $this->onQueue('default');

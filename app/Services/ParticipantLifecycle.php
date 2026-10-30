@@ -994,7 +994,7 @@ class ParticipantLifecycle
     private function notifyOwnerOfAcceptedInvitation(Game|Campaign $entity, User $acceptingUser, EntityMeta $meta): void
     {
         try {
-            $owner = User::find((string) $entity->owner_id);
+            $owner = User::find($entity->owner_id);
             if ($owner !== null && $owner->isNot($acceptingUser)) {
                 $this->notificationService->send(
                     $owner,

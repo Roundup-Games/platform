@@ -115,7 +115,7 @@ class CharterContent
 
         // §1 overview — derived from campaign facts.
         $content['overview']['pitch'] = self::clip(
-            trim(strip_tags((string) $campaign->description)),
+            trim(strip_tags($campaign->description)),
             2000,
         );
         $systems = $campaign->loadMissing('gameSystems')->gameSystems;
@@ -151,7 +151,7 @@ class CharterContent
         // §6 logistics — venue/cadence/length from the campaign, the rest mid defaults.
         if ($campaign->location_id !== null) {
             $content['logistics']['venue_mode'] = 'location';
-            $content['logistics']['location_id'] = (string) $campaign->location_id;
+            $content['logistics']['location_id'] = $campaign->location_id;
         } else {
             $content['logistics']['venue_mode'] = 'rotate';
         }

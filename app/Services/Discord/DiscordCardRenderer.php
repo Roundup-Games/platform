@@ -429,7 +429,7 @@ class DiscordCardRenderer
         $lines = [];
 
         // Venue name, hyperlinked to its website when one is on record.
-        $name = trim((string) $location->name);
+        $name = trim($location->name);
         $website = $this->urlOrNull($location->website_url);
         if ($name !== '') {
             $lines[] = $website !== null ? "[**{$name}**]({$website})" : "**{$name}**";
@@ -497,7 +497,7 @@ class DiscordCardRenderer
      */
     private function buildComponents(Game $game, DiscordCardContext $context): array
     {
-        $gameId = (string) $game->id;
+        $gameId = $game->id;
         $deepLink = $this->deepLink($game, $context);
 
         $buttons = [
@@ -530,12 +530,12 @@ class DiscordCardRenderer
 
     private function title(Game $game): string
     {
-        return Str::limit(trim((string) $game->name), 250);
+        return Str::limit(trim($game->name), 250);
     }
 
     private function description(Game $game): string
     {
-        $raw = trim((string) $game->description);
+        $raw = trim($game->description);
         if ($raw === '') {
             return '';
         }
@@ -550,7 +550,7 @@ class DiscordCardRenderer
      */
     private function author(User $owner, DiscordCardContext $context): array
     {
-        $author = ['name' => Str::limit(trim((string) $owner->name), 100)];
+        $author = ['name' => Str::limit(trim($owner->name), 100)];
 
         $profile = $this->profileUrl($owner, $context);
         if ($profile !== null) {
@@ -582,7 +582,7 @@ class DiscordCardRenderer
 
     private function deepLink(Game $game, DiscordCardContext $context): string
     {
-        return rtrim($this->appUrl($context), '/').'/games/'.(string) $game->id;
+        return rtrim($this->appUrl($context), '/').'/games/'.$game->id;
     }
 
     private function timestamp(Game $game): ?string
@@ -638,7 +638,7 @@ class DiscordCardRenderer
         }
 
         $query = trim(implode(', ', array_filter([
-            (string) $location->name,
+            $location->name,
             (string) $location->address,
             (string) $location->city,
         ], fn ($v) => trim($v) !== '')));

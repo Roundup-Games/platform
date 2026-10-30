@@ -55,8 +55,8 @@ class OneShotEpilogueService
         $bulletin = TableLocale::with($game->language, function () use ($game): ?GameBulletin {
             try {
                 return GameBulletin::postBy(
-                    gameId: (string) $game->id,
-                    userId: (string) $game->owner_id,
+                    gameId: $game->id,
+                    userId: $game->owner_id,
                     content: __('games.content_epilogue_prompt'),
                     expiresAt: now()->addDays(30)->toDateTimeString(),
                     isPinned: true,

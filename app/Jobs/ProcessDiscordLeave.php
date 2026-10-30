@@ -125,7 +125,7 @@ class ProcessDiscordLeave implements ShouldQueue
             }
 
             // Hosts cannot leave their own game.
-            if ((string) $locked->owner_id === (string) $user->id) {
+            if ($locked->owner_id === $user->id) {
                 return DiscordLeaveOutcome::OwnerCannotLeave;
             }
 

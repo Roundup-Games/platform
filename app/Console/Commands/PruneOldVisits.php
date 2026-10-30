@@ -27,7 +27,7 @@ class PruneOldVisits extends Command
             return self::FAILURE;
         }
         assert($maxAge !== null); // the --max-age signature default (90) guarantees a value
-        $dryRun = (bool) $this->option('dry-run');
+        $dryRun = $this->option('dry-run');
 
         $cutoff = now()->subDays($maxAge)->toDateString();
 

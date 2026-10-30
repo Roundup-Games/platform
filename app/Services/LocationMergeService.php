@@ -30,8 +30,8 @@ class LocationMergeService
             throw new \InvalidArgumentException('Cannot merge a location into itself.');
         }
 
-        $sourceId = (string) $source->id;
-        $targetId = (string) $target->id;
+        $sourceId = $source->id;
+        $targetId = $target->id;
 
         $now = now();
 

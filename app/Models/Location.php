@@ -381,7 +381,7 @@ class Location extends Model implements TicketSubject
 
     public function isVenue(): bool
     {
-        return (bool) $this->is_verified;
+        return $this->is_verified;
     }
 
     // Note: getRouteKeyName() is intentionally NOT overridden to 'slug'.
@@ -467,7 +467,7 @@ class Location extends Model implements TicketSubject
     public function getDynamicSEOData(): SEOData
     {
         $description = $this->description !== null && $this->description !== ''
-            ? Str::limit(strip_tags((string) $this->description), 160)
+            ? Str::limit(strip_tags($this->description), 160)
             : trim("{$this->name}".($this->city !== null && $this->city !== '' ? " — {$this->city}" : '').($this->country !== null && $this->country !== '' ? ", {$this->country}" : ''));
 
         $schema = SchemaCollection::initialize();
@@ -489,7 +489,7 @@ class Location extends Model implements TicketSubject
         // empty value would produce a useless description node, and the
         // LocalBusiness::description() type contract is non-nullable anyway.
         if ($this->description !== null && $this->description !== '') {
-            $business->description(Str::limit(strip_tags((string) $this->description), 500));
+            $business->description(Str::limit(strip_tags($this->description), 500));
         }
 
         // Address: emit a PostalAddress ONLY for verified commercial venues.

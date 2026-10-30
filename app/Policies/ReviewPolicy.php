@@ -50,7 +50,7 @@ class ReviewPolicy
      */
     public function update(User $user, Review $review): bool
     {
-        return (string) $review->reviewer_id === (string) $user->id;
+        return $review->reviewer_id === $user->id;
     }
 
     /**
@@ -70,7 +70,7 @@ class ReviewPolicy
      */
     public function report(User $user, Review $review): bool
     {
-        return (string) $review->reviewer_id !== (string) $user->id;
+        return $review->reviewer_id !== $user->id;
     }
 
     /**

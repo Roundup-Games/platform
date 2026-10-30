@@ -189,7 +189,7 @@ class RecurrenceService
 
         return $this->computeNextDate(
             $c->recurrence,
-            (string) $c->time_of_day,
+            $c->time_of_day,
             $this->farthestUpcomingScheduledDate($c, $now),
             $now,
         );

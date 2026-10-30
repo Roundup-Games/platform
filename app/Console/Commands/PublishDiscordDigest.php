@@ -56,7 +56,7 @@ class PublishDiscordDigest extends Command
             return self::SUCCESS;
         }
 
-        $dryRun = (bool) $this->option('dry-run');
+        $dryRun = $this->option('dry-run');
         $targetGuildId = $this->option('guild');
 
         Log::info('discord_digest.command.started', [

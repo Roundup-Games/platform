@@ -123,7 +123,7 @@ class DashboardNewcomerService
         $scoredGames = $games->map(function ($game) use ($preferredSystemSet, $userLat, $userLng) {
             $rawParticipantCount = $game->getAttributes()['participant_count'] ?? null;
             $participantCount = is_numeric($rawParticipantCount) ? (int) $rawParticipantCount : 0;
-            $spotsAvailable = (int) ($game->max_players ?? 0) - $participantCount;
+            $spotsAvailable = ($game->max_players ?? 0) - $participantCount;
 
             // Preference match score: +50 if ANY offered system is preferred.
             // Uses the full eager-loaded gameSystems pivot collection (not the
@@ -371,7 +371,7 @@ class DashboardNewcomerService
 
         // Score by shared game systems
         $scored = $nearbyUsers->map(function ($candidate) use ($viewerSystemIds, $candidateSystemPrefs, $systemNames) {
-            $rawSystemIds = $candidateSystemPrefs[(string) $candidate->id] ?? [];
+            $rawSystemIds = $candidateSystemPrefs[$candidate->id] ?? [];
             $candidateSystemIds = is_array($rawSystemIds) ? array_values(array_filter($rawSystemIds, fn (mixed $v) => is_string($v))) : [];
             $sharedSystems = array_intersect($viewerSystemIds, $candidateSystemIds);
             $sharedCount = count($sharedSystems);
@@ -466,7 +466,7 @@ class DashboardNewcomerService
      */
     private function getExcludedGameIds(User $user): array
     {
-        $cacheKey = (string) $user->id;
+        $cacheKey = $user->id;
         if (isset($this->excludedGameIdsCache[$cacheKey])) {
             return $this->excludedGameIdsCache[$cacheKey];
         }

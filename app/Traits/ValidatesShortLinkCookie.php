@@ -44,7 +44,7 @@ trait ValidatesShortLinkCookie
         assert(is_int($entityKey) || is_string($entityKey));
 
         return $link->linkable_type === $entity->getMorphClass()
-            && (string) $link->linkable_id === (string) $entityKey;
+            && $link->linkable_id === $entityKey;
     }
 
     /**

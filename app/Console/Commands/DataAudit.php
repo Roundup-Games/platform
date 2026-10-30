@@ -49,7 +49,7 @@ class DataAudit extends Command
 
     public function handle(): int
     {
-        $this->jsonOutput = (bool) $this->option('json');
+        $this->jsonOutput = $this->option('json');
         $threshold = (int) $this->option('threshold');
         $singleCheck = $this->option('check');
         $startedAt = now();

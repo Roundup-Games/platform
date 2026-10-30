@@ -124,7 +124,7 @@ class ICalFeedRenderer
         $start = $this->carbonToDateTime($game->date_time);
 
         if ($game->expected_duration > 0) {
-            $end = $this->carbonToDateTime($game->date_time->copy()->addHours((float) $game->expected_duration));
+            $end = $this->carbonToDateTime($game->date_time->copy()->addHours($game->expected_duration));
             $event->setOccurrence(new TimeSpan($start, $end));
         } else {
             // All-day fallback — construct the eluceo Date directly from the
@@ -154,7 +154,7 @@ class ICalFeedRenderer
         ], fn (?string $part): bool => $part !== null && $part !== '');
         $addressString = implode(', ', $addressParts);
 
-        $icalLocation = new Location($addressString, (string) ($location->name ?? ''));
+        $icalLocation = new Location($addressString, $location->name ?? '');
 
         if ($location->latitude !== null && $location->longitude !== null) {
             $icalLocation = $icalLocation->withGeographicPosition(

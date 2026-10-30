@@ -70,7 +70,7 @@ class VenueClaimService
         $metadata = $this->buildMetadata($claimant, $location, $data);
 
         $ticket = $claimant->escalatedTickets()->create([
-            'subject' => 'Venue Claim: '.trim((string) $location->name),
+            'subject' => 'Venue Claim: '.trim($location->name),
             'description' => $this->buildDescription($location, $data),
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::Medium->value,
@@ -156,7 +156,7 @@ class VenueClaimService
             }
 
             // Already managed by another user → reject approval.
-            if ($location->managed_by !== null && (string) $location->managed_by !== $claimantId) {
+            if ($location->managed_by !== null && $location->managed_by !== $claimantId) {
                 throw new \RuntimeException('This venue is already managed by another user.');
             }
 
@@ -164,7 +164,7 @@ class VenueClaimService
 
             // Defensive slug backfill for the managed-but-unverified edge (T01).
             if ($location->slug === null || $location->slug === '') {
-                $location->slug = Location::generateUniqueSlug((string) $location->name, $location->id);
+                $location->slug = Location::generateUniqueSlug($location->name, $location->id);
             }
 
             $location->save();
@@ -276,8 +276,8 @@ class VenueClaimService
             'reason' => 'venue_claim',
             'details' => $data['claimant_notes'] ?? null,
             // Venue identity — name + city ONLY (no private address).
-            'location_id' => (string) $location->id,
-            'location_name' => trim((string) $location->name),
+            'location_id' => $location->id,
+            'location_name' => trim($location->name),
             'location_city' => $this->cityOnly($location),
             // Operator-submitted proof fields. contact_email is the claimant's
             // OWN provided contact — proof of affiliation, not venue address
@@ -297,7 +297,7 @@ class VenueClaimService
     protected function buildDescription(Location $location, array $data): string
     {
         $lines = [
-            '**Venue:** '.trim((string) $location->name),
+            '**Venue:** '.trim($location->name),
         ];
 
         $city = $this->cityOnly($location);

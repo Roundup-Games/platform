@@ -85,7 +85,7 @@ class PostHogEventBridge
             );
 
             $this->posthog->capture([
-                'distinctId' => (string) $user->id,
+                'distinctId' => $user->id,
                 'event' => $eventName,
                 'properties' => $eventProperties,
             ]);
@@ -98,7 +98,7 @@ class PostHogEventBridge
             if (in_array($type, self::ENRICHED_TYPES, true)) {
                 EnrichPostHogProfile::dispatch(
                     $type->value,
-                    (string) $user->id,
+                    $user->id,
                     $subject?->getMorphClass(),
                     $subject?->getKey(),
                     true, // hasConsent — already verified above

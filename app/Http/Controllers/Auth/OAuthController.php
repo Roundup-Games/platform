@@ -303,7 +303,7 @@ class OAuthController
             ->where('provider_user_id', $providerUserId)
             ->first();
 
-        if ($linkedAccount !== null && (string) $linkedAccount->user_id !== (string) $user->id) {
+        if ($linkedAccount !== null && $linkedAccount->user_id !== $user->id) {
             Log::warning('OAuth link attempted — provider already linked to another user', [
                 'provider' => $provider,
                 'user_id' => $user->id,

@@ -46,14 +46,14 @@ class LocationDriftSweep extends Command
 
     public function handle(): int
     {
-        $dryRun = (bool) $this->option('dry-run');
+        $dryRun = $this->option('dry-run');
         // Validate up front: limit=0 must fail fast rather than coerce to 0.
         // With limit=0 the sweep still resets every drift flag (runChecks resets
         // when !dry-run) but processes zero rows — silently wiping the admin queue.
         if (! $this->positiveIntegerOption('limit', $limit)) {
             return self::FAILURE;
         }
-        $refreshGeocode = (bool) $this->option('refresh-geocode');
+        $refreshGeocode = $this->option('refresh-geocode');
         $startedAt = now();
 
         $this->info(

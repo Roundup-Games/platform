@@ -4,10 +4,13 @@ includes:
 
 parameters:
     # phpstan-strict-rules staged adoption (census: .gsd/research/phpstan-strict-rules-census-2026-10-30.txt)
-    # Stage 0+1: only rule families at zero baseline are armed. Families with open
-    # debt (dynamicCallOnStaticMethod, booleansInConditions, uselessCast,
-    # disallowedEmpty, disallowedShortTernary, noVariableVariables) stay off until
-    # their cleanup slices land. Enable a family in the same change that zeroes it.
+    # Stages 0-4 (2026-10-30) armed every zeroed family: 0+1 the zero-baseline
+    # set, Stage 2 the truthiness trio, Stage 3 noVariableVariables +
+    # checkDynamicProperties, Stage 4 uselessCast. Enable a family in the same
+    # change that zeroes it. dynamicCallOnStaticMethod stays off permanently:
+    # 99.7% of its findings are larastan's @static-forwarded vendor signatures
+    # (Builder chains, session()->flash(), auth()->user()) — arming is not
+    # feasible without baselines or vendor stubs.
     strictRules:
         allRules: false
         disallowedLooseComparison: true
@@ -32,6 +35,9 @@ parameters:
         # access banned after the 11-site refactor (match dispatch, raw
         # attribute reads, data_get/data_set for the translatable trait).
         noVariableVariables: true
+        # Stage 4 (2026-10-30): same-type casts banned after the 454-site
+        # sweep (defensive id-comparison casts, option/config bool casts).
+        uselessCast: true
     # Bundled core-param flips that carry open debt stay at framework defaults.
     # Stage 3 (2026-10-30): checkDynamicProperties armed after the 114-finding
     # triage sweep (computed-cache @property docs, getAttribute for

@@ -171,7 +171,7 @@ class DashboardScheduleService
             'relative_time' => $this->formatRelativeTime($game->date_time),
             'player_count' => $playerCount,
             'max_players' => $game->max_players,
-            'is_hosting' => (string) $game->owner_id === (string) $user->id,
+            'is_hosting' => $game->owner_id === $user->id,
             'campaign_name' => $game->campaign?->name,
         ];
     }

@@ -261,7 +261,7 @@ class NotificationService
         foreach ($channelMap as $name => $class) {
             $enabled = $stored !== null
                 ? (bool) ($stored[$name] ?? $categoryDefaults[$name])
-                : (bool) $categoryDefaults[$name];
+                : $categoryDefaults[$name];
 
             if ($enabled) {
                 $resolved[$name] = $class;

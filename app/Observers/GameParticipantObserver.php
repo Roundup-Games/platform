@@ -97,7 +97,7 @@ class GameParticipantObserver
             if ($user !== null) {
                 $this->modeService->invalidateForUser($user);
                 // Clear progress tracker — step 4 (Attend Session) may have changed
-                $this->cache->invalidateForUser((string) $user->id, ['progress_tracker']);
+                $this->cache->invalidateForUser($user->id, ['progress_tracker']);
             }
         }
     }
@@ -143,7 +143,7 @@ class GameParticipantObserver
         }
 
         try {
-            RefreshDiscordCard::dispatch((string) $participant->game_id);
+            RefreshDiscordCard::dispatch($participant->game_id);
 
             Log::info('discord_publisher.card_refresh_dispatched', [
                 'game_id' => $participant->game_id,

@@ -348,7 +348,7 @@ class GameDetail extends Component
                 $user = $participant->user;
 
                 $reports[] = [
-                    'reported_id' => (string) $user->id,
+                    'reported_id' => $user->id,
                     'status' => $data['status'],
                     'reason' => $data['reason'] ?? '',
                 ];
@@ -870,7 +870,7 @@ class GameDetail extends Component
     #[Computed]
     public function isOwner(): bool
     {
-        return ($id = $this->viewerId()) !== null && (string) $this->game->owner_id === (string) $id;
+        return ($id = $this->viewerId()) !== null && $this->game->owner_id === $id;
     }
 
     #[Computed]

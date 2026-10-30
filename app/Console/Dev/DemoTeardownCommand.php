@@ -30,7 +30,7 @@ class DemoTeardownCommand extends Command
             return self::FAILURE;
         }
 
-        $dryRun = (bool) $this->option('dry-run');
+        $dryRun = $this->option('dry-run');
         $marker = DemoSeedCommand::MARKER;
 
         $demoUserIds = User::where('email', 'like', '%@example.org')

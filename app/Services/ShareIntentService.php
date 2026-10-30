@@ -49,7 +49,7 @@ class ShareIntentService
         return match ($entityType) {
             'game' => $this->processGameShareIntent($entityId, $shareToken, $user),
             'campaign' => $this->processCampaignShareIntent($entityId, $shareToken, $user),
-            default => $this->failResult("Unknown entity type: {$entityType}", (string) $user->id, $entityType, $entityId),
+            default => $this->failResult("Unknown entity type: {$entityType}", $user->id, $entityType, $entityId),
         };
     }
 
@@ -62,7 +62,7 @@ class ShareIntentService
     public function processShortLinkIntent(ShortLink $shortLink, User $user): ShareIntentResult
     {
         $entityType = strtolower(class_basename($shortLink->linkable_type));
-        $entityId = (string) $shortLink->linkable_id;
+        $entityId = $shortLink->linkable_id;
 
         return match ($entityType) {
             'game' => $this->processShortLinkEntity(
@@ -72,7 +72,7 @@ class ShareIntentService
                 Campaign::find($entityId), $user, 'campaign', $shortLink
             ),
             default => $this->failShortLinkResult(
-                "Unsupported entity type: {$entityType}", (string) $user->id, $entityType, $entityId
+                "Unsupported entity type: {$entityType}", $user->id, $entityType, $entityId
             ),
         };
     }
@@ -91,11 +91,11 @@ class ShareIntentService
             return new ShareIntentResult(false, null);
         }
 
-        if (! $this->validateShareToken($game, $shareToken, 'game', $entityId, (string) $user->id)) {
+        if (! $this->validateShareToken($game, $shareToken, 'game', $entityId, $user->id)) {
             return new ShareIntentResult(false, null);
         }
 
-        if ((string) $game->owner_id === (string) $user->id) {
+        if ($game->owner_id === $user->id) {
             return new ShareIntentResult(true, 'games.show');
         }
 
@@ -116,11 +116,11 @@ class ShareIntentService
             return new ShareIntentResult(false, null);
         }
 
-        if (! $this->validateShareToken($campaign, $shareToken, 'campaign', $entityId, (string) $user->id)) {
+        if (! $this->validateShareToken($campaign, $shareToken, 'campaign', $entityId, $user->id)) {
             return new ShareIntentResult(false, null);
         }
 
-        if ((string) $campaign->owner_id === (string) $user->id) {
+        if ($campaign->owner_id === $user->id) {
             return new ShareIntentResult(true, 'campaigns.show');
         }
 
@@ -141,9 +141,9 @@ class ShareIntentService
         if (! in_array($entityType, ['game', 'campaign'], true)) {
             return $this->failShortLinkResult(
                 "Unsupported entity type: {$entityType}",
-                (string) $user->id,
+                $user->id,
                 $entityType,
-                (string) $shortLink->linkable_id,
+                $shortLink->linkable_id,
             );
         }
 
@@ -158,7 +158,7 @@ class ShareIntentService
             return new ShareIntentResult(false, null, shouldClearCookie: true);
         }
 
-        if ((string) $entity->owner_id === (string) $user->id) {
+        if ($entity->owner_id === $user->id) {
             return new ShareIntentResult(true, $route, entityId: is_string($k = $entity->getKey()) || is_int($k) ? (string) $k : null);
         }
 

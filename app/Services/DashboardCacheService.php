@@ -97,7 +97,7 @@ class DashboardCacheService
      */
     private function remember(DashboardSection $section, User $user, ?string $geohash4 = null): array
     {
-        $userId = (string) $user->id;
+        $userId = $user->id;
         $cacheKey = $section->readKey($userId, $geohash4);
 
         $cached = $this->getArrayFromCache($cacheKey);
@@ -141,7 +141,7 @@ class DashboardCacheService
      */
     private function warmSection(DashboardSection $section, User $user, ?string $geohash4 = null): array
     {
-        $userId = (string) $user->id;
+        $userId = $user->id;
         $cacheKey = $section->readKey($userId, $geohash4);
 
         /** @var array<string, mixed> $data */
@@ -476,7 +476,7 @@ class DashboardCacheService
         // inside the loop re-copied the accumulated array every iteration
         // (O(n²) element copies when a game update invalidates many users).
         foreach ($userIds as $userId) {
-            $allKeys[] = $this->sectionKeysForUser((string) $userId, $sections);
+            $allKeys[] = $this->sectionKeysForUser($userId, $sections);
         }
         $allKeys = array_merge(...$allKeys);
 
@@ -562,7 +562,7 @@ class DashboardCacheService
      */
     public function invalidateActionCenterForParticipantChange(string $userId, ?string $gameId = null): void
     {
-        $userIds = [(string) $userId];
+        $userIds = [$userId];
 
         // Also invalidate the game owner's action center (pending applications, min-players)
         if ($gameId !== null) {
@@ -620,7 +620,7 @@ class DashboardCacheService
      */
     public function invalidateActionCenterForReview(string $userId): void
     {
-        $this->invalidateForUser((string) $userId, ['action_center']);
+        $this->invalidateForUser($userId, ['action_center']);
 
         Log::debug('dashboard.action_center_invalidated.review', [
             'user_id' => $userId,
@@ -634,7 +634,7 @@ class DashboardCacheService
      */
     public function invalidateActionCenterForFollow(string $userId): void
     {
-        $this->invalidateForUser((string) $userId, ['action_center']);
+        $this->invalidateForUser($userId, ['action_center']);
 
         Log::debug('dashboard.action_center_invalidated.follow', [
             'user_id' => $userId,
@@ -648,7 +648,7 @@ class DashboardCacheService
      */
     public function invalidateActionCenterForAttendance(string $userId): void
     {
-        $this->invalidateForUser((string) $userId, ['action_center']);
+        $this->invalidateForUser($userId, ['action_center']);
 
         Log::debug('dashboard.action_center_invalidated.attendance', [
             'user_id' => $userId,

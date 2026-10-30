@@ -240,7 +240,7 @@ class GmWorkspace extends Component
                 ->selectRaw('1');
             /** @var literal-string $subSql */
             $subSql = "({$repeatSub->toSql()}) as repeat_sub";
-            $repeatPlayers = (int) DB::table(DB::raw($subSql))
+            $repeatPlayers = DB::table(DB::raw($subSql))
                 ->mergeBindings($repeatSub->getQuery())
                 ->count();
 

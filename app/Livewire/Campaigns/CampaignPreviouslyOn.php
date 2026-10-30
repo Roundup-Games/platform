@@ -62,7 +62,7 @@ class CampaignPreviouslyOn extends Component
         $user = Auth::user();
 
         return $user !== null
-            && (string) $this->campaign->owner_id === (string) $user->id;
+            && $this->campaign->owner_id === $user->id;
     }
 
     /**
@@ -86,7 +86,7 @@ class CampaignPreviouslyOn extends Component
     {
         $user = Auth::user();
 
-        if ($user === null || (string) $this->campaign->owner_id !== (string) $user->id) {
+        if ($user === null || $this->campaign->owner_id !== $user->id) {
             return 'none';
         }
 
@@ -187,7 +187,7 @@ class CampaignPreviouslyOn extends Component
             // NRE) observable — the flash alone would swallow both.
             report($e);
             logger()->error('previously_on.publish_failed', [
-                'campaign_id' => (string) $this->campaign->id,
+                'campaign_id' => $this->campaign->id,
                 'exception' => $e::class,
                 'error' => $e->getMessage(),
             ]);
@@ -241,7 +241,7 @@ class CampaignPreviouslyOn extends Component
             // swallow both (same discipline as publish()).
             report($e);
             logger()->error('previously_on.refresh_failed', [
-                'campaign_id' => (string) $this->campaign->id,
+                'campaign_id' => $this->campaign->id,
                 'exception' => $e::class,
                 'error' => $e->getMessage(),
             ]);

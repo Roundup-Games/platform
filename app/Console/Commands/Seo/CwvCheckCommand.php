@@ -50,7 +50,7 @@ class CwvCheckCommand extends Command
                 $url = "{$baseUrl}/{$locale}{$path}";
 
                 foreach ($strategies as $strategy) {
-                    $result = $psi->check($url, (string) $strategy);
+                    $result = $psi->check($url, $strategy);
 
                     if ($result === null) {
                         $this->components->twoColumnDetail("{$template} [{$locale}/{$strategy}]", 'FAILED (see log)');
@@ -59,9 +59,9 @@ class CwvCheckCommand extends Command
                     }
 
                     CwvMeasurement::create([
-                        'template' => (string) $template,
+                        'template' => $template,
                         'url' => $url,
-                        'strategy' => (string) $strategy,
+                        'strategy' => $strategy,
                         'performance_score' => $result['performance_score'],
                         'lcp_ms' => $result['lcp_ms'],
                         'inp_ms' => $result['inp_ms'],

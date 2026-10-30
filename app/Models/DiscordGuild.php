@@ -107,6 +107,6 @@ class DiscordGuild extends Model
      */
     public function getIsPausedAttribute(): bool
     {
-        return (bool) $this->paused;
+        return $this->paused;
     }
 }

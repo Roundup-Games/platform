@@ -29,7 +29,7 @@ class PruneDataExports extends Command
             return self::FAILURE;
         }
         assert($days !== null); // the --days signature default (7) guarantees a value
-        $dryRun = (bool) $this->option('dry-run');
+        $dryRun = $this->option('dry-run');
 
         $cutoff = now()->subDays($days);
         $disk = Storage::disk('local');

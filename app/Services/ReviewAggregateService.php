@@ -153,7 +153,7 @@ class ReviewAggregateService
 
         $result = [];
         foreach ($gmProfiles as $gmProfile) {
-            $frequency = $frequencies[(string) $gmProfile->id] ?? [];
+            $frequency = $frequencies[$gmProfile->id] ?? [];
             arsort($frequency);
 
             $result[$gmProfile->id] = collect(array_slice($frequency, 0, $limit, true))

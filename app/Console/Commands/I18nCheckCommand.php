@@ -173,8 +173,8 @@ class I18nCheckCommand extends Command
                     // literally (str_replace never fills it); a token here but
                     // not in the primary can never be filled by the call site,
                     // which passes params for the primary's tokens only.
-                    $primaryTokens = $this->placeholderTokens((string) ($primaryValues[$key] ?? ''));
-                    $localeTokens = $this->placeholderTokens((string) $localeValues[$key]);
+                    $primaryTokens = $this->placeholderTokens($primaryValues[$key] ?? '');
+                    $localeTokens = $this->placeholderTokens($localeValues[$key]);
                     $missingInLocale = array_diff($primaryTokens, $localeTokens);
                     $extraInLocale = array_diff($localeTokens, $primaryTokens);
 

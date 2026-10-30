@@ -36,7 +36,7 @@ class SendSessionReminders extends Command
     public function handle(): int
     {
         $notificationService = app(NotificationService::class);
-        $dryRun = (bool) $this->option('dry-run');
+        $dryRun = $this->option('dry-run');
         $startedAt = now();
 
         $this->info('Starting session reminder dispatch...');
@@ -124,7 +124,7 @@ class SendSessionReminders extends Command
                 // Get approved participants (excluding owner)
                 $approvedParticipants = $game->participants
                     ->where('status', 'approved')
-                    ->filter(fn ($p) => (string) $p->user_id !== (string) $game->owner_id);
+                    ->filter(fn ($p) => $p->user_id !== $game->owner_id);
 
                 foreach ($approvedParticipants as $participant) {
                     $user = $participant->user;

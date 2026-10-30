@@ -137,7 +137,7 @@ final class IndexNowService
         // never worth failing the queue over. 429/5xx: engines are busy.
         Log::warning('indexnow.rejected', [
             'status' => $response->status(),
-            'body' => mb_substr((string) $response->body(), 0, 200),
+            'body' => mb_substr($response->body(), 0, 200),
             'urls' => count($urls),
         ]);
 

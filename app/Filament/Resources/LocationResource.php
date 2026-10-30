@@ -300,7 +300,7 @@ class LocationResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Unverify Location')
                     ->modalDescription('This will remove the verified venue status and clear the venue type. Are you sure?')
-                    ->visible(fn (Location $record): bool => (bool) $record->is_verified)
+                    ->visible(fn (Location $record): bool => $record->is_verified)
                     ->action(function (Location $record) {
                         $record->update([
                             'is_verified' => false,

@@ -191,7 +191,7 @@ class DiscordInteractionController extends Controller
      */
     private function buildMenuContext(Game $game, User $user): DiscordRsvpMenuContext
     {
-        $isOwner = (string) $game->owner_id === (string) $user->id;
+        $isOwner = $game->owner_id === $user->id;
 
         // The clicker's participant row (if any), filtering to ACTIVE statuses.
         // Removed/Rejected are treated as "not on the roster" — the menu offers Join.
@@ -277,7 +277,7 @@ class DiscordInteractionController extends Controller
 
         $jobClass::dispatch(
             $gameId,
-            (string) $user->id,
+            $user->id,
             $guildId,
             $interactionToken,
         );

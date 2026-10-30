@@ -870,7 +870,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
     public function isDisabled(): bool
     {
-        return (bool) $this->is_disabled;
+        return $this->is_disabled;
     }
 
     public function isTeamCaptain(Team $team): bool

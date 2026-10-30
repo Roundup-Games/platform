@@ -441,8 +441,8 @@ class PreviouslyOnService
             }
 
             $bulletin = GameBulletin::postBy(
-                gameId: (string) $game->id,
-                userId: (string) $campaign->owner_id,
+                gameId: $game->id,
+                userId: $campaign->owner_id,
                 content: $locked->body,
                 expiresAt: $game->date_time?->copy()->addDays(7)->toDateTimeString(),
                 isPinned: false,

@@ -49,7 +49,7 @@ class DataRepair extends Command
 
     public function handle(): int
     {
-        $this->dryRun = (bool) $this->option('dry-run');
+        $this->dryRun = $this->option('dry-run');
         $singleRepair = $this->option('repair');
         $startedAt = now();
 

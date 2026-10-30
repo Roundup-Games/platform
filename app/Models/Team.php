@@ -198,7 +198,7 @@ class Team extends Model implements HasMedia
 
             // Founding date
             if ($this->founded_year !== null) {
-                $org->foundingDate((string) $this->founded_year);
+                $org->foundingDate($this->founded_year);
             }
 
             // SameAs social links

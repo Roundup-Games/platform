@@ -105,7 +105,7 @@ class EditGame extends EditRecord
             // umbrella's derived offered-systems cache when the edited game
             // is a hosted table, mirroring the CreateGame host-a-table flush.
             if ($record->event_id !== null) {
-                Event::flushOfferedSystemsCacheFor((string) $record->event_id);
+                Event::flushOfferedSystemsCacheFor($record->event_id);
             }
         }
 

@@ -74,14 +74,14 @@ class GamePolicy
 
         if ($game->visibility === Visibility::Protected) {
             return $user !== null
-                && ((string) $game->owner_id === (string) $user->id
+                && ($game->owner_id === $user->id
                     || ($game->owner !== null && $user->isFriendOrTeammate($game->owner))
                     || $game->participants()->whereBelongsTo($user)->exists());
         }
 
         // Private games require auth and ownership (or participation)
         return $user !== null
-            && ((string) $game->owner_id === (string) $user->id
+            && ($game->owner_id === $user->id
                 || $game->participants()->whereBelongsTo($user)->exists());
     }
 
@@ -91,7 +91,7 @@ class GamePolicy
      */
     public function create(User $user): bool
     {
-        return (bool) $user->profile_complete;
+        return $user->profile_complete;
     }
 
     /**
@@ -99,7 +99,7 @@ class GamePolicy
      */
     public function update(User $user, Game $game): bool
     {
-        if ((string) $game->owner_id === (string) $user->id) {
+        if ($game->owner_id === $user->id) {
             return true;
         }
 
@@ -111,7 +111,7 @@ class GamePolicy
      */
     public function delete(User $user, Game $game): bool
     {
-        if ((string) $game->owner_id === (string) $user->id) {
+        if ($game->owner_id === $user->id) {
             return true;
         }
 
@@ -127,7 +127,7 @@ class GamePolicy
      */
     public function manageShareToken(User $user, Game $game): bool
     {
-        return (string) $game->owner_id === (string) $user->id;
+        return $game->owner_id === $user->id;
     }
 
     /**
@@ -138,7 +138,7 @@ class GamePolicy
      */
     public function leave(User $user, Game $game): bool
     {
-        if ((string) $game->owner_id === (string) $user->id) {
+        if ($game->owner_id === $user->id) {
             return false;
         }
 
@@ -158,7 +158,7 @@ class GamePolicy
      */
     public function clone(User $user, Game $game): bool
     {
-        return (string) $game->owner_id === (string) $user->id;
+        return $game->owner_id === $user->id;
     }
 
     private function checkPermission(User $user, string $permission): bool

@@ -106,7 +106,7 @@ class CharterTemplateService
      */
     public static function delete(User $user, CharterTemplate $template): bool
     {
-        if ((string) $template->user_id !== (string) $user->id) {
+        if ($template->user_id !== $user->id) {
             throw new AuthorizationException('Only the template owner can delete a template.');
         }
 

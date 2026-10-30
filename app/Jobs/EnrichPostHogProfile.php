@@ -262,7 +262,7 @@ class EnrichPostHogProfile implements ShouldQueue
             // Reliability tier: read from the cached JSON column (no extra query).
             // data_get handles array/object/null shapes defensively.
             $tier = is_string(data_get($user->reliability_score, 'tier'))
-                ? (string) data_get($user->reliability_score, 'tier')
+                ? data_get($user->reliability_score, 'tier')
                 : null;
 
             return array_filter([
@@ -344,7 +344,7 @@ class EnrichPostHogProfile implements ShouldQueue
         }
 
         $posthog->identify([
-            'distinctId' => (string) $user->id,
+            'distinctId' => $user->id,
             'properties' => array_filter([
                 '$set' => $set,
                 '$set_once' => $setOnce,
@@ -377,7 +377,7 @@ class EnrichPostHogProfile implements ShouldQueue
                 ->get();
 
             foreach ($teams as $team) {
-                $posthog->groupIdentify('team', (string) $team->id, array_filter([
+                $posthog->groupIdentify('team', $team->id, array_filter([
                     'name' => $team->name,
                     'member_count' => $team->active_members_count,
                     'game_system' => $gameSystemName,

@@ -89,7 +89,7 @@ class ReportReview extends Component
                 return;
             }
 
-            $review->report((string) $reporter->id, $this->reason ?? '');
+            $review->report($reporter->id, $this->reason ?? '');
 
             Log::info('review.reported', [
                 'review_id' => $review->id,
@@ -152,8 +152,8 @@ class ReportReview extends Component
 
         $metadata = TicketPayloadRenderer::reviewReportPayload(
             reporter: $reporter,
-            reviewId: (string) $review->id,
-            reviewAuthorId: (string) $review->reviewer_id,
+            reviewId: $review->id,
+            reviewAuthorId: $review->reviewer_id,
             reviewAuthorName: $reviewAuthor->name ?? __('Unknown'),
             reason: $this->reason ?? 'other',
             details: $this->description,

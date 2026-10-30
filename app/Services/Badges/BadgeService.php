@@ -111,7 +111,7 @@ class BadgeService
         // The evidence pointer (morph alias + id per D170) is extracted the
         // same way every caller would extract it — through the award DTO.
         $award = BadgeAward::for($key, $tier, $evidence);
-        $userId = (string) $user->id;
+        $userId = $user->id;
 
         try {
             /** @var array{BadgeAwardResult::AlreadyHeld|BadgeAwardResult::RefusedRevoked, null}|array{BadgeAwardResult::Awarded, BadgeAwarded}|array{BadgeAwardResult::Upgraded, BadgeUpgraded} $outcome */
@@ -239,7 +239,7 @@ class BadgeService
             throw new InvalidArgumentException("Unknown badge key [{$key}] — is the registry synced? Run `php artisan badges:sync`.");
         }
 
-        $userId = (string) $user->id;
+        $userId = $user->id;
 
         /** @var array{0: bool, 1: BadgeRevoked|null} $outcome */
         $outcome = DB::transaction(function () use ($user, $definition, $reason, $actor, $userId): array {
@@ -442,7 +442,7 @@ class BadgeService
 
         $rank = array_search($tier, array_keys($ordered), true);
 
-        return $rank === false ? -1 : (int) $rank;
+        return $rank === false ? -1 : $rank;
     }
 
     /**

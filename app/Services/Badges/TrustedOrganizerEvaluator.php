@@ -226,7 +226,7 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
 
         foreach ($events as $event) {
             if ($event->status === EventStatus::Cancelled) {
-                $cancelledIds[] = (string) $event->id;
+                $cancelledIds[] = $event->id;
             }
         }
 
@@ -259,7 +259,7 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
         $eventIds = [];
 
         foreach ($events as $event) {
-            $eventIds[] = (string) $event->id;
+            $eventIds[] = $event->id;
         }
 
         /** @var Collection<int, string> $gameIds */

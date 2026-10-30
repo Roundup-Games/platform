@@ -40,7 +40,7 @@ trait TransformsLocaleSwitchWithoutValidation
         /** @var array<string, mixed> $rawState */
         $rawState = $this->form->getRawState();
 
-        $this->otherLocaleData[(string) $this->oldActiveLocale] = Arr::only(
+        $this->otherLocaleData[$this->oldActiveLocale] = Arr::only(
             $rawState,
             $translatableAttributes,
         );

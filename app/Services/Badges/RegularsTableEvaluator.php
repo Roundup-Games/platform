@@ -123,7 +123,7 @@ class RegularsTableEvaluator extends CohortSweepEvaluator
             // 00:30 local on the 1st belongs to the previous UTC month.
             // Deliberate — the streak is a storage-side invariant and
             // every recompute (sweep, backfill) must bucket identically.
-            [$year, $month] = explode('-', substr((string) $date, 0, 7));
+            [$year, $month] = explode('-', substr($date, 0, 7));
 
             $buckets[(int) $year * 12 + ((int) $month - 1)] = true;
         }

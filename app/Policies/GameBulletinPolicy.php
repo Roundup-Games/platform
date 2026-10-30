@@ -29,7 +29,7 @@ class GameBulletinPolicy
     private function isHostOrApprovedParticipant(User $user, Game $game): bool
     {
         // Game host
-        if ((string) $game->owner_id === (string) $user->id) {
+        if ($game->owner_id === $user->id) {
             return true;
         }
 
@@ -51,7 +51,7 @@ class GameBulletinPolicy
     public function create(User $user, Game $game): bool
     {
         if ($game->status === GameStatus::Scheduled) {
-            return (string) $game->owner_id === (string) $user->id;
+            return $game->owner_id === $user->id;
         }
 
         if ($game->status === GameStatus::Completed && $game->campaign_id === null) {
@@ -106,7 +106,7 @@ class GameBulletinPolicy
             return false;
         }
 
-        return (string) $game->owner_id === (string) $user->id;
+        return $game->owner_id === $user->id;
     }
 
     /**

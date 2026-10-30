@@ -380,7 +380,7 @@ class CityDirectoryService
 
         $summary = new CitySummary(
             slug: $slug,
-            city: (string) $city->city,
+            city: $city->city,
             country: $city->country,
             regionPrefix: (string) $city->region_prefix,
             geohashTiles: $this->nonEmptyStrings($locations->map(fn (Location $location): ?string => $location->geohash_4)),

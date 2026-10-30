@@ -59,7 +59,7 @@ class CharterAudit extends Component
         // (owner-only, R084; global admins pass via before()).
         abort_unless($user->can('manageCharter', $this->campaign), 403);
 
-        $this->campaignId = (string) $this->campaign->id;
+        $this->campaignId = $this->campaign->id;
 
         $this->charter = CharterService::charterFor($this->campaign);
 

@@ -62,7 +62,7 @@ trait HasParticipantDefaults
      */
     public function getId(): string
     {
-        return (string) $this->id;
+        return $this->id;
     }
 
     public function getUserId(): ?string

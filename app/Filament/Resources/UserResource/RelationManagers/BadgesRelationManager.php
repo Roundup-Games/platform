@@ -116,7 +116,7 @@ class BadgesRelationManager extends RelationManager
 
                         $revoked = app(BadgeService::class)->revoke(
                             $record->user,
-                            (string) $record->badgeDefinition->key,
+                            $record->badgeDefinition->key,
                             (string) $data['reason'],
                             auth()->user(),
                         );
