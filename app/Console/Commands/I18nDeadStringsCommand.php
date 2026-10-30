@@ -27,7 +27,7 @@ class I18nDeadStringsCommand extends Command
     public function handle(LangFileParser $parser): int
     {
         $primary = $parser->getPrimaryLocale();
-        $domains = $this->option('domain') ? [$this->option('domain')] : $parser->getAllDomains();
+        $domains = $this->option('domain') !== null ? [$this->option('domain')] : $parser->getAllDomains();
 
         $this->info('Scanning codebase for __() usage...');
         $usage = $parser->scanUsage();
@@ -38,7 +38,7 @@ class I18nDeadStringsCommand extends Command
         foreach ($domains as $domain) {
             $keys = $parser->getKeys($primary, $domain);
 
-            if (empty($keys)) {
+            if ($keys === []) {
                 continue;
             }
 
@@ -75,7 +75,7 @@ class I18nDeadStringsCommand extends Command
             $this->newLine();
         }
 
-        if (empty($deadKeys)) {
+        if ($deadKeys === []) {
             $this->info("✓ All {$totalKeys} translation keys are referenced in the codebase.");
 
             return 0;
@@ -301,7 +301,7 @@ class I18nDeadStringsCommand extends Command
             // Handles both single-line and multi-line array entries
             $pattern = "/^\s*'".preg_quote($key, '/')."'\s*=>\s*[^,]+,?\s*$/m";
 
-            if (preg_match($pattern, $content)) {
+            if (preg_match($pattern, $content) === 1) {
                 $replaced = preg_replace($pattern, '', $content);
                 if ($replaced !== null) {
                     $content = $replaced;

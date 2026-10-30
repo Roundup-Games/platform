@@ -23,7 +23,7 @@ class AdminUserDemoteCommand extends Command
         $email = $this->option('email') ?? $this->askForAdminEmail();
         $user = User::where('email', $email)->first();
 
-        if (! $user) {
+        if ($user === null) {
             $this->error("No user found with email '{$email}'.");
 
             return self::FAILURE;

@@ -129,7 +129,7 @@ class SendSessionReminders extends Command
                 foreach ($approvedParticipants as $participant) {
                     $user = $participant->user;
 
-                    if (! $user) {
+                    if ($user === null) {
                         continue;
                     }
 

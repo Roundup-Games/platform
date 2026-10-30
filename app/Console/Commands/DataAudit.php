@@ -55,10 +55,10 @@ class DataAudit extends Command
         $singleCheck = $this->option('check');
         $startedAt = now();
 
-        $checks = $singleCheck ? [$singleCheck] : self::CHECK_METHODS;
+        $checks = $singleCheck !== null ? [$singleCheck] : self::CHECK_METHODS;
 
         $unknownChecks = array_diff($checks, self::CHECK_METHODS);
-        if ($unknownChecks) {
+        if ($unknownChecks !== []) {
             $this->error('Unknown check(s): '.implode(', ', $unknownChecks));
             $this->line('Available: '.implode(', ', self::CHECK_METHODS));
 
@@ -228,7 +228,7 @@ class DataAudit extends Command
             'label' => 'Failed Jobs Backlog',
             'count' => $total,
             'severity' => $total > 10 ? 'error' : ($total > 0 ? 'warning' : 'ok'),
-            'detail' => "total: {$total}, stale(>24h): {$stale}".($breakdown ? " [{$breakdown}]" : ''),
+            'detail' => "total: {$total}, stale(>24h): {$stale}".($breakdown !== '' ? " [{$breakdown}]" : ''),
             'sample_ids' => [],
         ];
     }
@@ -421,7 +421,7 @@ class DataAudit extends Command
                     $r['label'],
                     $r['count'],
                     $r['severity'],
-                    $r['detail'].((isset($r['sample_ids']) && $r['sample_ids']) ? ' (sample: '.collect($r['sample_ids'])->filter(fn (mixed $v) => is_string($v) || is_int($v))->map(fn (mixed $v): string => (string) $v)->take(3)->join(', ').')' : ''),
+                    $r['detail'].((isset($r['sample_ids']) && $r['sample_ids'] !== []) ? ' (sample: '.collect($r['sample_ids'])->filter(fn (mixed $v) => is_string($v) || is_int($v))->map(fn (mixed $v): string => (string) $v)->take(3)->join(', ').')' : ''),
                 ])->toArray(),
         );
 

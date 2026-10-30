@@ -25,7 +25,7 @@ class GenerateFontUrl extends Command
         $this->info('Icons tracked in config/fonts.php: '.count($configIcons));
         $this->info('Icons found in codebase: '.count($usedIcons));
 
-        if (! empty($missing)) {
+        if ($missing !== []) {
             $this->warn("\nIcons used in code but missing from config (".count($missing).'):');
             foreach (array_values($missing) as $icon) {
                 $this->line("  - {$icon}");
@@ -36,14 +36,14 @@ class GenerateFontUrl extends Command
             }
         }
 
-        if (! empty($unused)) {
+        if ($unused !== []) {
             $this->comment("\nIcons in config but not found in code (".count($unused).'):');
             foreach (array_values($unused) as $icon) {
                 $this->line("  - {$icon}");
             }
         }
 
-        if (empty($missing) && empty($unused)) {
+        if ($missing === [] && $unused === []) {
             $this->info("\n✓ Icon inventory is in sync — no gaps or dead entries.");
         }
 
@@ -141,7 +141,7 @@ class GenerateFontUrl extends Command
             }
 
             // Find all icon method declarations
-            if (! preg_match_all('/function\s+(?:get)?[Ii]con\s*\([^)]*\)\s*(?::\s*\w+\s*)?\{/', $content, $matches, PREG_OFFSET_CAPTURE)) {
+            if (preg_match_all('/function\s+(?:get)?[Ii]con\s*\([^)]*\)\s*(?::\s*\w+\s*)?\{/', $content, $matches, PREG_OFFSET_CAPTURE) === 0) {
                 continue;
             }
 
@@ -152,14 +152,14 @@ class GenerateFontUrl extends Command
                 }
 
                 // Match return 'name' inside the method body
-                if (preg_match_all("/return\s+'([a-z_0-9]+)'/", $body, $returnMatches)) {
+                if (preg_match_all("/return\s+'([a-z_0-9]+)'/", $body, $returnMatches) > 0) {
                     foreach ($returnMatches[1] as $icon) {
                         $icons[$icon] = $icon;
                     }
                 }
 
                 // Match enum-style match arms: self::X => 'name'
-                if (preg_match_all("/self::\w+\s*=>\s*'([a-z_0-9]+)'/", $body, $armMatches)) {
+                if (preg_match_all("/self::\w+\s*=>\s*'([a-z_0-9]+)'/", $body, $armMatches) > 0) {
                     foreach ($armMatches[1] as $icon) {
                         $icons[$icon] = $icon;
                     }
@@ -247,7 +247,7 @@ class GenerateFontUrl extends Command
             }
 
             // Find all material-symbols-outlined span blocks (may be multi-line)
-            if (! preg_match_all('/material-symbols-outlined[^>]*>.*?<\/span>/s', $content, $blocks)) {
+            if (preg_match_all('/material-symbols-outlined[^>]*>.*?<\/span>/s', $content, $blocks) === 0) {
                 continue;
             }
 
@@ -257,7 +257,7 @@ class GenerateFontUrl extends Command
                 // We want strings on the result side of ternaries, not in conditions.
                 // The safest approach: match the specific pattern of a quoted string
                 // immediately after ? or : in a ternary within {{ }}
-                if (! preg_match_all('/\{\{!?((?:[^{}]|\{[^{}]*\})*)\}\}/s', $block, $echoes)) {
+                if (preg_match_all('/\{\{!?((?:[^{}]|\{[^{}]*\})*)\}\}/s', $block, $echoes) === 0) {
                     continue;
                 }
 
@@ -270,12 +270,12 @@ class GenerateFontUrl extends Command
                     // Match result-side strings: after ? (before :) and after :
                     // Pattern: ? 'icon_a' ... : 'icon_b'
                     // This captures strings that are the immediate result of a ternary
-                    if (preg_match_all("/\?\s*'([a-z_0-9]+)'/", $echo, $trueMatches)) {
+                    if (preg_match_all("/\?\s*'([a-z_0-9]+)'/", $echo, $trueMatches) > 0) {
                         foreach ($trueMatches[1] as $icon) {
                             $icons[$icon] = $icon;
                         }
                     }
-                    if (preg_match_all("/:\s*'([a-z_0-9]+)'/", $echo, $falseMatches)) {
+                    if (preg_match_all("/:\s*'([a-z_0-9]+)'/", $echo, $falseMatches) > 0) {
                         foreach ($falseMatches[1] as $icon) {
                             $icons[$icon] = $icon;
                         }
@@ -302,7 +302,7 @@ class GenerateFontUrl extends Command
             if (! ($file instanceof \SplFileInfo)) {
                 continue;
             }
-            if (! preg_match($filePattern, $file->getFilename())) {
+            if (preg_match($filePattern, $file->getFilename()) === 0) {
                 continue;
             }
 
@@ -310,7 +310,7 @@ class GenerateFontUrl extends Command
             if ($content === false) {
                 continue;
             }
-            if (preg_match_all($matchPattern, $content, $matches)) {
+            if (preg_match_all($matchPattern, $content, $matches) > 0) {
                 foreach ($matches as $group) {
                     foreach ($group as $icon) {
                         $icons[$icon] = $icon;

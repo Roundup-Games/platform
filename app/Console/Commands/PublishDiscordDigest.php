@@ -73,7 +73,7 @@ class PublishDiscordDigest extends Command
             // Single-guild targeted run — bypass the postable filter so an
             // operator can force a re-run; the publisher still gates the guild.
             $guild = DiscordGuild::find($targetGuildId);
-            if (! $guild) {
+            if ($guild === null) {
                 $this->error("Guild {$targetGuildId} not found.");
 
                 return self::FAILURE;

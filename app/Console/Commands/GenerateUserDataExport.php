@@ -67,7 +67,7 @@ class GenerateUserDataExport extends Command
         /** @var User|null $user */
         $user = User::where('id', $userUuid)->first();
 
-        if (! $user) {
+        if ($user === null) {
             $this->error("User with UUID [{$userUuid}] not found.");
 
             return self::FAILURE;
@@ -390,8 +390,8 @@ class GenerateUserDataExport extends Command
                     'status' => $team->pivot?->status,
                     'jersey_number' => $team->pivot?->jersey_number,
                     'position' => $team->pivot?->position,
-                    'joined_at' => $team->pivot?->joined_at ? Carbon::parse($team->pivot->joined_at)->toIso8601String() : null,
-                    'left_at' => $team->pivot?->left_at ? Carbon::parse($team->pivot->left_at)->toIso8601String() : null,
+                    'joined_at' => $team->pivot?->joined_at !== null ? Carbon::parse($team->pivot->joined_at)->toIso8601String() : null,
+                    'left_at' => $team->pivot?->left_at !== null ? Carbon::parse($team->pivot->left_at)->toIso8601String() : null,
                 ],
             ],
         )->toArray();
@@ -469,7 +469,9 @@ class GenerateUserDataExport extends Command
             fclose($handle);
         }
 
-        return hash_file('sha256', $path) ?: '';
+        $hash = hash_file('sha256', $path);
+
+        return $hash === false ? '' : $hash;
     }
 
     /**
@@ -484,7 +486,7 @@ class GenerateUserDataExport extends Command
                 // Only export the push service hostname, not the full endpoint URL.
                 // The endpoint contains a bearer token that could be abused to
                 // send unauthorized push notifications if the export is intercepted.
-                'push_service_host' => $sub->endpoint ? parse_url($sub->endpoint, PHP_URL_HOST) : null,
+                'push_service_host' => $sub->endpoint !== '' ? parse_url($sub->endpoint, PHP_URL_HOST) : null,
                 'created_at' => $sub->created_at?->toIso8601String(),
                 'updated_at' => $sub->updated_at?->toIso8601String(),
             ])
@@ -589,7 +591,9 @@ class GenerateUserDataExport extends Command
         $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         File::put($path, $json !== false ? $json : '{}');
 
-        return hash_file('sha256', $path) ?: '';
+        $hash = hash_file('sha256', $path);
+
+        return $hash === false ? '' : $hash;
     }
 
     protected function createZipArchive(string $sourceDir, User $user): string

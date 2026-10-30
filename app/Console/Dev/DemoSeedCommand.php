@@ -572,16 +572,17 @@ class DemoSeedCommand extends Command
         $this->boardGamePool = [];
         foreach ($boardSlugs as $slug => $meta) {
             $gs = $boardRecords->get($slug);
-            if (! $gs) {
+            if ($gs === null) {
                 $missingBoard[] = $slug;
 
                 continue;
             }
 
-            $name = $gs->getTranslation('name', 'en') ?: $slug;
+            $name = $gs->getTranslation('name', 'en');
+            $name = is_string($name) && $name !== '' ? $name : $slug;
             $entry = [
                 'id' => $gs->id,
-                'name' => is_string($name) ? $name : $slug,
+                'name' => $name,
                 'min' => $gs->min_players ?? $meta['min'],
                 'max' => $gs->max_players ?? $meta['max'],
                 'dur' => $gs->average_play_time ?? $meta['dur'],
@@ -599,16 +600,17 @@ class DemoSeedCommand extends Command
         $this->ttrpgPool = [];
         foreach ($ttrpgSlugs as $slug => $meta) {
             $gs = $ttrpgRecords->get($slug);
-            if (! $gs) {
+            if ($gs === null) {
                 $missingTtrpg[] = $slug;
 
                 continue;
             }
 
-            $name = $gs->getTranslation('name', 'en') ?: $slug;
+            $name = $gs->getTranslation('name', 'en');
+            $name = is_string($name) && $name !== '' ? $name : $slug;
             $entry = [
                 'id' => $gs->id,
-                'name' => is_string($name) ? $name : $slug,
+                'name' => $name,
                 'min' => $gs->min_players ?? $meta['min'],
                 'max' => $gs->max_players ?? $meta['max'],
                 'w' => $meta['w'],
@@ -626,14 +628,14 @@ class DemoSeedCommand extends Command
             .$resolvedTtrpg.' TTRPG (pools: '
             .count($this->boardGamePool).' / '.count($this->ttrpgPool).' weighted)');
 
-        if (! empty($missingBoard)) {
+        if ($missingBoard !== []) {
             $this->warn('Board game slugs not found in DB (skipped): '.implode(', ', $missingBoard));
         }
-        if (! empty($missingTtrpg)) {
+        if ($missingTtrpg !== []) {
             $this->warn('TTRPG slugs not found in DB (skipped): '.implode(', ', $missingTtrpg));
         }
 
-        if (empty($this->boardGamePool) || empty($this->ttrpgPool)) {
+        if ($this->boardGamePool === [] || $this->ttrpgPool === []) {
             // Fail explicitly instead of crashing later with array_rand([]) mid-
             // campaign generation — a partially seeded DB (one type present) is
             // the realistic case and used to surface as an opaque TypeError.
@@ -641,8 +643,8 @@ class DemoSeedCommand extends Command
                 'Game system pool empty (board resolved: %d, ttrpg resolved: %d). demo:seed needs game_systems rows for its slugs — run bgg:seed-top500 / the TTRPG seeder first. Missing board slugs: %s. Missing ttrpg slugs: %s',
                 $resolvedBoard,
                 $resolvedTtrpg,
-                implode(', ', $missingBoard) ?: 'none',
-                implode(', ', $missingTtrpg) ?: 'none',
+                implode(', ', $missingBoard !== [] ? $missingBoard : ['none']),
+                implode(', ', $missingTtrpg !== [] ? $missingTtrpg : ['none']),
             ));
 
             return false;
@@ -936,7 +938,7 @@ class DemoSeedCommand extends Command
 
         foreach ($cityCounts as $city => $count) {
             $locs = $this->locationsByCity[$city] ?? [];
-            if (empty($locs)) {
+            if ($locs === []) {
                 continue;
             }
 
@@ -973,7 +975,7 @@ class DemoSeedCommand extends Command
                     'bio' => 'Gaming enthusiast based in '.$city.'. '.self::MARKER,
                     'pronouns' => $userPronouns,
                     'location_id' => $locs[array_rand($locs)],
-                    'preferred_language' => mt_rand(0, 1) ? 'de' : 'en',
+                    'preferred_language' => mt_rand(0, 1) === 1 ? 'de' : 'en',
                     'profile_complete' => true,
                     'profile_version' => 1,
                     'profile_updated_at' => now(),
@@ -1000,7 +1002,7 @@ class DemoSeedCommand extends Command
             }
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('users', $batch);
             foreach ($batch as $row) {
                 $this->allUserIds[] = $row['id'];
@@ -1028,7 +1030,7 @@ class DemoSeedCommand extends Command
 
         // Spatie role assignment (batch)
         $role = DB::table('roles')->where('name', 'Game Master')->first();
-        if ($role) {
+        if ($role !== null) {
             $rows = array_map(fn ($uid) => [
                 'role_id' => $role->id,
                 'model_type' => (new User)->getMorphClass(),
@@ -1090,7 +1092,7 @@ class DemoSeedCommand extends Command
             }
             $bar->advance();
         }
-        if (! empty($gmProfileBatch)) {
+        if ($gmProfileBatch !== []) {
             $this->dryInsertMany('gm_profiles', $gmProfileBatch);
         }
         $bar->finish();
@@ -1103,7 +1105,7 @@ class DemoSeedCommand extends Command
         } catch (\Throwable $e) {
             // Table may not exist or metadata column not json — handled below
         }
-        if ($gmPlan) {
+        if ($gmPlan !== null) {
             $subIds = $gmUserIds;
             shuffle($subIds);
             $subIds = array_slice($subIds, 0, $this->totalSubscribers);
@@ -1146,9 +1148,9 @@ class DemoSeedCommand extends Command
         // Fallback: query DB (real mode only, for any user not in map)
         if (! $this->dryRun) {
             $user = User::find($userId);
-            if ($user?->location_id) {
+            if ($user?->location_id !== null) {
                 $loc = Location::find($user->location_id);
-                if ($loc) {
+                if ($loc !== null) {
                     $this->warn("cityForUser fallback hit for {$userId} — map may be incomplete.");
 
                     return $this->userCityMap[$userId] = $loc->city ?? 'Berlin';
@@ -1180,7 +1182,7 @@ class DemoSeedCommand extends Command
         $flushEvery = 200; // Flush every N rows to keep memory bounded
 
         $flush = function () use (&$insertRows, &$total): void {
-            if (empty($insertRows)) {
+            if ($insertRows === []) {
                 return;
             }
             if ($this->dryRun) {
@@ -1367,7 +1369,7 @@ class DemoSeedCommand extends Command
     private function randomKeys(array $arr, int $count): array
     {
         $count = min($count, count($arr));
-        if ($count <= 0 || empty($arr)) {
+        if ($count <= 0 || $arr === []) {
             return [];
         }
 
@@ -1436,7 +1438,7 @@ class DemoSeedCommand extends Command
     {
         $this->newLine();
         $this->info('Creating completed board game sessions...');
-        if (empty($this->boardGamePool)) {
+        if ($this->boardGamePool === []) {
             $this->warn('No board game systems in pool. Skipping.');
 
             return;
@@ -1632,7 +1634,7 @@ class DemoSeedCommand extends Command
                     $gameBatch = [];
                     $this->dryInsertMany('game_participants', $participantBatch);
                     $participantBatch = [];
-                    if (! empty($applicationBatch)) {
+                    if ($applicationBatch !== []) {
                         $this->dryInsertMany('game_applications', $applicationBatch);
                         $applicationBatch = [];
                     }
@@ -1666,13 +1668,13 @@ class DemoSeedCommand extends Command
         }
 
         // Flush remaining batches
-        if (! empty($gameBatch)) {
+        if ($gameBatch !== []) {
             $this->dryInsertMany('games', $gameBatch);
         }
-        if (! empty($participantBatch)) {
+        if ($participantBatch !== []) {
             $this->dryInsertMany('game_participants', $participantBatch);
         }
-        if (! empty($applicationBatch)) {
+        if ($applicationBatch !== []) {
             $this->dryInsertMany('game_applications', $applicationBatch);
         }
 
@@ -1699,7 +1701,7 @@ class DemoSeedCommand extends Command
 
         foreach ($this->completedGames as $game) {
             $gmProfileId = $this->gmProfileIds[$game['owner_id']] ?? null;
-            if (! $gmProfileId) {
+            if ($gmProfileId === null) {
                 $bar->advance();
 
                 continue;
@@ -1710,7 +1712,7 @@ class DemoSeedCommand extends Command
                 fn ($pid) => $pid !== $game['owner_id']
             ));
 
-            if (empty($participants)) {
+            if ($participants === []) {
                 $bar->advance();
 
                 continue;
@@ -1720,7 +1722,7 @@ class DemoSeedCommand extends Command
             $reviewerCount = max(1, (int) (count($participants) * $reviewRate));
             $reviewerKeys = $this->randomKeys($participants, min($reviewerCount, count($participants)));
 
-            $isSessionZero = ! empty($game['is_session_zero']);
+            $isSessionZero = $game['is_session_zero'] === true;
             $reviewBodies = $isSessionZero
                 ? self::SESSION_ZERO_REVIEW_BODIES[$game['language']]
                 : self::REVIEW_BODIES[$game['language']];
@@ -1764,7 +1766,7 @@ class DemoSeedCommand extends Command
             $bar->advance();
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('reviews', $batch);
         }
 
@@ -1779,7 +1781,7 @@ class DemoSeedCommand extends Command
 
     private function createCampaignReviews(): void
     {
-        if (empty($this->completedCampaignsForReview)) {
+        if ($this->completedCampaignsForReview === []) {
             return;
         }
 
@@ -1796,14 +1798,14 @@ class DemoSeedCommand extends Command
 
         foreach ($this->completedCampaignsForReview as $campaign) {
             $gmProfileId = $this->gmProfileIds[$campaign['owner_id']] ?? null;
-            if (! $gmProfileId) {
+            if ($gmProfileId === null) {
                 $bar->advance();
 
                 continue;
             }
 
             $participants = $campaign['participant_ids'];
-            if (empty($participants)) {
+            if ($participants === []) {
                 $bar->advance();
 
                 continue;
@@ -1876,7 +1878,7 @@ class DemoSeedCommand extends Command
             $bar->advance();
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('reviews', $batch);
         }
 
@@ -1893,7 +1895,7 @@ class DemoSeedCommand extends Command
     {
         $this->newLine();
         $this->info('Creating campaigns...');
-        if (empty($this->ttrpgPool) && empty($this->boardGamePool)) {
+        if ($this->ttrpgPool === [] && $this->boardGamePool === []) {
             $this->warn('No TTRPG or board game systems in pool. Skipping campaigns.');
 
             return;
@@ -1931,27 +1933,27 @@ class DemoSeedCommand extends Command
             &$campaignBatch, &$campaignParticipantBatch, &$campaignApplicationBatch,
             &$gameBatch, &$gameParticipantBatch, &$gameApplicationBatch,
         ): void {
-            if (! empty($campaignBatch)) {
+            if ($campaignBatch !== []) {
                 $this->dryInsertMany('campaigns', $campaignBatch);
                 $campaignBatch = [];
             }
-            if (! empty($campaignParticipantBatch)) {
+            if ($campaignParticipantBatch !== []) {
                 $this->dryInsertMany('campaign_participants', $campaignParticipantBatch);
                 $campaignParticipantBatch = [];
             }
-            if (! empty($campaignApplicationBatch)) {
+            if ($campaignApplicationBatch !== []) {
                 $this->dryInsertMany('campaign_applications', $campaignApplicationBatch);
                 $campaignApplicationBatch = [];
             }
-            if (! empty($gameBatch)) {
+            if ($gameBatch !== []) {
                 $this->dryInsertMany('games', $gameBatch);
                 $gameBatch = [];
             }
-            if (! empty($gameParticipantBatch)) {
+            if ($gameParticipantBatch !== []) {
                 $this->dryInsertMany('game_participants', $gameParticipantBatch);
                 $gameParticipantBatch = [];
             }
-            if (! empty($gameApplicationBatch)) {
+            if ($gameApplicationBatch !== []) {
                 $this->dryInsertMany('game_applications', $gameApplicationBatch);
                 $gameApplicationBatch = [];
             }
@@ -1965,7 +1967,7 @@ class DemoSeedCommand extends Command
             for ($c = 0; $c < $campaignCount; $c++) {
                 // ── Campaign type: ~20% Gathering (multi-system board game
                 // night) when board systems are available, else TTRPG. ──
-                $isGathering = ! empty($this->boardGamePool) && mt_rand() / mt_getrandmax() < 0.20;
+                $isGathering = $this->boardGamePool !== [] && mt_rand() / mt_getrandmax() < 0.20;
                 $gameType = $isGathering ? GameType::Gathering : GameType::Ttrpg;
 
                 if ($isGathering) {
@@ -2328,7 +2330,7 @@ class DemoSeedCommand extends Command
                 // zero), each later one more recent (towards now). Without this,
                 // independent random values left "Session 3" older than
                 // "Session 2", jumbling the detail page's chronological sort.
-                $maxDaysAgo = max(3, ($szDate ? $szDate->diffInDays(now()) : 21) - 1);
+                $maxDaysAgo = max(3, ($szDate !== null ? $szDate->diffInDays(now()) : 21) - 1);
                 $pastDaysAgoSequence = [];
                 for ($i = 0; $i < $pastSessionCount; $i++) {
                     $pastDaysAgoSequence[] = random_int(3, (int) $maxDaysAgo);
@@ -2639,7 +2641,7 @@ class DemoSeedCommand extends Command
                         $gameBatch = [];
                         $this->dryInsertMany('game_participants', $gameParticipantBatch);
                         $gameParticipantBatch = [];
-                        if (! empty($gameApplicationBatch)) {
+                        if ($gameApplicationBatch !== []) {
                             $this->dryInsertMany('game_applications', $gameApplicationBatch);
                             $gameApplicationBatch = [];
                         }
@@ -3070,7 +3072,7 @@ class DemoSeedCommand extends Command
     {
         $this->newLine();
         $this->info('Creating scheduled (future) board game sessions...');
-        if (empty($this->boardGamePool)) {
+        if ($this->boardGamePool === []) {
             $this->warn('No board game systems in pool. Skipping.');
 
             return;
@@ -3231,7 +3233,7 @@ class DemoSeedCommand extends Command
                     $gameBatch = [];
                     $this->dryInsertMany('game_participants', $participantBatch);
                     $participantBatch = [];
-                    if (! empty($applicationBatch)) {
+                    if ($applicationBatch !== []) {
                         $this->dryInsertMany('game_applications', $applicationBatch);
                         $applicationBatch = [];
                     }
@@ -3248,13 +3250,13 @@ class DemoSeedCommand extends Command
             $bar->advance();
         }
 
-        if (! empty($gameBatch)) {
+        if ($gameBatch !== []) {
             $this->dryInsertMany('games', $gameBatch);
         }
-        if (! empty($participantBatch)) {
+        if ($participantBatch !== []) {
             $this->dryInsertMany('game_participants', $participantBatch);
         }
-        if (! empty($applicationBatch)) {
+        if ($applicationBatch !== []) {
             $this->dryInsertMany('game_applications', $applicationBatch);
         }
 
@@ -3273,7 +3275,7 @@ class DemoSeedCommand extends Command
         $this->info('Seeding user preferences...');
 
         $allSystemIds = array_merge($this->resolvedBoardIds, $this->resolvedTtrpgIds);
-        if (empty($allSystemIds)) {
+        if ($allSystemIds === []) {
             $this->warn('No game systems resolved. Skipping preferences.');
 
             return;
@@ -3361,12 +3363,12 @@ class DemoSeedCommand extends Command
                 }
             }
 
-            if (! empty($batchSystem)) {
+            if ($batchSystem !== []) {
                 $this->dryInsertMany('user_game_system_preferences', $batchSystem);
                 $totalSystem += count($batchSystem);
                 $batchSystem = [];
             }
-            if (! empty($batchVibe)) {
+            if ($batchVibe !== []) {
                 $this->dryInsertMany('user_vibe_preferences', $batchVibe);
                 $totalVibe += count($batchVibe);
                 $batchVibe = [];
@@ -3391,10 +3393,10 @@ class DemoSeedCommand extends Command
 
         // Platforms from config — only use platforms that exist and don't require instance
         $platforms = config('platforms', []);
-        $availablePlatforms = array_filter(is_array($platforms) ? $platforms : [], fn ($p) => is_array($p) && empty($p['instance_required']));
+        $availablePlatforms = array_filter(is_array($platforms) ? $platforms : [], fn ($p) => is_array($p) && ($p['instance_required'] ?? null) !== true);
         $platformKeys = array_keys($availablePlatforms);
 
-        if (empty($platformKeys)) {
+        if ($platformKeys === []) {
             $this->warn('No platforms configured. Skipping GM social links.');
 
             return;
@@ -3420,7 +3422,7 @@ class DemoSeedCommand extends Command
 
                 // Generate URL from config template
                 $urlTemplate = is_string($availablePlatforms[$platform]['url_template'] ?? null) ? $availablePlatforms[$platform]['url_template'] : null;
-                $url = $urlTemplate ? str_replace('{handle}', $handle, $urlTemplate) : null;
+                $url = $urlTemplate !== null && $urlTemplate !== '' ? str_replace('{handle}', $handle, $urlTemplate) : null;
 
                 $batch[] = [
                     'id' => (string) Str::uuid7(),
@@ -3442,7 +3444,7 @@ class DemoSeedCommand extends Command
             $bar->advance();
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('gm_social_links', $batch);
         }
 
@@ -3553,7 +3555,7 @@ class DemoSeedCommand extends Command
             }
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('short_links', $batch);
             $total += count($batch);
         }
@@ -3571,7 +3573,7 @@ class DemoSeedCommand extends Command
      */
     private function assignShortLinkAttribution(): void
     {
-        if ($this->dryRun || empty($this->allUserIds)) {
+        if ($this->dryRun || $this->allUserIds === []) {
             return;
         }
 
@@ -3632,7 +3634,7 @@ class DemoSeedCommand extends Command
         $this->info('Updating GM profile aggregates...');
         $profileIds = array_values($this->gmProfileIds);
 
-        if (empty($profileIds)) {
+        if ($profileIds === []) {
             return;
         }
 
@@ -3654,8 +3656,8 @@ class DemoSeedCommand extends Command
             $bindings = [];
             foreach ($chunk as $profileId) {
                 $s = $stats->get($profileId);
-                $avgRating = $s ? $s->avg : null;
-                $cnt = $s ? (int) $s->cnt : 0;
+                $avgRating = $s !== null ? $s->avg : null;
+                $cnt = $s !== null ? (int) $s->cnt : 0;
                 $rows[] = '(?::uuid, ?::numeric, ?::integer)';
                 $bindings[] = $profileId;
                 $bindings[] = $avgRating;
@@ -3734,7 +3736,7 @@ class DemoSeedCommand extends Command
             }
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('notifications', $batch);
             $total += count($batch);
         }
@@ -3748,7 +3750,7 @@ class DemoSeedCommand extends Command
 
     private function createAttendanceReports(): void
     {
-        if (empty($this->attendanceReportQueue)) {
+        if ($this->attendanceReportQueue === []) {
             return;
         }
 
@@ -3788,7 +3790,7 @@ class DemoSeedCommand extends Command
             $bar->advance();
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('attendance_reports', $batch);
         }
 
@@ -3803,7 +3805,7 @@ class DemoSeedCommand extends Command
 
     private function createSessionDebriefings(): void
     {
-        if (empty($this->completedGames)) {
+        if ($this->completedGames === []) {
             return;
         }
 
@@ -3830,7 +3832,7 @@ class DemoSeedCommand extends Command
                 fn ($pid) => $pid !== $game['owner_id']
             ));
 
-            if (empty($participants)) {
+            if ($participants === []) {
                 $bar->advance();
 
                 continue;
@@ -3882,7 +3884,7 @@ class DemoSeedCommand extends Command
             $bar->advance();
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('session_debriefings', $batch);
         }
 
@@ -3997,7 +3999,7 @@ class DemoSeedCommand extends Command
             $bar->advance();
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('activity_logs', $batch);
         }
 
@@ -4070,7 +4072,7 @@ class DemoSeedCommand extends Command
             }
         }
 
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $this->dryInsertMany('linked_accounts', $batch);
         }
 
@@ -4160,12 +4162,16 @@ class DemoSeedCommand extends Command
     private function buildLocationJson(?string $locationId): string
     {
         if ($locationId === null) {
-            return json_encode(['type' => 'online', 'details' => '']) ?: '{}';
+            $json = json_encode(['type' => 'online', 'details' => '']);
+
+            return $json === false ? '{}' : $json;
         }
 
         // In dry-run mode, we don't have the actual location in DB — use a stub
         if ($this->dryRun) {
-            return json_encode(['type' => 'physical', 'location_id' => $locationId]) ?: '{}';
+            $json = json_encode(['type' => 'physical', 'location_id' => $locationId]);
+
+            return $json === false ? '{}' : $json;
         }
 
         if (! isset($this->locationCache[$locationId])) {
@@ -4173,16 +4179,20 @@ class DemoSeedCommand extends Command
         }
         $loc = $this->locationCache[$locationId];
 
-        if ($loc) {
-            return json_encode([
+        if ($loc !== null) {
+            $json = json_encode([
                 'type' => 'physical',
                 'address' => trim(($loc->address ?? '').', '.($loc->postal_code ?? '').' '.($loc->city ?? '')),
                 'lat' => (float) $loc->latitude,
                 'lng' => (float) $loc->longitude,
-            ]) ?: '{}';
+            ]);
+
+            return $json === false ? '{}' : $json;
         }
 
-        return json_encode(['type' => 'physical', 'location_id' => $locationId]) ?: '{}';
+        $json = json_encode(['type' => 'physical', 'location_id' => $locationId]);
+
+        return $json === false ? '{}' : $json;
     }
 
     /**

@@ -48,7 +48,7 @@ class SyncCloudflareCacheRules extends Command
             return self::SUCCESS;
         }
 
-        if (! $zoneId || ! $apiToken) {
+        if ($zoneId === null || $zoneId === '' || $apiToken === null || $apiToken === '') {
             $this->error('Missing Cloudflare credentials. Set CF_ZONE_ID and CF_API_TOKEN in .env');
             $this->line('');
             $this->line('The API token needs these permissions:');
@@ -178,15 +178,15 @@ class SyncCloudflareCacheRules extends Command
             $firstSegment = $segments[0];
 
             // Root-level parameter like {locale}/{id} — just a locale path
-            if ($firstSegment && preg_match('/^\{.*\}$/', $firstSegment)) {
+            if ($firstSegment !== '' && preg_match('/^\{.*\}$/', $firstSegment) === 1) {
                 continue;
             }
 
             foreach ($locales as $locale) {
-                if ($hasParams && $firstSegment) {
+                if ($hasParams && $firstSegment !== '') {
                     // Dynamic route: use prefix match
                     $prefixPaths["/{$locale}/{$firstSegment}"] = true;
-                } elseif ($firstSegment) {
+                } elseif ($firstSegment !== '') {
                     // Static route: exact match
                     $exactPaths["/{$locale}/{$firstSegment}"] = true;
                 }
@@ -204,9 +204,9 @@ class SyncCloudflareCacheRules extends Command
      */
     protected function isAuthGated(array $middleware): bool
     {
-        return ! empty(array_intersect($middleware, [
+        return array_intersect($middleware, [
             'auth', 'auth:api', 'verified', 'profile.complete', 'auth.session',
-        ]));
+        ]) !== [];
     }
 
     protected function isSkippable(string $name): bool
@@ -442,7 +442,7 @@ class CloudflareClient
             throw new \RuntimeException("Cloudflare API error ({$context}): {$msg}{$hint}");
         }
 
-        if (! $response->json('success', false)) {
+        if ($response->json('success', false) !== true) {
             $errors = $response->json('errors', []);
             $errors = is_array($errors) ? $errors : [];
             $first = is_array($errors[0] ?? null) ? $errors[0] : [];

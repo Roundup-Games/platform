@@ -22,7 +22,7 @@ class AdminUserEnableCommand extends Command
         $email = $this->option('email') ?? $this->askForDisabledUserEmail();
         $user = User::where('email', $email)->first();
 
-        if (! $user) {
+        if ($user === null) {
             $this->error("No user found with email '{$email}'.");
 
             return self::FAILURE;

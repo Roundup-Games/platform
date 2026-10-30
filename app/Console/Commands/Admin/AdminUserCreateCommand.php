@@ -33,7 +33,7 @@ class AdminUserCreateCommand extends Command
             label: 'Email address',
             required: true,
             validate: fn (string $value): ?string => match (true) {
-                ! filter_var($value, FILTER_VALIDATE_EMAIL) => 'Please enter a valid email address.',
+                filter_var($value, FILTER_VALIDATE_EMAIL) === false => 'Please enter a valid email address.',
                 User::where('email', $value)->exists() => 'A user with this email already exists.',
                 default => null,
             },

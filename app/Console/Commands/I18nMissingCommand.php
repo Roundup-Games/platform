@@ -29,7 +29,7 @@ class I18nMissingCommand extends Command
     {
         $entries = $collector->getAccumulated();
 
-        if (empty($entries)) {
+        if ($entries === []) {
             $this->info('✓ No missing translation keys recorded.');
             $this->line('');
             $this->line('This checks runtime accumulation from the TrackingTranslator.');
@@ -87,7 +87,7 @@ class I18nMissingCommand extends Command
         }
 
         // Display confirmed missing
-        if (! empty($confirmedMissing)) {
+        if ($confirmedMissing !== []) {
             $this->warn('Missing translation keys (referenced in code, not in lang files):');
             $this->newLine();
 
@@ -104,7 +104,7 @@ class I18nMissingCommand extends Command
         }
 
         // Display false positives
-        if (! empty($falsePositives)) {
+        if ($falsePositives !== []) {
             $this->newLine();
             $this->line('  <fg=yellow>⚠</> Skipped '.count($falsePositives).' false positive(s):');
 

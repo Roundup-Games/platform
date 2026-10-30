@@ -33,10 +33,10 @@ class I18nCheckCommand extends Command
     public function handle(LangFileParser $parser): int
     {
         $primary = $parser->getPrimaryLocale();
-        $locales = $this->option('locale') ? [$this->option('locale')] : array_filter($parser->getLocales(), fn (mixed $l) => is_string($l) && $l !== $primary);
-        $targetDomains = $this->option('domain') ? [$this->option('domain')] : $parser->getAllDomains();
+        $locales = $this->option('locale') !== null ? [$this->option('locale')] : array_filter($parser->getLocales(), fn (mixed $l) => is_string($l) && $l !== $primary);
+        $targetDomains = $this->option('domain') !== null ? [$this->option('domain')] : $parser->getAllDomains();
 
-        if (empty($locales)) {
+        if ($locales === []) {
             $this->warn("No non-primary locales configured. Only '{$primary}' found.");
 
             return 0;
@@ -48,12 +48,12 @@ class I18nCheckCommand extends Command
             $json = json_encode($issues, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             $this->line($json !== false ? $json : '{}');
 
-            return empty($issues) ? 0 : 1;
+            return $issues === [] ? 0 : 1;
         }
 
         $this->displayResults($issues, $primary);
 
-        return empty($issues) ? 0 : 1;
+        return $issues === [] ? 0 : 1;
     }
 
     /**
@@ -91,7 +91,7 @@ class I18nCheckCommand extends Command
             $primaryKeys = $parser->getKeys($primary, $domain);
             $primaryValues = $parser->parseDomain($primary, $domain);
 
-            if (empty($primaryKeys)) {
+            if ($primaryKeys === []) {
                 continue;
             }
 
@@ -112,7 +112,7 @@ class I18nCheckCommand extends Command
             if (! $this->option('no-convention')) {
                 foreach ($primaryKeys as $key) {
                     $violations = $parser->validateKeyConvention($key, $domain);
-                    if (! empty($violations)) {
+                    if ($violations !== []) {
                         $issues[] = [
                             'type' => 'convention',
                             'locale' => $primary,
@@ -132,7 +132,7 @@ class I18nCheckCommand extends Command
                 }
                 $localeKeys = $parser->getKeys($locale, $domain);
 
-                if (empty($localeKeys)) {
+                if ($localeKeys === []) {
                     continue;
                 }
 
@@ -190,9 +190,9 @@ class I18nCheckCommand extends Command
                                 $key,
                                 $locale,
                                 $domain,
-                                implode(', ', $primaryTokens ?: ['none']),
+                                implode(', ', $primaryTokens !== [] ? $primaryTokens : ['none']),
                                 $locale,
-                                implode(', ', $localeTokens ?: ['none']),
+                                implode(', ', $localeTokens !== [] ? $localeTokens : ['none']),
                             ),
                         ];
                     }
@@ -277,7 +277,7 @@ class I18nCheckCommand extends Command
      */
     private function displayResults(array $issues, string $primary): void
     {
-        if (empty($issues)) {
+        if ($issues === []) {
             $this->info('✓ All translation files are healthy.');
 
             return;
@@ -354,7 +354,7 @@ class I18nCheckCommand extends Command
     {
         $tokens = [];
 
-        if (preg_match_all('/:([a-zA-Z_]+)/', $value, $matches)) {
+        if (preg_match_all('/:([a-zA-Z_]+)/', $value, $matches) > 0) {
             $tokens = array_values(array_unique($matches[1]));
         }
 

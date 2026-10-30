@@ -96,3 +96,4 @@ deploy-logs/
 
 # Zero-downtime deploy runtime state (edge router config, managed by scripts/deploy/homelab.sh)
 /edge/
+scratch.neon

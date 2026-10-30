@@ -23,7 +23,7 @@ class AdminUserDisableCommand extends Command
         $email = $this->option('email') ?? $this->askForUserEmail();
         $user = User::where('email', $email)->first();
 
-        if (! $user) {
+        if ($user === null) {
             $this->error("No user found with email '{$email}'.");
 
             return self::FAILURE;
@@ -48,7 +48,7 @@ class AdminUserDisableCommand extends Command
             ->whereNull('model_has_roles.team_id')
             ->pluck('model_has_roles.model_id')
             ->unique()
-            ->filter(fn (mixed $id) => is_string($id) && ! User::find($id)?->isDisabled())
+            ->filter(fn (mixed $id) => is_string($id) && User::find($id)?->isDisabled() !== true)
             ->count();
 
         $hasPlatformAdmin = DB::table('model_has_roles')

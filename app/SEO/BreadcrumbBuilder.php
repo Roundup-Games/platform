@@ -22,7 +22,7 @@ class BreadcrumbBuilder
     public function build(?string $pageTitle = null): array
     {
         $route = request()->route();
-        if (! $route) {
+        if ($route === null) {
             return [$this->homeCrumb()];
         }
 
@@ -181,10 +181,10 @@ class BreadcrumbBuilder
 
         // For UUID-based routes, use the page title from SEOData
         if (isset($params['id'])) {
-            if ($pageTitle) {
+            if ($pageTitle !== null) {
                 // Strip any configured title suffix (e.g., " | Roundup Games")
                 $suffix = config('seo.title.suffix', '');
-                if (is_string($suffix) && $suffix && str_ends_with($pageTitle, $suffix)) {
+                if (is_string($suffix) && $suffix !== '' && str_ends_with($pageTitle, $suffix)) {
                     $pageTitle = substr($pageTitle, 0, -strlen($suffix));
                 }
 

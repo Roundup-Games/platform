@@ -69,14 +69,14 @@ class SweepActiveDiscoveryCaches extends Command
                     /** @var NearbyDiscoveryView $view */
                     $user = $view->user;
 
-                    if (! $user) {
+                    if ($user === null) {
                         continue;
                     }
 
                     /** @var User $user */
                     $location = $user->linkedLocation;
 
-                    if (! $location) {
+                    if ($location === null) {
                         $skipCount++;
 
                         continue;
@@ -87,7 +87,7 @@ class SweepActiveDiscoveryCaches extends Command
                     $cachedGeohash = $view->geohash_4;
                     $currentGeohash = $location->geohash_4;
 
-                    if ($cachedGeohash && $currentGeohash && $cachedGeohash === $currentGeohash) {
+                    if ($cachedGeohash === $currentGeohash && $cachedGeohash !== null && $cachedGeohash !== '') {
                         $skipCount++;
 
                         continue;

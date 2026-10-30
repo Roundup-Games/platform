@@ -55,10 +55,10 @@ class DataRepair extends Command
         $singleRepair = $this->option('repair');
         $startedAt = now();
 
-        $repairs = $singleRepair ? [$singleRepair] : self::REPAIR_METHODS;
+        $repairs = $singleRepair !== null ? [$singleRepair] : self::REPAIR_METHODS;
 
         $unknownRepairs = array_diff($repairs, self::REPAIR_METHODS);
-        if ($unknownRepairs) {
+        if ($unknownRepairs !== []) {
             $this->error('Unknown repair(s): '.implode(', ', $unknownRepairs));
             $this->line('Available: '.implode(', ', self::REPAIR_METHODS));
 
@@ -262,7 +262,7 @@ class DataRepair extends Command
         foreach ($gameIds as $id) {
             try {
                 $participant = GameParticipant::find(is_string($id) ? $id : null);
-                if ($participant) {
+                if ($participant !== null) {
                     $waitlistService->handleExpiredConfirmation($participant);
                     $this->fixedCount++;
                 }
@@ -279,7 +279,7 @@ class DataRepair extends Command
         foreach ($campaignIds as $id) {
             try {
                 $participant = CampaignParticipant::find(is_string($id) ? $id : null);
-                if ($participant) {
+                if ($participant !== null) {
                     $waitlistService->handleExpiredConfirmation($participant);
                     $this->fixedCount++;
                 }
