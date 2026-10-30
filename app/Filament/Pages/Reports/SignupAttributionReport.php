@@ -87,7 +87,7 @@ class SignupAttributionReport extends Page implements HasTable
                         'email' => 'gray',
                         default => 'warning',
                     })
-                    ->formatStateUsing(fn (?string $state): string => $state ? ucfirst($state) : '—')
+                    ->formatStateUsing(fn (?string $state): string => filled($state) ? ucfirst($state) : '—')
                     ->default('—')
                     ->sortable(),
                 TextColumn::make('signup_content_type')
@@ -99,7 +99,7 @@ class SignupAttributionReport extends Page implements HasTable
                         'venue' => 'warning',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (?string $state): string => $state ? ucfirst($state) : '—')
+                    ->formatStateUsing(fn (?string $state): string => filled($state) ? ucfirst($state) : '—')
                     ->default('—')
                     ->toggleable(),
                 TextColumn::make('signup_content_slug')

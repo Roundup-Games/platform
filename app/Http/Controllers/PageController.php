@@ -236,7 +236,7 @@ class PageController extends Controller
         // Account recovery → Account Support department; general → Contact department
         $departmentName = $isAccountRecovery ? 'Account Support' : 'Contact';
         $department = Department::where('name', $departmentName)->first();
-        if (! $department) {
+        if ($department === null) {
             return redirect()
                 ->route('contact')
                 ->withErrors(['message' => __('support.error_unavailable')]);

@@ -147,7 +147,7 @@ class EventResource extends Resource
                                 ->limit(20)
                                 ->pluck('name', 'id')
                                 ->toArray())
-                            ->getOptionLabelUsing(fn (?string $value): ?string => $value
+                            ->getOptionLabelUsing(fn (?string $value): ?string => $value !== null && $value !== ''
                                 ? Location::find($value)?->name
                                 : null),
                         Grid::make(2)

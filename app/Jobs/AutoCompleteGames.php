@@ -97,7 +97,7 @@ class AutoCompleteGames implements ShouldQueue
     {
         Log::error('auto_complete_games.job.failed', [
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

@@ -114,7 +114,7 @@ class RefreshDiscordCard implements ShouldBeUnique, ShouldQueue
     {
         $game = Game::find($this->gameId);
 
-        if (! $game) {
+        if ($game === null) {
             // Game deleted between dispatch and execution — nothing to
             // refresh, and any posted card was already removed by the
             // deleting() observer path. Log and exit cleanly.
@@ -144,7 +144,7 @@ class RefreshDiscordCard implements ShouldBeUnique, ShouldQueue
         Log::error('discord_card_refresh.job.failed', [
             'game_id' => $this->gameId,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 

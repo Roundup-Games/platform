@@ -190,7 +190,7 @@ function safe_url(?string $url): ?string
         return null;
     }
 
-    return preg_match('#^https?://#i', $url) ? $url : null;
+    return preg_match('#^https?://#i', $url) === 1 ? $url : null;
 }
 
 /**

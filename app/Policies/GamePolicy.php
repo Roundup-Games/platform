@@ -75,7 +75,7 @@ class GamePolicy
         if ($game->visibility === Visibility::Protected) {
             return $user !== null
                 && ((string) $game->owner_id === (string) $user->id
-                    || ($game->owner && $user->isFriendOrTeammate($game->owner))
+                    || ($game->owner !== null && $user->isFriendOrTeammate($game->owner))
                     || $game->participants()->whereBelongsTo($user)->exists());
         }
 

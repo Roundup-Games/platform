@@ -88,7 +88,7 @@ class EnrichPostHogProfile implements ShouldQueue
         }
 
         $user = User::find($this->userId);
-        if (! $user) {
+        if ($user === null) {
             return;
         }
 
@@ -157,7 +157,7 @@ class EnrichPostHogProfile implements ShouldQueue
      */
     private function resolveSubject(): ?Model
     {
-        if (! $this->subjectType || ! $this->subjectId) {
+        if ($this->subjectType === null || $this->subjectType === '' || $this->subjectId === null || $this->subjectId === '') {
             return null;
         }
 
@@ -254,7 +254,7 @@ class EnrichPostHogProfile implements ShouldQueue
                 ->first();
 
             $primarySystemName = null;
-            if ($primarySystemRow) {
+            if ($primarySystemRow !== null) {
                 $primarySystem = GameSystem::find($primarySystemRow->game_system_id);
                 $primarySystemName = $primarySystem instanceof GameSystem ? $primarySystem->name : null;
             }
@@ -366,7 +366,7 @@ class EnrichPostHogProfile implements ShouldQueue
                 $gameSystemName = $subject->gameSystem?->name;
             } elseif ($subject instanceof Campaign) {
                 $gameSystemName = $subject->gameSystem?->name;
-            } elseif ($subject instanceof GameParticipant && $subject->game) {
+            } elseif ($subject instanceof GameParticipant && $subject->game !== null) {
                 $gameSystemName = $subject->game->gameSystem?->name;
             }
 
@@ -419,7 +419,7 @@ class EnrichPostHogProfile implements ShouldQueue
             'type' => $this->type,
             'user_id' => $this->userId,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

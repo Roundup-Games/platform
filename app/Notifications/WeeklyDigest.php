@@ -134,6 +134,6 @@ class WeeklyDigest extends BaseNotification
             return $label;
         }
 
-        return preg_replace('/(?<!^)([A-Z])/', ' $1', $classBase) ?: $classBase;
+        return preg_replace('/(?<!^)([A-Z])/', ' $1', $classBase) ?? $classBase;
     }
 }

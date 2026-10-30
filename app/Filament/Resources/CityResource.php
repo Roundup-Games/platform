@@ -76,7 +76,7 @@ class CityResource extends Resource
                                     ->content(fn (?City $record): string => (string) $record?->city),
                                 Placeholder::make('slug')
                                     ->label('Hub URL')
-                                    ->content(fn (?City $record): string => $record ? "/cities/{$record->slug} (frozen at discovery)" : ''),
+                                    ->content(fn (?City $record): string => $record !== null ? "/cities/{$record->slug} (frozen at discovery)" : ''),
                                 Placeholder::make('region_prefix')
                                     ->label('Region cell')
                                     ->content(fn (?City $record): string => (string) $record?->region_prefix),

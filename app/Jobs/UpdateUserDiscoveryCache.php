@@ -76,7 +76,7 @@ class UpdateUserDiscoveryCache implements ShouldBeUnique, ShouldQueue
         $user = User::find($this->userId);
 
         // Fail gracefully if user was deleted between dispatch and execution
-        if (! $user) {
+        if ($user === null) {
             Log::warning('discovery.job.user_not_found', [
                 'user_id' => $this->userId,
                 'trigger_type' => $this->triggerType,
@@ -98,7 +98,7 @@ class UpdateUserDiscoveryCache implements ShouldBeUnique, ShouldQueue
         // Resolve user's location via linkedLocation relationship
         $location = $user->linkedLocation;
 
-        if (! $location || ! $location->latitude || ! $location->longitude) {
+        if ($location === null || $location->latitude === null || $location->longitude === null) {
             Log::info('discovery.job.skipped_no_location', [
                 'user_id' => $this->userId,
                 'trigger_type' => $this->triggerType,
@@ -144,7 +144,7 @@ class UpdateUserDiscoveryCache implements ShouldBeUnique, ShouldQueue
             'user_id' => $this->userId,
             'trigger_type' => $this->triggerType,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

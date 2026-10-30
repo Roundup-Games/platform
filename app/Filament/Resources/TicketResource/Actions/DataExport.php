@@ -95,7 +95,7 @@ final class DataExport extends TicketAction
             $lines = array_filter(explode("\n", $output), fn (string $line): bool => $line !== '');
             $storedPath = end($lines);
 
-            if (empty($storedPath) || ! str_starts_with($storedPath, 'exports/')) {
+            if (! is_string($storedPath) || ! str_starts_with($storedPath, 'exports/')) {
                 throw new \RuntimeException('Export command did not return a valid file path. Output: '.$output);
             }
 

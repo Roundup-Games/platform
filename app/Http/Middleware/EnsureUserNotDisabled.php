@@ -27,7 +27,7 @@ class EnsureUserNotDisabled
     {
         $user = $request->user();
 
-        if ($user && $user->isDisabled()) {
+        if ($user !== null && $user->isDisabled()) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => __('auth.error_your_account_has_been_disabled'),

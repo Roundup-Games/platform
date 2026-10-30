@@ -53,16 +53,16 @@ class PostHogIdentifyUsers
         // Persist the consent decision on the user model so that
         // UserAnonymizationService can check it without request/cookie
         // context (e.g., from artisan or queued jobs).
-        if ($user && ! $user->analytics_consent) {
+        if ($user !== null && ! $user->analytics_consent) {
             $user->forceFill(['analytics_consent' => true])->saveQuietly();
         }
 
-        if ($user && $this->shouldIdentify($request)) {
+        if ($user !== null && $this->shouldIdentify($request)) {
             $this->shareClientIdentifyData($user);
 
             // Server-side identify: once per session to avoid redundant SDK overhead.
             // Client-side identify runs every request for correct session attribution.
-            if (! session('posthog_server_identified')) {
+            if (session('posthog_server_identified') !== true) {
                 $this->identifyServerSide($user);
                 session(['posthog_server_identified' => true]);
             }
@@ -80,7 +80,7 @@ class PostHogIdentifyUsers
     {
         $user = $request->user();
 
-        if (! $user || ! $user->analytics_consent) {
+        if ($user === null || ! $user->analytics_consent) {
             return;
         }
 
@@ -107,7 +107,7 @@ class PostHogIdentifyUsers
             && ! $request->is('api/*')
             && ! $request->is('admin/*')
             && ! $request->is('livewire*')
-            && ! $request->header('X-Livewire');
+            && $request->header('X-Livewire') === null;
     }
 
     /**

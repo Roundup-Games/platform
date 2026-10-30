@@ -44,12 +44,12 @@ class OAuthController
      */
     public function redirect(Request $request, string $provider)
     {
-        if (! OAuthProvider::tryFrom($provider)) {
+        if (OAuthProvider::tryFrom($provider) === null) {
             return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unsupported login provider.']);
         }
 
         // If the user is already logged in, they're linking an account
-        if ($request->user()) {
+        if ($request->user() !== null) {
             $request->session()->put('oauth_linking', true);
         }
 
@@ -86,7 +86,7 @@ class OAuthController
      */
     public function callback(Request $request, string $provider)
     {
-        if (! OAuthProvider::tryFrom($provider)) {
+        if (OAuthProvider::tryFrom($provider) === null) {
             return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unsupported login provider.']);
         }
 
@@ -112,9 +112,9 @@ class OAuthController
         $isLinking = $request->session()->pull('oauth_linking', false);
 
         // ── Account linking flow (logged-in user connecting a provider) ──
-        if ($isLinking) {
+        if ($isLinking === true) {
             $currentUser = $request->user();
-            if (! $currentUser) {
+            if ($currentUser === null) {
                 return redirect($this->localeUrl('login'));
             }
 
@@ -128,7 +128,7 @@ class OAuthController
             ->where('provider_user_id', $providerUserId)
             ->first();
 
-        if ($linkedAccount) {
+        if ($linkedAccount !== null) {
             // Existing linked account — log the user in.
             // Use a raw DB update to overwrite encrypted tokens. After an
             // APP_KEY rotation, Eloquent's update() crashes because getDirty()
@@ -140,7 +140,7 @@ class OAuthController
             // double-serialization that the cast cannot correctly reverse.
             \DB::table('linked_accounts')->where('id', $linkedAccount->id)->update([
                 'token' => \Crypt::encryptString($socialiteUser->token),
-                'refresh_token' => $socialiteUser->refreshToken
+                'refresh_token' => $socialiteUser->refreshToken !== null && $socialiteUser->refreshToken !== ''
                     ? \Crypt::encryptString($socialiteUser->refreshToken)
                     : null,
                 'token_expires_at' => null,
@@ -152,7 +152,7 @@ class OAuthController
 
             $user = $linkedAccount->user;
 
-            if (! $user) {
+            if ($user === null) {
                 Log::error('OAuth login — linked account has no associated user', [
                     'provider' => $provider,
                     'linked_account_id' => $linkedAccount->id,
@@ -161,7 +161,7 @@ class OAuthController
                 return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Authentication failed. Please try again.']);
             }
 
-            if ($socialiteUser->getAvatar() && ! $user->avatar_url) {
+            if (filled($socialiteUser->getAvatar()) && blank($user->avatar_url)) {
                 $user->update(['avatar_url' => $socialiteUser->getAvatar()]);
             }
 
@@ -189,7 +189,7 @@ class OAuthController
         // legacy mocks and any provider that does not surface the flag.
         $user = User::where('email', $socialiteUser->getEmail())->first();
 
-        if ($user) {
+        if ($user !== null) {
             return $this->linkProviderAndLogin($user, $provider, $socialiteUser, $providerUserId, 'email-match');
         }
 
@@ -303,7 +303,7 @@ class OAuthController
             ->where('provider_user_id', $providerUserId)
             ->first();
 
-        if ($linkedAccount && (string) $linkedAccount->user_id !== (string) $user->id) {
+        if ($linkedAccount !== null && (string) $linkedAccount->user_id !== (string) $user->id) {
             Log::warning('OAuth link attempted — provider already linked to another user', [
                 'provider' => $provider,
                 'user_id' => $user->id,
@@ -316,7 +316,7 @@ class OAuthController
         }
 
         // Already linked to this user
-        if ($linkedAccount) {
+        if ($linkedAccount !== null) {
             return redirect($this->localeUrl('profile/view'))
                 ->with('status', ucfirst($provider).' account is already linked.');
         }
@@ -358,7 +358,7 @@ class OAuthController
         // IdP avatar — the user has just confirmed they own that identity,
         // so the avatar is genuinely theirs. Only fills when no avatar is
         // set (never overwrites an explicit upload).
-        if ($socialiteUser->getAvatar() && ! $user->avatar_url) {
+        if (filled($socialiteUser->getAvatar()) && blank($user->avatar_url)) {
             $user->update(['avatar_url' => $socialiteUser->getAvatar()]);
             Log::info('OAuth link prefilled avatar', [
                 'provider' => $provider,
@@ -445,7 +445,7 @@ class OAuthController
             // nothing left to do.
         }
 
-        if ($socialiteUser->getAvatar() && ! $user->avatar_url) {
+        if (filled($socialiteUser->getAvatar()) && blank($user->avatar_url)) {
             $user->update(['avatar_url' => $socialiteUser->getAvatar()]);
         }
 

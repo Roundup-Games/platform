@@ -30,7 +30,7 @@ class DiscordBotInstallController
     public function redirect(Request $request, DiscordBotInstallService $installService): RedirectResponse
     {
         $user = $request->user();
-        if (! $user) {
+        if ($user === null) {
             return redirect()->route('login');
         }
 
@@ -67,7 +67,7 @@ class DiscordBotInstallController
     public function callback(Request $request, DiscordBotInstallService $installService): RedirectResponse
     {
         $user = $request->user();
-        if (! $user) {
+        if ($user === null) {
             return redirect()->route('login');
         }
 

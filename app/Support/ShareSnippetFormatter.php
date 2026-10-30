@@ -51,7 +51,7 @@ class ShareSnippetFormatter
         $lines[] = self::formatLocation($entity);
 
         $owner = $entity->owner;
-        if ($owner) {
+        if ($owner !== null) {
             $lines[] = 'Hosted by '.self::truncate((string) $owner->name, 40);
         }
 
@@ -159,7 +159,7 @@ class ShareSnippetFormatter
     {
         $location = $entity->linkedLocation;
 
-        if ($location && $location->city) {
+        if ($location !== null && $location->city !== null && $location->city !== '') {
             return self::truncate((string) $location->city, 30);
         }
 

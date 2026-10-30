@@ -120,7 +120,7 @@ class ResolveAttendance implements ShouldQueue
             'game_id' => $this->game?->id,
             'method' => $this->method?->value,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

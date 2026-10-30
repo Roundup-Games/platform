@@ -94,7 +94,7 @@ class AttendanceNudgeJob implements ShouldQueue
                     foreach ($approvedParticipants as $participant) {
                         $user = $participant->user;
 
-                        if (! $user) {
+                        if ($user === null) {
                             continue;
                         }
 
@@ -139,7 +139,7 @@ class AttendanceNudgeJob implements ShouldQueue
     {
         Log::error('attendance_nudge.job.failed', [
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

@@ -87,7 +87,7 @@ class AttendanceReportsRelationManager extends RelationManager
                             ->where('user_id', $record->reported_id)
                             ->first();
 
-                        if (! $participant) {
+                        if ($participant === null) {
                             Notification::make()
                                 ->title('No participant record found for this reported user.')
                                 ->danger()

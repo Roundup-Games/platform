@@ -87,7 +87,7 @@ class PublishGameToDiscord implements ShouldBeUnique, ShouldQueue
     {
         $game = Game::find($this->gameId);
 
-        if (! $game) {
+        if ($game === null) {
             // Game deleted between dispatch and execution — nothing to publish,
             // and any posted card was already removed by the deleting() observer
             // path. Log and exit cleanly.
@@ -117,7 +117,7 @@ class PublishGameToDiscord implements ShouldBeUnique, ShouldQueue
         Log::error('discord_publish.job.failed', [
             'game_id' => $this->gameId,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

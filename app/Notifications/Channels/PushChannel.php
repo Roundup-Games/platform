@@ -72,7 +72,8 @@ class PushChannel
         // endpoint → user_id for attributing flush() receipts back to a user.
         // (MessageSentReport carries the endpoint, not the subscription row.)
         $userIdByEndpoint = [];
-        $payloadJson = json_encode($payload->toArray()) ?: '{}';
+        $payloadJson = json_encode($payload->toArray());
+        $payloadJson = $payloadJson === false ? '{}' : $payloadJson;
 
         // 3. Queue all subscriptions for batch sending
         foreach ($subscriptions as $subscription) {
@@ -139,7 +140,7 @@ class PushChannel
         if ($report->isSubscriptionExpired()) {
             $subscription = PushSubscription::where('endpoint', $endpoint)->first();
 
-            if ($subscription) {
+            if ($subscription !== null) {
                 $subscription->delete();
             }
 

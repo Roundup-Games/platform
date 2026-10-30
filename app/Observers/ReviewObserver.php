@@ -19,9 +19,9 @@ class ReviewObserver
      */
     public function created(Review $review): void
     {
-        if ($review->gm_profile_id) {
+        if ($review->gm_profile_id !== null) {
             $gmProfile = $review->gmProfile;
-            if ($gmProfile) {
+            if ($gmProfile !== null) {
                 $this->aggregateService->updateAggregates($gmProfile);
                 $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
             }
@@ -47,9 +47,9 @@ class ReviewObserver
     public function updated(Review $review): void
     {
         if ($review->wasChanged('status') || $review->wasChanged('rating')) {
-            if ($review->gm_profile_id) {
+            if ($review->gm_profile_id !== null) {
                 $gmProfile = $review->gmProfile;
-                if ($gmProfile) {
+                if ($gmProfile !== null) {
                     $this->aggregateService->updateAggregates($gmProfile);
                     $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
                 }
@@ -69,9 +69,9 @@ class ReviewObserver
      */
     public function deleted(Review $review): void
     {
-        if ($review->gm_profile_id) {
+        if ($review->gm_profile_id !== null) {
             $gmProfile = $review->gmProfile;
-            if ($gmProfile) {
+            if ($gmProfile !== null) {
                 $this->aggregateService->updateAggregates($gmProfile);
                 $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
             }

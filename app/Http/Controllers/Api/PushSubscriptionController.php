@@ -81,7 +81,7 @@ class PushSubscriptionController extends Controller
             ->where('user_id', authenticatedUser()->id)
             ->first();
 
-        if (! $subscription) {
+        if ($subscription === null) {
             return response()->json([
                 'message' => 'Subscription not found.',
             ], 404);
@@ -106,7 +106,7 @@ class PushSubscriptionController extends Controller
     {
         $publicKey = config('services.vapid.public_key');
 
-        if (! $publicKey) {
+        if ($publicKey === null || $publicKey === '') {
             return response()->json([
                 'message' => 'Push notifications are not configured.',
             ], 503);

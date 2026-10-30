@@ -147,9 +147,10 @@ class ShortLinkController extends Controller
         // Encrypted cookie carrying ONLY the short_link_id.
         // ProcessShareIntent derives entity_type and entity_id from the link
         // record itself — no attacker-controlled payload in the cookie.
-        $intentCookie = cookie('short_link_intent', json_encode([
+        $intentPayload = json_encode([
             'short_link_id' => $link->id,
-        ]) ?: '{}', 24 * 60); // 24 hours
+        ]);
+        $intentCookie = cookie('short_link_intent', $intentPayload === false ? '{}' : $intentPayload, 24 * 60); // 24 hours
 
         Log::info('short_link.redirect.success', [
             'code_prefix' => substr($code, 0, 3).'…',

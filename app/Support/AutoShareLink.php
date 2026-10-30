@@ -30,12 +30,12 @@ class AutoShareLink
      */
     public static function generate(Model $entity): void
     {
-        if (! config('share.auto_generate_on_create', true)) {
+        if (! filter_var(config('share.auto_generate_on_create', true), FILTER_VALIDATE_BOOLEAN)) {
             return;
         }
 
         $owner = $entity->owner;
-        if (! $owner) {
+        if ($owner === null) {
             return;
         }
 

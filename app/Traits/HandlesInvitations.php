@@ -87,7 +87,7 @@ trait HandlesInvitations
     {
         if ($result->success) {
             session()->flash('success', __($result->messageKey, $result->messageParams));
-        } elseif ($result->errorKey) {
+        } elseif ($result->errorKey !== null && $result->errorKey !== '') {
             session()->flash('error', __($result->errorKey, $result->errorParams));
         }
     }

@@ -75,7 +75,7 @@ class SearchPerformancePage extends Page
                 'inp_ms' => $measurement->inp_ms,
                 'cls' => $measurement->cls,
                 'url' => $measurement->url,
-                'fetched_at' => $measurement->fetched_at
+                'fetched_at' => $measurement->fetched_at !== ''
                     ? Carbon::parse($measurement->fetched_at)->toDateTimeString('minute')
                     : '',
             ];

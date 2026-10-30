@@ -32,7 +32,7 @@ class ListGameSystems extends ListRecords
                         ->values()
                         ->toArray();
 
-                    if (empty($bggIds)) {
+                    if ($bggIds === []) {
                         Notification::make()
                             ->warning()
                             ->title('No BGG IDs')

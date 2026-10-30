@@ -182,7 +182,7 @@ final class ContentReport extends TicketAction
             $ticketService = app(TicketService::class);
 
             $reportedUser = self::resolveReportedUser($ticket, $entityType);
-            if (! $reportedUser) {
+            if ($reportedUser === null) {
                 Notification::make()
                     ->warning()
                     ->title('User not found')
@@ -193,7 +193,7 @@ final class ContentReport extends TicketAction
             }
 
             $noteBody = 'Warning issued by admin.';
-            if ($note) {
+            if (filled($note)) {
                 $noteBody .= ' Note: '.$note;
             }
 
@@ -284,7 +284,7 @@ final class ContentReport extends TicketAction
 
             if ($cleared) {
                 $owner = self::resolveReportedUser($ticket, $entityType);
-                if ($owner) {
+                if ($owner !== null) {
                     $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
                     app(NotificationService::class)->send(
                         $owner,
@@ -354,7 +354,7 @@ final class ContentReport extends TicketAction
             // Notify the content owner
             if ($removed) {
                 $reportedUser = self::resolveReportedUser($ticket, $entityType);
-                if ($reportedUser) {
+                if ($reportedUser !== null) {
                     $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
                     app(NotificationService::class)->send(
                         $reportedUser,
@@ -403,7 +403,7 @@ final class ContentReport extends TicketAction
             $ticketService = app(TicketService::class);
 
             $reportedUser = self::resolveReportedUser($ticket, $entityType);
-            if (! $reportedUser) {
+            if ($reportedUser === null) {
                 Notification::make()
                     ->warning()
                     ->title('User not found')
@@ -553,12 +553,12 @@ final class ContentReport extends TicketAction
      */
     private static function removeGame(?string $entityId): bool
     {
-        if (! $entityId) {
+        if (! filled($entityId)) {
             return false;
         }
 
         $game = Game::find($entityId);
-        if (! $game || $game->status === GameStatus::Canceled) {
+        if ($game === null || $game->status === GameStatus::Canceled) {
             return false;
         }
 
@@ -572,12 +572,12 @@ final class ContentReport extends TicketAction
      */
     private static function removeCampaign(?string $entityId): bool
     {
-        if (! $entityId) {
+        if (! filled($entityId)) {
             return false;
         }
 
         $campaign = Campaign::find($entityId);
-        if (! $campaign || $campaign->status === CampaignStatus::Cancelled) {
+        if ($campaign === null || $campaign->status === CampaignStatus::Cancelled) {
             return false;
         }
 

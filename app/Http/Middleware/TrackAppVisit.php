@@ -23,7 +23,7 @@ class TrackAppVisit
     {
         $user = $request->user();
 
-        if ($user && $this->shouldTrack($request)) {
+        if ($user !== null && $this->shouldTrack($request)) {
             $today = now()->toDateString();
 
             // One visit row per user per day. The cache check is atomic and
@@ -65,6 +65,6 @@ class TrackAppVisit
     {
         return $request->isMethod('GET')
             && ! $request->is('api/*')
-            && ! $request->header('X-Livewire');
+            && $request->header('X-Livewire') === null;
     }
 }

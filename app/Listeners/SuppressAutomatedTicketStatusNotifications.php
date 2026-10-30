@@ -45,7 +45,7 @@ class SuppressAutomatedTicketStatusNotifications
 
         $ticket = $notification->ticket ?? null;
 
-        if (! $ticket) {
+        if ($ticket === null) {
             return null;
         }
 

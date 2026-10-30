@@ -98,7 +98,7 @@ class PublishDiscordDigest implements ShouldBeUnique, ShouldQueue
     {
         $guild = DiscordGuild::find($this->guildId);
 
-        if (! $guild) {
+        if ($guild === null) {
             // Guild removed between dispatch and execution — nothing to publish,
             // and any posted digest was on the now-deleted guild row. Log and
             // exit cleanly so the queue does not mark a non-entity as failed.
@@ -131,7 +131,7 @@ class PublishDiscordDigest implements ShouldBeUnique, ShouldQueue
         Log::error('discord_digest.job.failed', [
             'guild_id' => $this->guildId,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

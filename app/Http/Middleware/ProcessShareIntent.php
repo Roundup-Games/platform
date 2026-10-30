@@ -45,10 +45,10 @@ class ProcessShareIntent
         // ── Short link intent processing ───────────────────────────────
         $shortLinkIntent = $request->cookie('short_link_intent');
 
-        if ($shortLinkIntent && $user->profile_complete) {
+        if ($shortLinkIntent !== null && $user->profile_complete) {
             $result = $this->processShortLinkIntent($shortLinkIntent, $user);
 
-            if ($result->shouldRedirect && $result->redirectRoute) {
+            if ($result->shouldRedirect && $result->redirectRoute !== null) {
                 return redirect()->route($result->redirectRoute, [
                     'id' => $result->entityId,
                 ])->withCookie(cookie()->forget('short_link_intent'));
@@ -61,7 +61,7 @@ class ProcessShareIntent
 
                 return $response;
             }
-        } elseif ($shortLinkIntent) {
+        } elseif ($shortLinkIntent !== null) {
             Log::debug('short_link_intent.deferred_profile_incomplete', [
                 'user_id' => $user->id,
                 'path' => $request->path(),
@@ -71,7 +71,7 @@ class ProcessShareIntent
         // ── Share token intent processing (existing flow) ──────────────
         $shareIntent = $request->cookie('share_intent');
 
-        if (! $shareIntent) {
+        if ($shareIntent === null) {
             return $next($request);
         }
 
@@ -99,7 +99,7 @@ class ProcessShareIntent
             $user,
         );
 
-        if ($result->shouldRedirect && $result->redirectRoute) {
+        if ($result->shouldRedirect && $result->redirectRoute !== null) {
             Log::info('share_intent.redirecting', [
                 'user_id' => $user->id,
                 'entity_type' => $payload['entity_type'],
@@ -158,6 +158,6 @@ class ProcessShareIntent
     {
         return $request->isMethod('GET')
             && ! $request->is('api/*')
-            && ! $request->header('X-Livewire');
+            && $request->header('X-Livewire') === null;
     }
 }

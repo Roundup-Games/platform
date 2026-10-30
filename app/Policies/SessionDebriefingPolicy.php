@@ -46,7 +46,7 @@ class SessionDebriefingPolicy
     {
         $game = $debriefing->game;
 
-        if (! $game) {
+        if ($game === null) {
             return false;
         }
 

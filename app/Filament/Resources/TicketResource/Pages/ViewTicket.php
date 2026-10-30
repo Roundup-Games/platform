@@ -131,7 +131,7 @@ class ViewTicket extends BaseViewTicket
                 ? $link
                 : throw new \RuntimeException('subjects() returned an unexpected model'));
 
-        if (empty($metadata) && $subjects->isEmpty()) {
+        if (blank($metadata) && $subjects->isEmpty()) {
             return $parent;
         }
 
@@ -178,7 +178,7 @@ class ViewTicket extends BaseViewTicket
             // for aliased models or the FQCN otherwise; slug() normalizes both
             // so Filament never sees a key like "subject_App\Models\User_<id>".
             $entryName = 'subject_'.Str::slug($link->subject_type).'_'.$link->subject_id;
-            $entryLabel = $link->role ? ucfirst($link->role) : __('Subject');
+            $entryLabel = filled($link->role) ? ucfirst($link->role) : __('Subject');
 
             $subject = $link->subject;
 
@@ -251,7 +251,7 @@ class ViewTicket extends BaseViewTicket
         $entityId = isset($metadata['entity_id']) ? self::asString($metadata['entity_id']) : null;
         $entityName = isset($metadata['entity_name']) ? self::asString($metadata['entity_name']) : $entityId;
 
-        if ($entityType && ! $hasReportedSubject) {
+        if (filled($entityType) && ! $hasReportedSubject) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_entity_type')
                 ->label('Entity type')
                 ->state(ucfirst($entityType))
@@ -259,7 +259,7 @@ class ViewTicket extends BaseViewTicket
                 ->color('info');
         }
 
-        if ($entityName && $entityId && ! $hasReportedSubject) {
+        if (filled($entityName) && filled($entityId) && ! $hasReportedSubject) {
             $url = $this->resolveEntityUrl($entityType, $entityId);
             $entries[] = Infolists\Components\TextEntry::make('metadata_entity')
                 ->label('Reported entity')
@@ -268,7 +268,7 @@ class ViewTicket extends BaseViewTicket
                 ->color('primary');
         }
 
-        if ($entityId && ! $hasReportedSubject) {
+        if (filled($entityId) && ! $hasReportedSubject) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_entity_id')
                 ->label('Entity ID')
                 ->state($entityId)
@@ -320,7 +320,7 @@ class ViewTicket extends BaseViewTicket
         }
 
         // Description / additional details
-        if (! empty($metadata['description'])) {
+        if (filled($metadata['description'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_details')
                 ->label('Additional details')
                 ->state($metadata['description'])
@@ -362,12 +362,12 @@ class ViewTicket extends BaseViewTicket
 
         // Review author
         $reviewAuthorId = $metadata['review_author_id'] ?? null;
-        if ($reviewAuthorId && ! $hasSubjects) {
+        if (filled($reviewAuthorId) && ! $hasSubjects) {
             $author = User::find(self::asString($reviewAuthorId));
             $entries[] = Infolists\Components\TextEntry::make('metadata_review_author')
                 ->label('Review author')
                 ->state($author->name ?? self::asString($reviewAuthorId))
-                ->url($author ? "/profile/{$author->id}" : null, shouldOpenInNewTab: true)
+                ->url($author !== null ? "/profile/{$author->id}" : null, shouldOpenInNewTab: true)
                 ->color('primary');
         }
 
@@ -379,7 +379,7 @@ class ViewTicket extends BaseViewTicket
                 ->color('warning');
         }
 
-        if (! empty($metadata['description'])) {
+        if (filled($metadata['description'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_details')
                 ->label('Additional details')
                 ->state($metadata['description'])
@@ -413,7 +413,7 @@ class ViewTicket extends BaseViewTicket
         }
 
         // BGG URL
-        if (! empty($metadata['bgg_url'])) {
+        if (filled($metadata['bgg_url'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_bgg_url')
                 ->label('BGG URL')
                 ->state($metadata['bgg_url'])
@@ -429,21 +429,21 @@ class ViewTicket extends BaseViewTicket
         }
 
         // Publisher
-        if (! empty($metadata['publisher'])) {
+        if (filled($metadata['publisher'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_publisher')
                 ->label('Publisher')
                 ->state($metadata['publisher']);
         }
 
         // Designer
-        if (! empty($metadata['designer'])) {
+        if (filled($metadata['designer'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_designer')
                 ->label('Designer')
                 ->state($metadata['designer']);
         }
 
         // Notes (from description in metadata or ticket description)
-        if (! empty($metadata['notes']) || ! empty($metadata['description'])) {
+        if (filled($metadata['notes'] ?? null) || filled($metadata['description'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_notes')
                 ->label('Notes')
                 ->state($metadata['notes'] ?? $metadata['description'])
@@ -451,13 +451,13 @@ class ViewTicket extends BaseViewTicket
         }
 
         // Linked game system (after sync)
-        if (! empty($metadata['game_system_id'])) {
+        if (filled($metadata['game_system_id'] ?? null)) {
             $gameSystemId = self::asString($metadata['game_system_id']);
             $gs = GameSystem::find($gameSystemId);
             $entries[] = Infolists\Components\TextEntry::make('metadata_game_system')
                 ->label('Linked game system')
-                ->state($gs ? $gs->name : "ID: {$gameSystemId}")
-                ->url($gs ? GameSystemResource::getUrl('edit', ['record' => $gs->id]) : null, shouldOpenInNewTab: true)
+                ->state($gs !== null ? $gs->name : "ID: {$gameSystemId}")
+                ->url($gs !== null ? GameSystemResource::getUrl('edit', ['record' => $gs->id]) : null, shouldOpenInNewTab: true)
                 ->color('success')
                 ->icon('heroicon-o-check-circle');
         }
@@ -486,7 +486,7 @@ class ViewTicket extends BaseViewTicket
                 ->color('info');
         }
 
-        if (! empty($metadata['details'])) {
+        if (filled($metadata['details'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_details')
                 ->label('Details')
                 ->state($metadata['details'])
@@ -525,14 +525,14 @@ class ViewTicket extends BaseViewTicket
                 ->boolean();
         }
 
-        if (! empty($metadata['subscription_status'])) {
+        if (filled($metadata['subscription_status'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_subscription_status')
                 ->label('Subscription status')
                 ->state($metadata['subscription_status'])
                 ->badge();
         }
 
-        if (! empty($metadata['paddle_subscription_id'])) {
+        if (filled($metadata['paddle_subscription_id'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_paddle_sub_id')
                 ->label('Paddle subscription ID')
                 ->state($metadata['paddle_subscription_id'])
@@ -540,7 +540,7 @@ class ViewTicket extends BaseViewTicket
                 ->color('gray');
         }
 
-        if (! empty($metadata['details'])) {
+        if (filled($metadata['details'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_details')
                 ->label('Details')
                 ->state($metadata['details'])
@@ -579,7 +579,7 @@ class ViewTicket extends BaseViewTicket
                 ->copyable();
         }
 
-        if (empty($entries)) {
+        if ($entries === []) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_raw')
                 ->label('Raw metadata')
                 ->state(json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))
@@ -662,7 +662,7 @@ class ViewTicket extends BaseViewTicket
      */
     protected function resolveEntityUrl(?string $type, ?string $id): ?string
     {
-        if (! $type || ! $id) {
+        if (! filled($type) || ! filled($id)) {
             return null;
         }
 
@@ -686,42 +686,42 @@ class ViewTicket extends BaseViewTicket
         $entries = [];
 
         // Venue name
-        if (! empty($metadata['venue_name'])) {
+        if (filled($metadata['venue_name'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_venue_name')
                 ->label('Venue name')
                 ->state($metadata['venue_name']);
         }
 
         // Address
-        if (! empty($metadata['venue_address'])) {
+        if (filled($metadata['venue_address'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_venue_address')
                 ->label('Address')
                 ->state($metadata['venue_address']);
         }
 
         // City
-        if (! empty($metadata['venue_city'])) {
+        if (filled($metadata['venue_city'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_venue_city')
                 ->label('City')
                 ->state($metadata['venue_city']);
         }
 
         // Postal code
-        if (! empty($metadata['venue_postal_code'])) {
+        if (filled($metadata['venue_postal_code'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_venue_postal_code')
                 ->label('Postal code')
                 ->state($metadata['venue_postal_code']);
         }
 
         // Country
-        if (! empty($metadata['venue_country'])) {
+        if (filled($metadata['venue_country'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_venue_country')
                 ->label('Country')
                 ->state($metadata['venue_country']);
         }
 
         // Venue type
-        if (! empty($metadata['venue_type'])) {
+        if (filled($metadata['venue_type'] ?? null)) {
             $venueTypeLabel = VenueType::tryFrom(self::asString($metadata['venue_type']))?->label() ?? $metadata['venue_type'];
             $entries[] = Infolists\Components\TextEntry::make('metadata_venue_type')
                 ->label('Venue type')
@@ -731,7 +731,7 @@ class ViewTicket extends BaseViewTicket
         }
 
         // Website
-        if (! empty($metadata['website_url'])) {
+        if (filled($metadata['website_url'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_website_url')
                 ->label('Website')
                 ->state($metadata['website_url'])
@@ -741,7 +741,7 @@ class ViewTicket extends BaseViewTicket
         }
 
         // Geocoded display name
-        if (! empty($metadata['geocoded_display_name'])) {
+        if (filled($metadata['geocoded_display_name'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_geocoded_display')
                 ->label('Geocoded as')
                 ->state($metadata['geocoded_display_name'])
@@ -750,30 +750,30 @@ class ViewTicket extends BaseViewTicket
         }
 
         // Existing location link
-        if (! empty($metadata['existing_location_id'])) {
+        if (filled($metadata['existing_location_id'] ?? null)) {
             $existingLocation = Location::find(self::asString($metadata['existing_location_id']));
             $entries[] = Infolists\Components\TextEntry::make('metadata_existing_location')
                 ->label('Existing location')
-                ->state($existingLocation ? $existingLocation->name : 'ID: '.self::asString($metadata['existing_location_id']))
-                ->url($existingLocation ? "/admin/locations/{$existingLocation->id}/edit" : null, shouldOpenInNewTab: true)
+                ->state($existingLocation !== null ? $existingLocation->name : 'ID: '.self::asString($metadata['existing_location_id']))
+                ->url($existingLocation !== null ? "/admin/locations/{$existingLocation->id}/edit" : null, shouldOpenInNewTab: true)
                 ->color('warning')
                 ->icon('heroicon-o-link');
         }
 
         // Linked location (after approval)
-        if (! empty($metadata['location_id'])) {
+        if (filled($metadata['location_id'] ?? null)) {
             $location = Location::find(self::asString($metadata['location_id']));
             $entries[] = Infolists\Components\TextEntry::make('metadata_linked_location')
                 ->label('Linked location')
-                ->state($location ? $location->name : 'ID: '.self::asString($metadata['location_id']))
-                ->url($location ? "/admin/locations/{$location->id}/edit" : null, shouldOpenInNewTab: true)
+                ->state($location !== null ? $location->name : 'ID: '.self::asString($metadata['location_id']))
+                ->url($location !== null ? "/admin/locations/{$location->id}/edit" : null, shouldOpenInNewTab: true)
                 ->color('success')
                 ->icon('heroicon-o-check-circle');
         }
 
         // Proposer notes
         $notes = $metadata['proposer_notes'] ?? $metadata['notes'] ?? null;
-        if (! empty($notes)) {
+        if (filled($notes)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_notes')
                 ->label('Notes')
                 ->state($notes)
@@ -806,14 +806,14 @@ class ViewTicket extends BaseViewTicket
         $entries = [];
 
         // Venue name (identity — name + city only, MEM717)
-        if (! empty($metadata['location_name'])) {
+        if (filled($metadata['location_name'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_claim_venue_name')
                 ->label('Venue')
                 ->state($metadata['location_name']);
         }
 
         // City
-        if (! empty($metadata['location_city'])) {
+        if (filled($metadata['location_city'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_claim_venue_city')
                 ->label('City')
                 ->state($metadata['location_city']);
@@ -821,7 +821,7 @@ class ViewTicket extends BaseViewTicket
 
         // Justification (claimant notes)
         $notes = $metadata['claimant_notes'] ?? $metadata['details'] ?? null;
-        if (! empty($notes)) {
+        if (filled($notes)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_claim_notes')
                 ->label('Justification')
                 ->state($notes)
@@ -829,7 +829,7 @@ class ViewTicket extends BaseViewTicket
         }
 
         // Optional proof / website
-        if (! empty($metadata['website_url'])) {
+        if (filled($metadata['website_url'] ?? null)) {
             $entries[] = Infolists\Components\TextEntry::make('metadata_claim_website')
                 ->label('Proof / website')
                 ->state($metadata['website_url'])
@@ -839,13 +839,13 @@ class ViewTicket extends BaseViewTicket
         }
 
         // Claimed venue link. Once approved the Location's managed_by is set.
-        if (! empty($metadata['location_id'])) {
+        if (filled($metadata['location_id'] ?? null)) {
             $location = Location::find(self::asString($metadata['location_id']));
             $managedBy = $location?->managed_by;
             $entries[] = Infolists\Components\TextEntry::make('metadata_claim_linked_location')
                 ->label($managedBy !== null ? 'Claimed venue (now managed)' : 'Claimed venue')
-                ->state($location ? $location->name : 'ID: '.self::asString($metadata['location_id']))
-                ->url($location ? "/admin/locations/{$location->id}/edit" : null, shouldOpenInNewTab: true)
+                ->state($location !== null ? $location->name : 'ID: '.self::asString($metadata['location_id']))
+                ->url($location !== null ? "/admin/locations/{$location->id}/edit" : null, shouldOpenInNewTab: true)
                 ->color($managedBy !== null ? 'success' : 'warning')
                 ->icon($managedBy !== null ? 'heroicon-o-check-circle' : 'heroicon-o-link');
         }
@@ -883,7 +883,7 @@ class ViewTicket extends BaseViewTicket
         ];
 
         foreach ($groups as $groupActions) {
-            if (! empty($groupActions)) {
+            if ($groupActions !== []) {
                 array_splice($actions, 0, 0, $groupActions);
             }
         }
@@ -1042,7 +1042,7 @@ class ViewTicket extends BaseViewTicket
      */
     public function renderSearchResultsTable(): HtmlString
     {
-        if (empty($this->bggSearchResults)) {
+        if ($this->bggSearchResults === []) {
             return new HtmlString('');
         }
 

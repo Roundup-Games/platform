@@ -40,12 +40,12 @@ class AuthenticateFilament extends Middleware
 
         $user = $guard->user();
 
-        if (! $user) {
+        if ($user === null) {
             $this->unauthenticated($request, $guards);
         }
 
         $panel = Filament::getCurrentOrDefaultPanel();
 
-        abort_unless($panel && $user->canAccessPanel($panel), 403);
+        abort_unless($panel !== null && $user->canAccessPanel($panel), 403);
     }
 }

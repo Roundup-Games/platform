@@ -68,7 +68,7 @@ class CaptureFirstTouch
         // and invite-opt-out are auxiliary/token-bearing paths, not content pages
         // a visitor arrives at organically.
         if ($request->is('api/*')
-            || $request->header('X-Livewire')
+            || $request->header('X-Livewire') !== null
             || $request->is('login', 'logout', 'register', 'password/*', 'auth/*', 'verification/*')
             || $request->is('*/login', '*/logout', '*/register', '*/auth/*')
             || $request->is('locale/*', 'sitemap*', 'link/*', 'invite-optout/*')) {

@@ -122,7 +122,7 @@ trait HandlesApplicationSubmission
                 // deliberately does NOT: the join intake reactivates it, the
                 // same rejoin policy the direct-join surfaces apply.
                 $existingParticipant = $entity->participants()->where('user_id', $userId)->first();
-                if ($existingParticipant && $existingParticipant->status?->blocksRejoin()) {
+                if ($existingParticipant !== null && $existingParticipant->status?->blocksRejoin() === true) {
                     throw new \RuntimeException(__($config['translations']['already_participant']));
                 }
 
@@ -131,7 +131,7 @@ trait HandlesApplicationSubmission
                 // departures, but rows from before that hygiene (or from the
                 // old removal flow) are cleared here so the re-application
                 // below starts clean.
-                if ($existingParticipant) {
+                if ($existingParticipant !== null) {
                     $entity->applications()->where('user_id', $userId)->delete();
                 }
 
@@ -180,7 +180,7 @@ trait HandlesApplicationSubmission
                 $freshEntity->applications()->create([
                     'user_id' => $userId,
                     'status' => $isPublic ? $config['application_status_public'] : 'pending',
-                    'message' => $message ?: null,
+                    'message' => $message !== '' ? $message : null,
                 ]);
 
                 // Create/reactivate the participant through the join intake.
@@ -265,7 +265,7 @@ trait HandlesApplicationSubmission
         if (! $isPublic) {
             try {
                 $owner = User::find($entity->owner_id);
-                if ($owner) {
+                if ($owner !== null) {
                     app(NotificationService::class)->send(
                         $owner,
                         new NewApplication(authenticatedUser(), $entity, $config['entity_type']),
@@ -289,7 +289,7 @@ trait HandlesApplicationSubmission
             // the transaction commits so a failure never rolls back the apply.
             try {
                 $applicant = User::find(Auth::id());
-                if ($applicant) {
+                if ($applicant !== null) {
                     app(NotificationService::class)->send(
                         $applicant,
                         new PlayerBenched($entity, $config['entity_type']),
@@ -312,7 +312,7 @@ trait HandlesApplicationSubmission
             // above; mail-off by default since there is no action to take.
             try {
                 $applicant = User::find(Auth::id());
-                if ($applicant) {
+                if ($applicant !== null) {
                     app(NotificationService::class)->send(
                         $applicant,
                         new WaitlistPlaced($entity),

@@ -197,7 +197,7 @@ class GameObserver
             ->map(fn (mixed $id): string => to_string_id($id))
             ->all();
 
-        if (! empty($affectedUserIds)) {
+        if ($affectedUserIds !== []) {
             $this->cache->invalidateForUsers($affectedUserIds, ['action_center', 'week', 'host_again']);
         }
     }
@@ -240,7 +240,7 @@ class GameObserver
      */
     private function maybeDispatchDiscordPublish(Game $game): void
     {
-        if (! config('services.discord.publishing_enabled', false)) {
+        if (! filter_var(config('services.discord.publishing_enabled', false), FILTER_VALIDATE_BOOLEAN)) {
             return;
         }
 
@@ -265,7 +265,7 @@ class GameObserver
      */
     private function maybeUnpublishDiscord(Game $game): void
     {
-        if (! config('services.discord.publishing_enabled', false)) {
+        if (! filter_var(config('services.discord.publishing_enabled', false), FILTER_VALIDATE_BOOLEAN)) {
             return;
         }
 

@@ -233,7 +233,7 @@ class BadgeDefinitionResource extends Resource
                         : 'The badge opens for new awards again.')
                     ->action(function (BadgeDefinition $record): void {
                         // Server-side twin of the visible() gate above.
-                        if (! auth()->user()?->isAdmin()) {
+                        if (auth()->user()?->isAdmin() !== true) {
                             return;
                         }
 

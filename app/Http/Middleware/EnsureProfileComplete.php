@@ -16,7 +16,7 @@ class EnsureProfileComplete
     {
         $user = $request->user();
 
-        if ($user && ! $user->profile_complete) {
+        if ($user !== null && ! $user->profile_complete) {
             $allowedRoutes = [
                 'onboarding.index',
                 'onboarding.complete',

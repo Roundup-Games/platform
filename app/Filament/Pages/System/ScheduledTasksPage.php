@@ -119,11 +119,11 @@ class ScheduledTasksPage extends Page
 
                 $tasks[] = [
                     'command' => $command,
-                    'description' => ($event->description ?? null) ?: null,
+                    'description' => $event->description ?? null,
                     'expression' => $event->expression,
                     'human_expression' => TaskIdentity::humanizeExpression($event->expression),
                     'next_run' => Carbon::instance($cron->getNextRunDate($now->toDateTime(), 0, true)),
-                    'without_overlapping' => $event->withoutOverlapping ?: null,
+                    'without_overlapping' => filled($event->withoutOverlapping) ? $event->withoutOverlapping : null,
                     'on_one_server' => (bool) $event->onOneServer,
                     'last_run' => $lastRun,
                     'last_run_color' => $lastRun?->status->badgeColor(),
@@ -132,7 +132,8 @@ class ScheduledTasksPage extends Page
                     'health' => ScheduleHealth::classify($cron, $now, $lastRun?->started_at, $recordingSince),
                 ];
             } catch (\Throwable $e) {
-                $command ??= ($event->description ?? null) ?: 'unknown';
+                $description = $event->description ?? '';
+                $command ??= $description !== '' ? $description : 'unknown';
                 $lastRun = $latestRuns[$command] ?? null;
 
                 Log::error('schedule.tasks_page.task_unclassifiable', [
@@ -142,11 +143,11 @@ class ScheduledTasksPage extends Page
 
                 $tasks[] = [
                     'command' => $command,
-                    'description' => ($event->description ?? null) ?: null,
+                    'description' => $event->description ?? null,
                     'expression' => $event->expression,
                     'human_expression' => TaskIdentity::humanizeExpression($event->expression),
                     'next_run' => null,
-                    'without_overlapping' => $event->withoutOverlapping ?: null,
+                    'without_overlapping' => filled($event->withoutOverlapping) ? $event->withoutOverlapping : null,
                     'on_one_server' => (bool) $event->onOneServer,
                     'last_run' => $lastRun,
                     'last_run_color' => $lastRun?->status->badgeColor(),

@@ -219,13 +219,13 @@ final class ReviewModeration extends TicketAction
     {
         $reviewId = $ticket->metadata['review_id'] ?? null;
 
-        if (! $reviewId) {
+        if (! filled($reviewId)) {
             throw new \RuntimeException('Review ID is missing from ticket metadata.');
         }
 
         $review = Review::find(self::asString($reviewId));
 
-        if (! $review) {
+        if ($review === null) {
             throw new \RuntimeException('Review '.self::asString($reviewId).' was not found.');
         }
 

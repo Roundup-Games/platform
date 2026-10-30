@@ -22,7 +22,7 @@ class NotificationController extends Controller
 
         // Validate category exists
         $categoryEnum = NotificationCategory::tryFrom($category);
-        if (! $categoryEnum) {
+        if ($categoryEnum === null) {
             abort(404, __('notifications.unsubscribe_unknown_category'));
         }
 

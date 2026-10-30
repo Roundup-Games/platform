@@ -36,7 +36,7 @@ class PostHogTestEvent extends Command
             return self::FAILURE;
         }
 
-        if (config('posthog.enabled', true) === false) {
+        if (! filter_var(config('posthog.enabled', true), FILTER_VALIDATE_BOOLEAN)) {
             $this->error('PostHog is disabled (POSTHOG_ENABLED=false).');
 
             return self::FAILURE;

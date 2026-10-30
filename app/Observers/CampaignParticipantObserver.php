@@ -17,7 +17,7 @@ class CampaignParticipantObserver
 {
     public function created(CampaignParticipant $participant): void
     {
-        if (config('community.auto_follow_on_join', true)) {
+        if (filter_var(config('community.auto_follow_on_join', true), FILTER_VALIDATE_BOOLEAN)) {
             HostAutoFollow::followHost(
                 $participant->user,
                 $participant->campaign?->owner,

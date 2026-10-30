@@ -23,6 +23,11 @@ parameters:
         illegalConstructorMethodCall: true
         strictFunctionCalls: true
         strictArrayFilter: true
+        # Stage 2 (2026-10-30): '0'/0/''/false/null conflation families —
+        # armed after a full-codebase zeroing sweep (commits B1–B4).
+        disallowedEmpty: true
+        disallowedShortTernary: true
+        booleansInConditions: true
     # Bundled core-param flips that carry open debt stay at framework defaults:
     # checkDynamicProperties (114 findings) is deferred to the Eloquent-typing slice.
     checkDynamicProperties: false

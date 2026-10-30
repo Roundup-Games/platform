@@ -83,7 +83,7 @@ trait ManagesParticipants
     {
         $this->authorize('update', $this->getEntity());
 
-        if (empty($this->selectedFriendIds)) {
+        if ($this->selectedFriendIds === []) {
             $this->addError('selectedFriendIds', __('people.error_select_at_least_one_friend'));
 
             return;
@@ -147,7 +147,7 @@ trait ManagesParticipants
             $email,
         );
 
-        if (! $result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey !== null && $result->errorKey !== '') {
             $this->addError('inviteEmail', __($result->errorKey, $result->errorParams));
 
             return;
@@ -185,7 +185,7 @@ trait ManagesParticipants
 
         if ($result->success) {
             session()->flash('success', __($result->messageKey));
-        } elseif ($result->errorKey) {
+        } elseif ($result->errorKey !== null && $result->errorKey !== '') {
             session()->flash('error', __($result->errorKey, $result->errorParams));
         }
     }
@@ -205,7 +205,7 @@ trait ManagesParticipants
 
         if ($result->success) {
             session()->flash('success', __($result->messageKey));
-        } elseif ($result->errorKey) {
+        } elseif ($result->errorKey !== null && $result->errorKey !== '') {
             session()->flash('error', __($result->errorKey, $result->errorParams));
         }
     }
@@ -225,7 +225,7 @@ trait ManagesParticipants
             authenticatedUser(),
         );
 
-        if (! $result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey !== null && $result->errorKey !== '') {
             session()->flash('error', __($result->errorKey, $result->errorParams));
 
             return;
@@ -268,7 +268,7 @@ trait ManagesParticipants
             $authUser,
         );
 
-        if (! $result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey !== null && $result->errorKey !== '') {
             session()->flash('error', __($result->errorKey, $result->errorParams));
 
             return;
@@ -291,7 +291,7 @@ trait ManagesParticipants
             $authUser,
         );
 
-        if (! $result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey !== null && $result->errorKey !== '') {
             session()->flash('error', __($result->errorKey, $result->errorParams));
 
             return;

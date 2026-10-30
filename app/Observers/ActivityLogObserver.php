@@ -55,7 +55,7 @@ class ActivityLogObserver
     private function handleGameCreated(Game $game): void
     {
         $owner = $game->owner;
-        if ($owner) {
+        if ($owner !== null) {
             $this->service->log(ActivityType::GameCreated, $owner, $game);
         }
     }
@@ -66,12 +66,12 @@ class ActivityLogObserver
         $owner = $game->owner;
 
         if ($status === GameStatus::Completed) {
-            if ($owner) {
+            if ($owner !== null) {
                 $this->service->log(ActivityType::GameCompleted, $owner, $game);
             }
             $this->service->logForParticipants(ActivityType::GameCompleted, $game);
         } elseif ($status === GameStatus::Canceled) {
-            if ($owner) {
+            if ($owner !== null) {
                 $this->service->log(ActivityType::GameCanceled, $owner, $game);
             }
             $this->service->logForParticipants(ActivityType::GameCanceled, $game);
@@ -83,7 +83,7 @@ class ActivityLogObserver
     private function handleCampaignCreated(Campaign $campaign): void
     {
         $owner = $campaign->owner;
-        if ($owner) {
+        if ($owner !== null) {
             $this->service->log(ActivityType::CampaignCreated, $owner, $campaign);
         }
     }
@@ -107,7 +107,7 @@ class ActivityLogObserver
     private function logPlayerJoined(GameParticipant $participant): void
     {
         $game = $participant->game;
-        if ($game && $game->owner) {
+        if ($game !== null && $game->owner !== null) {
             $this->service->log(
                 ActivityType::PlayerJoined,
                 $game->owner,
@@ -122,7 +122,7 @@ class ActivityLogObserver
     private function handleReviewCreated(Review $review): void
     {
         $gmProfile = $review->gmProfile;
-        if ($gmProfile && $gmProfile->user) {
+        if ($gmProfile !== null && $gmProfile->user !== null) {
             $this->service->log(
                 ActivityType::ReviewReceived,
                 $gmProfile->user,
@@ -137,7 +137,7 @@ class ActivityLogObserver
     {
         if ($relationship->type === RelationshipType::Follow) {
             $followed = $relationship->related;
-            if ($followed) {
+            if ($followed !== null) {
                 $this->service->log(
                     ActivityType::FollowReceived,
                     $followed,

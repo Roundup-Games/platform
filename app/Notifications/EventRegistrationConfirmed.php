@@ -62,7 +62,7 @@ class EventRegistrationConfirmed extends BaseNotification
             ->line('**'.__('events.content_event').':** '.$event->name);
 
         $date = format_date($event->start_date);
-        if ($event->end_date !== null && $event->start_date?->ne($event->end_date)) {
+        if ($event->end_date !== null && $event->start_date?->ne($event->end_date) === true) {
             $date .= ' — '.format_date($event->end_date);
         }
         $mail->line('**'.__('common.field_date').':** '.$date);

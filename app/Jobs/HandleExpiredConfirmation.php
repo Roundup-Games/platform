@@ -114,7 +114,7 @@ class HandleExpiredConfirmation implements ShouldQueue
             'participant_id' => $this->participantId,
             'participant_class' => $this->participantClass,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

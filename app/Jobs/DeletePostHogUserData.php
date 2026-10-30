@@ -87,7 +87,7 @@ class DeletePostHogUserData implements ShouldQueue
         Log::error('posthog.delete_user_data.failed', [
             'user_id' => $this->userId,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

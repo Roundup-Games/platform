@@ -56,7 +56,7 @@ class GameSystemRequestRejected extends BaseNotification
                 'name' => $name,
             ]));
 
-        if ($rejectionReason) {
+        if ($rejectionReason !== null && $rejectionReason !== '') {
             $mail->line(__('notifications.body_reason', [
                 'reason' => $rejectionReason,
             ]));
@@ -91,7 +91,7 @@ class GameSystemRequestRejected extends BaseNotification
             'action_url' => route('escalated.customer.tickets.show', $this->ticket),
         ];
 
-        if ($rejectionReason) {
+        if ($rejectionReason !== null && $rejectionReason !== '') {
             $data['message'] .= ' '.__('notifications.body_reason', [
                 'reason' => $rejectionReason,
             ]);

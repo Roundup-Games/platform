@@ -101,7 +101,7 @@ class FirstTouch
         // so a Referer that arrived without a scheme still reduces to its
         // domain. Requires a dot + 2+ char alpha TLD, no spaces or path
         // separators, matching the shape of a real hostname.
-        if (preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/i', $referer)) {
+        if (preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/i', $referer) === 1) {
             return $referer;
         }
 
@@ -135,13 +135,13 @@ class FirstTouch
             // $request->path() omits the leading slash).
             $stripped = preg_replace('#^/?[a-z]{2}/#', '', $path);
 
-            if (preg_match('#^games/(?:apply/)?([^/]+)#', (string) $stripped, $m)) {
+            if (preg_match('#^games/(?:apply/)?([^/]+)#', (string) $stripped, $m) === 1) {
                 return ['type' => 'game', 'slug' => $m[1]];
             }
-            if (preg_match('#^campaigns/(?:apply/)?([^/]+)#', (string) $stripped, $m)) {
+            if (preg_match('#^campaigns/(?:apply/)?([^/]+)#', (string) $stripped, $m) === 1) {
                 return ['type' => 'campaign', 'slug' => $m[1]];
             }
-            if (preg_match('#^venues/([^/]+)#', (string) $stripped, $m)) {
+            if (preg_match('#^venues/([^/]+)#', (string) $stripped, $m) === 1) {
                 return ['type' => 'venue', 'slug' => $m[1]];
             }
         } catch (\Throwable) {

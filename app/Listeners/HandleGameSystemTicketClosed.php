@@ -46,7 +46,7 @@ class HandleGameSystemTicketClosed implements ShouldQueue
 
         if (isset($metadata['duplicate_of_game_system_id'])) {
             $this->handleDuplicate($ticket, $metadata);
-        } elseif (! empty($metadata['game_system_id'])) {
+        } elseif (filled($metadata['game_system_id'] ?? null)) {
             // The ticket was approved earlier — a GameSystem was created and its
             // id recorded in metadata — and is now being closed. This is almost
             // always the nightly escalated:close-resolved job archiving a ticket
@@ -77,7 +77,7 @@ class HandleGameSystemTicketClosed implements ShouldQueue
         $existingSystemId = $metadata['duplicate_of_game_system_id'] ?? null;
         $existingSystem = GameSystem::find(is_string($existingSystemId) ? $existingSystemId : null);
 
-        if (! $existingSystem) {
+        if ($existingSystem === null) {
             Log::error('Duplicate game system not found for ticket', [
                 'ticket_id' => $ticket->id,
                 'duplicate_of_game_system_id' => $existingSystemId,
@@ -145,7 +145,7 @@ class HandleGameSystemTicketClosed implements ShouldQueue
         if (! ($requester instanceof User)) {
             Log::warning('Cannot send notification — requester is not a User', [
                 'ticket_id' => $ticket->id,
-                'requester_type' => $requester ? get_class($requester) : null,
+                'requester_type' => $requester !== null ? get_class($requester) : null,
             ]);
 
             return;

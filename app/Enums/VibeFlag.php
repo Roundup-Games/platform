@@ -159,7 +159,7 @@ enum VibeFlag: string
                     $filteredOptions[$value] = $label;
                 }
             }
-            if (! empty($filteredOptions)) {
+            if ($filteredOptions !== []) {
                 $result[$groupKey] = [
                     'label' => $group['label'],
                     'options' => $filteredOptions,

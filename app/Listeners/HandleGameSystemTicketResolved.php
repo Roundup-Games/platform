@@ -48,10 +48,10 @@ class HandleGameSystemTicketResolved implements ShouldQueue
         // the admin also resolved the ticket manually — just send the notification.
         $existingGameSystemId = $metadata['game_system_id'] ?? null;
 
-        if ($existingGameSystemId) {
+        if (filled($existingGameSystemId)) {
             $gameSystem = GameSystem::find(is_string($existingGameSystemId) ? $existingGameSystemId : null);
 
-            if ($gameSystem) {
+            if ($gameSystem !== null) {
                 Log::info('Game system already exists from admin action — sending notification only', [
                     'ticket_id' => $ticket->id,
                     'game_system_id' => $gameSystem->id,
@@ -75,7 +75,7 @@ class HandleGameSystemTicketResolved implements ShouldQueue
             $bggSynced = false;
 
             // Create GameSystem — sync from BGG if bgg_url is available, otherwise manual
-            if ($bggUrl) {
+            if ($bggUrl !== null && $bggUrl !== '') {
                 try {
                     $gameSystem = $service->syncBggFromTicket($ticket);
                     $bggSynced = true;
@@ -125,7 +125,7 @@ class HandleGameSystemTicketResolved implements ShouldQueue
         if (! ($requester instanceof User)) {
             Log::warning('Cannot send approval notification — requester is not a User', [
                 'ticket_id' => $ticket->id,
-                'requester_type' => $requester ? get_class($requester) : null,
+                'requester_type' => $requester !== null ? get_class($requester) : null,
             ]);
 
             return;

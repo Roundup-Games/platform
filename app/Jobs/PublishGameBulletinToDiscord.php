@@ -244,7 +244,7 @@ class PublishGameBulletinToDiscord implements ShouldQueue
         Log::error('discord_bulletin.job.failed', [
             'bulletin_id' => $this->bulletinId,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 

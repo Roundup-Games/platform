@@ -132,7 +132,7 @@ class PostHogFeatureFlag
         }
 
         // Feature flags have a separate kill switch for granular control.
-        if (config('posthog.feature_flags.enabled', true) === false) {
+        if (! filter_var(config('posthog.feature_flags.enabled', true), FILTER_VALIDATE_BOOLEAN)) {
             return $default;
         }
 

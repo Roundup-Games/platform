@@ -86,7 +86,7 @@ class WarmDashboardCache implements ShouldBeUnique, ShouldQueue
         $user = User::find($this->userId);
 
         // Fail gracefully if user was deleted between dispatch and execution
-        if (! $user) {
+        if ($user === null) {
             Log::warning('dashboard.warm.user_not_found', [
                 'user_id' => $this->userId,
                 'trigger_type' => $this->triggerType,
@@ -121,7 +121,7 @@ class WarmDashboardCache implements ShouldBeUnique, ShouldQueue
         // Warm opportunities (requires location)
         $location = $user->linkedLocation;
         $geohash4 = null;
-        if ($location && $location->latitude && $location->longitude) {
+        if ($location !== null && $location->latitude !== null && $location->longitude !== null) {
             $geohash4 = Geohash::tilePrefix(
                 (float) $location->latitude,
                 (float) $location->longitude,
@@ -212,7 +212,7 @@ class WarmDashboardCache implements ShouldBeUnique, ShouldQueue
             'user_id' => $this->userId,
             'trigger_type' => $this->triggerType,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

@@ -110,7 +110,7 @@ class BadgesRelationManager extends RelationManager
                         // Server-side twin of the visible() gate above —
                         // Livewire can invoke an action without re-running
                         // visibility (defense in depth, comp idiom).
-                        if (! auth()->user()?->isAdmin()) {
+                        if (auth()->user()?->isAdmin() !== true) {
                             return;
                         }
 
@@ -206,7 +206,7 @@ class BadgesRelationManager extends RelationManager
                     ])
                     ->action(function (RelationManager $livewire, array $data): void {
                         // Server-side twin of the visible() gate above.
-                        if (! auth()->user()?->isAdmin()) {
+                        if (auth()->user()?->isAdmin() !== true) {
                             return;
                         }
 

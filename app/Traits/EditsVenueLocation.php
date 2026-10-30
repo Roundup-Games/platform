@@ -60,7 +60,7 @@ trait EditsVenueLocation
         }
 
         $venue = Location::where('id', $venueId)->where('is_verified', true)->first();
-        if (! $venue) {
+        if ($venue === null) {
             return;
         }
 
@@ -107,10 +107,10 @@ trait EditsVenueLocation
         $this->validateOnly('edit_address_city', ['edit_address_city' => 'required|string|max:255']);
 
         $location = Location::create([
-            'name' => trim($this->edit_address_street
+            'name' => trim($this->edit_address_street !== ''
                 ? $this->edit_address_street.', '.$this->edit_address_city
                 : $this->edit_address_city),
-            'address' => $this->edit_address_street ?: null,
+            'address' => $this->edit_address_street !== '' ? $this->edit_address_street : null,
             'city' => $this->edit_address_city,
             'source' => 'manual',
         ]);

@@ -215,7 +215,7 @@ class DiscordInteractionController extends Controller
      */
     private function resolveActiveStatus(?GameParticipant $participant): ?ParticipantStatus
     {
-        if (! $participant) {
+        if ($participant === null) {
             return null;
         }
 

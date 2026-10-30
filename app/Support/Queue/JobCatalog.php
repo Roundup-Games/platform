@@ -53,7 +53,8 @@ final class JobCatalog
      */
     private static function build(): array
     {
-        $scheduleSource = file_get_contents(base_path('routes/console.php')) ?: '';
+        $scheduleSource = file_get_contents(base_path('routes/console.php'));
+        $scheduleSource = $scheduleSource === false ? '' : $scheduleSource;
 
         $jobs = [];
 
@@ -82,7 +83,9 @@ final class JobCatalog
 
             $reflection = new ReflectionClass($class);
             $defaults = $reflection->getDefaultProperties();
-            $source = file_get_contents($file->getRealPath() ?: '') ?: '';
+            $realPath = $file->getRealPath();
+            $source = file_get_contents($realPath === false ? '' : $realPath);
+            $source = $source === false ? '' : $source;
 
             [$queue, $queueInferred] = self::resolveQueue($source);
 

@@ -47,7 +47,7 @@ trait BuildsTranslatableFormFields
         $translatableFields = $this->getTranslatableFields();
 
         // If we're leaving baseline, snapshot current field values into pendingTranslations
-        if ($this->activeLocale === $baselineLocale || ! $this->activeLocale) {
+        if ($this->activeLocale === $baselineLocale || $this->activeLocale === '') {
             foreach ($translatableFields as $field) {
                 if (property_exists($this, $field)) {
                     data_set($this, "pendingTranslations.{$baselineLocale}.{$field}", $this->getStringProperty($field));
@@ -79,7 +79,7 @@ trait BuildsTranslatableFormFields
         $baselineValue = data_get($this, "pendingTranslations.{$baselineLocale}.{$field}")
             ?? $this->getStringProperty($field);
 
-        if ($this->activeLocale && $this->activeLocale !== $baselineLocale) {
+        if ($this->activeLocale !== '' && $this->activeLocale !== $baselineLocale) {
             data_set($this, "pendingTranslations.{$this->activeLocale}.{$field}", $baselineValue);
         }
     }
@@ -107,7 +107,7 @@ trait BuildsTranslatableFormFields
      */
     protected function getBaselineLocale(): string
     {
-        if (property_exists($this, 'language') && ! empty($this->language)) {
+        if (property_exists($this, 'language') && $this->language !== '') {
             return $this->language;
         }
 
@@ -170,7 +170,7 @@ trait BuildsTranslatableFormFields
     {
         $baselineLocale = $this->getBaselineLocale();
 
-        if ($this->activeLocale === $baselineLocale || empty($this->activeLocale)) {
+        if ($this->activeLocale === $baselineLocale || $this->activeLocale === '') {
             return $this->getStringProperty($field);
         }
 
@@ -246,7 +246,7 @@ trait BuildsTranslatableFormFields
         $primaryLocale = $overrideLocale ?? $model->language ?? app()->getLocale();
 
         // Initialize activeLocale
-        if (empty($this->activeLocale)) {
+        if ($this->activeLocale === '') {
             $this->activeLocale = $primaryLocale;
         }
 

@@ -151,7 +151,7 @@ class AppServiceProvider extends ServiceProvider
             $publicKey = config('services.vapid.public_key');
             $privateKey = config('services.vapid.private_key');
 
-            if (! $publicKey || ! $privateKey) {
+            if ($publicKey === null || $publicKey === '' || $privateKey === null || $privateKey === '') {
                 Log::warning('VAPID keys not configured, push notifications disabled');
 
                 return null;
@@ -405,7 +405,7 @@ class AppServiceProvider extends ServiceProvider
 
         // PostHog PHP SDK — initialize when API key is configured
         $apiKey = config('posthog.api_key');
-        if (config('posthog.enabled', true) && is_string($apiKey)) {
+        if (filter_var(config('posthog.enabled', true), FILTER_VALIDATE_BOOLEAN) && is_string($apiKey)) {
             $host = config('posthog.host', 'https://eu.i.posthog.com');
             PostHog::init(
                 $apiKey,
@@ -507,7 +507,7 @@ class AppServiceProvider extends ServiceProvider
 
         // API rate limiter — used by throttle:api middleware on routes/api.php
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute(60)->by($request->user()->id ?? $request->ip());
         });
 
         // Short link rate limiter — 30 requests/minute per IP to prevent abuse

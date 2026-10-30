@@ -31,7 +31,7 @@ class AppEscalatedFilamentPlugin extends EscalatedFilamentPlugin
 {
     public function register(Panel $panel): void
     {
-        if (! config('escalated.ui.enabled', true)) {
+        if (! filter_var(config('escalated.ui.enabled', true), FILTER_VALIDATE_BOOLEAN)) {
             return;
         }
 

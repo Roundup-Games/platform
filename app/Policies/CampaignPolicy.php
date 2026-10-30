@@ -65,7 +65,7 @@ class CampaignPolicy
         if ($campaign->visibility === Visibility::Protected) {
             return $user !== null
                 && ((string) $campaign->owner_id === (string) $user->id
-                    || ($campaign->owner && $user->isFriendOrTeammate($campaign->owner))
+                    || ($campaign->owner !== null && $user->isFriendOrTeammate($campaign->owner))
                     || $campaign->participants()->whereBelongsTo($user)->exists());
         }
 

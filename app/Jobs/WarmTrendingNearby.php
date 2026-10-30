@@ -97,7 +97,7 @@ class WarmTrendingNearby implements ShouldBeUnique, ShouldQueue
             'geohash_4' => $this->geohash4,
             'trigger_type' => $this->triggerType,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }

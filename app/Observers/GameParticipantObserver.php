@@ -51,7 +51,7 @@ class GameParticipantObserver
             'game_id' => $participant->game_id,
         ]);
 
-        if (config('community.auto_follow_on_join', true)) {
+        if (filter_var(config('community.auto_follow_on_join', true), FILTER_VALIDATE_BOOLEAN)) {
             HostAutoFollow::followHost(
                 $participant->user,
                 $participant->game?->owner,
@@ -94,7 +94,7 @@ class GameParticipantObserver
             $participant->loadMissing('user');
 
             $user = $participant->user;
-            if ($user) {
+            if ($user !== null) {
                 $this->modeService->invalidateForUser($user);
                 // Clear progress tracker — step 4 (Attend Session) may have changed
                 $this->cache->invalidateForUser((string) $user->id, ['progress_tracker']);
@@ -138,7 +138,7 @@ class GameParticipantObserver
      */
     private function maybeDispatchCardRefresh(GameParticipant $participant): void
     {
-        if (! config('services.discord.publishing_enabled', false)) {
+        if (! filter_var(config('services.discord.publishing_enabled', false), FILTER_VALIDATE_BOOLEAN)) {
             return;
         }
 

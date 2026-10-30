@@ -47,7 +47,7 @@ class DropDemoDomainMail
             }
         }
 
-        if (empty($blocked)) {
+        if ($blocked === []) {
             return null; // let the send proceed
         }
 

@@ -47,13 +47,13 @@ final class GameSystemRequest extends TicketAction
                 ->modalDescription(function () use ($ticket) {
                     $bggUrl = $ticket->metadata['bgg_url'] ?? null;
 
-                    return $bggUrl
+                    return $bggUrl !== null && $bggUrl !== ''
                         ? 'This will sync game data from BGG using the URL: '.self::asString($bggUrl)
                         : 'No BGG URL found in ticket metadata.';
                 })
                 ->modalSubmitActionLabel('Sync Now')
                 ->action(fn () => self::bggSync($ticket))
-                ->visible(fn () => ! empty($ticket->metadata['bgg_url'] ?? null)),
+                ->visible(fn () => filled($ticket->metadata['bgg_url'] ?? null)),
 
             Action::make('searchBgg')
                 ->label('Search BGG')
@@ -82,7 +82,7 @@ final class GameSystemRequest extends TicketAction
                         }),
                     Placeholder::make('bgg_search_results_display')
                         ->label('Search Results')
-                        ->hidden(fn () => empty($component->bggSearchResults))
+                        ->hidden(fn () => $component->bggSearchResults === [])
                         ->content(fn () => $component->renderSearchResultsTable()),
                     Placeholder::make('bgg_selected_display')
                         ->label('Selected BGG Game')
@@ -95,7 +95,7 @@ final class GameSystemRequest extends TicketAction
                         )),
                     Placeholder::make('bgg_no_results_display')
                         ->label('No results found')
-                        ->hidden(fn () => ! empty($component->bggSearchResults) || $component->selectedBggId !== null)
+                        ->hidden(fn () => $component->bggSearchResults !== [] || $component->selectedBggId !== null)
                         ->content(new HtmlString('<p class="text-gray-500">Enter a query and click Search.</p>')),
                 ])
                 ->modalSubmitActionLabel('Search')
@@ -110,7 +110,7 @@ final class GameSystemRequest extends TicketAction
                         // schema-component binding.
                         ->action(function () use ($component) {
                             $query = self::asString($component->bggSearchQuery ?? '');
-                            if (! empty(trim($query))) {
+                            if (trim($query) !== '') {
                                 self::searchBgg($component, $query);
                             }
                         })
@@ -151,7 +151,7 @@ final class GameSystemRequest extends TicketAction
                 ->modalDescription('Create a GameSystem from the request data without BGG sync.')
                 ->modalSubmitActionLabel('Create')
                 ->action(fn () => self::manualCreate($ticket))
-                ->visible(fn () => empty($ticket->metadata['game_system_id'] ?? null)),
+                ->visible(fn () => blank($ticket->metadata['game_system_id'] ?? null)),
         ];
     }
 
@@ -203,7 +203,7 @@ final class GameSystemRequest extends TicketAction
 
             $gameSystem = GameSystem::where('bgg_id', $bggId)->first();
 
-            if (! $gameSystem) {
+            if ($gameSystem === null) {
                 throw new \RuntimeException("BGG sync completed but GameSystem not found for bgg_id={$bggId}.");
             }
 
@@ -294,7 +294,7 @@ final class GameSystemRequest extends TicketAction
             throw $e;
         }
 
-        if (empty($results)) {
+        if ($results === []) {
             Notification::make()
                 ->info()
                 ->title('No results')

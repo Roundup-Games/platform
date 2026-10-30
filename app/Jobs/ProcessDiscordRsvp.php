@@ -163,7 +163,7 @@ class ProcessDiscordRsvp implements ShouldQueue
             'user_id' => $this->userId,
             'guild_id' => $this->guildId,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 

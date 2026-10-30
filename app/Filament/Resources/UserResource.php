@@ -59,7 +59,7 @@ class UserResource extends Resource
     {
         $query = static::getRecordRouteBindingEloquentQuery();
 
-        if ($modifyQuery) {
+        if ($modifyQuery !== null) {
             $query = $modifyQuery($query) ?? $query;
         }
 
@@ -99,7 +99,7 @@ class UserResource extends Resource
                                     ->suffixAction(
                                         Action::make('view_profile')
                                             ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
-                                            ->url(fn (?User $record): ?string => $record ? route('profile.public', $record) : null)
+                                            ->url(fn (?User $record): ?string => $record !== null ? route('profile.public', $record) : null)
                                             ->openUrlInNewTab()
                                     )
                                     ->helperText('Used in profile URL /u/{slug}. Letters, numbers, dots, hyphens, underscores.'),
@@ -151,7 +151,7 @@ class UserResource extends Resource
                                     ->label('Profile Complete'),
                                 Placeholder::make('password_status')
                                     ->label('Password Set')
-                                    ->content(fn (?User $record): string => $record?->hasPasswordSet() ? 'Yes' : 'No (OAuth only)'),
+                                    ->content(fn (?User $record): string => $record?->hasPasswordSet() === true ? 'Yes' : 'No (OAuth only)'),
                                 Placeholder::make('password_set_at')
                                     ->label('Password Set At')
                                     ->content(fn (?User $record): string => $record?->password_set_at?->format('M j, Y H:i') ?? '—'),

@@ -34,7 +34,7 @@ class HostAutoFollow
      */
     public static function followHost(?User $player, ?User $host, string $entityType, int|string $entityId): void
     {
-        if (! $player || ! $host) {
+        if ($player === null || $host === null) {
             return;
         }
 

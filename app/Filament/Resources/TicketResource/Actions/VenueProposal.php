@@ -42,7 +42,7 @@ final class VenueProposal extends TicketAction
                 ->modalDescription(function () use ($ticket) {
                     $name = isset($ticket->metadata['venue_name']) ? self::asString($ticket->metadata['venue_name']) : ($ticket->subject ?? '');
                     $existing = $ticket->metadata['existing_location_id'] ?? null;
-                    if ($existing) {
+                    if ($existing !== null) {
                         return 'This will update the existing location (ID: '.self::asString($existing).') with the proposed venue details and mark it as verified.';
                     }
 

@@ -56,7 +56,7 @@ class ExportDownloadController extends Controller
             ->orderByDesc('created_at')
             ->first();
 
-        if (! $ticket || ! isset($ticket->metadata['export_path'])) {
+        if ($ticket === null || ! isset($ticket->metadata['export_path'])) {
             Log::warning('export.download.no_ticket', [
                 'user_id' => $user->id,
             ]);
@@ -75,7 +75,7 @@ class ExportDownloadController extends Controller
         $fileToken = $request->query('token');
         $expectedToken = $this->deriveFileToken($filePath);
 
-        if (! $fileToken || ! hash_equals($expectedToken, $fileToken)) {
+        if (! is_string($fileToken) || ! hash_equals($expectedToken, $fileToken)) {
             Log::warning('export.download.token_mismatch', [
                 'user_id' => $user->id,
                 'ticket_id' => $ticket->id,

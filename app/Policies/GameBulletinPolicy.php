@@ -86,7 +86,7 @@ class GameBulletinPolicy
     {
         $game = $gameBulletin->game;
 
-        if (! $game) {
+        if ($game === null) {
             return false;
         }
 
@@ -102,7 +102,7 @@ class GameBulletinPolicy
     {
         $game = $gameBulletin->game;
 
-        if (! $game) {
+        if ($game === null) {
             return false;
         }
 

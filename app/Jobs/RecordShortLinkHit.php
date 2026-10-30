@@ -112,7 +112,7 @@ class RecordShortLinkHit implements ShouldQueue
         // other PII in query strings. Hostname retains analytics value (traffic
         // source) without the privacy exposure.
         $this->referer = $this->referer !== null
-            ? (parse_url($this->referer, PHP_URL_HOST) ?: $this->referer)
+            ? (($refererHost = parse_url($this->referer, PHP_URL_HOST)) !== false && $refererHost !== null ? (string) $refererHost : $this->referer)
             : null;
 
         $this->onQueue('default');
@@ -219,7 +219,7 @@ class RecordShortLinkHit implements ShouldQueue
         Log::error('short_link.hit.job_failed', [
             'short_link_id' => $this->shortLinkId,
             'exception' => $exception?->getMessage(),
-            'exception_class' => $exception ? get_class($exception) : null,
+            'exception_class' => $exception !== null ? get_class($exception) : null,
         ]);
     }
 }
