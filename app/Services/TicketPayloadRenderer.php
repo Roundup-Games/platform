@@ -443,7 +443,7 @@ class TicketPayloadRenderer
         }
 
         // Account support: issue_type
-        if (in_array($ticketType, ['account_recovery', 'data_export_request'])) {
+        if (in_array($ticketType, ['account_recovery', 'data_export_request'], true)) {
             /** @var array{user_id?: int|string, issue_type?: string, source?: string} $accountMeta */
             $accountMeta = $ticket->metadata ?? [];
             if (isset($accountMeta['issue_type'])) {

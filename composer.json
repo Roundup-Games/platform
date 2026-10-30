@@ -63,6 +63,7 @@
         "nunomaduro/collision": "^8.6",
         "pestphp/pest": "^5.0",
         "pestphp/pest-plugin-laravel": "^5.0",
+        "phpstan/phpstan-strict-rules": "^2.1",
         "testcontainers/testcontainers": "^1.0"
     },
     "autoload": {

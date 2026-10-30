@@ -331,7 +331,7 @@ class GmWorkspace extends Component
         $topLinks = ShortLink::with('linkable')
             ->whereIn('id', $topLinkIds)
             ->get()
-            ->sortBy(fn (ShortLink $link) => array_search($link->id, $topLinkIds))
+            ->sortBy(fn (ShortLink $link) => array_search($link->id, $topLinkIds, true))
             ->values();
 
         return [$linkAnalytics, $topLinks, collect($topReferrers)];

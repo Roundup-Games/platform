@@ -10,10 +10,10 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\EntityCancelled;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -279,7 +279,7 @@ class UserAnonymizationService
             if ($mediaCount > 0) {
                 // Delete each media file properly (removes files from disk + DB records)
                 $mediaFiles = $user->media;
-                /** @var Collection<int, Media> $mediaFiles */
+                /** @var MediaCollection<int, \App\Models\Media> $mediaFiles */
                 $mediaFiles->each(fn (Media $media) => $media->delete());
 
                 Log::debug('User anonymization: deleted media files', [

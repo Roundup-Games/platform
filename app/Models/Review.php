@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $count
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property array<int, string>|null $proficiency_tags
  */
 class Review extends Model implements TicketSubject
 {
@@ -140,7 +141,7 @@ class Review extends Model implements TicketSubject
      */
     public function getProficiencyEnums(): array
     {
-        /** @var string[] $tags */
+        /** @var array<int, string> $tags */
         $tags = $this->proficiency_tags ?? [];
 
         return array_map(

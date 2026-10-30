@@ -187,7 +187,7 @@ class PostHogAnalytics
                         'first_touch_entry_path' => $entryPath !== '' ? $entryPath : null,
                         'signup_content_type' => $contentContext['type'] ?? null,
                         'signup_content_slug' => $contentContext['slug'] ?? null,
-                    ]),
+                    ], fn (?string $value): bool => $value !== null),
                 ],
             ]);
         } catch (\Throwable $e) {

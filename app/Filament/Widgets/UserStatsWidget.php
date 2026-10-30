@@ -20,7 +20,7 @@ class UserStatsWidget extends StatsOverviewWidget
         // Six aggregate scans of the users table with 60s polling per open
         // admin tab — cache 5 min to match PlatformPulseWidget. The windowed
         // counts ("last 7/30 days") move negligibly at that staleness.
-        /** @var array{total: int, new_30d: int, profile_complete: int, verified: int, verified_7d: int, verified_30d: int} $s */
+        /** @var array{total: int<0, max>, new_30d: int<0, max>, profile_complete: int<0, max>, verified: int<0, max>, verified_7d: int<0, max>, verified_30d: int<0, max>} $s */
         $s = Cache::remember('admin:user-stats', now()->addMinutes(5), function (): array {
             return [
                 'total' => User::count(),

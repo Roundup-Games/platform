@@ -284,7 +284,8 @@ trait ManagesDiscoveryFilters
 
     public function setRadius(float $radius): void
     {
-        if ($radius != 0 && ! in_array($radius, DiscoveryQueryService::RADIUS_OPTIONS, false)) {
+        if ($radius !== 0.0
+            && ! in_array($radius, array_map(fn (int $option): float => (float) $option, DiscoveryQueryService::RADIUS_OPTIONS), true)) {
             return;
         }
         $this->radius = $radius;

@@ -27,7 +27,7 @@ class EscalatedBladeRenderer implements EscalatedUiRenderer
     ];
 
     /**
-     * @param  array<string, mixed>  $props
+     * @param  array<array-key, mixed>  $props
      */
     public function render(string $page, array $props = []): Response
     {

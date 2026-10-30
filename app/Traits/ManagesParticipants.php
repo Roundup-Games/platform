@@ -91,7 +91,7 @@ trait ManagesParticipants
 
         // Cannot invite to a canceled or completed entity
         $entity = $this->getEntity();
-        if (in_array($entity->status?->value, ['canceled', 'cancelled', 'completed'])) {
+        if (in_array($entity->status?->value, ['canceled', 'cancelled', 'completed'], true)) {
             session()->flash('error', __('common.error_entity_no_longer_available'));
 
             return;
@@ -121,7 +121,7 @@ trait ManagesParticipants
 
         // Cannot invite to a canceled or completed entity
         $entity = $this->getEntity();
-        if (in_array($entity->status?->value, ['canceled', 'cancelled', 'completed'])) {
+        if (in_array($entity->status?->value, ['canceled', 'cancelled', 'completed'], true)) {
             session()->flash('error', __('common.error_entity_no_longer_available'));
 
             return;

@@ -84,7 +84,7 @@ class Show extends Component
         $this->userHasPassword = $user->hasPasswordSet();
 
         // Initialize privacy settings with defaults for unset fields
-        /** @var array<string, mixed> $storedSettings */
+        /** @var array<string, string> $storedSettings */
         $storedSettings = $user->privacy_settings ?? [];
         foreach (ProfileVisibilityResolver::FIELDS as $field) {
             $default = $field === 'location' ? 'everyone' : 'friends';

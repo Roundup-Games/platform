@@ -447,7 +447,7 @@ class Location extends Model implements TicketSubject
         $parts = array_filter([
             $this->address,
             $this->postal_code ? "{$this->postal_code} {$this->city}" : $this->city,
-        ]);
+        ], fn (?string $part): bool => $part !== null && $part !== '');
 
         return implode(', ', $parts);
     }

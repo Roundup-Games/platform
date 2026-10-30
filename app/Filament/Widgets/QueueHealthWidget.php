@@ -7,6 +7,7 @@ use App\Support\Scheduling\ScheduleHealth;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Laravel\Horizon\Contracts\JobRepository;
+use Laravel\Horizon\Repositories\RedisJobRepository;
 
 class QueueHealthWidget extends StatsOverviewWidget
 {
@@ -30,7 +31,7 @@ class QueueHealthWidget extends StatsOverviewWidget
     protected function getStats(): array
     {
         try {
-            /** @var JobRepository $jobs */
+            /** @var RedisJobRepository $jobs */
             $jobs = app(JobRepository::class);
 
             $pending = $jobs->countPending();

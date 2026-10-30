@@ -70,7 +70,7 @@ class SafetyToolPicker extends Component
             return;
         }
 
-        if (in_array($tool, $this->selected)) {
+        if (in_array($tool, $this->selected, true)) {
             $this->selected = array_values(array_filter($this->selected, fn ($t) => $t !== $tool));
 
             // Clear Lines & Veils text when deselecting
@@ -137,7 +137,7 @@ class SafetyToolPicker extends Component
                         'fullDescription' => $tool->fullDescription(),
                         'supportsText' => $tool->supportsText(),
                         'textPlaceholder' => $tool->textPlaceholder(),
-                        'isSelected' => in_array($tool->value, $this->selected),
+                        'isSelected' => in_array($tool->value, $this->selected, true),
                     ];
                 }
             }

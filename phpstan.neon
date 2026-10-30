@@ -1,7 +1,31 @@
 includes:
     - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
 
 parameters:
+    # phpstan-strict-rules staged adoption (census: .gsd/research/phpstan-strict-rules-census-2026-10-30.txt)
+    # Stage 0+1: only rule families at zero baseline are armed. Families with open
+    # debt (dynamicCallOnStaticMethod, booleansInConditions, uselessCast,
+    # disallowedEmpty, disallowedShortTernary, noVariableVariables) stay off until
+    # their cleanup slices land. Enable a family in the same change that zeroes it.
+    strictRules:
+        allRules: false
+        disallowedLooseComparison: true
+        booleansInLoopConditions: true
+        requireParentConstructorCall: true
+        disallowedBacktick: true
+        disallowedImplicitArrayCreation: true
+        overwriteVariablesWithLoop: true
+        closureUsesThis: true
+        matchingInheritedMethodNames: true
+        numericOperandsInArithmeticOperators: true
+        switchConditionsMatchingType: true
+        illegalConstructorMethodCall: true
+        strictFunctionCalls: true
+        strictArrayFilter: true
+    # Bundled core-param flips that carry open debt stay at framework defaults:
+    # checkDynamicProperties (114 findings) is deferred to the Eloquent-typing slice.
+    checkDynamicProperties: false
     paths:
         - app
     level: 9
@@ -16,3 +40,17 @@ parameters:
         - stubs/IlluminateCacheLockInterface.stub
         - stubs/SchemaOrg.stub
     reportUnmatchedIgnoredErrors: true
+
+    ignoreErrors:
+        # OAuthController::isEmailVerified keeps a runtime is_array() guard against
+        # legacy Socialite payloads typed `array` but null in the wild. Keep the
+        # guard; silence the always-narrowed heuristic for this one call site.
+        -
+            identifier: function.alreadyNarrowedType
+            path: app/Http/Controllers/Auth/OAuthController.php
+        # ProximityQuery::nearestSessionByCampaign narrows a mixed input
+        # collection to ProximityResult<Game> after an instanceof filter;
+        # filter() cannot express TValue narrowing, so the @var is intentional.
+        -
+            identifier: varTag.type
+            path: app/Services/ProximityQuery.php

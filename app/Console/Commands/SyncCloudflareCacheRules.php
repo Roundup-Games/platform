@@ -149,7 +149,7 @@ class SyncCloudflareCacheRules extends Command
         }
 
         foreach (Route::getRoutes()->getRoutes() as $route) {
-            if (! in_array('GET', $route->methods())) {
+            if (! in_array('GET', $route->methods(), true)) {
                 continue;
             }
 

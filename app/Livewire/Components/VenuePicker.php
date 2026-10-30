@@ -244,7 +244,7 @@ class VenuePicker extends Component
 
     public function switchMode(string $mode): void
     {
-        $this->mode = in_array($mode, ['venue', 'address']) ? $mode : 'venue';
+        $this->mode = in_array($mode, ['venue', 'address'], true) ? $mode : 'venue';
     }
 
     // ── Guest Location Hook ────────────────────────────

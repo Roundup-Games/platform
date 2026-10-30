@@ -143,7 +143,7 @@ class CampaignsPage extends Component
             $changedLabels[] = __('common.field_description');
         }
         $newDuration = $this->edit_session_duration !== '' ? (float) $this->edit_session_duration : null;
-        if ($campaign->session_duration != $newDuration) {
+        if ((float) ($campaign->session_duration ?? 0) !== (float) ($newDuration ?? 0)) {
             $changes['session_duration'] = $newDuration ?? 2;
             $changedLabels[] = __('campaigns.field_duration');
         }

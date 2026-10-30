@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Dto\ActionItem;
-use App\Dto\FeedItem;
+use App\Dto\ActivityFeedItem;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
@@ -50,7 +50,7 @@ class MyGamesBoardService
      *     pending_invitations: Collection<int, GameParticipant>,
      *     recent_completed: Collection<int, Game>,
      *     archive: Collection<int, Game>,
-     *     activity_feed: LengthAwarePaginator<int, FeedItem>,
+     *     activity_feed: LengthAwarePaginator<int, ActivityFeedItem>,
      *     has_any_games: bool,
      * }
      */

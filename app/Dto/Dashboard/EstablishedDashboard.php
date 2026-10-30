@@ -14,7 +14,7 @@ final readonly class EstablishedDashboard
 {
     /**
      * @param  ?float  $gmAverageRating  Null when the viewer is not a GM.
-     * @param  Collection<int, mixed>  $newRecaps  Recaps mapped to anonymous objects for the view.
+     * @param  Collection<string, \stdClass>  $newRecaps  Recaps mapped to anonymous objects for the view.
      * @param  array<string, mixed>  $opportunities  Dashboard section: opportunities (geohash-tracked).
      * @param  list<ActionItem>  $actionCenterItems  Dashboard section: action_center, projected to DTOs.
      * @param  ?array<string, mixed>  $clearSummary  Null when there are pending action items.

@@ -865,7 +865,7 @@ class ParticipantLifecycle
 
         // Guard: entity must not be cancelled/canceled or completed
         $inactiveStatuses = ['canceled', 'cancelled', 'completed'];
-        if ($entity->status && in_array($entity->status->value, $inactiveStatuses)) {
+        if ($entity->status && in_array($entity->status->value, $inactiveStatuses, true)) {
             return ParticipantResult::fail('people.error_listing_no_longer_available');
         }
 

@@ -37,7 +37,7 @@ class PublicGameDetail extends Component
 
         // Authenticated users should use the dashboard game detail (with join/apply CTA)
         if (Auth::check()) {
-            $query = array_filter(['share' => request()->query('share')]);
+            $query = array_filter(['share' => request()->query('share')], fn (?string $share): bool => $share !== null && $share !== '');
             $this->redirect(route('games.show', array_merge([$game], $query)), navigate: true);
 
             return;

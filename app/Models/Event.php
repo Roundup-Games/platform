@@ -37,6 +37,8 @@ use Spatie\Translatable\HasTranslations;
 /**
  * @property Carbon|null $start_date
  * @property string $hub_item_type
+ * @property array<int, string>|null $rules
+ * @property array<int, string>|null $schedule
  * @property Carbon $hub_sort_at
  * @property Carbon|null $end_date
  * @property Carbon|null $registration_opens_at
@@ -171,7 +173,7 @@ class Event extends Model implements HasMedia
         });
 
         static::updated(function (self $event) {
-            if ($event->wasChanged('status') && in_array($event->status?->value, ['completed', 'cancelled'])) {
+            if ($event->wasChanged('status') && in_array($event->status?->value, ['completed', 'cancelled'], true)) {
                 app(ShortLinkService::class)->expireLinksForEntity($event);
             }
         });
@@ -499,7 +501,7 @@ class Event extends Model implements HasMedia
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
             EventStatus::InProgress,
-        ]);
+        ], true);
         $robots = $isPublic
             ? 'index, follow'
             : 'noindex, nofollow';

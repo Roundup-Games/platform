@@ -632,7 +632,7 @@ class OAuthController
         // The Socialite AbstractUser declares `@var array` on $user but
         // legacy mocks and edge-case providers may leave it null. Read it
         // as mixed so the runtime is_array() guard is honoured.
-        /** @var mixed $payload */
+        /** @var array<array-key, mixed> $payload */
         $payload = $socialiteUser->user;
 
         if (! is_array($payload)) {

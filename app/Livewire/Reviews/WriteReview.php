@@ -151,7 +151,7 @@ class WriteReview extends Component
 
     public function toggleTag(string $tag): void
     {
-        if (in_array($tag, $this->proficiency_tags)) {
+        if (in_array($tag, $this->proficiency_tags, true)) {
             $this->proficiency_tags = array_values(array_diff($this->proficiency_tags, [$tag]));
         } else {
             if (count($this->proficiency_tags) >= 3) {

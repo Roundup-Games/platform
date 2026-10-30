@@ -114,7 +114,7 @@ class BadgeService
         $userId = (string) $user->id;
 
         try {
-            /** @var array{0: BadgeAwardResult, 1: BadgeAwarded|BadgeUpgraded|null} $outcome */
+            /** @var array{BadgeAwardResult::AlreadyHeld|BadgeAwardResult::RefusedRevoked, null}|array{BadgeAwardResult::Awarded, BadgeAwarded}|array{BadgeAwardResult::Upgraded, BadgeUpgraded} $outcome */
             $outcome = DB::transaction(function () use ($user, $definition, $award, $source, $actor, $reason, $userId): array {
                 $held = BadgeUser::query()
                     ->whereBelongsTo($user)

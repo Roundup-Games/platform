@@ -342,7 +342,7 @@ class Show extends Component
             $user->vibePreferences()->delete();
             $inserts = [];
             foreach ($this->vibePreferences as $flagValue => $type) {
-                if ($type !== null && in_array($type, ['favorite', 'avoid']) && in_array($flagValue, $validVibeValues)) {
+                if ($type !== null && in_array($type, ['favorite', 'avoid'], true) && in_array($flagValue, $validVibeValues, true)) {
                     $inserts[] = [
                         'user_id' => $user->id,
                         'vibe_preference_value' => $flagValue,

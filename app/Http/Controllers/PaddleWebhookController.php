@@ -32,7 +32,7 @@ class PaddleWebhookController extends BaseWebhookController
     /**
      * Handle subscription created.
      *
-     * @param  array<string, mixed>  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     protected function handleSubscriptionCreated(array $payload): void
     {
@@ -61,7 +61,7 @@ class PaddleWebhookController extends BaseWebhookController
     /**
      * Handle subscription updated.
      *
-     * @param  array<string, mixed>  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     protected function handleSubscriptionUpdated(array $payload): void
     {
@@ -83,7 +83,7 @@ class PaddleWebhookController extends BaseWebhookController
     /**
      * Handle subscription canceled.
      *
-     * @param  array<string, mixed>  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     protected function handleSubscriptionCanceled(array $payload): void
     {
@@ -114,7 +114,7 @@ class PaddleWebhookController extends BaseWebhookController
      * confirmEventRegistrationFromTransaction() auto-confirms the event
      * registration the checkout was initiated for, if any.
      *
-     * @param  array<string, mixed>  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     protected function handleTransactionCompleted(array $payload): void
     {
@@ -163,7 +163,7 @@ class PaddleWebhookController extends BaseWebhookController
      * - Refunds without a matching registration (GM subscriptions, support
      *   checkouts) are logged and otherwise ignored.
      *
-     * @param  array<string, mixed>  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     protected function handleAdjustmentRefunded(array $payload): void
     {
@@ -189,7 +189,7 @@ class PaddleWebhookController extends BaseWebhookController
      * its organizer (flagEventRegistrationPaymentFailure — registration
      * state stays pending/pending).
      *
-     * @param  array<string, mixed>  $payload
+     * @param  array<array-key, mixed>  $payload
      */
     protected function handleTransactionPaymentFailed(array $payload): void
     {

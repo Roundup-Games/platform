@@ -120,7 +120,7 @@ class DashboardNewcomerService
         $userLng = $userLocation?->longitude ? (float) $userLocation->longitude : null;
 
         $scoredGames = $games->map(function ($game) use ($preferredSystemSet, $userLat, $userLng) {
-            $spotsAvailable = $game->max_players - (int) ($game->participant_count ?? 0);
+            $spotsAvailable = (int) ($game->max_players ?? 0) - (int) ($game->participant_count ?? 0);
             $participantCount = (int) ($game->participant_count ?? 0);
 
             // Preference match score: +50 if ANY offered system is preferred.

@@ -27,7 +27,8 @@ use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -123,8 +124,12 @@ class ViewTicket extends BaseViewTicket
         // Load the subjects collection once and thread it through both section
         // builders, so the metadata sections can check $subjects->contains(...)
         // for de-duplication instead of re-querying (2 queries/view avoided).
-        /** @var Collection<int, TicketSubjectLink> $subjects */
-        $subjects = $ticket->subjects()->with('subject')->get();
+        // Narrow out of Eloquent's invariant Collection<int, Model> into the
+        // covariant base collection once, at the boundary.
+        $subjects = collect($ticket->subjects()->with('subject')->get()->all())
+            ->map(fn (Model $link): TicketSubjectLink => $link instanceof TicketSubjectLink
+                ? $link
+                : throw new \RuntimeException('subjects() returned an unexpected model'));
 
         if (empty($metadata) && $subjects->isEmpty()) {
             return $parent;
@@ -563,7 +568,7 @@ class ViewTicket extends BaseViewTicket
         $entries = [];
 
         foreach ($metadata as $key => $value) {
-            if (in_array($key, $skip) || is_array($value)) {
+            if (in_array($key, $skip, true) || is_array($value)) {
                 continue;
             }
 

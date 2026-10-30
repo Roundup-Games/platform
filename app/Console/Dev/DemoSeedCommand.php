@@ -2479,7 +2479,7 @@ class DemoSeedCommand extends Command
                         // Also generate NoShow reports for no-show players
                         $noShowPids = array_values(array_filter(
                             $campaignParticipants,
-                            fn ($pid) => $pid !== $gm['id'] && ! in_array($pid, $pastAttendedPids)
+                            fn ($pid) => $pid !== $gm['id'] && ! in_array($pid, $pastAttendedPids, true)
                         ));
                         foreach ($noShowPids as $pid) {
                             $this->attendanceReportQueue[] = [
@@ -2710,7 +2710,7 @@ class DemoSeedCommand extends Command
         }
 
         $pool = $this->boardGamePool !== [] ? $this->boardGamePool : $this->ttrpgPool;
-        /** @var array{id: string, min: int} $system */
+        /** @var array{id: string, name: string, min: int, max: int, dur?: int} $system */
         $system = $pool[array_key_first($pool)];
 
         $veteranGm = $this->gmInfo[0];

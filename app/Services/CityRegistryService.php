@@ -210,7 +210,7 @@ class CityRegistryService
     private function flushCaches(?string $previousId, string $currentId): void
     {
         $slugs = City::query()
-            ->whereKey(array_filter([$previousId, $currentId]))
+            ->whereKey(array_filter([$previousId, $currentId], fn (?string $id): bool => $id !== null))
             ->pluck('slug');
 
         foreach ($slugs as $slug) {

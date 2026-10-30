@@ -135,12 +135,12 @@ class DashboardAssembler
         $discoveryService = app(DashboardDiscoveryService::class);
 
         $actionCenterRaw = $cacheService->getActionCenter($user);
-        /** @var array<int, array<string, mixed>> $actionCenterItemsRaw */
-        $actionCenterItemsRaw = $actionCenterRaw;
-        $actionCenterItems = array_values(array_map(
+        /** @var list<array<string, mixed>> $actionCenterItemsRaw */
+        $actionCenterItemsRaw = array_values($actionCenterRaw);
+        $actionCenterItems = array_map(
             fn (array $item) => ActionItem::fromArray($item),
             $actionCenterItemsRaw,
-        ));
+        );
         // Pass the (empty) items to avoid getClearSummary re-querying all 11 sources.
         $clearSummary = empty($actionCenterItems)
             ? app(ActionCenterService::class)->getClearSummary($user, [])
@@ -174,7 +174,7 @@ class DashboardAssembler
 
         $gmAverageRating = ! $user->isGM() ? null : $user->gmProfile?->average_rating;
 
-        /** @var Collection<int, mixed> $newRecaps */
+        /** @var Collection<string, \stdClass> $newRecaps */
         $newRecaps = collect(app(DashboardCacheService::class)->getRecaps($user))->map(fn ($r) => (object) $r);
 
         return new EstablishedDashboard(

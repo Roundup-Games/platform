@@ -92,7 +92,7 @@ final class DataExport extends TicketAction
 
             // The command outputs info lines followed by the stored path as the last line.
             // Extract only the final line to avoid including progress messages in the path.
-            $lines = array_filter(explode("\n", $output));
+            $lines = array_filter(explode("\n", $output), fn (string $line): bool => $line !== '');
             $storedPath = end($lines);
 
             if (empty($storedPath) || ! str_starts_with($storedPath, 'exports/')) {

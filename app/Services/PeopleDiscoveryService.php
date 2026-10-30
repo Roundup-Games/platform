@@ -215,7 +215,7 @@ class PeopleDiscoveryService
             }
 
             $visibleFields = $this->visibility->profileFieldsVisible($viewer, $candidate);
-            if (! in_array('location', $visibleFields)) {
+            if (! in_array('location', $visibleFields, true)) {
                 continue;
             }
 
@@ -691,10 +691,10 @@ class PeopleDiscoveryService
         array $viewerVibes,
         array $viewerTeamIds,
     ): array {
-        $gameSystemsVisible = in_array('game_systems', $visibleFields);
-        $vibesVisible = in_array('vibes', $visibleFields);
-        $teamsVisible = in_array('teams', $visibleFields);
-        $friendsListVisible = in_array('friends_list', $visibleFields);
+        $gameSystemsVisible = in_array('game_systems', $visibleFields, true);
+        $vibesVisible = in_array('vibes', $visibleFields, true);
+        $teamsVisible = in_array('teams', $visibleFields, true);
+        $friendsListVisible = in_array('friends_list', $visibleFields, true);
 
         $tasteComponents = [];
         $matchReasons = [];
@@ -815,7 +815,7 @@ class PeopleDiscoveryService
         if (! is_array($existingKeys)) {
             $existingKeys = [];
         }
-        if (! in_array($cacheKey, $existingKeys)) {
+        if (! in_array($cacheKey, $existingKeys, true)) {
             $existingKeys[] = $cacheKey;
             Cache::put($keySetKey, $existingKeys, $ttl);
         }

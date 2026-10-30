@@ -68,7 +68,7 @@ class LocationPicker extends Component
     public function mount(?string $locationId = null, string $mode = 'profile'): void
     {
         $this->locationId = $locationId;
-        $this->mode = in_array($mode, ['profile', 'session']) ? $mode : 'profile';
+        $this->mode = in_array($mode, ['profile', 'session'], true) ? $mode : 'profile';
 
         if ($locationId) {
             $location = Location::find($locationId);

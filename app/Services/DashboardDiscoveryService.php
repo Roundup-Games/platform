@@ -79,7 +79,7 @@ class DashboardDiscoveryService
         // every empty cache read, re-throwing and propagating through the assembler.
         // The milestone cache is invalidated on game events, so freshness is preserved.
 
-        /** @var array<int, array<string, mixed>> $cards */
+        /** @var array<string, array<string, mixed>> $cards */
         return array_values($cards);
     }
 

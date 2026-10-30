@@ -207,10 +207,11 @@ class UserResource extends Resource
                                             return '—';
                                         }
 
-                                        /** @var Carbon|null $date */
                                         $date = $record->profile_updated_at;
 
-                                        return $date?->format('M j, Y H:i') ?? '—';
+                                        return $date !== null
+                                            ? Carbon::parse($date)->format('M j, Y H:i')
+                                            : '—';
                                     }),
                                 Placeholder::make('profile_version')
                                     ->label('Profile Version')

@@ -43,7 +43,7 @@ class RedisHealthWidget extends StatsOverviewWidget
                     'memory' => $str('used_memory_human', 'n/a'),
                     'clients' => (int) $str('connected_clients'),
                     'uptime_days' => (int) $str('uptime_in_days'),
-                    'keys' => (int) Redis::dbsize(),
+                    'keys' => (int) Redis::dbSize(),
                 ];
             });
         } catch (\Throwable) {

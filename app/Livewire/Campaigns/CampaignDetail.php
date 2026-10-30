@@ -229,7 +229,7 @@ class CampaignDetail extends Component
                     ParticipantStatus::Waitlisted->value,
                     ParticipantStatus::Benched->value,
                     ParticipantStatus::Pending->value,
-                ]));
+                ], true));
 
         if (! $participant || ! $user->can('leave', $this->campaign)) {
             session()->flash('error', __('campaigns.error_not_a_participant'));
@@ -294,7 +294,7 @@ class CampaignDetail extends Component
             ParticipantStatus::Pending->value,
             ParticipantStatus::Waitlisted->value,
             ParticipantStatus::Benched->value,
-        ]);
+        ], true);
     }
 
     #[Computed]
@@ -329,7 +329,7 @@ class CampaignDetail extends Component
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && $this->campaign->visibility !== Visibility::Private
             && (! $this->isCampaignFull() || $this->campaign->isBenchMode())
-            && ! in_array($this->campaign->status?->value, [CampaignStatus::Cancelled->value, CampaignStatus::Completed->value]);
+            && ! in_array($this->campaign->status?->value, [CampaignStatus::Cancelled->value, CampaignStatus::Completed->value], true);
     }
 
     #[Computed]
@@ -340,7 +340,7 @@ class CampaignDetail extends Component
             && ! $this->campaign->isBenchMode()
             && $this->isCampaignFull()
             && $this->campaign->visibility !== Visibility::Private
-            && ! in_array($this->campaign->status?->value, [CampaignStatus::Cancelled->value, CampaignStatus::Completed->value]);
+            && ! in_array($this->campaign->status?->value, [CampaignStatus::Cancelled->value, CampaignStatus::Completed->value], true);
     }
 
     #[Computed]

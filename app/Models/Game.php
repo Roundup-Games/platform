@@ -209,7 +209,7 @@ class Game extends Model implements HasMedia, TicketSubject
         });
 
         static::updated(function (self $game) {
-            if ($game->wasChanged('status') && in_array($game->status?->value, ['completed', 'canceled'])) {
+            if ($game->wasChanged('status') && in_array($game->status?->value, ['completed', 'canceled'], true)) {
                 app(ShortLinkService::class)->expireLinksForEntity($game);
 
                 // Expire all active, non-pinned bulletins for this game.
@@ -225,7 +225,7 @@ class Game extends Model implements HasMedia, TicketSubject
 
                 Log::info('Game bulletins expired on game completion', [
                     'game_id' => $game->id,
-                    'new_status' => $game->status?->value,
+                    'new_status' => $game->status->value,
                 ]);
             }
         });
@@ -490,8 +490,8 @@ class Game extends Model implements HasMedia, TicketSubject
             return false;
         }
 
-        return in_array('debriefing', $this->safety_rules)
-            || in_array('stars-and-wishes', $this->safety_rules);
+        return in_array('debriefing', $this->safety_rules, true)
+            || in_array('stars-and-wishes', $this->safety_rules, true);
     }
 
     /**
@@ -507,7 +507,7 @@ class Game extends Model implements HasMedia, TicketSubject
             return $prompts;
         }
 
-        if (in_array('debriefing', $this->safety_rules)) {
+        if (in_array('debriefing', $this->safety_rules, true)) {
             $prompts['what_went_well'] = [
                 'prompt' => __('games.content_debriefing_prompt_what_went_well'),
             ];
@@ -520,7 +520,7 @@ class Game extends Model implements HasMedia, TicketSubject
             ];
         }
 
-        if (in_array('stars-and-wishes', $this->safety_rules)) {
+        if (in_array('stars-and-wishes', $this->safety_rules, true)) {
             $prompts['star'] = [
                 'prompt' => __('games.content_debriefing_prompt_star'),
             ];
@@ -542,11 +542,11 @@ class Game extends Model implements HasMedia, TicketSubject
             return null;
         }
 
-        if (in_array('debriefing', $this->safety_rules)) {
+        if (in_array('debriefing', $this->safety_rules, true)) {
             return 'debriefing';
         }
 
-        if (in_array('stars-and-wishes', $this->safety_rules)) {
+        if (in_array('stars-and-wishes', $this->safety_rules, true)) {
             return 'stars-and-wishes';
         }
 

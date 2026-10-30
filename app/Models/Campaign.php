@@ -177,7 +177,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
         });
 
         static::updated(function (self $campaign) {
-            if ($campaign->wasChanged('status') && in_array($campaign->status?->value, ['completed', 'cancelled'])) {
+            if ($campaign->wasChanged('status') && in_array($campaign->status?->value, ['completed', 'cancelled'], true)) {
                 app(ShortLinkService::class)->expireLinksForEntity($campaign);
             }
         });

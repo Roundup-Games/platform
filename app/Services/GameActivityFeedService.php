@@ -27,7 +27,7 @@ class GameActivityFeedService
      *
      * Each item has: type, game, user (who performed the action), created_at, description
      *
-     * @return LengthAwarePaginator<int, FeedItem>
+     * @return LengthAwarePaginator<int, ActivityFeedItem>
      */
     public function getFeed(User $viewer, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
@@ -68,7 +68,7 @@ class GameActivityFeedService
      *  - campaign_completed: A friend/followed user's campaign was completed
      *  - session_scheduled: A new game/session was added to a campaign
      *
-     * @return LengthAwarePaginator<int, FeedItem>
+     * @return LengthAwarePaginator<int, ActivityFeedItem>
      */
     public function getCampaignFeed(User $viewer, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {

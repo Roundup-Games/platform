@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Dto\ActionItem;
-use App\Dto\FeedItem;
+use App\Dto\ActivityFeedItem;
 use App\Enums\CampaignStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
@@ -43,7 +43,7 @@ class MyCampaignsBoardService
      *     pending_invitations: Collection<int, CampaignParticipant>,
      *     recent_ended: Collection<int, Campaign>,
      *     archive: Collection<int, Campaign>,
-     *     activity_feed: LengthAwarePaginator<int, FeedItem>,
+     *     activity_feed: LengthAwarePaginator<int, ActivityFeedItem>,
      *     has_any_campaigns: bool,
      * }
      */

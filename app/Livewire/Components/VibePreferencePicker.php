@@ -62,7 +62,7 @@ class VibePreferencePicker extends Component
 
         // Clear preferences for flags not relevant to this game type
         foreach ($preferences as $flagValue => $value) {
-            if ($value !== null && ! in_array($flagValue, $relevantValues)) {
+            if ($value !== null && ! in_array($flagValue, $relevantValues, true)) {
                 $this->preferences[$flagValue] = null;
             }
         }

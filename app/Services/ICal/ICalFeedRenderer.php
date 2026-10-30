@@ -151,7 +151,7 @@ class ICalFeedRenderer
         $addressParts = array_filter([
             $location->address,
             $location->city,
-        ]);
+        ], fn (?string $part): bool => $part !== null && $part !== '');
         $addressString = implode(', ', $addressParts);
 
         $icalLocation = new Location($addressString ?: '', (string) ($location->name ?? ''));

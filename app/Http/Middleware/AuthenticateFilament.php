@@ -26,7 +26,7 @@ class AuthenticateFilament extends Middleware
      * - Guests → redirect to platform login
      * - Authenticated without panel access → 403 (handled by our exception handler)
      *
-     * @param  array<string, mixed>  $guards
+     * @param  array<array-key, mixed>  $guards
      */
     protected function authenticate($request, array $guards): void
     {

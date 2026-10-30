@@ -25,7 +25,7 @@ class EnsureProfileComplete
                 'profile.edit',
             ];
 
-            if (! in_array($request->route()?->getName(), $allowedRoutes)) {
+            if (! in_array($request->route()?->getName(), $allowedRoutes, true)) {
                 return redirect()->route('onboarding.index');
             }
         }

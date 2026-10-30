@@ -167,7 +167,8 @@ class ParticipantService
         // with), so look up both the canonical and raw-lowercased forms to
         // catch a Gmail account regardless of which variant was registered.
         $existingUser = User::whereIn('email', array_values(array_filter(
-            array_unique([$normalizedEmail, strtolower(trim($email))])
+            array_unique([$normalizedEmail, strtolower(trim($email))]),
+            fn (string $email): bool => $email !== ''
         )))->first();
 
         if ($existingUser) {

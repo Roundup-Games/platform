@@ -61,11 +61,11 @@ class ProfileVisibilityResolver
         $level = $viewer ? $owner->getRelationshipLevel($viewer) : 'stranger';
 
         $visible = [];
-        /** @var array<string, string>|null $settings */
+        /** @var array<string, string> $settings */
         $settings = $owner->privacy_settings ?? [];
 
         foreach (self::FIELDS as $field) {
-            $setting = is_array($settings) && isset($settings[$field])
+            $setting = isset($settings[$field])
                 ? $settings[$field]
                 : self::DEFAULT_VISIBILITY;
 

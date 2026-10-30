@@ -167,7 +167,7 @@ class ManageRoster extends Component
         $member = $this->findActiveMember($memberId);
 
         $roleOrder = ['substitute', 'player', 'coach', 'captain'];
-        $currentIdx = array_search($member->role, $roleOrder);
+        $currentIdx = array_search($member->role, $roleOrder, true);
 
         if ($currentIdx === false || $currentIdx >= count($roleOrder) - 1) {
             return;
@@ -206,7 +206,7 @@ class ManageRoster extends Component
         }
 
         $roleOrder = ['substitute', 'player', 'coach', 'captain'];
-        $currentIdx = array_search($member->role, $roleOrder);
+        $currentIdx = array_search($member->role, $roleOrder, true);
 
         if ($currentIdx === false || $currentIdx <= 0) {
             return;
@@ -230,7 +230,7 @@ class ManageRoster extends Component
         $this->authorize('manageMembers', $this->team);
 
         $validRoles = ['captain', 'coach', 'player', 'substitute'];
-        if (! in_array($role, $validRoles)) {
+        if (! in_array($role, $validRoles, true)) {
             return;
         }
 

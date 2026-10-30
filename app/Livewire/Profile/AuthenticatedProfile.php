@@ -153,10 +153,10 @@ class AuthenticatedProfile extends Component
         $eagerLoads = [];
 
         // Only load relationships for fields the viewer is allowed to see
-        if (in_array('game_systems', $this->visibleFields)) {
+        if (in_array('game_systems', $this->visibleFields, true)) {
             $eagerLoads[] = 'favoriteGameSystems';
         }
-        if (in_array('vibes', $this->visibleFields)) {
+        if (in_array('vibes', $this->visibleFields, true)) {
             $eagerLoads[] = 'favoriteVibes';
         }
 
@@ -166,7 +166,7 @@ class AuthenticatedProfile extends Component
 
         // Load teams through TeamMember to avoid belongsToMany pivot issue
         $teamMemberships = collect();
-        if (in_array('teams', $this->visibleFields)) {
+        if (in_array('teams', $this->visibleFields, true)) {
             $teamMemberships = TeamMember::where('user_id', $this->profileUser->id)
                 ->where('status', 'active')
                 ->with('team')
@@ -204,7 +204,7 @@ class AuthenticatedProfile extends Component
         $reliabilityTier = $reliabilityData['tier'] ?? 'newcomer';
         $reliabilityScore = $reliabilityData['score'] ?? 0;
         $reliabilityGameCount = $reliabilityData['game_count'] ?? 0;
-        $showReliabilityDetails = in_array('stats', $this->visibleFields);
+        $showReliabilityDetails = in_array('stats', $this->visibleFields, true);
 
         return view('livewire.profile.authenticated-profile', [
             'profileUser' => $this->profileUser,

@@ -330,7 +330,7 @@ class DashboardSmartPromptService
      */
     private function formatTimeUntil(\DateInterval $diff): string
     {
-        $hours = ($diff->days * 24) + $diff->h;
+        $hours = ((int) $diff->days * 24) + $diff->h;
         $minutes = $diff->i;
 
         if ($hours >= 1) {

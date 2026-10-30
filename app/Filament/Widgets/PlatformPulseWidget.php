@@ -32,7 +32,7 @@ class PlatformPulseWidget extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        /** @var array{sessions: int, campaigns: int, events: int, systems: int, venues: int, open_tickets: int, new_users: int, hub_queue: int, hubs_curated: int} $stats */
+        /** @var array{sessions: int<0, max>, campaigns: int<0, max>, events: int<0, max>, systems: int<0, max>, venues: int<0, max>, open_tickets: int<0, max>, new_users: int<0, max>, hub_queue: int<0, max>, hubs_curated: int<0, max>} $stats */
         $stats = Cache::remember('admin:platform-pulse', now()->addMinutes(5), fn (): array => [
             'sessions' => Game::query()
                 ->where('visibility', Visibility::Public->value)

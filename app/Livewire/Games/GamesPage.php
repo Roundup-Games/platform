@@ -150,7 +150,7 @@ class GamesPage extends Component
             $changedLabels[] = __('common.field_description');
         }
         $newDuration = $this->edit_expected_duration !== '' ? (float) $this->edit_expected_duration : null;
-        if ($game->expected_duration != $newDuration) {
+        if ((float) ($game->expected_duration ?? 0) !== (float) ($newDuration ?? 0)) {
             $changes['expected_duration'] = $newDuration ?? 2;
             $changedLabels[] = __('common.content_duration_hours');
         }

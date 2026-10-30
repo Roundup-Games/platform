@@ -166,12 +166,12 @@ class ManageEvent extends Component
         $this->early_bird_deadline = $e->early_bird_deadline ? $e->early_bird_deadline->format('Y-m-d\TH:i') : '';
         $this->registration_opens_at = $e->registration_opens_at ? $e->registration_opens_at->format('Y-m-d\TH:i') : '';
         $this->registration_closes_at = $e->registration_closes_at ? $e->registration_closes_at->format('Y-m-d\TH:i') : '';
-        /** @var array<int, string>|string|null $rules */
+        /** @var array<int, string>|null $rules */
         $rules = $e->rules;
-        $this->rules = is_array($rules) ? implode("\n", $rules) : (string) ($rules ?? '');
-        /** @var array<int, string>|string|null $schedule */
+        $this->rules = is_array($rules) ? implode("\n", $rules) : '';
+        /** @var array<int, string>|null $schedule */
         $schedule = $e->schedule;
-        $this->schedule = is_array($schedule) ? implode("\n", $schedule) : (string) ($schedule ?? '');
+        $this->schedule = is_array($schedule) ? implode("\n", $schedule) : '';
         $this->contact_email = $e->contact_email ?? '';
         $this->contact_phone = $e->contact_phone ?? '';
         $this->is_public = $e->is_public ?? false;
@@ -410,8 +410,8 @@ class ManageEvent extends Component
             }
         }
 
-        $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules))) : null;
-        $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule))) : null;
+        $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules)), fn (string $line): bool => $line !== '') : null;
+        $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule)), fn (string $line): bool => $line !== '') : null;
 
         $translatable = $this->buildTranslatableValues(
             ['name', 'description', 'short_description'],

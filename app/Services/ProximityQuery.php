@@ -226,7 +226,8 @@ class ProximityQuery
     public function nearestSessionByCampaign(Collection $gameResults): Collection
     {
         // Collection::filter() cannot narrow TValue through the predicate, so the
-        // narrowed type is asserted once for the loop below.
+        // narrowed type is asserted once for the loop below. The instanceof
+        // guards are load-bearing at runtime: callers may pass mixed input.
         /** @var Collection<int, ProximityResult<Game>> $campaignSessions */
         $campaignSessions = $gameResults->filter(fn (mixed $r): bool => $r instanceof ProximityResult
             && $r->entity instanceof Game

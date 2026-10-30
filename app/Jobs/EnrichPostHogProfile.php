@@ -269,7 +269,7 @@ class EnrichPostHogProfile implements ShouldQueue
                 'modality' => $modalityLabel,
                 'primary_game_system' => is_string($primarySystemName) ? $primarySystemName : null,
                 'reliability_tier' => $tier,
-            ]);
+            ], fn (?string $value): bool => $value !== null);
         } catch (\Throwable $e) {
             Log::debug('posthog.profile_properties.compute_failed', [
                 'user_id' => $user->id,
@@ -383,7 +383,7 @@ class EnrichPostHogProfile implements ShouldQueue
                     'game_system' => $gameSystemName,
                     'city' => $team->city,
                     'country' => $team->country,
-                ]));
+                ], fn (string|int|null $value): bool => $value !== null));
             }
         } catch (\Throwable $e) {
             Log::debug('posthog.team_group_enrichment.failed', [

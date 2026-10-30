@@ -73,7 +73,7 @@ trait HandlesApplicationSubmission
 
         // Cannot apply to a canceled or completed entity
         $status = $entity->status?->value;
-        if (in_array($status, ['canceled', 'cancelled', 'completed'])) {
+        if (in_array($status, ['canceled', 'cancelled', 'completed'], true)) {
             session()->flash('error', __('common.error_entity_no_longer_available'));
             $this->redirect(route($config['show_route'], $entity), navigate: true);
 

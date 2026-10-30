@@ -66,7 +66,7 @@ class I18nMissingCommand extends Command
             $domain = substr($key, 0, $dot);
             $keyPart = substr($key, $dot + 1);
 
-            if (! in_array($domain, $domains)) {
+            if (! in_array($domain, $domains, true)) {
                 $falsePositives[] = array_merge($entry, ['reason' => "Unknown domain '{$domain}' (likely dynamic __() call)"]);
 
                 continue;

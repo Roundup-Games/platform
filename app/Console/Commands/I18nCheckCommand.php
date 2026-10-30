@@ -75,7 +75,7 @@ class I18nCheckCommand extends Command
             $localeDir = lang_path($locale);
 
             foreach ($primaryDomains as $domain) {
-                if (in_array($domain, $domains) && ! file_exists("$localeDir/$domain.php")) {
+                if (in_array($domain, $domains, true) && ! file_exists("$localeDir/$domain.php")) {
                     $issues[] = [
                         'type' => 'missing_file',
                         'locale' => $locale,

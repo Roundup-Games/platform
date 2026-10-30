@@ -123,8 +123,8 @@ class CreateEvent extends Component
         $this->validateStep($this->step);
         $this->authorize('create', Event::class);
 
-        $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules))) : null;
-        $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule))) : null;
+        $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules)), fn (string $line): bool => $line !== '') : null;
+        $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule)), fn (string $line): bool => $line !== '') : null;
 
         $translatable = $this->buildTranslatableValues(
             ['name', 'description', 'short_description'],

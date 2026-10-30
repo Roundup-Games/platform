@@ -135,7 +135,7 @@ class FriendSearch extends Component
      */
     public function selectFriend(string $userId): void
     {
-        if (! in_array($userId, $this->selectedIds)) {
+        if (! in_array($userId, $this->selectedIds, true)) {
             $this->selectedIds[] = $userId;
         }
 

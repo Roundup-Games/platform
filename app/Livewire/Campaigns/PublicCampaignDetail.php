@@ -37,7 +37,7 @@ class PublicCampaignDetail extends Component
 
         // Authenticated users should use the dashboard campaign detail (with join/apply CTA)
         if (Auth::check()) {
-            $query = array_filter(['share' => request()->query('share')]);
+            $query = array_filter(['share' => request()->query('share')], fn (?string $share): bool => $share !== null && $share !== '');
             $this->redirect(route('campaigns.show', array_merge([$campaign], $query)), navigate: true);
 
             return;

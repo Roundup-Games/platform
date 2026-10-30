@@ -147,12 +147,18 @@ class NotificationQueryService
         $groups = $this->buildGroups(collect($paginator->items()), null);
 
         // Replace items with grouped collection while keeping paginator metadata.
-        // The paginator is intentionally repurposed to carry NotificationGroup items.
-        /** @var \Illuminate\Pagination\LengthAwarePaginator<int, NotificationGroup> $concrete */
-        $concrete = $paginator;
-        $concrete->setCollection($groups);
+        // A fresh paginator is built (typed for NotificationGroup) rather than
+        // repurposing the DatabaseNotification-typed one, so the item type stays honest.
+        /** @var \Illuminate\Pagination\LengthAwarePaginator<int, NotificationGroup> $grouped */
+        $grouped = new \Illuminate\Pagination\LengthAwarePaginator(
+            $groups,
+            $paginator->total(),
+            $paginator->perPage(),
+            $paginator->currentPage(),
+            $paginator->getOptions(),
+        );
 
-        return $concrete;
+        return $grouped;
     }
 
     /**

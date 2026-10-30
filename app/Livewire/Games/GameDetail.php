@@ -546,7 +546,7 @@ class GameDetail extends Component
                     ParticipantStatus::Waitlisted->value,
                     ParticipantStatus::Benched->value,
                     ParticipantStatus::Pending->value,
-                ]));
+                ], true));
 
         if (! $participant || ! $user->can('leave', $this->game)) {
             session()->flash('error', __('games.error_not_a_game_participant'));
@@ -865,7 +865,7 @@ class GameDetail extends Component
                 ParticipantStatus::Pending->value,
                 ParticipantStatus::Waitlisted->value,
                 ParticipantStatus::Benched->value,
-            ]));
+            ], true));
     }
 
     #[Computed]
@@ -944,7 +944,7 @@ class GameDetail extends Component
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && $this->game->visibility !== Visibility::Private
             && (! $this->isGameFull() || $this->game->isBenchMode())
-            && ! in_array($this->game->status?->value, [GameStatus::Canceled->value, GameStatus::Completed->value]);
+            && ! in_array($this->game->status?->value, [GameStatus::Canceled->value, GameStatus::Completed->value], true);
     }
 
     #[Computed]
@@ -954,7 +954,7 @@ class GameDetail extends Component
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && ! $this->game->isBenchMode() && $this->isGameFull()
             && $this->game->visibility !== Visibility::Private
-            && ! in_array($this->game->status?->value, [GameStatus::Canceled->value, GameStatus::Completed->value]);
+            && ! in_array($this->game->status?->value, [GameStatus::Canceled->value, GameStatus::Completed->value], true);
     }
 
     /**

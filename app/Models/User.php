@@ -72,6 +72,7 @@ use Spatie\Translatable\HasTranslations;
  * @property Carbon|null $terms_accepted_at
  * @property array<string, mixed>|null $reliability_score
  * @property array<string, mixed>|null $notification_settings
+ * @property array<string, string>|null $privacy_settings
  */
 #[Fillable([
     'name',

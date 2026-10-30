@@ -76,7 +76,7 @@ if (! function_exists('format_currency')) {
     {
         $value = $inCents ? $amount / 100 : $amount;
 
-        if ($value == 0) {
+        if ((float) $value === 0.0) {
             return __('common.price_free');
         }
 

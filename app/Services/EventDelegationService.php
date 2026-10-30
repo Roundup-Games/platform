@@ -256,22 +256,24 @@ class EventDelegationService
     /**
      * Event-scoped 'Event Admin' pivot rows for the listing.
      *
-     * @return Collection<int, object{model_id: string, created_at: string|null}>
+     * @return Collection<int, object{model_id: string, created_at: string|null}&\stdClass>
      */
     private function scopedCoOrganizerAssignments(Event $event): Collection
     {
         // Raw pivot rows straight from the DB; the column contract is a
-        // uuid string key and a nullable string grant timestamp.
-        /** @var Collection<int, object{model_id: string, created_at: string|null}> $rows */
-        $rows = DB::table('model_has_roles')
+        // uuid string key and a nullable string grant timestamp. The map
+        // materialises that contract so the shape is inferred, not asserted.
+        return DB::table('model_has_roles')
             ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
             ->where('roles.name', self::ROLE_NAME)
             ->whereNull('roles.team_id')
             ->where('model_has_roles.team_id', $event->id)
             ->where('model_has_roles.model_type', (new User)->getMorphClass())
-            ->get(['model_has_roles.model_id', 'model_has_roles.created_at']);
-
-        return $rows;
+            ->get(['model_has_roles.model_id', 'model_has_roles.created_at'])
+            ->map(fn (\stdClass $row) => (object) [
+                'model_id' => (string) $row->model_id,
+                'created_at' => $row->created_at === null ? null : (string) $row->created_at,
+            ]);
     }
 
     /**

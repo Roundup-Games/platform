@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Dto\ActionItem;
-use App\Dto\ActivityFeedItem;
 use App\Dto\FeedItem;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
@@ -17,7 +16,6 @@ use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -202,7 +200,7 @@ class DashboardEstablishedService
         $userLng = $userLocation?->longitude ? (float) $userLocation->longitude : null;
 
         $scoredGames = $games->map(function ($game) use ($userLat, $userLng) {
-            $spotsAvailable = $game->max_players - (int) ($game->participant_count ?? 0);
+            $spotsAvailable = (int) ($game->max_players ?? 0) - (int) ($game->participant_count ?? 0);
 
             // Proximity score (0-40): closer is better
             $proximityScore = 0;
@@ -292,7 +290,7 @@ class DashboardEstablishedService
             $participantCount = $campaign->approved_participant_count; // Owner counted naturally
 
             $spotsAvailable = $campaign->max_players
-                ? max(0, $campaign->max_players - $participantCount)
+                ? max(0, $campaign->max_players - (int) $participantCount)
                 : null;
 
             return [
@@ -455,17 +453,13 @@ class DashboardEstablishedService
         // Merge game + campaign activity, take top 10
         // Fetch 20 each — enough for a fair merge while avoiding
         // hydrating 100 items only to discard 90.
-        /** @var LengthAwarePaginator<int, Game> $gameActivities */
         $gameActivities = $feedService->getFeed($user, 20);
-        /** @var LengthAwarePaginator<int, Campaign> $campaignActivities */
         $campaignActivities = $feedService->getCampaignFeed($user, 20);
 
         // Convert both to FeedItem DTOs
-        /** @var \Illuminate\Support\Collection<int, ActivityFeedItem> $gameCollection */
-        $gameCollection = $gameActivities->getCollection();
+        $gameCollection = collect($gameActivities->items());
         $gameItems = $feedService->toFeedItems($gameCollection);
-        /** @var \Illuminate\Support\Collection<int, ActivityFeedItem> $campaignCollection */
-        $campaignCollection = $campaignActivities->getCollection();
+        $campaignCollection = collect($campaignActivities->items());
         $campaignItems = $feedService->toFeedItems($campaignCollection);
 
         // Merge, sort by created_at desc, take 10
