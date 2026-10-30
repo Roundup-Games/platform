@@ -35,6 +35,16 @@
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
+        {{-- Device timezone for per-user notification times (R089). Stays empty
+             without JS; the server silently ignores absent/invalid values. --}}
+        <input type="hidden" name="timezone" id="login-timezone" value="">
+        <script>
+            try {
+                document.getElementById('login-timezone').value =
+                    Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            } catch (e) { /* no Intl support — leave empty */ }
+        </script>
+
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('emails.field_email')" />

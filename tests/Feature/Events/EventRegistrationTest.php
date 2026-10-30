@@ -44,6 +44,27 @@ describe('RegisterForEvent', function () {
             ->assertSee('Complete Registration');
     });
 
+    it('treats an early_bird_discount of 0 with a future deadline as configured', function () {
+        $user = User::factory()->create(['profile_complete' => true]);
+        $event = Event::factory()->create([
+            'status' => 'registration_open',
+            'registration_opens_at' => now()->subDay(),
+            'registration_closes_at' => now()->addDays(7),
+            'is_public' => true,
+            'individual_registration_fee' => 2500,
+            'early_bird_discount' => 0,
+            'early_bird_deadline' => now()->addDays(3),
+        ]);
+
+        actingAs($user);
+        $component = Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug]);
+
+        // Stage 2 delta: the guard is !== null (was truthy), so a discount of
+        // 0 cents with a live deadline counts as early-bird-configured —
+        // previously 0 collapsed to "not configured" and hid the deadline UX.
+        expect($component->instance()->isEarlyBird())->toBeTrue();
+    });
+
     it('registers an individual for a free event', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create([

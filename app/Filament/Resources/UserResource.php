@@ -132,6 +132,14 @@ class UserResource extends Resource
                                             fn (ContentLanguage $lang) => [$lang->value => $lang->label()]
                                         )
                                     ),
+                                Select::make('timezone')
+                                    ->label('Timezone')
+                                    ->options(array_combine(
+                                        \DateTimeZone::listIdentifiers(),
+                                        \DateTimeZone::listIdentifiers(),
+                                    ))
+                                    ->searchable()
+                                    ->helperText('IANA identifier, captured from the login device (R089). Drives per-user notification times; empty falls back to Europe/Berlin.'),
                                 TextInput::make('avatar_url')
                                     ->label('Avatar URL')
                                     ->url()

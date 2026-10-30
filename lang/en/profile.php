@@ -46,6 +46,8 @@ return [
     'action_tell_us_which_play_styles_you_enjoy' => 'Tell us which play styles you enjoy and which you\'d rather avoid.',
     'content_avoid_preferences_take_priority_over_favorites' => 'Avoid preferences take priority over favorites when there\'s a conflict.',
     'content_language_location' => 'Language & Location',
+    'field_timezone' => 'Timezone',
+    'hint_timezone' => 'Used to show times (e.g. session reminders) in your local time. Captured automatically from the device you log in with.',
     'content_preferred_language' => 'Preferred Language',
     'content_this_helps_us_find_games_and_events_near_you' => 'This helps us find games and events near you.',
     'content_vibe_preferences' => 'Vibe Preferences',

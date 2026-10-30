@@ -188,7 +188,11 @@ class SpParser
         }
 
         // Reviews stats
-        $totalReviewCount = is_int($seoPage['totalReviewCount'] ?? 0) ? $seoPage['totalReviewCount'] : 0;
+        // Read once, then type-check: the old `is_int($x ?? 0) ? $x : 0` re-read
+        // the key unguarded in the true branch — a page WITHOUT totalReviewCount
+        // crashed the crawler on an undefined-index warning.
+        $rawReviewCount = $seoPage['totalReviewCount'] ?? null;
+        $totalReviewCount = is_int($rawReviewCount) ? $rawReviewCount : 0;
         $starRatingStats = $this->arr($seoPage, 'starRatingStats');
 
         // Compute average rating from star distribution

@@ -100,3 +100,21 @@ it('renders the ViewTicket page without a fatal for a review_report ticket', fun
     get("/admin/tickets/{$ticket->getRouteKey()}")
         ->assertSuccessful();
 })->group('smoke');
+
+// Stage 2 delta pin: metadata guards are filled($metadata['k'] ?? null), so a
+// venue_type of literally '0' now RENDERS its entry (the old truthy check
+// treated '0' as absent). The 'Venue type' label only exists on the page when
+// the entry was built — that label presence is the display assertion.
+it('displays a venue_type metadata value of string zero', function () {
+    actingAs($this->platformAdmin);
+
+    $ticket = createTicketWithMetadata($this->department, $this->platformAdmin, 'venue_proposal', [
+        'venue_name' => 'Null Island Convention Hall',
+        'venue_city' => 'Zero Bay',
+        'venue_type' => '0',
+    ]);
+
+    get("/admin/tickets/{$ticket->getRouteKey()}")
+        ->assertSuccessful()
+        ->assertSee('Venue type');
+});

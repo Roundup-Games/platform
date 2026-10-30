@@ -232,6 +232,74 @@ it('logs in a user with valid credentials and regenerates the session', function
     expect(session()->has('_token'))->toBeTrue();
 })->group('smoke');
 
+// ── Device timezone capture at login (R089) ─────────────────────────────
+
+it('captures a valid device timezone at login and refreshes it on every login', function () {
+    $user = User::factory()->create([
+        'password' => Hash::make('Sup3rSecret!pass'),
+        'profile_complete' => true,
+    ]);
+
+    $this->post('/en/login', [
+        'email' => $user->email,
+        'password' => 'Sup3rSecret!pass',
+        'timezone' => 'America/New_York',
+    ]);
+
+    // Valid IANA identifier from the login device → stored
+    expect($user->fresh()->timezone)->toBe('America/New_York');
+
+    // Next login from a different device zone → refreshed, not write-once
+    auth()->logout();
+    $this->post('/en/login', [
+        'email' => $user->email,
+        'password' => 'Sup3rSecret!pass',
+        'timezone' => 'Europe/Berlin',
+    ]);
+
+    expect($user->fresh()->timezone)->toBe('Europe/Berlin');
+})->group('smoke');
+
+it('silently ignores absent or invalid timezone values at login', function () {
+    $user = User::factory()->create([
+        'password' => Hash::make('Sup3rSecret!pass'),
+        'profile_complete' => true,
+    ]);
+
+    // No timezone key at all (JS disabled) → login succeeds, nothing stored
+    $this->post('/en/login', [
+        'email' => $user->email,
+        'password' => 'Sup3rSecret!pass',
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->timezone)->toBeNull();
+
+    // Spoofed unknown identifier must NOT clobber an already-stored zone
+    auth()->logout();
+    $user->forceFill(['timezone' => 'Europe/Berlin'])->saveQuietly();
+
+    $this->post('/en/login', [
+        'email' => $user->email,
+        'password' => 'Sup3rSecret!pass',
+        'timezone' => 'Mars/Olympus_Mons',
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->timezone)->toBe('Europe/Berlin');
+
+    // A UTC offset is not an IANA identifier (offsets lose DST) — also ignored
+    auth()->logout();
+    $this->post('/en/login', [
+        'email' => $user->email,
+        'password' => 'Sup3rSecret!pass',
+        'timezone' => 'UTC+02:00',
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->timezone)->toBe('Europe/Berlin');
+})->group('smoke');
+
 it('rejects login with invalid credentials', function () {
     $user = User::factory()->create([
         'password' => Hash::make('Sup3rSecret!pass'),

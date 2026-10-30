@@ -66,6 +66,7 @@ use Spatie\Translatable\HasTranslations;
  * @property Carbon|null $disabled_at
  * @property string|null $slug
  * @property ContentLanguage|null $preferred_language
+ * @property string|null $timezone
  * @property string|null $avatar_url
  * @property Collection<int, UserVibePreference>|null $vibePreferences
  * @property Carbon|null $privacy_policy_accepted_at
@@ -100,6 +101,7 @@ use Spatie\Translatable\HasTranslations;
     'can_create_public_entries',
     'max_links_per_entity',
     'preferred_language',
+    'timezone',
     'location',
     'location_id',
     'bio',

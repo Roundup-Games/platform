@@ -48,7 +48,7 @@ class GenerateUserDataExport extends Command
      */
     protected const PROFILE_EXPORT_ATTRIBUTES = [
         'id', 'name', 'email', 'slug', 'bio', 'pronouns', 'gender',
-        'preferred_language', 'profile_complete', 'location_id',
+        'preferred_language', 'timezone', 'profile_complete', 'location_id',
         'avatar_url', 'reliability_score', 'reliability_computed_at',
         'privacy_settings', 'notification_settings',
         'gender_consent', 'analytics_consent',

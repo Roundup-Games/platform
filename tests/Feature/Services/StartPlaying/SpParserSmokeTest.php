@@ -60,3 +60,23 @@ it('degrades gracefully parsing a style from an empty cache', function () {
 
     expect($result)->toBeNull();
 })->group('smoke');
+
+it('keeps a title of literally \'0\' instead of falling through to the slug', function () {
+    $parser = new SpParser;
+
+    // Stage 2 delta: firstNonEmptyString() treats '0' as a present string
+    // (old truthy check skipped it and the slug won). CanonicalUrl resolves
+    // the page; the hero title '0' must survive as the system name.
+    $cache = [
+        'SeoPage:1' => [
+            'canonicalUrl' => '/games/zero-title-system',
+            'heroSection' => ['title' => '0'],
+        ],
+    ];
+
+    $result = $parser->parseSystem($cache, 'games/zero-title-system');
+
+    expect($result)->not->toBeNull()
+        ->and($result['name'])->toBe('0')
+        ->and($result['name'])->not->toBe('games/zero-title-system');
+});

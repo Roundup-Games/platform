@@ -58,6 +58,8 @@ class UserFactory extends Factory
             // preference yet — locale-sensitive code falls back to the app or
             // entity locale, which is exactly the pre-strict behavior.
             'preferred_language' => null,
+            // Per-user IANA timezone (R089): null until captured at login.
+            'timezone' => null,
             'profile_complete' => false,
             'weekly_digest_enabled' => true,
             'gender_consent' => false,

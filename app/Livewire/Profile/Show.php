@@ -45,6 +45,9 @@ class Show extends Component
 
     public string $preferredLanguage = '';
 
+    /** IANA timezone identifier captured at login (R089), or null when none is stored. */
+    public ?string $timezone = null;
+
     public string $bio = '';
 
     public ?string $locationId = null;
@@ -99,6 +102,7 @@ class Show extends Component
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
         $this->preferredLanguage = $user->preferred_language->value ?? '';
+        $this->timezone = $user->timezone;
         $this->bio = $user->bio ?? '';
         $this->locationId = $user->location_id;
         $this->favoriteGameSystemIds = $user->gameSystemPreferences()
@@ -213,6 +217,9 @@ class Show extends Component
             'pronouns' => ['nullable', 'string', 'max:50'],
             'phone' => ['nullable', 'string', 'max:30'],
             'preferredLanguage' => ['nullable', 'string', 'in:'.implode(',', ContentLanguage::values())],
+            // '' (the select's "not set" option) is allowed alongside valid IANA
+            // identifiers — Livewire submits '' where HTTP middleware would coerce null.
+            'timezone' => ['nullable', 'string', 'max:64', Rule::in(array_merge([''], \DateTimeZone::listIdentifiers()))],
             'bio' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -243,6 +250,7 @@ class Show extends Component
             'pronouns' => $validated['pronouns'],
             'phone' => $validated['phone'],
             'preferred_language' => $validated['preferredLanguage'] !== '' ? $validated['preferredLanguage'] : null,
+            'timezone' => $validated['timezone'] !== '' ? $validated['timezone'] : null,
             'bio' => $validated['bio'] ? trim(strip_tags($validated['bio'])) : null,
             'location_id' => $this->locationId,
             'profile_version' => ($user->profile_version ?? 0) + 1,

@@ -132,6 +132,31 @@ class NearbyPeopleTest extends TestCase
         $this->assertFalse($ids->contains($nearbyGuest->id), 'Should not find candidate near guest location');
     }
 
+    // Stage 2 delta pin: 0.0/0.0 (equator + prime meridian) is a VALID
+    // coordinate, not "missing" — the old truthy checks ($location->latitude)
+    // dropped a legit Null-Island-adjacent location to the no-location state.
+    public function test_linked_location_at_exactly_zero_coordinates_counts_as_valid(): void
+    {
+        $location = Location::factory()->create([
+            'latitude' => 0.0,
+            'longitude' => 0.0,
+        ]);
+        $this->user->update(['location_id' => $location->id]);
+
+        // A candidate ~111 m north of the equator at the prime meridian
+        $nearby = $this->createUserWithLinkedLocation(0.001, 0.0, ['name' => 'Null Island Neighbor']);
+
+        $component = Livewire::actingAs($this->user)
+            ->test(PeoplePage::class);
+        $component->set('activeTab', 'nearby');
+
+        $nearbyUsers = $component->get('nearbyUsers');
+        $this->assertFalse($nearbyUsers['noLocation'], '0.0/0.0 must resolve as a located viewer');
+        $this->assertEquals('ok', $nearbyUsers['status']);
+        $ids = collect($nearbyUsers['results']->items())->pluck('user_id');
+        $this->assertTrue($ids->contains($nearby->id), 'Nearby search must run from the 0.0/0.0 origin');
+    }
+
     // ── followFromNearby action ──────────────────────
 
     public function test_follow_from_nearby_creates_follow_relationship(): void

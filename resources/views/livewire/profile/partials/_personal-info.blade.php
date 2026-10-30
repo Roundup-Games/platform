@@ -111,6 +111,24 @@
         </div>
 
         <div>
+            <label for="profile-timezone" class="block text-sm font-medium text-on-surface mb-1">{{ __('profile.field_timezone') }}</label>
+            <select id="profile-timezone" wire:model="timezone"
+                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface">
+                <option value="">{{ __('common.content_select') }}</option>
+                @php($tzGroups = collect(\DateTimeZone::listIdentifiers())->groupBy(fn ($tz) => str_contains($tz, '/') ? explode('/', $tz)[0] : 'Other'))
+                @foreach($tzGroups as $region => $identifiers)
+                    <optgroup label="{{ $region }}">
+                        @foreach($identifiers as $tzIdentifier)
+                            <option value="{{ $tzIdentifier }}">{{ str_replace('_', ' ', $tzIdentifier) }}</option>
+                        @endforeach
+                    </optgroup>
+                @endforeach
+            </select>
+            <p class="mt-1 text-xs text-on-surface-variant">{{ __('profile.hint_timezone') }}</p>
+            @error('timezone') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+        </div>
+
+        <div>
             <label class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_location') }}</label>
             <livewire:components.location-picker :location-id="$locationId" />
         </div>

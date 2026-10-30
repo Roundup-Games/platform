@@ -49,6 +49,8 @@ return [
     'content_favorites_favorite_avoids_avoided' => ':favorites Favoriten, :avoids gemieden',
     'content_language_location' => 'Sprache & Standort',
     'content_preferred_language' => 'Bevorzugte Sprache',
+    'field_timezone' => 'Zeitzone',
+    'hint_timezone' => 'Steuert, in welcher Ortszeit dir Uhrzeiten (z. B. Sitzungserinnerungen) angezeigt werden. Wird automatisch vom Gerät erfasst, mit dem du dich anmeldest.',
     'content_this_helps_us_find_games_and_events_near_you' => 'Das hilft uns, Spiele und Events in deiner Nähe zu finden.',
     'content_vibe_preferences' => 'Vibe-Präferenzen',
     // Privacy settings

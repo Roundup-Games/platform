@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,9 +27,38 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        $this->captureLoginTimezone($request);
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    /**
+     * Persist the login device's IANA timezone on the user (R089).
+     *
+     * The login form posts a hidden `timezone` input filled by inline JS
+     * (Intl.DateTimeFormat().resolvedOptions().timeZone). Silent degradation
+     * everywhere: absent input (no JS, OAuth callback, API), a non-string,
+     * or an identifier unknown to DateTimeZone stores nothing — the render
+     * side keeps its 'Europe/Berlin' fallback via null-coalescing. Runs on
+     * EVERY form login so a travelling user's zone refreshes automatically;
+     * it only writes when the value actually changed.
+     */
+    private function captureLoginTimezone(LoginRequest $request): void
+    {
+        $timezone = $request->input('timezone');
+
+        if (! is_string($timezone) || ! in_array($timezone, \DateTimeZone::listIdentifiers(), true)) {
+            return;
+        }
+
+        $user = Auth::user();
+        if (! $user instanceof User || $user->timezone === $timezone) {
+            return;
+        }
+
+        $user->forceFill(['timezone' => $timezone])->saveQuietly();
     }
 
     /**
