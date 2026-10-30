@@ -180,7 +180,9 @@ class ProximityQuery
         return $modelInstances->map(function ($entity) use ($distanceMap, $relationship) {
             $distanceRaw = $distanceMap[$entity->getKey()] ?? 0;
             $distance = is_numeric($distanceRaw) ? (float) $distanceRaw : 0;
-            $location = $entity->$relationship;
+            $location = $relationship === 'linkedLocation'
+                ? $entity->getRelationValue('linkedLocation')
+                : throw new \InvalidArgumentException("Unknown location relationship [{$relationship}].");
 
             return new ProximityResult(
                 entity: $entity,

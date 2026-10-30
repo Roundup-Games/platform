@@ -62,7 +62,7 @@ trait BuildsTranslatableFormFields
             foreach ($translatableFields as $field) {
                 $saved = data_get($this, "pendingTranslations.{$baselineLocale}.{$field}");
                 if ($saved !== null && property_exists($this, $field)) {
-                    $this->{$field} = $saved;
+                    data_set($this, $field, $saved);
                 }
             }
         }
@@ -258,7 +258,7 @@ trait BuildsTranslatableFormFields
 
             // Set the component property for baseline
             if (property_exists($this, $field)) {
-                $this->{$field} = $baselineValue;
+                data_set($this, $field, $baselineValue);
             }
 
             // Populate secondary locales
@@ -269,7 +269,7 @@ trait BuildsTranslatableFormFields
                 // Legacy: also set _de properties for backward compatibility
                 $prop = "{$field}_{$locale}";
                 if (property_exists($this, $prop)) {
-                    $this->{$prop} = $value;
+                    data_set($this, $prop, $value);
                 }
             }
         }
@@ -324,7 +324,7 @@ trait BuildsTranslatableFormFields
         if (! property_exists($this, $field)) {
             return $default;
         }
-        $value = $this->{$field};
+        $value = data_get($this, $field);
 
         return is_string($value) ? $value : (is_scalar($value) ? (string) $value : $default);
     }

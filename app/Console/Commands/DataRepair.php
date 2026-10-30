@@ -9,10 +9,8 @@ use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use App\Services\WaitlistService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
  * Applies safe, deterministic repairs for known data-integrity issues.
@@ -70,14 +68,14 @@ class DataRepair extends Command
         Log::info('data_repair.started', ['repairs' => $repairs, 'dry_run' => $this->dryRun]);
 
         foreach ($repairs as $repair) {
-            $method = 'repair'.Str::studly($repair);
-            if (! method_exists($this, $method)) {
-                $this->warn("  Skipped {$repair}: no implementation");
-
-                continue;
-            }
-
-            $this->$method();
+            match ($repair) {
+                'expire_stale_links' => $this->repairExpireStaleLinks(),
+                'reject_stale_applications' => $this->repairRejectStaleApplications(),
+                'reprocess_stale_confirmations' => $this->repairReprocessStaleConfirmations(),
+                'clean_orphaned_discovery_views' => $this->repairCleanOrphanedDiscoveryViews(),
+                'retry_old_failed_jobs' => $this->repairRetryOldFailedJobs(),
+                default => null,
+            };
         }
 
         $durationMs = $startedAt->diffInMilliseconds(now());
@@ -374,11 +372,4 @@ class DataRepair extends Command
 
     // ── Helpers ──────────────────────────────────────────────────────
 
-    /**
-     * @param  array<string, mixed>  $args
-     */
-    private function artisanCall(string $command, array $args = []): int
-    {
-        return Artisan::call($command, $args);
-    }
 }

@@ -9,7 +9,6 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
  * Runs a battery of data-integrity checks against production data.
@@ -70,14 +69,17 @@ class DataAudit extends Command
 
         $results = collect();
         foreach ($checks as $check) {
-            $method = 'check'.Str::studly($check);
-            if (! method_exists($this, $method)) {
-                $this->warn("  Skipped {$check}: no implementation (expected method {$method})");
-
-                continue;
-            }
-
-            $results->push($this->$method());
+            $results->push(match ($check) {
+                'stale_pending_participants' => $this->checkStalePendingParticipants(),
+                'games_past_due_not_resolved' => $this->checkGamesPastDueNotResolved(),
+                'orphaned_discovery_views' => $this->checkOrphanedDiscoveryViews(),
+                'failed_jobs_backlog' => $this->checkFailedJobsBacklog(),
+                'unexpired_links_for_resolved_entities' => $this->checkUnexpiredLinksForResolvedEntities(),
+                'campaigns_inactive_no_sessions' => $this->checkCampaignsInactiveNoSessions(),
+                'completed_games_missing_attendance' => $this->checkCompletedGamesMissingAttendance(),
+                'stale_pending_applications' => $this->checkStalePendingApplications(),
+                default => null,
+            });
         }
 
         $durationMs = $startedAt->diffInMilliseconds(now());

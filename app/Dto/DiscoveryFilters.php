@@ -198,7 +198,7 @@ class DiscoveryFilters
      */
     private static function propertyIsActive(object $component, string $property, ?string $locale): bool
     {
-        $value = $component->{$property} ?? null;
+        $value = get_object_vars($component)[$property] ?? null;
 
         return match ($property) {
             'language' => is_string($value) && $value !== '' && $value !== $locale,

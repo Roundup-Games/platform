@@ -28,6 +28,10 @@ parameters:
         disallowedEmpty: true
         disallowedShortTernary: true
         booleansInConditions: true
+        # Stage 3 (2026-10-30): variable variables/dynamic property-method
+        # access banned after the 11-site refactor (match dispatch, raw
+        # attribute reads, data_get/data_set for the translatable trait).
+        noVariableVariables: true
     # Bundled core-param flips that carry open debt stay at framework defaults.
     # Stage 3 (2026-10-30): checkDynamicProperties armed after the 114-finding
     # triage sweep (computed-cache @property docs, getAttribute for

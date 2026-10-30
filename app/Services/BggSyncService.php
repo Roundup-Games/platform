@@ -515,6 +515,15 @@ class BggSyncService
             $models->push($modelClass::firstOrCreate(['name' => $name]));
         }
 
-        $gameSystem->$relation()->sync($models);
+        $relationQuery = match ($relation) {
+            'categories' => $gameSystem->categories(),
+            'mechanics' => $gameSystem->mechanics(),
+            'families' => $gameSystem->families(),
+            'designers' => $gameSystem->designers(),
+            'publishers' => $gameSystem->publishers(),
+            default => throw new \InvalidArgumentException("Unknown BGG taxonomy relation [{$relation}]."),
+        };
+
+        $relationQuery->sync($models);
     }
 }

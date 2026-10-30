@@ -242,7 +242,8 @@ class WaitlistService
     public function handleExpiredConfirmation(CampaignParticipant|GameParticipant $participant): void
     {
         $meta = $this->entityMeta($participant);
-        $entityId = $participant->{$meta->foreignKey};
+        $entityId = $participant->getAttributes()[$meta->foreignKey] ?? null;
+        \assert(is_string($entityId));
 
         DB::transaction(function () use ($participant, $entityId, $meta) {
             // Lock the entity row to serialize concurrent expired-confirmation

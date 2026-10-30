@@ -73,7 +73,7 @@ class SweepExpiredConfirmations extends Command
                 $meta = $participant::entityMeta();
 
                 $this->line("  Would process participant {$participant->id} ".
-                    "({$meta->type}: {$participant->{$meta->foreignKey}}, expired at: ".
+                    "({$meta->type}: ".(is_string($sweptEntityId = $participant->getAttributes()[$meta->foreignKey] ?? null) ? $sweptEntityId : 'unknown').', expired at: '.
                     $participant->confirmation_expires_at?->toIso8601String().')');
             }
             $processedCount = $count;
@@ -90,7 +90,7 @@ class SweepExpiredConfirmations extends Command
 
                     Log::error('waitlist.sweep.process_failed', [
                         'participant_id' => $participant->id,
-                        $meta->foreignKey => $participant->{$meta->foreignKey},
+                        $meta->foreignKey => $participant->getAttributes()[$meta->foreignKey] ?? null,
                         'exception' => $e->getMessage(),
                     ]);
                     $this->warn("  Failed to process participant {$participant->id}: {$e->getMessage()}");
