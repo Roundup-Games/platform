@@ -317,6 +317,22 @@ describe('ManageRoster Member Details', function () {
         ]);
     });
 
+    it('persists jersey number 0 — zero is a valid jersey, not an empty input', function () {
+        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
+        ['member' => $member] = rosterAddMember($team, 'player');
+
+        Livewire\Livewire::actingAs($captain)
+            ->test(ManageRoster::class, ['slug' => $team->slug])
+            ->call('startEditing', $member->id)
+            ->set('editJerseyNumber', '0')
+            ->call('saveMemberDetails');
+
+        assertDatabaseHas('team_members', [
+            'id' => $member->id,
+            'jersey_number' => '0',
+        ]);
+    });
+
     it('player cannot save member details', function () {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
         ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
