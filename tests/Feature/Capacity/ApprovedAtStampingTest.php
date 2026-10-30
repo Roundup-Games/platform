@@ -158,6 +158,12 @@ describe('approved_at stamping', function () {
 
     it('stamps approved_at when an applicant is approved', function () {
         ['game' => $game] = approvedAtFullGame(maxPlayers: 5);
+
+        // D253: host approval on a FULL game routes to overflow (Waitlisted,
+        // approved_at unstamped — pinned in ParticipantLifecycleTest). This
+        // case pins the stamping itself, so open one seat first.
+        $game->update(['max_players' => 6]);
+
         $applicant = User::factory()->create(['profile_complete' => true]);
         $approver = User::factory()->create();
 

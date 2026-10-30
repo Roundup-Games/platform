@@ -279,7 +279,7 @@ class PublishGameBulletinToDiscord implements ShouldQueue
             'url' => route('games.show', ['locale' => $locale, 'id' => $game]),
             'description' => $description,
             // Discord blurple — the app's Discord brand colour.
-            'color' => 0x5865F2,
+            'color' => DiscordWebhookPayload::BLURPLE,
         ]);
     }
 

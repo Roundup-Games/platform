@@ -47,8 +47,8 @@ abstract class BaseNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    /** Discord blurple accent shared by every notification embed. */
-    public const DISCORD_EMBED_COLOR = 0x5865F2;
+    /** Discord blurple accent shared by every notification embed (canonical home: DiscordWebhookPayload::BLURPLE). */
+    public const DISCORD_EMBED_COLOR = DiscordWebhookPayload::BLURPLE;
 
     /** PWA icon shared by every push payload. */
     public const PUSH_ICON = '/icons/pwa-192x192.png';

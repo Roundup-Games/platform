@@ -276,6 +276,8 @@ return [
     'field_update' => 'Aktualisieren',
     'field_welcoming_community' => 'Willkommende Community',
     'flash_application_approved' => 'Bewerbung angenommen.',
+    'flash_application_approved_waitlisted' => 'Bewerbung angenommen – auf die Warteliste gesetzt, da aktuell voll.',
+    'flash_application_approved_benched' => 'Bewerbung angenommen – auf die Ersatzbank gesetzt, da aktuell voll.',
     'flash_application_rejected' => 'Bewerbung abgelehnt.',
     'flash_cancel_this_invite' => 'Diese Einladung zurückziehen?',
     'flash_changes_saved_successfully' => 'Änderungen erfolgreich gespeichert.',

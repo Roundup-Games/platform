@@ -282,13 +282,23 @@ class ParticipantLifecycle
      */
     public function depart(Participant $participant, ?User $remover = null): void
     {
-        $this->applyDeparture($participant, $remover);
-
         $entity = $participant->getEntity();
 
-        if ($entity instanceof Game || $entity instanceof Campaign) {
-            $this->roster->onDeparture($entity);
-        }
+        // One atomic unit: the departure write and the seat-refill cascade
+        // commit together. A promotion failure rolls the departure back, so a
+        // retry lands on a consistent roster instead of stranding an open
+        // seat with a waitlisted player nothing re-promotes (notifications
+        // stay best-effort — onDeparture's below-min warning isolates its
+        // send). Callers already inside a locked transaction nest as a
+        // savepoint; lock order is untouched (the cascade re-locks the
+        // entity, already held in this transaction).
+        DB::transaction(function () use ($participant, $remover, $entity): void {
+            $this->applyDeparture($participant, $remover);
+
+            if ($entity instanceof Game || $entity instanceof Campaign) {
+                $this->roster->onDeparture($entity);
+            }
+        });
     }
 
     /**
@@ -318,6 +328,16 @@ class ParticipantLifecycle
         }
 
         $participant->update($update);
+
+        // Application hygiene, mirroring removeParticipant(): a departure
+        // ends the application trail too — otherwise a stale 'pending' or
+        // 'approved' application row blocks re-application after a
+        // self-leave. No-op for invited rows (they carry no application).
+        // Explicit guard: a nullsafe chain cannot end on ->delete() — the
+        // nullsafe short-circuit stops at the first plain method call.
+        if ($entity !== null) {
+            $entity->applications()->where('user_id', $participant->getUserId())->delete();
+        }
 
         Log::info('participant.departed', [
             'entity_type' => $meta->type,
@@ -538,27 +558,81 @@ class ParticipantLifecycle
             return ParticipantResult::fail('common.error_participant_not_applicant');
         }
 
-        $update = [
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-            'join_source' => JoinSource::Application,
-        ];
-        // approved_at exists only on GameParticipant (CampaignParticipant has
-        // no such column — silently discarded before strict model mode).
-        if ($participant->isFillable('approved_at')) {
-            $update['approved_at'] = now();
+        // Capacity-aware approval under the entity lock (canonical
+        // entity-first order): an application may have been submitted while
+        // the entity had room and be approved after it filled. Seating over
+        // max_players would break the capacity invariant every other
+        // transition defends, so a full entity routes the approval through
+        // the same overflow resolution a direct join uses (OverflowRouter,
+        // D108 semantics) — the applicant lands Waitlisted/Benched and the
+        // host flash says so.
+        $overflowFlashKey = null;
+
+        $outcome = DB::transaction(function () use ($participant, $entity, $meta, &$overflowFlashKey): string {
+            $lockedEntity = $meta->entityClass::lockForUpdate()
+                ->whereKey($entity->getKey())
+                ->firstOrFail();
+
+            // Re-check the pending application under the lock — a concurrent
+            // approval (double-click, two tabs) must not process twice.
+            $stillPending = $lockedEntity->applications()
+                ->where('user_id', $participant->getUserId())
+                ->where('status', 'pending')
+                ->exists();
+
+            if (! $stillPending) {
+                return 'stale';
+            }
+
+            $update = [
+                'role' => ParticipantRole::Player->value,
+                'join_source' => JoinSource::Application,
+            ];
+
+            if ($lockedEntity->isAtCapacity()) {
+                $overflow = $this->overflowRouter->resolve($lockedEntity);
+                $update['status'] = $overflow->statusValue();
+                $update[$overflow->timestampColumn] = now();
+                $overflowFlashKey = $overflow->isBench()
+                    ? 'common.flash_application_approved_benched'
+                    : 'common.flash_application_approved_waitlisted';
+
+                $participant->update($update);
+
+                $lockedEntity->applications()
+                    ->where('user_id', $participant->getUserId())
+                    ->update(['status' => ParticipantStatus::Approved->value]);
+
+                return 'overflow';
+            }
+
+            $update['status'] = ParticipantStatus::Approved->value;
+            // approved_at exists only on GameParticipant (CampaignParticipant
+            // has no such column — silently discarded before strict model
+            // mode). Overflow placements are not seat approvals — a later
+            // promotion stamps it instead.
+            if ($participant->isFillable('approved_at')) {
+                $update['approved_at'] = now();
+            }
+
+            $participant->update($update);
+
+            $lockedEntity->applications()
+                ->where('user_id', $participant->getUserId())
+                ->update(['status' => ParticipantStatus::Approved->value]);
+
+            return 'seated';
+        });
+
+        if ($outcome === 'stale') {
+            return ParticipantResult::fail('common.error_participant_not_applicant');
         }
-
-        $participant->update($update);
-
-        $entity->applications()
-            ->where('user_id', $participant->getUserId())
-            ->update(['status' => ParticipantStatus::Approved->value]);
 
         Log::info($meta->type.' application approved', [
             $meta->foreignKey => $entity->id,
             'user_id' => $participant->getUserId(),
             'approved_by' => $approver->id,
+            'overflowed' => $outcome === 'overflow',
         ]);
 
         // Matching-quality funnel: the host approved this application.
@@ -592,7 +666,7 @@ class ParticipantLifecycle
             ]);
         }
 
-        return ParticipantResult::ok('common.flash_application_approved');
+        return ParticipantResult::ok($overflowFlashKey ?? 'common.flash_application_approved');
     }
 
     /**
@@ -701,16 +775,29 @@ class ParticipantLifecycle
             $update['attendance_status'] = $attendanceStatus->value;
         }
 
-        $participant->update($update);
+        // The removal write, its application cleanup, and the seat-freeing
+        // cascade commit as one unit — a promotion failure rolls the removal
+        // back for a clean retry instead of committing a removal whose
+        // waitlist refill silently failed (same atomicity rule as depart()).
+        DB::transaction(function () use ($participant, $entity, $update, $meta, $removedUserId, $remover): void {
+            $participant->update($update);
 
-        // Clean up application record (hygiene only — participant persists)
-        $entity->applications()->where('user_id', $removedUserId)->delete();
+            // Clean up application record (hygiene only — participant persists)
+            $entity->applications()->where('user_id', $removedUserId)->delete();
 
-        Log::info($meta->type.' participant removed', [
-            $meta->foreignKey => $entity->id,
-            'user_id' => $removedUserId,
-            'removed_by' => $remover->id,
-        ]);
+            Log::info($meta->type.' participant removed', [
+                $meta->foreignKey => $entity->id,
+                'user_id' => $removedUserId,
+                'removed_by' => $remover->id,
+            ]);
+
+            // Seat-freeing cascade, same as depart(): the removed
+            // participant's seat is refilled from the waitlist and the host
+            // warned if the roster dropped below min_players. Fires here
+            // exactly once — call sites must not add their own
+            // Roster::onDeparture.
+            $this->roster->onDeparture($entity);
+        });
 
         // Churn signal: a host removed this participant.
         $this->posthogAnalytics->captureParticipantTransition(
@@ -734,12 +821,6 @@ class ParticipantLifecycle
                 'error' => $e->getMessage(),
             ]);
         }
-
-        // Seat-freeing cascade, same as depart(): the removed participant's
-        // seat is refilled from the waitlist and the host warned if the
-        // roster dropped below min_players. Fires here exactly once — call
-        // sites must not add their own Roster::onDeparture.
-        $this->roster->onDeparture($entity);
 
         return ParticipantResult::ok('common.flash_participant_removed');
     }

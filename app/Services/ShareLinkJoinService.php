@@ -121,13 +121,7 @@ class ShareLinkJoinService
             $blocking = $meta->participantClass::query()
                 ->where($meta->foreignKey, $locked->getKey())
                 ->whereBelongsTo($viewer)
-                ->whereIn('status', [
-                    ParticipantStatus::Approved->value,
-                    ParticipantStatus::Pending->value,
-                    ParticipantStatus::Waitlisted->value,
-                    ParticipantStatus::Benched->value,
-                    ParticipantStatus::Removed->value,
-                ])
+                ->whereIn('status', ParticipantStatus::rejoinBlockingValues())
                 ->exists();
 
             if ($blocking) {

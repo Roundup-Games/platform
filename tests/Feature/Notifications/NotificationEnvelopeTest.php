@@ -205,5 +205,23 @@ class NotificationEnvelopeTest extends TestCase
             "M072/S04: the notification envelope is concentrated in BaseNotification — these files restate it literally:\n%s",
             implode("\n", $violations),
         ));
+
+        // The blurple accent is brand-wide, not notification-only: Discord
+        // embed builders outside app/Notifications must reference the shared
+        // constant (DiscordWebhookPayload::BLURPLE), never restate the hex.
+        $blurpleRestatements = [];
+        foreach (glob(app_path('Jobs').'/*.php') as $file) {
+            if (str_contains((string) file_get_contents($file), '0x5865F2')) {
+                $blurpleRestatements[] = basename($file).' restates the blurple literal — reference DiscordWebhookPayload::BLURPLE';
+            }
+        }
+        foreach (glob(app_path('Services/Discord').'/*.php') as $file) {
+            if (str_contains((string) file_get_contents($file), '0x5865F2')
+                && basename($file, '.php') !== 'DiscordWebhookPayload') {
+                $blurpleRestatements[] = basename($file).' restates the blurple literal — reference DiscordWebhookPayload::BLURPLE';
+            }
+        }
+
+        $this->assertSame([], $blurpleRestatements, implode("\n", $blurpleRestatements));
     }
 }

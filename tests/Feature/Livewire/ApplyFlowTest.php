@@ -454,3 +454,68 @@ describe('ApplyToGame submit feedback', function () {
             ->and($html)->not->toContain(__('games.action_join_game'));
     });
 });
+
+describe('Rejoin after self-departure (apply path)', function () {
+    it('re-approves a departed user on re-application to a public game', function () {
+        $owner = createUser();
+        $viewer = createUser();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'visibility' => 'public',
+        ]);
+
+        // The viewer joined and later self-departed: the Rejected row stays
+        // for audit and carries stale departure stamps.
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $viewer->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Rejected->value,
+            'removed_at' => now()->subDays(2),
+            'removed_by' => $viewer->id,
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(ApplyToGame::class, ['id' => $game->id])
+            ->set('message', 'Taking another shot!')
+            ->call('submitApplication')
+            ->assertRedirect();
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $viewer->id)
+            ->first();
+
+        // Reactivated, not duplicated — and the departure stamps reset.
+        expect($participant)->not->toBeNull()
+            ->and($participant->status)->toBe(ParticipantStatus::Approved)
+            ->and($participant->removed_at)->toBeNull()
+            ->and($participant->removed_by)->toBeNull();
+    });
+
+    it('still blocks a host-removed user from re-applying', function () {
+        $owner = createUser();
+        $viewer = createUser();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'visibility' => 'public',
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $viewer->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Removed->value,
+            'removed_at' => now()->subDays(2),
+            'removed_by' => $owner->id,
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(ApplyToGame::class, ['id' => $game->id])
+            ->call('submitApplication')
+            ->assertHasErrors(['message']);
+
+        expect(GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $viewer->id)
+            ->first()->status)->toBe(ParticipantStatus::Removed);
+    });
+});

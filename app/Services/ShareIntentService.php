@@ -8,6 +8,7 @@ use App\Dto\ShareIntentResult;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantStatus;
 use App\Exceptions\SignupCutoffReached;
 use App\Models\Campaign;
 use App\Models\Game;
@@ -200,19 +201,29 @@ class ShareIntentService
         $key = $entity->getKey();
         $entityId = is_string($key) || is_int($key) ? (string) $key : null;
 
-        // Pre-lock check: already a participant? Any existing row for the
-        // user short-circuits — the intake is only reached for new joins.
+        // Pre-lock check: already an active participant? A join-blocking row
+        // (ParticipantStatus::BLOCKS_REJOIN — active or host-removed)
+        // short-circuits; a Rejected row (self-departure) deliberately does
+        // NOT: it reactivates through the intake below, the same rejoin
+        // policy the share-link surface applies.
         $existing = $meta->participantClass::where($meta->foreignKey, $key)
             ->whereBelongsTo($user)
             ->first();
 
-        if ($existing) {
+        if ($existing && $existing->status?->blocksRejoin()) {
             Log::info('share_intent.already_participant', [
                 'user_id' => $user->id, 'entity_type' => $meta->type,
                 'entity_id' => $key, 'existing_status' => $existing->status->value ?? '',
             ]);
 
             return new ShareIntentResult(true, $route, entityId: $entityId);
+        }
+
+        if ($existing) {
+            Log::info('share_intent.rejoin_after_departure', [
+                'user_id' => $user->id, 'entity_type' => $meta->type,
+                'entity_id' => $key,
+            ]);
         }
 
         // Wrap participant creation in a transaction with lockForUpdate —
@@ -241,9 +252,12 @@ class ShareIntentService
                 }
 
                 // Re-check under lock: a concurrent request may have created
-                // the row between the pre-lock check and lock acquisition.
+                // a row between the pre-lock check and lock acquisition. The
+                // same blocking set as the pre-lock check — a Rejected row
+                // falls through to the intake, which reactivates it.
                 $alreadyExists = $meta->participantClass::where($meta->foreignKey, $lockedEntity->getKey())
                     ->whereBelongsTo($user)
+                    ->whereIn('status', ParticipantStatus::rejoinBlockingValues())
                     ->exists();
 
                 if ($alreadyExists) {

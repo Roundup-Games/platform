@@ -59,6 +59,9 @@
 # fixed strings where possible (grep -F) to stay bash-safe.
 #
 # Requires: grep (no rg dependency). Any unexpected hit is a HARD FAIL.
+# Scope caveat: these greps are tripwires, not boundaries — multi-hop builder
+# chains and novel write shapes can evade them. The sanctioned-module
+# allowlist is the policy; review enforces what grep cannot see.
 #
 # Run:    composer invariants
 # Bypass: not in the pre-commit hook; invoke explicitly or via CI.
@@ -280,6 +283,43 @@ if [ -z "$status_violators" ]; then
     pass "INV-15 participant status written only in sanctioned modules"
 else
     fail "INV-15 participant status written outside sanctioned modules:$status_violators. Status transitions (approved/waitlisted/benched/rejected/removed) belong in the sanctioned lifecycle services listed in the header."
+fi
+
+# --- INV-15b: no raw query-builder writes to participant tables -------------
+# The checks above police Eloquent vocabulary; a DB::table('game_participants')
+# ->insert/update chain would slip past them. Same-line and next-line chain
+# shapes are detected (longer chains can still evade — this is a tripwire,
+# not a boundary; the sanctioned-module allowlist is the policy).
+raw_writes=$(grep -rnE "DB::table\(['\"](game_participants|campaign_participants)['\"]\)\s*->\s*(insert|update|upsert|delete|insertUsing|updateOrInsert|increment|decrement|truncate)\(" app/ --include='*.php' 2>/dev/null | grep -v '^app/Console/Dev/')
+for match_file in $(grep -rlE "DB::table\(['\"](game_participants|campaign_participants)['\"]\)\s*$" app/ --include='*.php' 2>/dev/null | grep -v '^app/Console/Dev/'); do
+    line_no=$(grep -nE "DB::table\(['\"](game_participants|campaign_participants)['\"]\)\s*$" "$match_file" | head -1 | cut -d: -f1)
+    if sed -n "$((line_no + 1))p" "$match_file" | grep -qE "^\s*->\s*(insert|update|upsert|delete|insertUsing|updateOrInsert)\("; then
+        raw_writes="$raw_writes
+$match_file:$line_no: (participant-table write chained on the next line)"
+    fi
+done
+if [ -z "$raw_writes" ]; then
+    pass "INV-15 no raw query-builder writes to participant tables"
+else
+    fail "INV-15 participant tables written via DB::table(): $(echo "$raw_writes" | tr '\n' ' '). Route through the sanctioned lifecycle services (ParticipantLifecycle et al.) — raw chains bypass every Eloquent guard."
+fi
+
+# --- INV-15c: no bare-string participant status writes -----------------------
+# The enum-based status check misses 'status' => 'approved' literals. Same
+# file-level participant-vocabulary discriminator as the enum check; the
+# applications tables and cache arrays legitimately use these strings too,
+# which is why the vocabulary gate (not the literal) is load-bearing.
+raw_status_files=''
+for file in $(grep -rlE "[\"]status[\"] => [\"](approved|pending|waitlisted|benched|rejected|removed)[\"]" app/ --include="*.php" 2>/dev/null | grep -v "^app/Console/Dev/" | sort); do
+    if grep -qE "(GameParticipant|CampaignParticipant|->participants\(\)|participantClass)" "$file" \
+        && ! echo "${file}:" | grep -qE "$participant_sanctioned"; then
+        raw_status_files="$raw_status_files $file"
+    fi
+done
+if [ -z "$raw_status_files" ]; then
+    pass "INV-15 participant status not written as bare strings"
+else
+    fail "INV-15 bare-string participant status write in:$raw_status_files. Use ParticipantStatus enum values — sanctioned lifecycle services never write raw strings."
 fi
 
 # --- Summary ----------------------------------------------------------------

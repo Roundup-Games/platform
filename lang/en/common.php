@@ -277,6 +277,8 @@ return [
     'field_update' => 'Update',
     'field_welcoming_community' => 'Welcoming Community',
     'flash_application_approved' => 'Application approved.',
+    'flash_application_approved_waitlisted' => 'Application approved — placed on the waitlist, it is currently full.',
+    'flash_application_approved_benched' => 'Application approved — placed on the bench, it is currently full.',
     'flash_application_rejected' => 'Application rejected.',
     'flash_cancel_this_invite' => 'Cancel this invite?',
     'flash_changes_saved_successfully' => 'Changes saved successfully.',

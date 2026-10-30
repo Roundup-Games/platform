@@ -298,6 +298,41 @@ describe('results() merge order', function () {
             ->and($ids->search($campaign->id))->toBeLessThan($ids->search($earlier->id));
     });
 
+    it('keys every campaign by its own next session when multiple campaigns hydrate together', function () {
+        // N>=2 campaigns with future sessions. The constrained eager load
+        // (->limit(1)) fetched ONE session row across ALL parents, so every
+        // campaign but the earliest-session one keyed by created_at instead -
+        // silently disagreeing with orderCampaignsByMergeKey()'s SQL ordering
+        // (c4062756's premise) and wrong on the merged All-tab feed.
+        $laterSession = Campaign::factory()->create([
+            'visibility' => 'public', 'status' => 'active', 'created_at' => now()->subDays(2),
+        ]);
+        $laterSessionGame = Game::factory()->create([
+            'campaign_id' => $laterSession->id, 'date_time' => now()->addDays(9), 'status' => 'scheduled',
+        ]);
+
+        $earlierSession = Campaign::factory()->create([
+            'visibility' => 'public', 'status' => 'active', 'created_at' => now()->subDays(1),
+        ]);
+        $earlierSessionGame = Game::factory()->create([
+            'campaign_id' => $earlierSession->id, 'date_time' => now()->addDays(3), 'status' => 'scheduled',
+        ]);
+
+        $items = app(DiscoveryQueryService::class)
+            ->results(DiscoveryQueryService::MODE_ALL, new DiscoveryFilters, null, 0, null, null, false)['results'];
+
+        $campaigns = $items->getCollection()->where('discoverable_type', 'campaign')->values();
+
+        // Both campaigns keyed by their OWN next scheduled session (merge
+        // key desc), never by the created_at fallback - and the merged order
+        // matches orderCampaignsByMergeKey()'s SQL hydration order.
+        expect($campaigns)->toHaveCount(2)
+            ->and($campaigns[0]->id)->toBe($laterSession->id)
+            ->and($campaigns[1]->id)->toBe($earlierSession->id)
+            ->and($campaigns[0]->discoverable_sort_key)->toBe($laterSessionGame->date_time->timestamp)
+            ->and($campaigns[1]->discoverable_sort_key)->toBe($earlierSessionGame->date_time->timestamp);
+    });
+
     it('pins campaigns above games on the adventures mode regardless of session dates', function () {
         $ttrpg = GameSystem::factory()->create(['type' => 'ttrpg']);
 
@@ -534,6 +569,38 @@ describe('getRecommendations()', function () {
         expect($recs->pluck('id')->all())->toEqual([$boardGame->id])
             ->and($recs->every(fn (Game|Campaign $item) => $item->discoverable_type === 'game'))->toBeTrue();
     });
+});
+
+it('counts only approved participants in the recommendations rail participants_count', function () {
+    // Deliberate semantics since the S03 builder rewire (pre-M072 the rail
+    // used a plain withCount over every status): the rail's seat counts
+    // match the feed — waitlisted/benched rows hold no seat.
+    $user = User::factory()->create(['profile_complete' => true]);
+    $system = GameSystem::factory()->create();
+    $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'favorite']);
+
+    $game = Game::factory()->create([
+        'game_system_id' => $system->id,
+        'date_time' => now()->addDays(4),
+        'max_players' => 5,
+    ]);
+    $seated = User::factory()->create();
+    $waitlisted = User::factory()->create();
+    GameParticipant::create([
+        'game_id' => $game->id, 'user_id' => $seated->id,
+        'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value,
+    ]);
+    GameParticipant::create([
+        'game_id' => $game->id, 'user_id' => $waitlisted->id,
+        'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Waitlisted->value,
+        'waitlisted_at' => now(),
+    ]);
+
+    $rail = collect(app(DiscoveryQueryService::class)->getRecommendations($user));
+    $recommended = $rail->firstWhere('id', $game->id);
+
+    expect($recommended)->not->toBeNull()
+        ->and($recommended->participants_count)->toBe(1);
 });
 
 describe('DiscoveryQueryService curated() fold', function () {

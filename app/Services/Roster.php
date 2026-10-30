@@ -88,17 +88,13 @@ class Roster
      */
     public function onDeparture(Game|Campaign $entity): void
     {
-        try {
-            $this->waitlist->promoteAllOnCancel($entity);
-            $this->notifyIfBelowMinPlayers($entity);
-        } catch (\Throwable $e) {
-            $type = $entity instanceof Campaign ? 'campaign' : 'game';
-            Log::error('roster.departure_cascade_failed', [
-                'entity_type' => $type,
-                'entity_id' => $entity->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        // No blanket catch: depart()/removeParticipant() run this cascade in
+        // the same transaction as the departure write, so a promotion failure
+        // rolls the departure back for a clean retry instead of committing a
+        // departure whose seat refill silently failed. The below-min warning
+        // isolates its own notification send (best-effort side effect).
+        $this->waitlist->promoteAllOnCancel($entity);
+        $this->notifyIfBelowMinPlayers($entity);
     }
 
     /**

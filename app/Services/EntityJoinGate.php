@@ -128,21 +128,14 @@ class EntityJoinGate
             return false;
         }
 
-        // Cannot already be a participant. A host-removed participant
-        // (Removed) cannot self-rejoin via a direct-join surface — host
-        // removal is a moderation action and the unique constraint is what
-        // historically enforced the block (see
-        // ParticipantLifecycle::removeParticipant() docblock). Without this
-        // the reactivation path would silently flip Removed → Approved.
+        // Cannot already be a participant — ParticipantStatus::BLOCKS_REJOIN
+        // is the single blocking definition (an active row, or a Removed row:
+        // host removal is a moderation action whose block the removed user
+        // must not be able to reverse via the reactivation path).
+        // Rejected rows (self-departures) deliberately stay reactivatable.
         $existingParticipant = $entity->participants
             ->first(fn ($p) => $p->user_id === $viewer->id
-                && in_array($p->status?->value, [
-                    ParticipantStatus::Approved->value,
-                    ParticipantStatus::Pending->value,
-                    ParticipantStatus::Waitlisted->value,
-                    ParticipantStatus::Benched->value,
-                    ParticipantStatus::Removed->value,
-                ]));
+                && $p->status?->blocksRejoin());
 
         if ($existingParticipant) {
             return false;

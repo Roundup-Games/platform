@@ -120,6 +120,77 @@ describe('ProcessShareIntent — game share link', function () {
     });
 });
 
+it('reactivates a departed participant instead of short-circuiting', function () {
+    $shareToken = Str::uuid()->toString();
+    $game = Game::factory()->create([
+        'share_token' => $shareToken,
+        'share_token_expires_at' => now()->addDays(7),
+        'max_players' => 10,
+    ]);
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+    ]);
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => $user->id,
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Rejected->value,
+        'removed_at' => now()->subDays(3),
+        'removed_by' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->withUnencryptedCookie('share_intent', json_encode(shareIntentPayload('game', $game->id, $shareToken)))
+        ->get('/en/dashboard');
+
+    $participant = GameParticipant::where('game_id', $game->id)
+        ->where('user_id', $user->id)
+        ->first();
+
+    // The Rejected row reactivated through the intake — the same rejoin
+    // policy the share-link surface applies — with departure stamps reset.
+    expect($participant->status)->toBe(ParticipantStatus::Approved)
+        ->and($participant->removed_at)->toBeNull()
+        ->and($participant->removed_by)->toBeNull();
+});
+
+it('still short-circuits a host-removed participant', function () {
+    $shareToken = Str::uuid()->toString();
+    $owner = User::factory()->create();
+    $game = Game::factory()->create([
+        'owner_id' => $owner->id,
+        'share_token' => $shareToken,
+        'share_token_expires_at' => now()->addDays(7),
+        'max_players' => 10,
+    ]);
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+    ]);
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => $user->id,
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Removed->value,
+        'removed_at' => now()->subDays(3),
+        'removed_by' => $owner->id,
+    ]);
+
+    $this->actingAs($user)
+        ->withUnencryptedCookie('share_intent', json_encode(shareIntentPayload('game', $game->id, $shareToken)))
+        ->get('/en/dashboard');
+
+    // A Removed row is a moderation block — never reactivated, never
+    // duplicated; the row keeps its removal audit stamps.
+    $participant = GameParticipant::where('game_id', $game->id)
+        ->where('user_id', $user->id)
+        ->first();
+    expect($participant->status)->toBe(ParticipantStatus::Removed)
+        ->and($participant->removed_by)->toBe($owner->id)
+        ->and(GameParticipant::where('game_id', $game->id)->where('user_id', $user->id)->count())->toBe(1);
+});
+
 describe('ProcessShareIntent — campaign share link', function () {
     it('creates participant and redirects to campaign detail', function () {
         $shareToken = Str::uuid()->toString();

@@ -17,7 +17,7 @@ use App\Notifications\WaitlistPlaced;
 use App\Services\NotificationService;
 use App\Services\ParticipantLifecycle;
 use App\Services\PostHogAnalytics;
-use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -116,9 +116,23 @@ trait HandlesApplicationSubmission
 
                 $entity->applications()->lockForUpdate()->where('user_id', $userId)->exists();
 
-                // Double-check no existing participant record
-                if ($entity->participants()->where('user_id', $userId)->exists()) {
+                // Double-check no join-blocking participant record.
+                // ParticipantStatus::BLOCKS_REJOIN (active or host-removed
+                // rows) refuses the apply; a Rejected row — a self-departure —
+                // deliberately does NOT: the join intake reactivates it, the
+                // same rejoin policy the direct-join surfaces apply.
+                $existingParticipant = $entity->participants()->where('user_id', $userId)->first();
+                if ($existingParticipant && $existingParticipant->status?->blocksRejoin()) {
                     throw new \RuntimeException(__($config['translations']['already_participant']));
+                }
+
+                // A reactivation must not be blocked by application rows the
+                // departure predates: depart() cleans them up for new
+                // departures, but rows from before that hygiene (or from the
+                // old removal flow) are cleared here so the re-application
+                // below starts clean.
+                if ($existingParticipant) {
+                    $entity->applications()->where('user_id', $userId)->delete();
                 }
 
                 // Double-check no active application (pending or approved).
@@ -181,8 +195,10 @@ trait HandlesApplicationSubmission
                 );
                 $txDecisions->participantStatus = $participant->getStatus();
             });
-        } catch (QueryException $e) {
-            // Unique constraint violation — concurrent duplicate
+        } catch (UniqueConstraintViolationException $e) {
+            // Unique constraint violation — concurrent duplicate. Narrowed
+            // from a bare QueryException so deadlocks and other DB failures
+            // surface as real errors instead of the friendly race message.
             Log::warning(ucfirst($config['entity_type']).' application race caught by unique constraint', [
                 $config['log_key'] => $entity->id,
                 'user_id' => $userId,

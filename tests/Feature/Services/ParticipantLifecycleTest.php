@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\ParticipantLifecycle;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
+use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Tests\Helpers\TestablePostHogClient;
@@ -255,4 +256,94 @@ it('does not cascade on invitation decline — the waitlist is untouched', funct
         ->and($invited->fresh()->status)->toBe(ParticipantStatus::Rejected)
         ->and($invited->fresh()->removed_by)->toBe($invitee->id)
         ->and($waitlisted->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
+});
+
+// ── M072 review follow-ups: cascade atomicity + rejoin policy ──────────
+
+it('rolls the departure back when the seat-refill cascade fails', function () {
+    $this->mock(WaitlistService::class)
+        ->shouldReceive('promoteAllOnCancel')
+        ->once()
+        ->andThrow(new RuntimeException('cascade down'));
+
+    expect(fn () => app(ParticipantLifecycle::class)->depart($this->participant->fresh(), $this->player))
+        ->toThrow(RuntimeException::class, 'cascade down');
+
+    // The departure did not commit: the roster is unchanged, so a retry
+    // lands on a consistent state instead of stranding an open seat with a
+    // waitlisted player nothing re-promotes (the pre-fix swallow committed
+    // the departure and logged the failure away).
+    expect($this->participant->fresh()->status)->toBe(ParticipantStatus::Approved)
+        ->and($this->participant->fresh()->removed_at)->toBeNull();
+});
+
+it('deletes the application row on departure so a re-application is not blocked', function () {
+    $this->game->applications()->create([
+        'user_id' => $this->player->id,
+        'status' => 'approved',
+    ]);
+
+    app(ParticipantLifecycle::class)->depart($this->participant->fresh(), $this->player);
+
+    expect($this->game->applications()->where('user_id', $this->player->id)->exists())->toBeFalse();
+});
+
+it('routes an approval to the waitlist when the game filled up meanwhile', function () {
+    // Owner + the beforeEach player = 2 approved rows; max_players 2 = full.
+    $this->game->update(['max_players' => 2]);
+
+    $applicant = User::factory()->create(['profile_complete' => true]);
+    $applicantRow = GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $applicant->id,
+        'role' => ParticipantRole::Applicant->value,
+        'status' => ParticipantStatus::Pending->value,
+    ]);
+    $this->game->applications()->create([
+        'user_id' => $applicant->id,
+        'status' => 'pending',
+    ]);
+
+    $result = app(ParticipantLifecycle::class)->approveApplication(
+        $applicantRow->fresh(),
+        $this->game,
+        $this->owner,
+    );
+
+    $row = $applicantRow->fresh();
+    expect($result->success)->toBeTrue()
+        ->and($result->messageKey)->toBe('common.flash_application_approved_waitlisted')
+        ->and($row->status)->toBe(ParticipantStatus::Waitlisted)
+        ->and($row->waitlisted_at)->not->toBeNull()
+        ->and($row->approved_at)->toBeNull()
+        // The application itself is resolved either way.
+        ->and($this->game->applications()->where('user_id', $applicant->id)->first()->status)
+        ->toBe(ParticipantStatus::Approved->value);
+});
+
+it('seats an approval when the game has room', function () {
+    $applicant = User::factory()->create(['profile_complete' => true]);
+    $applicantRow = GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $applicant->id,
+        'role' => ParticipantRole::Applicant->value,
+        'status' => ParticipantStatus::Pending->value,
+    ]);
+    $this->game->applications()->create([
+        'user_id' => $applicant->id,
+        'status' => 'pending',
+    ]);
+
+    $result = app(ParticipantLifecycle::class)->approveApplication(
+        $applicantRow->fresh(),
+        $this->game,
+        $this->owner,
+    );
+
+    $row = $applicantRow->fresh();
+    expect($result->success)->toBeTrue()
+        ->and($result->messageKey)->toBe('common.flash_application_approved')
+        ->and($row->status)->toBe(ParticipantStatus::Approved)
+        ->and($row->role)->toBe(ParticipantRole::Player)
+        ->and($row->approved_at)->not->toBeNull();
 });
