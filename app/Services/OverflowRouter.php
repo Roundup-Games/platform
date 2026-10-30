@@ -93,7 +93,7 @@ class OverflowRouter
         // normal-capacity path (inviteSuppressedEmail). The overflow path
         // previously stored plaintext — a privacy gap when the entity is full.
         $inviteeEmail = null;
-        if (! $existingUserId) {
+        if ($existingUserId === null || $existingUserId === '') {
             $isSuppressed = SuppressedInviteEmail::isSuppressed($normalizedEmail);
             $inviteeEmail = $isSuppressed
                 ? 'suppressed-'.SuppressedInviteEmail::hashEmail($normalizedEmail)
@@ -119,14 +119,14 @@ class OverflowRouter
             'invited_by' => $inviter->id,
             'overflow_status' => $overflow->statusValue(),
         ];
-        if ($existingUserId) {
+        if ($existingUserId !== null && $existingUserId !== '') {
             $logContext['invited_user_id'] = $existingUserId;
         }
         Log::info($meta->type.' email invite added to '.$overflow->statusValue(), $logContext);
 
-        if ($existingUserId) {
+        if ($existingUserId !== null && $existingUserId !== '') {
             $existingUser = User::find($existingUserId);
-            if ($existingUser) {
+            if ($existingUser !== null) {
                 // Wrap in try-catch so a notification dispatch failure does not
                 // break the invite flow after the row has been persisted.
                 try {

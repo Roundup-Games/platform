@@ -49,7 +49,7 @@ class VenueProposalService
     {
         $department = Department::where('name', 'Events')->first();
 
-        if (! $department) {
+        if ($department === null) {
             Log::error('venue_proposal.events_department_missing');
             throw new \RuntimeException('Events department is not configured.');
         }
@@ -57,7 +57,7 @@ class VenueProposalService
         $venueType = $data['venue_type'] ?? null;
         $venueTypeLabel = $venueType instanceof VenueType
             ? $venueType->label()
-            : ($venueType ? VenueType::tryFrom(is_int($venueType) || is_string($venueType) ? $venueType : '')?->label() ?? (is_string($venueType) || is_int($venueType) ? (string) $venueType : '') : null);
+            : ($venueType !== null && $venueType !== '' ? VenueType::tryFrom(is_int($venueType) || is_string($venueType) ? $venueType : '')?->label() ?? (is_string($venueType) || is_int($venueType) ? (string) $venueType : '') : null);
 
         $metadata = $this->buildMetadata($user, $data, $venueType instanceof VenueType ? $venueType->value : (is_string($venueType) ? $venueType : null));
 
@@ -125,7 +125,7 @@ class VenueProposalService
         ];
 
         $existingId = $metadata['existing_location_id'] ?? null;
-        if (is_string($existingId) && $existingId !== '' && $existing = Location::find($existingId)) {
+        if (is_string($existingId) && $existingId !== '' && ($existing = Location::find($existingId)) !== null) {
             $existing->update($payload);
             $location = $existing;
         } else {
@@ -183,7 +183,7 @@ class VenueProposalService
 
         $department = $ticket->department;
 
-        return $department && $department->name === 'Events';
+        return $department !== null && $department->name === 'Events';
     }
 
     /**
@@ -250,43 +250,43 @@ class VenueProposalService
             '**Address:** '.(is_string($a = $data['address'] ?? 'N/A') ? $a : 'N/A'),
         ];
 
-        if (! empty($data['city']) && is_string($data['city'])) {
+        if (is_string($data['city'] ?? null) && $data['city'] !== '') {
             $lines[] = '**City:** '.$data['city'];
         }
 
-        if (! empty($data['postal_code']) && is_string($data['postal_code'])) {
+        if (is_string($data['postal_code'] ?? null) && $data['postal_code'] !== '') {
             $lines[] = '**Postal Code:** '.$data['postal_code'];
         }
 
-        if (! empty($data['country']) && is_string($data['country'])) {
+        if (is_string($data['country'] ?? null) && $data['country'] !== '') {
             $lines[] = '**Country:** '.$data['country'];
         }
 
-        if ($venueTypeLabel) {
+        if ($venueTypeLabel !== null && $venueTypeLabel !== '') {
             $lines[] = '**Venue Type:** '.$venueTypeLabel;
         }
 
-        if (! empty($data['website_url']) && is_string($data['website_url'])) {
+        if (is_string($data['website_url'] ?? null) && $data['website_url'] !== '') {
             $lines[] = '**Website:** '.$data['website_url'];
         }
 
-        if (! empty($data['existing_location_id']) && (is_string($data['existing_location_id']))) {
+        if (is_string($data['existing_location_id'] ?? null) && $data['existing_location_id'] !== '') {
             $lines[] = '**Existing Location:** Yes (ID: '.$data['existing_location_id'].')';
         }
 
         $lines[] = '';
 
-        if (! empty($data['proposer_notes'])) {
+        if (($data['proposer_notes'] ?? '') !== '') {
             $lines[] = '**Why this venue:**';
             $lines[] = $data['proposer_notes'];
         }
 
-        if (! empty($data['admin_notes'])) {
+        if (($data['admin_notes'] ?? '') !== '') {
             $lines[] = '**Admin notes:**';
             $lines[] = $data['admin_notes'];
         }
 
-        if (empty($data['proposer_notes']) && empty($data['admin_notes'])) {
+        if (($data['proposer_notes'] ?? '') === '' && ($data['admin_notes'] ?? '') === '') {
             $lines[] = '**Notes:**';
             $lines[] = 'No additional notes provided.';
         }

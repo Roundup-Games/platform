@@ -135,9 +135,9 @@ class EntityJoinGate
         // Rejected rows (self-departures) deliberately stay reactivatable.
         $existingParticipant = $entity->participants
             ->first(fn ($p) => $p->user_id === $viewer->id
-                && $p->status?->blocksRejoin());
+                && $p->status?->blocksRejoin() === true);
 
-        if ($existingParticipant) {
+        if ($existingParticipant !== null) {
             return false;
         }
 

@@ -50,7 +50,7 @@ class PostHogConsentChecker
 
         $cookieValue = $request->cookie(self::COOKIE_NAME);
 
-        if (! $cookieValue) {
+        if ($cookieValue === null || $cookieValue === '') {
             return false;
         }
 
@@ -81,7 +81,7 @@ class PostHogConsentChecker
 
         $cookieValue = $request->cookie(self::COOKIE_NAME);
 
-        if (! $cookieValue) {
+        if ($cookieValue === null || $cookieValue === '') {
             return null;
         }
 

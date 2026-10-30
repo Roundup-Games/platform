@@ -29,8 +29,8 @@ class GmSocialLinkService
         $url = is_string($config['url_template'] ?? null) ? $config['url_template'] : '';
 
         if (str_contains($url, '{instance}')) {
-            $instanceRequired = $config['instance_required'] ?? false;
-            if ($instanceRequired && empty($instance)) {
+            $instanceRequired = ($config['instance_required'] ?? false) === true;
+            if ($instanceRequired && ($instance === null || $instance === '')) {
                 return null;
             }
             $url = str_replace('{instance}', $instance ?? '', $url);
@@ -63,7 +63,7 @@ class GmSocialLinkService
             return ['valid' => false, 'error' => "Unknown platform: {$platform}"];
         }
 
-        if (empty($handle)) {
+        if ($handle === '') {
             return ['valid' => false, 'error' => 'Handle is required.'];
         }
 
@@ -77,7 +77,7 @@ class GmSocialLinkService
             return ['valid' => false, 'error' => "Platform {$platform} is misconfigured."];
         }
 
-        if (! preg_match($pattern, $handle)) {
+        if (preg_match($pattern, $handle) === 0) {
             Log::info('gm_social_link.invalid_handle', [
                 'platform' => $platform, 'handle' => $handle, 'pattern' => $pattern,
             ]);
@@ -106,7 +106,7 @@ class GmSocialLinkService
             return ['valid' => false, 'error' => 'Instance validation is temporarily unavailable.'];
         }
 
-        if (! preg_match($pattern, $instance)) {
+        if (preg_match($pattern, $instance) === 0) {
             return ['valid' => false, 'error' => 'Invalid instance domain.'];
         }
 
@@ -134,7 +134,7 @@ class GmSocialLinkService
             $handle = trim($link['handle'] ?? '');
             $instance = trim($link['instance'] ?? '');
 
-            if (! $platform) {
+            if ($platform === '') {
                 continue;
             }
 
@@ -157,14 +157,14 @@ class GmSocialLinkService
 
             // Validate instance if required
             $platformConfig = config("platforms.{$platform}");
-            $instanceRequired = is_array($platformConfig) && ($platformConfig['instance_required'] ?? false);
-            if ($instanceRequired && empty($instance)) {
+            $instanceRequired = is_array($platformConfig) && ($platformConfig['instance_required'] ?? false) === true;
+            if ($instanceRequired && $instance === '') {
                 $errors[$platform] = 'Instance is required for this platform.';
 
                 continue;
             }
 
-            if (! empty($instance)) {
+            if ($instance !== '') {
                 $instanceValidation = $this->validateInstance($instance);
                 if (! $instanceValidation['valid']) {
                     $errors[$platform] = $instanceValidation['error'] ?? 'Invalid instance.';
@@ -179,7 +179,7 @@ class GmSocialLinkService
                 ['user_id' => $user->id, 'platform' => $platform],
                 [
                     'handle' => $handle,
-                    'instance' => $instance ?: null,
+                    'instance' => $instance !== '' ? $instance : null,
                 ],
             );
 

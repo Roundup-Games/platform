@@ -48,17 +48,17 @@ class ProfileVisibilityResolver
     public function profileFieldsVisible(?User $viewer, User $owner): array
     {
         // Self sees everything
-        if ($viewer && $viewer->is($owner)) {
+        if ($viewer !== null && $viewer->is($owner)) {
             return self::FIELDS;
         }
 
         // Blocked viewers see no profile fields (only name + avatar)
-        if ($viewer && ($viewer->isBlockedBy($owner) || $viewer->hasBlocked($owner))) {
+        if ($viewer !== null && ($viewer->isBlockedBy($owner) || $viewer->hasBlocked($owner))) {
             return [];
         }
 
         // Determine the relationship level for access control
-        $level = $viewer ? $owner->getRelationshipLevel($viewer) : 'stranger';
+        $level = $viewer !== null ? $owner->getRelationshipLevel($viewer) : 'stranger';
 
         $visible = [];
         /** @var array<string, string> $settings */

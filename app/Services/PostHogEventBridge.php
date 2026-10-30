@@ -300,7 +300,7 @@ class PostHogEventBridge
      */
     private function extractInvitationProperties(?Model $subject, ActivityType $type): array
     {
-        if (! $subject) {
+        if ($subject === null) {
             return [];
         }
 
@@ -355,7 +355,7 @@ class PostHogEventBridge
             'review_id' => $subject->id,
             'rating' => $subject->rating,
             'game_system' => $gameSystem,
-            'reviewable_type' => $subject->reviewable_type
+            'reviewable_type' => $subject->reviewable_type !== ''
                 ? class_basename(Relation::getMorphedModel($subject->reviewable_type) ?? $subject->reviewable_type)
                 : null,
         ];

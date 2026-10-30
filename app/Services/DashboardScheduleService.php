@@ -60,7 +60,7 @@ class DashboardScheduleService
         $cached = app(DashboardCacheService::class)->getHostAgain($user);
 
         // Cache returns empty array when no data; null when no completed games
-        if (! empty($cached)) {
+        if ($cached !== []) {
             return $cached;
         }
 

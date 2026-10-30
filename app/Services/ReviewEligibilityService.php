@@ -26,7 +26,7 @@ class ReviewEligibilityService
             return false;
         }
 
-        if ($game->date_time?->isFuture()) {
+        if ($game->date_time?->isFuture() === true) {
             return false;
         }
 

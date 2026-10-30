@@ -124,10 +124,10 @@ class GameSystem extends Model implements HasMedia, TicketSubject
     protected static function booted(): void
     {
         static::creating(function (self $gameSystem) {
-            if (empty($gameSystem->slug)) {
+            if ($gameSystem->slug === null || $gameSystem->slug === '') {
                 $gameSystem->slug = $gameSystem->resolveFallbackSlug();
             }
-            if (empty($gameSystem->type)) {
+            if ($gameSystem->type === null) {
                 $gameSystem->type = 'boardgame';
             }
         });
@@ -139,7 +139,7 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         // 500-ing any partial that surfaces the record as a base game or
         // expansion. Re-derive on update if it was blanked.
         static::updating(function (self $gameSystem) {
-            if (empty($gameSystem->slug)) {
+            if ($gameSystem->slug === null || $gameSystem->slug === '') {
                 $gameSystem->slug = $gameSystem->resolveFallbackSlug();
             }
         });
@@ -285,13 +285,13 @@ class GameSystem extends Model implements HasMedia, TicketSubject
     {
         $media = $this->getFirstMedia('cover');
 
-        if ($media) {
-            $path = $conversionName
+        if ($media !== null) {
+            $path = $conversionName !== ''
                 ? $media->getPath($conversionName)
                 : $media->getPath();
 
-            if ($path && file_exists($path)) {
-                return $conversionName
+            if ($path !== '' && file_exists($path)) {
+                return $conversionName !== ''
                     ? $media->getUrl($conversionName)
                     : $media->getUrl();
             }
@@ -403,17 +403,17 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         // Product schema
         $product = (new Product)
             ->name($this->name)
-            ->description(Str::limit(strip_tags((string) $this->description), 500) ?: '');
+            ->description(Str::limit(strip_tags((string) $this->description), 500));
 
-        if ($imageUrl = $this->coverImageUrl()) {
+        if (($imageUrl = $this->coverImageUrl()) !== null && $imageUrl !== '') {
             $product->image($imageUrl);
         }
 
-        if ($this->id) {
+        if ((string) $this->id !== '') {
             $product->sku((string) $this->id);
         }
 
-        if ($this->creator) {
+        if ($this->creator !== null) {
             $product->brand($this->creator);
         }
 
@@ -421,8 +421,8 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         $ratingValue = $this->sp_rating ?? $this->bgg_average_rating;
         $reviewCount = $this->sp_review_count ?? $this->bgg_users_rated;
 
-        if ($ratingValue && $ratingValue > 0) {
-            $bestRating = $this->sp_rating ? 5 : 10; // Platform scale is 5, BGG scale is 10
+        if ($ratingValue > 0) {
+            $bestRating = $this->sp_rating !== null && $this->sp_rating > 0 ? 5 : 10; // Platform scale is 5, BGG scale is 10
             $product->aggregateRating(
                 (new AggregateRating)
                     ->ratingValue((float) $ratingValue)
@@ -435,7 +435,7 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         $schema->push($product->toArray());
 
         // FAQPage (conditional — only if FAQ content exists)
-        if (! empty($this->faq_content)) {
+        if ($this->faq_content !== null && $this->faq_content !== []) {
             $faqItems = $this->faq_content;
             $schema->addFaqPage(function ($faqSchema) use ($faqItems) {
                 foreach ($faqItems as $faq) {
@@ -465,13 +465,16 @@ class GameSystem extends Model implements HasMedia, TicketSubject
             $schema->push($itemList->toArray());
         }
 
+        $metaDescription = Str::limit(strip_tags($this->description ?? ''), 160);
+        $coverUrl = $this->coverImageUrl();
+
         return new SEOData(
             // Keyword-first generated fallback (R072): the bare system
             // name wastes the query intent; curated per-entity seo_title
             // (entitySeoData) still overrides this per locale.
             title: __('games.seo_title_game_system_detail', ['name' => $this->name]),
-            description: Str::limit(strip_tags($this->description ?? ''), 160) ?: null,
-            image: $this->coverImageUrl() ?: asset('images/og-default.jpg'),
+            description: $metaDescription !== '' ? $metaDescription : null,
+            image: $coverUrl !== '' ? $coverUrl : asset('images/og-default.jpg'),
             robots: 'index, follow',
             schema: $schema,
         );

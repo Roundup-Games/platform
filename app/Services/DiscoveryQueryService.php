@@ -121,12 +121,12 @@ class DiscoveryQueryService
         $categoryIds = $filters->categoryIds;
         $mechanicIds = $filters->mechanicIds;
 
-        $query->when(! empty($search), fn ($q) => $q->where(function ($q) use ($search) {
+        $query->when($search !== '', fn ($q) => $q->where(function ($q) use ($search) {
             $this->whereTranslatableLike($q, 'name', (string) $search);
             $this->orWhereTranslatableLike($q, 'description', (string) $search);
         }));
 
-        $query->when(! empty($gameSystemId), function (Builder $q) use ($gameSystemId) {
+        $query->when($gameSystemId !== null && $gameSystemId !== '', function (Builder $q) use ($gameSystemId) {
             // Match via the canonical pivot: a Gathering (or any game/campaign)
             // appears in a system's feed iff that system is in its offered set
             // (R048). Both Game and Campaign route through the same pivot shape
@@ -134,33 +134,33 @@ class DiscoveryQueryService
             // instanceof-Game branch collapses to one whereHas.
             $q->whereHas('gameSystems', fn (Builder $q) => $q->where('game_systems.id', $gameSystemId));
         });
-        $query->when(! empty($experienceLevel), fn ($q) => $q->where('experience_level', $experienceLevel));
+        $query->when($experienceLevel !== '', fn ($q) => $q->where('experience_level', $experienceLevel));
 
-        $query->when(! empty($vibeFlags), function ($q) use ($vibeFlags) {
+        $query->when($vibeFlags !== [], function ($q) use ($vibeFlags) {
             foreach ($vibeFlags as $flag) {
                 $q->whereJsonContains('vibe_flags', $flag);
             }
         });
 
-        $query->when(! empty($safetyTools), function ($q) use ($safetyTools) {
+        $query->when($safetyTools !== [], function ($q) use ($safetyTools) {
             foreach ($safetyTools as $tool) {
                 $q->whereJsonContains('safety_rules->tools', $tool);
             }
         });
 
-        $query->when(! empty($language), fn ($q) => $q->where('language', $language));
+        $query->when($language !== '', fn ($q) => $q->where('language', $language));
 
         $query->when(($filters->price) === 'free', fn ($q) => $q->where(fn ($q) => $q->where($priceColumn, 0)->orWhereNull($priceColumn)));
         $query->when(($filters->price) === 'paid', fn ($q) => $q->where($priceColumn, '>', 0));
 
-        $query->when(! empty($complexityMin), fn ($q) => $q->where('complexity', '>=', $complexityMin));
-        $query->when(! empty($complexityMax), fn ($q) => $q->where('complexity', '<=', $complexityMax));
+        $query->when($complexityMin !== null && $complexityMin > 0, fn ($q) => $q->where('complexity', '>=', $complexityMin));
+        $query->when($complexityMax !== null && $complexityMax > 0, fn ($q) => $q->where('complexity', '<=', $complexityMax));
 
-        $query->when(! empty($categoryIds), function ($q) use ($categoryIds) {
+        $query->when($categoryIds !== [], function ($q) use ($categoryIds) {
             $q->whereHas('gameSystems.categories', fn ($q) => $q->whereIn('game_system_categories.id', $categoryIds));
         });
 
-        $query->when(! empty($mechanicIds), function ($q) use ($mechanicIds) {
+        $query->when($mechanicIds !== [], function ($q) use ($mechanicIds) {
             $q->whereHas('gameSystems.mechanics', fn ($q) => $q->whereIn('game_system_mechanics.id', $mechanicIds));
         });
     }
@@ -386,7 +386,7 @@ class DiscoveryQueryService
         }
 
         // Campaigns-specific: recurrence
-        if ($recurrence) {
+        if ($recurrence !== null && $recurrence !== '') {
             $query->where('recurrence', $recurrence);
         }
 
@@ -816,7 +816,7 @@ class DiscoveryQueryService
 
         // Play styles: match games/campaigns whose game system has categories
         // matching the selected PlayStyle editorial slug mappings.
-        if (! empty($filters->playStyles)) {
+        if ($filters->playStyles !== []) {
             $slugs = collect($filters->playStyles)
                 ->map(fn (string $value) => PlayStyle::tryFrom($value))
                 ->filter()
@@ -825,7 +825,7 @@ class DiscoveryQueryService
                 ->values()
                 ->all();
 
-            if (! empty($slugs)) {
+            if ($slugs !== []) {
                 $gamesQuery->whereHas('gameSystems.categories', fn ($q) => $q->whereIn('slug', $slugs));
                 $campaignsQuery->whereHas('gameSystems.categories', fn ($q) => $q->whereIn('slug', $slugs));
             }
@@ -994,7 +994,7 @@ class DiscoveryQueryService
                 continue;
             }
             $location = $item->linkedLocation;
-            if (! $location || $location->latitude === null || $location->longitude === null) {
+            if ($location === null || $location->latitude === null || $location->longitude === null) {
                 continue;
             }
             $distance = ProximityQuery::haversineDistance($lat, $lng, (float) $location->latitude, (float) $location->longitude);
@@ -1053,7 +1053,7 @@ class DiscoveryQueryService
      */
     public function getRecommendations(?User $user, ?string $systemType = null): ?array
     {
-        if (! $user) {
+        if ($user === null) {
             return null;
         }
 
@@ -1092,7 +1092,7 @@ class DiscoveryQueryService
             $allowedSystemIds = array_values(array_intersect($allowedSystemIds, $typeSystemIds));
         }
 
-        if (empty($allowedSystemIds)) {
+        if ($allowedSystemIds === []) {
             return null;
         }
 
@@ -1125,7 +1125,7 @@ class DiscoveryQueryService
         // Primary query: favorite systems AND favorite vibes (boosted)
         $boostedGames = collect();
         $boostedCampaigns = collect();
-        if (! empty($favoriteVibes)) {
+        if ($favoriteVibes !== []) {
             $boostedGames = $this->buildGamesQuery($neutralFilters, $user, 0.0, null, null, false, null, $excludeUser)
                 ->where($this->matchAllowedSystems($allowedSystemIds))
                 ->where($vibeMatch)

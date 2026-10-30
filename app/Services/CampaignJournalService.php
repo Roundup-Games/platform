@@ -87,7 +87,7 @@ class CampaignJournalService
             throw new \LogicException(__('journal.error_recap_too_long'));
         }
 
-        if (empty(trim($body))) {
+        if (trim($body) === '') {
             throw new \LogicException(__('games.error_recap_empty'));
         }
 
@@ -179,7 +179,7 @@ class CampaignJournalService
             throw new \LogicException(__('journal.error_body_too_long'));
         }
 
-        if (empty(trim($body))) {
+        if (trim($body) === '') {
             throw new \LogicException(__('journal.error_body_empty'));
         }
 
@@ -232,7 +232,7 @@ class CampaignJournalService
             throw new \LogicException(__('journal.error_body_too_long'));
         }
 
-        if (empty(trim($body))) {
+        if (trim($body) === '') {
             throw new \LogicException(__('journal.error_body_empty'));
         }
 
@@ -280,7 +280,7 @@ class CampaignJournalService
             throw new \LogicException(__('journal.error_title_too_long'));
         }
 
-        if (empty(trim($title))) {
+        if (trim($title) === '') {
             throw new \LogicException(__('journal.error_title_required'));
         }
 
@@ -417,7 +417,7 @@ class CampaignJournalService
             throw new \LogicException(__('journal.error_delta_too_long'));
         }
 
-        if (empty(trim($delta))) {
+        if (trim($delta) === '') {
             throw new \LogicException(__('journal.error_delta_empty'));
         }
 

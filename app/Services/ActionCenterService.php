@@ -138,7 +138,7 @@ class ActionCenterService
 
         return [
             'message' => __('profile.dashboard_action_center_all_clear'),
-            'next_game' => $nextGame ? [
+            'next_game' => $nextGame !== null ? [
                 'name' => $nextGame->name,
                 'date_time' => $nextGame->date_time?->toIso8601String() ?? '',
                 'url' => route('games.show', $nextGame),
@@ -169,7 +169,7 @@ class ActionCenterService
             priority: 'critical',
             title: __('profile.dashboard_action_waitlist_title', ['game' => $p->game->name ?? '']),
             description: __('profile.dashboard_action_waitlist_desc'),
-            actionUrl: $p->game ? route('games.show', $p->game) : '#',
+            actionUrl: $p->game !== null ? route('games.show', $p->game) : '#',
             actionLabel: __('profile.dashboard_action_waitlist_action'),
             icon: 'schedule',
             createdAt: $p->waitlisted_at ?? $p->created_at ?? now(),
@@ -288,7 +288,7 @@ class ActionCenterService
             priority: 'high',
             title: __('profile.dashboard_action_invitation_title', ['game' => $p->game->name ?? '']),
             description: __('profile.dashboard_action_invitation_desc'),
-            actionUrl: $p->game ? route('games.show', $p->game) : '#',
+            actionUrl: $p->game !== null ? route('games.show', $p->game) : '#',
             actionLabel: __('profile.dashboard_action_invitation_action'),
             icon: 'mail',
             createdAt: $p->created_at ?? now(),
@@ -438,7 +438,7 @@ class ActionCenterService
     {
         $gmProfile = GMProfile::whereBelongsTo($user)->first();
 
-        if (! $gmProfile) {
+        if ($gmProfile === null) {
             return [];
         }
 
@@ -456,7 +456,7 @@ class ActionCenterService
                 'rating' => $r->rating,
                 'reviewer' => $r->reviewer->name ?? __('Someone'),
             ]),
-            description: $r->body ? Str::limit($r->body, 100) : __('profile.dashboard_action_review_no_comment'),
+            description: $r->body !== null && $r->body !== '' ? Str::limit($r->body, 100) : __('profile.dashboard_action_review_no_comment'),
             actionUrl: route('profile.public', ['user' => $user]),
             actionLabel: __('profile.dashboard_action_review_action'),
             icon: 'rate_review',
@@ -513,7 +513,7 @@ class ActionCenterService
                 description: $sharedCount > 0
                     ? trans_choice('profile.dashboard_action_follower_shared', $sharedCount, ['count' => $sharedCount])
                     : __('profile.dashboard_action_follower_desc'),
-                actionUrl: $followerUser ? route('profile.public', ['user' => $followerUser]) : '#',
+                actionUrl: $followerUser !== null ? route('profile.public', ['user' => $followerUser]) : '#',
                 actionLabel: __('profile.dashboard_prompt_view_profile'),
                 icon: 'person_add',
                 createdAt: $rel->created_at ?? now(),
@@ -600,7 +600,7 @@ class ActionCenterService
             priority: 'medium',
             title: __('profile.dashboard_action_bulletin_title', ['game' => $b->game->name ?? '']),
             description: Str::limit($b->content, 100),
-            actionUrl: $b->game ? route('games.show', $b->game) : '#',
+            actionUrl: $b->game !== null ? route('games.show', $b->game) : '#',
             actionLabel: __('profile.dashboard_action_bulletin_action'),
             icon: 'campaign',
             createdAt: $b->created_at ?? now(),

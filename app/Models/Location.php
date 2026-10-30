@@ -131,7 +131,7 @@ class Location extends Model implements TicketSubject
     protected static function booted(): void
     {
         static::saving(function (self $location) {
-            if ($location->latitude && $location->longitude) {
+            if ($location->latitude !== null && $location->longitude !== null) {
                 $location->geohash_4 = Geohash::tilePrefix(
                     (float) $location->latitude,
                     (float) $location->longitude,
@@ -446,7 +446,7 @@ class Location extends Model implements TicketSubject
     {
         $parts = array_filter([
             $this->address,
-            $this->postal_code ? "{$this->postal_code} {$this->city}" : $this->city,
+            $this->postal_code !== null && $this->postal_code !== '' ? "{$this->postal_code} {$this->city}" : $this->city,
         ], fn (?string $part): bool => $part !== null && $part !== '');
 
         return implode(', ', $parts);
@@ -466,9 +466,9 @@ class Location extends Model implements TicketSubject
      */
     public function getDynamicSEOData(): SEOData
     {
-        $description = $this->description
+        $description = $this->description !== null && $this->description !== ''
             ? Str::limit(strip_tags((string) $this->description), 160)
-            : trim("{$this->name}".($this->city ? " — {$this->city}" : '').($this->country ? ", {$this->country}" : ''));
+            : trim("{$this->name}".($this->city !== null && $this->city !== '' ? " — {$this->city}" : '').($this->country !== null && $this->country !== '' ? ", {$this->country}" : ''));
 
         $schema = SchemaCollection::initialize();
 
@@ -488,7 +488,7 @@ class Location extends Model implements TicketSubject
         // The schema description is only meaningful when content exists — an
         // empty value would produce a useless description node, and the
         // LocalBusiness::description() type contract is non-nullable anyway.
-        if ($this->description) {
+        if ($this->description !== null && $this->description !== '') {
             $business->description(Str::limit(strip_tags((string) $this->description), 500));
         }
 
@@ -503,16 +503,16 @@ class Location extends Model implements TicketSubject
         // discriminator (mirrors isVerifiedCommercialVenue).
         if ($this->is_verified) {
             $address = (new PostalAddress);
-            if ($this->address) {
+            if ($this->address !== null && $this->address !== '') {
                 $address->streetAddress($this->address);
             }
-            if ($this->postal_code) {
+            if ($this->postal_code !== null && $this->postal_code !== '') {
                 $address->postalCode($this->postal_code);
             }
-            if ($this->city) {
+            if ($this->city !== null && $this->city !== '') {
                 $address->addressLocality($this->city);
             }
-            if ($this->country) {
+            if ($this->country !== null && $this->country !== '') {
                 $address->addressCountry($this->country);
             }
             $business->address($address);
@@ -522,7 +522,7 @@ class Location extends Model implements TicketSubject
         if (($safeUrl = safe_url($this->website_url)) !== null) {
             $sameAs[] = $safeUrl;
         }
-        if (! empty($sameAs)) {
+        if ($sameAs !== []) {
             $business->sameAs($sameAs);
         }
 
@@ -530,7 +530,7 @@ class Location extends Model implements TicketSubject
 
         return new SEOData(
             title: $this->name,
-            description: $description ?: null,
+            description: $description !== '' ? $description : null,
             robots: 'index, follow',
             schema: $schema,
         );

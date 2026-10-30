@@ -372,9 +372,9 @@ class NotificationQueryService
         for ($i = 0; $i < $actorCount; $i++) {
             $name = e($actors[$i]);
             $id = $actorIds[$i] ?? null;
-            $username = $id ? $usernames->get($id) : null;
+            $username = $id !== null ? $usernames->get($id) : null;
 
-            if ($username) {
+            if ($username !== null && $username !== '') {
                 $url = route('profile.public', ['locale' => app()->getLocale(), 'user' => $username]);
                 $linkedActors[] = '<a href="'.e($url).'" wire:navigate class="font-medium text-primary hover:text-primary/80 transition-colors">'.$name.'</a>';
             } else {
@@ -389,7 +389,7 @@ class NotificationQueryService
 
         if ($entityName !== null) {
             $escapedName = e($entityName);
-            if ($entityUrl) {
+            if ($entityUrl !== null && $entityUrl !== '') {
                 $linkedEntity = '<a href="'.e($entityUrl).'" wire:navigate class="font-medium text-primary hover:text-primary/80 transition-colors">'.$escapedName.'</a>';
             } else {
                 $linkedEntity = '<span class="font-medium">'.$escapedName.'</span>';

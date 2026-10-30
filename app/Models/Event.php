@@ -163,7 +163,7 @@ class Event extends Model implements HasMedia
     protected static function booted(): void
     {
         static::creating(function (self $event) {
-            if (empty($event->slug)) {
+            if ($event->slug === null || $event->slug === '') {
                 // name is a spatie JSON column — getTranslation extracts the locale key.
                 // Falls back to the raw attribute if the value isn't JSON yet (spatie handles this).
                 $locale = $event->language ?? 'en';
@@ -449,11 +449,11 @@ class Event extends Model implements HasMedia
             return false;
         }
 
-        if ($this->registration_opens_at && now()->lt($this->registration_opens_at)) {
+        if ($this->registration_opens_at !== null && now()->lt($this->registration_opens_at)) {
             return false;
         }
 
-        if ($this->registration_closes_at && now()->gt($this->registration_closes_at)) {
+        if ($this->registration_closes_at !== null && now()->gt($this->registration_closes_at)) {
             return false;
         }
 
@@ -462,7 +462,7 @@ class Event extends Model implements HasMedia
 
     public function hasCapacity(): bool
     {
-        if ($this->max_participants && $this->registrations()->count() >= $this->max_participants) {
+        if ($this->max_participants > 0 && $this->registrations()->count() >= $this->max_participants) {
             return false;
         }
 
@@ -494,7 +494,8 @@ class Event extends Model implements HasMedia
             ? $shortDescription
             : (filled($this->description) ? Str::limit(strip_tags($this->description), 160) : null);
 
-        $image = $this->getFirstMediaUrl('banner', 'large') ?: asset('images/og-default.jpg');
+        $bannerUrl = $this->getFirstMediaUrl('banner', 'large');
+        $image = $bannerUrl !== '' ? $bannerUrl : asset('images/og-default.jpg');
 
         $isPublic = $this->is_public && in_array($this->status, [
             EventStatus::Published,
@@ -519,10 +520,10 @@ class Event extends Model implements HasMedia
                 ->eventAttendanceMode('OfflineEventAttendanceMode');
 
             // Start/end dates
-            if ($this->start_date) {
+            if ($this->start_date !== null) {
                 $event->startDate($this->start_date->toDateString());
             }
-            if ($this->end_date) {
+            if ($this->end_date !== null) {
                 $event->endDate($this->end_date->toDateString());
             }
 
@@ -534,32 +535,32 @@ class Event extends Model implements HasMedia
 
             // Location
             $place = $this->buildEventPlace();
-            if ($place) {
+            if ($place !== null) {
                 $event->location($place);
             }
 
             // Organizer
-            if ($this->organizer) {
+            if ($this->organizer !== null) {
                 $organizer = (new SchemaPerson)
                     ->name($this->organizer->name);
                 // The public profile route binds by slug (User::getRouteKeyName()).
                 // This previously read ->username — a column that does not exist,
                 // so the organizer URL was silently never emitted; strict model
                 // mode surfaced the phantom attribute read.
-                if ($this->organizer->slug) {
+                if ($this->organizer->slug !== null && $this->organizer->slug !== '') {
                     $organizer->url(route('profile.public', $this->organizer));
                 }
                 $event->organizer($organizer);
             }
 
             // Attendance capacity
-            if ($this->max_participants) {
+            if ($this->max_participants > 0) {
                 $event->maximumAttendeeCapacity($this->max_participants);
             }
 
             // Offers — individual registration fee
             $fee = $this->individual_registration_fee;
-            $event->isAccessibleForFree(empty($fee));
+            $event->isAccessibleForFree($fee === null || $fee === 0);
 
             if ($fee > 0) {
                 $event->offers(
@@ -579,13 +580,13 @@ class Event extends Model implements HasMedia
             // no about().
             $about = $this->offeredSystems()->map(function (GameSystem $system) {
                 $thing = (new Thing)->name($system->name);
-                if ($system->slug) {
+                if ($system->slug !== null && $system->slug !== '') {
                     $thing->identifier($system->slug);
                 }
 
                 return $thing;
             })->values()->all();
-            if (! empty($about)) {
+            if ($about !== []) {
                 $event->about($about);
             }
 
@@ -607,15 +608,15 @@ class Event extends Model implements HasMedia
     private function buildEventPlace(): ?Place
     {
         // Prefer linked location relationship
-        if ($this->linkedLocation) {
+        if ($this->linkedLocation !== null) {
             $address = (new PostalAddress);
-            if ($this->linkedLocation->address) {
+            if ($this->linkedLocation->address !== null && $this->linkedLocation->address !== '') {
                 $address->streetAddress($this->linkedLocation->address);
             }
-            if ($this->linkedLocation->city) {
+            if ($this->linkedLocation->city !== null && $this->linkedLocation->city !== '') {
                 $address->addressLocality($this->linkedLocation->city);
             }
-            if ($this->linkedLocation->country) {
+            if ($this->linkedLocation->country !== null && $this->linkedLocation->country !== '') {
                 $address->addressCountry($this->linkedLocation->country);
             }
 
@@ -625,20 +626,20 @@ class Event extends Model implements HasMedia
         }
 
         // Fallback to venue fields on the event itself
-        if ($this->venue_name || $this->city) {
+        if (($this->venue_name !== null && $this->venue_name !== '') || ($this->city !== null && $this->city !== '')) {
             $address = new PostalAddress;
-            if ($this->venue_address) {
+            if ($this->venue_address !== null && $this->venue_address !== '') {
                 $address->streetAddress($this->venue_address);
             }
-            if ($this->city) {
+            if ($this->city !== null && $this->city !== '') {
                 $address->addressLocality($this->city);
             }
-            if ($this->country) {
+            if ($this->country !== null && $this->country !== '') {
                 $address->addressCountry($this->country);
             }
 
             return (new Place)
-                ->name($this->venue_name ?: $this->city)
+                ->name($this->venue_name !== null && $this->venue_name !== '' ? $this->venue_name : $this->city)
                 ->address($address);
         }
 

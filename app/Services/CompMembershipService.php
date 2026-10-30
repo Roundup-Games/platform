@@ -70,7 +70,7 @@ class CompMembershipService
             ->orderBy('price_cents')
             ->first();
 
-        if (! $gmPlan) {
+        if ($gmPlan === null) {
             throw new RuntimeException(
                 'GM plan not found in membership_types. Run the MembershipTypeSeeder (php artisan db:seed) before granting comp memberships.'
             );

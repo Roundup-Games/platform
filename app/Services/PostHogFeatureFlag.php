@@ -132,7 +132,7 @@ class PostHogFeatureFlag
         }
 
         // Feature flags have a separate kill switch for granular control.
-        if (! config('posthog.feature_flags.enabled', true)) {
+        if (config('posthog.feature_flags.enabled', true) === false) {
             return $default;
         }
 

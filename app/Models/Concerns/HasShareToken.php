@@ -25,7 +25,7 @@ trait HasShareToken
     {
         $token = $token ?? request()->query('share');
 
-        if (! $token || ! $this->share_token) {
+        if ($token === null || $token === '' || $this->share_token === null || $this->share_token === '') {
             return false;
         }
 

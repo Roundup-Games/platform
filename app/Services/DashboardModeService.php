@@ -110,7 +110,7 @@ class DashboardModeService
      */
     private function computeModeFrom(User $user, int $attendedCount): string
     {
-        $isNewAccount = $user->created_at
+        $isNewAccount = $user->created_at !== null
             && $user->created_at->isAfter(now()->subDays(self::NEWCOMER_MAX_AGE_DAYS));
 
         if ($attendedCount === 0 && $isNewAccount) {

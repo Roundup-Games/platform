@@ -255,10 +255,10 @@ class DashboardQuickActionsService
             ->where('status', 'active')
             ->first();
 
-        if ($teamMember) {
+        if ($teamMember !== null) {
             $team = Team::find($teamMember->team_id);
 
-            if ($team) {
+            if ($team !== null) {
                 return route('teams.manage', ['slug' => $team->slug]);
             }
         }

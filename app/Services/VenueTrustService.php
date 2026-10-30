@@ -20,7 +20,7 @@ class VenueTrustService
             return true;
         }
 
-        if ($locationId && Location::where('id', $locationId)->where('is_verified', true)->exists()) {
+        if ($locationId !== null && $locationId !== '' && Location::where('id', $locationId)->where('is_verified', true)->exists()) {
             return true;
         }
 

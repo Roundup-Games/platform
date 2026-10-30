@@ -204,7 +204,7 @@ class AttendanceResolutionService
                         && $r->reporter_id === $game->owner_id;
                 });
 
-                if ($hostExcusedReport) {
+                if ($hostExcusedReport !== null) {
                     // Host has excused this participant
                     $this->applyResolvedStatus($participant, AttendanceStatus::Excused);
 

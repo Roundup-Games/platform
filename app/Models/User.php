@@ -139,7 +139,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     protected static function booted(): void
     {
         static::creating(function (User $user) {
-            if (empty($user->slug)) {
+            if ($user->slug === null || $user->slug === '') {
                 $user->slug = static::generateUniqueSlug($user->name);
             }
         });
@@ -252,7 +252,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         return Attribute::make(
             get: function (mixed $value) {
                 $media = $this->getFirstMedia('avatar');
-                if ($media) {
+                if ($media !== null) {
                     // thumb conversion (32–48px component renders) — serving
                     // the original 2–5MB upload for a tiny avatar wastes
                     // bandwidth on every list page. SEO paths already use
@@ -332,7 +332,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     {
         $location = $this->linkedLocation;
 
-        if (! $location || $location->latitude === null || $location->longitude === null) {
+        if ($location === null || $location->latitude === null || $location->longitude === null) {
             return null;
         }
 
@@ -762,7 +762,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
      */
     public function ticketSubjectUrl(): ?string
     {
-        if (empty($this->slug)) {
+        if ($this->slug === null || $this->slug === '') {
             return null;
         }
 
@@ -775,14 +775,14 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
      */
     public function resolveRouteBinding($value, $field = null)
     {
-        if ($field) {
+        if ($field !== null) {
             return parent::resolveRouteBinding($value, $field);
         }
 
         // Try slug first (primary resolution)
         $user = $this->where('slug', $value)->first();
 
-        if ($user) {
+        if ($user !== null) {
             return $user;
         }
 
@@ -901,11 +901,14 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     {
         $title = $this->name;
 
-        $description = $this->bio
+        $description = $this->bio !== null && $this->bio !== ''
             ? Str::limit(strip_tags($this->bio), 160)
             : "View {$this->name}'s profile on ".(is_string($dn = config('company.display_name')) ? $dn : '').'.';
 
-        $image = $this->getFirstMediaUrl('avatar', 'thumb') ?: ($this->avatar_url ?: asset('images/og-default.jpg'));
+        $mediaAvatarUrl = $this->getFirstMediaUrl('avatar', 'thumb');
+        $image = $mediaAvatarUrl !== ''
+            ? $mediaAvatarUrl
+            : ($this->avatar_url !== '' ? $this->avatar_url : asset('images/og-default.jpg'));
 
         // Determine if profile is publicly indexable
         // A profile is indexable if the viewer is a stranger and can still see fields
@@ -925,13 +928,14 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
                 ->name($this->name)
                 ->url(route('profile.public', $this));
 
-            if ($description) {
+            if ($description !== '') {
                 $person->description($description);
             }
 
             // Avatar image
-            $avatarUrl = $this->getFirstMediaUrl('avatar', 'thumb') ?: $this->avatar_url;
-            if ($avatarUrl) {
+            $avatarMediaUrl = $this->getFirstMediaUrl('avatar', 'thumb');
+            $avatarUrl = $avatarMediaUrl !== '' ? $avatarMediaUrl : $this->avatar_url;
+            if ($avatarUrl !== '') {
                 $person->image($avatarUrl);
             }
 
@@ -950,7 +954,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
                 'is_string'
             );
 
-            if (! empty($gameSystemNames)) {
+            if ($gameSystemNames !== []) {
                 $person->knowsAbout($gameSystemNames);
             }
 

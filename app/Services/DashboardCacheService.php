@@ -534,7 +534,7 @@ class DashboardCacheService
         // loadMissing: the game arrives from observers without eager loads.
         $game->loadMissing('linkedLocation');
         $location = $game->linkedLocation;
-        if ($location && $location->latitude && $location->longitude) {
+        if ($location !== null && $location->latitude !== null && $location->longitude !== null) {
             $geohash4 = Geohash::tilePrefix(
                 (float) $location->latitude,
                 (float) $location->longitude,
@@ -589,7 +589,7 @@ class DashboardCacheService
     {
         $game = Game::find($gameId);
 
-        if (! $game) {
+        if ($game === null) {
             return;
         }
 
@@ -846,7 +846,7 @@ class DashboardCacheService
         $lock = Cache::lock($lockKey, 10);
 
         try {
-            if ($lock->block(0.05)) {
+            if ($lock->block(0.05) === true) {
                 // Double-check: another request may have populated while we waited
                 $cached = $this->getArrayFromCache($cacheKey);
                 if ($cached !== null) {

@@ -23,7 +23,7 @@ class GameSystemFamily extends Model
     protected static function booted(): void
     {
         static::creating(function (self $family) {
-            if (empty($family->slug)) {
+            if (blank($family->slug)) {
                 $family->slug = Str::slug($family->name);
             }
         });

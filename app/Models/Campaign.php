@@ -170,7 +170,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
         // Write-side bridge: route any legacy game_system_id mass-assignment
         // to the gameSystems pivot after persist. See Game::booted for details.
         static::created(function (self $campaign) {
-            if (! empty($campaign->pendingGameSystemIds)) {
+            if ($campaign->pendingGameSystemIds !== []) {
                 $campaign->gameSystems()->sync($campaign->pendingGameSystemIds);
                 $campaign->load('gameSystems');
             }
@@ -431,7 +431,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
 
     public function getDynamicSEOData(): SEOData
     {
-        $description = $this->description
+        $description = $this->description !== ''
             ? Str::limit(strip_tags($this->description), 160)
             : null;
 
@@ -454,58 +454,58 @@ class Campaign extends Model implements HasMedia, TicketSubject
 
             $event = (new SchemaEvent)
                 ->name($this->name)
-                ->description(Str::limit(strip_tags((string) $this->description), 500) ?: '')
+                ->description(Str::limit(strip_tags((string) $this->description), 500))
                 ->eventStatus(EventStatusType::EventScheduled)
                 ->eventAttendanceMode('OfflineEventAttendanceMode');
 
             // Start date: first session date if available
             $firstSession = $this->sessions->sortBy('date_time')->first();
-            if ($firstSession && $firstSession->date_time) {
+            if ($firstSession !== null && $firstSession->date_time !== null) {
                 $event->startDate((string) $firstSession->date_time->toISOString());
-                if ($firstSession->expected_duration) {
+                if ($firstSession->expected_duration > 0) {
                     $event->endDate((string) $firstSession->date_time->copy()->addHours((float) $firstSession->expected_duration)->toISOString());
                 }
             }
 
             // Location from linked location
             $place = $this->buildEventPlace();
-            if ($place) {
+            if ($place !== null) {
                 $event->location($place);
             }
 
             // Organizer (owner as Person)
-            if ($this->owner) {
+            if ($this->owner !== null) {
                 $organizer = (new SchemaPerson)
                     ->name($this->owner->name);
                 // The public profile route binds by slug (User::getRouteKeyName()).
                 // This previously read ->username — a column that does not exist,
                 // so the organizer URL was silently never emitted; strict model
                 // mode surfaced the phantom attribute read.
-                if ($this->owner->slug) {
+                if ($this->owner->slug !== null && $this->owner->slug !== '') {
                     $organizer->url(route('profile.public', $this->owner));
                 }
                 $event->organizer($organizer);
             }
 
             // Maximum attendees
-            if ($this->max_players) {
+            if ($this->max_players > 0) {
                 $event->maximumAttendeeCapacity($this->max_players);
             }
 
             // Free/paid
-            $event->isAccessibleForFree(empty($this->price_per_session));
+            $event->isAccessibleForFree($this->price_per_session === null || $this->price_per_session === 0.0);
 
             // schema.org about: name EVERY offered system so the full
             // recurring offering is honest in structured data. Additive.
             $about = $this->gameSystems->map(function (GameSystem $sys) {
                 $thing = (new Thing)->name($sys->name);
-                if ($sys->slug) {
+                if ($sys->slug !== null && $sys->slug !== '') {
                     $thing->identifier($sys->slug);
                 }
 
                 return $thing;
             })->values()->all();
-            if (! empty($about)) {
+            if ($about !== []) {
                 $event->about($about);
             }
 
@@ -537,7 +537,7 @@ class Campaign extends Model implements HasMedia, TicketSubject
     private function buildEventPlace(): ?Place
     {
         // No normalized location → no Place (fail-closed).
-        if (! $this->linkedLocation) {
+        if ($this->linkedLocation === null) {
             return null;
         }
 
@@ -550,13 +550,13 @@ class Campaign extends Model implements HasMedia, TicketSubject
         }
 
         $address = (new PostalAddress);
-        if ($location->address) {
+        if ($location->address !== null && $location->address !== '') {
             $address->streetAddress($location->address);
         }
-        if ($location->city) {
+        if ($location->city !== null && $location->city !== '') {
             $address->addressLocality($location->city);
         }
-        if ($location->country) {
+        if ($location->country !== null && $location->country !== '') {
             $address->addressCountry($location->country);
         }
 

@@ -23,7 +23,7 @@ class GameSystemCategory extends Model
     protected static function booted(): void
     {
         static::creating(function (self $category) {
-            if (empty($category->slug)) {
+            if (blank($category->slug)) {
                 $category->slug = Str::slug($category->name);
             }
         });

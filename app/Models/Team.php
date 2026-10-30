@@ -70,7 +70,7 @@ class Team extends Model implements HasMedia
     protected static function booted(): void
     {
         static::creating(function (self $team) {
-            if (empty($team->slug)) {
+            if (blank($team->slug)) {
                 $team->slug = Str::slug($team->name).'-'.Str::random(6);
             }
         });
@@ -156,11 +156,12 @@ class Team extends Model implements HasMedia
 
     public function getDynamicSEOData(): SEOData
     {
-        $description = $this->description
+        $description = $this->description !== null && $this->description !== ''
             ? Str::limit(strip_tags($this->description), 160)
-            : trim("{$this->name}".($this->city ? " — {$this->city}" : '').($this->country ? ", {$this->country}" : ''));
+            : trim("{$this->name}".($this->city !== null && $this->city !== '' ? " — {$this->city}" : '').($this->country !== null && $this->country !== '' ? ", {$this->country}" : ''));
 
-        $image = $this->getFirstMediaUrl('logo', 'large') ?: asset('images/og-default.jpg');
+        $logoMediaUrl = $this->getFirstMediaUrl('logo', 'large');
+        $image = $logoMediaUrl !== '' ? $logoMediaUrl : asset('images/og-default.jpg');
 
         $robots = $this->is_active
             ? 'index, follow'
@@ -174,45 +175,45 @@ class Team extends Model implements HasMedia
 
             $org = (new SchemaOrganization)
                 ->name($this->name)
-                ->description(Str::limit(strip_tags((string) $this->description), 500) ?: '')
+                ->description(Str::limit(strip_tags((string) $this->description), 500))
                 ->url(route('teams.detail', $this->slug));
 
             // Logo
             $logoUrl = $this->getFirstMediaUrl('logo', 'large');
-            if ($logoUrl) {
+            if ($logoUrl !== '') {
                 $org->logo($logoUrl);
             }
 
             // Address
-            if ($this->city || $this->country) {
+            if (($this->city !== null && $this->city !== '') || ($this->country !== null && $this->country !== '')) {
                 $address = (new PostalAddress);
-                if ($this->city) {
+                if ($this->city !== null && $this->city !== '') {
                     $address->addressLocality($this->city);
                 }
-                if ($this->country) {
+                if ($this->country !== null && $this->country !== '') {
                     $address->addressCountry($this->country);
                 }
                 $org->address($address);
             }
 
             // Founding date
-            if ($this->founded_year) {
+            if ($this->founded_year !== null) {
                 $org->foundingDate((string) $this->founded_year);
             }
 
             // SameAs social links
             $sameAs = [];
-            if ($this->website) {
+            if ($this->website !== null && $this->website !== '') {
                 $sameAs[] = $this->website;
             }
-            if (! empty($this->social_links)) {
+            if ($this->social_links !== null && $this->social_links !== []) {
                 foreach ($this->social_links as $link) {
-                    if (is_string($link) && filter_var($link, FILTER_VALIDATE_URL)) {
+                    if (is_string($link) && filter_var($link, FILTER_VALIDATE_URL) !== false) {
                         $sameAs[] = $link;
                     }
                 }
             }
-            if (! empty($sameAs)) {
+            if ($sameAs !== []) {
                 $org->sameAs($sameAs);
             }
 
@@ -221,7 +222,7 @@ class Team extends Model implements HasMedia
 
         return new SEOData(
             title: $this->name,
-            description: $description ?: null,
+            description: $description !== '' ? $description : null,
             image: $image,
             robots: $robots,
             schema: $schema,

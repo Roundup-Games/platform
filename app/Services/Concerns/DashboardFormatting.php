@@ -51,7 +51,7 @@ trait DashboardFormatting
      */
     protected function bulkLoadGameSystemPreferences(array $userIds): array
     {
-        if (empty($userIds)) {
+        if ($userIds === []) {
             return [];
         }
 

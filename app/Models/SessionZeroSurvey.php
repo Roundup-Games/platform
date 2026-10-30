@@ -49,7 +49,7 @@ class SessionZeroSurvey extends Model
     protected static function booted(): void
     {
         static::creating(function (self $survey) {
-            if (empty($survey->uuid)) {
+            if (blank($survey->uuid)) {
                 $survey->uuid = (string) Str::uuid();
             }
         });

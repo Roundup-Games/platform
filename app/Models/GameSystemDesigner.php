@@ -23,7 +23,7 @@ class GameSystemDesigner extends Model
     protected static function booted(): void
     {
         static::creating(function (self $designer) {
-            if (empty($designer->slug)) {
+            if (blank($designer->slug)) {
                 $designer->slug = Str::slug($designer->name);
             }
         });

@@ -71,7 +71,7 @@ class SpClient
             }
         }
 
-        if (! $seoPagesKey) {
+        if ($seoPagesKey === null) {
             return [];
         }
         $seoEntry = is_array($rootQuery[$seoPagesKey] ?? null) ? $rootQuery[$seoPagesKey] : [];
@@ -88,14 +88,14 @@ class SpClient
             }
             $nodeRef = is_array($edge['node'] ?? null) && is_string($edge['node']['__ref'] ?? null)
                 ? $edge['node']['__ref'] : null;
-            if (! $nodeRef) {
+            if ($nodeRef === null || $nodeRef === '') {
                 continue;
             }
 
             $node = is_array($cache[$nodeRef] ?? null) ? $cache[$nodeRef] : [];
             $canonicalUrl = is_string($node['canonicalUrl'] ?? null) ? $node['canonicalUrl'] : null;
 
-            if ($canonicalUrl) {
+            if ($canonicalUrl !== null && $canonicalUrl !== '') {
                 $slugs[] = ltrim($canonicalUrl, '/');
             }
         }
@@ -178,11 +178,11 @@ class SpClient
     {
         // Extract __NEXT_DATA__ JSON from script tag
         if (
-            ! preg_match(
+            preg_match(
                 '/<script\s+id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s',
                 $html,
                 $matches
-            )
+            ) !== 1
         ) {
             Log::warning('SP client: no __NEXT_DATA__ found in response', [
                 'context' => $context,

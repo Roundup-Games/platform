@@ -130,7 +130,7 @@ class PaddleWebhookHandler
         $data = $this->extractData($payload);
 
         $customData = $data['custom_data'] ?? null;
-        if (! is_array($customData) || empty($customData['registration_id'])) {
+        if (! is_array($customData) || ($customData['registration_id'] ?? '') === '') {
             return;
         }
 
@@ -497,7 +497,7 @@ class PaddleWebhookHandler
         $data = $this->extractData($payload);
 
         $customData = $data['custom_data'] ?? null;
-        if (! is_array($customData) || empty($customData['registration_id'])) {
+        if (! is_array($customData) || ($customData['registration_id'] ?? '') === '') {
             return;
         }
 
@@ -586,19 +586,19 @@ class PaddleWebhookHandler
     {
         try {
             $paddleCustomerId = $data['customer_id'] ?? null;
-            if (! $paddleCustomerId) {
+            if (! is_string($paddleCustomerId) || $paddleCustomerId === '') {
                 return;
             }
 
             $user = User::where('paddle_id', $paddleCustomerId)->first();
-            if (! $user) {
+            if ($user === null) {
                 return;
             }
 
             $transactionId = $data['id'] ?? 'unknown';
 
             $department = Department::where('name', 'Billing')->first();
-            if (! $department) {
+            if ($department === null) {
                 Log::warning('Cannot create payment failure ticket: Billing department not found');
 
                 return;
@@ -634,7 +634,7 @@ class PaddleWebhookHandler
                     ->lockForUpdate()
                     ->first();
 
-                if ($existing) {
+                if ($existing !== null) {
                     return $existing;
                 }
 
@@ -709,12 +709,12 @@ class PaddleWebhookHandler
             }
 
             $paddleCustomerId = $this->extractData($payload)['customer_id'] ?? null;
-            if (! $paddleCustomerId) {
+            if (! is_string($paddleCustomerId) || $paddleCustomerId === '') {
                 return;
             }
 
             $user = User::where('paddle_id', $paddleCustomerId)->first();
-            if (! $user) {
+            if ($user === null) {
                 return;
             }
 
@@ -765,16 +765,16 @@ class PaddleWebhookHandler
     {
         try {
             $paddleCustomerId = $this->extractData($payload)['customer_id'] ?? null;
-            if (! $paddleCustomerId) {
+            if (! is_string($paddleCustomerId) || $paddleCustomerId === '') {
                 return;
             }
 
             $user = User::where('paddle_id', $paddleCustomerId)->first();
-            if (! $user) {
+            if ($user === null) {
                 return;
             }
 
-            if (! $user->gmProfile && ! $this->payloadBuysGmPlan($payload)) {
+            if ($user->gmProfile === null && ! $this->payloadBuysGmPlan($payload)) {
                 return;
             }
 
@@ -827,12 +827,12 @@ class PaddleWebhookHandler
     {
         try {
             $paddleCustomerId = $this->extractData($payload)['customer_id'] ?? null;
-            if (! $paddleCustomerId) {
+            if (! is_string($paddleCustomerId) || $paddleCustomerId === '') {
                 return;
             }
 
             $user = User::where('paddle_id', $paddleCustomerId)->first();
-            if (! $user) {
+            if ($user === null) {
                 return;
             }
 

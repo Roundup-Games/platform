@@ -126,7 +126,7 @@ class PostHogAnalytics
                     'location_type' => $locationType,
                     'is_online' => $locationType === 'online',
                     // Negative = resolved after the session; positive = resolved before (host late-cancel).
-                    'hours_to_session' => $scheduledAt ? (int) round(now()->diffInHours($scheduledAt, false)) : null,
+                    'hours_to_session' => $scheduledAt !== null ? (int) round(now()->diffInHours($scheduledAt, false)) : null,
                     'participant_role' => $participant->role?->value,
                 ],
             ]);

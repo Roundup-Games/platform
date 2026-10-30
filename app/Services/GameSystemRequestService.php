@@ -65,7 +65,7 @@ class GameSystemRequestService
         ]);
 
         // Apply bgg-sync tag if bgg_url is provided
-        if (! empty($data['bgg_url'])) {
+        if (is_string($data['bgg_url'] ?? null) && $data['bgg_url'] !== '') {
             $this->applyBggSyncTag($ticket);
         }
 
@@ -117,13 +117,13 @@ class GameSystemRequestService
         $metadata = is_array($ticket->metadata) ? $ticket->metadata : [];
         $bggUrl = is_string($metadata['bgg_url'] ?? null) ? $metadata['bgg_url'] : null;
 
-        if (! $bggUrl) {
+        if ($bggUrl === null || $bggUrl === '') {
             throw new \InvalidArgumentException('Ticket has no BGG URL in metadata.');
         }
 
         $bggId = $this->extractBggId($bggUrl);
 
-        if (! $bggId) {
+        if ($bggId === null) {
             throw new \InvalidArgumentException("Cannot extract BGG ID from URL: {$bggUrl}");
         }
 
@@ -144,7 +144,7 @@ class GameSystemRequestService
 
         $gameSystem = GameSystem::where('bgg_id', $bggId)->first();
 
-        if (! $gameSystem) {
+        if ($gameSystem === null) {
             throw new \RuntimeException("BGG sync completed but GameSystem not found for bgg_id={$bggId}.");
         }
 
@@ -222,7 +222,7 @@ class GameSystemRequestService
 
         $department = $ticket->department;
 
-        return $department && $department->name === 'Game Systems';
+        return $department !== null && $department->name === 'Game Systems';
     }
 
     /**
@@ -234,7 +234,7 @@ class GameSystemRequestService
      */
     public function extractBggId(string $url): ?int
     {
-        if (preg_match('#boardgamegeek\.com/(?:boardgame(?:expansion|accessory)?)/(\d+)#i', $url, $matches)) {
+        if (preg_match('#boardgamegeek\.com/(?:boardgame(?:expansion|accessory)?)/(\d+)#i', $url, $matches) === 1) {
             return (int) $matches[1];
         }
 
@@ -263,7 +263,7 @@ class GameSystemRequestService
     {
         $tag = Tag::where('name', 'bgg-sync')->first();
 
-        if ($tag) {
+        if ($tag !== null) {
             $ticket->tags()->syncWithoutDetaching($tag);
         }
     }

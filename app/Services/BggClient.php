@@ -106,7 +106,7 @@ class BggClient
                 // to 5s instead of burning the full 30s budget per attempt.
                 $httpRequest = Http::timeout(30)->connectTimeout(5);
 
-                if ($this->token) {
+                if ($this->token !== null) {
                     $httpRequest = $httpRequest->withToken($this->token);
                 }
 

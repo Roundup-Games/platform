@@ -68,7 +68,7 @@ class DebriefingService
             }
         }
 
-        if (empty($filteredResponses)) {
+        if ($filteredResponses === []) {
             throw new \LogicException(__('games.error_debriefing_empty_responses'));
         }
 

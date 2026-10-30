@@ -48,7 +48,7 @@ class MissingTranslationCollector
      */
     public function persist(): void
     {
-        if (empty($this->entries)) {
+        if ($this->entries === []) {
             return;
         }
 

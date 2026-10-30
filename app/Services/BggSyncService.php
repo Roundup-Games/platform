@@ -194,7 +194,7 @@ class BggSyncService
                         }
 
                         // Collect discovered expansion IDs
-                        if (! empty($parsed['expansion_ids']) && is_array($parsed['expansion_ids'])) {
+                        if (($parsed['expansion_ids'] ?? null) !== null && $parsed['expansion_ids'] !== [] && is_array($parsed['expansion_ids'])) {
                             $discoveredExpansionIds = array_merge($discoveredExpansionIds, $parsed['expansion_ids']);
                         }
                     } catch (BggSyncSliceDeadlineReached) {
@@ -335,7 +335,7 @@ class BggSyncService
         // Resolve base game for expansions
         if ($data['base_game_bgg_id'] !== null) {
             $baseGame = GameSystem::where('bgg_id', $data['base_game_bgg_id'])->first();
-            if ($baseGame) {
+            if ($baseGame !== null) {
                 $gameSystem->baseGame()->associate($baseGame)->save();
             } else {
                 Log::info('BGG sync: base game not in catalog, auto-fetching', [
@@ -348,7 +348,7 @@ class BggSyncService
                     $guard();
                 }
                 $baseGame = $this->fetchAndUpsertBaseGame(is_int($data['base_game_bgg_id']) ? $data['base_game_bgg_id'] : 0, $guard);
-                if ($baseGame) {
+                if ($baseGame !== null) {
                     $gameSystem->baseGame()->associate($baseGame)->save();
                     Log::info('BGG sync: auto-fetched missing base game for expansion', [
                         'base_game_bgg_id' => $data['base_game_bgg_id'],
@@ -360,7 +360,7 @@ class BggSyncService
         }
 
         // Download cover image via MediaLibrary
-        if (! empty($data['image_url'])) {
+        if (($data['image_url'] ?? null) !== null && $data['image_url'] !== '') {
             // Remote op: the image download must not start past the hold
             // deadline. Guard BEFORE clearing the collection so a deferred
             // retry keeps the previous cover instead of leaving it empty.
@@ -454,7 +454,7 @@ class BggSyncService
         $existing = GameSystem::where('slug', $baseSlug)->first();
 
         // No conflict, or already ours from a previous sync
-        if (! $existing || $existing->bgg_id === $bggId) {
+        if ($existing === null || $existing->bgg_id === $bggId) {
             return $baseSlug;
         }
 
@@ -478,7 +478,7 @@ class BggSyncService
             $xmlString = $this->client->fetchThing([$bggId]);
             $items = $this->parser->parseItems($xmlString);
 
-            if (empty($items)) {
+            if ($items === []) {
                 Log::warning('BGG sync: base game not found on BGG', [
                     'base_game_bgg_id' => $bggId,
                 ]);

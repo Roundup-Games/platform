@@ -124,7 +124,7 @@ class ReliabilityScoreService
     {
         $user = $participant->user;
 
-        if (! $user) {
+        if ($user === null) {
             return;
         }
 
@@ -167,7 +167,7 @@ class ReliabilityScoreService
         $baseWeight = self::WEIGHTS[$key];
 
         // Host-specific penalty weights — use the raw constant, not grief multiplier
-        if ($participant->game && (string) $participant->game->owner_id === (string) $participant->user_id) {
+        if ($participant->game !== null && (string) $participant->game->owner_id === (string) $participant->user_id) {
             if ($status === AttendanceStatus::NoShow) {
                 return self::HOST_WEIGHTS['host_no_show'];
             }

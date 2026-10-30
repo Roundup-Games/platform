@@ -98,7 +98,7 @@ class DashboardDiscoveryService
 
         $feedData = app(DashboardCacheService::class)->getFeedData($user);
 
-        return ! empty($feedData['items']);
+        return $feedData['items'] !== [];
     }
 
     // ── Nearby Noteworthy computation ──────────────────
@@ -144,15 +144,15 @@ class DashboardDiscoveryService
 
         // Compute user location for distance
         $userLocation = $user->linkedLocation;
-        $userLat = $userLocation?->latitude ? (float) $userLocation->latitude : null;
-        $userLng = $userLocation?->longitude ? (float) $userLocation->longitude : null;
+        $userLat = $userLocation?->latitude !== null ? (float) $userLocation->latitude : null;
+        $userLng = $userLocation?->longitude !== null ? (float) $userLocation->longitude : null;
 
         // Pre-fetch friend participant game IDs to avoid N+1 inside the loop.
         // Stored as a hash set — in_array(..., false) forced a loose linear
         // scan per scored game (O(games × friendGames)).
         $friendGameIds = [];
         $friendGameIdSet = [];
-        if (! empty($socialCircleIds)) {
+        if ($socialCircleIds !== []) {
             $friendGameIds = GameParticipant::whereIn('game_id', $games->pluck('id'))
                 ->where('status', ParticipantStatus::Approved->value)
                 ->whereIn('user_id', $socialCircleIds)
@@ -190,7 +190,7 @@ class DashboardDiscoveryService
             }
 
             // matches_your_language
-            if ($userLanguage && $game->language === $userLanguage) {
+            if ($userLanguage !== null && $game->language === $userLanguage) {
                 $tags[] = 'matches_your_language';
             }
 
@@ -200,12 +200,12 @@ class DashboardDiscoveryService
             }
 
             // filling_fast
-            if ($game->max_players && $participantCount >= ($game->max_players * 0.7)) {
+            if ($game->max_players > 0 && $participantCount >= ($game->max_players * 0.7)) {
                 $tags[] = 'filling_fast';
             }
 
             // starting_soon
-            if ($game->date_time && $game->date_time->isFuture() && $now->diffInHours($game->date_time) <= 48) {
+            if ($game->date_time !== null && $game->date_time->isFuture() && $now->diffInHours($game->date_time) <= 48) {
                 $tags[] = 'starting_soon';
             }
 
@@ -216,7 +216,7 @@ class DashboardDiscoveryService
 
             // Distance
             $distanceKm = null;
-            if ($userLat !== null && $userLng !== null && $game->linkedLocation) {
+            if ($userLat !== null && $userLng !== null && $game->linkedLocation !== null) {
                 $distanceKm = ProximityQuery::haversineDistance(
                     $userLat,
                     $userLng,
@@ -235,7 +235,7 @@ class DashboardDiscoveryService
                 ],
                 'date_time' => $game->date_time?->toIso8601String(),
                 'relative_time' => $this->formatRelativeTime($game->date_time),
-                'spots_available' => $game->max_players
+                'spots_available' => $game->max_players !== null
                     ? max(0, $game->max_players - $participantCount)
                     : null,
                 'distance_km' => $distanceKm !== null ? round($distanceKm, 1) : null,

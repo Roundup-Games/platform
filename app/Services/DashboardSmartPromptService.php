@@ -75,7 +75,7 @@ class DashboardSmartPromptService
         $first = $pendingGames->first();
         $game = $first?->game;
 
-        $message = $total === 1 && $game
+        $message = $total === 1 && $game !== null
             ? __('profile.dashboard_prompt_msg_invited_single', [
                 'name' => $game->owner->name ?? __('Someone'),
                 'game' => $game->name,
@@ -106,7 +106,7 @@ class DashboardSmartPromptService
     {
         $game = $this->nextUpcomingGame($user);
 
-        if (! $game || $game->date_time === null || $game->date_time->diffInHours(now(), absolute: false) < -24) {
+        if ($game === null || $game->date_time === null || $game->date_time->diffInHours(now(), absolute: false) < -24) {
             return null;
         }
 
@@ -152,7 +152,7 @@ class DashboardSmartPromptService
             ->orderByDesc('updated_at')
             ->first();
 
-        if (! $game) {
+        if ($game === null) {
             return null;
         }
 
@@ -225,7 +225,7 @@ class DashboardSmartPromptService
             ->orderByDesc('created_at')
             ->first();
 
-        if (! $follower) {
+        if ($follower === null) {
             return null;
         }
 
@@ -235,7 +235,7 @@ class DashboardSmartPromptService
         $userSystemIds = $user->gameSystemPreferences()->pluck('game_system_id')
             ->map(fn (mixed $id) => is_numeric($id) ? (string) $id : '')->values()->toArray();
         $followerSystemIds = [];
-        if ($followerUser) {
+        if ($followerUser !== null) {
             $followerSystemIds = $followerUser->gameSystemPreferences()->pluck('game_system_id')
                 ->map(fn (mixed $id) => is_numeric($id) ? (string) $id : '')->values()->toArray();
         }
@@ -244,7 +244,7 @@ class DashboardSmartPromptService
             array_map(fn (mixed $v) => is_numeric($v) ? (string) $v : '', $followerSystemIds)
         );
 
-        $message = $sharedSystems
+        $message = $sharedSystems !== []
             ? trans_choice('profile.dashboard_prompt_msg_new_follower_shared', count($sharedSystems), [
                 'name' => $followerUser?->name,
                 'count' => count($sharedSystems),

@@ -154,7 +154,7 @@ class ICalFeedRenderer
         ], fn (?string $part): bool => $part !== null && $part !== '');
         $addressString = implode(', ', $addressParts);
 
-        $icalLocation = new Location($addressString ?: '', (string) ($location->name ?? ''));
+        $icalLocation = new Location($addressString, (string) ($location->name ?? ''));
 
         if ($location->latitude !== null && $location->longitude !== null) {
             $icalLocation = $icalLocation->withGeographicPosition(

@@ -39,7 +39,8 @@ class DashboardNewcomerService
      */
     public function computeWelcomeData(User $user): array
     {
-        $firstName = explode(' ', $user->name ?? '')[0] ?: 'Adventurer';
+        $firstName = explode(' ', $user->name ?? '')[0];
+        $firstName = $firstName !== '' ? $firstName : 'Adventurer';
         $location = $user->linkedLocation;
         $city = $location?->city;
         $hasLocation = $location !== null && $location->latitude !== null && $location->longitude !== null;
@@ -116,8 +117,8 @@ class DashboardNewcomerService
 
         // Score each game
         $userLocation = $user->linkedLocation;
-        $userLat = $userLocation?->latitude ? (float) $userLocation->latitude : null;
-        $userLng = $userLocation?->longitude ? (float) $userLocation->longitude : null;
+        $userLat = $userLocation?->latitude !== null ? (float) $userLocation->latitude : null;
+        $userLng = $userLocation?->longitude !== null ? (float) $userLocation->longitude : null;
 
         $scoredGames = $games->map(function ($game) use ($preferredSystemSet, $userLat, $userLng) {
             $spotsAvailable = (int) ($game->max_players ?? 0) - (int) ($game->participant_count ?? 0);
@@ -142,7 +143,7 @@ class DashboardNewcomerService
             // Proximity score (0-30)
             $proximityScore = 0;
             $distance = null;
-            if ($userLat !== null && $userLng !== null && $game->linkedLocation) {
+            if ($userLat !== null && $userLng !== null && $game->linkedLocation !== null) {
                 $distance = ProximityQuery::haversineDistance(
                     $userLat,
                     $userLng,
@@ -165,7 +166,7 @@ class DashboardNewcomerService
                 'popular_nearby' => $participantCount >= 3,
                 // Truthy guard matches the HasCapacity convention (null OR 0 = unlimited)
                 // and the sibling DashboardDiscoveryService — an unlimited game can't fill.
-                'filling_fast' => $game->max_players && $participantCount >= ($game->max_players * 0.7),
+                'filling_fast' => $game->max_players > 0 && $participantCount >= ($game->max_players * 0.7),
                 'starting_soon' => $game->date_time !== null && now()->diffInDays($game->date_time, false) <= 3,
             ];
 
@@ -363,7 +364,7 @@ class DashboardNewcomerService
 
         // Bulk-load all unique game system names to avoid per-candidate queries
         $allSystemIds = collect($candidateSystemPrefs)->flatten()->unique()->filter()->values()->toArray();
-        $systemNames = ! empty($allSystemIds)
+        $systemNames = $allSystemIds !== []
             ? GameSystem::whereIn('id', $allSystemIds)->pluck('name', 'id')->toArray()
             : [];
 
@@ -376,7 +377,7 @@ class DashboardNewcomerService
 
             // Resolve the candidate's top system name from the bulk-loaded map
             $topSystemName = null;
-            if (! empty($candidateSystemIds)) {
+            if ($candidateSystemIds !== []) {
                 $firstId = $candidateSystemIds[0];
                 $topSystemName = $systemNames[$firstId] ?? null;
             }
@@ -431,7 +432,7 @@ class DashboardNewcomerService
      */
     private function countMatchingNearbyGames(User $user, array $preferredSystemIds, ?Location $location): int
     {
-        if (empty($preferredSystemIds) || $location === null || ! $location->latitude || ! $location->longitude) {
+        if ($preferredSystemIds === [] || $location === null || $location->latitude === null || $location->longitude === null) {
             return 0;
         }
 
@@ -485,11 +486,11 @@ class DashboardNewcomerService
      */
     private function resolveWelcomeMessageKey(bool $hasLocation, array $preferredSystems, int $matchingGamesCount): string
     {
-        if ($hasLocation && ! empty($preferredSystems) && $matchingGamesCount > 0) {
+        if ($hasLocation && $preferredSystems !== [] && $matchingGamesCount > 0) {
             return 'welcome_with_matches';
         }
 
-        if ($hasLocation && ! empty($preferredSystems)) {
+        if ($hasLocation && $preferredSystems !== []) {
             return 'welcome_no_matches';
         }
 
@@ -497,7 +498,7 @@ class DashboardNewcomerService
             return 'welcome_with_location';
         }
 
-        if (! empty($preferredSystems)) {
+        if ($preferredSystems !== []) {
             return 'welcome_with_preferences';
         }
 

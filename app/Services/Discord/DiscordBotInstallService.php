@@ -490,7 +490,7 @@ class DiscordBotInstallService
             ? $guildDetail['system_channel_id']
             : null;
 
-        if (! $systemChannel) {
+        if ($systemChannel === null) {
             Log::info('discord_bot_install.no_system_channel', [
                 'guild_id' => $guild->guild_id,
                 'status' => 'onboarding_skipped',

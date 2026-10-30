@@ -43,6 +43,20 @@ class SpParser
     }
 
     /**
+     * First non-empty string among the candidates, or '' when all are empty.
+     */
+    private function firstNonEmptyString(?string ...$candidates): string
+    {
+        foreach ($candidates as $candidate) {
+            if ($candidate !== null && $candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * Parse a game system detail page from the Apollo cache.
      *
      * @param  array<string, mixed>  $cache
@@ -51,7 +65,7 @@ class SpParser
     public function parseSystem(array $cache, string $slug): ?array
     {
         $seoPage = $this->findSeoPage($cache, $slug);
-        if (! $seoPage) {
+        if ($seoPage === null) {
             return null;
         }
 
@@ -63,7 +77,7 @@ class SpParser
         $publisher = null;
         $publisherUrl = null;
         $publisherItems = $this->items($metadata['Publisher'] ?? null);
-        if (! empty($publisherItems)) {
+        if ($publisherItems !== []) {
             $first = is_array($publisherItems[0] ?? null) ? $publisherItems[0] : [];
             $publisher = $this->str($first['text'] ?? null);
             $publisherUrl = is_string($first['url'] ?? null) ? $first['url'] : null;
@@ -72,7 +86,7 @@ class SpParser
         // Resolve release date
         $releaseDate = null;
         $releaseDateItems = $this->items($metadata['Release Date'] ?? null);
-        if (! empty($releaseDateItems)) {
+        if ($releaseDateItems !== []) {
             $first = is_array($releaseDateItems[0] ?? null) ? $releaseDateItems[0] : [];
             $releaseDate = $this->str($first['text'] ?? null);
         }
@@ -86,10 +100,10 @@ class SpParser
                 continue;
             }
             $text = is_string($item['text'] ?? null) ? $item['text'] : '';
-            if (preg_match('/\d+.*(?:Player|player)/i', $text)) {
+            if (preg_match('/\d+.*(?:Player|player)/i', $text) === 1) {
                 $playerRange = $text;
             }
-            if (! preg_match('/Player/i', $text)) {
+            if (preg_match('/Player/i', $text) === 0) {
                 $mechanic = $text;
             }
         }
@@ -108,7 +122,7 @@ class SpParser
         foreach ($this->arr($seoPage, 'faqs') as $faqRef) {
             $ref = is_array($faqRef) ? $this->str($faqRef['__ref'] ?? null) : '';
             $faq = $this->resolveRef($cache, $ref);
-            if ($faq) {
+            if ($faq !== null) {
                 $faqs[] = [
                     'questionText' => $this->str($faq['questionText'] ?? null),
                     'answerText' => $this->str($faq['answerText'] ?? null),
@@ -121,7 +135,7 @@ class SpParser
         foreach ($this->arr($seoPage, 'externalLinks') as $linkRef) {
             $ref = is_array($linkRef) ? $this->str($linkRef['__ref'] ?? null) : '';
             $link = $this->resolveRef($cache, $ref);
-            if ($link) {
+            if ($link !== null) {
                 $externalLinks[] = [
                     'title' => $this->str($link['title'] ?? null),
                     'url' => $this->str($link['url'] ?? null),
@@ -137,12 +151,12 @@ class SpParser
         foreach ($this->arr($seoPage, 'showcases') as $showcaseRef) {
             $ref = is_array($showcaseRef) ? $this->str($showcaseRef['__ref'] ?? null) : '';
             $showcase = $this->resolveRef($cache, $ref);
-            if ($showcase) {
+            if ($showcase !== null) {
                 $items = [];
                 foreach ($this->arr($showcase, 'items') as $itemRef) {
                     $itemRefStr = is_array($itemRef) ? $this->str($itemRef['__ref'] ?? null) : '';
                     $item = $this->resolveRef($cache, $itemRefStr);
-                    if ($item) {
+                    if ($item !== null) {
                         $items[] = [
                             'title' => $this->str($item['title'] ?? null),
                             'description' => $this->str($item['description'] ?? null),
@@ -160,11 +174,11 @@ class SpParser
         // Resolve instructions
         $instructions = null;
         $instructionRefs = $this->arr($seoPage, 'instructions');
-        if (! empty($instructionRefs)) {
+        if ($instructionRefs !== []) {
             $firstRef = is_array($instructionRefs[0] ?? null) ? $instructionRefs[0] : [];
             $ref = $this->str($firstRef['__ref'] ?? null);
             $instr = $this->resolveRef($cache, $ref);
-            if ($instr) {
+            if ($instr !== null) {
                 $instructions = [
                     'title' => $this->str($instr['title'] ?? null),
                     'description' => $this->str($instr['description'] ?? null),
@@ -179,7 +193,7 @@ class SpParser
 
         // Compute average rating from star distribution
         $spRating = null;
-        if ($totalReviewCount > 0 && ! empty($starRatingStats)) {
+        if ($totalReviewCount > 0 && $starRatingStats !== []) {
             $weightedSum = 0;
             $totalCount = 0;
             foreach ($starRatingStats as $stat) {
@@ -199,14 +213,14 @@ class SpParser
         $primaryRef = $seoPage['seoEntityPrimary'] ?? null;
         if (is_array($primaryRef) && isset($primaryRef['__ref'])) {
             $entity = $this->resolveRef($cache, $this->str($primaryRef['__ref']));
-            if ($entity && isset($entity['slug'])) {
+            if ($entity !== null && isset($entity['slug'])) {
                 $entitySlug = $this->str($entity['slug']);
             }
         }
 
         return [
             'slug' => $entitySlug,
-            'name' => $this->str($heroSection['title'] ?? null) ?: $this->str($seoPage['title'] ?? null) ?: $slug,
+            'name' => $this->firstNonEmptyString($this->str($heroSection['title'] ?? null), $this->str($seoPage['title'] ?? null), $slug),
             'description' => $heroSection['descriptionPrimary'] ?? null,
             'creator' => $heroSection['descriptionSecondary'] ?? null,
             'hero_image' => $heroSection['image'] ?? null,
@@ -235,7 +249,7 @@ class SpParser
     public function parseGenre(array $cache, string $slug): ?array
     {
         $seoPage = $this->findSeoPage($cache, $slug);
-        if (! $seoPage) {
+        if ($seoPage === null) {
             return null;
         }
 
@@ -246,7 +260,7 @@ class SpParser
 
         // Extract popular RPGs from relatedSeoEntities
         $popularRpgs = [];
-        if ($entity) {
+        if ($entity !== null) {
             $relatedKey = 'relatedSeoEntities({"filter":{"type":{"eq":"GAME_SYSTEM"}}})';
             foreach ($this->arr($entity, $relatedKey) as $related) {
                 if (! is_array($related)) {
@@ -263,13 +277,13 @@ class SpParser
 
         // Extract similar genres from similarSeoEntities
         $similarGenres = [];
-        if ($entity) {
+        if ($entity !== null) {
             foreach ($this->arr($entity, 'similarSeoEntities({})') as $similar) {
                 if (! is_array($similar)) {
                     continue;
                 }
                 $pages = $this->items($similar['seoPages'] ?? null);
-                if (! empty($pages)) {
+                if ($pages !== []) {
                     $page = is_array($pages[0]) ? $pages[0] : [];
                     $canonicalUrl = $this->str($page['canonicalUrl'] ?? null);
                     $similarGenres[] = ltrim($canonicalUrl, '/');
@@ -282,7 +296,7 @@ class SpParser
         foreach ($this->arr($seoPage, 'faqs') as $faqRef) {
             $ref = is_array($faqRef) ? $this->str($faqRef['__ref'] ?? null) : '';
             $faq = $this->resolveRef($cache, $ref);
-            if ($faq) {
+            if ($faq !== null) {
                 $faqs[] = [
                     'questionText' => $this->str($faq['questionText'] ?? null),
                     'answerText' => $this->str($faq['answerText'] ?? null),
@@ -292,7 +306,7 @@ class SpParser
 
         return [
             'slug' => $slug,
-            'name' => $this->str($heroSection['title'] ?? null) ?: $this->str($seoPage['title'] ?? null) ?: $slug,
+            'name' => $this->firstNonEmptyString($this->str($heroSection['title'] ?? null), $this->str($seoPage['title'] ?? null), $slug),
             'description' => $heroSection['descriptionPrimary'] ?? null,
             'popular_rpgs' => $popularRpgs,
             'similar_genres' => $similarGenres,
@@ -309,7 +323,7 @@ class SpParser
     public function parseMechanic(array $cache, string $slug): ?array
     {
         $seoPage = $this->findSeoPage($cache, $slug);
-        if (! $seoPage) {
+        if ($seoPage === null) {
             return null;
         }
 
@@ -320,7 +334,7 @@ class SpParser
 
         // Extract popular RPGs from relatedSeoEntities
         $popularRpgs = [];
-        if ($entity) {
+        if ($entity !== null) {
             $relatedKey = 'relatedSeoEntities({"filter":{"type":{"eq":"GAME_SYSTEM"}}})';
             foreach ($this->arr($entity, $relatedKey) as $related) {
                 if (! is_array($related)) {
@@ -337,13 +351,13 @@ class SpParser
 
         // Extract similar mechanics from similarSeoEntities
         $similarMechanics = [];
-        if ($entity) {
+        if ($entity !== null) {
             foreach ($this->arr($entity, 'similarSeoEntities({})') as $similar) {
                 if (! is_array($similar)) {
                     continue;
                 }
                 $pages = $this->items($similar['seoPages'] ?? null);
-                if (! empty($pages)) {
+                if ($pages !== []) {
                     $page = is_array($pages[0]) ? $pages[0] : [];
                     $canonicalUrl = $this->str($page['canonicalUrl'] ?? null);
                     $similarMechanics[] = ltrim($canonicalUrl, '/');
@@ -353,7 +367,7 @@ class SpParser
 
         return [
             'slug' => $slug,
-            'name' => $this->str($heroSection['title'] ?? null) ?: $this->str($seoPage['title'] ?? null) ?: $slug,
+            'name' => $this->firstNonEmptyString($this->str($heroSection['title'] ?? null), $this->str($seoPage['title'] ?? null), $slug),
             'description' => $heroSection['descriptionPrimary'] ?? null,
             'popular_rpgs' => $popularRpgs,
             'similar_mechanics' => $similarMechanics,
@@ -369,7 +383,7 @@ class SpParser
     public function parseStyle(array $cache, string $slug): ?array
     {
         $seoPage = $this->findSeoPage($cache, $slug);
-        if (! $seoPage) {
+        if ($seoPage === null) {
             return null;
         }
 
@@ -380,7 +394,7 @@ class SpParser
 
         // Extract popular RPGs from relatedSeoEntities
         $popularRpgs = [];
-        if ($entity) {
+        if ($entity !== null) {
             $relatedKey = 'relatedSeoEntities({"filter":{"type":{"eq":"GAME_SYSTEM"}}})';
             foreach ($this->arr($entity, $relatedKey) as $related) {
                 if (! is_array($related)) {
@@ -397,13 +411,13 @@ class SpParser
 
         // Extract similar styles from similarSeoEntities
         $similarStyles = [];
-        if ($entity) {
+        if ($entity !== null) {
             foreach ($this->arr($entity, 'similarSeoEntities({})') as $similar) {
                 if (! is_array($similar)) {
                     continue;
                 }
                 $pages = $this->items($similar['seoPages'] ?? null);
-                if (! empty($pages)) {
+                if ($pages !== []) {
                     $page = is_array($pages[0]) ? $pages[0] : [];
                     $canonicalUrl = $this->str($page['canonicalUrl'] ?? null);
                     $similarStyles[] = ltrim($canonicalUrl, '/');
@@ -413,7 +427,7 @@ class SpParser
 
         return [
             'slug' => $slug,
-            'name' => $this->str($heroSection['title'] ?? null) ?: $this->str($seoPage['title'] ?? null) ?: $slug,
+            'name' => $this->firstNonEmptyString($this->str($heroSection['title'] ?? null), $this->str($seoPage['title'] ?? null), $slug),
             'description' => $heroSection['descriptionPrimary'] ?? null,
             'popular_rpgs' => $popularRpgs,
             'similar_styles' => $similarStyles,
@@ -428,7 +442,7 @@ class SpParser
      */
     public function resolveRef(array $cache, string $ref): ?array
     {
-        if (empty($ref)) {
+        if ($ref === '') {
             return null;
         }
 

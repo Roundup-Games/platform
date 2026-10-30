@@ -111,7 +111,7 @@ class ProximityQuery
 
         /** @var array{model: class-string<Model>, relationship: string, status_scope?: string}|null $config */
         $config = self::ENTITY_MAP[$entityType] ?? null;
-        if (! $config) {
+        if ($config === null) {
             return collect();
         }
 
@@ -137,7 +137,7 @@ class ProximityQuery
             ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng]);
 
         // Apply status scope if defined for this entity type
-        if (isset($config['status_scope']) && ($options['status_filter'] ?? true)) {
+        if (isset($config['status_scope']) && ($options['status_filter'] ?? true) === true) {
             $innerQuery->where("{$table}.status", $config['status_scope']);
         }
 

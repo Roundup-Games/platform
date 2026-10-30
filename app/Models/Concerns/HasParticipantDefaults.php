@@ -40,9 +40,9 @@ trait HasParticipantDefaults
      */
     public function getSourceLabelAttribute(): ?string
     {
-        if ($this->short_link_id) {
+        if ($this->short_link_id !== null) {
             $shortLink = $this->shortLink;
-            if ($shortLink) {
+            if ($shortLink !== null) {
                 return $shortLink->label ?? $shortLink->code;
             }
         }

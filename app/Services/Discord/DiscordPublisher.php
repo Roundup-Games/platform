@@ -249,7 +249,7 @@ class DiscordPublisher
         }
 
         try {
-            if ($existing && $existing->channel_id === $channelId) {
+            if ($existing !== null && $existing->channel_id === $channelId) {
                 // Same channel → PATCH the existing card in place (roster /
                 // venue / status refresh). No duplicate. A 404 (the message was
                 // deleted out-of-band by a moderator) self-heals into a re-POST
@@ -272,7 +272,7 @@ class DiscordPublisher
                     ? ['message_id' => $messageId, 'thread_id' => null]
                     : ['message_id' => $messageId]);
                 $cardRow = $existing;
-            } elseif ($existing) {
+            } elseif ($existing !== null) {
                 // Guild reconfigured its games channel after the card was
                 // posted. Delete the stale message (best-effort — a 404 is
                 // expected if it is already gone), then post to the new one.
@@ -369,7 +369,7 @@ class DiscordPublisher
     private function targetGuilds(Game $game): array
     {
         $owner = $game->owner;
-        if (! $owner) {
+        if ($owner === null) {
             return [];
         }
 
@@ -488,13 +488,13 @@ class DiscordPublisher
             };
 
             $user = $participant->user;
-            if (! $user) {
+            if ($user === null) {
                 continue;
             }
 
             $linked = $user->linkedAccounts
                 ->first(fn (LinkedAccount $account) => $account->provider === OAuthProvider::Discord);
-            if (! $linked) {
+            if ($linked === null) {
                 continue;
             }
 
@@ -609,7 +609,7 @@ class DiscordPublisher
     {
         $name = trim((string) $game->name);
 
-        if ($game->date_time) {
+        if ($game->date_time !== null) {
             $name .= ' · '.$game->date_time->format('j M Y');
         }
 

@@ -44,7 +44,7 @@ trait HasCapacity
      */
     public function isAtCapacity(): bool
     {
-        if (! $this->max_players) {
+        if ($this->max_players === null || $this->max_players === 0) {
             return false;
         }
 

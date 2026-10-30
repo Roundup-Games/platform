@@ -33,7 +33,7 @@ class GameActivityFeedService
     {
         $socialCircleIds = $this->getSocialCircleUserIds($viewer);
 
-        if (empty($socialCircleIds)) {
+        if ($socialCircleIds === []) {
             return new \Illuminate\Pagination\LengthAwarePaginator(
                 [], 0, $perPage, 1
             );
@@ -74,7 +74,7 @@ class GameActivityFeedService
     {
         $socialCircleIds = $this->getSocialCircleUserIds($viewer);
 
-        if (empty($socialCircleIds)) {
+        if ($socialCircleIds === []) {
             return new \Illuminate\Pagination\LengthAwarePaginator(
                 [], 0, $perPage, 1
             );

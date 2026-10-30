@@ -83,12 +83,12 @@ class NotificationService
                 // read by Laravel's queued dispatcher at enqueue time — returns
                 // only these channels. This is what makes "mail: false" actually
                 // suppress mail across the queue boundary.
-                if (! empty($dispatchChannels)) {
+                if ($dispatchChannels !== []) {
                     $notification->setResolvedChannels(array_values($dispatchChannels));
                 }
             }
 
-            if (empty($dispatchChannels)) {
+            if ($dispatchChannels === []) {
                 Log::info('notification.dispatch_skipped', [
                     'reason' => 'all_channels_disabled',
                     'notifiable_id' => $notifiable->id,

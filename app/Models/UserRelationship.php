@@ -137,7 +137,7 @@ class UserRelationship extends Model
             ->where('type', RelationshipType::Follow)
             ->first();
 
-        if (! $rel) {
+        if ($rel === null) {
             return false;
         }
 

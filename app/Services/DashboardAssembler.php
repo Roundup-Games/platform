@@ -96,11 +96,11 @@ class DashboardAssembler
 
         $geohash4 = $user->geohash4();
 
-        $preferenceMatches = $geohash4
+        $preferenceMatches = $geohash4 !== null
             ? $cacheService->getNewcomerMatches($user, $geohash4)
             : ['games' => [], 'total_nearby' => 0, 'preference_match_rate' => 0.0];
 
-        $nearbyPeople = $geohash4
+        $nearbyPeople = $geohash4 !== null
             ? $cacheService->getNearbyPeople($user, $geohash4)
             : ['people' => [], 'total_nearby' => 0];
 
@@ -142,7 +142,7 @@ class DashboardAssembler
             $actionCenterItemsRaw,
         );
         // Pass the (empty) items to avoid getClearSummary re-querying all 11 sources.
-        $clearSummary = empty($actionCenterItems)
+        $clearSummary = $actionCenterItems === []
             ? app(ActionCenterService::class)->getClearSummary($user, [])
             : null;
 
@@ -151,7 +151,7 @@ class DashboardAssembler
 
         $geohash4 = $user->geohash4();
 
-        $nearbyNoteworthy = $geohash4
+        $nearbyNoteworthy = $geohash4 !== null
             ? $discoveryService->getNearbyNoteworthy($user, $geohash4)
             : [];
 
@@ -234,7 +234,7 @@ class DashboardAssembler
     private function getTrendingFeedItems(User $user): Collection
     {
         $location = $user->linkedLocation;
-        if (! $location || ! $location->latitude || ! $location->longitude) {
+        if ($location === null || $location->latitude === null || $location->longitude === null) {
             return collect();
         }
 
@@ -282,7 +282,7 @@ class DashboardAssembler
     private function getOpportunities(User $user): array
     {
         $location = $user->linkedLocation;
-        if (! $location || ! $location->latitude || ! $location->longitude) {
+        if ($location === null || $location->latitude === null || $location->longitude === null) {
             return ['games' => [], 'campaigns' => [], 'total_available' => 0];
         }
 

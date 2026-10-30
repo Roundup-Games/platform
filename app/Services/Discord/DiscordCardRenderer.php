@@ -96,7 +96,7 @@ class DiscordCardRenderer
         }
 
         $owner = $this->loadedOwner($game);
-        if ($owner) {
+        if ($owner !== null) {
             $embed['author'] = $this->author($owner, $context);
         }
 
@@ -164,7 +164,7 @@ class DiscordCardRenderer
     {
         $date = $game->date_time;
 
-        if (! $date) {
+        if ($date === null) {
             return null;
         }
 
@@ -380,7 +380,7 @@ class DiscordCardRenderer
     private function trustField(Game $game, ?string $locale = null): ?array
     {
         $owner = $this->loadedOwner($game);
-        if (! $owner) {
+        if ($owner === null) {
             return null;
         }
 
@@ -422,7 +422,7 @@ class DiscordCardRenderer
     private function venueField(Game $game, ?string $locale = null): ?array
     {
         $location = $this->loadedLocation($game);
-        if (! $location) {
+        if ($location === null) {
             return null;
         }
 
@@ -732,7 +732,7 @@ class DiscordCardRenderer
             return null;
         }
 
-        return filter_var($value, FILTER_VALIDATE_URL) ? $value : null;
+        return filter_var($value, FILTER_VALIDATE_URL) !== false ? $value : null;
     }
 
     private function intOrNull(mixed $value): ?int

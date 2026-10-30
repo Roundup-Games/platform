@@ -37,7 +37,7 @@ class VenueSearchService
             ->whereNotNull('longitude');
 
         // Text search on name and city
-        if ($query && trim($query) !== '') {
+        if ($query !== null && trim($query) !== '') {
             $escaped = $this->escapeLikePattern($query);
             $qb->where(function ($q) use ($escaped) {
                 $q->where('name', 'ILIKE', "%{$escaped}%")
@@ -47,7 +47,7 @@ class VenueSearchService
         }
 
         // Venue type filter
-        if ($venueType && VenueType::tryFrom($venueType)) {
+        if ($venueType !== null && VenueType::tryFrom($venueType) !== null) {
             $qb->where('venue_type', $venueType);
         }
 
@@ -75,7 +75,7 @@ class VenueSearchService
             ->whereBetween('latitude', [$bounds->minLat, $bounds->maxLat])
             ->whereBetween('longitude', [$bounds->minLng, $bounds->maxLng]);
 
-        if ($query && trim($query) !== '') {
+        if ($query !== null && trim($query) !== '') {
             $escaped = $this->escapeLikePattern($query);
             $innerQuery->where(function ($q) use ($escaped) {
                 $q->where('name', 'ILIKE', "%{$escaped}%")
@@ -84,7 +84,7 @@ class VenueSearchService
             });
         }
 
-        if ($venueType && VenueType::tryFrom($venueType)) {
+        if ($venueType !== null && VenueType::tryFrom($venueType) !== null) {
             $innerQuery->where('venue_type', $venueType);
         }
 

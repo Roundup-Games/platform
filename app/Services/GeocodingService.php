@@ -197,7 +197,7 @@ class GeocodingService
 
             $results = $response->json();
 
-            if (! is_array($results) || empty($results) || ! is_array($results[0] ?? null)) {
+            if (! is_array($results) || $results === [] || ! is_array($results[0] ?? null)) {
                 Log::info('Geocoding: no results found', ['address' => $address]);
 
                 return null;
@@ -271,7 +271,8 @@ class GeocodingService
     private function cacheKey(string $address, array $options = []): string
     {
         $normalized = mb_strtolower(trim($address));
-        $optionsHash = empty($options) ? '' : ':'.md5(json_encode($options) ?: '');
+        $encodedOptions = json_encode($options);
+        $optionsHash = $options === [] ? '' : ':'.md5($encodedOptions === false ? '' : $encodedOptions);
 
         return 'geocode:'.md5($normalized).$optionsHash;
     }

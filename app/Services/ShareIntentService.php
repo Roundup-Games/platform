@@ -83,7 +83,7 @@ class ShareIntentService
     {
         $game = Game::find($entityId);
 
-        if (! $game) {
+        if ($game === null) {
             Log::warning('share_intent.entity_not_found', [
                 'user_id' => $user->id, 'entity_type' => 'game', 'entity_id' => $entityId,
             ]);
@@ -108,7 +108,7 @@ class ShareIntentService
     {
         $campaign = Campaign::find($entityId);
 
-        if (! $campaign) {
+        if ($campaign === null) {
             Log::warning('share_intent.entity_not_found', [
                 'user_id' => $user->id, 'entity_type' => 'campaign', 'entity_id' => $entityId,
             ]);
@@ -149,7 +149,7 @@ class ShareIntentService
 
         $route = $entityType === 'game' ? 'games.show' : 'campaigns.show';
 
-        if (! $entity) {
+        if ($entity === null) {
             Log::warning('short_link_intent.entity_not_found', [
                 'user_id' => $user->id, 'entity_type' => $entityType,
                 'entity_id' => $shortLink->linkable_id,
@@ -210,7 +210,7 @@ class ShareIntentService
             ->whereBelongsTo($user)
             ->first();
 
-        if ($existing && $existing->status?->blocksRejoin()) {
+        if ($existing !== null && $existing->status?->blocksRejoin() === true) {
             Log::info('share_intent.already_participant', [
                 'user_id' => $user->id, 'entity_type' => $meta->type,
                 'entity_id' => $key, 'existing_status' => $existing->status->value ?? '',
@@ -219,7 +219,7 @@ class ShareIntentService
             return new ShareIntentResult(true, $route, entityId: $entityId);
         }
 
-        if ($existing) {
+        if ($existing !== null) {
             Log::info('share_intent.rejoin_after_departure', [
                 'user_id' => $user->id, 'entity_type' => $meta->type,
                 'entity_id' => $key,

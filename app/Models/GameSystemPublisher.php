@@ -23,7 +23,7 @@ class GameSystemPublisher extends Model
     protected static function booted(): void
     {
         static::creating(function (self $publisher) {
-            if (empty($publisher->slug)) {
+            if (blank($publisher->slug)) {
                 $publisher->slug = Str::slug($publisher->name);
             }
         });

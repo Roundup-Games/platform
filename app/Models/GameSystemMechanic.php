@@ -23,7 +23,7 @@ class GameSystemMechanic extends Model
     protected static function booted(): void
     {
         static::creating(function (self $mechanic) {
-            if (empty($mechanic->slug)) {
+            if (blank($mechanic->slug)) {
                 $mechanic->slug = Str::slug($mechanic->name);
             }
         });

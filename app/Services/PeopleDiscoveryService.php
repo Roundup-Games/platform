@@ -101,7 +101,7 @@ class PeopleDiscoveryService
 
         // Guard against stale cache entries that stored User models
         $firstItem = isset($cached[0]) && is_array($cached[0]) ? $cached[0] : null;
-        if ($firstItem && ! isset($firstItem['user_id'])) {
+        if ($firstItem !== null && ! isset($firstItem['user_id'])) {
             Log::warning('discovery.stale_cache_format', [
                 'viewer_id' => $viewer->id,
                 'cache_key' => $cacheKey,
@@ -168,7 +168,7 @@ class PeopleDiscoveryService
         // Phase 1 — Candidate retrieval via SQL (bounded)
         $candidateMeta = $this->retrieveCandidateIds($viewer, $viewerGeohash);
 
-        if (empty($candidateMeta)) {
+        if ($candidateMeta === []) {
             Cache::put($cacheKey, [], $ttl);
             $this->trackCacheKey((string) $viewer->id, $cacheKey, $ttl);
 
@@ -210,7 +210,7 @@ class PeopleDiscoveryService
                 continue;
             }
             $candidate = $candidateUsers->get($userId);
-            if (! $candidate) {
+            if ($candidate === null) {
                 continue;
             }
 
@@ -226,7 +226,7 @@ class PeopleDiscoveryService
 
             $meta = $candidateMeta[$userId] ?? null;
             $distanceKm = 0.0;
-            if ($meta) {
+            if ($meta !== null) {
                 // Canonical implementation (rounded to 2dp) — shared with
                 // venue/game proximity so distances are consistent at
                 // radius boundaries. See ProximityQuery.
@@ -384,7 +384,7 @@ class PeopleDiscoveryService
     private function supplementWithTasteCandidates(User $viewer, array $existing): array
     {
         $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->filter(fn (mixed $id) => is_string($id))->values()->all();
-        if (empty($viewerGameIds)) {
+        if ($viewerGameIds === []) {
             return $existing;
         }
 
@@ -393,7 +393,7 @@ class PeopleDiscoveryService
 
         $existingSql = '';
         $existingParams = [];
-        if (! empty($existingIds)) {
+        if ($existingIds !== []) {
             $existingPlaceholders = implode(',', array_fill(0, count($existingIds), '?'));
             $existingSql = "AND ugs.user_id NOT IN ({$existingPlaceholders})";
             $existingParams = $existingIds;
@@ -429,7 +429,7 @@ class PeopleDiscoveryService
 
         $newIds = array_map(fn (\stdClass $row) => $row->user_id, $tasteRows);
 
-        if (empty($newIds)) {
+        if ($newIds === []) {
             return $existing;
         }
 
@@ -471,7 +471,7 @@ class PeopleDiscoveryService
      */
     private function computeScores(User $viewer, array $candidateIds): array
     {
-        if (empty($candidateIds)) {
+        if ($candidateIds === []) {
             return [];
         }
 
@@ -519,7 +519,7 @@ class PeopleDiscoveryService
                 $matchReasons[] = 'shared_vibes';
             }
 
-            $tasteScore = ! empty($tasteComponents)
+            $tasteScore = $tasteComponents !== []
                 ? array_sum($tasteComponents) / count($tasteComponents)
                 : 0.0;
 
@@ -535,12 +535,12 @@ class PeopleDiscoveryService
                 $matchReasons[] = 'mutual_follow';
             }
 
-            $socialScore = ! empty($socialComponents)
+            $socialScore = $socialComponents !== []
                 ? array_sum($socialComponents) / count($socialComponents)
                 : 0.0;
 
-            $hasTaste = ! empty($tasteComponents);
-            $hasSocial = ! empty($socialComponents);
+            $hasTaste = $tasteComponents !== [];
+            $hasSocial = $socialComponents !== [];
 
             $compositeScore = 0.0;
             if ($hasTaste && $hasSocial) {
@@ -551,7 +551,7 @@ class PeopleDiscoveryService
                 $compositeScore = $socialScore;
             }
 
-            if (empty($matchReasons)) {
+            if ($matchReasons === []) {
                 $matchReasons[] = 'Nearby';
             }
 
@@ -598,7 +598,7 @@ class PeopleDiscoveryService
         $params = [];
 
         // Game systems JOIN
-        if (! empty($viewerGameIds)) {
+        if ($viewerGameIds !== []) {
             $gPh = implode(',', array_fill(0, count($viewerGameIds), '?'));
             $joins[] = "LEFT JOIN (
                 SELECT ug.user_id,
@@ -614,7 +614,7 @@ class PeopleDiscoveryService
         }
 
         // Vibes JOIN
-        if (! empty($viewerVibes)) {
+        if ($viewerVibes !== []) {
             $vPh = implode(',', array_fill(0, count($viewerVibes), '?'));
             $joins[] = "LEFT JOIN (
                 SELECT uv.user_id,
@@ -630,7 +630,7 @@ class PeopleDiscoveryService
         }
 
         // Teams JOIN
-        if (! empty($viewerTeamIds)) {
+        if ($viewerTeamIds !== []) {
             $tPh = implode(',', array_fill(0, count($viewerTeamIds), '?'));
             $joins[] = "LEFT JOIN (
                 SELECT tm.user_id,
@@ -704,41 +704,41 @@ class PeopleDiscoveryService
         $sharedVibes = is_numeric($v = $row['shared_vibes'] ?? null) ? (int) $v : 0;
         $candidateVibeCount = is_numeric($v = $row['candidate_vibe_count'] ?? null) ? (int) $v : 0;
 
-        if ($gameSystemsVisible && $sharedGames > 0 && ! empty($viewerGameIds)) {
+        if ($gameSystemsVisible && $sharedGames > 0 && $viewerGameIds !== []) {
             $union = count($viewerGameIds) + $candidateGameCount - $sharedGames;
             $tasteComponents[] = $union > 0 ? $sharedGames / $union : 0;
             $matchReasons[] = 'shared_game_systems';
         }
 
-        if ($vibesVisible && $sharedVibes > 0 && ! empty($viewerVibes)) {
+        if ($vibesVisible && $sharedVibes > 0 && $viewerVibes !== []) {
             $union = count($viewerVibes) + $candidateVibeCount - $sharedVibes;
             $tasteComponents[] = $union > 0 ? $sharedVibes / $union : 0;
             $matchReasons[] = 'shared_vibes';
         }
 
-        $tasteScore = ! empty($tasteComponents)
+        $tasteScore = $tasteComponents !== []
             ? array_sum($tasteComponents) / count($tasteComponents)
             : 0.0;
 
         $socialComponents = [];
 
         $sharedTeams = is_numeric($v = $row['shared_teams'] ?? null) ? (int) $v : 0;
-        if ($teamsVisible && $sharedTeams > 0 && ! empty($viewerTeamIds)) {
+        if ($teamsVisible && $sharedTeams > 0 && $viewerTeamIds !== []) {
             $socialComponents[] = min($sharedTeams / count($viewerTeamIds), 1.0);
             $matchReasons[] = 'shared_teams';
         }
 
-        if ($friendsListVisible && $row['mutual_follow']) {
+        if ($friendsListVisible && (bool) $row['mutual_follow']) {
             $socialComponents[] = 1.0;
             $matchReasons[] = 'mutual_follow';
         }
 
-        $socialScore = ! empty($socialComponents)
+        $socialScore = $socialComponents !== []
             ? array_sum($socialComponents) / count($socialComponents)
             : 0.0;
 
-        $hasTaste = ! empty($tasteComponents);
-        $hasSocial = ! empty($socialComponents);
+        $hasTaste = $tasteComponents !== [];
+        $hasSocial = $socialComponents !== [];
 
         $compositeScore = 0.0;
         if ($hasTaste && $hasSocial) {
@@ -749,7 +749,7 @@ class PeopleDiscoveryService
             $compositeScore = $socialScore;
         }
 
-        if (empty($matchReasons)) {
+        if ($matchReasons === []) {
             $matchReasons[] = 'Nearby';
         }
 
@@ -781,7 +781,7 @@ class PeopleDiscoveryService
             }
             $userId = $cachedItem['user_id'] ?? null;
             $user = $users->get(is_string($userId) ? $userId : null);
-            if (! $user) {
+            if ($user === null) {
                 return null;
             }
 

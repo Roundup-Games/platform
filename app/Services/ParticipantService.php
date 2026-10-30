@@ -64,7 +64,7 @@ class ParticipantService
             $userId = (string) $userId;
             $targetUser = User::find($userId);
 
-            if (! $targetUser) {
+            if ($targetUser === null) {
                 $skippedCount++;
                 Log::warning($meta->type.' invite skipped: user not found', [
                     $meta->foreignKey => $entity->id,
@@ -171,7 +171,7 @@ class ParticipantService
             fn (string $email): bool => $email !== ''
         )))->first();
 
-        if ($existingUser) {
+        if ($existingUser !== null) {
             return $this->inviteExistingUserByEmail($entity, $inviter, $existingUser, $normalizedEmail, $meta);
         }
 
@@ -248,7 +248,7 @@ class ParticipantService
             $duplicateQuery->where('invitee_email', $normalizedEmail);
         }
 
-        if ($duplicateQuery->first()) {
+        if ($duplicateQuery->first() !== null) {
             return ParticipantResult::fail('people.error_email_invite_already_sent');
         }
 

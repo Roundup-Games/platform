@@ -107,11 +107,11 @@ class AttendanceService
         }
 
         // Attendance window must be open
-        if ($game->attendance_window_opens_at && now()->lt($game->attendance_window_opens_at)) {
+        if ($game->attendance_window_opens_at !== null && now()->lt($game->attendance_window_opens_at)) {
             return ['success' => false, 'reason' => 'Attendance reporting window has not opened yet'];
         }
 
-        if ($game->attendance_window_closes_at && now()->gt($game->attendance_window_closes_at)) {
+        if ($game->attendance_window_closes_at !== null && now()->gt($game->attendance_window_closes_at)) {
             return ['success' => false, 'reason' => 'Attendance reporting window has closed'];
         }
 
@@ -122,7 +122,7 @@ class AttendanceService
             ->where('status', ParticipantStatus::Approved->value)
             ->first();
 
-        if (! $reporterParticipant) {
+        if ($reporterParticipant === null) {
             return ['success' => false, 'reason' => 'Reporter is not an approved participant in this game'];
         }
 
@@ -163,7 +163,7 @@ class AttendanceService
             $reportedId = $entry['reported_id'];
             $status = $entry['status'];
 
-            if (! $reportedId || ! $status) {
+            if ($reportedId === '' || $status === '') {
                 return ['success' => false, 'reason' => 'Each report must include reported_id and status'];
             }
 
@@ -182,7 +182,7 @@ class AttendanceService
             }
 
             // Host excused requires a reason
-            if ($status === AttendanceStatus::Excused->value && empty($entry['reason'])) {
+            if ($status === AttendanceStatus::Excused->value && ($entry['reason'] ?? '') === '') {
                 return ['success' => false, 'reason' => 'Excused reports must include a reason'];
             }
 
@@ -203,7 +203,7 @@ class AttendanceService
         // before we reach this filter.
         $reports = array_values(array_filter($reports, fn ($entry) => ! isset($alreadyReportedIds[$entry['reported_id']])));
 
-        if (empty($reports)) {
+        if ($reports === []) {
             return ['success' => false, 'reason' => 'No new reports to submit (all already reported)'];
         }
 
@@ -252,7 +252,7 @@ class AttendanceService
 
             foreach ($reports as $entry) {
                 $reportedUser = $usersById[$entry['reported_id']] ?? null;
-                if ($reportedUser) {
+                if ($reportedUser !== null) {
                     $report = ($freshReports[$entry['reported_id']] ?? collect())->last();
 
                     if ($report) {
@@ -467,7 +467,7 @@ class AttendanceService
                 'quarantined' => false,
             ]);
 
-            if ($hostParticipant) {
+            if ($hostParticipant !== null) {
                 $hostParticipant->forceFill([
                     'attendance_status' => AttendanceStatus::LateCancel->value,
                     'attendance_reported_at' => now(),
@@ -482,7 +482,7 @@ class AttendanceService
                 ]);
 
                 $host = User::find($game->owner_id);
-                if ($host) {
+                if ($host !== null) {
                     $result = $this->reliabilityService->computeScore($host);
                     $host->forceFill([
                         'reliability_score' => [
@@ -507,7 +507,7 @@ class AttendanceService
         // Forward the host late-cancel outcome to reliability analytics. Only
         // when a participant record exists — the else-branch above has no
         // participant, in which case the reliability score alone was recomputed.
-        if ($hostParticipant) {
+        if ($hostParticipant !== null) {
             app(PostHogAnalytics::class)->captureAttendanceOutcome(
                 $hostParticipant,
                 AttendanceStatus::LateCancel,
@@ -657,7 +657,7 @@ class AttendanceService
         }
 
         // Validate: reason is required
-        if (empty(trim($reason))) {
+        if (trim($reason) === '') {
             return ['success' => false, 'reason' => 'A reason for the dispute is required'];
         }
 
@@ -706,7 +706,7 @@ class AttendanceService
 
             // Apply attendance-dispute tag
             $tag = Tag::where('name', 'attendance-dispute')->first();
-            if ($tag) {
+            if ($tag !== null) {
                 $ticket->tags()->syncWithoutDetaching($tag);
             }
 

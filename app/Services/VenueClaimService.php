@@ -62,7 +62,7 @@ class VenueClaimService
     {
         $department = Department::where('name', 'Events')->first();
 
-        if (! $department) {
+        if ($department === null) {
             Log::error('venue_claim.events_department_missing');
             throw new \RuntimeException('Events department is not configured.');
         }
@@ -151,7 +151,7 @@ class VenueClaimService
             // managed_by = null and both write (last-write-wins). Held within
             // this transaction until commit, mirroring the ticket lock above.
             $location = Location::lockForUpdate()->find($locationId);
-            if (! $location) {
+            if ($location === null) {
                 throw new \RuntimeException('Target location no longer exists.');
             }
 
@@ -163,7 +163,7 @@ class VenueClaimService
             $location->managed_by = $claimantId;
 
             // Defensive slug backfill for the managed-but-unverified edge (T01).
-            if (! $location->slug) {
+            if ($location->slug === null || $location->slug === '') {
                 $location->slug = Location::generateUniqueSlug((string) $location->name, $location->id);
             }
 
@@ -171,7 +171,7 @@ class VenueClaimService
 
             $admin = $this->actingUser();
             $note = "Venue claim approved. {$location->name} (ID: {$location->id}) is now managed by user {$claimantId}.";
-            if ($admin) {
+            if ($admin !== null) {
                 $this->ticketService->addNote($lockedTicket, $admin, $note);
                 $this->ticketService->resolve($lockedTicket, $admin);
             } else {
@@ -212,7 +212,7 @@ class VenueClaimService
         $admin = $this->actingUser();
         $body = "Venue claim rejected: {$reason}";
 
-        if ($admin) {
+        if ($admin !== null) {
             $this->ticketService->reply($lockedTicket, $admin, $body);
             $this->ticketService->addNote($lockedTicket, $admin, "Venue claim rejected. Reason: {$reason}");
             $this->ticketService->resolve($lockedTicket, $admin);
@@ -253,7 +253,7 @@ class VenueClaimService
 
         $department = $ticket->department;
 
-        return $department && $department->name === 'Events';
+        return $department !== null && $department->name === 'Events';
     }
 
     /**
@@ -305,18 +305,18 @@ class VenueClaimService
             $lines[] = '**City:** '.$city;
         }
 
-        if (! empty($data['website_url']) && is_string($data['website_url'])) {
+        if (is_string($data['website_url'] ?? null) && $data['website_url'] !== '') {
             $lines[] = '**Website:** '.$data['website_url'];
         }
 
-        if (! empty($data['contact_email']) && is_string($data['contact_email'])) {
+        if (is_string($data['contact_email'] ?? null) && $data['contact_email'] !== '') {
             $lines[] = '**Contact email:** '.$data['contact_email'];
         }
 
         $lines[] = '';
 
         $notes = $data['claimant_notes'] ?? null;
-        if (! empty($notes) && is_string($notes)) {
+        if (is_string($notes) && $notes !== '') {
             $lines[] = '**Why I should manage this venue:**';
             $lines[] = $notes;
         } else {

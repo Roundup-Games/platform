@@ -195,7 +195,7 @@ class PostHogExceptionReporter
         try {
             $user = Auth::user();
 
-            if ($user) {
+            if ($user !== null) {
                 $authId = $user->getAuthIdentifier();
 
                 return to_string_id($authId);
@@ -204,12 +204,12 @@ class PostHogExceptionReporter
             // Anonymous — use a random UUID stored in the session.
             // Generated once per session, reused across requests for grouping.
             // No PII (IP, UA) is used as input — purely random identifier.
-            if (! $anonId = session('posthog_anon_id')) {
+            if (! is_string($anonId = session('posthog_anon_id')) || $anonId === '') {
                 $anonId = (string) Str::uuid();
                 session(['posthog_anon_id' => $anonId]);
             }
 
-            return 'anon:'.substr(is_string($anonId) ? $anonId : '', 0, 16);
+            return 'anon:'.substr($anonId, 0, 16);
         } catch (Throwable) {
             // With SESSION_DRIVER=database the auth guard and session read hit
             // Postgres. During a database outage — exactly when we report it —
@@ -286,11 +286,11 @@ class PostHogExceptionReporter
      */
     public function scrubRequestPath(string $path): string
     {
-        if (preg_match('#^(link|reset-password|invite-optout)/[^/]+#', $path, $m)) {
+        if (preg_match('#^(link|reset-password|invite-optout)/[^/]+#', $path, $m) === 1) {
             return $m[1].'/*';
         }
 
-        if (preg_match('#^verify-email/[^/]+/[^/]+#', $path)) {
+        if (preg_match('#^verify-email/[^/]+/[^/]+#', $path) === 1) {
             return 'verify-email/*/*';
         }
 

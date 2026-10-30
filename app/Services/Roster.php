@@ -111,7 +111,7 @@ class Roster
             ->get();
 
         $ownerBenched = $benched->first(fn ($p) => $p->role === ParticipantRole::Owner);
-        if ($ownerBenched) {
+        if ($ownerBenched !== null) {
             Log::warning('bench.cancel_found_owner_benched: data integrity issue', [
                 'entity_id' => $entity->id,
                 'owner_participant_id' => $ownerBenched->id,
@@ -147,7 +147,7 @@ class Roster
      */
     private function notifyIfBelowMinPlayers(Game|Campaign $entity): void
     {
-        if (! $entity->min_players) {
+        if ($entity->min_players === null || $entity->min_players === 0) {
             return;
         }
 

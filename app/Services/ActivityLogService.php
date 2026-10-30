@@ -68,7 +68,7 @@ class ActivityLogService
                 'subject_type' => $subject?->getMorphClass(),
                 'subject_id' => $subject?->getKey(),
                 'event_type' => $type,
-                'properties' => ! empty($properties) ? $properties : null,
+                'properties' => $properties !== [] ? $properties : null,
                 'created_at' => now(),
             ]);
 
@@ -103,7 +103,7 @@ class ActivityLogService
     ): void {
         $userIds = $this->getParticipantUserIds($subject);
 
-        if (empty($userIds)) {
+        if ($userIds === []) {
             return;
         }
 
@@ -114,7 +114,7 @@ class ActivityLogService
             'subject_type' => $subject->getMorphClass(),
             'subject_id' => $subject->getKey(),
             'event_type' => $type->value,
-            'properties' => ! empty($properties) ? json_encode($properties) : null,
+            'properties' => $properties !== [] ? json_encode($properties) : null,
             'created_at' => $now,
         ], $userIds);
 
@@ -162,7 +162,7 @@ class ActivityLogService
             $owner = $subject->owner;
         }
 
-        if ($owner) {
+        if ($owner !== null) {
             $this->forwardToPostHog($type, $owner, $subject, $properties);
         }
     }

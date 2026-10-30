@@ -554,7 +554,7 @@ class ParticipantLifecycle
             ->where('status', 'pending')
             ->first();
 
-        if (! $pendingApplication) {
+        if ($pendingApplication === null) {
             return ParticipantResult::fail('common.error_participant_not_applicant');
         }
 
@@ -638,7 +638,7 @@ class ParticipantLifecycle
         // Matching-quality funnel: the host approved this application.
         // time_to_decision measures how quickly hosts respond — a key
         // supply-side health metric (slow approvals → player attrition).
-        $timeToDecision = $pendingApplication->created_at
+        $timeToDecision = $pendingApplication->created_at !== null
             ? (int) round(now()->diffInSeconds($pendingApplication->created_at) / 3600)
             : null;
 
@@ -650,7 +650,7 @@ class ParticipantLifecycle
         // Notify applicant
         try {
             $applicant = User::find($participant->getUserId());
-            if ($applicant) {
+            if ($applicant !== null) {
                 $this->notificationService->send(
                     $applicant,
                     new ApplicationApproved($entity, strtolower($meta->type), $approver),
@@ -709,7 +709,7 @@ class ParticipantLifecycle
         // Notify applicant
         try {
             $applicant = User::find($rejectedUserId);
-            if ($applicant) {
+            if ($applicant !== null) {
                 $this->notificationService->send(
                     $applicant,
                     new ApplicationRejected($entity, strtolower($meta->type), $rejecter),
@@ -806,7 +806,7 @@ class ParticipantLifecycle
         );
 
         try {
-            if ($removedUser) {
+            if ($removedUser !== null) {
                 $this->notificationService->send(
                     $removedUser,
                     new ParticipantRemoved($removedUser, $entity, strtolower($meta->type)),
@@ -840,8 +840,8 @@ class ParticipantLifecycle
         Log::info($meta->type.' invite cancelled', [
             $meta->foreignKey => $entityId,
             'user_id' => $participant->getUserId(),
-            'invitee_email_hash' => $participant->getInviteeEmail()
-                ? SuppressedInviteEmail::hashEmail($participant->getInviteeEmail())
+            'invitee_email_hash' => ($inviteeEmail = $participant->getInviteeEmail()) !== null && $inviteeEmail !== ''
+                ? SuppressedInviteEmail::hashEmail($inviteeEmail)
                 : null,
             'cancelled_by' => $canceller->id,
         ]);
@@ -865,7 +865,7 @@ class ParticipantLifecycle
 
         // Guard: entity must not be cancelled/canceled or completed
         $inactiveStatuses = ['canceled', 'cancelled', 'completed'];
-        if ($entity->status && in_array($entity->status->value, $inactiveStatuses, true)) {
+        if ($entity->status !== null && in_array($entity->status->value, $inactiveStatuses, true)) {
             return ParticipantResult::fail('people.error_listing_no_longer_available');
         }
 
@@ -892,7 +892,7 @@ class ParticipantLifecycle
             // Re-check entity availability inside the lock — a concurrent
             // cancellation/completion can land between the pre-transaction guard
             // and lock acquisition.
-            if ($lockedEntity->status && in_array($lockedEntity->status->value, $inactiveStatuses, true)) {
+            if ($lockedEntity->status !== null && in_array($lockedEntity->status->value, $inactiveStatuses, true)) {
                 return 'inactive';
             }
 
@@ -995,7 +995,7 @@ class ParticipantLifecycle
     {
         try {
             $owner = User::find((string) $entity->owner_id);
-            if ($owner && $owner->isNot($acceptingUser)) {
+            if ($owner !== null && $owner->isNot($acceptingUser)) {
                 $this->notificationService->send(
                     $owner,
                     new ParticipantJoined($acceptingUser, $entity, strtolower($meta->type)),

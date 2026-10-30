@@ -73,7 +73,7 @@ class SessionZeroConfirmation extends Model
     protected static function booted(): void
     {
         static::creating(function (self $confirmation) {
-            if (empty($confirmation->confirmed_at)) {
+            if ($confirmation->confirmed_at === null) {
                 $confirmation->confirmed_at = now();
             }
         });

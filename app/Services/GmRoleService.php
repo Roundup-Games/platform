@@ -37,7 +37,7 @@ class GmRoleService
             ->orderBy('price_cents')
             ->first();
 
-        if (! $gmPlan) {
+        if ($gmPlan === null) {
             Log::error('GM plan not found in membership_types. Ensure MembershipTypeSeeder has been run.');
 
             return false;
@@ -200,7 +200,7 @@ class GmRoleService
             $user->save();
 
             $profile = $user->gmProfile;
-            if ($profile && $profile->is_active) {
+            if ($profile !== null && $profile->is_active) {
                 $profile->is_active = false;
                 $profile->save();
             }

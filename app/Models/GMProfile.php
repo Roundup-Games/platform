@@ -57,7 +57,7 @@ class GMProfile extends Model
     protected static function booted(): void
     {
         static::creating(function (self $profile) {
-            if (empty($profile->slug)) {
+            if (blank($profile->slug)) {
                 $name = $profile->user->name ?? 'gm';
                 $profile->slug = Str::slug($name).'-'.Str::random(6);
             }

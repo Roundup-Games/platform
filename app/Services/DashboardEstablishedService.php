@@ -103,7 +103,7 @@ class DashboardEstablishedService
             ->first();
 
         $campaignData = null;
-        if ($longestCampaign && $longestCampaign->completed_games_count > 0) {
+        if ($longestCampaign !== null && $longestCampaign->completed_games_count > 0) {
             $campaignData = [
                 'name' => $longestCampaign->name,
                 'session_count' => $longestCampaign->completed_games_count,
@@ -164,7 +164,7 @@ class DashboardEstablishedService
         $preferredSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')->toArray();
 
         // Early return if user has no preferences
-        if (empty($preferredSystemIds)) {
+        if ($preferredSystemIds === []) {
             return [
                 'games' => [],
                 'campaigns' => [],
@@ -196,8 +196,8 @@ class DashboardEstablishedService
 
         // Score each game
         $userLocation = $user->linkedLocation;
-        $userLat = $userLocation?->latitude ? (float) $userLocation->latitude : null;
-        $userLng = $userLocation?->longitude ? (float) $userLocation->longitude : null;
+        $userLat = $userLocation?->latitude !== null ? (float) $userLocation->latitude : null;
+        $userLng = $userLocation?->longitude !== null ? (float) $userLocation->longitude : null;
 
         $scoredGames = $games->map(function ($game) use ($userLat, $userLng) {
             $spotsAvailable = (int) ($game->max_players ?? 0) - (int) ($game->participant_count ?? 0);
@@ -205,7 +205,7 @@ class DashboardEstablishedService
             // Proximity score (0-40): closer is better
             $proximityScore = 0;
             $distance = null;
-            if ($userLat !== null && $userLng !== null && $game->linkedLocation) {
+            if ($userLat !== null && $userLng !== null && $game->linkedLocation !== null) {
                 $distance = ProximityQuery::haversineDistance(
                     $userLat,
                     $userLng,
@@ -289,7 +289,7 @@ class DashboardEstablishedService
         $campaignResults = $campaigns->map(function ($campaign) {
             $participantCount = $campaign->approved_participant_count; // Owner counted naturally
 
-            $spotsAvailable = $campaign->max_players
+            $spotsAvailable = $campaign->max_players !== null
                 ? max(0, $campaign->max_players - (int) $participantCount)
                 : null;
 
@@ -396,7 +396,7 @@ class DashboardEstablishedService
                 'is_hosting' => $isHosting,
                 'player_count' => $playerCount,
                 'needs_recap' => $isPast && $game->campaign_id !== null && ! $game->has_recap_entry && $isHosting,
-                'needs_attendance' => $isPast && ! $isHosting && $userParticipant && $userParticipant->attendance_status === null,
+                'needs_attendance' => $isPast && ! $isHosting && $userParticipant !== null && $userParticipant->attendance_status === null,
             ];
 
             $dateKey = $game->date_time->format('Y-m-d');
@@ -442,7 +442,7 @@ class DashboardEstablishedService
             ->values()
             ->toArray();
 
-        if (empty($socialCircleIds)) {
+        if ($socialCircleIds === []) {
             return [
                 'items' => [],
                 'source' => 'friends',

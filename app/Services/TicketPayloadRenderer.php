@@ -134,7 +134,7 @@ class TicketPayloadRenderer
         $payload['report_reason'] = $reason;
         $payload['reporter_id'] = $reporter->id;
 
-        if ($entityOwnerName) {
+        if ($entityOwnerName !== null && $entityOwnerName !== '') {
             $payload['context'] = ['entity_owner' => $entityOwnerName];
         }
 
@@ -226,7 +226,7 @@ class TicketPayloadRenderer
         $payload['user_id'] = $user->id;
         $payload['issue_type'] = $issueType;
 
-        if ($subscriptionContext) {
+        if ($subscriptionContext !== null) {
             $payload['context'] = $subscriptionContext;
             // Merge subscription flat keys
             $payload['has_subscription'] = $subscriptionContext['has_subscription'] ?? false;
@@ -234,7 +234,7 @@ class TicketPayloadRenderer
             $payload['paddle_subscription_id'] = $subscriptionContext['paddle_subscription_id'] ?? null;
         }
 
-        if ($user->paddle_id) {
+        if ($user->paddle_id !== null) {
             $payload['paddle_customer_id'] = $user->paddle_id;
         }
 
@@ -326,7 +326,7 @@ class TicketPayloadRenderer
     {
         $metadata = $ticket->metadata;
 
-        if (! is_array($metadata) || empty($metadata)) {
+        if (! is_array($metadata) || $metadata === []) {
             return null;
         }
 
@@ -413,7 +413,7 @@ class TicketPayloadRenderer
         if ($ticketType === 'review_report' && isset($metadata['review_id'])) {
             $reviewAuthor = User::find($metadata['review_author_id'] ?? null);
 
-            if (! $reviewAuthor) {
+            if ($reviewAuthor === null) {
                 return [];
             }
 
@@ -510,7 +510,7 @@ class TicketPayloadRenderer
                 'action' => 'request',
                 'entities' => [],
                 'reason' => 'game_system_request',
-                'details' => $ticket->description ?: null,
+                'details' => $ticket->description !== null && $ticket->description !== '' ? $ticket->description : null,
                 'game_system_name' => trim($name),
                 'bgg_url' => $gsMeta['bgg_url'] ?? null,
                 'publisher' => $gsMeta['publisher'] ?? null,

@@ -323,9 +323,9 @@ class LocationDriftService
         $total = count($flaggedIds);
         $detail = collect($byReason)->map(fn (int $c, string $r) => "{$r}: {$c}")->implode(', ');
         if ($refreshGeocode) {
-            $detail .= ($detail ? '; ' : '')."geocode_refresh_run: {$refreshed}";
+            $detail .= ($detail !== '' ? '; ' : '')."geocode_refresh_run: {$refreshed}";
         }
-        $detail = $detail ?: 'none';
+        $detail = $detail !== '' ? $detail : 'none';
 
         return $this->report(
             'stale_geocode',
