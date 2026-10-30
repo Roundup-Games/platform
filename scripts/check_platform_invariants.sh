@@ -45,6 +45,14 @@
 #   INV-14 country intake         -> country fields use CountrySelect /
 #                                 App\Support\Country (ISO 3166-1
 #                                 alpha-3), never free-text inputs
+#   INV-16 discovery interface     -> DiscoveryQueryService's public surface
+#                                 is the D251/D254 contract (results/curated,
+#                                 getRecommendations, the two builders, the
+#                                 three test-contract helpers) and the only
+#                                 external builder consumer is the landing
+#                                 service — new feed features enter through
+#                                 results()/curated(), never new public
+#                                 methods or page-local pipelines
 #   INV-15 participant writes     -> game_participants/campaign_participants
 #                                 creation + status writes live only in
 #                                 sanctioned modules (D161 rule-of-one):
@@ -320,6 +328,31 @@ if [ -z "$raw_status_files" ]; then
     pass "INV-15 participant status not written as bare strings"
 else
     fail "INV-15 bare-string participant status write in:$raw_status_files. Use ParticipantStatus enum values — sanctioned lifecycle services never write raw strings."
+fi
+
+# --- INV-16: DiscoveryQueryService interface contract (D251/D254) -----------
+# The discovery module's whole point (M072/S03) is that feed policy lives in
+# one pipeline: a caller of a raw builder silently misses everything around
+# it (mode constraints, MERGE_HYDRATION_CAP, merge-key ordering, gathering
+# cap, merge/pagination) — the drift class S03 removed. Two tripwires:
+#   (a) the public method set is exactly the recorded contract — widening it
+#       needs a decision (D251/D254) in the same change;
+#   (b) the five seam methods' only external app/ consumer is the landing
+#       service's buildGamesQuery ride (D250) — a second consumer is a
+#       routing decision: route through results()/curated() or record it.
+dqs_public=$(grep -oE 'public (static )?function [A-Za-z_]+' app/Services/DiscoveryQueryService.php | awk '{print $NF}' | grep -v '^__construct$' | sort -u)
+expected_dqs=$'applyGatheringCap\nbuildCampaignsQuery\nbuildGamesQuery\ncurated\ngetProximityCampaignDistances\ngetRecommendations\norderCampaignsByMergeKey\nresults'
+if [ "$dqs_public" = "$expected_dqs" ]; then
+    pass "INV-16 DiscoveryQueryService public surface matches the D251/D254 contract"
+else
+    fail "INV-16 DiscoveryQueryService public surface drifted (D251/D254). Expected exactly: applyGatheringCap, buildCampaignsQuery, buildGamesQuery, curated, getProximityCampaignDistances, getRecommendations, orderCampaignsByMergeKey, results. Found: $(echo "$dqs_public" | tr '\n' ' '). New feed features enter through results()/curated() — or record the widening as a decision in the same change."
+fi
+dqs_callers=$(grep -rnE -e "->(buildGamesQuery|buildCampaignsQuery|applyGatheringCap|getProximityCampaignDistances|orderCampaignsByMergeKey)\(" app/ --include='*.php' 2>/dev/null | grep -v 'app/Services/DiscoveryQueryService.php' | cut -d: -f1 | sort -u)
+expected_dqs_callers=$'app/Services/GameSystemLandingService.php'
+if [ "$dqs_callers" = "$expected_dqs_callers" ]; then
+    pass "INV-16 discovery seam methods consumed externally only by the landing service"
+else
+    fail "INV-16 discovery seam methods have callers outside the contract: $(echo "$dqs_callers" | tr '\n' ' '). A second builder consumer bypasses mode scoping, the hydration cap, and merge ordering — route through results()/curated() or record the exception as a decision in the same change."
 fi
 
 # --- Summary ----------------------------------------------------------------
